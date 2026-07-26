@@ -19,25 +19,14 @@
           </div>
         </div>
         <p v-if="allPages.length === 0" class="system-muted-copy">No pages found.</p>
-      </div>
 
-      <!-- Services -->
-      <div v-else-if="currentTab === 'services'" class="system-panel">
-        <h3 class="surface__panel-title">Services</h3>
-        <p class="system-muted-copy">System daemon and infrastructure health.</p>
-        <div v-if="loadingServices" class="system-loading">Probing services...</div>
-        <div v-else class="system-services-summary">
-          <span class="system-stat system-stat--up">{{ servicesSummary.up }} up</span>
-          <span class="system-stat system-stat--degraded">{{ servicesSummary.degraded }} degraded</span>
-          <span class="system-stat system-stat--down">{{ servicesSummary.down }} down</span>
-          <span class="system-stat system-stat--pct">{{ servicesSummary.healthPct }}% healthy</span>
-        </div>
-        <div class="system-services-list">
-          <div v-for="svc in services" :key="svc.name" class="system-service-row">
-            <span class="system-service-dot" :class="'system-service-dot--' + svc.status" />
-            <span class="system-service-name">{{ svc.name }}</span>
-            <span class="system-service-desc">{{ svc.description }}</span>
-            <UBadge :type="svc.status === 'up' ? 'success' : svc.status === 'degraded' ? 'warning' : 'error'" size="sm">{{ svc.status }}</UBadge>
+        <div class="system-runtime-redirect surface__panel">
+          <h4 class="system-section-title">Runtime Operations</h4>
+          <p class="system-muted-copy">Live runtime diagnostics have moved to Server.</p>
+          <div class="system-runtime-actions">
+            <button class="system-action-btn" @click="goTo('/server?tab=dashboard')">Open Server Dashboard</button>
+            <button class="system-action-btn" @click="goTo('/server?tab=services')">Open Server Services</button>
+            <button class="system-action-btn" @click="goTo('/server?tab=snacks')">Open Server Snacks</button>
           </div>
         </div>
       </div>
@@ -134,7 +123,6 @@ import type { TabDef } from '../../skills/molecules/SurfaceTabNav.vue'
 
 export const SYSTEM_TABS: TabDef[] = [
   { id: 'pages', label: 'Pages', icon: 'dashboard' },
-  { id: 'services', label: 'Services', icon: 'dns' },
   { id: 'variables', label: 'Variables', icon: 'tune' },
   { id: 'secrets', label: 'Secrets', icon: 'key' },
   { id: 'global-settings', label: 'Global', icon: 'settings' },
@@ -155,8 +143,10 @@ const API_BASE = SNACKBAR_BASE
 const route = useRoute()
 const router = useRouter()
 const shell = useShellStore()
+const VALID_SYSTEM_TABS = new Set(SYSTEM_TABS.map(tab => tab.id))
 
-const activeTab = ref((route.query.tab as string) || 'pages')
+const routeTab = String(route.query.tab || '')
+const activeTab = ref(VALID_SYSTEM_TABS.has(routeTab) ? routeTab : 'pages')
 const currentTab = computed(() => activeTab.value)
 
 // ── Pages ────────────────────────────────────────────────────────
@@ -176,16 +166,9 @@ function navigateToPage(pageId: string) {
   router.push(`/system/${pageId.toLowerCase()}`)
 }
 
-// ── Services ─────────────────────────────────────────────────────
-interface ServiceItem { name: string; status: string; description: string; port: number; type: string }
-const services = ref<ServiceItem[]>([])
-const loadingServices = ref(true)
-const servicesSummary = computed(() => {
-  const up = services.value.filter(s => s.status === 'up').length
-  const degraded = services.value.filter(s => s.status === 'degraded').length
-  const down = services.value.filter(s => s.status === 'down').length
-  return { up, degraded, down, healthPct: Math.round((up / Math.max(services.value.length, 1)) * 100) }
-})
+function goTo(path: string) {
+  router.push(path)
+}
 
 // ── Variables ────────────────────────────────────────────────────
 const loadingVars = ref(true)
@@ -309,24 +292,6 @@ async function fetchPages() {
   allPages.value = LOCAL_FALLBACK_PAGES
 }
 
-async function fetchServices() {
-  loadingServices.value = true
-  try {
-    const res = await fetch(`${API_BASE}/api/system/services`, { signal: AbortSignal.timeout(5000) })
-    if (res.ok) {
-      const data = await res.json()
-      services.value = (data.services || []).map((s: any) => ({
-        name: s.name,
-        status: s.status,
-        description: s.description || '',
-        port: s.port || 0,
-        type: s.type || 'system',
-      }))
-    }
-  } catch {}
-  loadingServices.value = false
-}
-
 async function fetchVariables() {
   loadingVars.value = true
   try {
@@ -376,8 +341,10 @@ async function loadSettings() {
 }
 
 onMounted(() => {
+  if (!VALID_SYSTEM_TABS.has(routeTab) && routeTab) {
+    router.replace({ path: '/system', query: { ...route.query, tab: 'pages' } })
+  }
   fetchPages()
-  fetchServices()
   fetchVariables()
   fetchSecrets()
   loadSettings()
@@ -403,22 +370,8 @@ watch(userSettings, (v) => { try { localStorage.setItem('ucore-user-settings', J
 .system-page-id { font-size: var(--usx-font-size-sm); font-weight: var(--usx-font-weight-semibold); color: var(--usx-color-primary); }
 .system-page-title { font-size: var(--usx-font-size-sm); text-align: center; overflow-wrap: anywhere; }
 
-/* Services */
-.system-services-summary { display: flex; gap: var(--usx-spacing-md); margin-bottom: var(--usx-spacing-md); }
-.system-stat { font-size: var(--usx-font-size-sm); font-weight: var(--usx-font-weight-medium); padding: var(--usx-spacing-xs) var(--usx-spacing-sm); border-radius: var(--usx-radius-sm); }
-.system-stat--up { color: var(--usx-color-success); background: rgba(76, 175, 80, 0.1); }
-.system-stat--degraded { color: var(--usx-color-warning); background: rgba(255, 152, 0, 0.1); }
-.system-stat--down { color: var(--usx-color-danger); background: rgba(244, 67, 54, 0.1); }
-.system-stat--pct { color: var(--usx-color-on-surface-muted); background: var(--usx-color-background); }
-
-.system-services-list { display: flex; flex-direction: column; gap: var(--usx-spacing-xs); }
-.system-service-row { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-sm); background: var(--usx-color-background); border-radius: var(--usx-radius-md); }
-.system-service-dot { width: var(--usx-spacing-sm); height: var(--usx-spacing-sm); border-radius: 50%; flex-shrink: 0; }
-.system-service-dot--up { background: var(--usx-color-success); }
-.system-service-dot--degraded { background: var(--usx-color-warning); }
-.system-service-dot--down { background: var(--usx-color-danger); }
-.system-service-name { font-size: var(--usx-font-size-sm); font-weight: var(--usx-font-weight-medium); min-width: 10ch; }
-.system-service-desc { font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); flex: 1; }
+.system-runtime-redirect { margin-top: var(--usx-spacing-lg); }
+.system-runtime-actions { display: flex; flex-wrap: wrap; gap: var(--usx-spacing-sm); }
 
 /* Variables */
 .system-vars-list { display: flex; flex-direction: column; gap: var(--usx-spacing-xs); margin-bottom: var(--usx-spacing-md); }
