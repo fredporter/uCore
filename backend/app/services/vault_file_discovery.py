@@ -1,7 +1,9 @@
 """vault_file_discovery — File discovery engine for uihub Filepicker.
 
-Discovers and indexes files from all vault layers (User, Shared, Global, Code, Public)
+Discovers and indexes files from all vault types (User, Shared, Public)
 for the unified filepicker sidebar.
+
+Note: ~/Code/ is NOT a vault — it is the Developer Lane codebase.
 
 Spec: docs/UIHUB_FILEPICKER_SPEC.md
 """
@@ -15,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 
-# ─── Types ──────────────────────────────────────────────────────────
+# Types --------------------------------------------------------------
 @dataclass
 class FileEntry:
     path: str
@@ -37,26 +39,24 @@ class FileEntry:
     preview: str = ""
 
 
-# ─── Vault Paths ─────────────────────────────────────────────────────
-# Confirmed topology (see docs/MCP_VAULT_ALIGNMENT_ASSESSMENT.md):
-#   user   → ~/Vault/                    (one personal vault)
-#   shared → ~/Shared/                   (many shared vaults)
-#   global → ~/Public/global-knowledge/  (global knowledge bank)
-#   public → ~/Public/doc-sites/         (published vaults)
-#   code   → ~/Code/                     (dev repos)
+# Vault Paths — 3 vault types only (see backend/app/api/vault_api.py)
 VAULT_PATHS = {
     "user": Path("~/Vault/").expanduser(),
     "shared": Path("~/Shared/").expanduser(),
-    "global": Path("~/Public/global-knowledge/").expanduser(),
-    "code": Path("~/Code/").expanduser(),
-    "public": Path("~/Public/doc-sites/").expanduser(),
+    "public": Path("~/Public/").expanduser(),
 }
 
-SUPPORTED_EXTENSIONS = {".md", ".yaml", ".yml", ".json", ".txt", ".csv"}
-EXCLUDE_DIRS = {".git", "node_modules", "__pycache__", ".next", ".obsidian", ".vscode"}
+SUPPORTED_EXTENSIONS = {
+    ".md", ".yaml", ".yml", ".json", ".txt", ".csv",
+}
+EXCLUDE_DIRS = {
+    ".git", "node_modules", "__pycache__", ".next",
+    ".obsidian", ".vscode",
+}
 
 
-# ─── Frontmatter Parser ───────────────────────────────────────────────
+# Frontmatter Parser -------------------------------------------------
+
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
 
@@ -75,9 +75,7 @@ def parse_frontmatter(content: str) -> dict[str, Any]:
 
 def get_preview(content: str, max_chars: int = 200) -> str:
     """Get preview text from file content."""
-    # Remove frontmatter if present
     clean = FRONTMATTER_RE.sub("", content)
-    # Get first paragraph
     lines = clean.split("\n")
     preview_lines = []
     for line in lines:
@@ -88,7 +86,8 @@ def get_preview(content: str, max_chars: int = 200) -> str:
     return "\n".join(preview_lines)[:max_chars]
 
 
-# ─── File Discovery ───────────────────────────────────────────────────
+# File Discovery -----------------------------------------------------
+
 def discover_files(
     source: str = "all",
     vault_paths: dict[str, Path] | None = None,
@@ -116,13 +115,11 @@ def _scan_directory(path: Path, source: str) -> list[FileEntry]:
         return entries
 
     for root, dirs, files in os.walk(path):
-        # Skip excluded directories
         dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
 
         for file in files:
             file_path = Path(root) / file
 
-            # Only process supported file types
             ext = file_path.suffix.lower()
             if ext not in SUPPORTED_EXTENSIONS:
                 continue
@@ -137,7 +134,9 @@ def _create_entry(file_path: Path, source: str) -> FileEntry:
     """Create FileEntry from file path."""
     try:
         stat = file_path.stat()
-        content = file_path.read_text(encoding="utf-8", errors="replace")
+        content = file_path.read_text(
+            encoding="utf-8", errors="replace",
+        )
     except Exception:
         return FileEntry(
             path=str(file_path),
@@ -153,14 +152,13 @@ def _create_entry(file_path: Path, source: str) -> FileEntry:
     binder = frontmatter.get("binder")
     mission = frontmatter.get("mission")
 
-    # Determine source layer
-    source_layer = {
+    # Determine source layer label (3 types only)
+    source_layer_map = {
         "user": "User",
         "shared": "Shared",
-        "global": "Global",
-        "code": "Code",
         "public": "Public",
-    }.get(source, "Unknown")
+    }
+    source_layer = source_layer_map.get(source, "Unknown")
 
     return FileEntry(
         path=str(file_path),
@@ -172,15 +170,22 @@ def _create_entry(file_path: Path, source: str) -> FileEntry:
         tags=[str(t) for t in tags] if isinstance(tags, list) else [],
         extension=file_path.suffix[1:],
         size=stat.st_size,
-        modified_at=datetime.fromtimestamp(stat.st_mtime, tz=UTC).isoformat(),
-        created_at=datetime.fromtimestamp(stat.st_ctime, tz=UTC).isoformat(),
-        is_readonly=source == "global",
+        modified_at=datetime.fromtimestamp(
+            stat.st_mtime, tz=UTC,
+        ).isoformat(),
+        created_at=datetime.fromtimestamp(
+            stat.st_ctime, tz=UTC,
+        ).isoformat(),
+        is_readonly=source == "public",
+        is_shared=source == "shared",
+        is_published=source == "public",
         frontmatter=frontmatter,
         preview=get_preview(content),
     )
 
 
-# ─── Filter Functions ─────────────────────────────────────────────────
+# Filter Functions ---------------------------------------------------
+
 def apply_filters(
     entries: list[FileEntry],
     workspace: str = "all",
@@ -202,11 +207,20 @@ def apply_filters(
 
     # Box 2: Binder/Mission filter
     if binder == "active":
-        results = [e for e in results if e.binder and "active" in e.binder.lower()]
+        results = [
+            e for e in results
+            if e.binder and "active" in e.binder.lower()
+        ]
     elif binder == "tasks":
-        results = [e for e in results if e.mission or "task" in " ".join(e.tags).lower()]
+        results = [
+            e for e in results
+            if e.mission or "task" in " ".join(e.tags).lower()
+        ]
     elif binder == "inbox":
-        results = [e for e in results if "@sandbox" in e.path or "inbox" in e.path.lower()]
+        results = [
+            e for e in results
+            if "@sandbox" in e.path or "inbox" in e.path.lower()
+        ]
     elif binder == "archive":
         results = [e for e in results if "@legacy" in e.path]
     elif binder:
@@ -219,7 +233,9 @@ def apply_filters(
             e for e in results
             if query_lower in e.filename.lower()
             or query_lower in e.preview.lower()
-            or any(query_lower in tag.lower() for tag in e.tags)
+            or any(
+                query_lower in tag.lower() for tag in e.tags
+            )
         ]
 
     if tags:
@@ -231,7 +247,8 @@ def apply_filters(
     return results
 
 
-# ─── Index Management ─────────────────────────────────────────────────
+# Index Management ---------------------------------------------------
+
 def build_index(
     output_path: Path | None = None,
     vault_paths: dict[str, Path] | None = None,
@@ -262,11 +279,14 @@ def build_index(
 
     # Count by source
     for entry in entries:
-        index["by_source"][entry.source] = index["by_source"].get(entry.source, 0) + 1
+        key = entry.source
+        index["by_source"][key] = index["by_source"].get(key, 0) + 1
 
     if output_path:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         import json
-        output_path.write_text(json.dumps(index, indent=2), encoding="utf-8")
+        output_path.write_text(
+            json.dumps(index, indent=2), encoding="utf-8",
+        )
 
     return index

@@ -6,7 +6,7 @@
 
 ## Overview
 
-uCore has five vault layers, three workflow primitives (binders, missions, tasks), and two AssistUI tabs (Chat, Workflow). This guide explains how they all connect — and how to build a project from scratch.
+uCore has three vault types, three workflow primitives (binders, missions, tasks), and two AssistUI tabs (Chat, Workflow). This guide explains how they all connect — and how to build a project from scratch.
 
 ```
                     ┌──────────────────────────────────────────┐
@@ -26,33 +26,33 @@ uCore has five vault layers, three workflow primitives (binders, missions, tasks
               └───────────────┬┘    └───────────┬───────────────┘
                               │                 │
               ┌───────────────┴─────────────────┴───────────────┐
-              │                 Vault Layers                     │
-              ├─────────┬─────────┬──────────┬────────┬─────────┤
-              │ User    │ Shared  │ Global   │ Public │ Code    │
-              │ ~/Vault/│~/Shared/│~/.public/│~/.pub/ │~/Code/  │
-              │         │         │g-know/   │d-sites/│         │
-              └────┬────┴────┬────┴──────────┴────────┴────┬────┘
-                   │         │                              │
-          ┌────────┴──┐ ┌────┴──────────┐        ┌─────────┴──────┐
-          │ Binders   │ │ Shared        │        │ Code repos     │
-          │ Missions  │ │ Workspaces    │        │ (git managed)  │
-          │ Tasks     │ │               │        │                │
-          │ Daily     │ │               │        │                │
-          │ Journals  │ │               │        │                │
-          └───────────┘ └───────────────┘        └────────────────┘
+              │                 Vault Types                      │
+              ├─────────────┬───────────────┬───────────────────┤
+              │ User        │ Shared        │ Public            │
+              │ ~/Vault/    │ ~/Shared/     │ ~/Public/         │
+              │ (personal)  │ (team)        │ (reference)       │
+              └──────┬──────┴──────┬────────┴──────┬────────────┘
+                     │             │               │
+          ┌──────────┴──┐  ┌───────┴────────┐  ┌───┴────────────┐
+          │ Binders     │  │ Shared        │  │ Templates      │
+          │ Missions    │  │ Workspaces    │  │ Examples       │
+          │ Tasks       │  │               │  │ Global Docs    │
+          │ Daily       │  │               │  │                │
+          │ Journals    │  │               │  │                │
+          └─────────────┘  └───────────────┘  └────────────────┘
 ```
 
-## 1. Vault Layers (Topology)
+**Note:** `~/Code/` is **not** a vault. It is part of the Developer Lane (see section 9).
+
+## 1. Vault Types (Topology)
 
 Defined in `backend/app/api/vault_api.py` and seeded via `plates/vault/*.yaml`:
 
-| Layer | Path | Purpose | Permissions |
-|-------|------|---------|-------------|
-| **User** | `~/Vault/` | Personal documents, notes, binders, missions, tasks, daily, journals | Read/Write |
-| **Shared** | `~/Shared/` | Team workspaces (e.g., uConnect/) | Read/Write (permission check) |
-| **Global** | `~/Public/global-knowledge/` | Curated reference material | Read-only |
-| **Public** | `~/Public/doc-sites/` | Published documentation sites | Publish-only |
-| **Code** | `~/Code/` | Development repositories (git-managed) | Read/Write (dev lane) |
+| Type | Path | Purpose | Permissions |
+|------|------|---------|-------------|
+| **User** | `~/Vault/` | Personal workspace — **the single source of truth**. All your binders, documents, notes, missions, tasks, daily, journals. | Read/Write |
+| **Shared** | `~/Shared/[vault-name]/` | Collaborative vaults for team projects. Each shared vault is a separate directory. | Read/Write (permission check) |
+| **Public** | `~/Public/[vault-name]/` | Published, system-provided, or community-contributed vaults. Includes `global-knowledge/`, `doc-sites/`, `learning/`, templates. | Read-only |
 
 ### User Vault Directory Structure
 
@@ -91,7 +91,7 @@ Seeded by `plates/vault/user_vault_seed.yaml`:
 
 ### What is a Binder?
 
-A **binder** is a project container inside a vault layer. It groups:
+A **binder** is a project container inside a vault. It groups:
 - Documents (Markdown, YAML)
 - Tasks (linked from `.tasker/`)
 - References
@@ -190,7 +190,7 @@ In the Workflow tab, clicking a task:
 ### Chat Tab
 
 The chat tab connects to `/api/chat` with the `_UCORE_CHAT_SYSTEM` system prompt. The LLM knows:
-- All vault layer paths (`~/Vault/`, `~/Shared/`, etc.)
+- All vault paths (`~/Vault/`, `~/Shared/`, `~/Public/`)
 - Knowledge APIs: `/api/knowledge/search`, `/api/knowledge/workspaces`, `/api/knowledge/documents`
 - Workflow APIs: `/api/workflow/tasks`, `/api/user/workflow/status`
 - System APIs: `/api/health`, `/api/skills`
@@ -315,7 +315,7 @@ Click a task to open it in the editor.
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/api/vault/topology` | GET | List all vault layers with existence status |
+| `/api/vault/topology` | GET | List all vault types with existence status |
 | `/api/knowledge/workspaces` | GET | List AppFlowy workspaces |
 | `/api/knowledge/documents?workspace_id=...` | GET | List documents in a workspace |
 | `/api/knowledge/search?q=...` | GET | Semantic search across vault documents |
@@ -336,10 +336,59 @@ Click a task to open it in the editor.
 | Binder file creation from chat | Not implemented — LLM tells you what to do, can't do it yet |
 | Mission progress auto-update | Not implemented |
 
-## 9. See Also
+## 9. Lane Separation — Boundary Rules
+
+uCore enforces a strict separation between user content and system code:
+
+### User Lane (The Product)
+
+- **Who:** End users, creators, builders
+- **What:** Vaults, binders, documents, missions, tasks, uCode (BASIC) files
+- **Where:** `~/Vault/`, `~/Shared/`, `~/Public/`
+- **Risk:** Low — data/content only
+- **Visibility:** Main UI, AssistUI, Workflow tabs
+- **Rule:** User Lane agents never access `~/Code/uCore/` or any system codebase
+
+### Developer Lane (The Tool)
+
+- **Who:** System developers, contributors, maintainers
+- **What:** uCore/uCode codebase, companion repos, internal tools, skills, agents
+- **Where:** `~/Code/uCore/`, `~/Code/uCode/`, companion repos
+- **Risk:** High — can break the system
+- **Visibility:** Developer Surface, hidden by default
+- **Rule:** Developer Lane agents never modify user vaults unless explicitly directed
+
+### Boundary Rules
+
+1. **User Lane agents** (AssistUI chat) work only on vault content, binders, docs, and uCode (BASIC) files. They never touch the system codebase.
+2. **Developer Lane agents** (Hivemind, Roundtable, Cline) work only on the codebase. They never touch user vaults unless explicitly directed.
+3. The Assistant should ask which lane the user intends before performing ambiguous actions.
+4. The Developer Surface is hidden by default (can be enabled in Settings).
+5. The default lane in AssistUI is **User**.
+6. **Vaults are for user content** (`~/Vault/`, `~/Shared/`, `~/Public/`). They contain binders, documents, mission definitions, and uCode (BASIC) files.
+7. **`~/Code/` is for developer work** — it is the codebase where system development happens, not a vault.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         USER LANE                                  │
+│  AssistUI (Chat)  │  Workflow  │  Binders  │  Missions  │  Vaults │
+│  Everyone starts here. This is where you build projects.           │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ (Advanced users only)
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                       DEVELOPER LANE                               │
+│  Developer Surface (Control │ Agents │ Skills │ Repos │ DevChat)  │
+│  Only for modifying the system or building companion repos.        │
+│  Most users never need this.                                       │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+## 10. See Also
 
 - [VAULT_PLATES_AND_DESTROY_SPEC.md](VAULT_PLATES_AND_DESTROY_SPEC.md) — Vault plates and DESTROY/REBUILD
 - [SPOOL_SPEC.md](SPOOL_SPEC.md) — Activity feed and spool logging
 - [DEVELOPER_SURFACE.md](DEVELOPER_SURFACE.md) — Developer Surface documentation
 - [SETTINGS_ARCHITECTURE_2026.md](SETTINGS_ARCHITECTURE_2026.md) — Settings system
-- [FEATURE_SPEC_ASSISTUI_DEVELOPER_CHAT_LANE_SEPARATION.md](FEATURE_SPEC_ASSISTUI_DEVELOPER_CHAT_LANE_SEPARATION.md) — Latest chat work
+- [FEATURE_SPEC_ASSISTUI_DEVELOPER_CHAT_LANE_SEPARATION.md](FEATURE_SPEC_ASSISTUI_DEVELOPER_CHAT_LANE_SEPARATION.md) — Chat lane separation spec

@@ -3,22 +3,14 @@
 
 state_file: ~/.ucore/vault-sync-state.json
 
-# Confirmed topology (see docs/MCP_VAULT_ALIGNMENT_ASSESSMENT.md):
-#   user   → ~/Vault/                    (one personal vault)
-#   shared → ~/Shared/                   (many shared vaults)
-#   global → ~/Public/global-knowledge/  (global knowledge bank)
-#   public → ~/Public/doc-sites/         (published vaults)
-#   code   → ~/Code/                     (dev repos)
+# Vault topology — 3 vault types only (see docs/VAULT_BINDER_WORKFLOW_INTEGRATION.md):
+#   user   → ~/Vault/      (personal vault — single source of truth)
+#   shared → ~/Shared/     (collaborative vaults for teams)
+#   public → ~/Public/     (published, system-provided, community vaults)
+#
+# Note: ~/Code/ is NOT a vault — it is the Developer Lane codebase.
 
 containers:
-  - id: code-docs
-    left: /Users/fredbook/Code/uDocs
-    right: /Users/fredbook/Vault/CodeDocs
-    mode: bidirectional
-    include:
-      - "**/*.md"
-      - "**/*.markdown"
-
   - id: user-vault
     left: /Users/fredbook/Vault
     right: /Users/fredbook/Code/uDocs/ingest/user-vault
@@ -36,15 +28,7 @@ containers:
       - "**/*.markdown"
 
   - id: global-knowledge
-    left: /Users/fredbook/Public/global-knowledge
-    right: /Users/fredbook/Code/uDocs/ingest/global
-    mode: bidirectional
-    include:
-      - "**/*.md"
-      - "**/*.markdown"
-
-  - id: public-vault
-    left: /Users/fredbook/Public/doc-sites
+    left: /Users/fredbook/Public
     right: /Users/fredbook/Code/uDocs/ingest/public
     mode: bidirectional
     include:

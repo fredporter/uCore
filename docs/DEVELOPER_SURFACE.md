@@ -4,6 +4,45 @@ The Developer Surface is a browser-based control panel that gives you a single p
 
 ---
 
+## ⚠️ Lane Separation — Read This First
+
+**The Developer Surface is for system development only.**
+
+If you are building a project, writing documentation, or using uCode (BASIC), you belong in the **User Lane** — use the main AssistUI, Workflow, and Vault tabs.
+
+If you are modifying the uCore/uCode codebase, adding new features, or building companion repos, you belong in the **Developer Lane** — use the Developer Surface.
+
+**Most users will never need the Developer Surface.**
+
+### Lane Boundaries
+
+| Aspect | **User Lane** (The Product) | **Developer Lane** (The Tool) |
+|--------|-----------------------------|-------------------------------|
+| **Who** | End users, creators, builders | System developers, contributors, maintainers |
+| **What** | Binders, documents, vaults, uCode (BASIC) | uCore/uCode codebase, companion repos, internal tools |
+| **Why** | To build projects, write docs, create apps | To modify the system itself or build alongside it |
+| **Where** | `~/Vault/`, `~/Shared/`, `~/Public/` | `~/Code/uCore/`, `~/Code/uCode/`, companion repos |
+| **Risk** | Low — data/content only | High — can break the system |
+| **Visibility** | Main UI, AssistUI, Workflow tabs | Developer Surface, hidden by default |
+
+### Agent Boundary Rules
+
+- **User Lane agents** (AssistUI chat) work only on vault content, binders, docs, and uCode (BASIC) files. They never touch `~/Code/uCore/`.
+- **Developer Lane agents** (Hivemind, Roundtable, Cline) work only on the codebase. They never modify user vaults unless explicitly directed.
+- **The boundary is: content (vaults) vs code (repos).** Vaults are not a concern of the Developer Surface.
+
+### Vault Architecture (Reference)
+
+| Vault Type | Location | Purpose |
+|------------|----------|---------|
+| **User Vault** | `~/Vault/` | Personal workspace — **the single source of truth** |
+| **Shared Vaults** | `~/Shared/[vault-name]/` | Collaborative vaults for team projects |
+| **Public Vaults** | `~/Public/[vault-name]/` | Published, system-provided, community-contributed vaults |
+
+**The Developer Surface is not part of the vault system.** It operates on `~/Code/` repos only.
+
+---
+
 ## Getting Started
 
 Open `http://localhost:5175/developer` in your browser. You will land on the **🎯 Control** tab — the default dashboard. It fetches live status from all services and displays them as color-coded badges. Green means online, red means offline.
@@ -193,3 +232,12 @@ All skills are accessible via `POST /api/skills/{skill_id}/run` with `X-User-Con
 | `backend/app/skills/builtin/` | All 54 skill implementations |
 | `~/.ucore/secrets.enc` | Encrypted API key store |
 | `~/.config/hivemind/.env` | Environment variables for API keys |
+
+## Vault vs Code — The Boundary
+
+The Developer Surface operates on code repositories, not vaults:
+
+- **Vaults** (`~/Vault/`, `~/Shared/`, `~/Public/`) — User content: binders, documents, uCode (BASIC) files. These belong to AssistUI, Workflow, and Vault tabs.
+- **Code** (`~/Code/uCore/`, `~/Code/uCode/`, companion repos) — System development. These belong to the Developer Surface.
+
+See [VAULT_BINDER_WORKFLOW_INTEGRATION.md](VAULT_BINDER_WORKFLOW_INTEGRATION.md) for the complete vault and lane separation architecture.

@@ -1,10 +1,12 @@
-"""Vault Discovery Skill — Identify all user uCode data across vault layers.
+"""Vault Discovery Skill — Identify all user uCode data across vault types.
 
-Scans all vault layers (User, Shared, Global, Code, Public) and reports:
-- File counts, sizes, and structure per layer
+Scans all vault types (User, Shared, Public) and reports:
+- File counts, sizes, and structure per type
 - uCore-specific data (configs, logs, plates, spool archives)
 - Dry-run mode for safe identification
 - Nugget extraction for reusable components
+
+Note: ~/Code/ is NOT a vault — it is the Developer Lane codebase.
 
 Usage:
     # Dry-run: identify everything
@@ -29,13 +31,11 @@ from app.skills.base import BaseSkill, SkillMeta, SkillParam
 
 log = logging.getLogger("ucore.skills.vault_discovery")
 
-# Vault topology from vault_file_discovery.py
+# Canonical vault topology — 3 vault types only
 VAULT_PATHS = {
     "user": Path("~/Vault/").expanduser(),
     "shared": Path("~/Shared/").expanduser(),
-    "global": Path("~/Public/global-knowledge/").expanduser(),
-    "code": Path("~/Code/").expanduser(),
-    "public": Path("~/Public/doc-sites/").expanduser(),
+    "public": Path("~/Public/").expanduser(),
 }
 
 UCORE_PATHS = {
@@ -44,31 +44,39 @@ UCORE_PATHS = {
     "plates": Path("plates/").resolve(),
 }
 
-SUPPORTED_EXTENSIONS = {".md", ".yaml", ".yml", ".json", ".txt", ".csv", ".py", ".ts", ".tsx", ".css", ".html"}
-EXCLUDE_DIRS = {".git", "node_modules", "__pycache__", ".next", ".obsidian", ".vscode", ".venv", ".mypy_cache"}
+SUPPORTED_EXTENSIONS = {
+    ".md", ".yaml", ".yml", ".json", ".txt", ".csv",
+    ".py", ".ts", ".tsx", ".css", ".html",
+}
+EXCLUDE_DIRS = {
+    ".git", "node_modules", "__pycache__", ".next",
+    ".obsidian", ".vscode", ".venv", ".mypy_cache",
+}
 
 
 class VaultDiscoverySkill(BaseSkill):
-    """Discover and report all user uCode data across vault layers."""
+    """Discover and report all user uCode data across vault types."""
 
     meta = SkillMeta(
         id="vault_discovery",
         name="Vault Discovery",
-        description="Scan all vault layers and identify uCode data, "
+        description="Scan all vault types and identify uCode data, "
         "with dry-run and Nugget extraction support",
         category="system",
         params=[
             SkillParam(
                 name="dry_run",
                 type="boolean",
-                description="If true, only identify without destructive actions",
+                description="If true, only identify without "
+                "destructive actions",
                 required=False,
                 default=True,
             ),
             SkillParam(
                 name="extract_nuggets",
                 type="boolean",
-                description="If true, extract reusable components as Nuggets",
+                description="If true, extract reusable components "
+                "as Nuggets",
                 required=False,
                 default=False,
             ),
@@ -82,8 +90,8 @@ class VaultDiscoverySkill(BaseSkill):
             SkillParam(
                 name="vault_layers",
                 type="string",
-                description="Comma-separated list of vault layers to scan "
-                "(user,shared,global,code,public) or 'all'",
+                description="Comma-separated list of vault types "
+                "to scan (user,shared,public) or 'all'",
                 required=False,
                 default="all",
             ),
@@ -98,7 +106,7 @@ class VaultDiscoverySkill(BaseSkill):
             dry_run: If True, only identify without destructive actions
             extract_nuggets: If True, extract reusable components as Nuggets
             nugget_output_dir: Directory to write extracted Nuggets
-            vault_layers: Comma-separated list of layers or 'all'
+            vault_layers: Comma-separated list of types or 'all'
 
         Returns:
             Discovery report with vault stats, uCore data, and Nuggets
@@ -110,12 +118,13 @@ class VaultDiscoverySkill(BaseSkill):
         ).expanduser()
         vault_layers_str = kwargs.get("vault_layers", "all")
 
-        # Determine which layers to scan
+        # Determine which types to scan
         if vault_layers_str == "all":
             layers_to_scan = list(VAULT_PATHS.keys())
         else:
             layers_to_scan = [
-                layer.strip() for layer in vault_layers_str.split(",")
+                layer.strip()
+                for layer in vault_layers_str.split(",")
                 if layer.strip() in VAULT_PATHS
             ]
 
@@ -124,7 +133,7 @@ class VaultDiscoverySkill(BaseSkill):
             dry_run, layers_to_scan, extract_nuggets,
         )
 
-        # Scan each vault layer
+        # Scan each vault type
         vaults: dict[str, dict[str, Any]] = {}
         total_files = 0
         total_size = 0
@@ -167,7 +176,7 @@ class VaultDiscoverySkill(BaseSkill):
     def _scan_vault_layer(
         self, vault_path: Path, layer: str,
     ) -> dict[str, Any]:
-        """Scan a single vault layer and return stats."""
+        """Scan a single vault type and return stats."""
         if not vault_path.exists():
             return {
                 "path": str(vault_path),
@@ -248,7 +257,7 @@ class VaultDiscoverySkill(BaseSkill):
                 "path": str(path),
                 "exists": True,
                 "files": len(files),
-                "file_list": files[:50],  # Limit to 50 entries
+                "file_list": files[:50],
             }
 
         # Also scan for spool archives specifically
@@ -291,16 +300,18 @@ class VaultDiscoverySkill(BaseSkill):
                     continue
 
                 nugget_id += 1
+                safe_dir = struct["dir"].replace("/", "_")
                 nugget = {
                     "id": f"nugget.vault.{layer}.{nugget_id:03d}",
                     "source": str(dir_path),
                     "layer": layer,
                     "files": struct["files"],
-                    "exported_to": str(output_dir / f"{layer}_{struct['dir'].replace('/', '_')}"),
+                    "exported_to": str(output_dir / f"{layer}_{safe_dir}"),
                 }
 
                 # Write Nugget manifest
-                manifest_path = output_dir / f"{layer}_{struct['dir'].replace('/', '_')}.nugget.json"
+                manifest_name = f"{layer}_{safe_dir}.nugget.json"
+                manifest_path = output_dir / manifest_name
                 manifest_path.write_text(
                     json.dumps(nugget, indent=2),
                     encoding="utf-8",

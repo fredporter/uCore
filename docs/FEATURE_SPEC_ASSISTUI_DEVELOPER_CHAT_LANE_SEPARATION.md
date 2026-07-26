@@ -47,7 +47,7 @@ Lists these real API endpoints:
 - Knowledge: workspaces, documents, search, local databases, vault topology
 - Workflow: tasks, status, mission-task-binder
 - System: health, system info, skills, Ollama status
-- Vault structure: ~/Vault/, ~/Shared/, ~/Public/global-knowledge/, ~/Code/
+- Vault structure: ~/Vault/ (personal), ~/Shared/ (team), ~/Public/ (reference)
 
 Instructs LLM to **never** say it cannot access data — it has API access.
 
@@ -75,6 +75,57 @@ Lane-aware: passes current lane and workspace context.
 | `backend/app/api/routes.py` | Registered `POST /api/developer/chat` + `GET /api/developer/chat/stream` |
 | `frontend-vue/src/stores/developer.ts` | Added `'chat'` to DeveloperTab union and DEVELOPER_TABS; rewrote `sendChatMessage()` with dev SSE streaming + lane/workspace context |
 | `frontend-vue/src/surfaces/developer/panels/DevChatPanel.vue` | **New** — dev chat panel with model picker, lane indicator, USX-compliant icons |
+
+## Lane Separation — Boundary Rules
+
+uCore enforces a strict separation between user content (User Lane) and system code (Developer Lane):
+
+### User Lane
+
+- **Chat endpoint:** `POST /api/chat` (AssistUI)
+- **System prompt:** `_UCORE_CHAT_SYSTEM`, `_UCORE_WORKFLOW_SYSTEM`
+- **Store:** `useChatStore`
+- **Surfaces:** AssistUI, Workflow, Vault tabs
+- **Scope:** Vault content (`~/Vault/`, `~/Shared/`, `~/Public/`), binders, missions, tasks, uCode (BASIC) files
+- **Rule:** User Lane agents never access `~/Code/uCore/` or the system codebase
+
+### Developer Lane
+
+- **Chat endpoint:** `POST /api/developer/chat` (Developer Surface)
+- **System prompt:** `handle_developer_chat` (dynamic, lane-aware)
+- **Store:** `useDeveloperStore`
+- **Surfaces:** Developer Surface (Control, Agents, Skills, Repos, DevChat)
+- **Scope:** Codebase (`~/Code/uCore/`, `~/Code/uCode/`, companion repos), skills, MCP, health
+- **Rule:** Developer Lane agents never modify user vaults unless explicitly directed
+
+### Boundary Rules
+
+1. **Chat agents must know their lane.** User Lane chat works only on vault content and uCode (BASIC). Developer Lane chat works only on code and system internals.
+2. **The Assistant should ask which lane the user intends before performing ambiguous actions.**
+3. **The default lane is User.** Developer Lane is hidden by default.
+4. **Vaults are for user content** (`~/Vault/`, `~/Shared/`, `~/Public/`). **Code repos are for developer work** (`~/Code/uCore/`, `~/Code/uCode/`).
+5. **uCode (BASIC) files are user content, not system code.** They live in vaults, not in `~/Code/`.
+6. **The boundary is: content (vaults) vs code (repos).** The two lanes never cross unless explicitly allowed.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         USER LANE                                  │
+│  AssistUI Chat (useChatStore)  →  /api/chat                       │
+│  Scope: ~/Vault/ ~/Shared/ ~/Public/                              │
+│  Agents: vault content, binders, uCode, missions, tasks           │
+│  Default lane. Everyone starts here.                              │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ (Advanced users only)
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                       DEVELOPER LANE                               │
+│  Developer Chat (useDeveloperStore) → /api/developer/chat        │
+│  Scope: ~/Code/uCore/ ~/Code/uCode/ companion repos               │
+│  Agents: code, skills, MCP, health, repos, architecture           │
+│  Most users never need this.                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ## USX Compliance
 

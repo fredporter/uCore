@@ -17,10 +17,11 @@
 <script setup lang="ts">
 /**
  * @component WorkspaceFilter
- * @description Vault layer selector filter for the filepicker.
- * Dynamically loads vault layers from the library index stats API.
+ * @description Vault type selector filter for the filepicker.
+ * Dynamically loads vault types (User, Shared, Public) from the
+ * vault topology API. Shows file counts from library stats.
  * @category molecules
- * @emits {string} source-change - Selected vault layer ID
+ * @emits {string} source-change - Selected vault type ID
  * @usage <WorkspaceFilter @source-change="onSourceChange" />
  */
 import { ref, onMounted } from 'vue'
@@ -38,6 +39,8 @@ interface VaultLayer {
 const selectedWorkspace = ref('')
 const vaultLayers = ref<VaultLayer[]>([
   { id: 'user', label: 'User Vault', icon: 'mdi:account', description: '~/Vault/' },
+  { id: 'shared', label: 'Shared', icon: 'mdi:account-group', description: '~/Shared/' },
+  { id: 'public', label: 'Public', icon: 'mdi:book-open-variant', description: '~/Public/' },
 ])
 
 const emit = defineEmits<{
@@ -64,14 +67,17 @@ onMounted(async () => {
     >
 
     if (topologyRes.ok && topologyLayers.length > 0) {
-      vaultLayers.value = topologyLayers.filter(layer => layer.id === 'user').map(layer => ({
-        id: layer.id,
-        label: layer.label,
-        icon: layer.icon,
-        description: layer.description,
-        exists: layer.exists,
-        fileCount: bySource?.[layer.id] || 0,
-      }))
+      // Show all vault types from the topology API
+      vaultLayers.value = topologyLayers
+        .filter(layer => ['user', 'shared', 'public'].includes(layer.id))
+        .map(layer => ({
+          id: layer.id,
+          label: layer.label,
+          icon: layer.icon,
+          description: layer.description,
+          exists: layer.exists,
+          fileCount: bySource?.[layer.id] || 0,
+        }))
       return
     }
 

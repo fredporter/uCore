@@ -190,8 +190,7 @@ _DEFAULT_BEHAVIOR: dict[str, Any] = {
 _DEFAULT_VAULT_NON_CODE_ROOTS: list[str] = [
     "~/Vault",
     "~/Shared",
-    "~/Public/global-knowledge",
-    "~/Public/doc-sites",
+    "~/Public",
 ]
 
 _DEFAULT_CODE_ROOT: str = "~/Code"

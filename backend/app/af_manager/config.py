@@ -30,29 +30,32 @@ def load_config(config_path: str | None = None) -> dict[str, Any]:
                 cfg = yaml.safe_load(f) or {}
                 return cfg
 
-    # Return sensible defaults
+    # Return sensible defaults using the canonical vault architecture
     return {
         "appflowy": {
-            "data_dir": str(Path.home() / "Library/Application Support/com.appflowy.appflowy.flutter"),
+            "data_dir": str(
+                Path.home()
+                / "Library/Application Support/com.appflowy.appflowy.flutter"
+            ),
         },
         "sources": [
             {
-                "name": "Global Vault",
+                "name": "User Vault",
                 "local_path": str(Path.home() / "Vault"),
                 "tags": ["personal", "knowledge"],
-                "workspace": "Global Vault",
+                "workspace": "User Vault",
             },
             {
-                "name": "Public Vault",
-                "local_path": str(Path.home() / "Vault" / "Public"),
-                "tags": ["public", "blog"],
-                "workspace": "Public Vault",
-            },
-            {
-                "name": "Shared Vault",
-                "local_path": str(Path.home() / "Vault" / "Shared"),
+                "name": "Shared Vaults",
+                "local_path": str(Path.home() / "Shared"),
                 "tags": ["shared", "collab"],
-                "workspace": "Shared Vault",
+                "workspace": "Shared Vaults",
+            },
+            {
+                "name": "Public Vaults",
+                "local_path": str(Path.home() / "Public"),
+                "tags": ["public", "reference"],
+                "workspace": "Public Vaults",
             },
         ],
     }
@@ -65,7 +68,8 @@ def get_source_dirs(config: dict[str, Any]) -> list[dict[str, Any]]:
 
 def get_appflowy_data_dir(config: dict[str, Any]) -> str:
     """Get the AppFlowy data directory."""
-    return config.get("appflowy", {}).get(
-        "data_dir",
-        str(Path.home() / "Library/Application Support/com.appflowy.appflowy.flutter"),
+    def_appflowy = str(
+        Path.home()
+        / "Library/Application Support/com.appflowy.appflowy.flutter"
     )
+    return config.get("appflowy", {}).get("data_dir", def_appflowy)

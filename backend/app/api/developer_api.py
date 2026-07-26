@@ -47,12 +47,11 @@ def _vault_non_code_roots() -> tuple[Path, ...]:
             expanded = home / expanded
         paths.append(expanded)
     if not paths:
-        # fallback
+        # fallback — canonical 3 vault types only
         return (
             home / "Vault",
             home / "Shared",
-            home / "Public" / "global-knowledge",
-            home / "Public" / "doc-sites",
+            home / "Public",
         )
     return tuple(paths)
 
@@ -259,7 +258,8 @@ def _list_repo_files(repo_name: str, limit: int = 250) -> list[dict]:
 
     files.sort(key=lambda item: item["updatedAt"], reverse=True)
     for file in files:
-        file["updatedAt"] = __import__("datetime").datetime.fromtimestamp(file["updatedAt"]).isoformat()
+        file["updatedAt"] = __import__("datetime").datetime.fromtimestamp(
+            file["updatedAt"]).isoformat()
     return files
 
 
@@ -480,7 +480,7 @@ def _commit_repo_files(repo_name: str, message: str) -> dict[str, Any]:
 
 async def handle_start_developer(request: web.Request) -> web.Response:
     """Start the developer server (DevMode).
-    
+
     DevMode is internal dev ops - when active:
     - Dev server (Vite) runs on port 5174
     - Developer Surface is accessible at /developer
@@ -540,7 +540,7 @@ async def handle_start_developer(request: web.Request) -> web.Response:
 
 async def handle_stop_developer(request: web.Request) -> web.Response:
     """Stop the developer server (DevMode).
-    
+
     Logs the stop operation for audit trail.
     """
     import subprocess
@@ -573,7 +573,7 @@ async def handle_stop_developer(request: web.Request) -> web.Response:
 
 async def handle_developer_status(request: web.Request) -> web.Response:
     """Get current DevMode status.
-    
+
     Returns whether the developer server is running and accessible.
     """
     import urllib.request
@@ -899,7 +899,8 @@ async def handle_developer_chat_stream(request: web.Request) -> web.StreamRespon
 
         content = full_response.get("content", "")
         # Simulate streaming by sending tokens one at a time
-        import asyncio, json
+        import asyncio
+        import json
         words = content.split(" ")
         for i, word in enumerate(words):
             token = word + (" " if i < len(words) - 1 else "")

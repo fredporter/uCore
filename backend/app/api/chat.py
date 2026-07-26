@@ -51,7 +51,7 @@ _CHAT_TOOLS: list[dict] = [
         "type": "function",
         "function": {
             "name": "vault_topology",
-            "description": "List all vault layers (User, Shared, Global, Public, Code) and their existence status. Use when the user asks about their vault structure or what vaults exist.",
+            "description": "List all vault types (User, Shared, Public) and their existence status. Use when the user asks about their vault structure or what vaults exist.",
             "parameters": {"type": "object", "properties": {}},
         },
     },
@@ -174,21 +174,15 @@ async def _execute_tool(tool_name: str, arguments: dict) -> str:
         layers = [
             {"id": "user", "label": "User Vault", "path": str(home / "Vault"),
              "exists": (home / "Vault").exists()},
-            {"id": "shared", "label": "Shared", "path": str(home / "Shared"),
+            {"id": "shared", "label": "Shared Vaults", "path": str(home / "Shared"),
              "exists": (home / "Shared").exists()},
-            {"id": "global", "label": "Global Knowledge",
-             "path": str(home / "Public" / "global-knowledge"),
-             "exists": (home / "Public" / "global-knowledge").exists()},
-            {"id": "public", "label": "Published",
-             "path": str(home / "Public" / "doc-sites"),
-             "exists": (home / "Public" / "doc-sites").exists()},
-            {"id": "code", "label": "Code", "path": str(home / "Code"),
-             "exists": (home / "Code").exists()},
+            {"id": "public", "label": "Public Vaults",
+             "path": str(home / "Public"),
+             "exists": (home / "Public").exists()},
         ]
         return json.dumps({"vault_layers": layers, "count": len(layers)})
 
     if tool_name == "workflow_tasks":
-        scope = arguments.get("scope", "user")
         try:
             from pathlib import Path
             base = Path(".tasker")
@@ -348,10 +342,10 @@ _UCORE_CHAT_SYSTEM = (
     "tasks, system status, or documents, CALL the appropriate tool instead of "
     "telling them you can't access data.\n\n"
     "**Vault Structure:**\n"
-    "• ~/Vault/ — Personal vault (binders, daily, knowledge, missions, tasks, journals)\n"
-    "• ~/Shared/ — Shared workspaces\n"
-    "• ~/Public/global-knowledge/ — Global knowledge bank (read-only)\n"
-    "• ~/Code/ — Development repositories\n\n"
+    "• ~/Vault/ — User Vault (personal workspace: binders, missions, tasks, journals)\n"
+    "• ~/Shared/ — Shared Vaults (team collaboration)\n"
+    "• ~/Public/ — Public Vaults (reference, templates, knowledge bank)\n\n"
+    "Note: ~/Code/ is NOT a vault — it is the Developer Lane for system development.\n\n"
     "Be helpful, proactive, and use your tools. Never say you cannot access data."
 )
 
@@ -515,7 +509,8 @@ async def handle_models(request: web.Request) -> web.Response:
 
         if not providers:
             providers = [
-                {"id": "ollama", "name": "Ollama (local)", "models": ["llama3.2", "mistral", "qwen2.5-coder:3b"]},
+                {"id": "ollama", "name": "Ollama (local)", "models": [
+                    "llama3.2", "mistral", "qwen2.5-coder:3b"]},
             ]
 
         return web.json_response({"providers": providers, "count": len(providers)})

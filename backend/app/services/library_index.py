@@ -1,12 +1,12 @@
 """Unified Library Index — consolidates all vault sources into a
 single searchable index at ~/.ucore/indices/.
 
-Vault topology (confirmed):
-  user   → ~/Vault/                    (one personal vault)
-  shared → ~/Shared/                   (many shared vaults)
-  global → ~/Public/global-knowledge/  (global knowledge bank)
-  public → ~/Public/doc-sites/         (published vaults)
-  code   → ~/Code/                     (dev repos)
+Vault topology (3 types, see backend/app/api/vault_api.py):
+  user   -> ~/Vault/      (personal vault)
+  shared -> ~/Shared/     (team vaults)
+  public -> ~/Public/     (published/system/community vaults)
+
+Note: ~/Code/ is NOT a vault — it is the Developer Lane codebase.
 
 The index is stored as SQLite at ~/.ucore/indices/library.db with
 FTS5 for full-text search across all sources.
@@ -29,9 +29,7 @@ INDEX_DB = INDEX_DIR / "library.db"
 VAULT_PATHS = {
     "user": Path.home() / "Vault",
     "shared": Path.home() / "Shared",
-    "global": Path.home() / "Public" / "global-knowledge",
-    "public": Path.home() / "Public" / "doc-sites",
-    "code": Path.home() / "Code",
+    "public": Path.home() / "Public",
 }
 
 SUPPORTED_EXTENSIONS = {
@@ -47,7 +45,7 @@ EXCLUDE_DIRS = {
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
 
-# ─── Schema ────────────────────────────────────────────────────────
+# Schema -------------------------------------------------------------
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS library_entries (
@@ -90,7 +88,7 @@ CREATE TABLE IF NOT EXISTS index_meta (
 """
 
 
-# ─── Frontmatter ───────────────────────────────────────────────────
+# Frontmatter --------------------------------------------------------
 
 def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
     """Extract YAML frontmatter. Returns (frontmatter, body)."""
@@ -128,7 +126,7 @@ def _default_binder_for(source: str) -> str | None:
     return None
 
 
-# ─── Scanner ───────────────────────────────────────────────────────
+# Scanner ------------------------------------------------------------
 
 def _scan_source(source: str, base_path: Path) -> list[dict[str, Any]]:
     """Scan a single vault source for indexable files."""
@@ -178,6 +176,9 @@ def _scan_source(source: str, base_path: Path) -> list[dict[str, Any]]:
             entry_id = f"{source}:{fpath.relative_to(base_path)}"
             entry_id = re.sub(r"[^a-zA-Z0-9_:./-]", "_", entry_id)
 
+            # Public vault contents are read-only
+            is_readonly = (source == "public")
+
             entries.append({
                 "id": entry_id,
                 "path": str(fpath),
@@ -199,7 +200,7 @@ def _scan_source(source: str, base_path: Path) -> list[dict[str, Any]]:
                 "created_at": datetime.fromtimestamp(
                     stat.st_ctime, tz=UTC,
                 ).isoformat(),
-                "is_readonly": source == "global",
+                "is_readonly": is_readonly,
                 "is_shared": source == "shared",
                 "is_published": source == "public",
                 "frontmatter": fm,
@@ -210,14 +211,16 @@ def _scan_source(source: str, base_path: Path) -> list[dict[str, Any]]:
     return entries
 
 
-# ─── Index Builder ─────────────────────────────────────────────────
+# Index Builder ------------------------------------------------------
 
 def _ensure_schema(conn: sqlite3.Connection) -> None:
     """Create tables if missing."""
     conn.executescript(SCHEMA_SQL)
 
 
-def _upsert_entry(conn: sqlite3.Connection, entry: dict[str, Any]) -> None:
+def _upsert_entry(
+    conn: sqlite3.Connection, entry: dict[str, Any],
+) -> None:
     """Insert or replace a single entry + FTS row."""
     now = datetime.now(UTC).isoformat()
     tags_json = json.dumps(entry["tags"], default=str)
@@ -285,16 +288,7 @@ def build_index(
     sources: list[str] | None = None,
     vault_paths: dict[str, Path] | None = None,
 ) -> dict[str, Any]:
-    """Build the unified library index from all vault sources.
-
-    Args:
-        sources: Optional list of source names to index
-                 (default: all).
-        vault_paths: Optional override for vault paths.
-
-    Returns:
-        Summary dict with counts per source.
-    """
+    """Build the unified library index from all vault sources."""
     paths = vault_paths or VAULT_PATHS
     target_sources = sources or list(paths.keys())
 
@@ -357,7 +351,7 @@ def build_index(
     }
 
 
-# ─── Search ────────────────────────────────────────────────────────
+# Search -------------------------------------------------------------
 
 def search(
     query: str,
@@ -429,7 +423,7 @@ def search(
     return results
 
 
-# ─── Stats ─────────────────────────────────────────────────────────
+# Stats --------------------------------------------------------------
 
 def get_stats() -> dict[str, Any]:
     """Return index statistics."""
