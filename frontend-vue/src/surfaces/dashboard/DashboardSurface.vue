@@ -60,7 +60,6 @@ const devMode = useDevModeStore()
 const HUB_TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'home' },
   { id: 'missions', label: 'Missions', icon: 'flag' },
-  { id: 'snackmachine', label: 'Snacks', icon: 'snack' },
   { id: 'server', label: 'Server', icon: 'server' },
   { id: 'system', label: 'System', icon: 'settings' },
   { id: 'developer', label: 'Developer', icon: 'code' },
@@ -78,7 +77,6 @@ watch(activeHubTab, (tabId) => {
   const routes: Record<string, string> = {
     missions: '/workflow?tab=mission-control',
     server: '/server',
-    snackmachine: '/snackmachine',
     system: '/system',
     developer: '/developer',
     groovebox: '/groovebox',
@@ -94,7 +92,6 @@ const ALL_SURFACES: SurfaceCardType[] = [
   { id: 'workflow', title: 'Workflow', description: 'Missions, Tasks & Binder', icon: 'workflow', route: '/workflow', color: 'var(--usx-color-primary)' },
   { id: 'system', title: 'System', description: 'Admin, Pages & Tools', icon: 'settings', route: '/system', color: 'var(--usx-color-on-surface-muted)' },
   { id: 'documentation', title: 'Documentation', description: 'Learning Hub & Guides', icon: 'help', route: '/documentation', color: 'var(--usx-color-accent)' },
-  { id: 'snackmachine', title: 'Snack Machine', description: 'Snack/MCP/Vault Scheduler', icon: 'snack', route: '/snackmachine', color: 'var(--usx-color-danger)' },
   { id: 'browserui', title: 'Browser', description: 'Web Reader & Bookmarks', icon: 'globe', route: '/browserui', color: 'var(--usx-color-info)' },
   { id: 'groovebox', title: 'Groovebox', description: 'Music Production — Pattern Composer, Vault & Songscribe', icon: 'music_note', route: '/groovebox', color: 'var(--usx-color-warning)' },
   { id: 'sonic', title: 'SonicScrewdriver', description: 'Universal USB Bootloader & System Toolkit — Multi-boot USB, Security Keys, Device Flashing', icon: 'usb', route: 'https://github.com/uDosGo/SonicScrewdriver', color: 'var(--usx-color-success)', status: 'running' },
