@@ -8,7 +8,7 @@
     />
     <div class="surface__content">
       <!-- Pages Browser -->
-      <div v-if="currentTab === 'pages'" class="system-panel">
+      <div v-if="currentTab === 'pages'" class="system-panel surface__panel system-tab-shell">
         <h3 class="surface__panel-title">System Pages</h3>
         <p class="system-muted-copy">Browse S-pages.</p>
         <div class="system-pages-grid">
@@ -32,7 +32,7 @@
       </div>
 
       <!-- Variables -->
-      <div v-else-if="currentTab === 'variables'" class="system-panel">
+      <div v-else-if="currentTab === 'variables'" class="system-panel surface__panel system-tab-shell">
         <h3 class="surface__panel-title">Variables</h3>
         <p class="system-muted-copy">User and installation variables.</p>
         <div v-if="loadingVars" class="system-loading">Loading variables...</div>
@@ -66,7 +66,7 @@
       </div>
 
       <!-- Secrets -->
-      <div v-else-if="currentTab === 'secrets'" class="system-panel">
+      <div v-else-if="currentTab === 'secrets'" class="system-panel surface__panel system-tab-shell">
         <h3 class="surface__panel-title">Secrets</h3>
         <p class="system-muted-copy">Encrypted secret storage. Values are masked by default.</p>
         <div class="system-secrets-actions">
@@ -92,7 +92,7 @@
       </div>
 
       <!-- Global Settings -->
-      <div v-else-if="currentTab === 'global-settings'" class="system-panel">
+      <div v-else-if="currentTab === 'global-settings'" class="system-panel surface__panel system-tab-shell">
         <h3 class="surface__panel-title">Global Settings</h3>
         <p class="system-muted-copy">Theme, palette, and typography controls. Saved server-side.</p>
         <div class="system-settings-form">
@@ -104,7 +104,7 @@
       </div>
 
       <!-- User Settings -->
-      <div v-else-if="currentTab === 'user-settings'" class="system-panel">
+      <div v-else-if="currentTab === 'user-settings'" class="system-panel surface__panel system-tab-shell">
         <h3 class="surface__panel-title">User Settings</h3>
         <p class="system-muted-copy">Your profile and preferences. Saved server-side.</p>
         <div class="system-settings-form">
@@ -361,7 +361,8 @@ watch(userSettings, (v) => { try { localStorage.setItem('ucore-user-settings', J
 .system-muted-copy { margin: 0 0 var(--usx-spacing-md); font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); }
 .system-section-title { margin: var(--usx-spacing-md) 0 var(--usx-spacing-xs); font-size: var(--usx-font-size-base); font-weight: var(--usx-font-weight-semibold); }
 .system-loading { padding: var(--usx-spacing-lg); text-align: center; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-sm); }
-.system-panel { }
+.system-panel { width: 100%; box-sizing: border-box; }
+.system-tab-shell { min-width: 0; }
 
 /* Pages */
 .system-pages-grid { --system-grid-column-min: calc(var(--usx-touch-min) * 4.5); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--system-grid-column-min)), 1fr)); gap: var(--usx-spacing-sm); min-width: 0; }

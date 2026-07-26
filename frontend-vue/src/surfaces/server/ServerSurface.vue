@@ -8,21 +8,37 @@
     />
     <div class="surface__content">
       <!-- Dashboard -->
-      <ServerDashboardPanel v-if="activeTab === 'dashboard'" />
+      <div v-if="activeTab === 'dashboard'" class="surface__panel server-tab-shell">
+        <ServerDashboardPanel />
+      </div>
 
       <!-- Services -->
-      <ServerServicesPanel v-else-if="activeTab === 'services'" />
+      <div v-else-if="activeTab === 'services'" class="surface__panel server-tab-shell">
+        <ServerServicesPanel />
+      </div>
       <!-- Snacks -->
-      <ServerSnacksPanel v-else-if="activeTab === 'snacks'" />
+      <div v-else-if="activeTab === 'snacks'" class="surface__panel server-tab-shell">
+        <ServerSnacksPanel />
+      </div>
       <!-- Logs -->
-      <ServerLogsPanel v-else-if="activeTab === 'logs'" />
+      <div v-else-if="activeTab === 'logs'" class="surface__panel server-tab-shell">
+        <ServerLogsPanel />
+      </div>
       <!-- Models -->
-      <ServerModelsPanel v-else-if="activeTab === 'models'" />
+      <div v-else-if="activeTab === 'models'" class="surface__panel server-tab-shell">
+        <ServerModelsPanel />
+      </div>
       <!-- Agents -->
-      <ServerAgentsPanel v-else-if="activeTab === 'agents'" />
+      <div v-else-if="activeTab === 'agents'" class="surface__panel server-tab-shell">
+        <ServerAgentsPanel />
+      </div>
       <!-- Budget -->
-      <ServerBudgetPanel v-else-if="activeTab === 'budget'" />
-      <ServerDashboardPanel v-else />
+      <div v-else-if="activeTab === 'budget'" class="surface__panel server-tab-shell">
+        <ServerBudgetPanel />
+      </div>
+      <div v-else class="surface__panel server-tab-shell">
+        <ServerDashboardPanel />
+      </div>
     </div>
   </div>
 </template>
@@ -95,4 +111,14 @@ onMounted(() => {
 })
 </script>
 
-<style></style>
+<style scoped>
+.surface__content {
+  padding: var(--usx-spacing-lg);
+}
+
+.server-tab-shell {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+</style>
