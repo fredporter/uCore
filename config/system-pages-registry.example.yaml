@@ -10,29 +10,29 @@ version: 1
 pages:
   s:
     - id: S100
-      title: Tool Builder
-      icon: build
+      title: Page Not Found
+      icon: search_off
     - id: S101
-      title: Story Builder
-      icon: auto_stories
+      title: Server Offline
+      icon: cloud_off
     - id: S300
-      title: Workflow Builder
-      icon: account_tree
-    - id: S340
-      title: Operations Console
-      icon: tune
+      title: Internal Server Error
+      icon: error
     - id: S310
-      title: Clipboard Orchestration
-      icon: content_paste
+      title: Request Timed Out
+      icon: timer_off
     - id: S320
-      title: Knowledge Tools
-      icon: psychology
+      title: Access Restricted
+      icon: lock
     - id: S330
-      title: Migration Dashboard
-      icon: migration
+      title: Configuration Missing
+      icon: settings
+    - id: S340
+      title: Dependency Unavailable
+      icon: link_off
     - id: S600
-      title: Learning Hub
-      icon: school
+      title: Help and Recovery
+      icon: help
 
 validation:
   required_fields: [id, title, icon]

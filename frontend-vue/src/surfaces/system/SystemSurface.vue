@@ -161,14 +161,14 @@ const currentTab = computed(() => activeTab.value)
 
 // ── Pages ────────────────────────────────────────────────────────
 const LOCAL_FALLBACK_PAGES = [
-  { id: 'S100', title: 'Tool Builder', icon: 'build' },
-  { id: 'S101', title: 'Story Builder', icon: 'auto_stories' },
-  { id: 'S300', title: 'Workflow Builder', icon: 'account_tree' },
-  { id: 'S340', title: 'Operations Console', icon: 'tune' },
-  { id: 'S310', title: 'Clipboard Orchestration', icon: 'content_paste' },
-  { id: 'S320', title: 'Knowledge Tools', icon: 'psychology' },
-  { id: 'S330', title: 'Migration Dashboard', icon: 'migration' },
-  { id: 'S600', title: 'Learning Hub', icon: 'school' },
+  { id: 'S100', title: 'Page Not Found', icon: 'search_off' },
+  { id: 'S101', title: 'Server Offline', icon: 'cloud_off' },
+  { id: 'S300', title: 'Internal Server Error', icon: 'error' },
+  { id: 'S310', title: 'Request Timed Out', icon: 'timer_off' },
+  { id: 'S320', title: 'Access Restricted', icon: 'lock' },
+  { id: 'S330', title: 'Configuration Missing', icon: 'settings' },
+  { id: 'S340', title: 'Dependency Unavailable', icon: 'link_off' },
+  { id: 'S600', title: 'Help and Recovery', icon: 'help' },
 ]
 const allPages = ref<Array<{id: string; title: string; icon: string}>>([])
 
