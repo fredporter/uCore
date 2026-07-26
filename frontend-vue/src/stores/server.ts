@@ -6,7 +6,22 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-export type ServerTab = 'dashboard' | 'services' | 'logs' | 'models' | 'agents' | 'budget'
+export type ServerTab = 'dashboard' | 'services' | 'snacks' | 'logs' | 'models' | 'agents' | 'budget'
+
+export interface RuntimeSnack {
+  id: string
+  type: string
+  priority: string
+  status: string
+  source: string
+  timestamp: string
+}
+
+export interface RuntimeSystemSnack {
+  id: string
+  name: string
+  kind: string
+}
 
 export interface ServiceStatus {
   name: string
@@ -58,6 +73,7 @@ export interface HealthInfo {
 export const SERVER_TABS: { id: ServerTab; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
   { id: 'services', label: 'Services', icon: 'dns' },
+  { id: 'snacks', label: 'Snacks', icon: 'restaurant_menu' },
   { id: 'logs', label: 'Logs', icon: 'article' },
   { id: 'models', label: 'Models', icon: 'smart_toy' },
   { id: 'agents', label: 'Runtime Agents', icon: 'group' },
@@ -67,6 +83,8 @@ export const SERVER_TABS: { id: ServerTab; label: string; icon: string }[] = [
 export const useServerStore = defineStore('server', () => {
   const activeTab = ref<ServerTab>('dashboard')
   const services = ref<ServiceStatus[]>([])
+  const snacks = ref<RuntimeSnack[]>([])
+  const systemSnacks = ref<RuntimeSystemSnack[]>([])
   const logs = ref<LogEntry[]>([])
   const modelUsage = ref<ModelUsage[]>([])
   const agents = ref<AgentInfo[]>([])
@@ -122,6 +140,45 @@ export const useServerStore = defineStore('server', () => {
     }
   }
 
+  async function fetchSnacks(): Promise<void> {
+    try {
+      const [queueRes, systemRes] = await Promise.all([
+        fetch('/api/snacks'),
+        fetch('/api/snacks/system'),
+      ])
+
+      if (!queueRes.ok) throw new Error(`HTTP ${queueRes.status}`)
+      const queueData = await queueRes.json()
+      const rawQueue = queueData?.snacks || []
+      snacks.value = Array.isArray(rawQueue)
+        ? rawQueue.map((snack: any, idx: number) => ({
+            id: snack.id || `snack-${idx}`,
+            type: snack.type || 'message',
+            priority: snack.priority || 'normal',
+            status: snack.status || 'queued',
+            source: snack.source || 'system',
+            timestamp: snack.timestamp || '',
+          }))
+        : []
+
+      if (systemRes.ok) {
+        const systemData = await systemRes.json()
+        const rawSystem = systemData?.snacks || []
+        systemSnacks.value = Array.isArray(rawSystem)
+          ? rawSystem.map((snack: any) => ({
+              id: snack.id || '',
+              name: snack.name || snack.id || 'System Snack',
+              kind: snack.kind || 'action',
+            }))
+          : []
+      }
+    } catch (e: any) {
+      console.warn('Server snacks fetch failed:', e.message)
+      snacks.value = []
+      systemSnacks.value = []
+    }
+  }
+
   async function fetchModels(): Promise<void> {
     try {
       const res = await fetch('/api/server/models')
@@ -164,6 +221,7 @@ export const useServerStore = defineStore('server', () => {
     try {
       await Promise.all([
         fetchHealth(),
+        fetchSnacks(),
         fetchLogs(),
         fetchModels(),
         fetchAgents(),
@@ -179,6 +237,8 @@ export const useServerStore = defineStore('server', () => {
   return {
     activeTab,
     services,
+    snacks,
+    systemSnacks,
     logs,
     modelUsage,
     agents,
@@ -196,6 +256,7 @@ export const useServerStore = defineStore('server', () => {
     fetchHealth,
     fetchServices,
     fetchLogs,
+    fetchSnacks,
     fetchModels,
     fetchAgents,
     fetchBudget,

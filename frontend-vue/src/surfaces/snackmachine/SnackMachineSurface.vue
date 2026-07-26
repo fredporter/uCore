@@ -8,6 +8,22 @@
     />
     <!-- Content area -->
     <div class="surface__content">
+      <div class="surface__panel sm-consolidation-banner">
+        <div class="usx-flex-between sm-consolidation-row">
+          <div>
+            <h3 class="surface__panel-title sm-section-heading">Surface Consolidation In Progress</h3>
+            <p class="sm-muted-text sm-muted-text--compact">
+              Runtime snack operations are now available in Server. Workflow and settings tasks are being consolidated into Workflow and System.
+            </p>
+          </div>
+          <div class="usx-flex-row usx-gap-sm sm-wrap">
+            <UButton variant="primary" size="sm" icon="dns" @click="goTo('/server?tab=snacks')">Open Server Snacks</UButton>
+            <UButton variant="secondary" size="sm" icon="account_tree" @click="goTo('/workflow')">Open Workflow</UButton>
+            <UButton variant="secondary" size="sm" icon="settings" @click="goTo('/system')">Open System</UButton>
+          </div>
+        </div>
+      </div>
+
       <div class="sm-layout">
 
         <!-- Left/Main panel: the active tab content -->
@@ -201,6 +217,7 @@
  * @usage Routed at '/snackmachine?tab=snacks'
  */
 import { onMounted, onUnmounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import UIcon from '../../skills/atoms/UIcon.vue'
 import UBadge from '../../skills/atoms/UBadge.vue'
 import UButton from '../../skills/atoms/UButton.vue'
@@ -210,7 +227,12 @@ import SurfaceTabNav from '../../skills/molecules/SurfaceTabNav.vue'
 
 const shell = useShellStore()
 const sm = useSnackMachineStore()
+const router = useRouter()
 let syncPollTimer: ReturnType<typeof setInterval> | null = null
+
+function goTo(target: string) {
+  router.push(target)
+}
 
 function clearSyncPoller() {
   if (!syncPollTimer) return
@@ -281,6 +303,18 @@ onUnmounted(() => {
   display: flex;
   flex-direction: row;
   height: 100%;
+  gap: var(--usx-spacing-md);
+}
+
+.sm-consolidation-banner {
+  margin-bottom: var(--usx-spacing-md);
+  border-style: solid;
+  border-width: var(--usx-border-width-thick);
+  border-color: var(--usx-color-info);
+}
+
+.sm-consolidation-row {
+  align-items: center;
   gap: var(--usx-spacing-md);
 }
 

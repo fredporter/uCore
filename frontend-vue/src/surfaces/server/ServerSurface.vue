@@ -12,6 +12,8 @@
 
       <!-- Services -->
       <ServerServicesPanel v-else-if="srv.activeTab === 'services'" />
+      <!-- Snacks -->
+      <ServerSnacksPanel v-else-if="srv.activeTab === 'snacks'" />
       <!-- Logs -->
       <ServerLogsPanel v-else-if="srv.activeTab === 'logs'" />
       <!-- Models -->
@@ -36,6 +38,7 @@ import { onMounted, defineAsyncComponent } from 'vue'
 import { useShellStore } from '../../stores/shell'
 import ServerDashboardPanel from './panels/ServerDashboardPanel.vue'
 const ServerServicesPanel = defineAsyncComponent(() => import('./panels/ServerServicesPanel.vue'))
+const ServerSnacksPanel = defineAsyncComponent(() => import('./panels/ServerSnacksPanel.vue'))
 const ServerLogsPanel = defineAsyncComponent(() => import('./panels/ServerLogsPanel.vue'))
 const ServerModelsPanel = defineAsyncComponent(() => import('./panels/ServerModelsPanel.vue'))
 const ServerAgentsPanel = defineAsyncComponent(() => import('./panels/ServerAgentsPanel.vue'))
