@@ -264,6 +264,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import UIcon from '../../../skills/atoms/UIcon.vue'
+import { useDeveloperStore } from '../../../stores/developer'
 
 interface SkillItem {
   skill_id: string
@@ -325,6 +326,7 @@ const secrets = ref<SecretItem[]>([])
 const mcpServers = ref<McpItem[]>([])
 const routes = ref<RouteItem[]>([])
 const runtimes = ref<Record<string, RuntimeItem>>({})
+const developer = useDeveloperStore()
 
 const activeSubTab = ref('skills')
 const searchQuery = ref('')
@@ -332,7 +334,16 @@ const repoFilter = ref('')
 const routePage = ref(1)
 const pageSize = 20
 
-const repos = computed(() => ['uCore', 'uCode', 'HomeNest'])
+const repos = computed(() => {
+  const names = new Set<string>()
+  for (const repo of developer.projectRepos) {
+    if (repo.name) names.add(repo.name)
+  }
+  for (const repo of developer.repos) {
+    if (repo.name) names.add(repo.name)
+  }
+  return Array.from(names)
+})
 
 const subTabs = computed(() => [
   { id: 'skills', label: 'Skills', icon: 'extension', count: filteredSkills.value.length },

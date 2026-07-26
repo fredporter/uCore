@@ -8,7 +8,7 @@ import { ref, computed } from 'vue'
 
 export type DevModeState = 'off' | 'minimal' | 'on'
 
-const API = 'http://localhost:8484'
+const API = import.meta.env.VITE_SNACKBAR_URL || 'http://localhost:8484'
 
 export const useDevModeStore = defineStore('devMode', () => {
   const mode = ref<DevModeState>('off')

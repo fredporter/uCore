@@ -165,9 +165,8 @@
       <div class="settings-row">
         <label>Default repo</label>
         <select v-model="settings.defaultRepo">
-          <option value="uCore">uCore</option>
-          <option value="uConnect">uConnect</option>
-          <option value="uServer">uServer</option>
+          <option v-if="repoOptions.length === 0" value="">No repos available</option>
+          <option v-for="repo in repoOptions" :key="repo" :value="repo">{{ repo }}</option>
         </select>
       </div>
       <div class="settings-row">
@@ -185,8 +184,9 @@
  * Persisted via localStorage.
  * @category surfaces/developer
  */
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, watch, computed } from 'vue'
 import { useGridCoreSettingsStore } from '../../../stores/gridcoreSettings'
+import { useDeveloperStore } from '../../../stores/developer'
 
 type SettingsLayer = 'global' | 'usx' | 'gridcore' | 'usystem'
 
@@ -199,6 +199,18 @@ const layers: Array<{ id: SettingsLayer; label: string }> = [
 
 const activeLayer = ref<SettingsLayer>('global')
 const gridcore = useGridCoreSettingsStore()
+const developer = useDeveloperStore()
+
+const repoOptions = computed(() => {
+  const names = new Set<string>()
+  for (const repo of developer.projectRepos) {
+    if (repo.name) names.add(repo.name)
+  }
+  for (const repo of developer.repos) {
+    if (repo.name) names.add(repo.name)
+  }
+  return Array.from(names)
+})
 
 const global = reactive({
   fontStyle: 'inter',
@@ -233,7 +245,7 @@ function loadSettings() {
         autoSave: saved.autoSave !== false,
         streaming: saved.streaming !== false,
         showPrompts: saved.showPrompts !== false,
-        defaultRepo: saved.defaultRepo || 'uCore',
+        defaultRepo: saved.defaultRepo || '',
         diffContext: saved.diffContext || 3,
       }
     }
@@ -246,12 +258,22 @@ function loadSettings() {
     autoSave: true,
     streaming: true,
     showPrompts: true,
-    defaultRepo: 'uCore',
+      defaultRepo: '',
     diffContext: 3,
   }
 }
 
 const settings = reactive(loadSettings())
+
+watch(repoOptions, (options) => {
+  if (options.length === 0) {
+    settings.defaultRepo = ''
+    return
+  }
+  if (!settings.defaultRepo || !options.includes(settings.defaultRepo)) {
+    settings.defaultRepo = options[0]
+  }
+}, { immediate: true })
 
 // Auto-persist on any change
 watch(settings, (val) => {

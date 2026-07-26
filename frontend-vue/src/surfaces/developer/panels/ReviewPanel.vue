@@ -52,15 +52,19 @@ const loading = ref(true)
 
 const activeReviewRepo = computed(() => {
   if (dev.activeLane === 'project') {
-    return dev.activeProjectRepo || dev.selectedProjectRepo?.name || 'uCore'
+    return dev.activeProjectRepo || dev.selectedProjectRepo?.name || dev.projectRepos[0]?.name || ''
   }
-  return 'uCore'
+  return dev.activeRepo || dev.repos[0]?.name || ''
 })
 
 async function fetchReviews() {
   loading.value = true
   try {
     const repoName = activeReviewRepo.value
+    if (!repoName) {
+      reviews.value = []
+      return
+    }
     const res = await fetch(`${API_BASE}/api/developer/repos/${encodeURIComponent(repoName)}/review`, {
       signal: AbortSignal.timeout(5000),
     })

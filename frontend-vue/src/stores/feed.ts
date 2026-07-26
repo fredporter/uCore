@@ -48,7 +48,7 @@ export type SourceFilter =
   | 'alert'
   | 'search'
 
-const API_BASE = 'http://localhost:8484'
+const API_BASE = import.meta.env.VITE_SNACKBAR_URL || 'http://localhost:8484'
 
 async function apiGet(path: string): Promise<any> {
   const res = await fetch(`${API_BASE}${path}`)

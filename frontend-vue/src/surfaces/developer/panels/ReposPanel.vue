@@ -199,14 +199,11 @@ interface RepoData {
 }
 
 const repos = ref<RepoData[]>([])
-const DOC_LIBRARY_NAME_HINTS = ['global-knowledge', 'doc-sites', 'knowledge-base', 'docs-library']
 
 function isVaultOrDocsRepo(repo: any): boolean {
-  const name = String(repo?.name ?? '').toLowerCase()
   const path = String(repo?.path ?? '').toLowerCase()
   const kind = String(repo?.kind ?? '').toLowerCase()
   if (kind === 'vault_or_docs') return true
-  if (DOC_LIBRARY_NAME_HINTS.some((hint) => name.includes(hint))) return true
   return path.includes('/public/global-knowledge') || path.includes('/public/doc-sites') || path.includes('/vault/')
 }
 
