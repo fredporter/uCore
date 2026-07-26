@@ -27,6 +27,8 @@ const emit = defineEmits<{
 }>()
 
 const actions: Array<{ id: string; icon: string; label: string; disabled?: boolean }> = [
+  { id: 'run-audit', icon: 'analytics', label: 'Run Ecosystem Audit' },
+  { id: 'generate-plan', icon: 'auto_awesome', label: 'Generate Enhancement Plan' },
   { id: 'health-check', icon: 'monitor_heart', label: 'Health Check' },
   { id: 'recover-offline', icon: 'healing', label: 'Recover Offline' },
   { id: 'system-repair', icon: 'build', label: 'System Repair' },
@@ -35,7 +37,6 @@ const actions: Array<{ id: string; icon: string; label: string; disabled?: boole
   { id: 'ingest-feed', icon: 'download', label: 'Ingest Feed' },
   { id: 'suggest-binder', icon: 'bolt', label: 'Suggest Binder' },
   { id: 'export-cost', icon: 'bar_chart', label: 'Export Cost' },
-  { id: 'create-task', icon: 'view_kanban', label: 'Create Task' },
 ]
 </script>
 

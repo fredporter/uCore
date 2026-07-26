@@ -136,6 +136,32 @@
       :loading="actionLoading"
       @action="handleAction"
     />
+
+    <!-- Audit Result -->
+    <div v-if="auditResult" class="control-section">
+      <div class="control-section__header">
+        <UIcon name="analytics" :size="16" />
+        <strong>Ecosystem Audit Result</strong>
+        <button class="control-section__dismiss" @click="auditResult = null">Dismiss</button>
+      </div>
+      <div v-if="auditResult.health" class="skill-health-summary">
+        <div class="skill-health-row"><span>Working</span> <strong>{{ auditResult.health.working }}</strong></div>
+        <div class="skill-health-row"><span>Untested</span> <strong>{{ auditResult.health.untested }}</strong></div>
+        <div class="skill-health-row"><span>Broken</span> <strong>{{ auditResult.health.broken }}</strong></div>
+        <div class="skill-health-row"><span>Health</span> <strong>{{ auditResult.health.health_pct }}%</strong></div>
+      </div>
+      <pre class="control-result-json">{{ auditResult.json }}</pre>
+    </div>
+
+    <!-- Plan Result -->
+    <div v-if="planResult" class="control-section">
+      <div class="control-section__header">
+        <UIcon name="auto_awesome" :size="16" />
+        <strong>Enhancement Plan Result</strong>
+        <button class="control-section__dismiss" @click="planResult = null">Dismiss</button>
+      </div>
+      <pre class="control-result-json">{{ planResult.json }}</pre>
+    </div>
   </div>
 </template>
 
@@ -182,6 +208,10 @@ const error = ref<string | null>(null)
 const actionLoading = ref<string | null>(null)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
+// Inline skill execution results
+const auditResult = ref<{ health: Record<string, number> | null; json: string } | null>(null)
+const planResult = ref<{ json: string } | null>(null)
+
 const feedActivities = computed(() => data.value?.feed?.recent ?? [])
 const alerts = computed(() => data.value?.alerts ?? [])
 
@@ -213,7 +243,7 @@ function handleBadgeClick(id: string) {
     hivemind: 'agents',
     roundtable: 'agents',
     ollama: 'settings',
-    feed: 'control',       // feed is shown inline in Control
+    feed: 'control',
     slate: 'settings',
     budget: 'settings',
   }
@@ -303,6 +333,36 @@ async function handleAction(id: string) {
       case 'suggest-binder':
         await fetch(`${API_BASE}/api/feed/suggest?min_confidence=0.5`)
         break
+      case 'run-audit': {
+        auditResult.value = null
+        const res = await fetch(`${API_BASE}/api/skills/ecosystem-audit/run`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'assess', confirm: true }),
+          signal: AbortSignal.timeout(60000),
+        })
+        const r = await res.json()
+        if (r.success && r.health) {
+          auditResult.value = { health: r.health, json: JSON.stringify(r, null, 2) }
+        } else {
+          auditResult.value = { health: null, json: JSON.stringify({ error: r.error || 'Unknown error' }, null, 2) }
+        }
+        await fetchStatus()
+        break
+      }
+      case 'generate-plan': {
+        planResult.value = null
+        const res = await fetch(`${API_BASE}/api/skills/enhancement-planner/run`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirm: true }),
+          signal: AbortSignal.timeout(60000),
+        })
+        const r = await res.json()
+        planResult.value = { json: JSON.stringify(r, null, 2) }
+        await fetchStatus()
+        break
+      }
       case 'export-cost':
         exportCostReport()
         break
@@ -563,5 +623,62 @@ onUnmounted(() => {
   border: var(--usx-border-width) solid var(--usx-color-info);
   color: var(--usx-color-on-surface);
   font-size: var(--usx-font-size-sm);
+}
+
+/* ─── Inline Skill Results ───────────────────────── */
+.control-section__header {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  margin-bottom: var(--usx-spacing-sm);
+  font-size: var(--usx-font-size-base);
+}
+
+.control-section__dismiss {
+  margin-left: auto;
+  padding: var(--usx-spacing-1) var(--usx-spacing-sm);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-xs);
+  cursor: pointer;
+}
+
+.skill-health-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-sm);
+  margin-bottom: var(--usx-spacing-sm);
+}
+
+.skill-health-row {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  background: var(--usx-color-background);
+  border-radius: var(--usx-radius-sm);
+  font-size: var(--usx-font-size-sm);
+}
+
+.skill-health-row strong {
+  color: var(--usx-color-primary);
+}
+
+.control-result-json {
+  margin: 0;
+  padding: var(--usx-spacing-sm);
+  font-size: var(--usx-font-size-xs);
+  font-family: var(--usx-font-family-mono, 'SF Mono', 'Menlo', monospace);
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--usx-color-background);
+  color: var(--usx-color-on-surface);
+  border-radius: var(--usx-radius-sm);
 }
 </style>

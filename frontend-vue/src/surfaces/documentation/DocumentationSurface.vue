@@ -1,54 +1,139 @@
 <template>
-  <div class="surface" :class="{ 'surface--tab-nav-vertical': shell.tabOrientation === 'vertical' }">
+  <div class="documentation-surface" :class="{ 'surface--tab-nav-vertical': shell.tabOrientation === 'vertical' }">
     <SurfaceTabNav
       v-model="activeTab"
-      :tabs="DOC_TABS"
+      :tabs="TABS"
       :orientation="shell.tabOrientation"
       @toggle-orientation="shell.toggleTabOrientation()"
     />
+    <div class="documentation-content-inner">
+      <div class="documentation-content">
+        <!-- Guide Tab -->
+        <div v-if="activeTab === 'guide'">
+          <div v-if="loading" class="doc-loading">
+            <UIcon name="sync" /> Loading doc sites...
+          </div>
+          <div v-else-if="docSites.length > 0">
+            <div class="doc-site-grid">
+              <div
+                v-for="site in docSites"
+                :key="site.id"
+                class="doc-site-hero"
+                @click="viewingSite = site.id"
+              >
+                <div class="doc-site-hero-icon">
+                  <UIcon name="menu_book" />
+                </div>
+                <div class="doc-site-hero-content">
+                  <h4 class="doc-site-hero-title">{{ site.name }}</h4>
+                  <p v-if="site.description" class="doc-site-hero-desc">{{ site.description }}</p>
+                </div>
+                <UBadge :type="site.built ? 'success' : 'warning'" size="sm">
+                  {{ site.built ? 'built' : 'not built' }}
+                </UBadge>
+              </div>
+            </div>
+            <div v-if="viewingSite" class="doc-viewer">
+              <div class="doc-viewer-bar">
+                <span class="doc-viewer-label">{{ viewingSite }}</span>
+                <UButton size="sm" variant="secondary" icon="close" @click="viewingSite = null">Close</UButton>
+              </div>
+              <iframe
+                :src="`/api/docs/serve/${viewingSite}/`"
+                :title="viewingSite"
+                class="doc-frame"
+              />
+            </div>
+          </div>
+          <div v-else class="doc-empty">No doc sites found in ~/Public/doc-sites/.</div>
+        </div>
 
-    <div class="surface__content">
-      <!-- Learning Hub -->
-      <div v-if="activeTab === 'learning'">
-        <h2 class="docs-section-title">Learning Hub</h2>
-        <p class="docs-section-description">Tutorials, guides, courses, and skill tracking for mastering uCore.</p>
-        <div class="docs-grid">
-          <div v-for="course in courses" :key="course.id" class="docs-card">
-            <UIcon :name="course.icon" />
-            <h4>{{ course.title }}</h4>
-            <p>{{ course.description }}</p>
-            <UBadge :type="course.status === 'completed' ? 'success' : course.status === 'in-progress' ? 'warning' : 'info'" size="sm">
-              {{ course.status }}
-            </UBadge>
+        <!-- Knowledge Tab -->
+        <div v-else-if="activeTab === 'knowledge'">
+          <div v-if="knowledgeLoading" class="doc-loading">
+            <UIcon name="sync" /> Loading knowledge library...
+          </div>
+          <div v-else-if="knowledgeSections.length > 0">
+            <div class="doc-knowledge-grid">
+              <div
+                v-for="section in knowledgeSections"
+                :key="section.id"
+                class="doc-knowledge-card"
+              >
+                <div class="doc-knowledge-card-icon">
+                  <UIcon name="book_2" />
+                </div>
+                <div class="doc-knowledge-card-content">
+                  <h4 class="doc-knowledge-card-title">{{ section.name }}</h4>
+                </div>
+                <UButton size="sm" variant="secondary" icon="open_in_new" @click="viewingKnowledge = section.id">Browse</UButton>
+              </div>
+            </div>
+            <div v-if="viewingKnowledge" class="doc-viewer">
+              <div class="doc-viewer-bar">
+                <span class="doc-viewer-label">Knowledge — {{ viewingKnowledge }}</span>
+                <UButton size="sm" variant="secondary" icon="close" @click="viewingKnowledge = null">Close</UButton>
+              </div>
+              <iframe
+                :src="`/api/docs/global-knowledge/${viewingKnowledge}/`"
+                :title="viewingKnowledge"
+                class="doc-frame doc-frame--tall"
+              />
+            </div>
+          </div>
+          <div v-else class="doc-empty">
+            Knowledge library not found at ~/Public/global-knowledge/.
           </div>
         </div>
-      </div>
 
-      <!-- Guide & Docs -->
-      <div v-else-if="activeTab === 'guide'">
-        <h2 class="docs-section-title">Guide & Docs</h2>
-        <p class="docs-section-description">Jekyll-based documentation site.</p>
-        <div class="docs-iframes">
-          <div class="docs-iframe-card">
-            <h4>DevStudio Docs</h4>
-            <iframe src="file:///Users/fredbook/Public/doc-sites/DevStudio-docs/_site/index.html" title="DevStudio Docs" />
+        <!-- Publishing Tab -->
+        <div v-else-if="activeTab === 'publish'">
+          <div class="doc-stats">
+            <div class="doc-stat">
+              <span class="doc-stat-value">{{ docSites.length }}</span>
+              <span class="doc-stat-label">Sites</span>
+            </div>
+            <div class="doc-stat">
+              <span class="doc-stat-value doc-stat-value--info">{{ docSites.filter(s => s.built).length }}</span>
+              <span class="doc-stat-label">Built</span>
+            </div>
           </div>
-          <div class="docs-iframe-card">
-            <h4>Guide</h4>
-            <iframe src="file:///Users/fredbook/Public/doc-sites/DevStudio-docs/_site/guide/index.html" title="Guide" />
+          <div v-if="docSites.length > 0" class="doc-section">
+            <h4 class="doc-section-title">Site Status</h4>
+            <div class="doc-publish-list">
+              <div v-for="site in docSites" :key="site.id" class="doc-publish-row">
+                <UIcon name="folder" />
+                <span class="doc-publish-name">{{ site.name }}</span>
+                <UBadge :type="site.built ? 'success' : 'warning'" size="sm">
+                  {{ site.built ? 'built' : 'needs build' }}
+                </UBadge>
+                <code class="doc-mono">{{ site.path }}</code>
+              </div>
+            </div>
+          </div>
+          <div class="doc-section">
+            <h4 class="doc-section-title">Export Vault</h4>
+            <UButton size="sm" variant="primary" icon="publish" :disabled="exportRunning" @click="runExport">
+              {{ exportRunning ? 'Exporting...' : 'Export Vault to DocLang' }}
+            </UButton>
+            <div v-if="exportResult" class="doc-export-msg">
+              <UBadge :type="exportResult.error ? 'error' : 'success'" size="sm" />
+              <span>{{ exportResult.error ? exportResult.error : exportResult.message }}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- API Reference -->
-      <div v-else-if="activeTab === 'api'">
-        <h2 class="docs-section-title">API Reference</h2>
-        <p class="docs-section-description">Backend API endpoints and MCP tool registry.</p>
-        <div class="docs-api-list">
-          <div v-for="ep in apiEndpoints" :key="ep.path" class="api-endpoint">
-            <UBadge :type="ep.method === 'GET' ? 'success' : 'warning'" size="sm">{{ ep.method }}</UBadge>
-            <code>{{ ep.path }}</code>
-            <span>{{ ep.description }}</span>
+        <!-- API Tab -->
+        <div v-else-if="activeTab === 'api'">
+          <div v-if="apiLoading" class="doc-loading">
+            <UIcon name="sync" /> Loading endpoints...
+          </div>
+          <div v-else class="doc-api-list">
+            <div v-for="ep in apiEndpoints" :key="ep.path" class="doc-api-row">
+              <UBadge :type="ep.method === 'GET' ? 'success' : 'warning'" size="sm">{{ ep.method }}</UBadge>
+              <code>{{ ep.path }}</code>
+              <span class="doc-api-desc">{{ ep.description }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -61,65 +146,77 @@ import { ref, onMounted } from 'vue'
 import { useShellStore } from '../../stores/shell'
 import UIcon from '../../skills/atoms/UIcon.vue'
 import UBadge from '../../skills/atoms/UBadge.vue'
+import UButton from '../../skills/atoms/UButton.vue'
 import SurfaceTabNav from '../../skills/molecules/SurfaceTabNav.vue'
 
-const API_BASE = import.meta.env.VITE_SNACKBAR_URL || 'http://localhost:8484'
 const shell = useShellStore()
-const activeTab = ref('learning')
-const loading = ref(true)
+const activeTab = ref('guide')
 
-const DOC_TABS = [
-  { id: 'learning', label: 'Learning Hub', icon: 'school' },
+const TABS = [
   { id: 'guide', label: 'Guide & Docs', icon: 'menu_book' },
+  { id: 'knowledge', label: 'Knowledge', icon: 'auto_stories' },
+  { id: 'publish', label: 'Publishing', icon: 'publish' },
   { id: 'api', label: 'API Reference', icon: 'code' },
 ]
 
-const DEFAULT_COURSES = [
-  { id: '1', title: 'Vue 3 Fundamentals', icon: 'school', description: 'Learn Vue 3 Composition API, reactivity, and component design', status: 'completed' },
-  { id: '2', title: 'Pinia State Management', icon: 'storage', description: 'Master Pinia stores for predictable state', status: 'completed' },
-  { id: '3', title: 'Skills-First Architecture', icon: 'extension', description: 'Build reusable AI-friendly component libraries', status: 'in-progress' },
-  { id: '4', title: 'MCP Protocol Deep Dive', icon: 'sync_alt', description: 'Understand the Model Context Protocol', status: 'available' },
-  { id: '5', title: 'GridCore & Spatial Algebra', icon: 'grid_view', description: 'Grid rendering and spatial computation engine', status: 'available' },
-  { id: '6', title: 'BBCSDL Terminal & Teletext', icon: 'terminal', description: 'Retro computing with BBC BASIC and Ceefax', status: 'available' },
+interface DocSite {
+  id: string; name: string; path: string; description?: string; built: boolean
+}
+interface Endpoint {
+  method: string; path: string; description: string
+}
+interface Section {
+  id: string; name: string; path: string
+}
+
+const loading = ref(true)
+const knowledgeLoading = ref(true)
+const apiLoading = ref(true)
+const exportRunning = ref(false)
+const exportResult = ref<Record<string, any> | null>(null)
+const viewingSite = ref<string | null>(null)
+const viewingKnowledge = ref<string | null>(null)
+
+const docSites = ref<DocSite[]>([])
+const apiEndpoints = ref<Endpoint[]>([])
+const knowledgeSections = ref<Section[]>([])
+
+const DEFAULT_ENDPOINTS: Endpoint[] = [
+  { method: 'GET', path: '/api/status', description: 'Server status' },
+  { method: 'GET', path: '/api/knowledge', description: 'List knowledge' },
+  { method: 'POST', path: '/api/chat', description: 'Chat' },
+  { method: 'GET', path: '/api/chat/stream', description: 'Chat SSE' },
+  { method: 'GET', path: '/health', description: 'Health check' },
 ]
 
-const DEFAULT_ENDPOINTS = [
-  { method: 'GET', path: '/api/status', description: 'Snackbar server status' },
-  { method: 'GET', path: '/api/knowledge', description: 'List knowledge documents' },
-  { method: 'POST', path: '/api/chat', description: 'Send chat message (non-streaming)' },
-  { method: 'GET', path: '/api/chat/stream', description: 'Stream chat response (SSE)' },
-  { method: 'POST', path: '/api/skills/tasker_sync/run', description: 'Run tasker sync skill' },
-  { method: 'POST', path: '/api/skills/vault_sync/run', description: 'Run vault sync skill' },
-  { method: 'GET', path: '/health', description: 'uCore backend health check' },
-  { method: 'GET', path: '/api/models', description: 'List available LLM models' },
-]
-
-const courses = ref(DEFAULT_COURSES)
-const apiEndpoints = ref(DEFAULT_ENDPOINTS)
-
-async function fetchData() {
+async function fetchDocSites() {
   loading.value = true
-  // Fetch courses
   try {
-    const res = await fetch(`${API_BASE}/api/courses`, { signal: AbortSignal.timeout(5000) })
+    const res = await fetch(`/api/docs/sites`, { signal: AbortSignal.timeout(5000) })
     if (res.ok) {
       const data = await res.json()
-      const list = data.courses || data || []
-      if (list.length > 0) {
-        courses.value = list.map((c: any) => ({
-          id: c.id || c.course_id || String(Date.now()),
-          title: c.title || c.name || 'Untitled',
-          icon: c.icon || 'school',
-          description: c.description || '',
-          status: c.status || 'available',
-        }))
-      }
+      docSites.value = data.sites || []
     }
-  } catch { /* keep defaults */ }
+  } catch { /* keep empty */ }
+  loading.value = false
+}
 
-  // Fetch API endpoints
+async function fetchKnowledgeSections() {
+  knowledgeLoading.value = true
   try {
-    const res = await fetch(`${API_BASE}/api/`, { signal: AbortSignal.timeout(3000) })
+    const res = await fetch(`/api/docs/global-knowledge`, { signal: AbortSignal.timeout(5000) })
+    if (res.ok) {
+      const data = await res.json()
+      knowledgeSections.value = data.sections || []
+    }
+  } catch { /* keep empty */ }
+  knowledgeLoading.value = false
+}
+
+async function fetchEndpoints() {
+  apiLoading.value = true
+  try {
+    const res = await fetch(`/api/docs`, { signal: AbortSignal.timeout(3000) })
     if (res.ok) {
       const data = await res.json()
       const eps = data.endpoints || data.routes || []
@@ -131,102 +228,337 @@ async function fetchData() {
         }))
       }
     }
-  } catch { /* keep defaults */ }
-  loading.value = false
+  } catch { apiEndpoints.value = DEFAULT_ENDPOINTS }
+  apiLoading.value = false
 }
 
-onMounted(() => { fetchData() })
+async function runExport() {
+  exportRunning.value = true
+  exportResult.value = null
+  try {
+    const res = await fetch(`/api/docs/export`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(60000),
+    })
+    const data = await res.json()
+    exportResult.value = data
+    await fetchDocSites()
+  } catch (e: any) {
+    exportResult.value = { error: e.message || 'Export failed' }
+  } finally {
+    exportRunning.value = false
+  }
+}
+
+onMounted(() => {
+  fetchDocSites()
+  fetchKnowledgeSections()
+  fetchEndpoints()
+})
 </script>
 
 <style scoped>
-/* Surface-specific overrides only — layout handled by .surface__* classes */
-
-.docs-section-title {
-  margin: 0 0 var(--usx-spacing-xs);
-  font-size: var(--usx-font-size-2xl);
-  font-weight: var(--usx-font-weight-semibold);
-}
-
-.docs-section-description {
-  margin: 0 0 var(--usx-spacing-lg);
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-sm);
-}
-
-.docs-grid {
-  --docs-column-min: calc(var(--usx-touch-min) * 4.5);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--docs-column-min)), 1fr));
-  gap: var(--usx-spacing-md);
-  min-width: 0;
-}
-
-.docs-card {
+/* ─── Surface shell (mirrors DeveloperSurface.vue) ────────────── */
+.documentation-surface {
   display: flex;
   flex-direction: column;
-  gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-md);
-  background: var(--usx-color-surface);
-  border-radius: var(--usx-radius-lg);
-  min-width: 0;
-}
-
-.docs-card h4 {
-  margin: 0;
-  font-size: var(--usx-font-size-base);
-}
-
-.docs-card p {
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.docs-iframes {
-  --docs-iframe-column-min: calc(var(--usx-touch-min) * 6);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--docs-iframe-column-min)), 1fr));
-  gap: var(--usx-spacing-md);
-  min-width: 0;
-}
-
-.docs-iframe-card {
-  background: var(--usx-color-background);
-  border-radius: var(--usx-radius-lg);
+  height: 100%;
+  width: 100%;
   overflow: hidden;
 }
 
-.docs-iframe-card h4 {
-  margin: 0;
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+.documentation-content-inner {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--usx-spacing-xl);
+  box-sizing: border-box;
+}
+
+.documentation-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-md);
+}
+
+/* ─── Loading / Empty ──────────────────────────────────────────── */
+.doc-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-md);
+  color: var(--usx-color-on-surface-muted);
   font-size: var(--usx-font-size-sm);
-  background: var(--usx-color-surface);
 }
 
-.docs-iframe-card iframe {
+.doc-empty {
+  padding: var(--usx-spacing-xl);
+  text-align: center;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm);
+}
+
+/* ─── Sections ─────────────────────────────────────────────────── */
+.doc-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-sm);
+}
+
+.doc-section-title {
+  margin: 0;
+  font-size: var(--usx-font-size-base);
+  font-weight: var(--usx-font-weight-semibold);
+  color: var(--usx-color-on-surface-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--usx-letter-spacing-wide);
+}
+
+/* ─── Stats ────────────────────────────────────────────────────── */
+.doc-stats {
+  --doc-column-min: calc(var(--usx-touch-min) * 3.75);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--doc-column-min)), 1fr));
+  gap: var(--usx-spacing-md);
+  min-width: 0;
+}
+
+.doc-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-lg);
+  background: var(--usx-color-surface);
+  border-radius: var(--usx-radius-lg);
+  min-width: 12ch;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+}
+
+.doc-stat-value {
+  font-size: var(--usx-font-size-2xl);
+  font-weight: var(--usx-font-weight-bold);
+  line-height: var(--usx-line-height-tight);
+}
+
+.doc-stat-label {
+  font-size: var(--usx-font-size-base);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.doc-stat-value--info { color: var(--usx-color-primary); }
+.doc-stat-value--success { color: var(--usx-color-success); }
+.doc-stat-value--warning { color: var(--usx-color-warning); }
+
+/* ─── Doc site hero cards ──────────────────────────────────────── */
+.doc-site-grid {
+  --doc-column-min: calc(var(--usx-touch-min) * 5);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--doc-column-min)), 1fr));
+  gap: var(--usx-spacing-md);
+  min-width: 0;
+}
+
+.doc-site-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--usx-spacing-md);
+  padding: var(--usx-spacing-lg);
+  background: var(--usx-color-surface);
+  border: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
+  border-radius: var(--usx-radius-md);
+  cursor: pointer;
+  min-width: 0;
+  transition: background var(--usx-transition-fast), border-color var(--usx-transition-fast), transform var(--usx-transition-fast);
+}
+
+.doc-site-hero:hover {
+  background: color-mix(in srgb, var(--usx-color-primary) 4%, transparent);
+  border-color: color-mix(in srgb, var(--usx-color-primary) 20%, transparent);
+  transform: translateY(calc(var(--usx-spacing-1) * -1));
+}
+
+.doc-site-hero-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--usx-touch-min);
+  height: var(--usx-touch-min);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-primary);
+  flex-shrink: 0;
+  font-size: var(--usx-icon-size-lg);
+}
+
+.doc-site-hero:hover .doc-site-hero-icon {
+  background: var(--usx-color-primary-disabled);
+}
+
+.doc-site-hero-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.doc-site-hero-title {
+  font-size: var(--usx-font-size-lg);
+  font-weight: var(--usx-font-weight-semibold);
+  margin: 0 0 var(--usx-spacing-xs) 0;
+  color: var(--usx-color-on-surface);
+}
+
+.doc-site-hero-desc {
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
+  margin: 0;
+  line-height: var(--usx-line-height-tight);
+}
+
+/* ─── Knowledge cards ──────────────────────────────────────────── */
+.doc-knowledge-grid {
+  --doc-column-min: calc(var(--usx-touch-min) * 5);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--doc-column-min)), 1fr));
+  gap: var(--usx-spacing-md);
+  min-width: 0;
+}
+
+.doc-knowledge-card {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-md);
+  padding: var(--usx-spacing-md) var(--usx-spacing-lg);
+  background: var(--usx-color-surface);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  min-width: 0;
+  transition: border-color var(--usx-transition-fast), transform var(--usx-transition-fast);
+}
+
+.doc-knowledge-card:hover {
+  border-color: var(--usx-color-primary);
+  transform: translateY(calc(var(--usx-spacing-2) * -1));
+}
+
+.doc-knowledge-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--usx-touch-min);
+  height: var(--usx-touch-min);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-primary);
+  flex-shrink: 0;
+  font-size: var(--usx-icon-size-lg);
+}
+
+.doc-knowledge-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.doc-knowledge-card-title {
+  font-size: var(--usx-font-size-base);
+  font-weight: var(--usx-font-weight-semibold);
+  color: var(--usx-color-on-surface);
+  margin: 0;
+  text-transform: capitalize;
+}
+
+/* ─── Viewer ────────────────────────────────────────────────────── */
+.doc-viewer {
+  margin-top: var(--usx-spacing-sm);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-lg);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.doc-viewer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  background: var(--usx-color-surface-variant);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+}
+
+.doc-viewer-label {
+  font-size: var(--usx-font-size-base);
+  font-weight: var(--usx-font-weight-semibold);
+}
+
+.doc-frame {
   width: 100%;
-  height: calc(var(--usx-touch-min) * 9);
+  height: calc(var(--usx-touch-min) * 10);
   border: none;
-  background: var(--usx-color-surface);
+  display: block;
 }
 
-.docs-api-list {
+.doc-frame--tall {
+  height: calc(100vh - 18rem);
+  min-height: calc(var(--usx-touch-min) * 12);
+}
+
+/* ─── Publishing ────────────────────────────────────────────────── */
+.doc-publish-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-sm);
+}
+
+.doc-publish-row {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  background: var(--usx-color-surface);
+  border-radius: var(--usx-radius-sm);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  font-size: var(--usx-font-size-sm);
+}
+
+.doc-publish-name {
+  font-weight: var(--usx-font-weight-medium);
+  flex: 1;
+}
+
+.doc-mono {
+  font-family: var(--usx-font-family-mono);
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 24ch;
+}
+
+.doc-export-msg {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  margin-top: var(--usx-spacing-sm);
+  font-size: var(--usx-font-size-sm);
+}
+
+/* ─── API ───────────────────────────────────────────────────────── */
+.doc-api-list {
   display: flex;
   flex-direction: column;
   gap: var(--usx-spacing-xs);
 }
 
-.api-endpoint {
+.doc-api-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
   border-radius: var(--usx-radius-sm);
 }
 
-.api-endpoint code {
+.doc-api-row code {
   font-family: var(--usx-font-family-mono);
   font-size: var(--usx-font-size-sm);
   color: var(--usx-color-primary);
@@ -234,8 +566,9 @@ onMounted(() => { fetchData() })
   overflow-wrap: anywhere;
 }
 
-.api-endpoint span {
+.doc-api-desc {
   font-size: var(--usx-font-size-sm);
   color: var(--usx-color-on-surface-muted);
+  flex: 1;
 }
 </style>

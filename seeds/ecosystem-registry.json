@@ -926,6 +926,20 @@
         "issues": []
       },
       {
+        "method": "POST",
+        "path": "/api/developer/chat",
+        "handler": "handle_developer_chat",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "GET",
+        "path": "/api/developer/chat/stream",
+        "handler": "handle_developer_chat_stream",
+        "health": "working",
+        "issues": []
+      },
+      {
         "method": "GET",
         "path": "/api/developer/repos",
         "handler": "handle_list_repos",
@@ -982,6 +996,13 @@
         "issues": []
       },
       {
+        "method": "GET",
+        "path": "/api/developer/repos/{repo_name}/status",
+        "handler": "handle_repo_status",
+        "health": "working",
+        "issues": []
+      },
+      {
         "method": "POST",
         "path": "/api/developer/repos/{repo_name}/unstage",
         "handler": "handle_unstage_repo_file",
@@ -1006,6 +1027,13 @@
         "method": "POST",
         "path": "/api/developer/stop",
         "handler": "handle_stop_developer",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "POST",
+        "path": "/api/developer/workspace",
+        "handler": "handle_workspace_switch",
         "health": "working",
         "issues": []
       },
@@ -1701,8 +1729,8 @@
     ]
   },
   "health": {
-    "total_items": 173,
-    "working": 172,
+    "total_items": 177,
+    "working": 176,
     "untested": 1,
     "broken": 0,
     "orphaned": 0,

@@ -27,8 +27,7 @@
 <script setup lang="ts">
 /**
  * @component DeveloperSurface
- * @description Developer Lane — tabbed surface for models, agents, kanban, repos,
- * review, skills, workflows, MCP servers, and settings.
+ * @description Developer Lane — full 11-tab surface for all developer operations.
  * Ported from DeveloperSurface.tsx (React).
  * @category surfaces
  * @usage Routed at '/developer/*'
@@ -41,7 +40,7 @@ import SurfaceTabNav from '../../skills/molecules/SurfaceTabNav.vue'
 
 const shell = useShellStore()
 
-// Eager: Control is the default tab — always loaded for instant display
+// Eager: Control is the default tab
 import ControlPanel from './panels/ControlPanel.vue'
 
 // Lazy: load other panels only when their tab is selected
@@ -91,7 +90,6 @@ onUnmounted(() => {
   display: flex;
   gap: var(--usx-spacing-xs);
   padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  
   background: var(--usx-color-surface);
   overflow-x: auto;
 }
