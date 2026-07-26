@@ -6,31 +6,56 @@
     </div>
 
     <div v-if="srv.snacks.length === 0" class="server-muted-text">No queued snacks.</div>
-    <div v-else class="server-snacks-list">
-      <div v-for="snack in srv.snacks" :key="snack.id" class="surface__panel server-snack-row">
-        <div class="usx-flex-row usx-gap-sm">
-          <UIcon :name="snack.type === 'workflow' ? 'account_tree' : snack.type === 'clipboard' ? 'content_paste' : 'restaurant_menu'" />
-          <span class="server-snack-type">{{ snack.type }}</span>
-          <UBadge type="info" size="sm">{{ snack.priority }}</UBadge>
-          <UBadge :type="snack.status === 'queued' ? 'warning' : snack.status === 'active' ? 'success' : 'neutral'" size="sm">
-            {{ snack.status }}
-          </UBadge>
-        </div>
-        <div class="server-snack-meta">
-          <span>{{ snack.source }}</span>
-          <span>{{ snack.timestamp || 'pending' }}</span>
-        </div>
-      </div>
+    <div v-else class="server-table-wrap">
+      <table class="server-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Source</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="snack in srv.snacks" :key="snack.id">
+            <td>
+              <span class="server-snack-type">
+                <UIcon :name="snack.type === 'workflow' ? 'account_tree' : snack.type === 'clipboard' ? 'content_paste' : 'restaurant_menu'" />
+                <span>{{ snack.type }}</span>
+              </span>
+            </td>
+            <td><UBadge type="info" size="sm">{{ snack.priority }}</UBadge></td>
+            <td>
+              <UBadge :type="snack.status === 'queued' ? 'warning' : snack.status === 'active' ? 'success' : 'neutral'" size="sm">
+                {{ snack.status }}
+              </UBadge>
+            </td>
+            <td class="server-muted-text">{{ snack.source }}</td>
+            <td class="server-muted-text">{{ snack.timestamp || 'pending' }}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="surface__panel usx-mt-md">
       <h4 class="surface__panel-title server-subheading">System Snacks</h4>
       <div v-if="srv.systemSnacks.length === 0" class="server-muted-text">No system snacks discovered.</div>
-      <div v-else class="server-system-snacks">
-        <div v-for="snack in srv.systemSnacks" :key="snack.id" class="server-system-snack-row">
-          <span class="server-system-snack-name">{{ snack.name }}</span>
-          <UBadge type="info" size="sm">{{ snack.kind }}</UBadge>
-        </div>
+      <div v-else class="server-table-wrap">
+        <table class="server-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Kind</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="snack in srv.systemSnacks" :key="snack.id">
+              <td class="server-system-snack-name">{{ snack.name }}</td>
+              <td><UBadge type="info" size="sm">{{ snack.kind }}</UBadge></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -51,40 +76,35 @@ const srv = useServerStore()
   font-size: var(--usx-font-size-sm);
   padding: var(--usx-spacing-md);
 }
-.server-snacks-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-sm);
+.server-table-wrap {
+  overflow-x: auto;
 }
-.server-snack-row {
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-sm);
+.server-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--usx-font-size-sm);
+}
+.server-table th {
+  text-align: left;
+  font-weight: var(--usx-font-weight-semibold);
+  color: var(--usx-color-on-surface-muted);
+  padding: var(--usx-spacing-sm);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  white-space: nowrap;
+}
+.server-table td {
+  padding: var(--usx-spacing-sm);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  vertical-align: middle;
 }
 .server-snack-type {
-  font-weight: var(--usx-font-weight-semibold);
-}
-.server-snack-meta {
-  display: flex;
-  justify-content: space-between;
+  display: inline-flex;
+  align-items: center;
   gap: var(--usx-spacing-md);
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-sm);
+  font-weight: var(--usx-font-weight-semibold);
 }
 .server-subheading {
   margin-bottom: var(--usx-spacing-sm);
-}
-.server-system-snacks {
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-xs);
-}
-.server-system-snack-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-xs) 0;
 }
 .server-system-snack-name {
   font-size: var(--usx-font-size-sm);
