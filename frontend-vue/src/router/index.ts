@@ -58,9 +58,15 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/snackmachine/:pathMatch(.*)*',
-    name: 'snackmachine',
-    component: () => import('../surfaces/snackmachine/SnackMachineSurface.vue'),
-    meta: { title: 'Snack Machine', icon: 'snack' },
+    redirect: (to) => {
+      const tab = String(to.query.tab || 'snacks')
+      if (tab === 'workflows') return '/workflow?tab=publish'
+      if (tab === 'vault') return '/workflow?tab=binder'
+      if (tab === 'mcp') return '/developer?tab=mcp-servers'
+      if (tab === 'variables') return '/system?tab=variables'
+      if (tab === 'scheduler') return '/server?tab=dashboard'
+      return '/server?tab=snacks'
+    },
   },
   {
     path: '/groovebox/:pathMatch(.*)*',
