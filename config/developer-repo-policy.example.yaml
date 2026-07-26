@@ -1,0 +1,96 @@
+# uCore Developer Repo Policy Configuration
+# Copy to ~/.ucore/config/developer-repo-policy.yaml and adjust.
+#
+# Purpose:
+# - Backend classification policy for Developer Surface repository discovery.
+# - Enforces Code vs Vault/Docs boundary.
+
+version: 1
+
+roots:
+  code_root: ~/Code
+  vault_non_code_roots:
+    - ~/Vault
+    - ~/Shared
+    - ~/Public/global-knowledge
+    - ~/Public/doc-sites
+
+policy:
+  default_scope: code
+  scopes_allowed: [code, all, vault, system]
+  exclude_system_default: false
+
+system_repos:
+  - ucore
+  - ucode
+  - userver
+  - uconnect
+  - uvector
+
+vault_doc_name_hints:
+  - global-knowledge
+  - doc-sites
+  - knowledge-base
+  - docs-library
+  - vault
+
+code_markers:
+  files:
+    - package.json
+    - pyproject.toml
+    - requirements.txt
+    - go.mod
+    - cargo.toml
+    - pom.xml
+    - build.gradle
+    - makefile
+  dirs:
+    - src
+    - backend
+    - frontend
+    - frontend-vue
+    - app
+    - scripts
+    - packages
+
+classification:
+  doc_marker_dirs:
+    - .obsidian
+    - docs
+    - knowledge
+    - notes
+  code_file_extensions:
+    - .py
+    - .ts
+    - .tsx
+    - .js
+    - .jsx
+    - .go
+    - .rs
+    - .java
+    - .c
+    - .cpp
+    - .h
+    - .hpp
+    - .rb
+    - .php
+    - .swift
+    - .kt
+    - .scala
+    - .cs
+    - .sh
+  doc_file_extensions:
+    - .md
+    - .mdx
+    - .markdown
+    - .rst
+    - .txt
+  doc_only_threshold:
+    min_doc_files: 20
+    max_code_files: 0
+  scan_limits:
+    max_git_files_to_scan: 1200
+
+behavior:
+  fallback_kind_when_uncertain: code
+  include_kind_metadata: true

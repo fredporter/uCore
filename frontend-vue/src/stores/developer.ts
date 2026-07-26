@@ -56,7 +56,7 @@ export const DEVELOPER_TABS: { id: DeveloperTab; label: string; icon: string }[]
   { id: 'mcp-servers', label: 'MCP', icon: 'dns' },
 ]
 
-const SNACKBAR_API = import.meta.env.VITE_SNACKBAR_URL || 'http://localhost:8484'
+import { SNACKBAR_API } from '@/api/base'
 
 export const DEVELOPER_LANES: LaneConfig[] = [
   {

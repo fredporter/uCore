@@ -13,8 +13,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import Any
 
 from aiohttp import ClientSession, ClientTimeout, web
+
+from app.utils.config_loader import load_service_registry
 
 log = logging.getLogger("ucore")
 
@@ -22,52 +25,33 @@ log = logging.getLogger("ucore")
 
 
 class ServerStore:
-    """In-memory store for registered services with default seed."""
+    """In-memory store for registered services with default seed.
+
+    Reads from service-registry.yaml config via config_loader;
+    falls back to built-in defaults if config is missing.
+    """
 
     def __init__(self) -> None:
         self._services: dict[str, dict] = {}
+        self._probe_config: dict[str, Any] = {}
         self._seed_defaults()
 
     def _seed_defaults(self) -> None:
-        for svc in [
-            {
-                "name": "snackbar",
-                "port": 8484,
-                "type": "system",
-                "description": "Container orchestrator & workflow runner",
-            },
-            {
-                "name": "hivemind",
-                "port": 8490,
-                "type": "system",
-                "description": "AI agent routing",
-            },
-            {
-                "name": "vault-mcp",
-                "port": 8765,
-                "type": "user",
-                "description": "Vault MCP bridge",
-            },
-            {
-                "name": "ollama",
-                "port": 11434,
-                "type": "system",
-                "description": "Local LLM runtime",
-            },
-            {
-                "name": "feed-spool",
-                "port": 8486,
-                "type": "system",
-                "description": "Feed spooler & transport",
-            },
-            {
-                "name": "secret-server",
-                "port": 30001,
-                "type": "user",
-                "description": "AES-256-GCM encrypted secret vault",
-            },
-        ]:
-            self._services[svc["name"]] = svc
+        services, probe = load_service_registry()
+        self._probe_config = probe
+        for svc in services:
+            key = svc.get("id", svc.get("name", ""))
+            if not key:
+                continue
+            # Normalize to internal format expected by existing handlers
+            normalized = {
+                "name": svc.get("id", svc.get("name", "")),
+                "port": svc.get("port", 0),
+                "type": svc.get("category", "system"),
+                "description": svc.get("description", ""),
+                "_raw": svc,  # preserve full config entry
+            }
+            self._services[key] = normalized
 
     def list_services(self) -> list[dict]:
         return list(self._services.values())
@@ -76,27 +60,61 @@ class ServerStore:
         return self._services.get(name)
 
     def add_service(self, svc: dict) -> dict:
-        self._services[svc["name"]] = svc
+        key = svc.get("name", svc.get("id", ""))
+        self._services[key] = svc
         return svc
 
 
 # ─── Health Probe ──────────────────────────────────────────────────
 
 
-async def _probe_service(svc: dict) -> dict:
-    """Probe a single service's /health endpoint."""
-    port = svc.get("port", 0)
+def _health_url(svc: dict) -> str | None:
+    """Build the health-check URL from service config or raw entry."""
+    raw = svc.get("_raw", {})
+    health_cfg = raw.get("health", {})
+    if not health_cfg:
+        # Legacy fallback: construct from port
+        port = svc.get("port", 0)
+        if not port:
+            return None
+        host = svc.get("host", "localhost")
+        return f"http://{host}:{port}/health"
+
+    # Use config-driven health path
+    host = raw.get("host", "localhost")
+    port = raw.get("port", svc.get("port", 0))
     if not port:
+        return None
+    path = health_cfg.get("path", "/health")
+    return f"http://{host}:{port}{path}"
+
+
+async def _probe_service(svc: dict) -> dict:
+    """Probe a single service's health endpoint."""
+    url = _health_url(svc)
+    if url is None:
         return {**svc, "status": "down", "uptime": 0}
-    url = f"http://localhost:{port}/health"
+
+    accept_status = svc.get("_raw", {}).get(
+        "health", {},
+    ).get("accept_status", 200)
+    if not isinstance(accept_status, list):
+        accept_status = [accept_status]
+
+    timeout = svc.get("_raw", {}).get(
+        "probe", {},
+    ).get("timeout_seconds", 2)
+
     try:
         async with ClientSession(
-            timeout=ClientTimeout(total=2)
+            timeout=ClientTimeout(total=timeout),
         ) as session:
             async with session.get(url) as resp:
                 return {
                     **svc,
-                    "status": "up" if resp.status == 200 else "degraded",
+                    "status": (
+                        "up" if resp.status in accept_status else "degraded"
+                    ),
                     "uptime": 99.0,
                 }
     except Exception:

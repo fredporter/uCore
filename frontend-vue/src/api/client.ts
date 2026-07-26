@@ -4,9 +4,7 @@
  * Replaces scattered fetch() calls from the React frontend.
  */
 
-const SNACKBAR_API = import.meta.env.VITE_SNACKBAR_URL || 'http://localhost:8484'
-const UCORE_API = import.meta.env.VITE_UCORE_URL || SNACKBAR_API
-const OLLAMA_API = import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434'
+import { SNACKBAR_API, UCORE_API, OLLAMA_API } from './base'
 
 export interface ApiResponse<T> {
   data: T

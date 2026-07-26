@@ -5,8 +5,10 @@
  */
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { SNACKBAR_BASE } from '@/api/base'
 
-export type SnackMachineTab = 'snacks' | 'workflows' | 'mcp' | 'vault' | 'variables' | 'scheduler'
+export type SnackMachineTab =
+  'snacks' | 'workflows' | 'mcp' | 'vault' | 'variables' | 'scheduler'
 
 export interface SnackEntry {
   id: string
@@ -64,7 +66,6 @@ export interface ImportJobEntry {
   timestamp: string
 }
 
-const API_BASE = import.meta.env.VITE_SNACKBAR_URL || 'http://localhost:8484'
 
 export const SNACKMACHINE_TABS: { id: SnackMachineTab; label: string; icon: string }[] = [
   { id: 'snacks', label: 'Snacks', icon: 'restaurant_menu' },
@@ -98,7 +99,7 @@ export const useSnackMachineStore = defineStore('snackmachine', () => {
 
   async function fetchSnacks(): Promise<void> {
     try {
-      const r = await fetch(`${API_BASE}/api/snacks`)
+      const r = await fetch(`${SNACKBAR_BASE}/api/snacks`)
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
       backendOk.value = true
       const data = await r.json()
@@ -112,7 +113,7 @@ export const useSnackMachineStore = defineStore('snackmachine', () => {
         timestamp: s.timestamp ?? new Date().toISOString(),
       }))
 
-      const sysRes = await fetch(`${API_BASE}/api/snacks/system`)
+      const sysRes = await fetch(`${SNACKBAR_BASE}/api/snacks/system`)
       if (sysRes.ok) {
         const sysData = await sysRes.json()
         const sysRaw = (sysData as any)?.snacks || []
@@ -131,7 +132,7 @@ export const useSnackMachineStore = defineStore('snackmachine', () => {
 
   async function fetchMCP(): Promise<void> {
     try {
-      const res = await fetch(`${API_BASE}/api/mcp/tools`)
+      const res = await fetch(`${SNACKBAR_BASE}/api/mcp/tools`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       const tools = data?.result?.tools || data?.tools || []
@@ -152,7 +153,7 @@ export const useSnackMachineStore = defineStore('snackmachine', () => {
 
   async function fetchWorkflows(): Promise<void> {
     try {
-      const res = await fetch(`${API_BASE}/api/workflows`)
+      const res = await fetch(`${SNACKBAR_BASE}/api/workflows`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       const raw = data.workflows || data || []
@@ -174,7 +175,7 @@ export const useSnackMachineStore = defineStore('snackmachine', () => {
 
   async function fetchVariables(): Promise<void> {
     try {
-      const res = await fetch(`${API_BASE}/api/variables`)
+      const res = await fetch(`${SNACKBAR_BASE}/api/variables`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       const vars = data.variables || data || {}
@@ -192,8 +193,8 @@ export const useSnackMachineStore = defineStore('snackmachine', () => {
   async function fetchVaultSyncStatus(): Promise<void> {
     try {
       const [statusRes, coverageRes] = await Promise.all([
-        fetch(`${API_BASE}/api/knowledge/import/status`),
-        fetch(`${API_BASE}/api/knowledge/index/coverage`),
+        fetch(`${SNACKBAR_BASE}/api/knowledge/import/status`),
+        fetch(`${SNACKBAR_BASE}/api/knowledge/index/coverage`),
       ])
 
       if (statusRes.ok) {
@@ -223,7 +224,7 @@ export const useSnackMachineStore = defineStore('snackmachine', () => {
   async function syncVault(source = 'User Vault'): Promise<void> {
     syncingVault.value = true
     try {
-      const res = await fetch(`${API_BASE}/api/knowledge/sync`, {
+      const res = await fetch(`${SNACKBAR_BASE}/api/knowledge/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ source }),
@@ -245,7 +246,7 @@ export const useSnackMachineStore = defineStore('snackmachine', () => {
     ]
     try {
       await Promise.all(defaults.map((payload) =>
-        fetch(`${API_BASE}/api/snacks`, {
+        fetch(`${SNACKBAR_BASE}/api/snacks`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),

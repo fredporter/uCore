@@ -108,7 +108,9 @@ export const WORKFLOW_TABS: { id: WorkflowTab; label: string; icon: string }[] =
   { id: 'publish', label: 'Publish', icon: 'publish' },
 ]
 
-const API = import.meta.env.VITE_SNACKBAR_URL || 'http://localhost:8484'
+import { SNACKBAR_BASE } from '@/api/base'
+
+const API = SNACKBAR_BASE
 
 const SAMPLE_TASKS: WorkflowTask[] = [
   { id: 'seed-1', title: 'Plan the week', status: 'in-progress', priority: 'high', board: 'planning', tags: ['planning', 'weekly'], description: 'Review goals and lock top priorities for the week.' },

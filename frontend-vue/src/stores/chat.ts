@@ -37,7 +37,7 @@ export interface PromptCard {
   context?: string
 }
 
-const SNACKBAR_API = import.meta.env.VITE_SNACKBAR_URL || 'http://localhost:8484'
+import { SNACKBAR_API } from '@/api/base'
 
 function generateId(): string {
   return `conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
