@@ -856,6 +856,13 @@
         "issues": []
       },
       {
+        "method": "GET",
+        "path": "/api/autonomy/state",
+        "handler": "handle_autonomy_state",
+        "health": "working",
+        "issues": []
+      },
+      {
         "method": "POST",
         "path": "/api/budget/reload",
         "handler": "handle_budget_reload",
@@ -1729,8 +1736,8 @@
     ]
   },
   "health": {
-    "total_items": 177,
-    "working": 176,
+    "total_items": 178,
+    "working": 177,
     "untested": 1,
     "broken": 0,
     "orphaned": 0,
