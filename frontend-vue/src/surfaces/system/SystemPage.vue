@@ -1,44 +1,46 @@
 <template>
   <div class="system-page">
-    <div class="system-page-header">
-      <UIcon :name="displayIcon" class="system-page-header-icon" />
-      <h2 class="system-page-title">{{ displayTitle }}</h2>
-      <UBadge type="neutral" size="sm">{{ resolvedPageCode }}</UBadge>
-    </div>
-
-    <div class="system-page-body">
-      <h3 class="system-fallback-title">{{ fallbackModel.heading }}</h3>
-      <p class="system-page-note">{{ fallbackModel.summary }}</p>
-
-      <section class="system-fallback-block">
-        <h4 class="system-fallback-subtitle">What You Can Do</h4>
-        <ul class="system-fallback-list">
-          <li v-for="step in fallbackModel.steps" :key="step">{{ step }}</li>
-        </ul>
-      </section>
-
-      <section class="system-fallback-block" v-if="fallbackModel.suggestions.length">
-        <h4 class="system-fallback-subtitle">Suggested Pages</h4>
-        <div class="system-fallback-links">
-          <button
-            v-for="suggestion in fallbackModel.suggestions"
-            :key="suggestion.label"
-            class="system-fallback-link"
-            @click="goTo(suggestion.to)"
-          >
-            {{ suggestion.label }}
-          </button>
-        </div>
-      </section>
-
-      <div class="system-actions-row">
-        <button class="system-page-action" @click="goBack">Go Back</button>
-        <button class="system-page-action" @click="retry">Retry</button>
-        <button class="system-page-action" @click="goHome">Home</button>
-        <button class="system-page-action" @click="goTo('/system?tab=pages')">Browse Fallback Pages</button>
+    <div class="system-page-shell">
+      <div class="system-page-header">
+        <UIcon :name="displayIcon" class="system-page-header-icon" />
+        <h2 class="system-page-title">{{ displayTitle }}</h2>
+        <UBadge type="neutral" size="sm">{{ resolvedPageCode }}</UBadge>
       </div>
 
-      <p class="system-fallback-footnote">{{ fallbackModel.footnote }}</p>
+      <div class="system-page-body">
+        <h3 class="system-fallback-title">{{ fallbackModel.heading }}</h3>
+        <p class="system-page-note">{{ fallbackModel.summary }}</p>
+
+        <section class="system-fallback-block">
+          <h4 class="system-fallback-subtitle">What You Can Do</h4>
+          <ul class="system-fallback-list">
+            <li v-for="step in fallbackModel.steps" :key="step">{{ step }}</li>
+          </ul>
+        </section>
+
+        <section class="system-fallback-block" v-if="fallbackModel.suggestions.length">
+          <h4 class="system-fallback-subtitle">Suggested Pages</h4>
+          <div class="system-fallback-links">
+            <button
+              v-for="suggestion in fallbackModel.suggestions"
+              :key="suggestion.label"
+              class="system-fallback-link"
+              @click="goTo(suggestion.to)"
+            >
+              {{ suggestion.label }}
+            </button>
+          </div>
+        </section>
+
+        <div class="system-actions-row">
+          <button class="system-page-action" @click="goBack">Go Back</button>
+          <button class="system-page-action" @click="retry">Retry</button>
+          <button class="system-page-action" @click="goHome">Home</button>
+          <button class="system-page-action" @click="goTo('/system?tab=pages')">Browse Fallback Pages</button>
+        </div>
+
+        <p class="system-fallback-footnote">{{ fallbackModel.footnote }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -280,21 +282,47 @@ function goHome() {
 </script>
 
 <style scoped>
-.system-page { padding: var(--usx-spacing-xl); max-width: 900px; }
-.system-page-header { display: flex; align-items: center; gap: var(--usx-spacing-md); margin-bottom: var(--usx-spacing-lg); }
+.system-page {
+  padding: var(--usx-spacing-xl);
+  display: flex;
+  justify-content: center;
+}
+.system-page-shell {
+  width: 100%;
+  max-width: 900px;
+  border: 1px solid var(--usx-color-border);
+  border-radius: var(--usx-radius-lg);
+  background: var(--usx-color-surface);
+  padding: var(--usx-spacing-xl);
+}
+.system-page-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  margin-bottom: var(--usx-spacing-lg);
+  text-align: center;
+}
 .system-page-header-icon { font-size: var(--usx-font-size-2xl); }
 .system-page-title { margin: 0; font-size: var(--usx-font-size-xl); font-weight: var(--usx-font-weight-semibold); }
-.system-page-note { color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-base); margin: 0; }
-.system-page-body { margin-top: var(--usx-spacing-md); display: flex; flex-direction: column; gap: var(--usx-spacing-md); }
-.system-fallback-title { margin: 0; font-size: var(--usx-font-size-lg); font-weight: var(--usx-font-weight-semibold); color: var(--usx-color-on-surface); }
+.system-page-note { color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-base); margin: 0; text-align: center; }
+.system-page-body {
+  margin-top: var(--usx-spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-md);
+  align-items: center;
+}
+.system-fallback-title { margin: 0; font-size: var(--usx-font-size-lg); font-weight: var(--usx-font-weight-semibold); color: var(--usx-color-on-surface); text-align: center; }
 .system-fallback-block { border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-md); background: var(--usx-color-surface); padding: var(--usx-spacing-md); }
-.system-fallback-subtitle { margin: 0 0 var(--usx-spacing-sm); font-size: var(--usx-font-size-sm); font-weight: var(--usx-font-weight-semibold); color: var(--usx-color-on-surface); }
+.system-fallback-subtitle { margin: 0 0 var(--usx-spacing-sm); font-size: var(--usx-font-size-sm); font-weight: var(--usx-font-weight-semibold); color: var(--usx-color-on-surface); text-align: center; }
+.system-fallback-block { width: 100%; max-width: 720px; }
 .system-fallback-list { margin: 0; padding-left: var(--usx-spacing-lg); display: flex; flex-direction: column; gap: var(--usx-spacing-xs); color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-sm); }
-.system-fallback-links { display: flex; flex-wrap: wrap; gap: var(--usx-spacing-sm); }
+.system-fallback-links { display: flex; flex-wrap: wrap; gap: var(--usx-spacing-sm); justify-content: center; }
 .system-fallback-link { border: 1px solid var(--usx-color-border); background: var(--usx-color-background); color: var(--usx-color-on-surface); border-radius: var(--usx-radius-sm); padding: var(--usx-spacing-xs) var(--usx-spacing-sm); cursor: pointer; font-size: var(--usx-font-size-sm); }
 .system-fallback-link:hover { border-color: var(--usx-color-primary); color: var(--usx-color-primary); }
-.system-actions-row { display: flex; flex-wrap: wrap; gap: var(--usx-spacing-sm); }
+.system-actions-row { display: flex; flex-wrap: wrap; gap: var(--usx-spacing-sm); justify-content: center; }
 .system-page-action { padding: var(--usx-spacing-xs) var(--usx-spacing-md); border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-surface); color: var(--usx-color-on-surface); cursor: pointer; font-size: var(--usx-font-size-sm); }
 .system-page-action:hover { border-color: var(--usx-color-primary); color: var(--usx-color-primary); }
-.system-fallback-footnote { margin: 0; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); }
+.system-fallback-footnote { margin: 0; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); text-align: center; }
 </style>
