@@ -315,27 +315,20 @@ _DEFAULT_S_PAGES: list[dict[str, str]] = [
     {"id": "S100", "title": "Tool Builder", "icon": "build"},
     {"id": "S101", "title": "Story Builder", "icon": "auto_stories"},
     {"id": "S300", "title": "Workflow Builder", "icon": "account_tree"},
+    {"id": "S340", "title": "Operations Console", "icon": "tune"},
     {"id": "S310", "title": "Clipboard Orchestration", "icon": "content_paste"},
     {"id": "S320", "title": "Knowledge Tools", "icon": "psychology"},
     {"id": "S330", "title": "Migration Dashboard", "icon": "migration"},
     {"id": "S600", "title": "Learning Hub", "icon": "school"},
 ]
 
-_DEFAULT_P_PAGES: list[dict[str, str]] = [
-    {"id": "P001", "title": "System Health", "icon": "monitor_heart"},
-    {"id": "P002", "title": "Configuration Audit", "icon": "checklist"},
-    {"id": "P003", "title": "Service Graph", "icon": "bubble_chart"},
-    {"id": "P004", "title": "Secret Audit Trail", "icon": "security"},
-    {"id": "P005", "title": "Variable Inspector", "icon": "data_object"},
-]
-
 _REQUIRED_PAGE_FIELDS = {"id", "title", "icon"}
 
 
-def load_system_pages_registry() -> tuple[list[dict], list[dict]]:
-    """Load S-pages and P-pages from config.
+def load_system_pages_registry() -> list[dict]:
+    """Load S-pages from config.
 
-    Returns (s_pages, p_pages).  Falls back to built-in defaults.
+    Returns a list of S-pages and falls back to built-in defaults.
     Validates that every page has id, title, and icon fields.
     """
     data = _read_yaml("system-pages-registry.yaml")
@@ -343,27 +336,23 @@ def load_system_pages_registry() -> tuple[list[dict], list[dict]]:
         log.debug(
             "System pages registry: using built-in defaults",
         )
-        return _DEFAULT_S_PAGES, _DEFAULT_P_PAGES
+        return _DEFAULT_S_PAGES
 
     pages = data.get("pages", {})
     if not isinstance(pages, dict):
         log.warning(
             "System pages registry: invalid 'pages' key; using defaults",
         )
-        return _DEFAULT_S_PAGES, _DEFAULT_P_PAGES
+        return _DEFAULT_S_PAGES
 
     s_pages_raw: list[dict] = pages.get("s", [])
-    p_pages_raw: list[dict] = pages.get("p", [])
 
     s_pages = _validate_pages(s_pages_raw, "S")
-    p_pages = _validate_pages(p_pages_raw, "P")
 
     if not s_pages:
         s_pages = _DEFAULT_S_PAGES
-    if not p_pages:
-        p_pages = _DEFAULT_P_PAGES
 
-    return s_pages, p_pages
+    return s_pages
 
 
 def _validate_pages(raw: list[dict], prefix: str) -> list[dict]:

@@ -10,20 +10,15 @@
       <!-- Pages Browser -->
       <div v-if="currentTab === 'pages'" class="system-panel">
         <h3 class="surface__panel-title">System Pages</h3>
-        <p class="system-muted-copy">Browse S-pages and P-pages.</p>
-        <div class="system-filter-group">
-          <button class="system-filter-btn" :class="{ 'system-filter-btn--active': pageFilter === 'all' }" @click="pageFilter = 'all'">All</button>
-          <button class="system-filter-btn" :class="{ 'system-filter-btn--active': pageFilter === 's' }" @click="pageFilter = 's'">S-Pages</button>
-          <button class="system-filter-btn" :class="{ 'system-filter-btn--active': pageFilter === 'p' }" @click="pageFilter = 'p'">P-Pages</button>
-        </div>
+        <p class="system-muted-copy">Browse S-pages.</p>
         <div class="system-pages-grid">
-          <div v-for="page in filteredPages" :key="page.id" class="system-page-card" @click="navigateToPage(page.id)">
+          <div v-for="page in allPages" :key="page.id" class="system-page-card" @click="navigateToPage(page.id)">
             <UIcon :name="page.icon" />
             <span class="system-page-id">{{ page.id }}</span>
             <span class="system-page-title">{{ page.title }}</span>
           </div>
         </div>
-        <p v-if="filteredPages.length === 0" class="system-muted-copy">No pages found. Try a different filter.</p>
+        <p v-if="allPages.length === 0" class="system-muted-copy">No pages found.</p>
       </div>
 
       <!-- Services -->
@@ -151,11 +146,12 @@ export const SYSTEM_TABS: TabDef[] = [
 import { computed, ref, reactive, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useShellStore } from '../../stores/shell'
+import { SNACKBAR_BASE } from '../../api/base'
 import UIcon from '../../skills/atoms/UIcon.vue'
 import UBadge from '../../skills/atoms/UBadge.vue'
 import SurfaceTabNav from '../../skills/molecules/SurfaceTabNav.vue'
 
-const API_BASE = import.meta.env.VITE_SNACKBAR_URL || 'http://localhost:8484'
+const API_BASE = SNACKBAR_BASE
 const route = useRoute()
 const router = useRouter()
 const shell = useShellStore()
@@ -164,12 +160,17 @@ const activeTab = ref((route.query.tab as string) || 'pages')
 const currentTab = computed(() => activeTab.value)
 
 // ── Pages ────────────────────────────────────────────────────────
-const pageFilter = ref<'all' | 's' | 'p'>('all')
-const allPages = ref<Array<{id: string; title: string; icon: string; type: string}>>([])
-const filteredPages = computed(() => {
-  if (pageFilter.value === 'all') return allPages.value
-  return allPages.value.filter(p => p.type === pageFilter.value)
-})
+const LOCAL_FALLBACK_PAGES = [
+  { id: 'S100', title: 'Tool Builder', icon: 'build' },
+  { id: 'S101', title: 'Story Builder', icon: 'auto_stories' },
+  { id: 'S300', title: 'Workflow Builder', icon: 'account_tree' },
+  { id: 'S340', title: 'Operations Console', icon: 'tune' },
+  { id: 'S310', title: 'Clipboard Orchestration', icon: 'content_paste' },
+  { id: 'S320', title: 'Knowledge Tools', icon: 'psychology' },
+  { id: 'S330', title: 'Migration Dashboard', icon: 'migration' },
+  { id: 'S600', title: 'Learning Hub', icon: 'school' },
+]
+const allPages = ref<Array<{id: string; title: string; icon: string}>>([])
 
 function navigateToPage(pageId: string) {
   router.push(`/system/${pageId.toLowerCase()}`)
@@ -293,7 +294,7 @@ async function saveUserSettings() {
 // ── Data Fetching ────────────────────────────────────────────────
 async function fetchPages() {
   try {
-    const res = await fetch('/api/system/pages', { signal: AbortSignal.timeout(3000) })
+    const res = await fetch(`${API_BASE}/api/system/pages`, { signal: AbortSignal.timeout(3000) })
     if (res.ok) {
       const data = await res.json()
       const pages = data.pages || []
@@ -301,10 +302,11 @@ async function fetchPages() {
         id: p.id,
         title: p.title,
         icon: p.icon || 'dashboard',
-        type: p.id.startsWith('S') ? 's' : 'p',
       }))
+      if (allPages.value.length > 0) return
     }
   } catch {}
+  allPages.value = LOCAL_FALLBACK_PAGES
 }
 
 async function fetchServices() {
@@ -393,11 +395,6 @@ watch(userSettings, (v) => { try { localStorage.setItem('ucore-user-settings', J
 .system-section-title { margin: var(--usx-spacing-md) 0 var(--usx-spacing-xs); font-size: var(--usx-font-size-base); font-weight: var(--usx-font-weight-semibold); }
 .system-loading { padding: var(--usx-spacing-lg); text-align: center; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-sm); }
 .system-panel { }
-
-/* Filter */
-.system-filter-group { display: flex; gap: var(--usx-spacing-xs); margin-bottom: var(--usx-spacing-md); }
-.system-filter-btn { padding: var(--usx-spacing-xs) var(--usx-spacing-md); border: 1px solid var(--usx-color-border); background: var(--usx-color-surface); border-radius: var(--usx-radius-sm); color: var(--usx-color-on-surface-muted); cursor: pointer; font-size: var(--usx-font-size-sm); }
-.system-filter-btn--active { background: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
 
 /* Pages */
 .system-pages-grid { --system-grid-column-min: calc(var(--usx-touch-min) * 4.5); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--system-grid-column-min)), 1fr)); gap: var(--usx-spacing-sm); min-width: 0; }

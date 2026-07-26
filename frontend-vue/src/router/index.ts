@@ -45,6 +45,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Workflow', icon: 'workflow' },
   },
   {
+    path: '/system/:pageId(s\\d{3}|p\\d{3})',
+    name: 'systempage',
+    component: () => import('../surfaces/system/SystemPage.vue'),
+    meta: { title: 'System Page' },
+  },
+  {
     path: '/system/:pathMatch(.*)*',
     name: 'system',
     component: () => import('../surfaces/system/SystemSurface.vue'),
@@ -91,12 +97,10 @@ const routes: RouteRecordRaw[] = [
     path: '/userver/:pathMatch(.*)*',
     redirect: to => `/server${to.path.replace('/userver', '')}`,
   },
-  // System pages (S-pages, P-pages)
+  // Legacy direct shortcuts
   {
     path: '/:pathMatch(s\\d{3}|p\\d{3})',
-    name: 'systempage',
-    component: () => import('../surfaces/system/SystemPage.vue'),
-    meta: { title: 'System Page' },
+    redirect: to => `/system/${String(to.params.pathMatch || '').toLowerCase()}`,
   },
 ]
 

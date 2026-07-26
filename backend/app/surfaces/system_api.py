@@ -71,30 +71,21 @@ _S_PAGES_DEFAULT: list[dict] = [
     {"id": "S100", "title": "Tool Builder", "icon": "build"},
     {"id": "S101", "title": "Story Builder", "icon": "auto_stories"},
     {"id": "S300", "title": "Workflow Builder", "icon": "account_tree"},
+    {"id": "S340", "title": "Operations Console", "icon": "tune"},
     {"id": "S310", "title": "Clipboard Orchestration", "icon": "content_paste"},
     {"id": "S320", "title": "Knowledge Tools", "icon": "psychology"},
     {"id": "S330", "title": "Migration Dashboard", "icon": "migration"},
     {"id": "S600", "title": "Learning Hub", "icon": "school"},
 ]
 
-_P_PAGES_DEFAULT: list[dict] = [
-    {"id": "P001", "title": "System Health", "icon": "monitor_heart"},
-    {"id": "P002", "title": "Configuration Audit", "icon": "checklist"},
-    {"id": "P003", "title": "Service Graph", "icon": "bubble_chart"},
-    {"id": "P004", "title": "Secret Audit Trail", "icon": "security"},
-    {"id": "P005", "title": "Variable Inspector", "icon": "data_object"},
-]
-
-
-def _get_pages() -> tuple[list[dict], list[dict]]:
-    """Load pages from config; fall back to built-in defaults."""
+def _get_pages() -> list[dict]:
+    """Load S-pages from config; fall back to built-in defaults."""
     return load_system_pages_registry()
 
 
-# Backward-compatible module-level accessors (deprecated, kept for
-# any code that may import S_PAGES/P_PAGES directly).
+# Backward-compatible module-level accessor (deprecated, kept for
+# any code that may import S_PAGES directly).
 S_PAGES: list[dict] = _S_PAGES_DEFAULT  # noqa: N816
-P_PAGES: list[dict] = _P_PAGES_DEFAULT  # noqa: N816
 
 
 def register_system_api_routes(app: web.Application) -> None:  # noqa: C901
@@ -102,18 +93,15 @@ def register_system_api_routes(app: web.Application) -> None:  # noqa: C901
 
     # ── Pages ──────────────────────────────────────────────────
     async def handle_pages(request: web.Request) -> web.Response:
-        s_pages, p_pages = _get_pages()
-        page_type = request.query.get("type", "all")
-        pages: list[dict] = []
-        if page_type in ("all", "s"):
-            pages.extend(s_pages)
-        if page_type in ("all", "p"):
-            pages.extend(p_pages)
+        s_pages = _get_pages()
+        page_type = request.query.get("type", "all").lower()
+        pages = s_pages if page_type in ("all", "s") else []
         return web.json_response({
             "pages": pages,
             "count": len(pages),
             "s_count": len(s_pages),
-            "p_count": len(p_pages),
+            # Kept for backward compatibility with older frontend payload readers.
+            "p_count": 0,
         })
 
     # ── Settings (disk-persisted) ───────────────────────────────

@@ -2,8 +2,8 @@
 # Copy to ~/.ucore/config/system-pages-registry.yaml and adjust.
 #
 # Purpose:
-# - External registry for System Surface S/P page menus.
-# - Replaces hardcoded S_PAGES and P_PAGES arrays.
+# - External registry for System Surface S-page menus.
+# - Replaces hardcoded S_PAGES fallback array.
 
 version: 1
 
@@ -18,6 +18,9 @@ pages:
     - id: S300
       title: Workflow Builder
       icon: account_tree
+    - id: S340
+      title: Operations Console
+      icon: tune
     - id: S310
       title: Clipboard Orchestration
       icon: content_paste
@@ -31,25 +34,7 @@ pages:
       title: Learning Hub
       icon: school
 
-  p:
-    - id: P001
-      title: System Health
-      icon: monitor_heart
-    - id: P002
-      title: Configuration Audit
-      icon: checklist
-    - id: P003
-      title: Service Graph
-      icon: bubble_chart
-    - id: P004
-      title: Secret Audit Trail
-      icon: security
-    - id: P005
-      title: Variable Inspector
-      icon: data_object
-
 validation:
   required_fields: [id, title, icon]
   id_patterns:
     s: ^S[0-9]{3}$
-    p: ^P[0-9]{3}$
