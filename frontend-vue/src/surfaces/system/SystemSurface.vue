@@ -38,29 +38,56 @@
         <div v-if="loadingVars" class="system-loading">Loading variables...</div>
         <div v-else>
           <h4 class="system-section-title">User Variables</h4>
-          <div class="system-vars-list">
-            <div v-for="(value, key) in userVariables" :key="key" class="system-var-row">
-              <code class="system-var-key">{{ key }}</code>
-              <input
-                v-if="editingVar === key"
-                v-model="editVarValue"
-                class="system-var-input"
-                @keyup.enter="saveVariable(key)"
-                @keyup.escape="editingVar = null"
-              />
-              <span v-else class="system-var-value">{{ value }}</span>
-              <UBadge type="info" size="sm">user</UBadge>
-              <button v-if="editingVar !== key" class="system-edit-btn" @click="startEditVar(key, value)">✎</button>
-              <button v-else class="system-save-btn" @click="saveVariable(key)">✓</button>
-            </div>
+          <div class="system-table-wrap">
+            <table class="system-table">
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Value</th>
+                  <th>Scope</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(value, key) in userVariables" :key="key">
+                  <td><code class="system-var-key">{{ key }}</code></td>
+                  <td>
+                    <input
+                      v-if="editingVar === key"
+                      v-model="editVarValue"
+                      class="system-var-input"
+                      @keyup.enter="saveVariable(key)"
+                      @keyup.escape="editingVar = null"
+                    />
+                    <span v-else class="system-var-value">{{ value }}</span>
+                  </td>
+                  <td><UBadge type="info" size="sm">user</UBadge></td>
+                  <td>
+                    <button v-if="editingVar !== key" class="system-edit-btn" @click="startEditVar(key, value)">Edit</button>
+                    <button v-else class="system-save-btn" @click="saveVariable(key)">Save</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
           <h4 class="system-section-title">Installation Metadata</h4>
-          <div class="system-vars-list">
-            <div v-for="(value, key) in installVariables" :key="key" class="system-var-row">
-              <code class="system-var-key">{{ key }}</code>
-              <span class="system-var-value">{{ value }}</span>
-              <UBadge type="neutral" size="sm">install</UBadge>
-            </div>
+          <div class="system-table-wrap">
+            <table class="system-table">
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Value</th>
+                  <th>Scope</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(value, key) in installVariables" :key="key">
+                  <td><code class="system-var-key">{{ key }}</code></td>
+                  <td><span class="system-var-value">{{ value }}</span></td>
+                  <td><UBadge type="neutral" size="sm">install</UBadge></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -80,14 +107,28 @@
           <button class="system-edit-btn" @click="showAddSecret = false">Cancel</button>
         </div>
         <div v-if="loadingSecrets" class="system-loading">Loading secrets...</div>
-        <div v-else class="system-secrets-list">
-          <div v-for="secret in secrets" :key="secret.key" class="system-secret-row">
-            <span class="system-secret-key">{{ secret.key }}</span>
-            <span class="system-secret-value">{{ revealingSecret === secret.key ? secret.value : '••••••••' }}</span>
-            <UBadge type="info" size="sm">{{ secret.scope }}</UBadge>
-            <button class="system-edit-btn" @click="toggleRevealSecret(secret.key)">👁</button>
-            <button class="system-delete-btn" @click="deleteSecret(secret.key)">✕</button>
-          </div>
+        <div v-else class="system-table-wrap">
+          <table class="system-table">
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Value</th>
+                <th>Scope</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="secret in secrets" :key="secret.key">
+                <td><span class="system-secret-key">{{ secret.key }}</span></td>
+                <td><span class="system-secret-value">{{ revealingSecret === secret.key ? secret.value : '••••••••' }}</span></td>
+                <td><UBadge type="info" size="sm">{{ secret.scope }}</UBadge></td>
+                <td class="system-secret-actions">
+                  <button class="system-edit-btn" @click="toggleRevealSecret(secret.key)">Reveal</button>
+                  <button class="system-delete-btn" @click="deleteSecret(secret.key)">Delete</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -375,8 +416,10 @@ watch(userSettings, (v) => { try { localStorage.setItem('ucore-user-settings', J
 .system-runtime-actions { display: flex; flex-wrap: wrap; gap: var(--usx-spacing-sm); }
 
 /* Variables */
-.system-vars-list { display: flex; flex-direction: column; gap: var(--usx-spacing-xs); margin-bottom: var(--usx-spacing-md); }
-.system-var-row { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-sm); border-radius: var(--usx-radius-sm); }
+.system-table-wrap { overflow-x: auto; margin-bottom: var(--usx-spacing-md); }
+.system-table { width: 100%; border-collapse: collapse; font-size: var(--usx-font-size-sm); }
+.system-table th { text-align: left; font-weight: var(--usx-font-weight-semibold); color: var(--usx-color-on-surface-muted); padding: var(--usx-spacing-sm); border-bottom: var(--usx-border-width) solid var(--usx-color-border); white-space: nowrap; }
+.system-table td { padding: var(--usx-spacing-sm); border-bottom: var(--usx-border-width) solid var(--usx-color-border); vertical-align: middle; }
 .system-var-key { font-family: var(--usx-font-family-mono); font-size: var(--usx-font-size-sm); color: var(--usx-color-primary); min-width: 14ch; }
 .system-var-value { font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); flex: 1; }
 .system-var-input { padding: var(--usx-spacing-xs) var(--usx-spacing-sm); background: var(--usx-color-background); border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-sm); color: var(--usx-color-on-surface); font-size: var(--usx-font-size-sm); flex: 1; }
@@ -387,10 +430,9 @@ watch(userSettings, (v) => { try { localStorage.setItem('ucore-user-settings', J
 .system-action-btn:hover { background: var(--usx-color-background); }
 .system-save-settings-btn { margin-top: var(--usx-spacing-md); }
 .system-add-secret-form { display: flex; gap: var(--usx-spacing-sm); margin-bottom: var(--usx-spacing-md); padding: var(--usx-spacing-sm); background: var(--usx-color-background); border-radius: var(--usx-radius-md); }
-.system-secrets-list { display: flex; flex-direction: column; gap: var(--usx-spacing-xs); }
-.system-secret-row { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-sm); border-radius: var(--usx-radius-sm); }
 .system-secret-key { font-size: var(--usx-font-size-sm); font-weight: var(--usx-font-weight-medium); min-width: 14ch; }
 .system-secret-value { font-family: var(--usx-font-family-mono); font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); flex: 1; }
+.system-secret-actions { display: inline-flex; align-items: center; gap: var(--usx-spacing-sm); }
 
 /* Buttons */
 .system-edit-btn, .system-save-btn, .system-delete-btn { padding: var(--usx-spacing-xs) var(--usx-spacing-sm); background: transparent; border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-sm); cursor: pointer; font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); }
