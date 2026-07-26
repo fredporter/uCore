@@ -150,6 +150,7 @@ onBeforeUnmount(() => {
   height: 100%;
   width: 100%;
   background: var(--usx-color-background);
+  position: relative;
 }
 
 .groovebox-surface-toolbar {

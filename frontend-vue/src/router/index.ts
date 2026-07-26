@@ -5,7 +5,6 @@
  * Enhanced with Dev Mode guard that watches for toggle changes.
  */
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { useDevModeStore } from '../stores/devMode'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -32,11 +31,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../surfaces/server/ServerSurface.vue'),
     meta: { title: 'Server', icon: 'server' },
   },
+  // Developer surface moved to uDev repo (port 5176)
   {
     path: '/developer/:pathMatch(.*)*',
-    name: 'developer',
-    component: () => import('../surfaces/developer/DeveloperSurface.vue'),
-    meta: { title: 'Developer', icon: 'code', devOnly: true },
+    redirect: () => { window.location.href = 'http://localhost:5176'; return '/'; },
   },
   {
     path: '/workflow/:pathMatch(.*)*',
@@ -113,20 +111,6 @@ const routes: RouteRecordRaw[] = [
 export const router = createRouter({
   history: createWebHistory(),
   routes,
-})
-
-// Dev mode guard — redirects to dashboard if Dev Mode is off
-router.beforeEach(async (to) => {
-  if (to.meta.devOnly) {
-    const devMode = useDevModeStore()
-    // Always probe on first visit; probe() sets loading=false when done
-    if (devMode.loading) {
-      await devMode.probe()
-    }
-    if (!devMode.showDevContent) {
-      return { name: 'dashboard' }
-    }
-  }
 })
 
 // Update document title

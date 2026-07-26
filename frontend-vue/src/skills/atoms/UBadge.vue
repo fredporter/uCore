@@ -28,7 +28,7 @@
  */
 
 interface Props {
-  type?: 'info' | 'success' | 'warning' | 'error'
+  type?: 'info' | 'success' | 'warning' | 'error' | 'danger' | 'neutral'
   size?: 'sm' | 'md'
   circle?: boolean
   pill?: boolean
@@ -113,5 +113,17 @@ withDefaults(defineProps<Props>(), {
   background: var(--usx-color-danger);
   border-color: transparent;
   color: var(--usx-color-on-danger);
+}
+
+.u-badge--danger {
+  background: var(--usx-color-danger);
+  border-color: transparent;
+  color: var(--usx-color-on-danger);
+}
+
+.u-badge--neutral {
+  background: var(--usx-color-surface-variant);
+  border-color: var(--usx-color-border);
+  color: var(--usx-color-on-surface-muted);
 }
 </style>
