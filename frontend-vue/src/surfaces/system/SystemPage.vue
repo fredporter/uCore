@@ -1,8 +1,8 @@
 <template>
   <div class="system-page">
     <div class="system-page-header">
-      <UIcon :name="pageMeta.icon || 'dashboard'" class="system-page-header-icon" />
-      <h2 class="system-page-title">{{ pageMeta.title || pageCode }}</h2>
+      <UIcon :name="displayIcon" class="system-page-header-icon" />
+      <h2 class="system-page-title">{{ displayTitle }}</h2>
       <UBadge type="neutral" size="sm">{{ pageCode }}</UBadge>
     </div>
 
@@ -92,6 +92,8 @@ const LOCAL_FALLBACK_PAGES: PageMeta[] = [
   { id: 'S600', title: 'Learning Hub', icon: 'school' },
 ]
 const pageMeta = ref<PageMeta | null>(null)
+const displayIcon = computed(() => pageMeta.value?.icon || 'dashboard')
+const displayTitle = computed(() => pageMeta.value?.title || pageCode.value)
 const loading = ref(false)
 const loadError = ref('')
 const summaryCards = ref<SummaryCard[]>([])
