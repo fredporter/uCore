@@ -11,7 +11,8 @@ Open `http://localhost:5175/developer` in your browser. You will land on the **ð
 ### Lanes and Workspace Switching
 
 - **System** lane: operates on uCore/uCode with protection guardrails.
-- **Project** lane: operates on repositories discovered under `~/Code` and excludes system repositories (uCore/uCode and related system repos).
+- **Project** lane: operates on **code repositories** discovered under `~/Code` and excludes system repositories (uCore/uCode and related system repos).
+- Developer Surface enforces a strict boundary: vaults and doc libraries (for example, `global-knowledge` and published doc-site libraries) are excluded from Developer and belong to Workflow/Missions surfaces.
 - The Control header includes **two selectors**:
 	- Lane selector (`System` / `Project`)
 	- Project repo selector (visible in `Project` lane)

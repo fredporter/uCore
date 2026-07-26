@@ -31,7 +31,7 @@
  * @description Code review panel — recent changes, file status, staging.
  * @category surfaces/developer
  */
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import UIcon from '../../../skills/atoms/UIcon.vue'
 import UBadge from '../../../skills/atoms/UBadge.vue'
 import UButton from '../../../skills/atoms/UButton.vue'
@@ -50,16 +50,25 @@ interface ReviewEntry {
 const reviews = ref<ReviewEntry[]>([])
 const loading = ref(true)
 
+const activeReviewRepo = computed(() => {
+  if (dev.activeLane === 'project') {
+    return dev.activeProjectRepo || dev.selectedProjectRepo?.name || 'uCore'
+  }
+  return 'uCore'
+})
+
 async function fetchReviews() {
   loading.value = true
   try {
-    // Try uCore repo first (most common dev target)
-    const res = await fetch(`${API_BASE}/api/developer/repos/uCore/review`, {
+    const repoName = activeReviewRepo.value
+    const res = await fetch(`${API_BASE}/api/developer/repos/${encodeURIComponent(repoName)}/review`, {
       signal: AbortSignal.timeout(5000),
     })
     if (res.ok) {
       const data = await res.json()
       reviews.value = data.review || []
+    } else {
+      reviews.value = []
     }
   } catch {
     // Fallback to store samples
@@ -70,6 +79,13 @@ async function fetchReviews() {
 }
 
 onMounted(() => { fetchReviews() })
+
+watch(
+  () => [dev.activeLane, dev.activeProjectRepo],
+  () => {
+    void fetchReviews()
+  },
+)
 
 function statusIcon(status: string): string {
   const map: Record<string, string> = { modified: 'edit_note', added: 'add_circle', deleted: 'delete' }

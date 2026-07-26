@@ -8,7 +8,7 @@ import { ref, computed } from 'vue'
 
 export type DeveloperTab =
   | 'control' | 'agents' | 'skills' | 'history' | 'workflows'
-  | 'repos' | 'review' | 'settings' | 'mcp-servers'
+  | 'repos' | 'review' | 'tools' | 'settings' | 'mcp-servers'
 
 export type DeveloperLane = 'ecosystem' | 'project'
 
@@ -51,6 +51,7 @@ export const DEVELOPER_TABS: { id: DeveloperTab; label: string; icon: string }[]
   { id: 'workflows', label: 'Flow', icon: 'account_tree' },
   { id: 'repos', label: 'Repos', icon: 'folder' },
   { id: 'review', label: 'Review', icon: 'visibility' },
+  { id: 'tools', label: 'Tools', icon: 'build' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
   { id: 'mcp-servers', label: 'MCP', icon: 'dns' },
 ]
@@ -77,6 +78,16 @@ export const DEVELOPER_LANES: LaneConfig[] = [
 ]
 
 const SYSTEM_REPO_NAMES = new Set(['uCore', 'uCode', 'uServer', 'uConnect', 'uVector'])
+const DOC_LIBRARY_NAME_HINTS = ['global-knowledge', 'doc-sites', 'knowledge-base', 'docs-library']
+
+function isVaultOrDocsRepo(repo: any): boolean {
+  const name = String(repo?.name ?? '').toLowerCase()
+  const path = String(repo?.path ?? '').toLowerCase()
+  const kind = String(repo?.kind ?? '').toLowerCase()
+  if (kind === 'vault_or_docs') return true
+  if (DOC_LIBRARY_NAME_HINTS.some((hint) => name.includes(hint))) return true
+  return path.includes('/public/global-knowledge') || path.includes('/public/doc-sites') || path.includes('/vault/')
+}
 
 export const useDeveloperStore = defineStore('developer', () => {
   const activeTab = ref<DeveloperTab>('control')
@@ -98,7 +109,7 @@ export const useDeveloperStore = defineStore('developer', () => {
 
   async function refreshProjectRepos() {
     try {
-      const res = await fetch(`${SNACKBAR_API}/api/developer/repos`, {
+      const res = await fetch(`${SNACKBAR_API}/api/developer/repos?scope=code&exclude_system=true`, {
         signal: AbortSignal.timeout(5000),
       })
       if (!res.ok) return
@@ -107,7 +118,7 @@ export const useDeveloperStore = defineStore('developer', () => {
       projectRepos.value = list
         .filter((repo: any) => {
           const name = String(repo?.name ?? '')
-          return !!name && !SYSTEM_REPO_NAMES.has(name)
+          return !!name && !SYSTEM_REPO_NAMES.has(name) && !isVaultOrDocsRepo(repo)
         })
         .map((repo: any) => ({
           id: String(repo.id ?? repo.name),

@@ -199,16 +199,27 @@ interface RepoData {
 }
 
 const repos = ref<RepoData[]>([])
+const DOC_LIBRARY_NAME_HINTS = ['global-knowledge', 'doc-sites', 'knowledge-base', 'docs-library']
+
+function isVaultOrDocsRepo(repo: any): boolean {
+  const name = String(repo?.name ?? '').toLowerCase()
+  const path = String(repo?.path ?? '').toLowerCase()
+  const kind = String(repo?.kind ?? '').toLowerCase()
+  if (kind === 'vault_or_docs') return true
+  if (DOC_LIBRARY_NAME_HINTS.some((hint) => name.includes(hint))) return true
+  return path.includes('/public/global-knowledge') || path.includes('/public/doc-sites') || path.includes('/vault/')
+}
 
 async function fetchRepos() {
   loading.value = true
   try {
-    const res = await fetch(`${API_BASE}/api/developer/repos`, {
+    const res = await fetch(`${API_BASE}/api/developer/repos?scope=code`, {
       signal: AbortSignal.timeout(5000),
     })
     if (res.ok) {
       const data = await res.json()
-      repos.value = data.repos || []
+      const list = Array.isArray(data?.repos) ? data.repos : []
+      repos.value = list.filter((repo: any) => !isVaultOrDocsRepo(repo))
     }
   } catch {
     // Fallback to store samples

@@ -2,346 +2,132 @@
 
 ## Overview
 
-The settings system has been reorganized into three independent, purpose-built layers:
+The settings system has three tiers of configuration, each backed by different persistence:
 
-1. **Global Settings** (user-facing final controls)
-2. **USX Settings** (typography & styling system)
-3. **GridCore Settings** (grid algebra & cell configuration)
-4. **uSystem Settings** (system surface configuration)
+1. **System Surface — Global & User Settings** (system administration)
+2. **System Surface — Variables & Secrets** (data layer)
+3. **Developer Surface — Developer Settings** (USX, GridCore, uSystem)
 
-## Architecture Layers
+## Layer 1: Global & User Settings (System Surface)
 
-### Layer 1: Global Settings (System Surface)
+**Location**: `http://localhost:5173/system?tab=global-settings` and `?tab=user-settings`
 
-**Location**: `http://localhost:5173/system?tab=global-settings`
+**Component**: `frontend-vue/src/surfaces/system/SystemSurface.vue`
 
-**Components**:
-- `GlobalSettingsPanel.tsx` — User-facing UI
-- `useGlobalSettings` hook — State management
+**Backend**: `backend/app/surfaces/system_api.py`
+- `GET /api/system/settings` — load all settings scopes
+- `POST /api/system/settings` — update a scope (`{scope: "global", values: {...}}`)
 
-**Configuration**:
+### Global Settings
 ```typescript
 interface GlobalSettings {
-  fontStyle: 'inter' | 'merriweather' | 'jbmono'
-  baseSize: 'xs' | 's' | 'm' | 'l' | 'xl'
-  palette: 'github-dark' | 'palette-2' | 'palette-3' | 'palette-4'
-  lightMode: boolean
+  theme: 'dark' | 'light' | 'auto'
+  fontSize: number         // 12-24 (px)
+  palette: 'default' | 'ocean' | 'forest' | 'sunset'
 }
 ```
 
-**Storage**: `localStorage:globalSettings`
+### User Settings
+```typescript
+interface UserSettings {
+  displayName: string
+  email: string
+  defaultModel: 'Llama 3.2' | 'GPT-4o' | 'DeepSeek V3'
+}
+```
 
-**CSS Variables Applied**:
-- `--font-family` (cascades through Pico)
-- `--pico-font-size` (base typography scale)
-- `--pico-primary`, `--pico-border-color` (palette colors)
+**Persistence**: Server-side in `~/.ucore/data/system_settings.json`. localStorage cache kept as fallback via `watch()` auto-write (keys: `ucore-theme-settings`, `ucore-user-settings`).
 
-**User Switchers** (4 final controls):
-1. Font Style selector (3 options)
-2. Base Font Size selector (5 options)
-3. Color Palette selector (4 options)
-4. Light/Dark Mode toggle
+**Save behavior**: Explicit Save button per settings panel → POST to `/api/system/settings`.
 
 ---
 
-### Layer 2: USX Settings (Developer Surface)
+## Layer 2: Variables & Secrets (System Surface)
 
-**Location**: `http://localhost:5173/developer?tab=usx-settings`
+### Variables
+**Backend**: `backend/app/api/variables_api.py`
+- `GET /api/variables` — user + installation variables
+- `GET /api/variables/user` — user-scoped only
+- `PUT /api/variables/user` — update user variables
+- `GET /api/variables/install` — installation metadata (read-only)
 
-**Components**:
-- `USXSettingsPanel.tsx` — Typography, colors, CSS variables
-- `useUSXSettings` hook — State management
-- `usx-settings.css` — Styling
-- `usx-settings.tsx` — Tabs component wrapper
+**User Variables** (editable): username, role, location, timezone, email, uid
+**Installation Metadata** (read-only): hostname, platform, architecture, python_version, install_date, udos_root
 
-**Configuration**:
-```typescript
-interface USXSettings {
-  typography: {
-    scale: 'compact' | 'normal' | 'spacious'
-    lineHeight: number
-    spacingMultiplier: number
-  }
-  colors: {
-    borderRadius: 'sharp' | 'rounded' | 'pill'
-    shadowDepth: 'flat' | 'subtle' | 'elevated'
-  }
-  customVariables: Record<string, string>
-}
-```
+**Persistence**: `~/.ucore/data/variables.json` and `~/.ucore/data/install_meta.json`
 
-**Storage**: `localStorage:usxSettings`
+### Secrets
+**Backend**: `backend/app/api/secret_store_api.py`
+- `GET /api/secrets` — list all (masked)
+- `POST /api/secrets/{name}` — set a secret
+- `DELETE /api/secrets/{name}` — delete a secret
+- `GET /api/secrets/env` — provider matrix (store + env + .dotenv)
+- `POST /api/secrets/import-env` — import from environment
+- `POST /api/secrets/export-env` — export to .env file
+- `GET /api/secrets/audit` — audit trail
+- `POST /api/secrets/sync-github` — sync GitHub secret names
 
-**CSS Variables Managed**:
-- `--usx-typography-scale`
-- `--usx-spacing-*` (xs, sm, md, lg, xl, 2xl)
-- `--usx-border-radius`
-- `--usx-shadow-depth`
-- Custom user variables
+**Persistence**: AES-256-GCM encrypted store at `~/.ucore/secrets.enc`
 
-**Tabs**:
-1. **Typography**: Scale selector, line height, spacing multipliers
-2. **Colors**: Border radius presets, shadow depth presets
-3. **Variables**: CSS variable editor with color picker & validation
-4. **Stylesheet**: Live-generated CSS export button
-
-**Features**:
-- Real-time preview of typography scales
-- Color picker integration
-- CSS validation
-- Export stylesheet as text file
-- Import/export configurations
+**UI features in SystemSurface**: Inline CRUD (add, reveal, delete), Import from Env button.
 
 ---
 
-### Layer 3: GridCore Settings (Developer Surface)
+## Layer 3: Developer Settings (Developer Surface)
 
-**Location**: `http://localhost:5173/developer?tab=gridcore-settings`
+**Location**: `http://localhost:5173/developer?tab=settings`
 
-**Components**:
-- `GridCoreSettingsPanel.tsx` — Grid algebra controls
-- `useGridCoreSettings` hook — State management
-- `gridcore-settings.css` — Styling
+**Component**: `frontend-vue/src/surfaces/developer/panels/SettingsPanel.vue`
 
-**Configuration**:
-```typescript
-interface GridCoreSettings {
-  preset: 'compact' | 'normal' | 'spacious' | 'hd' | 'retro'
-  cellWidth: number  // 6-20px
-  cellHeight: number // 10-32px
-  gridDensity: number
-  fontFamily: string
-  glyphSet: 'ascii' | 'extended' | 'unicode'
-  renderMode: 'canvas' | 'dom' | 'hybrid'
-  antialiasing: boolean
-  smoothScroll: boolean
-  animations: boolean
-}
-```
+These are developer-facing controls (USX typography/spacing, GridCore grid algebra, uSystem monitoring config). The previous `SETTINGS_ARCHITECTURE_2026.md` described these in detail using React hooks — the Vue implementation follows the same data model but uses Pinia stores or component-local state with localStorage persistence.
 
-**Storage**: `localStorage:gridCoreSettings`
-
-**Features**:
-- 5 quick presets
-- Independent from USX (no style bleed)
-- Canvas/DOM/Hybrid rendering modes
-- Glyph set selection
-- Performance toggles
-
----
-
-### Layer 4: uSystem Settings (Developer Surface)
-
-**Location**: `http://localhost:5173/developer?tab=usystem-settings`
-
-**Components**:
-- `uSystemSettingsPanel.tsx` — Service & monitoring setup
-- `system-surface-dev.css` — Styling
-
-**Configuration**:
-```typescript
-interface uSystemConfig {
-  serviceUrl: string
-  enableDebugLogs: boolean
-  enableMetrics: boolean
-  pageRefreshInterval: number
-  serviceTimeout: number
-  enableAnalytics: boolean
-}
-```
-
-**Storage**: `localStorage:uSystemSettings`
-
-**Sections**:
-1. **Service Connection**: Backend URL, timeout configuration
-2. **Performance**: Auto-refresh interval settings
-3. **Monitoring & Debug**: Feature toggles for logging, metrics, analytics
+**Storage keys**:
+- `usxSettings`
+- `gridCoreSettings`
+- `uSystemSettings`
 
 ---
 
 ## Data Flow
 
 ```
-┌─────────────────────┐
-│  Global Settings    │  User-facing final controls
-│  (System Surface)   │  → useGlobalSettings hook
-└──────────┬──────────┘
-           │
-           ├── Applies: typography cascade, palette colors, mode
-           ├── Storage: localStorage:globalSettings
-           └── CSS: document.documentElement.setAttribute('data-global-settings')
+┌──────────────────────────────┐
+│ System Surface               │
+│  Global Settings             │
+│  User Settings               │
+│  Variables (User + Install)  │
+│  Secrets                     │
+└─────────────┬────────────────┘
+              │
+              ├── Global/User: POST /api/system/settings → ~/.ucore/data/system_settings.json
+              ├── Variables:  PUT /api/variables/user  → ~/.ucore/data/variables.json
+              ├── Install:    GET /api/variables/install → read-only
+              └── Secrets:    POST /api/secrets/{name} → ~/.ucore/secrets.enc
 
-┌─────────────────────┐
-│   USX Settings      │  Typography, spacing, custom CSS variables
-│ (Developer Surface) │  → useUSXSettings hook
-└──────────┬──────────┘
-           │
-           ├── Applies: spacing scales, border radius, shadows
-           ├── Manages: live CSS variable editor
-           ├── Storage: localStorage:usxSettings
-           └── CSS: document.documentElement.setAttribute('data-usx-settings')
-
-┌─────────────────────┐
-│  GridCore Settings  │  Grid algebra (INDEPENDENT)
-│ (Developer Surface) │  → useGridCoreSettings hook
-└──────────┬──────────┘
-           │
-           ├── No interaction with USX or Global
-           ├── Preset-driven configuration
-           ├── Storage: localStorage:gridCoreSettings
-           └── CSS: document.documentElement.setAttribute('data-gridcore-settings')
-
-┌─────────────────────┐
-│  uSystem Settings   │  System Surface configuration
-│ (Developer Surface) │  → (localStorage only, no direct CSS)
-└─────────────────────┘
+┌──────────────────────────────┐
+│ Developer Surface            │
+│  Settings Tab                │
+└─────────────┬────────────────┘
+              │
+              └── localStorage only (usxSettings, gridCoreSettings, uSystemSettings)
 ```
 
-## CSS Class Naming Conventions
+---
 
-### System Surface Classes (system-surface.css)
-```
-.system-panel              /* Base container */
-.system-panel-header       /* Header with title + count */
-.system-panel-title        /* Main title */
-.system-panel-count        /* Item count badge */
+## Migration Notes
 
-.system-card               /* Grid card item */
-.system-card-header        /* Card header area */
-.system-card-icon          /* Icon in card */
-.system-card-title         /* Card title */
-.system-card-desc          /* Card description */
+1. **React hooks → Vue**: The original doc referenced `useGlobalSettings`, `useUSXSettings`, `useGridCoreSettings` hooks. Vue equivalents live within components or Pinia stores.
+2. **localStorage → Server persistence**: Global and User settings moved from localStorage-only to server-backed with localStorage as cache. Save is now explicit (button), not auto-watch.
+3. **Old hardcoded colors** → Use CSS variables from palette
+4. **Old font-size values** → Use `--usx-font-size-*` variables
+5. **Grid settings** → Use GridCore hooks (independent)
 
-.system-filter-group       /* Filter button group */
-.system-filter-btn         /* Individual filter button */
-.system-filter-btn--active /* Active filter state */
-
-.system-stats              /* Statistics row */
-.system-stat               /* Individual stat */
-
-.system-list               /* List container */
-.system-list-item          /* List item */
-
-/* Preserved gtxform/marp styling */
-.gtxform-container         /* Form container */
-.gtxform-field             /* Form field */
-.gtxform-label             /* Form label */
-.gtxform-input             /* Form input */
-
-.marp-slide                /* Marp presentation slide */
-.marp-slide-title          /* Slide title */
-```
-
-### Developer Surface Classes
-
-#### USX Settings (usx-settings.css)
-```
-.developer-panel
-.developer-panel-header
-.developer-panel-title
-.developer-search-input
-
-/* Typography section */
-.developer-typography-scale
-.developer-font-selector
-
-/* Variables editor */
-.developer-css-variable-row
-.developer-variable-input
-.developer-color-picker
-```
-
-#### uSystem Settings (system-surface-dev.css)
-```
-.usystem-settings-panel
-.usystem-settings-info          /* Info box */
-.usystem-settings-section       /* Settings section */
-.usystem-settings-section-title /* Section title */
-.usystem-settings-field         /* Form field */
-.usystem-settings-toggle-row    /* Toggle row */
-.usystem-settings-toggle        /* Toggle switch */
-```
-
-#### GridCore Settings (gridcore-settings.css)
-```
-.gridcore-settings-panel
-.gridcore-preset-grid
-.gridcore-preset-btn
-.gridcore-slider-group
-.gridcore-slider-label
-.gridcore-options-grid
-```
-
-## Storage & Persistence
-
-All settings use `localStorage` with keys:
-- `globalSettings`
-- `usxSettings`
-- `gridCoreSettings`
-- `uSystemSettings`
-
-Each hook automatically:
-1. Reads from localStorage on mount
-2. Writes to localStorage on change
-3. Applies CSS variables to document root
-
-## Usage in Components
-
-### Using Global Settings
-```typescript
-import { useGlobalSettings } from '../../hooks/useGlobalSettings'
-
-export function MyComponent() {
-  const { fontStyle, baseSize, palette, lightMode } = useGlobalSettings()
-  return <div>{fontStyle} @ {baseSize}</div>
-}
-```
-
-### Using USX Settings
-```typescript
-import { useUSXSettings } from '../../hooks/useUSXSettings'
-
-export function MyComponent() {
-  const { typography, colors, customVariables } = useUSXSettings()
-  return <div style={{ ...customVariables }}>Content</div>
-}
-```
-
-### Using GridCore Settings
-```typescript
-import { useGridCoreSettings } from '../../hooks/useGridCoreSettings'
-
-export function GridComponent() {
-  const { preset, cellWidth, cellHeight, renderMode } = useGridCoreSettings()
-  return <canvas data-gridcore={preset} />
-}
-```
-
-## Integration Points
-
-### System Surface
-- **Global Settings Tab**: Final user controls
-- **Pages, Tools, Services**: Use global + uSystem settings
-- **Variables Panel**: uSystem managed variables
-
-### Developer Surface
-- **USX Settings Tab**: Full typography & color control
-- **GridCore Settings Tab**: Grid algebra configuration
-- **uSystem Settings Tab**: Service & monitoring setup
-- **All other tabs**: Cascade global settings
-
-## Migration Notes (if updating existing components)
-
-1. **Old hardcoded colors** → Use CSS variables from palette
-2. **Old font-size values** → Use `var(--pico-font-size)` + scale multipliers
-3. **Old spacing** → Use `var(--usx-spacing-*)` variables
-4. **Grid settings** → Use GridCore hooks (independent)
+---
 
 ## Future Enhancements
 
 - [ ] Settings import/export via JSON
 - [ ] Settings profiles (saved configurations)
 - [ ] Keyboard shortcuts for common settings
-- [ ] Real-time theme preview with side-by-side comparison
 - [ ] Accessibility settings panel (contrast, focus indicators)
-- [ ] Performance profiling integration
+- [ ] S-page/P-page content modules (Wave 2)

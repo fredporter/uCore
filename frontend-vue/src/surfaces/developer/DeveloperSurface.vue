@@ -15,6 +15,7 @@
         <WorkflowsPanel v-else-if="dev.activeTab === 'workflows'" />
         <ReposPanel v-else-if="dev.activeTab === 'repos'" />
         <ReviewPanel v-else-if="dev.activeTab === 'review'" />
+        <ToolsPanel v-else-if="dev.activeTab === 'tools'" />
         <SettingsPanel v-else-if="dev.activeTab === 'settings'" />
         <MCPServersPanel v-else-if="dev.activeTab === 'mcp-servers'" />
       </div>
@@ -49,6 +50,7 @@ const HistoryPanel = defineAsyncComponent(() => import('./panels/HistoryPanel.vu
 const WorkflowsPanel = defineAsyncComponent(() => import('./panels/WorkflowsPanel.vue'))
 const ReposPanel = defineAsyncComponent(() => import('./panels/ReposPanel.vue'))
 const ReviewPanel = defineAsyncComponent(() => import('./panels/ReviewPanel.vue'))
+const ToolsPanel = defineAsyncComponent(() => import('./panels/ToolsPanel.vue'))
 const SettingsPanel = defineAsyncComponent(() => import('./panels/SettingsPanel.vue'))
 const MCPServersPanel = defineAsyncComponent(() => import('./panels/MCPServersPanel.vue'))
 

@@ -12,6 +12,108 @@ from app.core.settings import settings
 ALLOWED_EXTENSIONS = {".md", ".json", ".yaml", ".yml", ".txt", ".csv", ".py", ".ts", ".tsx", ".js", ".jsx", ".css", ".sh", ".toml"}
 IGNORED_DIRS = {".git", "node_modules", "dist", "build", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache"}
 MAX_PREVIEW_BYTES = 200_000
+SYSTEM_REPO_NAMES = {"ucore", "ucode", "userver", "uconnect", "uvector"}
+DOC_LIBRARY_NAME_HINTS = {
+    "global-knowledge",
+    "doc-sites",
+    "knowledge-base",
+    "docs-library",
+    "vault",
+}
+CODE_MARKER_FILES = {
+    "package.json",
+    "pyproject.toml",
+    "requirements.txt",
+    "go.mod",
+    "cargo.toml",
+    "pom.xml",
+    "build.gradle",
+    "makefile",
+}
+CODE_MARKER_DIRS = {"src", "backend", "frontend", "frontend-vue", "app", "scripts", "packages"}
+DOC_MARKER_DIRS = {".obsidian", "docs", "knowledge", "notes"}
+CODE_FILE_EXTENSIONS = {
+    ".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java", ".c", ".cpp", ".h", ".hpp", ".rb", ".php", ".swift", ".kt", ".scala", ".cs", ".sh"
+}
+DOC_FILE_EXTENSIONS = {".md", ".mdx", ".markdown", ".rst", ".txt"}
+
+
+def _vault_non_code_roots() -> tuple[Path, ...]:
+    home = Path.home()
+    return (
+        home / "Vault",
+        home / "Shared",
+        home / "Public" / "global-knowledge",
+        home / "Public" / "doc-sites",
+    )
+
+
+def _is_within_path(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except Exception:
+        return False
+
+
+def _looks_like_doc_library(repo_path: Path) -> bool:
+    name = repo_path.name.lower()
+    if name in DOC_LIBRARY_NAME_HINTS:
+        return True
+
+    if any((repo_path / marker).exists() for marker in DOC_MARKER_DIRS if marker != "docs"):
+        return True
+
+    tracked_files = _git_output(repo_path, "ls-files").splitlines()
+    if not tracked_files:
+        return False
+
+    doc_files = 0
+    code_files = 0
+    for rel in tracked_files[:1200]:
+        rel_path = Path(rel)
+        suffix = rel_path.suffix.lower()
+        if suffix in DOC_FILE_EXTENSIONS:
+            doc_files += 1
+        if suffix in CODE_FILE_EXTENSIONS or rel_path.name.lower() in CODE_MARKER_FILES:
+            code_files += 1
+            if code_files >= 3:
+                return False
+
+    return doc_files >= 20 and code_files == 0
+
+
+def _has_code_markers(repo_path: Path) -> bool:
+    if any((repo_path / marker).exists() for marker in CODE_MARKER_FILES):
+        return True
+    if any((repo_path / marker).exists() and (repo_path / marker).is_dir() for marker in CODE_MARKER_DIRS):
+        return True
+    return False
+
+
+def _classify_repo(repo_path: Path) -> str:
+    name = repo_path.name.lower()
+    if name in SYSTEM_REPO_NAMES:
+        return "system"
+
+    for root in _vault_non_code_roots():
+        if _is_within_path(repo_path, root):
+            return "vault_or_docs"
+
+    if _looks_like_doc_library(repo_path):
+        return "vault_or_docs"
+
+    if _has_code_markers(repo_path):
+        return "code"
+
+    # Keep custom/minimal repositories available for advanced users.
+    return "code"
+
+
+def _to_bool(value: str | None, default: bool = False) -> bool:
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _git_output(repo_path: Path, *args: str) -> str:
@@ -61,7 +163,7 @@ def _safe_file_path(repo_name: str, relative_path: str) -> Path:
     return file_path
 
 
-def _list_repos() -> list[dict]:
+def _list_repos(scope: str = "code", exclude_system: bool = False) -> list[dict]:
     repos: list[dict] = []
     root = settings.udos_root.expanduser()
     if not root.exists():
@@ -69,6 +171,16 @@ def _list_repos() -> list[dict]:
 
     for child in sorted(root.iterdir(), key=lambda entry: entry.name.lower()):
         if not child.is_dir() or not (child / ".git").exists():
+            continue
+
+        kind = _classify_repo(child)
+        if exclude_system and kind == "system":
+            continue
+        if scope == "code" and kind == "vault_or_docs":
+            continue
+        if scope == "vault" and kind != "vault_or_docs":
+            continue
+        if scope == "system" and kind != "system":
             continue
 
         branch = _git_output(child, "rev-parse", "--abbrev-ref", "HEAD") or "unknown"
@@ -84,6 +196,7 @@ def _list_repos() -> list[dict]:
             "changes": changes,
             "remote": remote,
             "fileCount": _repo_file_count(child),
+            "kind": kind,
         })
 
     return repos
@@ -457,7 +570,17 @@ async def handle_developer_status(request: web.Request) -> web.Response:
 
 
 async def handle_list_repos(request: web.Request) -> web.Response:
-    return web.json_response({"repos": _list_repos(), "root": str(settings.udos_root)})
+    scope = request.query.get("scope", "code").strip().lower() or "code"
+    if scope not in {"code", "all", "vault", "system"}:
+        return web.json_response({"error": f"Invalid scope: {scope}"}, status=400)
+    exclude_system = _to_bool(request.query.get("exclude_system"), default=False)
+    repos = _list_repos(scope=scope, exclude_system=exclude_system)
+    return web.json_response({
+        "repos": repos,
+        "root": str(settings.udos_root),
+        "scope": scope,
+        "exclude_system": exclude_system,
+    })
 
 
 async def handle_list_repo_files(request: web.Request) -> web.Response:

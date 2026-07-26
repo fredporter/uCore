@@ -22,6 +22,7 @@ Unified Control Panel tab for the Developer Surface replacing 11 scattered panel
 ### Post-Delivery Enhancements (2026-07)
 - Lane selector renamed: `Ecosystem Dev` → `System`, `Project Dev` → `Project`.
 - Project lane now supports repo selection from `~/Code` (excluding system repos) via second dropdown selector.
+- Developer repo discovery now enforces a Code vs Vault boundary: Developer Surface lists code repos only and excludes vault/doc libraries (including mirrored doc-vault repos such as `global-knowledge`), which belong to Workflow/Missions.
 - Added `POST /api/control/recover` for one-click offline-service recovery.
 - Restart backend action now uses `POST /api/surfaces/popcorn/restart-backend`.
 
