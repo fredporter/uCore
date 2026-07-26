@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import path from 'path'
 
 const PORT = parseInt(process.env.VITE_PORT || '5175', 10)
+const API_ORIGIN = process.env.VITE_API_ORIGIN || 'http://localhost:8484'
 const CODE_ROOT = path.resolve(__dirname, '../..')
 
 export default defineConfig({
@@ -40,6 +41,17 @@ export default defineConfig({
     host: 'localhost',
     fs: { allow: ['..'] },
     hmr: { host: 'localhost' },
+    proxy: {
+      // Route API calls to aiohttp backend in local dev.
+      '/api': {
+        target: API_ORIGIN,
+        changeOrigin: true,
+      },
+      '/snackmachine': {
+        target: API_ORIGIN,
+        changeOrigin: true,
+      },
+    },
   },
   // Ensure vendored .mjs files are handled correctly
   optimizeDeps: {
