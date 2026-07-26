@@ -18,6 +18,7 @@
         <ToolsPanel v-else-if="dev.activeTab === 'tools'" />
         <SettingsPanel v-else-if="dev.activeTab === 'settings'" />
         <MCPServersPanel v-else-if="dev.activeTab === 'mcp-servers'" />
+        <DevChatPanel v-else-if="dev.activeTab === 'chat'" />
       </div>
     </div>
   </div>
@@ -53,6 +54,7 @@ const ReviewPanel = defineAsyncComponent(() => import('./panels/ReviewPanel.vue'
 const ToolsPanel = defineAsyncComponent(() => import('./panels/ToolsPanel.vue'))
 const SettingsPanel = defineAsyncComponent(() => import('./panels/SettingsPanel.vue'))
 const MCPServersPanel = defineAsyncComponent(() => import('./panels/MCPServersPanel.vue'))
+const DevChatPanel = defineAsyncComponent(() => import('./panels/DevChatPanel.vue'))
 
 const dev = useDeveloperStore()
 

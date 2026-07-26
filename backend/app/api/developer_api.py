@@ -770,3 +770,147 @@ async def handle_commit_repo_files(request: web.Request) -> web.Response:
     except RuntimeError as exc:
         return web.json_response({"error": str(exc)}, status=400)
     return web.json_response(payload)
+
+
+# ─── Dev Chat ───────────────────────────────────────────────────────
+
+async def handle_developer_chat(request: web.Request) -> web.Response:
+    """POST /api/developer/chat — dev-lane chat completion.
+
+    Body: { "message": "...", "history": [...], "lane": "ecosystem|project", "workspace": "..." }
+    Returns: { "response": "...", "model": "...", "usage": {...} }
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    message = body.get("message", "")
+    if not message:
+        return web.json_response({"error": "message is required"}, status=400)
+
+    lane = body.get("lane", "ecosystem")
+    workspace = body.get("workspace", "")
+    model = body.get("model")
+
+    history = body.get("history") or body.get("messages")
+    if not isinstance(history, list):
+        history = []
+
+    log = __import__("logging").getLogger("ucore.devchat")
+    log.info(
+        "Dev chat: lane=%s workspace=%s model=%s message=%s...",
+        lane, workspace, model, message[:80],
+    )
+
+    try:
+        from ..services.provider_router import ProviderRouter
+        router = ProviderRouter()
+        dev_system = (
+            "You are the uCore Developer Assistant. You work in the Developer Surface "
+            "and have access to these APIs (at http://localhost:8484):\n\n"
+            "**Repos & Code:**\n"
+            "• /api/developer/repos — list code repositories under ~/Code\n"
+            "• /api/developer/repos/{name}/files — list files in a repo\n"
+            "• /api/developer/repos/{name}/review — git status review of changes\n"
+            "• /api/developer/repos/{name}/status — staged/unstaged file status\n"
+            "• /api/developer/repos/{name}/diff?path=... — view file diff\n"
+            "• /api/developer/repos/{name}/file-preview?path=... — preview file content\n"
+            "• /api/developer/repos/{name}/stage — stage a file (POST)\n"
+            "• /api/developer/repos/{name}/commit — commit staged files (POST)\n\n"
+            "**Skills & MCP:**\n"
+            "• /api/skills — list all 54+ built-in skills\n"
+            "• /api/skills/{skill_id}/run — execute a named skill\n"
+            "• /api/mcp/tools — list MCP server tools\n"
+            "• /api/mcp/diagnostics — MCP health diagnostics\n\n"
+            "**Health & System:**\n"
+            "• /api/control/status — full ecosystem health (Cline, Ollama, Hivemind, etc.)\n"
+            "• /api/ollama/status — Ollama model status\n"
+            "• /api/system — system info\n"
+            "• /api/health — health check\n\n"
+            f"**Current Context:** Lane={lane}, Workspace={workspace or 'not set'}\n"
+            "The Developer Surface has two lanes:\n"
+            "- System lane (ecosystem): uCore/uCode with protection guardrails\n"
+            "- Project lane: non-system repos under ~/Code\n\n"
+            "Be concise and technical. When users ask to review code, check status, "
+            "or manage repos, reference the specific endpoints above. "
+            "Prefer suggesting API calls and skill executions over generic advice. "
+            "You can help with code review, linting, git operations, skill execution, "
+            "MCP server management, service health, and deployment."
+        )
+        chat_messages = [{"role": "system", "content": dev_system}]
+        chat_messages.extend(history)
+        chat_messages.append({"role": "user", "content": message})
+        response = await router.chat(messages=chat_messages, model=model)
+        return web.json_response({
+            "response": response.get("content", ""),
+            "lane": lane,
+            "workspace": workspace,
+            "model": response.get("model", model),
+            "usage": response.get("usage", {}),
+        })
+    except Exception as e:
+        log.error("Dev chat error: %s", e)
+        return web.json_response({
+            "error": str(e),
+            "message": "Dev chat request failed",
+        }, status=500)
+
+
+async def handle_developer_chat_stream(request: web.Request) -> web.StreamResponse:
+    """GET /api/developer/chat/stream?message=...&lane=... — SSE streaming dev chat."""
+    message = request.query.get("message", "").strip()
+    if not message:
+        return web.json_response({"error": "message is required"}, status=400)
+
+    lane = request.query.get("lane", "ecosystem")
+    workspace = request.query.get("workspace", "")
+    model = request.query.get("model")
+
+    log = __import__("logging").getLogger("ucore.devchat")
+    log.info("Dev chat stream: lane=%s message=%s...", lane, message[:80])
+
+    response = web.StreamResponse(
+        status=200,
+        reason="OK",
+        headers={
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
+    )
+    await response.prepare(request)
+
+    try:
+        from ..services.provider_router import ProviderRouter
+        router = ProviderRouter()
+        dev_system = (
+            "You are a developer assistant working in uCore. "
+            f"Current lane: {lane}. Workspace: {workspace or 'not set'}. "
+            "You help with code review, repo management, skills, MCP servers, "
+            "service health, build/deploy, and development workflow. "
+            "Be concise and technical."
+        )
+        chat_messages = [
+            {"role": "system", "content": dev_system},
+            {"role": "user", "content": message},
+        ]
+        full_response = await router.chat(messages=chat_messages, model=model, stream=False)
+
+        content = full_response.get("content", "")
+        # Simulate streaming by sending tokens one at a time
+        import asyncio, json
+        words = content.split(" ")
+        for i, word in enumerate(words):
+            token = word + (" " if i < len(words) - 1 else "")
+            await response.write(f"data: {json.dumps({'token': token})}\n\n".encode())
+            await asyncio.sleep(0.01)
+
+        await response.write(b"data: [DONE]\n\n")
+    except Exception as e:
+        log.error("Dev chat stream error: %s", e)
+        await response.write(f"data: {{\"error\": \"{str(e)}\"}}\n\n".encode())
+    finally:
+        await response.write_eof()
+
+    return response

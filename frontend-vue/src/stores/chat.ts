@@ -28,8 +28,6 @@ export interface ModelOption {
   name: string
 }
 
-export type AgentMode = 'vault' | 'developer' | 'agent'
-
 export interface PromptCard {
   id: string
   icon: string
@@ -71,7 +69,7 @@ export const useChatStore = defineStore('chat', () => {
   const input = ref('')
   const loading = ref(false)
   const snackbarStatus = ref<'checking' | 'online' | 'offline'>('checking')
-  const activeAgent = ref<AgentMode>('vault')
+  const promptMode = ref<'chat' | 'workflow'>('chat')
   const prompts = ref<PromptCard[]>(DEFAULT_PROMPTS)
   const models = ref<ModelOption[]>([
     { id: 'llama3.2', provider: 'ollama', name: 'Llama 3.2' },
@@ -94,7 +92,7 @@ export const useChatStore = defineStore('chat', () => {
     return {
       id: 'welcome',
       role: 'assistant',
-      content: `# Hi friend\n\nI'm your OK assistant with streaming MCP protocol, model selection, and agent management.\n\nWhat would you like to do, today?`,
+      content: `# Hi friend\n\nI'm your personal assistant — I can help with your vault, tasks, planning, and knowledge.\n\nWhat would you like to do today?`,
       timestamp: new Date(),
     }
   }
@@ -122,7 +120,7 @@ export const useChatStore = defineStore('chat', () => {
 
     try {
       // Try streaming via SSE
-      const params = new URLSearchParams({ message, agent: activeAgent.value })
+      const params = new URLSearchParams({ message, mode: promptMode.value })
       const res = await fetch(`${SNACKBAR_API}/api/chat/stream?${params}`, {
         signal: AbortSignal.timeout(60000),
       })
@@ -165,7 +163,7 @@ export const useChatStore = defineStore('chat', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message,
-            agent: activeAgent.value,
+            mode: promptMode.value,
             history: messages.value.map(m => ({ role: m.role, content: m.content })),
           }),
           signal: AbortSignal.timeout(15000),
@@ -189,8 +187,8 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  function setActiveAgent(agent: AgentMode) {
-    activeAgent.value = agent
+  function setPromptMode(mode: 'chat' | 'workflow') {
+    promptMode.value = mode
     fetchPrompts()
   }
 
@@ -266,7 +264,7 @@ export const useChatStore = defineStore('chat', () => {
 
   async function fetchPrompts() {
     try {
-      const res = await fetch(`${SNACKBAR_API}/api/chat/prompts?agent=${activeAgent.value}`, {
+      const res = await fetch(`${SNACKBAR_API}/api/chat/prompts?mode=${promptMode.value}`, {
         signal: AbortSignal.timeout(3000),
       })
       if (res.ok) {
@@ -295,7 +293,7 @@ export const useChatStore = defineStore('chat', () => {
     input,
     loading,
     snackbarStatus,
-    activeAgent,
+    promptMode,
     prompts,
     models,
     selectedModel,
@@ -306,7 +304,7 @@ export const useChatStore = defineStore('chat', () => {
     currentModelName,
     // Actions
     sendMessage,
-    setActiveAgent,
+    setPromptMode,
     setModel,
     clearChat,
     newConversation,
@@ -324,15 +322,13 @@ export const useChatStore = defineStore('chat', () => {
 
 const DEFAULT_PROMPTS: PromptCard[] = [
   { id: 'resume', icon: 'edit_note', label: 'Pick up where you left off', context: 'Continue your last project' },
-  { id: 'new-project', icon: 'add', label: 'Start a new project', context: 'Create from template' },
   { id: 'research', icon: 'search', label: 'Research a topic & compile binder', context: 'Gather and organise' },
   { id: 'review', icon: 'visibility', label: 'Review recent changes', context: 'Check activity log' },
   { id: 'brainstorm', icon: 'bolt', label: 'Brainstorm ideas', context: 'Creative exploration' },
   { id: 'plan', icon: 'format_list_bulleted', label: 'Plan your week', context: 'Schedule & priorities' },
 ]
 
-export const AGENTS: { id: AgentMode; icon: string; label: string; desc: string }[] = [
-  { id: 'vault', icon: 'chat', label: 'Vault', desc: 'User mode — personal docs, projects, knowledge' },
-  { id: 'developer', icon: 'code', label: 'Developer', desc: 'Dev mode — code, repos, skills, automation' },
-  { id: 'agent', icon: 'smart_toy', label: 'Agent', desc: 'Custom agent builder & configuration' },
+export const ASSISTUI_MODES: { id: string; icon: string; label: string; desc: string }[] = [
+  { id: 'chat', icon: 'chat', label: 'Chat', desc: 'Talk with your assistant — ask questions, get help' },
+  { id: 'workflow', icon: 'account_tree', label: 'Workflow', desc: 'Tasks, missions, planning, and binder' },
 ]

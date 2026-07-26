@@ -284,7 +284,9 @@ class ProviderRouter:
             return {"error": f"Provider '{provider_name}' not available"}
 
         if prov.type == "ollama":
-            return await self._chat_ollama(prov, messages, model, prov.timeout)
+            return await self._chat_ollama(
+                prov, messages, model, prov.timeout, **kwargs,
+            )
 
         if prov.type == "openrouter":
             # Try OpenRouter, fall back to Ollama on failure
@@ -317,9 +319,10 @@ class ProviderRouter:
         self, provider: ProviderConfig,
         messages: list[dict[str, str]],
         model: str, timeout: int = 60,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """Chat via Ollama (local HTTP API)."""
-        return await self._chat_http(messages, model, provider.name)
+        return await self._chat_http(messages, model, provider.name, **kwargs)
 
     async def _chat_openrouter(
         self, provider: ProviderConfig,
@@ -428,11 +431,15 @@ class ProviderRouter:
             else:
                 url = f"{base_url}/api/chat"
                 headers = {}
-                payload = {
+                payload: dict[str, Any] = {
                     "model": ollama_model,
                     "messages": messages,
                     "stream": False,
                 }
+                # Pass tools if provided (Ollama tool calling)
+                tools = kwargs.get("tools")
+                if tools:
+                    payload["tools"] = tools
 
             async with session.post(
                 url, json=payload, headers=headers,
@@ -440,8 +447,10 @@ class ProviderRouter:
                 data = await resp.json()
                 if is_openrouter:
                     if "choices" in data:
+                        msg = data["choices"][0]["message"]
                         return {
-                            "content": data["choices"][0]["message"]["content"],
+                            "content": msg.get("content", ""),
+                            "tool_calls": msg.get("tool_calls"),
                             "model": data.get("model", model),
                             "usage": data.get("usage", {}),
                         }
@@ -450,8 +459,10 @@ class ProviderRouter:
                             "message", "OpenRouter request failed",
                         ),
                     }
+                msg = data.get("message", {})
                 return {
-                    "content": data.get("message", {}).get("content", ""),
+                    "content": msg.get("content", ""),
+                    "tool_calls": msg.get("tool_calls"),
                     "model": model,
                     "usage": {},
                 }

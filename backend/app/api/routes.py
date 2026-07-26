@@ -25,6 +25,8 @@ def register_routes(app: web.Application) -> None:
     from .containers import register_container_routes
     from .developer_api import (
         handle_commit_repo_files,
+        handle_developer_chat,
+        handle_developer_chat_stream,
         handle_developer_status,
         handle_get_repo_file_diff,
         handle_get_repo_file_preview,
@@ -238,6 +240,9 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/developer/stop", handle_stop_developer)
     app.router.add_get("/api/developer/status", handle_developer_status)
     app.router.add_post("/api/developer/workspace", handle_workspace_switch)
+    # Dev Chat endpoints
+    app.router.add_post("/api/developer/chat", handle_developer_chat)
+    app.router.add_get("/api/developer/chat/stream", handle_developer_chat_stream)
 
     app.router.add_get("/api/skills", handle_list_skills)
     app.router.add_get("/api/tools", handle_list_tools)

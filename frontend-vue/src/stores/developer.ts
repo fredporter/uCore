@@ -9,6 +9,7 @@ import { ref, computed } from 'vue'
 export type DeveloperTab =
   | 'control' | 'agents' | 'skills' | 'history' | 'workflows'
   | 'repos' | 'review' | 'tools' | 'settings' | 'mcp-servers'
+  | 'chat'
 
 export type DeveloperLane = 'ecosystem' | 'project'
 
@@ -54,6 +55,7 @@ export const DEVELOPER_TABS: { id: DeveloperTab; label: string; icon: string }[]
   { id: 'tools', label: 'Tools', icon: 'build' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
   { id: 'mcp-servers', label: 'MCP', icon: 'dns' },
+  { id: 'chat', label: 'Chat', icon: 'chat' },
 ]
 
 import { SNACKBAR_API } from '@/api/base'
@@ -195,20 +197,76 @@ export const useDeveloperStore = defineStore('developer', () => {
     chatMessages.value.push({ role: 'user', content: message })
     chatLoading.value = true
 
+    // Try streaming via SSE (dev endpoint)
     try {
-      const res = await fetch(`${SNACKBAR_API}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, history: chatMessages.value }),
-        signal: AbortSignal.timeout(10000),
+      const workspace = currentWorkspace.value
+      const lane = activeLane.value
+      const params = new URLSearchParams({ message, lane, workspace })
+      const res = await fetch(`${SNACKBAR_API}/api/developer/chat/stream?${params}`, {
+        signal: AbortSignal.timeout(60000),
       })
-      const data = await res.json()
-      chatMessages.value.push({ role: 'assistant', content: data.response || 'No response' })
+
+      if (!res.ok) throw new Error(`API returned ${res.status}`)
+
+      const reader = res.body?.getReader()
+      if (!reader) throw new Error('No response body')
+
+      chatMessages.value.push({ role: 'assistant', content: '' })
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6).trim()
+            if (!data) continue
+            if (data === '[DONE]') continue
+            try {
+              const parsed = JSON.parse(data)
+              if (parsed.token) {
+                const lastMsg = chatMessages.value[chatMessages.value.length - 1]
+                if (lastMsg && lastMsg.role === 'assistant') {
+                  lastMsg.content += parsed.token
+                }
+              }
+            } catch { /* skip malformed */ }
+          }
+        }
+      }
     } catch {
-      chatMessages.value.push({
-        role: 'assistant',
-        content: `🤖 **Developer Mode** — Snackbar offline.\n\n> Received: "${message}"\n\n**Quick commands:**\n- \`/review\` — Code review\n- \`/status\` — Repo status\n- \`/skills\` — List skills\n- \`/deploy\` — Deploy service`,
-      })
+      // Fallback to non-streaming POST
+      try {
+        const workspace = currentWorkspace.value
+        const lane = activeLane.value
+        const historyExceptLast = chatMessages.value.slice(0, -1)
+          .filter(m => m.role === 'user' || (m.role === 'assistant' && m.content))
+          .map(m => ({ role: m.role, content: m.content }))
+        const res = await fetch(`${SNACKBAR_API}/api/developer/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, lane, workspace, history: historyExceptLast }),
+          signal: AbortSignal.timeout(30000),
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          chatMessages.value.push({ role: 'assistant', content: data.response || data.message || 'No response received.' })
+        } else {
+          throw new Error(`API returned ${res.status}`)
+        }
+      } catch {
+        chatMessages.value.push({
+          role: 'assistant',
+          content: `**Developer Assistant** — Offline.\n\n> Received: "${message}"\n\n**Quick commands:**\n- \`/review\` — Code review\n- \`/status\` — Repo status\n- \`/skills\` — List skills\n- \`/deploy\` — Deploy service`,
+        })
+      }
     } finally {
       chatLoading.value = false
     }
