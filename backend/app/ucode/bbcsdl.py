@@ -14,10 +14,16 @@ from typing import Any
 from aiohttp import web
 
 log = logging.getLogger("ucore")
-BRIDGE_PATH = os.path.expanduser("~/Code/uCode1/core_py/bbc/bbcsdl_bridge.py")
+DEFAULT_BRIDGE_PATH = "~/Code/uCode1/core_py/bbc/bbcsdl_bridge.py"
 
 PAGE_COLS = 48
 PAGE_ROWS = 36
+
+
+def _resolve_bridge_path() -> Path:
+    """Resolve BBCSDL bridge path from environment with legacy default fallback."""
+    configured = os.environ.get("UCORE_BBCSDL_BRIDGE_PATH", DEFAULT_BRIDGE_PATH)
+    return Path(os.path.expanduser(configured))
 
 
 def _convert_grid_to_ceefax(
@@ -66,19 +72,20 @@ def _convert_grid_to_ceefax(
 def register_bbcsdl_routes(app: web.Application, ceefax_store: Any) -> None:
     async def handle_exec(request: web.Request) -> web.Response:
         try:
+            bridge_path = _resolve_bridge_path()
             body = await request.json()
             command = body.get("command", "")
             if not command:
                 return web.json_response({"error": "Missing command"})
 
-            if not Path(BRIDGE_PATH).is_file():
+            if not bridge_path.is_file():
                 return web.json_response(
-                    {"error": f"Bridge not found at {BRIDGE_PATH}"},
+                    {"error": f"Bridge not found at {bridge_path}"},
                 )
 
             proc = await asyncio.create_subprocess_exec(
                 sys.executable,
-                BRIDGE_PATH,
+                str(bridge_path),
                 "exec",
                 command,
                 stdout=asyncio.subprocess.PIPE,
@@ -105,7 +112,8 @@ def register_bbcsdl_routes(app: web.Application, ceefax_store: Any) -> None:
 
     async def handle_teletext_get(_request: web.Request) -> web.Response:
         try:
-            if not Path(BRIDGE_PATH).is_file():
+            bridge_path = _resolve_bridge_path()
+            if not bridge_path.is_file():
                 return web.json_response(
                     {
                         "grid": [],
@@ -118,7 +126,7 @@ def register_bbcsdl_routes(app: web.Application, ceefax_store: Any) -> None:
 
             proc = await asyncio.create_subprocess_exec(
                 sys.executable,
-                BRIDGE_PATH,
+                str(bridge_path),
                 "teletext",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,

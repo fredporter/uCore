@@ -49,8 +49,9 @@
 - [x] Verify and remove remaining in-core overlap modules after parity checks: `backend/app/api/workflows.py`
 - [x] Verify and remove remaining in-core overlap modules after parity checks: `backend/app/api/knowledge.py`
 - [ ] Cut runtime implementation overlap: externalize `backend/app/ucode/ceefax.py` behind runtime package/adapter
-- [ ] Cut runtime implementation overlap: externalize `backend/app/ucode/bbcsdl.py` and remove hardcoded bridge path
+- [x] Cut runtime implementation overlap: externalize `backend/app/ucode/bbcsdl.py` bridge path to env-config (`UCORE_BBCSDL_BRIDGE_PATH`)
 - [ ] Keep host-side terminal runtime adapter thin in `backend/app/api/terminal_runtime.py` (no runtime primitive ownership)
+- [x] Route Ceefax/BBCSDL runtime registration through dedicated adapter (`backend/app/extensions/adapters/ucode_runtime_adapter.py`)
 
 ## Cline Run Order
 

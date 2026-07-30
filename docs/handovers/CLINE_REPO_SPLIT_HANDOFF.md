@@ -109,16 +109,16 @@ Stop-the-line rules for Cline:
 
 ### Runtime route proof (localhost:8484)
 
-| Route | Status | Note |
-| --- | --- | --- |
-| `/api/health` | `200` | canonical health route is `/api/health` |
-| `/api/ceefax/pages` | `200` | Ceefax bridge registered |
-| `/api/ceefax/feed/latest` | `200` | Ceefax feed endpoint live |
-| `/api/bbcsdl/teletext` | `200` | BBCSDL bridge endpoint live |
-| `/api/terminal/runtime/ws` | `400` | expected over plain HTTP; requires WebSocket upgrade |
-| `/api/workflows` | `200` | served via external uFlow route registrar |
-| `/api/knowledge/workspaces` | `200` | served via external uKnowledge route registrar |
-| `/api/knowledge/search` | `400` | expected without `q`; with `?q=test` returns `200` |
+| Route                       | Status | Note                                                 |
+| --------------------------- | ------ | ---------------------------------------------------- |
+| `/api/health`               | `200`  | canonical health route is `/api/health`              |
+| `/api/ceefax/pages`         | `200`  | Ceefax bridge registered                             |
+| `/api/ceefax/feed/latest`   | `200`  | Ceefax feed endpoint live                            |
+| `/api/bbcsdl/teletext`      | `200`  | BBCSDL bridge endpoint live                          |
+| `/api/terminal/runtime/ws`  | `400`  | expected over plain HTTP; requires WebSocket upgrade |
+| `/api/workflows`            | `200`  | served via external uFlow route registrar            |
+| `/api/knowledge/workspaces` | `200`  | served via external uKnowledge route registrar       |
+| `/api/knowledge/search`     | `400`  | expected without `q`; with `?q=test` returns `200`   |
 
 ### Boundary findings
 
@@ -132,6 +132,29 @@ Stop-the-line rules for Cline:
 1. Move Ceefax/BBCSDL runtime implementation package out of uCore host tree or consume it as an external runtime package.
 2. Replace hardcoded runtime bridge path with manifest/env-configured runtime contract.
 3. Keep only route adapter/wiring logic in uCore for runtime-owned modules.
+
+## Evidence Bundle — 2026-07-31 (Runtime Adapter Cut)
+
+### Commands executed
+
+1. `python3 -m compileall -q backend/app/api/routes.py backend/app/extensions/adapters/ucode_runtime_adapter.py backend/app/ucode/bbcsdl.py backend/app/extensions/adapters/__init__.py`
+2. `rg -n "uCode runtime bridge|ucode_runtime_adapter|UCORE_BBCSDL_BRIDGE_PATH|UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL" backend/app -S`
+3. `for p in /api/ceefax/pages /api/bbcsdl/teletext /api/workflows /api/knowledge/workspaces; do ...; done`
+
+### Runtime route proof (localhost:8484)
+
+| Route | Status | Note |
+| --- | --- | --- |
+| `/api/ceefax/pages` | `200` | runtime bridge still functional after adapter routing change |
+| `/api/bbcsdl/teletext` | `200` | BBCSDL bridge still functional after adapter routing change |
+| `/api/workflows` | `200` | external uFlow registration unaffected |
+| `/api/knowledge/workspaces` | `200` | external uKnowledge registration unaffected |
+
+### Boundary findings delta
+
+1. Ceefax/BBCSDL route registration moved out of direct `app.api.routes` imports and into a dedicated runtime adapter (`app.extensions.adapters.ucode_runtime_adapter`).
+2. BBCSDL bridge path is now configuration-driven via `UCORE_BBCSDL_BRIDGE_PATH`.
+3. Compatibility fallback for legacy in-repo Ceefax/BBCSDL remains explicit and can be disabled with `UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL=1` for strict external enforcement.
 
 ## uDev Dogfooding Wave
 

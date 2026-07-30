@@ -109,6 +109,11 @@ workflow_adapter.py:
 knowledge_adapter.py:
   import uknowledge.routes.register_routes
   if import fails and extension is required -> raise RuntimeError
+
+ucode_runtime_adapter.py:
+  import runtime-owned Ceefax/BBCSDL registrars when available
+  if required by env and missing -> raise RuntimeError
+  otherwise -> explicit compatibility fallback to legacy in-repo provider
 ```
 
 Adapters may exist during extraction phases, but must not hide missing
@@ -122,6 +127,10 @@ required prerequisites for active capability paths.
   parity checks.
 - Active knowledge endpoints are served by external uKnowledge route
   registration (including `search`, `workspaces`, and `documents` routes).
+- uCode runtime bridge registration in `app.api.routes` now goes through
+  `app.extensions.adapters.ucode_runtime_adapter.register_routes(...)`.
+- BBCSDL bridge path uses `UCORE_BBCSDL_BRIDGE_PATH` configuration instead of
+  a single hardcoded location.
 
 ## Route Registration
 
