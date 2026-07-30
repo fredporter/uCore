@@ -26,6 +26,12 @@ jobs:
       - name: Validate extension manifests
         run: python3 scripts/validate_extension_manifests.py
 
+      - name: Audit duplicate API routes
+        run: python3 scripts/audit_duplicate_routes.py
+
+      - name: Validate legacy settings and removed-module cleanup
+        run: python3 scripts/validate_legacy_settings_cleanup.py
+
       - name: Smoke split-repo imports and extension routes
         run: python3 scripts/smoke_split_repo_imports.py
 

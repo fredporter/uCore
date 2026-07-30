@@ -19,13 +19,39 @@ allowed_file() {
   [[ "$path" == ".tasker/UNIFIED_DEV_TASK_WORKFLOW.md" ]] && return 0
   [[ "$path" == .tasker/phases/* ]] && return 0
   [[ "$path" == .tasker/backlog/* ]] && return 0
+  [[ "$path" == .tasker/sprints/* ]] && return 0
+  [[ "$path" == .tasker/handover-* ]] && return 0
+  [[ "$path" == .tasker/archive/* ]] && return 0
+  [[ "$path" == .tasker/archived/* ]] && return 0
   [[ "$path" == docs/archive/plans/* ]] && return 0
+  [[ "$path" == docs/archive/* ]] && return 0
+  [[ "$path" == docs/archived/* ]] && return 0
+  [[ "$path" == docs/legacy/* ]] && return 0
+  return 1
+}
+
+planning_candidate() {
+  local path="$1"
+  local base
+  base="$(basename "$path")"
+
+  [[ "$path" == .tasker/* ]] && return 0
+  [[ "$path" == docs/* ]] || return 1
+
+  if [[ "$base" =~ (PLAN|TASK|SPRINT|TODO|CHECKLIST|HANDOVER|ROADMAP|PHASE) ]]; then
+    return 0
+  fi
+
   return 1
 }
 
 violations=0
 
 while IFS= read -r file; do
+  if ! planning_candidate "$file"; then
+    continue
+  fi
+
   if allowed_file "$file"; then
     continue
   fi

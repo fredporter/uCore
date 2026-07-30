@@ -122,7 +122,10 @@ async def handle_update_user_variables(request: web.Request) -> web.Response:
         return web.json_response({"error": "Invalid JSON body"}, status=400)
 
     if not isinstance(body, dict):
-        return web.json_response({"error": "Body must be a JSON object"}, status=400)
+        return web.json_response(
+            {"error": "Body must be a JSON object"},
+            status=400,
+        )
 
     current = _load_variables()
     # Only allow known user variable keys
@@ -145,14 +148,3 @@ async def handle_get_install_variables(
 ) -> web.Response:
     """GET /api/variables/install — return installation (read-only)."""
     return web.json_response(_load_install_meta())
-
-
-# ─── Route Registration ─────────────────────────────────────────────
-
-def register_variable_routes(app: web.Application) -> None:
-    """Deprecated: routes are registered centrally in app.api.routes.
-
-    Kept as a compatibility shim to avoid import breakage while enforcing
-    a single route registration path.
-    """
-    _ = app

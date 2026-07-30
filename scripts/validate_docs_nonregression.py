@@ -33,6 +33,8 @@ def main() -> int:
 
     ext_spec = _read("docs/EXTENSION_REGISTRY_SPEC.md")
     policy = _read("docs/RELIABILITY_SINGLE_PATH_POLICY.md")
+    dev_flow = _read("docs/specs/ECOSYSTEM_EXTENDED_DEV_FLOW_2026-07-31.md")
+    runbook = _read("docs/specs/AUTONOMOUS_DEV_ROUNDS_RUNBOOK.md")
 
     _require(
         ext_spec,
@@ -81,6 +83,24 @@ def main() -> int:
         policy,
         "Documentation Non-Regression Gate",
         "policy includes documentation non-regression section",
+        failures,
+    )
+    _require(
+        dev_flow,
+        "Gate 0 - Core Stability First",
+        "extended flow includes stability-first gate",
+        failures,
+    )
+    _require(
+        runbook,
+        "Stop-the-line bundle is required",
+        "autonomous runbook enforces stop-the-line bundle",
+        failures,
+    )
+    _require(
+        runbook,
+        "validate_legacy_settings_cleanup.py",
+        "autonomous runbook includes legacy cleanup validation gate",
         failures,
     )
 
