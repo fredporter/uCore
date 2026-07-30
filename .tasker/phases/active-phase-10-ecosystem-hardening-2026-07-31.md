@@ -29,14 +29,14 @@ Ship a stable core host shell with clean extension/plugin boundaries, zero legac
 - [x] Remove detached legacy `snackmachine` standalone surface (merged into Server/Workflow/System redirects)
 - [x] Remove detached legacy standalone `teletext` and `terminal` surfaces (canonical home is uCode tabs)
 - [x] Re-scan `/api/surfaces/discover` and verify no detached surfaces remain
-- [ ] Publish surface placement policy in docs (host UI vs plugin backend ownership)
+- [x] Publish surface placement policy in docs (host UI vs plugin backend ownership)
 
 ## Wave E2 - Documentation Publishing Recovery
 
-- [ ] Restore documentation backend API contract used by Documentation surface (`/api/docs`, `/api/docs/sites`, `/api/docs/global-knowledge`, `/api/docs/export`, `/api/docs/serve/{site}`)
-- [ ] Validate doc-site discovery from `~/Public/doc-sites` and global knowledge from `~/Public/global-knowledge`
-- [ ] Define publishing ownership split: uCore UI shell vs plugin/provider logic
-- [ ] Add route parity and runtime probes for documentation publishing endpoints
+- [x] Restore documentation backend API contract used by Documentation surface (`/api/docs`, `/api/docs/sites`, `/api/docs/global-knowledge`, `/api/docs/export`, `/api/docs/serve/{site}`)
+- [x] Validate doc-site discovery from `~/Public/doc-sites` and global knowledge from `~/Public/global-knowledge`
+- [x] Define publishing ownership split: uCore UI shell vs plugin/provider logic
+- [x] Add route parity and runtime probes for documentation publishing endpoints
 
 ## Wave F - Identity, Story Forms, Publishing
 

@@ -8,6 +8,38 @@
     />
     <div class="documentation-content-inner">
       <div class="documentation-content">
+        <div class="doc-health-strip">
+          <div class="doc-health-item">
+            <span class="doc-health-label">Docs API</span>
+            <UBadge :type="statusType(apiStatus.root)">
+              {{ statusText(apiStatus.root) }}
+            </UBadge>
+          </div>
+          <div class="doc-health-item">
+            <span class="doc-health-label">Sites API</span>
+            <UBadge :type="statusType(apiStatus.sites)">
+              {{ statusText(apiStatus.sites) }}
+            </UBadge>
+          </div>
+          <div class="doc-health-item">
+            <span class="doc-health-label">Knowledge API</span>
+            <UBadge :type="statusType(apiStatus.knowledge)">
+              {{ statusText(apiStatus.knowledge) }}
+            </UBadge>
+          </div>
+          <div class="doc-health-item">
+            <span class="doc-health-label">Export API</span>
+            <UBadge :type="statusType(apiStatus.export)">
+              {{ statusText(apiStatus.export) }}
+            </UBadge>
+          </div>
+        </div>
+
+        <div class="doc-export-summary" v-if="lastExportAt">
+          <UIcon name="schedule" />
+          <span>Last export: {{ lastExportAt }}</span>
+        </div>
+
         <!-- Guide Tab -->
         <div v-if="activeTab === 'guide'">
           <div v-if="loading" class="doc-loading">
@@ -176,10 +208,25 @@ const exportRunning = ref(false)
 const exportResult = ref<Record<string, any> | null>(null)
 const viewingSite = ref<string | null>(null)
 const viewingKnowledge = ref<string | null>(null)
+const lastExportAt = ref<string | null>(null)
 
 const docSites = ref<DocSite[]>([])
 const apiEndpoints = ref<Endpoint[]>([])
 const knowledgeSections = ref<Section[]>([])
+
+type ApiStatus = 'pending' | 'ok' | 'error'
+
+const apiStatus = ref<{
+  root: ApiStatus
+  sites: ApiStatus
+  knowledge: ApiStatus
+  export: ApiStatus
+}>({
+  root: 'pending',
+  sites: 'pending',
+  knowledge: 'pending',
+  export: 'pending',
+})
 
 const DEFAULT_ENDPOINTS: Endpoint[] = [
   { method: 'GET', path: '/api/status', description: 'Server status' },
@@ -196,8 +243,13 @@ async function fetchDocSites() {
     if (res.ok) {
       const data = await res.json()
       docSites.value = data.sites || []
+      apiStatus.value.sites = 'ok'
+    } else {
+      apiStatus.value.sites = 'error'
     }
-  } catch { /* keep empty */ }
+  } catch {
+    apiStatus.value.sites = 'error'
+  }
   loading.value = false
 }
 
@@ -208,8 +260,13 @@ async function fetchKnowledgeSections() {
     if (res.ok) {
       const data = await res.json()
       knowledgeSections.value = data.sections || []
+      apiStatus.value.knowledge = 'ok'
+    } else {
+      apiStatus.value.knowledge = 'error'
     }
-  } catch { /* keep empty */ }
+  } catch {
+    apiStatus.value.knowledge = 'error'
+  }
   knowledgeLoading.value = false
 }
 
@@ -227,9 +284,24 @@ async function fetchEndpoints() {
           description: e.description || e.doc || '',
         }))
       }
+      apiStatus.value.root = 'ok'
+    } else {
+      apiStatus.value.root = 'error'
     }
-  } catch { apiEndpoints.value = DEFAULT_ENDPOINTS }
+  } catch {
+    apiStatus.value.root = 'error'
+    apiEndpoints.value = DEFAULT_ENDPOINTS
+  }
   apiLoading.value = false
+}
+
+async function probeExportEndpoint() {
+  try {
+    const res = await fetch(`/api/docs/export`, { signal: AbortSignal.timeout(3000) })
+    apiStatus.value.export = res.ok ? 'ok' : 'error'
+  } catch {
+    apiStatus.value.export = 'error'
+  }
 }
 
 async function runExport() {
@@ -242,18 +314,36 @@ async function runExport() {
     })
     const data = await res.json()
     exportResult.value = data
+    apiStatus.value.export = res.ok ? 'ok' : 'error'
+    if (res.ok && !data.error) {
+      lastExportAt.value = new Date().toLocaleString()
+    }
     await fetchDocSites()
   } catch (e: any) {
+    apiStatus.value.export = 'error'
     exportResult.value = { error: e.message || 'Export failed' }
   } finally {
     exportRunning.value = false
   }
 }
 
+function statusType(status: ApiStatus): 'success' | 'warning' | 'error' {
+  if (status === 'ok') return 'success'
+  if (status === 'error') return 'error'
+  return 'warning'
+}
+
+function statusText(status: ApiStatus): string {
+  if (status === 'ok') return 'Online'
+  if (status === 'error') return 'Offline'
+  return 'Checking'
+}
+
 onMounted(() => {
   fetchDocSites()
   fetchKnowledgeSections()
   fetchEndpoints()
+  probeExportEndpoint()
 })
 </script>
 
@@ -279,6 +369,38 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--usx-spacing-md);
+}
+
+.doc-health-strip {
+  --doc-column-min: calc(var(--usx-touch-min) * 3.5);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--doc-column-min)), 1fr));
+  gap: var(--usx-spacing-sm);
+  min-width: 0;
+}
+
+.doc-health-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  background: var(--usx-color-surface);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+}
+
+.doc-health-label {
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.doc-export-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm);
 }
 
 /* ─── Loading / Empty ──────────────────────────────────────────── */
