@@ -6,6 +6,8 @@ import json
 import platform as plat_module
 import sys
 import time
+import socket
+import urllib.request
 from contextlib import suppress
 from pathlib import Path
 
@@ -43,6 +45,25 @@ def _save_json(path: str, data: dict) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
+
+
+def _port_in_use(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.2)
+        return sock.connect_ex((host, port)) == 0
+
+
+def _health_is_ready(host: str, port: int) -> bool:
+    try:
+        with urllib.request.urlopen(f"http://{host}:{port}/api/health", timeout=1.5) as response:
+            return response.status == 200
+    except Exception:
+        return False
+
+
+async def _idle_forever() -> None:
+    while True:
+        await asyncio.sleep(60)
 
 
 # ─── CORS middleware ──────────────────────────────────────────────
@@ -592,6 +613,19 @@ def main():
     settings.auto_start = args.auto_start
 
     log.info("Starting uCore snackbar on %s:%d", settings.host, settings.port)
+
+    if _port_in_use(settings.host, settings.port):
+        if _health_is_ready(settings.host, settings.port):
+            log.info(
+                "Detected healthy uCore already listening on %s:%d; attaching in idle mode",
+                settings.host,
+                settings.port,
+            )
+            asyncio.run(_idle_forever())
+            return
+        raise RuntimeError(
+            f"Port {settings.port} is already in use and no healthy uCore instance responded"
+        )
 
     app = create_app()
     web.run_app(app, host=settings.host, port=settings.port)
