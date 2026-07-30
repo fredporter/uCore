@@ -118,25 +118,27 @@ required prerequisites for active capability paths.
 
 - Workflow route registration: externalized to uFlow (hard-cut).
 - Knowledge route registration: externalized to uKnowledge (hard-cut).
-- First knowledge endpoint migrated to real external implementation:
-  `/api/knowledge/search`.
-- Remaining knowledge endpoints are explicit `501` stubs in uKnowledge until
-  migrated endpoint-by-endpoint.
+- In-core workflow and knowledge API modules were removed from uCore after
+  parity checks.
+- Active knowledge endpoints are served by external uKnowledge route
+  registration (including `search`, `workspaces`, and `documents` routes).
 
 ## Route Registration
 
-The adapter pattern replaces inline route registration. Previously,
-`app.api.routes.register_routes()` contained all route wiring. Now it
-delegates to the extension registry:
+The adapter pattern externalizes workflow and knowledge route registration.
+uCore still wires host-shell routes directly in `app.api.routes`, and then
+delegates extension-owned routes through the registry:
 
 ```python
 # In routes.py:
+register_host_shell_routes(app)
 from app.extensions.registry import registry
 registry.register_routes(app)
 ```
 
-This calls each extension's `route_registrar`, which registers the same
-endpoints at the same URLs so client contracts stay stable.
+This calls each extension's `route_registrar` for extension-owned paths
+(`/api/workflows/*`, `/api/knowledge/*`) so client contracts stay stable while
+host-shell routes remain in uCore.
 
 ## Creating a udos- Plugin
 

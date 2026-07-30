@@ -43,15 +43,18 @@
 ## Next Phase — uCode Boundary Hard Cut
 
 - [x] Remove any remaining uCore ownership language for GridCore, GridSmith, teletext, terminal widgets, and runtime primitives
-- [ ] Audit overlapping implementation details and move them into uCode where they belong
+- [x] Audit overlapping implementation details and move them into uCode where they belong
 - [ ] Keep uCore limited to shell, adapter, and orchestration surfaces
 - [ ] Update repo descriptions and docs so uCode is clearly the runtime foundation repo
 - [x] Verify and remove remaining in-core overlap modules after parity checks: `backend/app/api/workflows.py`
 - [x] Verify and remove remaining in-core overlap modules after parity checks: `backend/app/api/knowledge.py`
+- [ ] Cut runtime implementation overlap: externalize `backend/app/ucode/ceefax.py` behind runtime package/adapter
+- [ ] Cut runtime implementation overlap: externalize `backend/app/ucode/bbcsdl.py` and remove hardcoded bridge path
+- [ ] Keep host-side terminal runtime adapter thin in `backend/app/api/terminal_runtime.py` (no runtime primitive ownership)
 
 ## Cline Run Order
 
-- [ ] Run uCode boundary hard cut first
+- [x] Run uCode boundary hard cut first
 - [ ] Then run the workflow deletion wave with parity checks
 - [ ] Then run the knowledge document-content wave
 - [ ] Capture proof bundles and push each wave separately

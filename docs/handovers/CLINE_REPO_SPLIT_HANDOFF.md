@@ -98,6 +98,41 @@ Stop-the-line rules for Cline:
 - if a command example in docs is stale, rewrite it before continuing
 - if a boundary is unclear, stop and document the ambiguity instead of broadening scope
 
+## Evidence Bundle — 2026-07-31 (uCode Boundary + Route Parity)
+
+### Commands executed
+
+1. `rg -n "ceefax|bbcsdl|terminal_runtime|register_.*routes|uCode runtime bridge|host shell adapter" backend/app docs -S`
+2. `rg -n "def register_.*routes|app\.router\.add_(get|post|put|delete|patch)\(" backend/app/ucode backend/app/api/terminal_runtime.py -S`
+3. `for p in /health /api/ceefax/pages /api/ceefax/feed/latest /api/bbcsdl/teletext /api/terminal/runtime/ws /api/workflows /api/knowledge/workspaces /api/knowledge/search; do ...; done`
+4. `for p in /api/health '/api/knowledge/search?q=test' /api/terminal/runtime/ws; do curl -i ...; done`
+
+### Runtime route proof (localhost:8484)
+
+| Route | Status | Note |
+| --- | --- | --- |
+| `/api/health` | `200` | canonical health route is `/api/health` |
+| `/api/ceefax/pages` | `200` | Ceefax bridge registered |
+| `/api/ceefax/feed/latest` | `200` | Ceefax feed endpoint live |
+| `/api/bbcsdl/teletext` | `200` | BBCSDL bridge endpoint live |
+| `/api/terminal/runtime/ws` | `400` | expected over plain HTTP; requires WebSocket upgrade |
+| `/api/workflows` | `200` | served via external uFlow route registrar |
+| `/api/knowledge/workspaces` | `200` | served via external uKnowledge route registrar |
+| `/api/knowledge/search` | `400` | expected without `q`; with `?q=test` returns `200` |
+
+### Boundary findings
+
+1. Workflow and knowledge in-core API modules were removed from uCore and route ownership is externalized through adapters + extension registry.
+2. Ceefax/BBCSDL implementations are still in-repo under `backend/app/ucode/*` and currently function as runtime bridges wired by `app.api.routes`.
+3. Terminal runtime WebSocket remains host-side in `backend/app/api/terminal_runtime.py`, acting as a shell adapter surface.
+4. A boundary-specific migration candidate remains: `backend/app/ucode/bbcsdl.py` references a hardcoded bridge path (`~/Code/uCode1/core_py/bbc/bbcsdl_bridge.py`), which should be shifted to explicit extension/runtime configuration owned by the runtime-side repo.
+
+### Next wave cut targets
+
+1. Move Ceefax/BBCSDL runtime implementation package out of uCore host tree or consume it as an external runtime package.
+2. Replace hardcoded runtime bridge path with manifest/env-configured runtime contract.
+3. Keep only route adapter/wiring logic in uCore for runtime-owned modules.
+
 ## uDev Dogfooding Wave
 
 Use this extraction as an autonomous uDev IDE test:
