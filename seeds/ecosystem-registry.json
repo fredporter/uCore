@@ -223,7 +223,7 @@
         "name": "Cline Invoke",
         "skill_id": "cline-invoke",
         "category": "developer",
-        "description": "Invoke Cline CLI from uCore skills.  Supports yolo (autonomous",
+        "description": "Invoke Cline CLI from uCore skills using positional  prompt mode. Supports yolo (auto-approve true",
         "params": [],
         "timeout": 2,
         "requires_confirmation": true,
@@ -1060,6 +1060,13 @@
       },
       {
         "method": "GET",
+        "path": "/api/extensions/status",
+        "handler": "handle_extensions_status",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "GET",
         "path": "/api/flow-router/analytics",
         "handler": "handle_flow_router_analytics",
         "health": "working",
@@ -1118,111 +1125,6 @@
         "method": "POST",
         "path": "/api/gridsmith/world/import-basic",
         "handler": "handle_gridsmith_import_basic",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/knowledge/documents",
-        "handler": "handle_list_documents",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/knowledge/documents/{object_id}",
-        "handler": "handle_get_document",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/knowledge/documents/{object_id}/content",
-        "handler": "handle_get_document_content",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "POST",
-        "path": "/api/knowledge/import",
-        "handler": "handle_af_import",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/knowledge/import/status",
-        "handler": "handle_import_status",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/knowledge/index/coverage",
-        "handler": "handle_index_coverage",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/knowledge/index/status",
-        "handler": "handle_af_index_status",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/knowledge/local/databases",
-        "handler": "handle_local_databases",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "POST",
-        "path": "/api/knowledge/local/export",
-        "handler": "handle_local_export",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "POST",
-        "path": "/api/knowledge/local/query",
-        "handler": "handle_local_query",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/knowledge/local/tables",
-        "handler": "handle_local_tables",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/knowledge/search",
-        "handler": "handle_search",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/knowledge/status",
-        "handler": "handle_af_status",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "POST",
-        "path": "/api/knowledge/sync",
-        "handler": "handle_af_sync",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/knowledge/workspaces",
-        "handler": "handle_list_workspaces",
         "health": "working",
         "issues": []
       },
@@ -1463,62 +1365,6 @@
         "handler": "handle_workflow_tasks",
         "health": "working",
         "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/workflows",
-        "handler": "handle_list_workflows",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "POST",
-        "path": "/api/workflows",
-        "handler": "handle_create_workflow",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/workflows/board/{board_id}/health",
-        "handler": "handle_board_health",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/workflows/runs",
-        "handler": "handle_workflow_runs",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/workflows/task/{task_id}",
-        "handler": "handle_get_task",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "PUT",
-        "path": "/api/workflows/task/{task_id}",
-        "handler": "handle_update_task",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "GET",
-        "path": "/api/workflows/{workflow_id}/logs",
-        "handler": "handle_workflow_logs",
-        "health": "working",
-        "issues": []
-      },
-      {
-        "method": "POST",
-        "path": "/api/workflows/{workflow_id}/run",
-        "handler": "handle_run_workflow",
-        "health": "working",
-        "issues": []
       }
     ],
     "paths": [
@@ -1716,28 +1562,12 @@
         "examples": [],
         "health": "working",
         "issues": []
-      },
-      {
-        "scope": "user",
-        "source": "variables_api.py",
-        "description": "Exposed via /api/variables/user",
-        "examples": [],
-        "health": "working",
-        "issues": []
-      },
-      {
-        "scope": "install",
-        "source": "variables_api.py",
-        "description": "Exposed via /api/variables/install",
-        "examples": [],
-        "health": "working",
-        "issues": []
       }
     ]
   },
   "health": {
-    "total_items": 178,
-    "working": 177,
+    "total_items": 154,
+    "working": 153,
     "untested": 1,
     "broken": 0,
     "orphaned": 0,

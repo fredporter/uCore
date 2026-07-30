@@ -42,6 +42,11 @@ def _ensure_store() -> None:
                 datetime.now(UTC).astimezone().tzinfo,
             ) or "UTC",
             "uid": str(uuid.uuid4()),
+            "cline_provider": "ollama",
+            "cline_model": os.environ.get(
+                "UCORE_OLLAMA_MODEL", "qwen2.5-coder:3b",
+            ),
+            "cline_thinking": "low",
         }
         _VARIABLE_STORE_FILE.write_text(json.dumps(default_vars, indent=2))
 
@@ -124,6 +129,8 @@ async def handle_update_user_variables(request: web.Request) -> web.Response:
     allowed_keys = {
         "username", "role", "location",
         "timezone", "uid", "email",
+        "cline_provider", "cline_model", "cline_thinking",
+        "cline_auto_approve",
     }
     for key, value in body.items():
         if key in allowed_keys:
@@ -143,8 +150,9 @@ async def handle_get_install_variables(
 # ─── Route Registration ─────────────────────────────────────────────
 
 def register_variable_routes(app: web.Application) -> None:
-    """Register variable API routes."""
-    app.router.add_get("/api/variables", handle_get_variables)
-    app.router.add_get("/api/variables/user", handle_get_user_variables)
-    app.router.add_put("/api/variables/user", handle_update_user_variables)
-    app.router.add_get("/api/variables/install", handle_get_install_variables)
+    """Deprecated: routes are registered centrally in app.api.routes.
+
+    Kept as a compatibility shim to avoid import breakage while enforcing
+    a single route registration path.
+    """
+    _ = app

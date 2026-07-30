@@ -17,6 +17,7 @@ Usage:
 """
 from __future__ import annotations
 
+import argparse
 import importlib
 import json
 import pkgutil
@@ -270,6 +271,21 @@ def create_app() -> web.Application:
 
 def main():
     """Start the uCore snackbar daemon."""
+    parser = argparse.ArgumentParser(description="uCore modular snackbar daemon")
+    parser.add_argument("--host", default=settings.host, help="Bind host")
+    parser.add_argument("--port", type=int, default=settings.port, help="Bind port")
+    parser.add_argument(
+        "--auto-start",
+        action="store_true",
+        default=settings.auto_start,
+        help="Enable auto-start behavior",
+    )
+    args = parser.parse_args()
+
+    settings.host = args.host
+    settings.port = args.port
+    settings.auto_start = args.auto_start
+
     log.info("Starting uCore snackbar on %s:%d", settings.host, settings.port)
 
     app = create_app()

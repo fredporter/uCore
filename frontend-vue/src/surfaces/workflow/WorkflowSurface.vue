@@ -1,5 +1,10 @@
 <template>
-  <div class="surface" :class="{ 'surface--tab-nav-vertical': shell.tabOrientation === 'vertical' }">
+  <div
+    class="surface"
+    :class="{
+      'surface--tab-nav-vertical': shell.tabOrientation === 'vertical',
+    }"
+  >
     <SurfaceTabNav
       v-model="wf.activeTab"
       :tabs="WORKFLOW_TABS"
@@ -8,7 +13,16 @@
     />
     <!-- Content area -->
     <div class="surface__content">
-      <div class="workflow-layout" :class="{ 'workflow-layout--editor-tab': wf.activeTab === 'editor' }">
+      <CapabilityRepairPanel
+        v-if="blockedRepairs.length > 0"
+        :items="blockedRepairs"
+        @retry="onRetryPreflight"
+      />
+
+      <div
+        class="workflow-layout"
+        :class="{ 'workflow-layout--editor-tab': wf.activeTab === 'editor' }"
+      >
         <!-- Left/Main panel: the active tab content -->
         <div v-if="wf.activeTab !== 'editor'" class="workflow-panel">
           <MissionControlPanel v-if="wf.activeTab === 'mission-control'" />
@@ -18,7 +32,10 @@
         </div>
 
         <!-- Editor tab: full-width document workspace -->
-        <div v-if="wf.activeTab === 'editor'" class="workflow-panel workflow-panel--editor">
+        <div
+          v-if="wf.activeTab === 'editor'"
+          class="workflow-panel workflow-panel--editor"
+        >
           <EditorPanel
             v-if="activeEditorItem"
             :content="editorContent"
@@ -34,12 +51,22 @@
           />
           <div v-else class="wf-editor-empty">
             <UIcon name="article" />
-            <p>Select a file from the User Vault sidebar or a task from Tasks.</p>
+            <p>
+              Select a file from the User Vault sidebar or a task from Tasks.
+            </p>
             <div class="wf-editor-empty__actions">
-              <UButton size="sm" variant="primary" @click="shell.toggleSidebar()">
+              <UButton
+                size="sm"
+                variant="primary"
+                @click="shell.toggleSidebar()"
+              >
                 Open File Browser
               </UButton>
-              <UButton size="sm" variant="secondary" @click="wf.setTab('tasks')">
+              <UButton
+                size="sm"
+                variant="secondary"
+                @click="wf.setTab('tasks')"
+              >
                 Go to Tasks
               </UButton>
             </div>
@@ -47,7 +74,11 @@
         </div>
 
         <!-- Right/Editor column: sidecar for non-editor tabs -->
-        <div v-if="wf.activeTab !== 'editor' && wf.editorOpen && activeEditorItem" class="workflow-editor" :class="editorColumnClass">
+        <div
+          v-if="wf.activeTab !== 'editor' && wf.editorOpen && activeEditorItem"
+          class="workflow-editor"
+          :class="editorColumnClass"
+        >
           <EditorPanel
             :content="editorContent"
             :title="editorTitle"
@@ -80,87 +111,100 @@
  * @category surfaces
  * @usage Routed at '/workflow?tab=mission-control'
  */
-import { computed, defineAsyncComponent, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useShellStore } from '../../stores/shell'
-import { useWorkflowStore, WORKFLOW_TABS } from '../../stores/workflow'
-import type { WorkflowTab } from '../../stores/workflow'
-import SurfaceTabNav from '../../skills/molecules/SurfaceTabNav.vue'
-import MissionControlPanel from './panels/MissionControlPanel.vue'
-const MissionsPanel = defineAsyncComponent(() => import('./panels/MissionsPanel.vue'))
-const BinderPanel = defineAsyncComponent(() => import('./panels/BinderPanel.vue'))
-const TasksPanel = defineAsyncComponent(() => import('./panels/TasksPanel.vue'))
-const PublishPanel = defineAsyncComponent(() => import('./panels/PublishPanel.vue'))
-import { EditorPanel } from '../../skills'
-import UIcon from '../../skills/atoms/UIcon.vue'
-import UButton from '../../skills/atoms/UButton.vue'
+import { computed, defineAsyncComponent, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useShellStore } from "../../stores/shell";
+import { useWorkflowStore, WORKFLOW_TABS } from "../../stores/workflow";
+import type { WorkflowTab } from "../../stores/workflow";
+import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
+import CapabilityRepairPanel from "../../skills/molecules/CapabilityRepairPanel.vue";
+import MissionControlPanel from "./panels/MissionControlPanel.vue";
+const MissionsPanel = defineAsyncComponent(
+  () => import("./panels/MissionsPanel.vue"),
+);
+const BinderPanel = defineAsyncComponent(
+  () => import("./panels/BinderPanel.vue"),
+);
+const TasksPanel = defineAsyncComponent(
+  () => import("./panels/TasksPanel.vue"),
+);
+const PublishPanel = defineAsyncComponent(
+  () => import("./panels/PublishPanel.vue"),
+);
+import { EditorPanel } from "../../skills";
+import UIcon from "../../skills/atoms/UIcon.vue";
+import UButton from "../../skills/atoms/UButton.vue";
 
-const shell = useShellStore()
-const wf = useWorkflowStore()
-const route = useRoute()
-const router = useRouter()
+const shell = useShellStore();
+const wf = useWorkflowStore();
+const route = useRoute();
+const router = useRouter();
 
-const VALID_WORKFLOW_TABS = new Set(WORKFLOW_TABS.map(t => t.id))
+const VALID_WORKFLOW_TABS = new Set(WORKFLOW_TABS.map((t) => t.id));
 
 function asWorkflowTab(tab: string): WorkflowTab | null {
-  return VALID_WORKFLOW_TABS.has(tab as WorkflowTab) ? (tab as WorkflowTab) : null
+  return VALID_WORKFLOW_TABS.has(tab as WorkflowTab)
+    ? (tab as WorkflowTab)
+    : null;
 }
 
 onMounted(() => {
-  const routeTab = String(route.query.tab || '').trim()
-  const safeTab = asWorkflowTab(routeTab)
+  const routeTab = String(route.query.tab || "").trim();
+  const safeTab = asWorkflowTab(routeTab);
   if (safeTab) {
-    wf.setTab(safeTab)
-    return
+    wf.setTab(safeTab);
+  } else {
+    router.replace({
+      path: "/workflow",
+      query: { ...route.query, tab: wf.activeTab },
+    });
   }
-  router.replace({
-    path: '/workflow',
-    query: { ...route.query, tab: wf.activeTab },
-  })
-})
+
+  void wf.fetchAll();
+});
 
 watch(
   () => route.query.tab,
   (value) => {
-    const routeTab = String(value || '').trim()
-    const safeTab = asWorkflowTab(routeTab)
-    if (!safeTab) return
+    const routeTab = String(value || "").trim();
+    const safeTab = asWorkflowTab(routeTab);
+    if (!safeTab) return;
     if (wf.activeTab !== routeTab) {
-      wf.setTab(safeTab)
+      wf.setTab(safeTab);
     }
   },
-)
+);
 
 watch(
   () => wf.activeTab,
   (tab) => {
-    const current = String(route.query.tab || '')
-    if (current === tab) return
+    const current = String(route.query.tab || "");
+    if (current === tab) return;
     router.replace({
-      path: '/workflow',
+      path: "/workflow",
       query: { ...route.query, tab },
-    })
+    });
   },
-)
+);
 
 function onEditorContentUpdate(value: string) {
-  wf.updateEditorContent(value)
+  wf.updateEditorContent(value);
 }
 
 function onEditorSave(value: string) {
-  wf.updateEditorContent(value)
-  const itemId = wf.selectedTask?.id || wf.selectedFile?.path
-  console.log('[Workflow] Editor saved:', itemId)
+  wf.updateEditorContent(value);
+  const itemId = wf.selectedTask?.id || wf.selectedFile?.path;
+  console.log("[Workflow] Editor saved:", itemId);
 }
 
-const activeEditorItem = computed(() => wf.selectedTask || wf.selectedFile)
-const editorTitle = computed(() => (
-  wf.selectedTask?.title || wf.selectedFile?.filename || 'Untitled'
-))
-const editorContent = computed(() => (
-  wf.selectedTask?.description || wf.selectedFile?.content || ''
-))
-const editorReadOnly = computed(() => Boolean(wf.selectedFile?.readOnly))
+const activeEditorItem = computed(() => wf.selectedTask || wf.selectedFile);
+const editorTitle = computed(
+  () => wf.selectedTask?.title || wf.selectedFile?.filename || "Untitled",
+);
+const editorContent = computed(
+  () => wf.selectedTask?.description || wf.selectedFile?.content || "",
+);
+const editorReadOnly = computed(() => Boolean(wf.selectedFile?.readOnly));
 
 /**
  * Dynamic column class based on edit pane visibility:
@@ -168,8 +212,20 @@ const editorReadOnly = computed(() => Boolean(wf.selectedFile?.readOnly))
  *   - Edit pane hidden: narrower column (50% — preview fills it)
  */
 const editorColumnClass = computed(() => {
-  return wf.showEditorPane ? 'workflow-editor--wide' : 'workflow-editor--single'
-})
+  return wf.showEditorPane
+    ? "workflow-editor--wide"
+    : "workflow-editor--single";
+});
+
+const blockedRepairs = computed(() => {
+  return Object.values(wf.capabilityRepairs || {}).filter(
+    (item) => !item.ready,
+  );
+});
+
+function onRetryPreflight() {
+  void wf.fetchAll();
+}
 </script>
 
 <style scoped>

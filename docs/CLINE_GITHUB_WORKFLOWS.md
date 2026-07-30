@@ -25,6 +25,7 @@ This runbook maps three high-value automation flows:
 Quick checks:
 
 ```bash
+cline auth
 cline mcp --help
 curl -fsS http://127.0.0.1:8484/api/mcp/tools | head
 ```
@@ -105,23 +106,23 @@ Expected behavior:
 
 ## Scheduled Automation (launchd/cron)
 
-Current Cline CLI in this environment does not expose a `schedule` subcommand, so scheduling should use `launchd` or `cron` wrappers that execute Cline prompts or uCore API calls.
+Use `launchd`, `cron`, or `cline schedule` wrappers that execute Cline prompts or uCore API calls.
 
 ### Option A: Cron (simple)
 
 ```bash
 # every hour: CI check via Cline
-0 * * * * cd /Users/fredbook/Code/uCore && cline task --cwd /Users/fredbook/Code/uCore "Check CI status across uDosGo repos and summarize failures only" --json >> /tmp/ucore-ci.log 2>&1
+0 * * * * cd /Users/fredbook/Code/uCore && cline --json --cwd /Users/fredbook/Code/uCore "Check CI status across uDosGo repos and summarize failures only" >> /tmp/ucore-ci.log 2>&1
 
 # weekdays 9:15: issue triage via Cline
-15 9 * * 1-5 cd /Users/fredbook/Code/uCore && cline task --cwd /Users/fredbook/Code/uCore "Triage open issues for uCore using MCP and summarize actions taken" --json >> /tmp/ucore-triage.log 2>&1
+15 9 * * 1-5 cd /Users/fredbook/Code/uCore && cline --json --cwd /Users/fredbook/Code/uCore "Triage open issues for uCore using MCP and summarize actions taken" >> /tmp/ucore-triage.log 2>&1
 ```
 
 ### Option B: launchd (macOS)
 
 Create a LaunchAgent that runs a shell wrapper calling one of:
 
-- `cline task ...`
+- `cline "...prompt..." --json --cwd ...`
 - `curl http://127.0.0.1:8484/api/github/trigger/...`
 
 Use launchd when you need reliable startup behavior and per-user service management.

@@ -15,3 +15,49 @@
 - [x] Update .clinerules with Docs Round Completion rule and In-House Skills Library
 - [x] Mark sprint complete in .tasker.dev-flow.yaml
 - [x] Final push all round artifacts
+
+## Repo Architecture Handoff
+
+- [x] Create a Cline-ready handoff for the repo split and plugin boundary plan
+- [x] Add plugin/extension surface scaffolding in uCore
+- [x] Create or scaffold uFlow and uKnowledge repos
+- [x] Create an initial udos- plugin repo pattern
+- [x] Update README and architecture docs to reflect the new repo model
+
+## Repo Split Phase 2 (Hard Cut)
+
+- [x] Remove workflow adapter fallback and require uFlow ownership
+- [x] Remove knowledge adapter fallback and require uKnowledge ownership
+- [ ] Extract and delete in-core workflow modules after parity checks
+- [ ] Extract and delete in-core knowledge modules after parity checks
+- [ ] Keep SonicScrewdriver explicitly out of scope for this phase
+
+### Wave 2 Knowledge Migration Progress
+
+- [x] Migrate `/api/knowledge/search` to external uKnowledge implementation
+- [x] Migrate `/api/knowledge/workspaces` to external uKnowledge implementation
+- [x] Migrate `/api/knowledge/documents` to external uKnowledge implementation
+- [x] Remove in-core search handler ownership
+- [ ] Migrate next knowledge endpoint wave (document-content)
+
+## uDev Dogfooding Wave
+
+- [ ] Run extraction waves through uDev autonomous flow (low-cost model route first)
+- [ ] Capture per-wave evidence (diff summary, tests, route checks)
+- [ ] Record orchestration failures and tuning notes in handover docs
+- [ ] Compare autonomous throughput vs manual throughput at end of phase
+
+## Reliability and Consolidation
+
+- [x] Fix Cline CLI execution blocker (code-signing + command syntax)
+- [x] Establish low-cost local Cline run path (ollama provider override)
+- [x] Remove duplicate variable route registration path
+- [x] Add duplicate-route audit script and run it to zero duplicates
+- [ ] Enforce stop-the-line gate on every wave completion
+
+## Documentation and Planning Governance
+
+- [x] Align extension registry spec with hard-cut semantics
+- [x] Add docs non-regression validator (`scripts/validate_docs_nonregression.py`)
+- [x] Wire docs non-regression check into CI
+- [x] Add Ollama documentation audit workflow and script

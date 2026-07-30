@@ -43,6 +43,11 @@ def register_routes(app: web.Application) -> None:
     )
     from .docker import handle_docker_ps
     from .exec import handle_exec
+    from .extensions_api import (
+        handle_capability_preflight,
+        handle_capabilities_readiness,
+        handle_extensions_status,
+    )
     from .flow_router import (
         handle_api_registry_list,
         handle_api_registry_resolve,
@@ -80,22 +85,6 @@ def register_routes(app: web.Application) -> None:
         handle_ollama_models_available,
         handle_ollama_performance,
         handle_ollama_status,
-    )
-    from .knowledge import (
-        handle_af_import,
-        handle_af_index_status,
-        handle_af_status,
-        handle_af_sync,
-        handle_get_document,
-        handle_get_document_content,
-        handle_list_documents,
-        handle_list_workspaces,
-        handle_local_databases,
-        handle_local_export,
-        handle_local_query,
-        handle_local_tables,
-        handle_mission_task_binder,
-        handle_search,
     )
     from .mcp import (
         handle_mcp_call,
@@ -139,49 +128,12 @@ def register_routes(app: web.Application) -> None:
         handle_get_variables,
         handle_update_user_variables,
     )
-    from .workflows import (
-        handle_board_health,
-        handle_create_workflow,
-        handle_get_task,
-        handle_import_status,
-        handle_index_coverage,
-        handle_list_workflows,
-        handle_run_workflow,
-        handle_update_task,
-        handle_workflow_logs,
-        handle_workflow_runs,
-    )
+    # ── Extension-driven route registration ─────────────────────────
+    # Wave A hard-cut: workflow and knowledge routing are extension-owned.
+    from app.extensions.registry import registry
 
-    # Knowledge (AppFlowy bridge)
-    app.router.add_get("/api/knowledge/workspaces", handle_list_workspaces)
-    app.router.add_get("/api/knowledge/documents", handle_list_documents)
-    app.router.add_get("/api/knowledge/documents/{object_id}", handle_get_document)
-    app.router.add_get("/api/knowledge/documents/{object_id}/content", handle_get_document_content)
-    app.router.add_get("/api/knowledge/search", handle_search)
-    app.router.add_get(
-        "/api/knowledge/adapter/mission-task-binder",
-        handle_mission_task_binder,
-    )
-    app.router.add_get("/api/knowledge/local/databases", handle_local_databases)
-    app.router.add_get("/api/knowledge/local/tables", handle_local_tables)
-    app.router.add_post("/api/knowledge/local/query", handle_local_query)
-    app.router.add_post("/api/knowledge/local/export", handle_local_export)
-    # AF Manager (vault import/sync)
-    app.router.add_post("/api/knowledge/import", handle_af_import)
-    app.router.add_post("/api/knowledge/sync", handle_af_sync)
-    app.router.add_get("/api/knowledge/status", handle_af_status)
-    app.router.add_get("/api/knowledge/index/status", handle_af_index_status)
-    # Phase 9 new endpoints
-    app.router.add_get("/api/knowledge/import/status", handle_import_status)
-    app.router.add_get("/api/knowledge/index/coverage", handle_index_coverage)
-    app.router.add_get("/api/workflows/task/{task_id}", handle_get_task)
-    app.router.add_put("/api/workflows/task/{task_id}", handle_update_task)
-    app.router.add_get("/api/workflows/board/{board_id}/health", handle_board_health)
-    app.router.add_get("/api/workflows", handle_list_workflows)
-    app.router.add_get("/api/workflows/runs", handle_workflow_runs)
-    app.router.add_post("/api/workflows", handle_create_workflow)
-    app.router.add_post("/api/workflows/{workflow_id}/run", handle_run_workflow)
-    app.router.add_get("/api/workflows/{workflow_id}/logs", handle_workflow_logs)
+    registry.register_routes(app)
+    log.debug("Extension registry routes wired")
 
     # MCP Integration
     app.router.add_get("/api/mcp/tools", handle_mcp_discover)
@@ -247,6 +199,15 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/skills", handle_list_skills)
     app.router.add_get("/api/tools", handle_list_tools)
     app.router.add_get("/api/tools/{tool_id}/status", handle_tool_status)
+    app.router.add_get("/api/extensions/status", handle_extensions_status)
+    app.router.add_get(
+        "/api/capabilities/readiness",
+        handle_capabilities_readiness,
+    )
+    app.router.add_get(
+        "/api/capabilities/{capability}/preflight",
+        handle_capability_preflight,
+    )
     app.router.add_get("/api/agents", handle_list_agents)
     app.router.add_get("/api/agents/stats", handle_agents_stats)
 

@@ -9,8 +9,6 @@ from app.knowledge.appflowy import (
     get_document,
     get_document_content,
     list_documents,
-    list_workspaces,
-    semantic_search,
 )
 from app.knowledge.local_first import (
     discover_databases,
@@ -23,23 +21,6 @@ from app.services.mission_task_binder_adapter import (
 )
 
 log = logging.getLogger("ucore.api.knowledge")
-
-
-async def handle_list_workspaces(request: web.Request) -> web.Response:
-    """GET /api/knowledge/workspaces — list AppFlowy workspaces."""
-    workspaces = list_workspaces()
-    return web.json_response({"workspaces": workspaces, "count": len(workspaces)})
-
-
-async def handle_list_documents(request: web.Request) -> web.Response:
-    """GET /api/knowledge/documents — list documents in a workspace.
-
-    Query params:
-      workspace_id (optional) — filter by workspace
-    """
-    workspace_id = request.query.get("workspace_id")
-    docs = list_documents(workspace_id)
-    return web.json_response({"documents": docs, "count": len(docs)})
 
 
 async def handle_get_document(request: web.Request) -> web.Response:
@@ -60,17 +41,6 @@ async def handle_get_document_content(request: web.Request) -> web.Response:
     if content is None:
         return web.json_response({"error": "Document not found"}, status=404)
     return web.json_response({"object_id": object_id, "content": content, "length": len(content)})
-
-
-async def handle_search(request: web.Request) -> web.Response:
-    """GET /api/knowledge/search?q=... — semantic search across AppFlowy."""
-    query = request.query.get("q", "").strip()
-    if not query:
-        return web.json_response({"error": "q parameter is required"}, status=400)
-    workspace_id = request.query.get("workspace_id")
-    limit = int(request.query.get("limit", "10"))
-    results = semantic_search(query, workspace_id, limit)
-    return web.json_response({"query": query, "results": results, "count": len(results)})
 
 
 async def handle_mission_task_binder(
@@ -265,51 +235,6 @@ async def handle_af_import(request: web.Request) -> web.Response:
         "task_id": task_id,
         "ingest_context": ingest_context,
         "message": f"Import of '{source_name or 'all'}' sources started in background",
-    })
-
-
-async def handle_af_sync(request: web.Request) -> web.Response:
-    """POST /api/knowledge/sync — sync vaults into AppFlowy.
-
-    Same as import but triggers from the sync_config.
-
-    Body (optional):
-      {
-        "source": "Global Vault"   # Optional single source
-      }
-    """
-    # Same implementation as import for now
-    return await handle_af_import(request)
-
-
-async def handle_af_status(request: web.Request) -> web.Response:
-    """GET /api/knowledge/status — show vault source status.
-
-    Returns file counts for each configured source vault.
-    """
-    from app.af_manager.config import get_source_dirs, load_config
-    from app.af_manager.sync import scan_vault
-
-    config = load_config()
-    sources = get_source_dirs(config)
-
-    results = []
-    total_files = 0
-    for source in sources:
-        records = scan_vault(source["local_path"], tags=source.get("tags"))
-        results.append({
-            "name": source["name"],
-            "local_path": source["local_path"],
-            "enabled": source.get("enabled", True),
-            "file_count": len(records),
-            "tags": source.get("tags", []),
-        })
-        total_files += len(records)
-
-    return web.json_response({
-        "sources": results,
-        "total_files": total_files,
-        "source_count": len(sources),
     })
 
 

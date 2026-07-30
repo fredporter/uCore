@@ -20,7 +20,7 @@ curl -fsSL https://raw.githubusercontent.com/uDosGo/uCore/main/scripts/bootstrap
 This installs Homebrew, Python 3.12, Node.js 22, pnpm, clones uCore, and starts everything.
 
 The installer also validates and syncs locked vendor modules for a consistent
-uDos experience (snackmachine, udos-agents, udos-budget, udos-identity).
+uDos experience (SnackMachine core, udos-agents, udos-budget, udos-identity).
 
 ### Already Have Prerequisites
 
@@ -57,36 +57,56 @@ curl http://localhost:8484/api/health
 
 ## Architecture
 
+uCore is the **host platform core**. Optional capabilities — workflow,
+knowledge, and domain plugins — live in dedicated repos and plug in via
+a lightweight extension contract.
+
 ```
 VS Code (Cline) → MCP Bridge → uCore (port 8484)
-  ├── Skills (15 built-in) — backup, sync, route, ask vault
-  ├── Knowledge — AppFlowy SQLite + vector DB bridge
-  ├── Secrets — AES-256-GCM encrypted store
-  ├── Chat — AI providers via OpenRouter/Ollama/Gemini
-  ├── Surfaces (10) — Dashboard, Assistant, Server, Developer,
-  │                    System, Workflow, SnackMachine, BrowserUI,
-  │                    Documentation, uCode
-  ├── Plates — Vault plates, surface templates (Cookiecutter)
-  ├── Hivemind — MCP orchestration, template verification, audit
-  ├── Distribution — GitHub pull wiring, package management
-  ├── TOON Context Optimization — Token-optimized context encoding
-  └── Flow-LLM Router — Cost-optimized routing with analytics
+  │
+  ├── Core (always in uCore)
+  │   ├── Skills (15 built-in) — backup, sync, route, ask vault
+  │   ├── Secrets — AES-256-GCM encrypted store
+  │   ├── Chat — AI providers via OpenRouter/Ollama/Gemini
+  │   ├── Surfaces (10) — Dashboard, Assistant, Server, Developer,
+  │   │                    System, Workflow, SnackMachine, BrowserUI,
+  │   │                    Documentation, uCode
+  │   ├── Plates — Vault plates, surface templates (Cookiecutter)
+  │   ├── Hivemind — MCP orchestration, template verification, audit
+  │   ├── TOON Context Optimization — Token-optimized context encoding
+  │   └── Flow-LLM Router — Cost-optimized routing with analytics
+  │
+  ├── Extension Registry (plugin contract)
+  │   ├── Discovery — scans for ucore-extension.json manifests
+  │   ├── Loading — imports and calls setup(app) on each extension
+  │   └── Routing — delegates /api/* prefixes to extensions
+  │
+  ├── Adaptable (moving to dedicated repos)
+  │   ├── uFlow — workflow engine, runs, logs, task orchestration
+  │   └── uKnowledge — AppFlowy SQLite + vector DB bridge
+  │
+  └── Plugins (udos-* prefix)
+      └── udos-home — starter domain plugin template
 
 → Roundtable MCP → parallel Claude/Gemini/OpenRouter execution
 ```
 
 ## Repositories
 
-| Repo            | Purpose                                    | Location             |
-| --------------- | ------------------------------------------ | -------------------- |
-| **uCore**       | Development OS daemon (this repo)          | `~/Code/uCore`       |
-| **uCode**       | Base runtime and core grid/code foundation | `~/Code/uCode`       |
-| **uCode2**      | Advanced runtime layer (later extension)   | `~/Code/uCode2`      |
-| **HomeNest**    | Home automation + app-layer runtime        | `~/Code/HomeNest`    |
-| **HomeRuntime** | HomeNest-owned runtime package             | `~/Code/HomeRuntime` |
-| **uDocs**       | Canonical documentation                    | GitHub               |
+| Repo           | Kind          | Purpose                                    | Location            |
+| -------------- | ------------- | ------------------------------------------ | ------------------- |
+| **uCore**      | host/core     | Platform daemon + extension registry       | `~/Code/uCore`      |
+| **uFlow**      | workflow      | Workflow engine, runs, logs, tasks         | `~/Code/uFlow`      |
+| **uKnowledge** | knowledge     | AppFlowy bridge, semantic search, indexing | `~/Code/uKnowledge` |
+| **udos-home**  | plugin        | Starter domain plugin template             | `~/Code/udos-home`  |
+| **uCode**      | runtime       | Base runtime and core grid/code foundation | `~/Code/uCode`      |
+| **uCode2**     | runtime       | Advanced runtime layer (later extension)   | `~/Code/uCode2`     |
+| **HomeNest**   | plugin (udos) | Home automation + app-layer runtime        | `~/Code/HomeNest`   |
+| **uDocs**      | docs          | Canonical documentation                    | GitHub              |
 
-> HomeRuntime should be treated as part of the HomeNest ecosystem. If the HomeNest and HomeRuntime concerns become fully unified, they should be merged into the HomeNest repo rather than maintained as a separate runtime identity.
+> During the repo split, uCore keeps **routing adapters**
+> (`app.extensions.adapters/`) as import bridges only.
+> Missing required external repos must fail fast.
 
 ## Surfaces (10)
 

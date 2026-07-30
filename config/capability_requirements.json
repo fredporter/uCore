@@ -1,0 +1,37 @@
+{
+  "workflow.run": {
+    "extensions": ["uflow"],
+    "tools": ["git"],
+    "repos": ["uFlow"],
+    "variables": ["cline_provider", "cline_model"],
+    "secrets": []
+  },
+  "knowledge.search": {
+    "extensions": ["uknowledge"],
+    "tools": [],
+    "repos": ["uKnowledge"],
+    "variables": [],
+    "secrets": []
+  },
+  "ucode.grid": {
+    "extensions": [],
+    "tools": [],
+    "repos": ["uCode"],
+    "variables": [],
+    "secrets": []
+  },
+  "developer.autonomous": {
+    "extensions": [],
+    "tools": ["git", "node", "python"],
+    "repos": ["uDev"],
+    "variables": ["cline_provider", "cline_model"],
+    "secrets": []
+  },
+  "llm.openrouter": {
+    "extensions": [],
+    "tools": [],
+    "repos": [],
+    "variables": ["cline_provider", "cline_model"],
+    "secrets": ["OPENROUTER_API_KEY"]
+  }
+}

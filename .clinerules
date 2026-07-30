@@ -16,6 +16,19 @@ Use this repository in local-first, auditable mode.
 2. Use isolated worktrees/branches for card execution when available.
 3. Validate with targeted tests before proposing merges.
 4. Report blockers with concrete next actions.
+5. Before capability actions, run preflight and block on unmet prerequisites.
+
+## Preflight And Repair Gates
+
+1. Required checks before executing capability actions:
+   - GET /api/extensions/status
+   - GET /api/capabilities/{capability}/preflight
+2. If preflight returns repair_required=true or HTTP 412:
+   - stop execution for that capability
+   - present repair steps
+   - require rerun of preflight before resume
+3. Do not silently substitute hidden defaults for missing required provider/model/key values.
+4. Record repair events and outcomes in docs/handovers and tasker notes.
 
 ## MCP Usage
 
@@ -75,7 +88,7 @@ Use this repository in local-first, auditable mode.
 
 ## USX Variable & Modular Style System
 
-1. Zero hardcoded values in component CSS — every visual property must use var(--usx-*).
+1. Zero hardcoded values in component CSS — every visual property must use var(--usx-\*).
 2. Token source of truth: styles/tokens/tokens-{color,typography,spacing,touch,components}.css.
 3. Theme overrides live in styles/themes/{base,dark,teletext,c64,high-contrast}.css — override only what changes.
 4. Component library: styles/usx-standard.css — all BEM surface plates and primitives use variables only.
@@ -84,4 +97,3 @@ Use this repository in local-first, auditable mode.
 7. Run usx_standard skill 'validate-tokens' before every push to verify token integrity.
 8. Scaffold new surfaces with usx_standard 'scaffold-surface' — generates USX-compliant Vue templates.
 9. All interactive elements must meet var(--usx-touch-min) minimum touch target.
-
