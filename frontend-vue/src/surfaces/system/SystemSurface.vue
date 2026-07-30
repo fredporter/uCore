@@ -582,6 +582,8 @@ async function fetchReadiness() {
       "ucode.grid",
       "developer.autonomous",
       "llm.openrouter",
+      "identity_gateway",
+      "wordpress_gateway",
     ]);
   } catch (e: any) {
     readinessError.value =

@@ -33,5 +33,19 @@
     "repos": [],
     "variables": ["cline_provider", "cline_model"],
     "secrets": ["OPENROUTER_API_KEY"]
+  },
+  "identity_gateway": {
+    "extensions": ["udos-identity"],
+    "tools": [],
+    "repos": ["udos-identity"],
+    "variables": [],
+    "secrets": []
+  },
+  "wordpress_gateway": {
+    "extensions": ["udos-identity"],
+    "tools": [],
+    "repos": ["udos-identity"],
+    "variables": [],
+    "secrets": []
   }
 }

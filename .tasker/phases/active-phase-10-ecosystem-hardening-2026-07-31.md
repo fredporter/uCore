@@ -11,18 +11,18 @@ Ship a stable core host shell with clean extension/plugin boundaries, zero legac
 
 ## Gate 0 - Stability Baseline
 
-- [ ] Confirm uCore boot + `/api/health` + `/api/mcp/diagnostics`
-- [ ] Confirm `python3 scripts/audit_duplicate_routes.py` returns zero duplicates
-- [ ] Confirm `python3 scripts/validate_extension_manifests.py` passes
-- [ ] Confirm `python3 scripts/validate_legacy_settings_cleanup.py` passes
-- [ ] Confirm Developer Surface build + dev startup on fixed `5176`
+- [x] Confirm uCore boot + `/api/health` + `/api/mcp/diagnostics`
+- [x] Confirm `python3 scripts/audit_duplicate_routes.py` returns zero duplicates
+- [x] Confirm `python3 scripts/validate_extension_manifests.py` passes
+- [x] Confirm `python3 scripts/validate_legacy_settings_cleanup.py` passes
+- [x] Confirm Developer Surface build + dev startup on fixed `5176`
 
 ## Gate 1 - Governance and Cleanup
 
 - [ ] Remove obsolete compatibility notes that imply in-core fallback ownership
 - [ ] Remove dead/legacy settings references from active docs and scripts
 - [ ] Validate no forbidden legacy modules reappear in uCore host tree
-- [ ] Record cleanup evidence bundle in `docs/handovers/CLINE_REPO_SPLIT_HANDOFF.md`
+- [x] Record cleanup evidence bundle in `docs/handovers/CLINE_REPO_SPLIT_HANDOFF.md`
 
 ## Gate 1B - Surface Ownership Cleanup
 

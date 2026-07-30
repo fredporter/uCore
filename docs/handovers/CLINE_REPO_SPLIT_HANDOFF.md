@@ -382,6 +382,40 @@ Before marking any wave complete, all checks below must pass:
 
 If any gate fails: stop, fix the blocker, re-run proof, then continue.
 
+## Evidence Bundle — 2026-07-31 (Gate 0 Close + Wave E2 Runtime Parity)
+
+### Commands executed
+
+1. `for p in /api/health /api/mcp/diagnostics; do curl -s -o /tmp/gate0_probe.json -w '%{http_code}' http://127.0.0.1:8484$p; done`
+2. `python3 scripts/audit_duplicate_routes.py`
+3. `python3 scripts/validate_extension_manifests.py`
+4. `python3 scripts/validate_legacy_settings_cleanup.py`
+5. `cd /Users/fredbook/Code/uDev/developer-surface && npm run build`
+6. `lsof -nP -iTCP:5176 -sTCP:LISTEN`
+7. `python3 scripts/check_documentation_route_contract.py`
+8. `python3 scripts/probe_documentation_routes.py --base-url http://127.0.0.1:8484`
+
+### Runtime and gate proof
+
+| Check | Result |
+| --- | --- |
+| `/api/health` | `200` |
+| `/api/mcp/diagnostics` | `200` |
+| duplicate route audit | `0` duplicates |
+| extension manifest validator | pass |
+| legacy settings cleanup validator | pass |
+| uDev Developer Surface build | pass |
+| fixed dev port policy | listener present on `127.0.0.1:5176`; strict port remains enforced |
+| documentation route contract checker | pass (`Expected 7`, `Actual 7`) |
+| documentation runtime probe | pass (`/api/docs`, `/api/docs/sites`, `/api/docs/global-knowledge`, `/api/docs/export` all `200`) |
+
+### Wave F seed updates
+
+1. Added capability requirement entries:
+   - `identity_gateway`
+   - `wordpress_gateway`
+2. Included both capabilities in System surface readiness snapshot polling.
+
 ## Notes for the agent
 
 The important outcome is architectural clarity and actual separation, not feature expansion. Treat this as both a repo cleanup and a uDev autonomous execution benchmark.
