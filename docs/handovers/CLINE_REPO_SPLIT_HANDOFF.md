@@ -13,7 +13,7 @@ Advance the repo architecture cleanup in a staged but aggressive way:
 
 ## Target repo model
 
-- uCore: host runtime, core shell, plugin contract, extension registry, default core capabilities
+- uCore: host shell, plugin contract, extension registry, default core capabilities
 - uFlow: workflow engine and workflow-specific surfaces
 - uKnowledge: knowledge integration and knowledge-specific services
 - uCode: grid/runtime foundation, GridCore, GridSmith, teletext, terminal widgets, and embeddable runtime artifacts
@@ -34,13 +34,13 @@ Advance the repo architecture cleanup in a staged but aggressive way:
    - uKnowledge
    - at least one starter udos- plugin repo
 
-4. Move workflow-related logic out of uCore first and remove in-core ownership of workflow endpoints.
+4. Move workflow-related logic out of uCore first and remove in-core workflow endpoint implementation.
 
-5. Move knowledge-related logic out of uCore second and remove in-core ownership of knowledge endpoints.
+5. Move knowledge-related logic out of uCore second and remove in-core knowledge endpoint implementation.
 
 6. Update the READMEs and architecture docs so the public repo story is consistent.
 
-7. Keep uCode as the owner of GridCore, GridSmith, teletext, and embedded runtime primitives; uCore should consume those capabilities, not own them.
+7. Keep uCode as the implementation home for GridCore, GridSmith, teletext, and embedded runtime primitives; uCore should consume those capabilities, not own them.
 
 ## Guardrails
 
@@ -66,7 +66,7 @@ Advance the repo architecture cleanup in a staged but aggressive way:
 
 ## Phase 3 — uCode Boundary Hard Cut
 
-1. Remove any remaining uCore ownership language for GridCore, GridSmith, teletext, terminal widgets, and runtime primitives.
+1. Remove any remaining uCore host-shell language for GridCore, GridSmith, teletext, terminal widgets, and runtime primitives.
 2. Migrate any overlapping implementation details out of uCore and into uCode boundaries where they belong.
 3. Keep uCore focused on shell, adapter, and orchestration surfaces only.
 4. Update repo descriptions and docs so uCode is clearly the runtime foundation repo and uCore is clearly the host shell.
@@ -76,9 +76,9 @@ Advance the repo architecture cleanup in a staged but aggressive way:
 Run the next round in this order and do not widen scope unless a check fails:
 
 1. uCode boundary hard cut
-   - audit uCore for any remaining ownership language, imports, or runtime primitives that belong in uCode
+   - audit uCore for any remaining host-shell language, imports, or runtime primitives that belong in uCode
    - remove or rewrite those references so uCore is shell-only
-   - update the uCode repo metadata and docs if anything still implies host ownership
+   - update the uCode repo metadata and docs if anything still implies host-runtime control
 
 2. Workflow deletion wave
    - remove in-core workflow implementation after parity validation with uFlow
@@ -86,7 +86,7 @@ Run the next round in this order and do not widen scope unless a check fails:
 
 3. Knowledge document-content wave
    - migrate the next knowledge endpoint wave into uKnowledge
-   - delete the matching in-core ownership after route parity
+   - delete the matching in-core implementation after route parity
 
 4. Evidence bundle
    - capture changed files, commands run, route checks, and any failures/fixes

@@ -1,7 +1,7 @@
 """Knowledge adapter — hard-cut delegation to uKnowledge.
 
 Wave B removes uCore fallback behavior for knowledge routes.
-uCore now requires uKnowledge ownership for knowledge endpoint registration.
+uCore now requires external uKnowledge route registration for knowledge endpoint registration.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ def register_routes(app):
             from uknowledge.routes import register_routes as register_uknowledge_routes
         except ImportError as exc2:
             raise RuntimeError(
-                "uKnowledge is required for knowledge routes in Wave B hard-cut mode. "
+                "uKnowledge is required for knowledge route registration in Wave B hard-cut mode. "
                 "Install uKnowledge and expose uknowledge.routes.register_routes(app).",
             ) from exc2
 

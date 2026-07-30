@@ -1,7 +1,7 @@
 """Workflow adapter — hard-cut delegation to uFlow.
 
 Wave A removes uCore fallback behavior for workflow routes.
-uCore now requires uFlow ownership for workflow endpoint registration.
+uCore now requires external uFlow route registration for workflow endpoint registration.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ def register_routes(app):
             from uflow.routes import register_routes as register_uflow_routes
         except ImportError as exc2:
             raise RuntimeError(
-                "uFlow is required for workflow routes in Wave A hard-cut mode. "
+                "uFlow is required for workflow route registration in Wave A hard-cut mode. "
                 "Install uFlow and expose uflow.routes.register_routes(app).",
             ) from exc2
 

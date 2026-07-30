@@ -299,28 +299,28 @@ def register_routes(app: web.Application) -> None:
     except ImportError as e:
         log.debug("Identity routes not available: %s", e)
 
-    # ── uCode Surface extensions: Ceefax Teletext ──────────────────
+    # ── uCode runtime bridge: Ceefax Teletext ───────────────────────
     try:
         from ..ucode.ceefax import CeefaxStore, register_ceefax_routes
         if not hasattr(app, "_ceefax_store"):
             app[CEEFAX_STORE_KEY] = CeefaxStore()
         register_ceefax_routes(app, app[CEEFAX_STORE_KEY])
-        log.debug("Ceefax Teletext (uCode) registered")
+        log.debug("Ceefax Teletext bridge registered")
     except ImportError as e:
         log.debug("Ceefax not available: %s", e)
 
-    # ── uCode Surface extensions: BBCSDL Bridge ────────────────────
+    # ── uCode runtime bridge: BBCSDL ────────────────────────────────
     try:
         from ..ucode.bbcsdl import register_bbcsdl_routes
         if not hasattr(app, "_ceefax_store"):
             from ..ucode.ceefax import CeefaxStore
             app[CEEFAX_STORE_KEY] = CeefaxStore()
         register_bbcsdl_routes(app, app[CEEFAX_STORE_KEY])
-        log.debug("BBCSDL (uCode) registered")
+        log.debug("BBCSDL bridge registered")
     except ImportError as e:
         log.debug("BBCSDL not available: %s", e)
 
-    # ── Terminal Runtime Bridge ────────────────────────────────────
+    # ── Terminal runtime bridge (host shell adapter) ───────────────
     try:
         from .terminal_runtime import register_terminal_runtime_routes
         register_terminal_runtime_routes(app)

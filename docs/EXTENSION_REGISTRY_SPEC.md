@@ -116,8 +116,8 @@ required prerequisites for active capability paths.
 
 ## Wave 2 Status (Current)
 
-- Workflow route ownership: externalized to uFlow (hard-cut).
-- Knowledge route ownership: externalized to uKnowledge (hard-cut).
+- Workflow route registration: externalized to uFlow (hard-cut).
+- Knowledge route registration: externalized to uKnowledge (hard-cut).
 - First knowledge endpoint migrated to real external implementation:
   `/api/knowledge/search`.
 - Remaining knowledge endpoints are explicit `501` stubs in uKnowledge until

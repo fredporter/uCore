@@ -270,7 +270,7 @@
 <script setup lang="ts">
 /**
  * @component UCodeSurface
- * @description uCode/GridCore surface — unified hub with Pixel Editor, Grid Builder, and Layer Composer.
+ * @description uCode bridge surface — unified hub with Pixel Editor, Grid Builder, and Layer Composer.
  * All modes use the framework-agnostic <gridui-canvas> Web Component.
  * @category surfaces
  * @usage Routed at '/ucode'.
@@ -969,7 +969,7 @@ function loadTeletextDemo() {
   const c = cfg.cols, r = cfg.rows
   let buf = createBuffer(c, r)
   buf = fill(buf, 0, 0, c, 1, ' ', 7, 4)
-  buf = writeString(buf, 1, 0, 'uCore TELETEXT  ·  GridUI Canvas Engine  ·  P100', 7, 4)
+  buf = writeString(buf, 1, 0, 'uCode TELETEXT  ·  GridUI Canvas Engine  ·  P100', 7, 4)
   buf = writeString(buf, c - 11, 0, 'Fri  3 Jul 2026', 7, 4)
   buf = fill(buf, 0, 1, c, 1, ' ', 7, 1)
   buf = writeString(buf, 1, 1, '═══  NEWS  ═══  WEATHER  ═══  SPORT  ═══  SCIENCE  ═══  GRID  ═══', 7, 1)
@@ -1116,7 +1116,7 @@ function loadTerminalWelcome() {
   activeCanvas.setBuffer(buf)
   terminalPrintLine('uDosConnect Terminal Runtime', 4, 0)
   terminalPrintLine('='.repeat(tabConfigs.terminal.cols), 3, 0)
-  terminalPrintLine('GridCore Canvas  ·  shell/PTY adapter', 2, 0)
+  terminalPrintLine('GridCore Canvas  ·  uCode bridge adapter', 2, 0)
   terminalPrintLine('Connecting to local runtime...', 7, 0)
   terminalPrintLine('', 7, 0)
   terminalCursorY = 6
@@ -1209,7 +1209,7 @@ function clearGrid() { activeCanvas?.clear() }
 </script>
 
 <style scoped>
-/* ─── uCode shell chrome: compact USX controls around GridCore ───── */
+/* ─── uCode bridge chrome: compact USX controls around GridCore ───── */
 .gridcore-surface {
   min-width: 0;
   overflow: hidden;

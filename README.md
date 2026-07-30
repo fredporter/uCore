@@ -64,7 +64,7 @@ a lightweight extension contract.
 ```
 VS Code (Cline) → MCP Bridge → uCore (port 8484)
   │
-  ├── Core shell (always in uCore)
+  ├── Core shell (uCore host-only)
   │   ├── Skills (15 built-in) — backup, sync, route, ask vault
   │   ├── Secrets — AES-256-GCM encrypted store
   │   ├── Chat — AI providers via OpenRouter/Ollama/Gemini
@@ -120,7 +120,7 @@ VS Code (Cline) → MCP Bridge → uCore (port 8484)
 | SnackMachine  | `/snackmachine`  | Snack management                   |
 | BrowserUI     | `/browserui`     | Browser automation                 |
 | Documentation | `/documentation` | Docs viewer                        |
-| uCode         | `/ucode`         | Embedded GridCore runtime shell    |
+| uCode         | `/ucode`         | uCode runtime bridge: GridCore, GridSmith, teletext, terminal widgets |
 
 ## Documentation
 

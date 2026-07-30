@@ -59,7 +59,7 @@ class ExtensionRegistry:
                 "id": "ucore-core",
                 "name": "uCore Runtime Shell",
                 "kind": ExtensionKind.CORE,
-                "description": "Host daemon, skills engine, secret store, MCP bridge, surface server",
+                "description": "Host daemon, skills engine, secret store, MCP bridge, shell surfaces, and extension registry",
                 "optional": False,
                 "api_prefix": "/api",
             },
@@ -75,7 +75,7 @@ class ExtensionRegistry:
                 "id": "ucore-surfaces",
                 "name": "Surface Server",
                 "kind": ExtensionKind.SURFACE,
-                "description": "Dashboard, Ceefax, BBCSDL, and other UI surfaces",
+                "description": "Dashboard and host-shell UI surfaces; uCode runtime content is bridged, not owned",
                 "optional": False,
             },
             {
