@@ -16,6 +16,7 @@ Advance the repo architecture cleanup in a staged but aggressive way:
 - uCore: host runtime, core shell, plugin contract, extension registry, default core capabilities
 - uFlow: workflow engine and workflow-specific surfaces
 - uKnowledge: knowledge integration and knowledge-specific services
+- uCode: grid/runtime foundation, GridCore, GridSmith, teletext, terminal widgets, and embeddable runtime artifacts
 - udos-\*: plugin-style repos for optional capabilities such as home, budget, identity, media, automation, and similar domain features
 
 ## Immediate work items
@@ -39,6 +40,8 @@ Advance the repo architecture cleanup in a staged but aggressive way:
 
 6. Update the READMEs and architecture docs so the public repo story is consistent.
 
+7. Keep uCode as the owner of GridCore, GridSmith, teletext, and embedded runtime primitives; uCore should consume those capabilities, not own them.
+
 ## Guardrails
 
 - Do not touch SonicScrewdriver during this phase.
@@ -60,6 +63,13 @@ Advance the repo architecture cleanup in a staged but aggressive way:
 2. Delete extracted workflow/knowledge modules from uCore after endpoint parity validation.
 3. Keep endpoint URLs stable where practical, but allow breaking internal imports and module locations.
 4. Push small, reversible commits by wave: registry, workflow cut, knowledge cut, docs.
+
+## Phase 3 — uCode Boundary Hard Cut
+
+1. Remove any remaining uCore ownership language for GridCore, GridSmith, teletext, terminal widgets, and runtime primitives.
+2. Migrate any overlapping implementation details out of uCore and into uCode boundaries where they belong.
+3. Keep uCore focused on shell, adapter, and orchestration surfaces only.
+4. Update repo descriptions and docs so uCode is clearly the runtime foundation repo and uCore is clearly the host shell.
 
 ## uDev Dogfooding Wave
 

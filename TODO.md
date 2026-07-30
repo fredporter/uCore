@@ -40,6 +40,13 @@
 - [x] Remove in-core search handler ownership
 - [ ] Migrate next knowledge endpoint wave (document-content)
 
+## Next Phase — uCode Boundary Hard Cut
+
+- [ ] Remove any remaining uCore ownership language for GridCore, GridSmith, teletext, terminal widgets, and runtime primitives
+- [ ] Audit overlapping implementation details and move them into uCode where they belong
+- [ ] Keep uCore limited to shell, adapter, and orchestration surfaces
+- [ ] Update repo descriptions and docs so uCode is clearly the runtime foundation repo
+
 ## uDev Dogfooding Wave
 
 - [ ] Run extraction waves through uDev autonomous flow (low-cost model route first)
