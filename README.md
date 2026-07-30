@@ -64,7 +64,7 @@ a lightweight extension contract.
 ```
 VS Code (Cline) → MCP Bridge → uCore (port 8484)
   │
-  ├── Core (always in uCore)
+  ├── Core shell (always in uCore)
   │   ├── Skills (15 built-in) — backup, sync, route, ask vault
   │   ├── Secrets — AES-256-GCM encrypted store
   │   ├── Chat — AI providers via OpenRouter/Ollama/Gemini
