@@ -71,6 +71,33 @@ Advance the repo architecture cleanup in a staged but aggressive way:
 3. Keep uCore focused on shell, adapter, and orchestration surfaces only.
 4. Update repo descriptions and docs so uCode is clearly the runtime foundation repo and uCore is clearly the host shell.
 
+## Cline Execution Brief
+
+Run the next round in this order and do not widen scope unless a check fails:
+
+1. uCode boundary hard cut
+   - audit uCore for any remaining ownership language, imports, or runtime primitives that belong in uCode
+   - remove or rewrite those references so uCore is shell-only
+   - update the uCode repo metadata and docs if anything still implies host ownership
+
+2. Workflow deletion wave
+   - remove in-core workflow implementation after parity validation with uFlow
+   - keep only the adapter/route bridge in uCore
+
+3. Knowledge document-content wave
+   - migrate the next knowledge endpoint wave into uKnowledge
+   - delete the matching in-core ownership after route parity
+
+4. Evidence bundle
+   - capture changed files, commands run, route checks, and any failures/fixes
+   - commit and push each wave separately
+
+Stop-the-line rules for Cline:
+
+- do not mark a wave complete without runtime proof, command proof, test proof, and evidence proof
+- if a command example in docs is stale, rewrite it before continuing
+- if a boundary is unclear, stop and document the ambiguity instead of broadening scope
+
 ## uDev Dogfooding Wave
 
 Use this extraction as an autonomous uDev IDE test:

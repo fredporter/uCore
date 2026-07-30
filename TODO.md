@@ -47,6 +47,13 @@
 - [ ] Keep uCore limited to shell, adapter, and orchestration surfaces
 - [ ] Update repo descriptions and docs so uCode is clearly the runtime foundation repo
 
+## Cline Run Order
+
+- [ ] Run uCode boundary hard cut first
+- [ ] Then run the workflow deletion wave with parity checks
+- [ ] Then run the knowledge document-content wave
+- [ ] Capture proof bundles and push each wave separately
+
 ## uDev Dogfooding Wave
 
 - [ ] Run extraction waves through uDev autonomous flow (low-cost model route first)
