@@ -1,7 +1,6 @@
-"""Extension adapters — backward-compatible bridges to external repos.
+"""Extension adapters — hard-cut bridges to external repos.
 
-Each adapter tries to import the real implementation from an external
-package (e.g. 'uflow', 'uknowledge'). If the package is not installed,
-it falls back to the existing uCore implementation so nothing breaks
-during the transition.
+Each adapter imports the implementation from an external package
+(e.g. 'uflow', 'uknowledge'). If the package is unavailable, startup
+fails fast for that capability so route ownership stays external.
 """

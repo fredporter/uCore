@@ -28,8 +28,8 @@
 
 - [x] Remove workflow adapter fallback and require uFlow ownership
 - [x] Remove knowledge adapter fallback and require uKnowledge ownership
-- [ ] Extract and delete in-core workflow modules after parity checks
-- [ ] Extract and delete in-core knowledge modules after parity checks
+- [x] Extract and delete in-core workflow modules after parity checks
+- [x] Extract and delete in-core knowledge modules after parity checks
 - [ ] Keep SonicScrewdriver explicitly out of scope for this phase
 
 ### Wave 2 Knowledge Migration Progress
@@ -42,10 +42,12 @@
 
 ## Next Phase — uCode Boundary Hard Cut
 
-- [ ] Remove any remaining uCore ownership language for GridCore, GridSmith, teletext, terminal widgets, and runtime primitives
+- [x] Remove any remaining uCore ownership language for GridCore, GridSmith, teletext, terminal widgets, and runtime primitives
 - [ ] Audit overlapping implementation details and move them into uCode where they belong
 - [ ] Keep uCore limited to shell, adapter, and orchestration surfaces
 - [ ] Update repo descriptions and docs so uCode is clearly the runtime foundation repo
+- [x] Verify and remove remaining in-core overlap modules after parity checks: `backend/app/api/workflows.py`
+- [x] Verify and remove remaining in-core overlap modules after parity checks: `backend/app/api/knowledge.py`
 
 ## Cline Run Order
 

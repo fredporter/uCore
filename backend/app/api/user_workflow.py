@@ -468,9 +468,9 @@ def _seed_user_vault_docs() -> dict[str, Any]:
 
 
 def _seed_workflows() -> dict[str, Any]:
-    from app.api.workflows import get_workflow_manager
+    from app.services.workflow_manager import WorkflowManager
 
-    manager = get_workflow_manager()
+    manager = WorkflowManager()
     seeds = [
         {
             "id": "wf-daily-review-seed",

@@ -128,7 +128,7 @@ class UserWorkflowApiTest(AioHTTPTestCase):
                 ),
                 patch.object(mod, "list_workspaces", return_value=[]),
                 patch(
-                    "app.api.workflows.get_workflow_manager",
+                    "app.services.workflow_manager.WorkflowManager",
                     return_value=_StubManager(),
                 ),
             ):

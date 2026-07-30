@@ -9,7 +9,7 @@ Design principles:
 - No heavy plugin framework — just a dict registry + discovery convention.
 - Extensions declare a manifest; uCore loads what it finds.
 - When a capability moves to a dedicated repo, uCore keeps a thin adapter
-  that delegates to the external package if installed, or stubs gracefully.
+  that delegates to the external package and fails fast if missing.
 """
 
 from __future__ import annotations
