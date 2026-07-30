@@ -24,7 +24,7 @@ uCore/
 │   │   ├── secret/       # AES-256-GCM secret store
 │   │   ├── services/     # uCore-specific services
 │   │   ├── snackbar/     # Modular snackbar server
-│   │   ├── surfaces/     # uCode surface definitions
+│   │   ├── surfaces/     # uCode/uCode2 surface definitions
 │   │   └── ...
 ├── frontend-vue/         # Vue 3 + Pinia + Vite
 ├── plates/               # DESTROY/REBUILD blueprints
@@ -34,20 +34,20 @@ uCore/
 
 ## Extracted Pip Packages
 
-| Package | GitHub | Purpose |
-|---|---|---|
-| snackmachine | uDosGo/snackmachine | Snack registry, scheduler, spool, MCP knowledge conduit |
-| udos-budget | uDosGo/udos-budget | Spending limits with circuit breaker |
-| udos-agents | uDosGo/udos-agents | Task-to-agent routing |
-| udos-identity | uDosGo/udos-identity | UDos unique identity system |
+| Package       | GitHub               | Purpose                                                 |
+| ------------- | -------------------- | ------------------------------------------------------- |
+| snackmachine  | uDosGo/snackmachine  | Snack registry, scheduler, spool, MCP knowledge conduit |
+| udos-budget   | uDosGo/udos-budget   | Spending limits with circuit breaker                    |
+| udos-agents   | uDosGo/udos-agents   | Task-to-agent routing                                   |
+| udos-identity | uDosGo/udos-identity | UDos unique identity system                             |
 
 ## Open Source Replacements
 
-| Old | New | Why |
-|---|---|---|
-| provider_router.py (632 lines) | LiteLLM | Multi-provider LLM routing, 100+ providers |
-| Hivemind agent execution | LangGraph | Multi-agent orchestration |
-| Playwright MCP server | Community MCP server | Dev tool, not core |
+| Old                            | New                  | Why                                        |
+| ------------------------------ | -------------------- | ------------------------------------------ |
+| provider_router.py (632 lines) | LiteLLM              | Multi-provider LLM routing, 100+ providers |
+| Hivemind agent execution       | LangGraph            | Multi-agent orchestration                  |
+| Playwright MCP server          | Community MCP server | Dev tool, not core                         |
 
 ## Key Files
 
@@ -61,6 +61,7 @@ uCore/
 ## Data
 
 All mutable data lives in `~/.ucore/`:
+
 - `~/.ucore/indices/library.db` — FTS5 search index
 - `~/.ucore/knowledge/shared.db` — Multi-agent memory
 - `~/.ucore/logs/` — Spool files

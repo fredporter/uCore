@@ -55,7 +55,6 @@ curl http://localhost:8484/api/health
 ./scripts/install.sh --uninstall
 ```
 
-
 ## Architecture
 
 ```
@@ -78,39 +77,41 @@ VS Code (Cline) → MCP Bridge → uCore (port 8484)
 
 ## Repositories
 
-| Repo | Purpose | Location |
-|------|---------|----------|
-| **uCore** | Development OS daemon (this repo) | `~/Code/uCore` |
-| **uCode** | Programming language runtimes (BASIC, AMOS) | `~/Code/uCode` |
-| **HomeNest** | Home automation + multimedia runtimes | `~/Code/HomeNest` |
-| **uDocs** | Canonical documentation | GitHub |
+| Repo            | Purpose                                    | Location             |
+| --------------- | ------------------------------------------ | -------------------- |
+| **uCore**       | Development OS daemon (this repo)          | `~/Code/uCore`       |
+| **uCode**       | Base runtime and core grid/code foundation | `~/Code/uCode`       |
+| **uCode2**      | Advanced runtime layer (later extension)   | `~/Code/uCode2`      |
+| **HomeNest**    | Home automation + app-layer runtime        | `~/Code/HomeNest`    |
+| **HomeRuntime** | HomeNest-specific runtime package          | `~/Code/HomeRuntime` |
+| **uDocs**       | Canonical documentation                    | GitHub               |
 
 ## Surfaces (10)
 
-| Surface | Route | Description |
-|---------|-------|-------------|
-| Dashboard | `/` | Main landing, Dev Mode filtering |
-| Assistant | `/assistui` | AI chat & agent-assisted workflows |
-| Server | `/server` | Server management |
-| Developer | `/developer` | Developer tools |
-| System | `/system` | System settings |
-| Workflow | `/workflow` | Workflow builder |
-| SnackMachine | `/snackmachine` | Snack management |
-| BrowserUI | `/browserui` | Browser automation |
-| Documentation | `/documentation` | Docs viewer |
-| uCode | `/ucode` | Grid, Teletext & Terminal (gridcore embeddable) |
+| Surface       | Route            | Description                                     |
+| ------------- | ---------------- | ----------------------------------------------- |
+| Dashboard     | `/`              | Main landing, Dev Mode filtering                |
+| Assistant     | `/assistui`      | AI chat & agent-assisted workflows              |
+| Server        | `/server`        | Server management                               |
+| Developer     | `/developer`     | Developer tools                                 |
+| System        | `/system`        | System settings                                 |
+| Workflow      | `/workflow`      | Workflow builder                                |
+| SnackMachine  | `/snackmachine`  | Snack management                                |
+| BrowserUI     | `/browserui`     | Browser automation                              |
+| Documentation | `/documentation` | Docs viewer                                     |
+| uCode         | `/ucode`         | Grid, Teletext & Terminal (gridcore embeddable) |
 
 ## Documentation
 
 Canonical docs live in **[uDocs](https://github.com/uDosGo/uDocs)**:
 
-| Section | Description |
-|---------|-------------|
-| [Architecture](https://github.com/uDosGo/uDocs/blob/main/architecture/overview.md) | System topology, data flow, security |
-| [API Reference](https://github.com/uDosGo/uDocs/blob/main/api/rest-api.md) | All endpoints with examples |
-| [Runbooks](https://github.com/uDosGo/uDocs/blob/main/runbooks/development.md) | Setup, deploy, backup, troubleshooting |
-| [Surfaces](https://github.com/uDosGo/uDocs/tree/main/surfaces) | All 12 surfaces |
-| [Cline Guide](https://github.com/uDosGo/uDocs/blob/main/guides/cline-roundtable-setup.md) | Cline + Roundtable orchestration |
+| Section                                                                                   | Description                            |
+| ----------------------------------------------------------------------------------------- | -------------------------------------- |
+| [Architecture](https://github.com/uDosGo/uDocs/blob/main/architecture/overview.md)        | System topology, data flow, security   |
+| [API Reference](https://github.com/uDosGo/uDocs/blob/main/api/rest-api.md)                | All endpoints with examples            |
+| [Runbooks](https://github.com/uDosGo/uDocs/blob/main/runbooks/development.md)             | Setup, deploy, backup, troubleshooting |
+| [Surfaces](https://github.com/uDosGo/uDocs/tree/main/surfaces)                            | All 12 surfaces                        |
+| [Cline Guide](https://github.com/uDosGo/uDocs/blob/main/guides/cline-roundtable-setup.md) | Cline + Roundtable orchestration       |
 
 Local docs in `docs/` cover vault plates, USX layout, and system specs.
 
