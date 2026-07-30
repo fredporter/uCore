@@ -29,6 +29,9 @@ jobs:
       - name: Smoke split-repo imports and extension routes
         run: python3 scripts/smoke_split_repo_imports.py
 
+      - name: Validate split-repo packaging layout
+        run: python3 scripts/validate_split_repo_packaging.py
+
       - name: Validate MCP config lock
         run: python3 scripts/validate_mcp_config.py
 

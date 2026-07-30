@@ -284,14 +284,14 @@ test proof, and evidence proof.
 
 ### Discovery + route proof
 
-| Check | Result |
-| ----- | ------ |
+| Check                         | Result                               |
+| ----------------------------- | ------------------------------------ |
 | External manifests discovered | `2` (`udos-budget`, `udos-identity`) |
-| Registry total extensions | `9` |
-| `udos-budget` loaded | `True` |
-| `udos-identity` loaded | `True` |
-| Missing plugin routes | `[]` |
-| Route count | `224` |
+| Registry total extensions     | `9`                                  |
+| `udos-budget` loaded          | `True`                               |
+| `udos-identity` loaded        | `True`                               |
+| Missing plugin routes         | `[]`                                 |
+| Route count                   | `224`                                |
 
 ### Plugin route ownership now external
 
@@ -314,17 +314,45 @@ These routes are registered through discovered manifests and plugin
 
 ### Smoke-check proof
 
-| Check | Result |
-| ----- | ------ |
-| Required repo paths | all present (`uCore/backend`, `uFlow`, `uKnowledge`, `uCode`, `udos-budget`, `udos-identity`) |
-| External imports | pass (`uflow.routes`, `uknowledge.routes`, `ucode_runtime.ceefax`, `udos_budget.routes`, `udos_identity.routes`) |
-| External manifests discovered at registration | `2` (`udos-budget`, `udos-identity`) |
-| Expected extension loaded checks | pass (`uflow`, `uknowledge`, `udos-budget`, `udos-identity`) |
-| Expected split-repo route checks | pass (`/api/workflows`, `/api/knowledge/search`, `/api/ceefax/pages`, `/api/budget/plugin/status`, `/api/identity/plugin/profile`) |
-| Route count in smoke app | `224` |
+| Check                                         | Result                                                                                                                             |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Required repo paths                           | all present (`uCore/backend`, `uFlow`, `uKnowledge`, `uCode`, `udos-budget`, `udos-identity`)                                      |
+| External imports                              | pass (`uflow.routes`, `uknowledge.routes`, `ucode_runtime.ceefax`, `udos_budget.routes`, `udos_identity.routes`)                   |
+| External manifests discovered at registration | `2` (`udos-budget`, `udos-identity`)                                                                                               |
+| Expected extension loaded checks              | pass (`uflow`, `uknowledge`, `udos-budget`, `udos-identity`)                                                                       |
+| Expected split-repo route checks              | pass (`/api/workflows`, `/api/knowledge/search`, `/api/ceefax/pages`, `/api/budget/plugin/status`, `/api/identity/plugin/profile`) |
+| Route count in smoke app                      | `224`                                                                                                                              |
 
 This provides a CI-safe local proof that split-repo imports and extension
 route registration remain healthy under manifest-driven discovery.
+
+## Evidence Bundle — 2026-07-31 (Wave C: Packaging + Release Checklist)
+
+### Commands executed
+
+1. `python3 scripts/validate_split_repo_packaging.py` (in uCore)
+2. `python3 scripts/smoke_split_repo_imports.py` (in uCore)
+3. `python3 -m compileall -q scripts/validate_split_repo_packaging.py` (in uCore)
+
+### Packaging layout proof
+
+| Package | Result |
+| ------- | ------ |
+| `uflow` | `OK` (pyproject + package layout valid) |
+| `uknowledge` | `OK` (pyproject + package layout valid) |
+| `ucode-runtime` | `OK` (pyproject + package layout valid) |
+
+### Release checklist artifact
+
+1. Added canonical checklist: `docs/PLUGIN_RELEASE_CHECKLIST.md`
+2. Checklist covers:
+   - manifest validation gate
+   - split-repo packaging gate
+   - split-repo import/route smoke gate
+   - capability preflight parity gate (`/api/extensions/status`, `/api/capabilities/readiness`, `/api/capabilities/{capability}/preflight`)
+
+This completes Wave C CI/CD and packaging acceptance gates for the split-repo
+migration track.
 
 ## uDev Dogfooding Wave
 

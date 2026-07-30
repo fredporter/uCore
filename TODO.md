@@ -103,9 +103,9 @@
 
 ### Wave C - CI/CD and Packaging
 
-- [ ] Publishable package layout for `uflow`, `uknowledge`, and `ucode_runtime`
+- [x] Publishable package layout for `uflow`, `uknowledge`, and `ucode_runtime`
 - [x] Add install + import smoke tests for split-repo local dev and CI
-- [ ] Add release checklist for plugin manifests + capability preflight parity
+- [x] Add release checklist for plugin manifests + capability preflight parity
 
 ### Wave D - Runtime and API Economy Gate
 
