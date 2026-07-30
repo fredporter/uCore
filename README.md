@@ -109,17 +109,17 @@ VS Code (Cline) → MCP Bridge → uCore (port 8484)
 
 ## Surfaces (10)
 
-| Surface       | Route            | Description                        |
-| ------------- | ---------------- | ---------------------------------- |
-| Dashboard     | `/`              | Main landing, Dev Mode filtering   |
-| Assistant     | `/assistui`      | AI chat & agent-assisted workflows |
-| Server        | `/server`        | Server management                  |
-| Developer     | `/developer`     | Developer tools                    |
-| System        | `/system`        | System settings                    |
-| Workflow      | `/workflow`      | Workflow builder                   |
-| SnackMachine  | `/snackmachine`  | Snack management                   |
-| BrowserUI     | `/browserui`     | Browser automation                 |
-| Documentation | `/documentation` | Docs viewer                        |
+| Surface       | Route            | Description                                                           |
+| ------------- | ---------------- | --------------------------------------------------------------------- |
+| Dashboard     | `/`              | Main landing, Dev Mode filtering                                      |
+| Assistant     | `/assistui`      | AI chat & agent-assisted workflows                                    |
+| Server        | `/server`        | Server management                                                     |
+| Developer     | `/developer`     | Developer tools                                                       |
+| System        | `/system`        | System settings                                                       |
+| Workflow      | `/workflow`      | Workflow builder                                                      |
+| SnackMachine  | `/snackmachine`  | Snack management                                                      |
+| BrowserUI     | `/browserui`     | Browser automation                                                    |
+| Documentation | `/documentation` | Docs viewer                                                           |
 | uCode         | `/ucode`         | uCode runtime bridge: GridCore, GridSmith, teletext, terminal widgets |
 
 ## Documentation

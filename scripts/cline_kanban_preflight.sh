@@ -17,10 +17,10 @@ else
   fail "Missing $HOME/.cline/mcp_settings.json"
 fi
 
-if [[ -f "$HOME/.continue/mcp-udos.py" ]]; then
+if [[ -f "$HOME/Code/uDev/mcp-bridge/build/index.js" ]]; then
   ok "uCore MCP bridge script found"
 else
-  fail "Missing $HOME/.continue/mcp-udos.py"
+  fail "Missing $HOME/Code/uDev/mcp-bridge/build/index.js"
 fi
 
 if command -v curl >/dev/null 2>&1; then

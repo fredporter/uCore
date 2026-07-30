@@ -5,7 +5,7 @@ Discovers and catalogues:
   - Paths (file system paths used by skills, configs, vault, seeds)
   - Variables (scope, key, type, default from variable APIs)
   - Secrets (key, store, scope from config/env files)
-  - MCP Servers (name, command, port, tools from mcp_config.json)
+    - MCP Servers (name, command, args, env from .vscode/mcp.json)
   - Routes (method, path, handler from routes.py)
   - Runtimes (name, file, endpoints, variables, commands from backend modules)
 
@@ -43,7 +43,7 @@ def _repo_for(path: Path) -> str:
     return "unknown"
 API_DIR = BACKEND_DIR / "api"
 ROUTES_FILE = API_DIR / "routes.py"
-MCP_CONFIG_FILE = ROOT_DIR / "config" / "mcp_config.json"
+MCP_CONFIG_FILE = ROOT_DIR / ".vscode" / "mcp.json"
 ENV_FILE = ROOT_DIR.parent.parent / ".config" / "hivemind" / ".env"
 VAULT_CONFIG = ROOT_DIR.parent / "uCode" / "config" / "vault.yaml"
 SECRETS_API = API_DIR / "secret_store_api.py"
@@ -327,20 +327,26 @@ class EcosystemAuditSkill(BaseSkill):
     # ─── Audit MCP ────────────────────────────────────────────────────
 
     def _audit_mcp(self) -> dict:
-        """Discover MCP server configurations."""
+        """Discover MCP server configurations from canonical workspace config."""
         servers = []
 
-        # From mcp_config.json
+        # From .vscode/mcp.json
         if MCP_CONFIG_FILE.exists():
             try:
                 data = json.loads(MCP_CONFIG_FILE.read_text())
-                for name, config in data.get("mcpServers", {}).items():
+                server_map = data.get("servers", {}) if isinstance(data, dict) else {}
+                for name, config in server_map.items():
+                    if not isinstance(config, dict):
+                        continue
                     servers.append({
                         "name": name,
+                        "type": config.get("type", ""),
                         "command": config.get("command", ""),
+                        "args": config.get("args", []),
                         "cwd": config.get("cwd", ""),
+                        "env": config.get("env", {}),
                         "disabled": config.get("disabled", False),
-                        "source": "config/mcp_config.json",
+                        "source": ".vscode/mcp.json",
                     })
             except Exception:
                 pass
@@ -385,7 +391,8 @@ class EcosystemAuditSkill(BaseSkill):
         # Runtime paths
         runtime_paths = [
             "~/.config/hivemind/.env",
-            "~/.config/cline/mcp_config.json",
+            "~/.cline/mcp_settings.json",
+            "~/.continue/config.yaml",
             "~/.local/share/udos/Vault/",
             "~/.local/share/udos/programs/",
             "~/.local/share/udos/snacks/",

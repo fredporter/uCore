@@ -40,27 +40,37 @@ cat > "$CLINE_DIR/mcp_settings.json" <<'JSON'
 {
   "mcpServers": {
     "uCore": {
-      "command": "python3",
+      "command": "node",
       "args": [
-        "$HOME/.continue/mcp-udos.py"
+        "$HOME/Code/uDev/mcp-bridge/build/index.js"
       ],
-      "description": "uCore MCP - skills, knowledge, and automation",
+      "env": {
+        "UCORE_URL": "http://127.0.0.1:8484"
+      },
+      "description": "uCore MCP stdio bridge",
       "disabled": false,
       "alwaysAllow": [
-        "skill_ask_vault",
-        "skill_route_task",
-        "skill_attach_context",
-        "knowledge_search",
-        "knowledge_list_workspaces",
-        "knowledge_list_documents"
+        "ucore_ecosystem_audit",
+        "ucore_list_skills",
+        "ucore_run_skill",
+        "ucore_surface_registry",
+        "ucore_ollama_status",
+        "ucore_list_agents",
+        "ucore_chat",
+        "ucore_search_knowledge",
+        "ucore_autonomy_state",
+        "ucore_list_secrets",
+        "ucore_workflow_status",
+        "ucore_config",
+        "ucore_list_repos"
       ]
     }
   }
 }
 JSON
 
-if [[ ! -f "$HOME/.continue/mcp-udos.py" ]]; then
-  echo "WARN: MCP bridge missing at $HOME/.continue/mcp-udos.py"
+if [[ ! -f "$HOME/Code/uDev/mcp-bridge/build/index.js" ]]; then
+  echo "WARN: MCP bridge missing at $HOME/Code/uDev/mcp-bridge/build/index.js"
 fi
 
 echo "Cline reset complete"

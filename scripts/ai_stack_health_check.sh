@@ -15,7 +15,7 @@ bad() { echo "[FAIL] $*"; FAIL=$((FAIL+1)); }
 
 [[ -f "$HOME/.cline/mcp_settings.json" ]] && ok "Cline MCP config present" || bad "Missing ~/.cline/mcp_settings.json"
 [[ -f "$HOME/.continue/config.yaml" ]] && ok "Continue config present" || bad "Missing ~/.continue/config.yaml"
-[[ -f "$HOME/.continue/mcp-udos.py" ]] && ok "MCP bridge script present" || bad "Missing ~/.continue/mcp-udos.py"
+[[ -f "$HOME/Code/uDev/mcp-bridge/build/index.js" ]] && ok "MCP bridge script present" || bad "Missing ~/Code/uDev/mcp-bridge/build/index.js"
 
 command -v cline >/dev/null 2>&1 && ok "Cline CLI installed" || bad "Cline CLI not found"
 command -v python3 >/dev/null 2>&1 && ok "python3 installed" || bad "python3 missing"
@@ -53,7 +53,7 @@ else
 fi
 
 # Validate MCP stdio bridge path by performing tools/list over JSON-RPC.
-BRIDGE_OUT="$(printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | python3 "$HOME/.continue/mcp-udos.py" 2>/dev/null || true)"
+BRIDGE_OUT="$(printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | node "$HOME/Code/uDev/mcp-bridge/build/index.js" 2>/dev/null || true)"
 if echo "$BRIDGE_OUT" | grep -q '"result"'; then
   ok "MCP stdio bridge responds to tools/list"
 else

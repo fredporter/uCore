@@ -17,15 +17,27 @@ sprint:
   waves:
     - name: "Foundation"
       days: "1-3"
-      tasks: ["task.hivemind.001", "task.hivemind.002", "task.hivemind.003", "task.hivemind.008", "task.hivemind.009"]
+      tasks:
+        [
+          "task.hivemind.001",
+          "task.hivemind.002",
+          "task.hivemind.003",
+          "task.hivemind.008",
+          "task.hivemind.009",
+        ]
     - name: "Integration"
       days: "3-5"
-      tasks: ["task.hivemind.004", "task.hivemind.005", "task.hivemind.006", "task.hivemind.007", "task.hivemind.010"]
+      tasks:
+        [
+          "task.hivemind.004",
+          "task.hivemind.005",
+          "task.hivemind.006",
+          "task.hivemind.007",
+          "task.hivemind.010",
+        ]
     - name: "Polish"
       days: "5-7"
       tasks: ["task.hivemind.011", "task.hivemind.012"]
-
-
 
   previous:
     id: "sprint.2026-07-02"
@@ -90,9 +102,9 @@ lanes:
 
 tasks:
   # === MAINTENANCE TASKS (from dev_maintenance_report_2026-06-28.md) ===
-  
+
   # === NEW: Spool Enhancement Tasks ===
-  
+
   - uid: "task.maintenance.001"
     title: "Enhance spool_maintenance to archive completed tasks"
     description: "Add task archiving capability to spool_maintenance skill - move completed tasks from .tasker to .tasker.archived"
@@ -124,7 +136,7 @@ tasks:
     mcp_optimized: true
 
   # === ORIGINAL: Duplicate Function Extraction Tasks ===
-  
+
   - uid: "task.maintenance.003"
     title: "Extract duplicate function: chat_cache.py:32 and server.py:56"
     description: "Exact duplicate function found with hash 3f6e23ee64d4. Extract to shared module."
@@ -380,7 +392,7 @@ tasks:
     mcp_optimized: false
     notes: "Verified - all three files already use USX font variables. settings.css uses --usx-font-size-body/meta/small, ucode.css uses --usx-font-size-body/meta/sm, assistui.css uses --usx-font-size-body. No hardcoded px font sizes found."
 
-# === HIVE MIND TASKS (from Hivemind-Powered Developer Workflow spec) ===
+  # === HIVE MIND TASKS (from Hivemind-Powered Developer Workflow spec) ===
 
   - uid: "task.hivemind.001"
     title: "Install & configure Hivemind MCP server"
@@ -396,7 +408,7 @@ tasks:
     created: "2026-06-28T10:00:00Z"
     updated: "2026-06-30T22:27:00Z"
     mcp_optimized: true
-    notes: "hivemind_server.py built on port 8490 with consensus engine, LLM router, agent registry. MCP manifest at backend/mcp/mcp-hivemind-manifest.json. Startup script at backend/mcp/start_hivemind.sh."
+    notes: "hivemind_server.py built on port 8490 with consensus engine, LLM router, agent registry. MCP now uses canonical stdio bridge via .vscode/mcp.json and uDev/mcp-bridge/build/index.js."
 
   - uid: "task.hivemind.002"
     title: "Configure Hivemind consensus engine"
@@ -805,7 +817,6 @@ tasks:
     updated: "2026-06-30T21:34:00Z"
     mcp_optimized: true
 
-
   - uid: "task.maintenance.031"
     title: "Write HIVEMIND_ORCHESTRATION_SPEC.md"
     description: "Comprehensive spec for multi-agent orchestration covering MCP server topology, agent definitions, consensus engine, LLM router, and workflow templates"
@@ -866,7 +877,6 @@ tasks:
     updated: "2026-06-30T21:40:00Z"
     mcp_optimized: true
 
-
   - uid: "task.hivemind.014"
     title: "Implement plate refresh engine"
     description: "Build plate_refresh/ engine with Cookiecutter rendering, Pydantic validation, drift detection, and DESTROY/REBUILD protocol. See PLATES_SYSTEM_SPEC.md"
@@ -881,8 +891,6 @@ tasks:
     created: "2026-06-30T21:30:00Z"
     updated: "2026-06-30T21:48:00Z"
     mcp_optimized: true
-
-
 
   # === NEW: Vault Plates & Enhanced DESTROY Tasks ===
 
@@ -999,4 +1007,3 @@ archive:
     archived_reason: "completed"
     archived_date: "2026-06-28T10:00:00Z"
     notes: "All UDW tasks marked as done in UNIFIED_DEV_TASK_WORKFLOW.md"
-

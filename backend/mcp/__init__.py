@@ -1,0 +1,1 @@
+"""uCore MCP diagnostics package."""
