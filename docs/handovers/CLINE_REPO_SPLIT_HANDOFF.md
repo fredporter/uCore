@@ -123,9 +123,7 @@ Stop-the-line rules for Cline:
 ### Boundary findings
 
 1. Workflow and knowledge in-core API modules were removed from uCore and route ownership is externalized through adapters + extension registry.
-2. Ceefax/BBCSDL implementations are still in-repo under `backend/app/ucode/*` and currently function as runtime bridges wired by `app.api.routes`.
-3. Terminal runtime WebSocket remains host-side in `backend/app/api/terminal_runtime.py`, acting as a shell adapter surface.
-4. A boundary-specific migration candidate remains: `backend/app/ucode/bbcsdl.py` references a hardcoded bridge path (`~/Code/uCode1/core_py/bbc/bbcsdl_bridge.py`), which should be shifted to explicit extension/runtime configuration owned by the runtime-side repo.
+2. This snapshot preceded strict runtime extraction; see later evidence bundles for completed external runtime cut.
 
 ### Next wave cut targets
 
@@ -166,19 +164,44 @@ Stop-the-line rules for Cline:
 
 ### Runtime route proof (localhost:8484)
 
-| Route | Status | Note |
-| --- | --- | --- |
-| `/api/ceefax/pages` | `200` | unchanged after terminal registration refactor |
-| `/api/bbcsdl/teletext` | `200` | unchanged after terminal registration refactor |
-| `/api/terminal/runtime/ws` | `400` | expected for plain HTTP probe (route present; WS upgrade required) |
-| `/api/workflows` | `200` | external uFlow registration unaffected |
-| `/api/knowledge/workspaces` | `200` | external uKnowledge registration unaffected |
+| Route                       | Status | Note                                                               |
+| --------------------------- | ------ | ------------------------------------------------------------------ |
+| `/api/ceefax/pages`         | `200`  | unchanged after terminal registration refactor                     |
+| `/api/bbcsdl/teletext`      | `200`  | unchanged after terminal registration refactor                     |
+| `/api/terminal/runtime/ws`  | `400`  | expected for plain HTTP probe (route present; WS upgrade required) |
+| `/api/workflows`            | `200`  | external uFlow registration unaffected                             |
+| `/api/knowledge/workspaces` | `200`  | external uKnowledge registration unaffected                        |
 
 ### Boundary findings delta
 
 1. `app.api.routes` no longer imports terminal runtime registration directly; it now delegates terminal route wiring through `app.extensions.adapters.ucode_runtime_adapter.register_terminal_runtime_routes`.
 2. External terminal runtime handler delegation is supported via `UCORE_TERMINAL_RUNTIME_WS_HANDLER`.
 3. Legacy in-repo terminal handler remains explicit fallback unless strict external mode is enforced.
+
+## Evidence Bundle — 2026-07-31 (Phase Completion: Strict External Runtime)
+
+### Commands executed
+
+1. `python3 -m compileall -q ucode_runtime` (in uCode)
+2. `UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL=1 UCORE_UCODE_PATH=/Users/fredbook/Code/uCode UCORE_UFLOW_PATH=/Users/fredbook/Code/uFlow UCORE_UKNOWLEDGE_PATH=/Users/fredbook/Code/uKnowledge python3 - <<'PY' ... register_routes(app) ...` (in uCore/backend)
+3. `rg -n "app\.ucode\.(ceefax|bbcsdl)|api\.terminal_runtime|from \.terminal_runtime" backend -S`
+
+### Strict route-registration proof
+
+| Check | Result |
+| --- | --- |
+| Strict external mode enabled | `UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL=1` |
+| Missing required routes | `[]` |
+| Registered route count | `220` |
+| Workflow route registration | external uFlow loaded |
+| Knowledge route registration | external uKnowledge loaded |
+| Runtime route registration | external uCode runtime loaded |
+
+### Completion delta
+
+1. External runtime package now exists in uCode as `ucode_runtime` with Ceefax, BBCSDL, and terminal runtime providers.
+2. uCore runtime adapter now defaults to strict external mode and fails fast on missing runtime providers.
+3. Legacy in-core runtime implementation files were removed from uCore host repo.
 
 ## uDev Dogfooding Wave
 

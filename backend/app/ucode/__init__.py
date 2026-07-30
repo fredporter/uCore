@@ -1,1 +1,1 @@
-"""uCode Grid Surface modules — ceefax, bbcsdl."""
+"""uCode integration namespace for host-side boundary wiring only."""

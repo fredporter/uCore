@@ -1,9 +1,8 @@
 """uCode runtime route adapter.
 
 This adapter keeps uCore's host routing thin by delegating runtime-owned
-Ceefax/BBCSDL route registration to an external runtime package when
-available. A compatibility fallback to legacy in-repo modules remains
-available while the external runtime package is being finalized.
+Ceefax/BBCSDL route registration to an external runtime package.
+Missing runtime providers are treated as hard failures.
 """
 
 from __future__ import annotations
@@ -20,6 +19,7 @@ log = logging.getLogger("ucore.adapters.ucode_runtime")
 DEFAULT_CEEFAX_REGISTRAR = "ucode_runtime.ceefax.register_ceefax_routes"
 DEFAULT_BBCSDL_REGISTRAR = "ucode_runtime.bbcsdl.register_bbcsdl_routes"
 DEFAULT_TERMINAL_WS_HANDLER = "ucode_runtime.terminal_runtime.handle_terminal_runtime_ws"
+DEFAULT_CEEFAX_STORE_FACTORY = "ucode_runtime.ceefax.CeefaxStore"
 
 
 def _is_truthy(value: str) -> bool:
@@ -57,56 +57,54 @@ def _resolve_callable(dotted_path: str) -> Callable[..., Any] | None:
             return None
 
 
-def _ensure_ceefax_store(app: Any, store_key: Any) -> Any:
+def _ensure_ceefax_store(app: Any, store_key: Any, factory_path: str) -> Any:
     if store_key in app:
         return app[store_key]
 
-    from app.ucode.ceefax import CeefaxStore
+    store_factory = _resolve_callable(factory_path)
+    if store_factory is None:
+        raise RuntimeError(
+            f"Unable to resolve Ceefax store factory: {factory_path}",
+        )
 
-    app[store_key] = CeefaxStore()
+    app[store_key] = store_factory()
     return app[store_key]
 
 
-def _register_legacy_runtime_routes(app: Any, store_key: Any) -> None:
-    """Compatibility mode while external runtime package is still being cut over."""
-    from app.ucode.bbcsdl import register_bbcsdl_routes
-    from app.ucode.ceefax import register_ceefax_routes
-
-    store = _ensure_ceefax_store(app, store_key)
-    register_ceefax_routes(app, store)
-    register_bbcsdl_routes(app, store)
-    log.warning("uCode runtime routes registered via legacy in-repo provider")
-
-
 def register_routes(app: Any, ceefax_store_key: Any) -> None:
-    """Register Ceefax/BBCSDL routes via external runtime registrars when available."""
-    require_external = _is_truthy(os.environ.get("UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL", "0"))
+    """Register Ceefax/BBCSDL routes via external runtime registrars."""
+    require_external = _is_truthy(os.environ.get("UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL", "1"))
 
     ceefax_registrar = os.environ.get("UCORE_CEEFAX_ROUTE_REGISTRAR", DEFAULT_CEEFAX_REGISTRAR)
     bbcsdl_registrar = os.environ.get("UCORE_BBCSDL_ROUTE_REGISTRAR", DEFAULT_BBCSDL_REGISTRAR)
+    ceefax_store_factory = os.environ.get(
+        "UCORE_CEEFAX_STORE_FACTORY",
+        DEFAULT_CEEFAX_STORE_FACTORY,
+    )
 
     ceefax_register = _resolve_callable(ceefax_registrar)
     bbcsdl_register = _resolve_callable(bbcsdl_registrar)
 
     if ceefax_register and bbcsdl_register:
-        store = _ensure_ceefax_store(app, ceefax_store_key)
+        store = _ensure_ceefax_store(app, ceefax_store_key, ceefax_store_factory)
         ceefax_register(app, store)
         bbcsdl_register(app, store)
         log.info("uCode runtime routes registered (provider=external-runtime)")
         return
 
-    if require_external:
-        raise RuntimeError(
-            "External uCode runtime registrars are required but unavailable. "
-            "Set UCORE_UCODE_PATH and provide route registrars for Ceefax/BBCSDL.",
-        )
+    if not require_external:
+        log.warning("External runtime providers missing but strict mode disabled")
+        return
 
-    _register_legacy_runtime_routes(app, ceefax_store_key)
+    raise RuntimeError(
+        "External uCode runtime registrars are required but unavailable. "
+        "Set UCORE_UCODE_PATH and provide route registrars for Ceefax/BBCSDL.",
+    )
 
 
 def register_terminal_runtime_routes(app: Any) -> None:
-    """Register terminal runtime route via external runtime handler when available."""
-    require_external = _is_truthy(os.environ.get("UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL", "0"))
+    """Register terminal runtime route via external runtime handler."""
+    require_external = _is_truthy(os.environ.get("UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL", "1"))
     terminal_handler_path = os.environ.get(
         "UCORE_TERMINAL_RUNTIME_WS_HANDLER",
         DEFAULT_TERMINAL_WS_HANDLER,
@@ -124,7 +122,4 @@ def register_terminal_runtime_routes(app: Any) -> None:
             "Set UCORE_UCODE_PATH and provide UCORE_TERMINAL_RUNTIME_WS_HANDLER.",
         )
 
-    from app.api.terminal_runtime import handle_terminal_runtime_ws
-
-    app.router.add_get("/api/terminal/runtime/ws", handle_terminal_runtime_ws)
-    log.warning("Terminal runtime route registered via legacy in-repo provider")
+    log.warning("External terminal runtime handler missing and strict mode disabled")

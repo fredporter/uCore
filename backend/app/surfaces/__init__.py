@@ -1,1 +1,1 @@
-"""uCore Surface Modules - ceefax, bbcsdl, dashboard"""
+"""uCore surface modules served from the host shell."""

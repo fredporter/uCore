@@ -111,9 +111,8 @@ knowledge_adapter.py:
   if import fails and extension is required -> raise RuntimeError
 
 ucode_runtime_adapter.py:
-  import runtime-owned Ceefax/BBCSDL registrars when available
-  if required by env and missing -> raise RuntimeError
-  otherwise -> explicit compatibility fallback to legacy in-repo provider
+  import runtime-owned Ceefax/BBCSDL registrars from external runtime package
+  if missing -> raise RuntimeError
   terminal runtime WS route can also be delegated via
   UCORE_TERMINAL_RUNTIME_WS_HANDLER
 ```
@@ -133,6 +132,9 @@ required prerequisites for active capability paths.
   `app.extensions.adapters.ucode_runtime_adapter.register_routes(...)`.
 - BBCSDL bridge path uses `UCORE_BBCSDL_BRIDGE_PATH` configuration instead of
   a single hardcoded location.
+- Legacy in-core runtime modules were removed from uCore:
+  `backend/app/ucode/ceefax.py`, `backend/app/ucode/bbcsdl.py`, and
+  `backend/app/api/terminal_runtime.py`.
 
 ## Route Registration
 
@@ -189,5 +191,5 @@ Returns:
 5. **Phase 5:** Update CI/CD, publish packages, update docs
 6. **Phase 6 (done):** Capability preflight gates enforced across S-pages
 
-Execution should prefer explicit repair flows over silent fallback for
+Execution should prefer explicit repair flows over fallback behavior for
 required capability paths.
