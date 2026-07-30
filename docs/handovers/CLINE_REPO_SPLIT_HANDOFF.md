@@ -274,6 +274,37 @@ Run the next execution cycle as hard waves with explicit gates:
 Stop-the-line for every wave remains mandatory: runtime proof, command proof,
 test proof, and evidence proof.
 
+## Evidence Bundle — 2026-07-31 (Wave B: External Plugin Discovery)
+
+### Commands executed
+
+1. `python3 -m compileall -q udos_budget` (in `udos-budget`)
+2. `python3 -m compileall -q udos_identity` (in `udos-identity`)
+3. `UCORE_EXTENSION_MANIFEST_PATHS=/Users/fredbook/Code/udos-budget:/Users/fredbook/Code/udos-identity UCORE_UFLOW_PATH=/Users/fredbook/Code/uFlow UCORE_UKNOWLEDGE_PATH=/Users/fredbook/Code/uKnowledge UCORE_UCODE_PATH=/Users/fredbook/Code/uCode PYTHONPATH=/Users/fredbook/Code/uCore/backend:/Users/fredbook/Code/udos-budget:/Users/fredbook/Code/udos-identity python3 - <<'PY' ... register_routes(app) ...` (in uCore)
+
+### Discovery + route proof
+
+| Check | Result |
+| ----- | ------ |
+| External manifests discovered | `2` (`udos-budget`, `udos-identity`) |
+| Registry total extensions | `9` |
+| `udos-budget` loaded | `True` |
+| `udos-identity` loaded | `True` |
+| Missing plugin routes | `[]` |
+| Route count | `224` |
+
+### Plugin route ownership now external
+
+1. `udos-budget` provides:
+   - `/api/budget/plugin/status`
+   - `/api/budget/plugin/ping`
+2. `udos-identity` provides:
+   - `/api/identity/plugin/profile`
+   - `/api/identity/plugin/session`
+
+These routes are registered through discovered manifests and plugin
+`route_registrar` callables, without adding new in-core route ownership paths.
+
 ## uDev Dogfooding Wave
 
 Use this extraction as an autonomous uDev IDE test:
