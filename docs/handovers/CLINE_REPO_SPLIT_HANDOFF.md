@@ -336,10 +336,10 @@ route registration remain healthy under manifest-driven discovery.
 
 ### Packaging layout proof
 
-| Package | Result |
-| ------- | ------ |
-| `uflow` | `OK` (pyproject + package layout valid) |
-| `uknowledge` | `OK` (pyproject + package layout valid) |
+| Package         | Result                                  |
+| --------------- | --------------------------------------- |
+| `uflow`         | `OK` (pyproject + package layout valid) |
+| `uknowledge`    | `OK` (pyproject + package layout valid) |
 | `ucode-runtime` | `OK` (pyproject + package layout valid) |
 
 ### Release checklist artifact
