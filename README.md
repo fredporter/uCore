@@ -83,8 +83,10 @@ VS Code (Cline) → MCP Bridge → uCore (port 8484)
 | **uCode**       | Base runtime and core grid/code foundation | `~/Code/uCode`       |
 | **uCode2**      | Advanced runtime layer (later extension)   | `~/Code/uCode2`      |
 | **HomeNest**    | Home automation + app-layer runtime        | `~/Code/HomeNest`    |
-| **HomeRuntime** | HomeNest-specific runtime package          | `~/Code/HomeRuntime` |
+| **HomeRuntime** | HomeNest-owned runtime package             | `~/Code/HomeRuntime` |
 | **uDocs**       | Canonical documentation                    | GitHub               |
+
+> HomeRuntime should be treated as part of the HomeNest ecosystem. If the HomeNest and HomeRuntime concerns become fully unified, they should be merged into the HomeNest repo rather than maintained as a separate runtime identity.
 
 ## Surfaces (10)
 

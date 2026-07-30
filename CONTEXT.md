@@ -41,6 +41,10 @@ uCore/
 | udos-agents   | uDosGo/udos-agents   | Task-to-agent routing                                   |
 | udos-identity | uDosGo/udos-identity | UDos unique identity system                             |
 
+## HomeNest / HomeRuntime Guidance
+
+HomeRuntime should be treated as part of the HomeNest ecosystem. If the runtime and application concerns converge, the preferred direction is to unify them under the HomeNest repo rather than keeping a separate runtime identity alive indefinitely.
+
 ## Open Source Replacements
 
 | Old                            | New                  | Why                                        |
