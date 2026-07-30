@@ -96,7 +96,7 @@
 
 ### Wave B - External Plugin Matrix
 
-- [ ] Define plugin migration matrix for `udos-*` candidates (owner repo, routes, deps, acceptance checks)
+- [x] Define plugin migration matrix for `udos-*` candidates (owner repo, routes, deps, acceptance checks)
 - [ ] Scaffold at least two real plugin repos beyond `udos-home`
 - [ ] Register plugins through manifest discovery only (no in-core route ownership)
 

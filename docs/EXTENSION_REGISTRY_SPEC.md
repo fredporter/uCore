@@ -217,5 +217,26 @@ Returns:
 8. **Phase 8 (planned):** Dead settings and compatibility-note cleanup across docs/scripts
 9. **Phase 9 (planned):** Release cutover with stop-the-line evidence bundle per wave
 
+## External Plugin Migration Matrix (Phase 7)
+
+This matrix defines the first `udos-*` migration targets beyond `udos-home`.
+Each row must complete route ownership transfer, capability preflight parity,
+and wave evidence bundles before marking done.
+
+| Plugin ID           | Owner Repo        | Route Prefix           | Capability Scope                | Dependencies                        | Acceptance Gates |
+| ------------------- | ----------------- | ---------------------- | ------------------------------- | ----------------------------------- | ---------------- |
+| `udos-home`         | HomeNest module   | `/api/home/*`          | Home operations + shell tasks   | `ucore-core`, `ucore-secrets`       | preflight + route parity + docs |
+| `udos-budget`       | new `udos-budget` | `/api/budget/*`        | Budget tracking + policy gates  | `ucore-core`, `ucore-secrets`       | preflight + route parity + tests |
+| `udos-identity`     | new `udos-identity` | `/api/identity/*`    | Identity profile + auth helpers | `ucore-core`, `ucore-secrets`       | preflight + route parity + tests |
+| `udos-media`        | new `udos-media`  | `/api/media/*`         | Media ingest + transform hooks  | `ucore-core`, `ucore-tools`         | preflight + route parity + tests |
+| `udos-automation`   | new `udos-automation` | `/api/automation/*` | Automation orchestration        | `ucore-core`, `uflow`, `ucore-tools` | preflight + route parity + tests |
+
+Wave execution guidance:
+
+1. Migrate one plugin per wave branch to keep rollback clean.
+2. Add/update `ucore-extension.json` in plugin repo before enabling routes in uCore.
+3. Keep endpoint contracts stable; only module ownership changes.
+4. Require `scripts/validate_extension_manifests.py` pass before merge.
+
 Execution should prefer explicit repair flows over fallback behavior for
 required capability paths.
