@@ -73,6 +73,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Groovebox', icon: 'music_note' },
   },
   {
+    path: '/sonic/:pathMatch(.*)*',
+    name: 'sonic',
+    component: () => import('../surfaces/sonic/SonicScrewdriverSurface.vue'),
+    meta: { title: 'SonicScrewdriver', icon: 'usb' },
+  },
+  {
     path: '/browserui/:pathMatch(.*)*',
     name: 'browserui',
     component: () => import('../surfaces/browserui/BrowserUISurface.vue'),

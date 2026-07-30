@@ -94,7 +94,7 @@ const ALL_SURFACES: SurfaceCardType[] = [
   { id: 'documentation', title: 'Documentation', description: 'Learning Hub & Guides', icon: 'help', route: '/documentation', color: 'var(--usx-color-accent)' },
   { id: 'browserui', title: 'Browser', description: 'Web Reader & Bookmarks', icon: 'globe', route: '/browserui', color: 'var(--usx-color-info)' },
   { id: 'groovebox', title: 'Groovebox', description: 'Music Production — Pattern Composer, Vault & Songscribe', icon: 'music_note', route: '/groovebox', color: 'var(--usx-color-warning)' },
-  { id: 'sonic', title: 'SonicScrewdriver', description: 'Universal USB Bootloader & System Toolkit — Multi-boot USB, Security Keys, Device Flashing', icon: 'usb', route: 'https://github.com/uDosGo/SonicScrewdriver', color: 'var(--usx-color-success)', status: 'running' },
+  { id: 'sonic', title: 'SonicScrewdriver', description: 'Universal USB Bootloader & System Toolkit — Multi-boot USB, Security Keys, Device Flashing', icon: 'usb', route: '/sonic', color: 'var(--usx-color-success)', status: 'running' },
 ]
 
 const DEV_SURFACES: SurfaceCardType[] = [

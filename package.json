@@ -1,8 +1,8 @@
 {
   "name": "ucore",
-  "version": "4.0.5",
+  "version": "0.1.0-dev",
   "private": true,
-  "description": "uCore — unified daemon combining uServer + uConnect backend with MCP support",
+  "description": "uCore \u2014 unified daemon combining uServer + uConnect backend with MCP support",
   "scripts": {
     "install:root": "bash scripts/install-root.sh",
     "dev": "pnpm --filter @udos/ui-hub-vue run dev",
