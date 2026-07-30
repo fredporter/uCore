@@ -305,6 +305,27 @@ test proof, and evidence proof.
 These routes are registered through discovered manifests and plugin
 `route_registrar` callables, without adding new in-core route ownership paths.
 
+## Evidence Bundle — 2026-07-31 (Wave C: Split-Repo Import + Route Smoke)
+
+### Commands executed
+
+1. `python3 scripts/smoke_split_repo_imports.py` (in uCore)
+2. `python3 -m compileall -q scripts/smoke_split_repo_imports.py` (in uCore)
+
+### Smoke-check proof
+
+| Check | Result |
+| ----- | ------ |
+| Required repo paths | all present (`uCore/backend`, `uFlow`, `uKnowledge`, `uCode`, `udos-budget`, `udos-identity`) |
+| External imports | pass (`uflow.routes`, `uknowledge.routes`, `ucode_runtime.ceefax`, `udos_budget.routes`, `udos_identity.routes`) |
+| External manifests discovered at registration | `2` (`udos-budget`, `udos-identity`) |
+| Expected extension loaded checks | pass (`uflow`, `uknowledge`, `udos-budget`, `udos-identity`) |
+| Expected split-repo route checks | pass (`/api/workflows`, `/api/knowledge/search`, `/api/ceefax/pages`, `/api/budget/plugin/status`, `/api/identity/plugin/profile`) |
+| Route count in smoke app | `224` |
+
+This provides a CI-safe local proof that split-repo imports and extension
+route registration remain healthy under manifest-driven discovery.
+
 ## uDev Dogfooding Wave
 
 Use this extraction as an autonomous uDev IDE test:

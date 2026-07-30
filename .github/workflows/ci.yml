@@ -26,6 +26,9 @@ jobs:
       - name: Validate extension manifests
         run: python3 scripts/validate_extension_manifests.py
 
+      - name: Smoke split-repo imports and extension routes
+        run: python3 scripts/smoke_split_repo_imports.py
+
       - name: Validate MCP config lock
         run: python3 scripts/validate_mcp_config.py
 
