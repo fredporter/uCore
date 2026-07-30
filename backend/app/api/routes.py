@@ -310,13 +310,16 @@ def register_routes(app: web.Application) -> None:
     except ImportError as e:
         log.debug("uCode runtime bridge adapter not available: %s", e)
 
-    # ── Terminal runtime bridge (host shell adapter) ───────────────
+    # ── Terminal runtime bridge (adapter) ───────────────────────────
     try:
-        from .terminal_runtime import register_terminal_runtime_routes
+        from app.extensions.adapters.ucode_runtime_adapter import (
+            register_terminal_runtime_routes,
+        )
+
         register_terminal_runtime_routes(app)
         log.debug("Terminal runtime bridge registered")
     except ImportError as e:
-        log.debug("Terminal runtime bridge not available: %s", e)
+        log.debug("Terminal runtime bridge adapter not available: %s", e)
 
     # ── Dashboard Surface ──────────────────────────────────────────
     try:

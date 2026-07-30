@@ -52,6 +52,7 @@
 - [x] Cut runtime implementation overlap: externalize `backend/app/ucode/bbcsdl.py` bridge path to env-config (`UCORE_BBCSDL_BRIDGE_PATH`)
 - [ ] Keep host-side terminal runtime adapter thin in `backend/app/api/terminal_runtime.py` (no runtime primitive ownership)
 - [x] Route Ceefax/BBCSDL runtime registration through dedicated adapter (`backend/app/extensions/adapters/ucode_runtime_adapter.py`)
+- [x] Route terminal runtime registration through dedicated adapter (`backend/app/extensions/adapters/ucode_runtime_adapter.py`)
 
 ## Cline Run Order
 

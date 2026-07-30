@@ -114,6 +114,8 @@ ucode_runtime_adapter.py:
   import runtime-owned Ceefax/BBCSDL registrars when available
   if required by env and missing -> raise RuntimeError
   otherwise -> explicit compatibility fallback to legacy in-repo provider
+  terminal runtime WS route can also be delegated via
+  UCORE_TERMINAL_RUNTIME_WS_HANDLER
 ```
 
 Adapters may exist during extraction phases, but must not hide missing

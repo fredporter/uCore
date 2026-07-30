@@ -143,18 +143,42 @@ Stop-the-line rules for Cline:
 
 ### Runtime route proof (localhost:8484)
 
-| Route | Status | Note |
-| --- | --- | --- |
-| `/api/ceefax/pages` | `200` | runtime bridge still functional after adapter routing change |
-| `/api/bbcsdl/teletext` | `200` | BBCSDL bridge still functional after adapter routing change |
-| `/api/workflows` | `200` | external uFlow registration unaffected |
-| `/api/knowledge/workspaces` | `200` | external uKnowledge registration unaffected |
+| Route                       | Status | Note                                                         |
+| --------------------------- | ------ | ------------------------------------------------------------ |
+| `/api/ceefax/pages`         | `200`  | runtime bridge still functional after adapter routing change |
+| `/api/bbcsdl/teletext`      | `200`  | BBCSDL bridge still functional after adapter routing change  |
+| `/api/workflows`            | `200`  | external uFlow registration unaffected                       |
+| `/api/knowledge/workspaces` | `200`  | external uKnowledge registration unaffected                  |
 
 ### Boundary findings delta
 
 1. Ceefax/BBCSDL route registration moved out of direct `app.api.routes` imports and into a dedicated runtime adapter (`app.extensions.adapters.ucode_runtime_adapter`).
 2. BBCSDL bridge path is now configuration-driven via `UCORE_BBCSDL_BRIDGE_PATH`.
 3. Compatibility fallback for legacy in-repo Ceefax/BBCSDL remains explicit and can be disabled with `UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL=1` for strict external enforcement.
+
+## Evidence Bundle — 2026-07-31 (Terminal Runtime Adapter Cut)
+
+### Commands executed
+
+1. `python3 -m compileall -q backend/app/api/routes.py backend/app/extensions/adapters/ucode_runtime_adapter.py backend/app/api/terminal_runtime.py`
+2. `rg -n "UCORE_TERMINAL_RUNTIME_WS_HANDLER|register_terminal_runtime_routes|terminal runtime bridge" backend/app -S`
+3. `for p in /api/ceefax/pages /api/bbcsdl/teletext /api/terminal/runtime/ws /api/workflows /api/knowledge/workspaces; do ...; done`
+
+### Runtime route proof (localhost:8484)
+
+| Route | Status | Note |
+| --- | --- | --- |
+| `/api/ceefax/pages` | `200` | unchanged after terminal registration refactor |
+| `/api/bbcsdl/teletext` | `200` | unchanged after terminal registration refactor |
+| `/api/terminal/runtime/ws` | `400` | expected for plain HTTP probe (route present; WS upgrade required) |
+| `/api/workflows` | `200` | external uFlow registration unaffected |
+| `/api/knowledge/workspaces` | `200` | external uKnowledge registration unaffected |
+
+### Boundary findings delta
+
+1. `app.api.routes` no longer imports terminal runtime registration directly; it now delegates terminal route wiring through `app.extensions.adapters.ucode_runtime_adapter.register_terminal_runtime_routes`.
+2. External terminal runtime handler delegation is supported via `UCORE_TERMINAL_RUNTIME_WS_HANDLER`.
+3. Legacy in-repo terminal handler remains explicit fallback unless strict external mode is enforced.
 
 ## uDev Dogfooding Wave
 

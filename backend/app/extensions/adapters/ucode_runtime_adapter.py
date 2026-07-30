@@ -19,6 +19,7 @@ log = logging.getLogger("ucore.adapters.ucode_runtime")
 
 DEFAULT_CEEFAX_REGISTRAR = "ucode_runtime.ceefax.register_ceefax_routes"
 DEFAULT_BBCSDL_REGISTRAR = "ucode_runtime.bbcsdl.register_bbcsdl_routes"
+DEFAULT_TERMINAL_WS_HANDLER = "ucode_runtime.terminal_runtime.handle_terminal_runtime_ws"
 
 
 def _is_truthy(value: str) -> bool:
@@ -101,3 +102,29 @@ def register_routes(app: Any, ceefax_store_key: Any) -> None:
         )
 
     _register_legacy_runtime_routes(app, ceefax_store_key)
+
+
+def register_terminal_runtime_routes(app: Any) -> None:
+    """Register terminal runtime route via external runtime handler when available."""
+    require_external = _is_truthy(os.environ.get("UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL", "0"))
+    terminal_handler_path = os.environ.get(
+        "UCORE_TERMINAL_RUNTIME_WS_HANDLER",
+        DEFAULT_TERMINAL_WS_HANDLER,
+    )
+    terminal_handler = _resolve_callable(terminal_handler_path)
+
+    if terminal_handler is not None:
+        app.router.add_get("/api/terminal/runtime/ws", terminal_handler)
+        log.info("Terminal runtime route registered (provider=external-runtime)")
+        return
+
+    if require_external:
+        raise RuntimeError(
+            "External terminal runtime handler is required but unavailable. "
+            "Set UCORE_UCODE_PATH and provide UCORE_TERMINAL_RUNTIME_WS_HANDLER.",
+        )
+
+    from app.api.terminal_runtime import handle_terminal_runtime_ws
+
+    app.router.add_get("/api/terminal/runtime/ws", handle_terminal_runtime_ws)
+    log.warning("Terminal runtime route registered via legacy in-repo provider")
