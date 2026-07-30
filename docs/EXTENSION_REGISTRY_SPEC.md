@@ -51,6 +51,27 @@ Each extension ships a `ucore-extension.json` at its repo root:
 | `route_registrar` | no       | Dotted path to `register_routes(app)` callable                       |
 | `dependencies`    | no       | List of extension IDs this one requires                              |
 
+### Contract Validation Rules
+
+The manifest contract is strict and validated in code/CI:
+
+1. Allowed fields are locked to: `id`, `name`, `kind`, `version`,
+   `description`, `entrypoint`, `dependencies`, `optional`, `api_prefix`,
+   `route_registrar`.
+2. Required fields: `id`, `name`, `kind`.
+3. `kind` must be one of: `core`, `workflow`, `knowledge`, `plugin`,
+   `surface`, `tool`.
+4. `entrypoint` and `route_registrar` must be dotted paths.
+5. `dependencies` must be a list of non-empty extension IDs, may not contain
+   self, and may not contain unknown IDs.
+6. Dependency cycles are invalid and fail validation.
+
+CI enforcement command:
+
+```bash
+python3 scripts/validate_extension_manifests.py
+```
+
 ### Extension Kinds
 
 | Kind        | Purpose                                  |
@@ -132,6 +153,8 @@ required prerequisites for active capability paths.
   `app.extensions.adapters.ucode_runtime_adapter.register_routes(...)`.
 - BBCSDL bridge path uses `UCORE_BBCSDL_BRIDGE_PATH` configuration instead of
   a single hardcoded location.
+- Runtime adapter behavior is strict external by default; missing external
+  runtime providers are hard failures.
 - Legacy in-core runtime modules were removed from uCore:
   `backend/app/ucode/ceefax.py`, `backend/app/ucode/bbcsdl.py`, and
   `backend/app/api/terminal_runtime.py`.
@@ -186,10 +209,13 @@ Returns:
 
 1. **Phase 1 (done):** Plugin contract + adapters in uCore
 2. **Phase 2 (done):** Scaffold uFlow, uKnowledge, and HomeNest udos-home module manifests
-3. **Phase 3 (active):** Workflow extraction/deletion waves with parity checks
-4. **Phase 4 (active):** Knowledge extraction/deletion waves with parity checks
-5. **Phase 5:** Update CI/CD, publish packages, update docs
+3. **Phase 3 (done):** Workflow extraction/deletion waves with parity checks
+4. **Phase 4 (done):** Knowledge extraction/deletion waves with parity checks
+5. **Phase 5 (active):** CI/CD alignment, package publication, and split-repo install smoke tests
 6. **Phase 6 (done):** Capability preflight gates enforced across S-pages
+7. **Phase 7 (planned):** External plugin matrix execution (`udos-*` repo migration waves)
+8. **Phase 8 (planned):** Dead settings and compatibility-note cleanup across docs/scripts
+9. **Phase 9 (planned):** Release cutover with stop-the-line evidence bundle per wave
 
 Execution should prefer explicit repair flows over fallback behavior for
 required capability paths.

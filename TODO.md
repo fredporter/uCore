@@ -57,9 +57,17 @@
 ## Cline Run Order
 
 - [x] Run uCode boundary hard cut first
-- [ ] Then run the workflow deletion wave with parity checks
-- [ ] Then run the knowledge document-content wave
-- [ ] Capture proof bundles and push each wave separately
+- [x] Then run the workflow deletion wave with parity checks
+- [x] Then run the knowledge document-content wave
+- [x] Capture proof bundles and push each wave separately
+
+## Runtime Verification (2026-07-31)
+
+- [x] Restart live uCore backend and verify external provider paths are loaded
+- [x] Verify `/api/knowledge/documents/{id}` returns provider response (404 not found for unknown id, not 501)
+- [x] Verify `/api/knowledge/documents/{id}/content` returns provider response (404 not found for unknown id, not 501)
+- [x] Verify `/api/mcp/diagnostics` remains healthy after restart
+- [x] Verify `/api/ollama/status` remains healthy after restart
 
 ## uDev Dogfooding Wave
 
@@ -77,6 +85,46 @@
 - [ ] Enforce stop-the-line gate on every wave completion
 - [x] Add MCP diagnostics backend probes for Ollama + Hivemind health
 - [x] Strengthen AI stack health script with MCP diagnostics and Hivemind checks
+
+## Extended Dev Flow - Extension Registry + External Plugin Migration
+
+### Wave A - Registry Contract Lock
+
+- [x] Freeze registry contract fields and validation rules in code + spec
+- [x] Add manifest schema validation command to CI (fail on missing required fields)
+- [x] Add extension dependency cycle check in CI
+
+### Wave B - External Plugin Matrix
+
+- [ ] Define plugin migration matrix for `udos-*` candidates (owner repo, routes, deps, acceptance checks)
+- [ ] Scaffold at least two real plugin repos beyond `udos-home`
+- [ ] Register plugins through manifest discovery only (no in-core route ownership)
+
+### Wave C - CI/CD and Packaging
+
+- [ ] Publishable package layout for `uflow`, `uknowledge`, and `ucode_runtime`
+- [ ] Add install + import smoke tests for split-repo local dev and CI
+- [ ] Add release checklist for plugin manifests + capability preflight parity
+
+### Wave D - Runtime and API Economy Gate
+
+- [ ] Run low-cost autonomous wave first (ollama-first route)
+- [ ] Run broad-strokes pass with MCP diagnostics + hivemind health checks
+- [ ] Capture cost/perf metrics and compare autonomous vs manual throughput
+
+### Wave E - Dead Code and Dead Settings Cleanup
+
+- [x] Remove stale docs references to `UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL`
+- [ ] Remove obsolete compatibility notes that imply fallback ownership in uCore
+- [ ] Run dead-code/archive sweep and capture removals per repo
+- [ ] Validate no deleted setting is still referenced by scripts or docs
+
+### Stop-the-line proof bundle (required each wave)
+
+- [ ] Runtime proof (boot + route behavior)
+- [ ] Command proof (documented commands executed)
+- [ ] Test proof (compile/lint/test success)
+- [ ] Evidence proof (changed files + outputs + route checks)
 
 ## Documentation and Planning Governance
 

@@ -23,6 +23,9 @@ jobs:
       - name: Validate docs non-regression
         run: python3 scripts/validate_docs_nonregression.py
 
+      - name: Validate extension manifests
+        run: python3 scripts/validate_extension_manifests.py
+
       - name: Validate MCP config lock
         run: python3 scripts/validate_mcp_config.py
 

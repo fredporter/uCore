@@ -136,7 +136,7 @@ Stop-the-line rules for Cline:
 ### Commands executed
 
 1. `python3 -m compileall -q backend/app/api/routes.py backend/app/extensions/adapters/ucode_runtime_adapter.py backend/app/ucode/bbcsdl.py backend/app/extensions/adapters/__init__.py`
-2. `rg -n "uCode runtime bridge|ucode_runtime_adapter|UCORE_BBCSDL_BRIDGE_PATH|UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL" backend/app -S`
+2. `rg -n "uCode runtime bridge|ucode_runtime_adapter|UCORE_BBCSDL_BRIDGE_PATH" backend/app -S`
 3. `for p in /api/ceefax/pages /api/bbcsdl/teletext /api/workflows /api/knowledge/workspaces; do ...; done`
 
 ### Runtime route proof (localhost:8484)
@@ -152,7 +152,7 @@ Stop-the-line rules for Cline:
 
 1. Ceefax/BBCSDL route registration moved out of direct `app.api.routes` imports and into a dedicated runtime adapter (`app.extensions.adapters.ucode_runtime_adapter`).
 2. BBCSDL bridge path is now configuration-driven via `UCORE_BBCSDL_BRIDGE_PATH`.
-3. Compatibility fallback for legacy in-repo Ceefax/BBCSDL remains explicit and can be disabled with `UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL=1` for strict external enforcement.
+3. Runtime provider resolution is strict external in the adapter path; missing external providers fail fast.
 
 ## Evidence Bundle — 2026-07-31 (Terminal Runtime Adapter Cut)
 
@@ -183,19 +183,19 @@ Stop-the-line rules for Cline:
 ### Commands executed
 
 1. `python3 -m compileall -q ucode_runtime` (in uCode)
-2. `UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL=1 UCORE_UCODE_PATH=/Users/fredbook/Code/uCode UCORE_UFLOW_PATH=/Users/fredbook/Code/uFlow UCORE_UKNOWLEDGE_PATH=/Users/fredbook/Code/uKnowledge python3 - <<'PY' ... register_routes(app) ...` (in uCore/backend)
+2. `UCORE_UCODE_PATH=/Users/fredbook/Code/uCode UCORE_UFLOW_PATH=/Users/fredbook/Code/uFlow UCORE_UKNOWLEDGE_PATH=/Users/fredbook/Code/uKnowledge python3 - <<'PY' ... register_routes(app) ...` (in uCore/backend)
 3. `rg -n "app\.ucode\.(ceefax|bbcsdl)|api\.terminal_runtime|from \.terminal_runtime" backend -S`
 
 ### Strict route-registration proof
 
-| Check                        | Result                                   |
-| ---------------------------- | ---------------------------------------- |
-| Strict external mode enabled | `UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL=1` |
-| Missing required routes      | `[]`                                     |
-| Registered route count       | `220`                                    |
-| Workflow route registration  | external uFlow loaded                    |
-| Knowledge route registration | external uKnowledge loaded               |
-| Runtime route registration   | external uCode runtime loaded            |
+| Check                        | Result                                      |
+| ---------------------------- | ------------------------------------------- |
+| Strict external mode enabled | adapter defaults enforce external providers |
+| Missing required routes      | `[]`                                        |
+| Registered route count       | `220`                                       |
+| Workflow route registration  | external uFlow loaded                       |
+| Knowledge route registration | external uKnowledge loaded                  |
+| Runtime route registration   | external uCode runtime loaded               |
 
 ### Completion delta
 
@@ -232,6 +232,47 @@ This confirms these routes are no longer bound to `_not_implemented`.
    - Hivemind health endpoint reachability
 3. Runtime adapter strict mode cleanup removed dead compatibility branches in
    `backend/app/extensions/adapters/ucode_runtime_adapter.py`.
+
+## Runtime Verification Addendum — 2026-07-31 (Post-Restart)
+
+### Canonical restart path used
+
+1. Stop process on `:8484` (`lsof -ti tcp:8484 | xargs kill`)
+2. Start uCore from repo root with explicit external paths:
+   `UCORE_UCODE_PATH=/Users/fredbook/Code/uCode UCORE_UFLOW_PATH=/Users/fredbook/Code/uFlow UCORE_UKNOWLEDGE_PATH=/Users/fredbook/Code/uKnowledge PYTHONPATH=/Users/fredbook/Code/uCore/backend python3 -m app --port 8484`
+
+### Endpoint proof after restart
+
+| Route                                       | Status | Note                                                               |
+| ------------------------------------------- | ------ | ------------------------------------------------------------------ |
+| `/api/knowledge/documents/test-doc`         | `404`  | now handled by external uKnowledge route registrar (no longer 501) |
+| `/api/knowledge/documents/test-doc/content` | `404`  | now handled by external uKnowledge route registrar (no longer 501) |
+| `/api/mcp/diagnostics`                      | `200`  | diagnostics endpoint healthy                                       |
+| `/api/ollama/status`                        | `200`  | Ollama integration healthy                                         |
+
+## Extended Dev Flow — Extension Registry + External Plugin Migration
+
+Run the next execution cycle as hard waves with explicit gates:
+
+1. Wave A - Registry contract lock
+   - freeze manifest contract + validation behavior
+   - add schema and dependency-cycle checks to CI
+2. Wave B - External plugin matrix
+   - define `udos-*` migration matrix (owner repo, route ownership, deps, acceptance)
+   - migrate at least two additional plugin candidates through manifest-first loading
+3. Wave C - CI/CD and packaging cut
+   - publishable package layout for `uflow`, `uknowledge`, and `ucode_runtime`
+   - install/import smoke tests in local + CI modes
+4. Wave D - API economy and broad-strokes automation
+   - run low-cost route first, then hivemind/mcp broad pass
+   - collect throughput + cost evidence versus manual baseline
+5. Wave E - dead settings and old code purge
+   - remove stale strict-toggle references
+   - remove remaining compatibility notes that imply in-core fallback ownership
+   - archive dead code with evidence and commit per wave
+
+Stop-the-line for every wave remains mandatory: runtime proof, command proof,
+test proof, and evidence proof.
 
 ## uDev Dogfooding Wave
 
