@@ -38,7 +38,7 @@
 - [x] Migrate `/api/knowledge/workspaces` to external uKnowledge implementation
 - [x] Migrate `/api/knowledge/documents` to external uKnowledge implementation
 - [x] Remove in-core search handler ownership
-- [ ] Migrate next knowledge endpoint wave (document-content)
+- [x] Migrate next knowledge endpoint wave (document-content)
 
 ## Next Phase — uCode Boundary Hard Cut
 
@@ -75,6 +75,8 @@
 - [x] Remove duplicate variable route registration path
 - [x] Add duplicate-route audit script and run it to zero duplicates
 - [ ] Enforce stop-the-line gate on every wave completion
+- [x] Add MCP diagnostics backend probes for Ollama + Hivemind health
+- [x] Strengthen AI stack health script with MCP diagnostics and Hivemind checks
 
 ## Documentation and Planning Governance
 

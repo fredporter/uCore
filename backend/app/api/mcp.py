@@ -15,6 +15,7 @@ import json
 import logging
 from typing import Any
 
+import aiohttp
 from aiohttp import web
 
 from app.api.mcp_handlers import dispatch_tool
@@ -399,7 +400,14 @@ async def handle_mcp_diagnostics(request: web.Request) -> web.Response:
         # Spool reader may not be available
         pass
 
-    # ── 4. Recommended remediation path ─────────────────────
+    # ── 4. Backend runtime probes (MCP/Ollama/Hivemind) ─────
+    backend_health = {
+        "mcp_tools": await _probe_http_json("http://127.0.0.1:8484/api/mcp/tools"),
+        "ollama": await _probe_http_json("http://127.0.0.1:11434/api/tags"),
+        "hivemind": await _probe_http_json("http://127.0.0.1:8490/api/hivemind/llm/health"),
+    }
+
+    # ── 5. Recommended remediation path ─────────────────────
     remediation: list[str] = []
     if not integrity_report.get("ok", False):
         for check in integrity_report.get("checks", []):
@@ -436,10 +444,16 @@ async def handle_mcp_diagnostics(request: web.Request) -> web.Response:
     if not remediation:
         remediation.append("No issues detected — MCP layer is healthy")
 
+    if backend_health["ollama"]["ok"] is False:
+        remediation.append("Ollama health check failed — verify ollama daemon on :11434")
+    if backend_health["hivemind"]["ok"] is False:
+        remediation.append("Hivemind health check failed — start backend/mcp/start_hivemind.sh")
+
     return web.json_response({
         "status": "ok" if integrity_report.get("ok") else "degraded",
         "timestamp": _utc_now_iso(),
         "integrity": integrity_report,
+        "backend_health": backend_health,
         "tool_registry": {
             "registered_tools": len(TOOL_HANDLERS),
             "tools": tool_snapshot,
@@ -454,3 +468,30 @@ async def handle_mcp_diagnostics(request: web.Request) -> web.Response:
 def _utc_now_iso() -> str:
     from datetime import UTC, datetime
     return datetime.now(UTC).isoformat()
+
+
+async def _probe_http_json(url: str, timeout_seconds: float = 2.0) -> dict[str, Any]:
+    """Best-effort HTTP JSON health probe for diagnostics payloads."""
+    try:
+        timeout = aiohttp.ClientTimeout(total=timeout_seconds)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url) as resp:
+                text = await resp.text()
+                payload: Any
+                try:
+                    payload = json.loads(text) if text else {}
+                except Exception:
+                    payload = text[:500]
+                return {
+                    "ok": 200 <= resp.status < 300,
+                    "status": resp.status,
+                    "url": url,
+                    "payload": payload,
+                }
+    except Exception as exc:
+        return {
+            "ok": False,
+            "status": None,
+            "url": url,
+            "error": str(exc),
+        }

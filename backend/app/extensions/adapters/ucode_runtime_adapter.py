@@ -21,11 +21,6 @@ DEFAULT_BBCSDL_REGISTRAR = "ucode_runtime.bbcsdl.register_bbcsdl_routes"
 DEFAULT_TERMINAL_WS_HANDLER = "ucode_runtime.terminal_runtime.handle_terminal_runtime_ws"
 DEFAULT_CEEFAX_STORE_FACTORY = "ucode_runtime.ceefax.CeefaxStore"
 
-
-def _is_truthy(value: str) -> bool:
-    return value.strip().lower() in {"1", "true", "yes", "on"}
-
-
 def _ensure_ucode_path() -> None:
     """Add local uCode repo path for import in split-repo dev mode."""
     hint = os.environ.get("UCORE_UCODE_PATH", str(Path.home() / "Code" / "uCode"))
@@ -73,8 +68,6 @@ def _ensure_ceefax_store(app: Any, store_key: Any, factory_path: str) -> Any:
 
 def register_routes(app: Any, ceefax_store_key: Any) -> None:
     """Register Ceefax/BBCSDL routes via external runtime registrars."""
-    require_external = _is_truthy(os.environ.get("UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL", "1"))
-
     ceefax_registrar = os.environ.get("UCORE_CEEFAX_ROUTE_REGISTRAR", DEFAULT_CEEFAX_REGISTRAR)
     bbcsdl_registrar = os.environ.get("UCORE_BBCSDL_ROUTE_REGISTRAR", DEFAULT_BBCSDL_REGISTRAR)
     ceefax_store_factory = os.environ.get(
@@ -92,10 +85,6 @@ def register_routes(app: Any, ceefax_store_key: Any) -> None:
         log.info("uCode runtime routes registered (provider=external-runtime)")
         return
 
-    if not require_external:
-        log.warning("External runtime providers missing but strict mode disabled")
-        return
-
     raise RuntimeError(
         "External uCode runtime registrars are required but unavailable. "
         "Set UCORE_UCODE_PATH and provide route registrars for Ceefax/BBCSDL.",
@@ -104,7 +93,6 @@ def register_routes(app: Any, ceefax_store_key: Any) -> None:
 
 def register_terminal_runtime_routes(app: Any) -> None:
     """Register terminal runtime route via external runtime handler."""
-    require_external = _is_truthy(os.environ.get("UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL", "1"))
     terminal_handler_path = os.environ.get(
         "UCORE_TERMINAL_RUNTIME_WS_HANDLER",
         DEFAULT_TERMINAL_WS_HANDLER,
@@ -116,10 +104,7 @@ def register_terminal_runtime_routes(app: Any) -> None:
         log.info("Terminal runtime route registered (provider=external-runtime)")
         return
 
-    if require_external:
-        raise RuntimeError(
-            "External terminal runtime handler is required but unavailable. "
-            "Set UCORE_UCODE_PATH and provide UCORE_TERMINAL_RUNTIME_WS_HANDLER.",
-        )
-
-    log.warning("External terminal runtime handler missing and strict mode disabled")
+    raise RuntimeError(
+        "External terminal runtime handler is required but unavailable. "
+        "Set UCORE_UCODE_PATH and provide UCORE_TERMINAL_RUNTIME_WS_HANDLER.",
+    )

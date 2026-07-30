@@ -188,20 +188,50 @@ Stop-the-line rules for Cline:
 
 ### Strict route-registration proof
 
-| Check | Result |
-| --- | --- |
+| Check                        | Result                                   |
+| ---------------------------- | ---------------------------------------- |
 | Strict external mode enabled | `UCORE_UCODE_RUNTIME_REQUIRE_EXTERNAL=1` |
-| Missing required routes | `[]` |
-| Registered route count | `220` |
-| Workflow route registration | external uFlow loaded |
-| Knowledge route registration | external uKnowledge loaded |
-| Runtime route registration | external uCode runtime loaded |
+| Missing required routes      | `[]`                                     |
+| Registered route count       | `220`                                    |
+| Workflow route registration  | external uFlow loaded                    |
+| Knowledge route registration | external uKnowledge loaded               |
+| Runtime route registration   | external uCode runtime loaded            |
 
 ### Completion delta
 
 1. External runtime package now exists in uCode as `ucode_runtime` with Ceefax, BBCSDL, and terminal runtime providers.
 2. uCore runtime adapter now defaults to strict external mode and fails fast on missing runtime providers.
 3. Legacy in-core runtime implementation files were removed from uCore host repo.
+
+## Evidence Bundle — 2026-07-31 (Knowledge Document-Content + MCP Hardening)
+
+### Commands executed
+
+1. `python3 -m compileall -q uknowledge` (in uKnowledge)
+2. `python3 -m compileall -q backend/app/extensions/adapters/ucode_runtime_adapter.py` (in uCore)
+3. `UCORE_UCODE_PATH=... UCORE_UFLOW_PATH=... UCORE_UKNOWLEDGE_PATH=... python3 - <<'PY' ... register_routes(app) ...` route map validation
+4. `for p in /api/knowledge/documents/test-doc /api/knowledge/documents/test-doc/content; do ...; done` runtime probe
+
+### Route binding proof
+
+| Route                                          | Bound Handler                 |
+| ---------------------------------------------- | ----------------------------- |
+| `/api/knowledge/documents/{object_id}`         | `handle_get_document`         |
+| `/api/knowledge/documents/{object_id}/content` | `handle_get_document_content` |
+
+This confirms these routes are no longer bound to `_not_implemented`.
+
+### MCP/Ollama/Hivemind hardening delta
+
+1. `backend/app/api/mcp.py` diagnostics now includes backend probes for:
+   - `/api/mcp/tools`
+   - `http://127.0.0.1:11434/api/tags` (Ollama)
+   - `http://127.0.0.1:8490/api/hivemind/llm/health` (Hivemind)
+2. `scripts/ai_stack_health_check.sh` now validates:
+   - `/api/mcp/diagnostics` integrity status
+   - Hivemind health endpoint reachability
+3. Runtime adapter strict mode cleanup removed dead compatibility branches in
+   `backend/app/extensions/adapters/ucode_runtime_adapter.py`.
 
 ## uDev Dogfooding Wave
 

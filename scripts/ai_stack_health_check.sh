@@ -52,6 +52,19 @@ else
   bad "MCP tools endpoint unreachable: $BASE_URL/api/mcp/tools"
 fi
 
+DIAG_JSON="$(curl -fsS "$BASE_URL/api/mcp/diagnostics" 2>/dev/null || true)"
+if [[ -n "$DIAG_JSON" ]]; then
+  MCP_STATUS="$(echo "$DIAG_JSON" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("status",""))' 2>/dev/null || true)"
+  MCP_OK="$(echo "$DIAG_JSON" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("integrity",{}).get("ok",""))' 2>/dev/null || true)"
+  if [[ "$MCP_STATUS" == "ok" && "$MCP_OK" == "True" ]]; then
+    ok "MCP diagnostics integrity is healthy"
+  else
+    warn "MCP diagnostics reported status=$MCP_STATUS integrity_ok=$MCP_OK"
+  fi
+else
+  warn "MCP diagnostics endpoint unavailable: $BASE_URL/api/mcp/diagnostics"
+fi
+
 # Validate MCP stdio bridge path by performing tools/list over JSON-RPC.
 BRIDGE_OUT="$(printf '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}\n' | node "$HOME/Code/uDev/mcp-bridge/build/index.js" 2>/dev/null || true)"
 if echo "$BRIDGE_OUT" | grep -q '"result"'; then
@@ -89,6 +102,13 @@ if command -v ollama >/dev/null 2>&1; then
   fi
 else
   warn "Ollama not installed"
+fi
+
+HIVEMIND_JSON="$(curl -fsS http://127.0.0.1:8490/api/hivemind/llm/health 2>/dev/null || true)"
+if [[ -n "$HIVEMIND_JSON" ]]; then
+  ok "Hivemind health endpoint reachable"
+else
+  warn "Hivemind health endpoint unavailable: http://127.0.0.1:8490/api/hivemind/llm/health"
 fi
 
 if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
