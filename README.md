@@ -86,7 +86,7 @@ VS Code (Cline) → MCP Bridge → uCore (port 8484)
   │   └── uKnowledge — AppFlowy SQLite + vector DB bridge
   │
   └── Plugins (udos-* prefix)
-      └── udos-home — starter domain plugin template
+      └── HomeNest/modules/home-ops/udos-home — starter domain plugin module
 
 → Roundtable MCP → parallel Claude/Gemini/OpenRouter execution
 ```
@@ -98,7 +98,6 @@ VS Code (Cline) → MCP Bridge → uCore (port 8484)
 | **uCore**      | host/core     | Platform daemon + extension registry       | `~/Code/uCore`      |
 | **uFlow**      | workflow      | Workflow engine, runs, logs, tasks         | `~/Code/uFlow`      |
 | **uKnowledge** | knowledge     | AppFlowy bridge, semantic search, indexing | `~/Code/uKnowledge` |
-| **udos-home**  | plugin        | Starter domain plugin template             | `~/Code/udos-home`  |
 | **uCode**      | runtime       | Base runtime and core grid/code foundation | `~/Code/uCode`      |
 | **uCode2**     | runtime       | Advanced runtime layer (later extension)   | `~/Code/uCode2`     |
 | **HomeNest**   | plugin (udos) | Home automation + app-layer runtime        | `~/Code/HomeNest`   |

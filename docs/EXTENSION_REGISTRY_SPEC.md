@@ -140,7 +140,7 @@ endpoints at the same URLs so client contracts stay stable.
 
 ## Creating a udos- Plugin
 
-1. Copy the `udos-home` template repo
+1. Copy the `HomeNest/modules/home-ops/udos-home` module
 2. Update `ucore-extension.json` with your plugin id/name
 3. Create a Python package that exports `register_routes(app)`
 4. Install alongside uCore — automatically discovered
@@ -170,7 +170,7 @@ Returns:
 ## Migration Path
 
 1. **Phase 1 (done):** Plugin contract + adapters in uCore
-2. **Phase 2 (done):** Scaffold uFlow, uKnowledge, udos-home repos with manifests
+2. **Phase 2 (done):** Scaffold uFlow, uKnowledge, and HomeNest udos-home module manifests
 3. **Phase 3 (active):** Workflow extraction/deletion waves with parity checks
 4. **Phase 4 (active):** Knowledge extraction/deletion waves with parity checks
 5. **Phase 5:** Update CI/CD, publish packages, update docs
