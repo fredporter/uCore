@@ -72,6 +72,20 @@ Repo-creation rule:
 
 ## 3. Target Ownership Model
 
+### 3.0 Surface Placement Policy
+
+1. Keep end-user shell UI surfaces primarily in `uCore`.
+2. Keep Developer Lane UI in `uDev`.
+3. Keep feature/business logic ownership in plugins/extensions (`udos-*`, `uFlow`, `uKnowledge`, `uCode`).
+4. Keep legacy route redirects in uCore where useful, but avoid duplicate standalone surfaces when a canonical host surface already exists.
+
+Current decisions:
+
+1. `snackmachine` standalone surface removed; capabilities route to Server/Workflow/System/Developer.
+2. Standalone `teletext` and `terminal` surfaces removed; canonical UX is inside `uCode` tabs.
+3. `workflow` surface UI stays in `uCore`, while workflow execution/route ownership remains in `uFlow`.
+4. `documentation` surface UI stays in `uCore`; publishing/backing providers can move to plugin ownership.
+
 ### 3.1 Keep core simple
 
 uCore owns:
@@ -132,6 +146,7 @@ uCore does not own:
 1. Lock this execution model and plugin matrix.
 2. Keep Developer Surface green and deterministic.
 3. Add preflight placeholders for WordPress/Google/Dreamscape.
+4. Complete detached-surface cleanup and confirm `discover` parity (registered == filesystem).
 
 Exit criteria:
 
@@ -155,6 +170,7 @@ Exit criteria:
 1. Add WordPress gateway connector routes in `udos-identity` (or `udos-publishing` if split).
 2. Add OAuth handoff and token-safe server-side flow.
 3. Add content directory + publish/review metadata endpoints.
+4. Restore documentation publishing API endpoints consumed by uCore Documentation surface.
 
 Exit criteria:
 

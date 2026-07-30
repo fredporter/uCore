@@ -24,6 +24,20 @@ Ship a stable core host shell with clean extension/plugin boundaries, zero legac
 - [ ] Validate no forbidden legacy modules reappear in uCore host tree
 - [ ] Record cleanup evidence bundle in `docs/handovers/CLINE_REPO_SPLIT_HANDOFF.md`
 
+## Gate 1B - Surface Ownership Cleanup
+
+- [x] Remove detached legacy `snackmachine` standalone surface (merged into Server/Workflow/System redirects)
+- [x] Remove detached legacy standalone `teletext` and `terminal` surfaces (canonical home is uCode tabs)
+- [x] Re-scan `/api/surfaces/discover` and verify no detached surfaces remain
+- [ ] Publish surface placement policy in docs (host UI vs plugin backend ownership)
+
+## Wave E2 - Documentation Publishing Recovery
+
+- [ ] Restore documentation backend API contract used by Documentation surface (`/api/docs`, `/api/docs/sites`, `/api/docs/global-knowledge`, `/api/docs/export`, `/api/docs/serve/{site}`)
+- [ ] Validate doc-site discovery from `~/Public/doc-sites` and global knowledge from `~/Public/global-knowledge`
+- [ ] Define publishing ownership split: uCore UI shell vs plugin/provider logic
+- [ ] Add route parity and runtime probes for documentation publishing endpoints
+
 ## Wave F - Identity, Story Forms, Publishing
 
 - [ ] Finalize capability map: `identity_gateway`, `wordpress_gateway`
