@@ -18,6 +18,7 @@ from __future__ import annotations
 import importlib
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +36,23 @@ DISCOVERY_PATHS: list[Path] = [
     Path.home() / ".ucore" / "extensions",
 ]
 """Default search locations for extension manifests."""
+
+
+def _env_discovery_paths() -> list[Path]:
+    """Read additional manifest discovery roots from environment.
+
+    `UCORE_EXTENSION_MANIFEST_PATHS` accepts colon-separated paths.
+    """
+    raw = os.environ.get("UCORE_EXTENSION_MANIFEST_PATHS", "").strip()
+    if not raw:
+        return []
+
+    paths: list[Path] = []
+    for part in raw.split(":"):
+        value = part.strip()
+        if value:
+            paths.append(Path(value).expanduser())
+    return paths
 
 
 class ExtensionRegistry:
@@ -128,6 +146,7 @@ class ExtensionRegistry:
         Returns the number of newly discovered extensions.
         """
         paths = list(DISCOVERY_PATHS)
+        paths.extend(_env_discovery_paths())
         if extra_paths:
             paths.extend(extra_paths)
 

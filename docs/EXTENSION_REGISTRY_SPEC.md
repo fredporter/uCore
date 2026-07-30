@@ -90,10 +90,15 @@ The registry scans these locations (in order):
 1. `backend/app/extensions/manifests/` — manifests bundled with uCore
 2. `~/.ucore/extensions/` — user-installed extension manifests
 3. Any extra paths passed to `registry.discover(paths=[...])`
+4. Any paths listed in `UCORE_EXTENSION_MANIFEST_PATHS` (colon-separated)
 
 Built-in core extensions (`ucore-core`, `ucore-skills`, `ucore-surfaces`,
 `ucore-secrets`, `ucore-tools`) are registered programmatically at
 registry init and do not require manifest files.
+
+At route assembly time, uCore runs discovery before extension route
+registration, so newly added external manifests are picked up without
+adding in-core route ownership.
 
 ## Loading Sequence
 
@@ -223,13 +228,13 @@ This matrix defines the first `udos-*` migration targets beyond `udos-home`.
 Each row must complete route ownership transfer, capability preflight parity,
 and wave evidence bundles before marking done.
 
-| Plugin ID           | Owner Repo        | Route Prefix           | Capability Scope                | Dependencies                        | Acceptance Gates |
-| ------------------- | ----------------- | ---------------------- | ------------------------------- | ----------------------------------- | ---------------- |
-| `udos-home`         | HomeNest module   | `/api/home/*`          | Home operations + shell tasks   | `ucore-core`, `ucore-secrets`       | preflight + route parity + docs |
-| `udos-budget`       | new `udos-budget` | `/api/budget/*`        | Budget tracking + policy gates  | `ucore-core`, `ucore-secrets`       | preflight + route parity + tests |
-| `udos-identity`     | new `udos-identity` | `/api/identity/*`    | Identity profile + auth helpers | `ucore-core`, `ucore-secrets`       | preflight + route parity + tests |
-| `udos-media`        | new `udos-media`  | `/api/media/*`         | Media ingest + transform hooks  | `ucore-core`, `ucore-tools`         | preflight + route parity + tests |
-| `udos-automation`   | new `udos-automation` | `/api/automation/*` | Automation orchestration        | `ucore-core`, `uflow`, `ucore-tools` | preflight + route parity + tests |
+| Plugin ID         | Owner Repo            | Route Prefix        | Capability Scope                | Dependencies                         | Acceptance Gates                 |
+| ----------------- | --------------------- | ------------------- | ------------------------------- | ------------------------------------ | -------------------------------- |
+| `udos-home`       | HomeNest module       | `/api/home/*`       | Home operations + shell tasks   | `ucore-core`, `ucore-secrets`        | preflight + route parity + docs  |
+| `udos-budget`     | new `udos-budget`     | `/api/budget/*`     | Budget tracking + policy gates  | `ucore-core`, `ucore-secrets`        | preflight + route parity + tests |
+| `udos-identity`   | new `udos-identity`   | `/api/identity/*`   | Identity profile + auth helpers | `ucore-core`, `ucore-secrets`        | preflight + route parity + tests |
+| `udos-media`      | new `udos-media`      | `/api/media/*`      | Media ingest + transform hooks  | `ucore-core`, `ucore-tools`          | preflight + route parity + tests |
+| `udos-automation` | new `udos-automation` | `/api/automation/*` | Automation orchestration        | `ucore-core`, `uflow`, `ucore-tools` | preflight + route parity + tests |
 
 Wave execution guidance:
 

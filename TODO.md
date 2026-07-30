@@ -99,6 +99,7 @@
 - [x] Define plugin migration matrix for `udos-*` candidates (owner repo, routes, deps, acceptance checks)
 - [ ] Scaffold at least two real plugin repos beyond `udos-home`
 - [ ] Register plugins through manifest discovery only (no in-core route ownership)
+- [x] Add env-driven external manifest discovery plumbing (`UCORE_EXTENSION_MANIFEST_PATHS`) and run discovery before route registration
 
 ### Wave C - CI/CD and Packaging
 

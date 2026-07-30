@@ -132,6 +132,10 @@ def register_routes(app: web.Application) -> None:
     # Wave A hard-cut: workflow and knowledge routing are extension-owned.
     from app.extensions.registry import registry
 
+    discovered = registry.discover()
+    if discovered:
+        log.info("Discovered %d external extension manifest(s)", discovered)
+
     registry.register_routes(app)
     log.debug("Extension registry routes wired")
 
