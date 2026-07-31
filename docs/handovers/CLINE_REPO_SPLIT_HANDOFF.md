@@ -397,17 +397,17 @@ If any gate fails: stop, fix the blocker, re-run proof, then continue.
 
 ### Runtime and gate proof
 
-| Check | Result |
-| --- | --- |
-| `/api/health` | `200` |
-| `/api/mcp/diagnostics` | `200` |
-| duplicate route audit | `0` duplicates |
-| extension manifest validator | pass |
-| legacy settings cleanup validator | pass |
-| uDev Developer Surface build | pass |
-| fixed dev port policy | listener present on `127.0.0.1:5176`; strict port remains enforced |
-| documentation route contract checker | pass (`Expected 7`, `Actual 7`) |
-| documentation runtime probe | pass (`/api/docs`, `/api/docs/sites`, `/api/docs/global-knowledge`, `/api/docs/export` all `200`) |
+| Check                                | Result                                                                                            |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `/api/health`                        | `200`                                                                                             |
+| `/api/mcp/diagnostics`               | `200`                                                                                             |
+| duplicate route audit                | `0` duplicates                                                                                    |
+| extension manifest validator         | pass                                                                                              |
+| legacy settings cleanup validator    | pass                                                                                              |
+| uDev Developer Surface build         | pass                                                                                              |
+| fixed dev port policy                | listener present on `127.0.0.1:5176`; strict port remains enforced                                |
+| documentation route contract checker | pass (`Expected 7`, `Actual 7`)                                                                   |
+| documentation runtime probe          | pass (`/api/docs`, `/api/docs/sites`, `/api/docs/global-knowledge`, `/api/docs/export` all `200`) |
 
 ### Wave F seed updates
 

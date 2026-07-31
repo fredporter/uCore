@@ -1,5 +1,10 @@
 <template>
-  <div class="documentation-surface" :class="{ 'surface--tab-nav-vertical': shell.tabOrientation === 'vertical' }">
+  <div
+    class="documentation-surface"
+    :class="{
+      'surface--tab-nav-vertical': shell.tabOrientation === 'vertical',
+    }"
+  >
     <SurfaceTabNav
       v-model="activeTab"
       :tabs="TABS"
@@ -58,17 +63,25 @@
                 </div>
                 <div class="doc-site-hero-content">
                   <h4 class="doc-site-hero-title">{{ site.name }}</h4>
-                  <p v-if="site.description" class="doc-site-hero-desc">{{ site.description }}</p>
+                  <p v-if="site.description" class="doc-site-hero-desc">
+                    {{ site.description }}
+                  </p>
                 </div>
                 <UBadge :type="site.built ? 'success' : 'warning'" size="sm">
-                  {{ site.built ? 'built' : 'not built' }}
+                  {{ site.built ? "built" : "not built" }}
                 </UBadge>
               </div>
             </div>
             <div v-if="viewingSite" class="doc-viewer">
               <div class="doc-viewer-bar">
                 <span class="doc-viewer-label">{{ viewingSite }}</span>
-                <UButton size="sm" variant="secondary" icon="close" @click="viewingSite = null">Close</UButton>
+                <UButton
+                  size="sm"
+                  variant="secondary"
+                  icon="close"
+                  @click="viewingSite = null"
+                  >Close</UButton
+                >
               </div>
               <iframe
                 :src="`/api/docs/serve/${viewingSite}/`"
@@ -77,7 +90,9 @@
               />
             </div>
           </div>
-          <div v-else class="doc-empty">No doc sites found in ~/Public/doc-sites/.</div>
+          <div v-else class="doc-empty">
+            No doc sites found in ~/Public/doc-sites/.
+          </div>
         </div>
 
         <!-- Knowledge Tab -->
@@ -98,13 +113,27 @@
                 <div class="doc-knowledge-card-content">
                   <h4 class="doc-knowledge-card-title">{{ section.name }}</h4>
                 </div>
-                <UButton size="sm" variant="secondary" icon="open_in_new" @click="viewingKnowledge = section.id">Browse</UButton>
+                <UButton
+                  size="sm"
+                  variant="secondary"
+                  icon="open_in_new"
+                  @click="viewingKnowledge = section.id"
+                  >Browse</UButton
+                >
               </div>
             </div>
             <div v-if="viewingKnowledge" class="doc-viewer">
               <div class="doc-viewer-bar">
-                <span class="doc-viewer-label">Knowledge — {{ viewingKnowledge }}</span>
-                <UButton size="sm" variant="secondary" icon="close" @click="viewingKnowledge = null">Close</UButton>
+                <span class="doc-viewer-label"
+                  >Knowledge — {{ viewingKnowledge }}</span
+                >
+                <UButton
+                  size="sm"
+                  variant="secondary"
+                  icon="close"
+                  @click="viewingKnowledge = null"
+                  >Close</UButton
+                >
               </div>
               <iframe
                 :src="`/api/docs/global-knowledge/${viewingKnowledge}/`"
@@ -126,18 +155,24 @@
               <span class="doc-stat-label">Sites</span>
             </div>
             <div class="doc-stat">
-              <span class="doc-stat-value doc-stat-value--info">{{ docSites.filter(s => s.built).length }}</span>
+              <span class="doc-stat-value doc-stat-value--info">{{
+                docSites.filter((s) => s.built).length
+              }}</span>
               <span class="doc-stat-label">Built</span>
             </div>
           </div>
           <div v-if="docSites.length > 0" class="doc-section">
             <h4 class="doc-section-title">Site Status</h4>
             <div class="doc-publish-list">
-              <div v-for="site in docSites" :key="site.id" class="doc-publish-row">
+              <div
+                v-for="site in docSites"
+                :key="site.id"
+                class="doc-publish-row"
+              >
                 <UIcon name="folder" />
                 <span class="doc-publish-name">{{ site.name }}</span>
                 <UBadge :type="site.built ? 'success' : 'warning'" size="sm">
-                  {{ site.built ? 'built' : 'needs build' }}
+                  {{ site.built ? "built" : "needs build" }}
                 </UBadge>
                 <code class="doc-mono">{{ site.path }}</code>
               </div>
@@ -145,12 +180,23 @@
           </div>
           <div class="doc-section">
             <h4 class="doc-section-title">Export Vault</h4>
-            <UButton size="sm" variant="primary" icon="publish" :disabled="exportRunning" @click="runExport">
-              {{ exportRunning ? 'Exporting...' : 'Export Vault to DocLang' }}
+            <UButton
+              size="sm"
+              variant="primary"
+              icon="publish"
+              :disabled="exportRunning"
+              @click="runExport"
+            >
+              {{ exportRunning ? "Exporting..." : "Export Vault to DocLang" }}
             </UButton>
             <div v-if="exportResult" class="doc-export-msg">
-              <UBadge :type="exportResult.error ? 'error' : 'success'" size="sm" />
-              <span>{{ exportResult.error ? exportResult.error : exportResult.message }}</span>
+              <UBadge
+                :type="exportResult.error ? 'error' : 'success'"
+                size="sm"
+              />
+              <span>{{
+                exportResult.error ? exportResult.error : exportResult.message
+              }}</span>
             </div>
           </div>
         </div>
@@ -162,7 +208,11 @@
           </div>
           <div v-else class="doc-api-list">
             <div v-for="ep in apiEndpoints" :key="ep.path" class="doc-api-row">
-              <UBadge :type="ep.method === 'GET' ? 'success' : 'warning'" size="sm">{{ ep.method }}</UBadge>
+              <UBadge
+                :type="ep.method === 'GET' ? 'success' : 'warning'"
+                size="sm"
+                >{{ ep.method }}</UBadge
+              >
               <code>{{ ep.path }}</code>
               <span class="doc-api-desc">{{ ep.description }}</span>
             </div>
@@ -174,177 +224,191 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useShellStore } from '../../stores/shell'
-import UIcon from '../../skills/atoms/UIcon.vue'
-import UBadge from '../../skills/atoms/UBadge.vue'
-import UButton from '../../skills/atoms/UButton.vue'
-import SurfaceTabNav from '../../skills/molecules/SurfaceTabNav.vue'
+import { ref, onMounted } from "vue";
+import { useShellStore } from "../../stores/shell";
+import UIcon from "../../skills/atoms/UIcon.vue";
+import UBadge from "../../skills/atoms/UBadge.vue";
+import UButton from "../../skills/atoms/UButton.vue";
+import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 
-const shell = useShellStore()
-const activeTab = ref('guide')
+const shell = useShellStore();
+const activeTab = ref("guide");
 
 const TABS = [
-  { id: 'guide', label: 'Guide & Docs', icon: 'menu_book' },
-  { id: 'knowledge', label: 'Knowledge', icon: 'auto_stories' },
-  { id: 'publish', label: 'Publishing', icon: 'publish' },
-  { id: 'api', label: 'API Reference', icon: 'code' },
-]
+  { id: "guide", label: "Guide & Docs", icon: "menu_book" },
+  { id: "knowledge", label: "Knowledge", icon: "auto_stories" },
+  { id: "publish", label: "Publishing", icon: "publish" },
+  { id: "api", label: "API Reference", icon: "code" },
+];
 
 interface DocSite {
-  id: string; name: string; path: string; description?: string; built: boolean
+  id: string;
+  name: string;
+  path: string;
+  description?: string;
+  built: boolean;
 }
 interface Endpoint {
-  method: string; path: string; description: string
+  method: string;
+  path: string;
+  description: string;
 }
 interface Section {
-  id: string; name: string; path: string
+  id: string;
+  name: string;
+  path: string;
 }
 
-const loading = ref(true)
-const knowledgeLoading = ref(true)
-const apiLoading = ref(true)
-const exportRunning = ref(false)
-const exportResult = ref<Record<string, any> | null>(null)
-const viewingSite = ref<string | null>(null)
-const viewingKnowledge = ref<string | null>(null)
-const lastExportAt = ref<string | null>(null)
+const loading = ref(true);
+const knowledgeLoading = ref(true);
+const apiLoading = ref(true);
+const exportRunning = ref(false);
+const exportResult = ref<Record<string, any> | null>(null);
+const viewingSite = ref<string | null>(null);
+const viewingKnowledge = ref<string | null>(null);
+const lastExportAt = ref<string | null>(null);
 
-const docSites = ref<DocSite[]>([])
-const apiEndpoints = ref<Endpoint[]>([])
-const knowledgeSections = ref<Section[]>([])
+const docSites = ref<DocSite[]>([]);
+const apiEndpoints = ref<Endpoint[]>([]);
+const knowledgeSections = ref<Section[]>([]);
 
-type ApiStatus = 'pending' | 'ok' | 'error'
+type ApiStatus = "pending" | "ok" | "error";
 
 const apiStatus = ref<{
-  root: ApiStatus
-  sites: ApiStatus
-  knowledge: ApiStatus
-  export: ApiStatus
+  root: ApiStatus;
+  sites: ApiStatus;
+  knowledge: ApiStatus;
+  export: ApiStatus;
 }>({
-  root: 'pending',
-  sites: 'pending',
-  knowledge: 'pending',
-  export: 'pending',
-})
+  root: "pending",
+  sites: "pending",
+  knowledge: "pending",
+  export: "pending",
+});
 
 const DEFAULT_ENDPOINTS: Endpoint[] = [
-  { method: 'GET', path: '/api/status', description: 'Server status' },
-  { method: 'GET', path: '/api/knowledge', description: 'List knowledge' },
-  { method: 'POST', path: '/api/chat', description: 'Chat' },
-  { method: 'GET', path: '/api/chat/stream', description: 'Chat SSE' },
-  { method: 'GET', path: '/health', description: 'Health check' },
-]
+  { method: "GET", path: "/api/status", description: "Server status" },
+  { method: "GET", path: "/api/knowledge", description: "List knowledge" },
+  { method: "POST", path: "/api/chat", description: "Chat" },
+  { method: "GET", path: "/api/chat/stream", description: "Chat SSE" },
+  { method: "GET", path: "/health", description: "Health check" },
+];
 
 async function fetchDocSites() {
-  loading.value = true
+  loading.value = true;
   try {
-    const res = await fetch(`/api/docs/sites`, { signal: AbortSignal.timeout(5000) })
+    const res = await fetch(`/api/docs/sites`, {
+      signal: AbortSignal.timeout(5000),
+    });
     if (res.ok) {
-      const data = await res.json()
-      docSites.value = data.sites || []
-      apiStatus.value.sites = 'ok'
+      const data = await res.json();
+      docSites.value = data.sites || [];
+      apiStatus.value.sites = "ok";
     } else {
-      apiStatus.value.sites = 'error'
+      apiStatus.value.sites = "error";
     }
   } catch {
-    apiStatus.value.sites = 'error'
+    apiStatus.value.sites = "error";
   }
-  loading.value = false
+  loading.value = false;
 }
 
 async function fetchKnowledgeSections() {
-  knowledgeLoading.value = true
+  knowledgeLoading.value = true;
   try {
-    const res = await fetch(`/api/docs/global-knowledge`, { signal: AbortSignal.timeout(5000) })
+    const res = await fetch(`/api/docs/global-knowledge`, {
+      signal: AbortSignal.timeout(5000),
+    });
     if (res.ok) {
-      const data = await res.json()
-      knowledgeSections.value = data.sections || []
-      apiStatus.value.knowledge = 'ok'
+      const data = await res.json();
+      knowledgeSections.value = data.sections || [];
+      apiStatus.value.knowledge = "ok";
     } else {
-      apiStatus.value.knowledge = 'error'
+      apiStatus.value.knowledge = "error";
     }
   } catch {
-    apiStatus.value.knowledge = 'error'
+    apiStatus.value.knowledge = "error";
   }
-  knowledgeLoading.value = false
+  knowledgeLoading.value = false;
 }
 
 async function fetchEndpoints() {
-  apiLoading.value = true
+  apiLoading.value = true;
   try {
-    const res = await fetch(`/api/docs`, { signal: AbortSignal.timeout(3000) })
+    const res = await fetch(`/api/docs`, { signal: AbortSignal.timeout(3000) });
     if (res.ok) {
-      const data = await res.json()
-      const eps = data.endpoints || data.routes || []
+      const data = await res.json();
+      const eps = data.endpoints || data.routes || [];
       if (eps.length > 0) {
         apiEndpoints.value = eps.map((e: any) => ({
-          method: e.method || 'GET',
-          path: e.path || e.route || '/',
-          description: e.description || e.doc || '',
-        }))
+          method: e.method || "GET",
+          path: e.path || e.route || "/",
+          description: e.description || e.doc || "",
+        }));
       }
-      apiStatus.value.root = 'ok'
+      apiStatus.value.root = "ok";
     } else {
-      apiStatus.value.root = 'error'
+      apiStatus.value.root = "error";
     }
   } catch {
-    apiStatus.value.root = 'error'
-    apiEndpoints.value = DEFAULT_ENDPOINTS
+    apiStatus.value.root = "error";
+    apiEndpoints.value = DEFAULT_ENDPOINTS;
   }
-  apiLoading.value = false
+  apiLoading.value = false;
 }
 
 async function probeExportEndpoint() {
   try {
-    const res = await fetch(`/api/docs/export`, { signal: AbortSignal.timeout(3000) })
-    apiStatus.value.export = res.ok ? 'ok' : 'error'
+    const res = await fetch(`/api/docs/export`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    apiStatus.value.export = res.ok ? "ok" : "error";
   } catch {
-    apiStatus.value.export = 'error'
+    apiStatus.value.export = "error";
   }
 }
 
 async function runExport() {
-  exportRunning.value = true
-  exportResult.value = null
+  exportRunning.value = true;
+  exportResult.value = null;
   try {
     const res = await fetch(`/api/docs/export`, {
-      method: 'POST',
+      method: "POST",
       signal: AbortSignal.timeout(60000),
-    })
-    const data = await res.json()
-    exportResult.value = data
-    apiStatus.value.export = res.ok ? 'ok' : 'error'
+    });
+    const data = await res.json();
+    exportResult.value = data;
+    apiStatus.value.export = res.ok ? "ok" : "error";
     if (res.ok && !data.error) {
-      lastExportAt.value = new Date().toLocaleString()
+      lastExportAt.value = new Date().toLocaleString();
     }
-    await fetchDocSites()
+    await fetchDocSites();
   } catch (e: any) {
-    apiStatus.value.export = 'error'
-    exportResult.value = { error: e.message || 'Export failed' }
+    apiStatus.value.export = "error";
+    exportResult.value = { error: e.message || "Export failed" };
   } finally {
-    exportRunning.value = false
+    exportRunning.value = false;
   }
 }
 
-function statusType(status: ApiStatus): 'success' | 'warning' | 'error' {
-  if (status === 'ok') return 'success'
-  if (status === 'error') return 'error'
-  return 'warning'
+function statusType(status: ApiStatus): "success" | "warning" | "error" {
+  if (status === "ok") return "success";
+  if (status === "error") return "error";
+  return "warning";
 }
 
 function statusText(status: ApiStatus): string {
-  if (status === 'ok') return 'Online'
-  if (status === 'error') return 'Offline'
-  return 'Checking'
+  if (status === "ok") return "Online";
+  if (status === "error") return "Offline";
+  return "Checking";
 }
 
 onMounted(() => {
-  fetchDocSites()
-  fetchKnowledgeSections()
-  fetchEndpoints()
-  probeExportEndpoint()
-})
+  fetchDocSites();
+  fetchKnowledgeSections();
+  fetchEndpoints();
+  probeExportEndpoint();
+});
 </script>
 
 <style scoped>
@@ -374,7 +438,10 @@ onMounted(() => {
 .doc-health-strip {
   --doc-column-min: calc(var(--usx-touch-min) * 3.5);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--doc-column-min)), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--doc-column-min)), 1fr)
+  );
   gap: var(--usx-spacing-sm);
   min-width: 0;
 }
@@ -440,7 +507,10 @@ onMounted(() => {
 .doc-stats {
   --doc-column-min: calc(var(--usx-touch-min) * 3.75);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--doc-column-min)), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--doc-column-min)), 1fr)
+  );
   gap: var(--usx-spacing-md);
   min-width: 0;
 }
@@ -468,15 +538,24 @@ onMounted(() => {
   color: var(--usx-color-on-surface-muted);
 }
 
-.doc-stat-value--info { color: var(--usx-color-primary); }
-.doc-stat-value--success { color: var(--usx-color-success); }
-.doc-stat-value--warning { color: var(--usx-color-warning); }
+.doc-stat-value--info {
+  color: var(--usx-color-primary);
+}
+.doc-stat-value--success {
+  color: var(--usx-color-success);
+}
+.doc-stat-value--warning {
+  color: var(--usx-color-warning);
+}
 
 /* ─── Doc site hero cards ──────────────────────────────────────── */
 .doc-site-grid {
   --doc-column-min: calc(var(--usx-touch-min) * 5);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--doc-column-min)), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--doc-column-min)), 1fr)
+  );
   gap: var(--usx-spacing-md);
   min-width: 0;
 }
@@ -487,11 +566,15 @@ onMounted(() => {
   gap: var(--usx-spacing-md);
   padding: var(--usx-spacing-lg);
   background: var(--usx-color-surface);
-  border: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
+  border: var(--usx-border-width) solid
+    color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
   border-radius: var(--usx-radius-md);
   cursor: pointer;
   min-width: 0;
-  transition: background var(--usx-transition-fast), border-color var(--usx-transition-fast), transform var(--usx-transition-fast);
+  transition:
+    background var(--usx-transition-fast),
+    border-color var(--usx-transition-fast),
+    transform var(--usx-transition-fast);
 }
 
 .doc-site-hero:hover {
@@ -540,7 +623,10 @@ onMounted(() => {
 .doc-knowledge-grid {
   --doc-column-min: calc(var(--usx-touch-min) * 5);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--doc-column-min)), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--doc-column-min)), 1fr)
+  );
   gap: var(--usx-spacing-md);
   min-width: 0;
 }
@@ -554,7 +640,9 @@ onMounted(() => {
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-md);
   min-width: 0;
-  transition: border-color var(--usx-transition-fast), transform var(--usx-transition-fast);
+  transition:
+    border-color var(--usx-transition-fast),
+    transform var(--usx-transition-fast);
 }
 
 .doc-knowledge-card:hover {
