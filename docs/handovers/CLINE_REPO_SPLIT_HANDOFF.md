@@ -268,7 +268,7 @@ Run the next execution cycle as hard waves with explicit gates:
    - collect throughput + cost evidence versus manual baseline
 5. Wave E - dead settings and old code purge
    - remove stale strict-toggle references
-   - remove remaining compatibility notes that imply in-core fallback ownership
+   - confirm no remaining compatibility notes imply in-core fallback ownership
    - archive dead code with evidence and commit per wave
 
 Stop-the-line for every wave remains mandatory: runtime proof, command proof,

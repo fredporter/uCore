@@ -19,9 +19,9 @@ Ship a stable core host shell with clean extension/plugin boundaries, zero legac
 
 ## Gate 1 - Governance and Cleanup
 
-- [ ] Remove obsolete compatibility notes that imply in-core fallback ownership
-- [ ] Remove dead/legacy settings references from active docs and scripts
-- [ ] Validate no forbidden legacy modules reappear in uCore host tree
+- [x] Remove obsolete compatibility notes that imply in-core fallback ownership
+- [x] Remove dead/legacy settings references from active docs and scripts
+- [x] Validate no forbidden legacy modules reappear in uCore host tree
 - [x] Record cleanup evidence bundle in `docs/handovers/CLINE_REPO_SPLIT_HANDOFF.md`
 
 ## Gate 1B - Surface Ownership Cleanup
@@ -40,7 +40,7 @@ Ship a stable core host shell with clean extension/plugin boundaries, zero legac
 
 ## Wave F - Identity, Story Forms, Publishing
 
-- [ ] Finalize capability map: `identity_gateway`, `wordpress_gateway`
+- [x] Finalize capability map: `identity_gateway`, `wordpress_gateway`
 - [ ] Expand `udos-identity` API contracts for story progression + variables
 - [ ] Add privacy/share rules with expiry checks
 - [ ] Add WordPress mapping adapters for user meta/taxonomy
