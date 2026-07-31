@@ -98,6 +98,7 @@ def _check_registry_routes() -> None:
         "/api/identity/variables",
         "/api/identity/stories",
         "/api/identity/stories/{story_id}",
+        "/api/identity/privacy/{resource_id}",
     }
     missing_routes = sorted(required_routes - paths)
     if missing_routes:

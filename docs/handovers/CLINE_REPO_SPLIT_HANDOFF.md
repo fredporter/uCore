@@ -436,4 +436,12 @@ If any gate fails: stop, fix the blocker, re-run proof, then continue.
 3. uCore split-repo smoke now requires variables and story route parity.
 4. Owner-repo commit: `b0161b3`.
 
+### Privacy/share extension
+
+1. Added `GET|PUT /api/identity/privacy/{resource_id}`.
+2. Policies support `private`, `shared`, and `public` visibility with ISO-8601 expiry.
+3. Expired shared/public policies resolve to `effective_visibility=private` and `share_active=false`.
+4. Owner-repo tests passed (`5` tests); commit: `891ea27`.
+5. uCore split-repo smoke requires privacy route parity.
+
 The important outcome is architectural clarity and actual separation, not feature expansion. Treat this as both a repo cleanup and a uDev autonomous execution benchmark.
