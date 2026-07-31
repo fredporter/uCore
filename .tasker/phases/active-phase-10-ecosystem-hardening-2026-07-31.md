@@ -43,8 +43,8 @@ Ship a stable core host shell with clean extension/plugin boundaries, zero legac
 - [x] Finalize capability map: `identity_gateway`, `wordpress_gateway`
 - [x] Expand `udos-identity` API contracts for story progression + variables
 - [x] Add privacy/share rules with expiry checks
-- [ ] Add WordPress mapping adapters for user meta/taxonomy
-- [ ] Add route parity + preflight validation for all new identity routes
+- [x] Add WordPress mapping adapters for user meta/taxonomy
+- [x] Add route parity + preflight validation for all new identity routes
 
 ## Wave G - Google Plugin Foundation
 

@@ -83,11 +83,15 @@ def _check_registry_routes() -> None:
         raise RuntimeError(f"Expected loaded extensions missing: {missing_ext}")
 
     paths: set[str] = set()
+    route_pairs: set[tuple[str, str]] = set()
     for route in app.router.routes():
         info = route.get_info()
         p = info.get("path") or info.get("formatter")
         if p:
             paths.add(p)
+            method = str(getattr(route, "method", "")).upper()
+            if method != "HEAD":
+                route_pairs.add((method, p))
 
     required_routes = {
         "/api/workflows",
@@ -99,12 +103,36 @@ def _check_registry_routes() -> None:
         "/api/identity/stories",
         "/api/identity/stories/{story_id}",
         "/api/identity/privacy/{resource_id}",
+        "/api/identity/wordpress/map-outbound",
+        "/api/identity/wordpress/map-inbound",
     }
     missing_routes = sorted(required_routes - paths)
     if missing_routes:
         raise RuntimeError(f"Expected routes missing: {missing_routes}")
 
-    print(f"Registry route smoke passed (route_count={len(paths)})")
+    required_identity_route_pairs = {
+        ("GET", "/api/identity/plugin/profile"),
+        ("GET", "/api/identity/plugin/session"),
+        ("GET", "/api/identity/variables"),
+        ("PUT", "/api/identity/variables"),
+        ("POST", "/api/identity/stories"),
+        ("GET", "/api/identity/stories/{story_id}"),
+        ("PATCH", "/api/identity/stories/{story_id}"),
+        ("GET", "/api/identity/privacy/{resource_id}"),
+        ("PUT", "/api/identity/privacy/{resource_id}"),
+        ("POST", "/api/identity/wordpress/map-outbound"),
+        ("POST", "/api/identity/wordpress/map-inbound"),
+    }
+    missing_identity_pairs = sorted(required_identity_route_pairs - route_pairs)
+    if missing_identity_pairs:
+        raise RuntimeError(
+            f"Expected identity method/path pairs missing: {missing_identity_pairs}"
+        )
+
+    print(
+        "Registry route smoke passed "
+        f"(route_count={len(paths)}, identity_pairs={len(required_identity_route_pairs)})"
+    )
 
 
 def main() -> int:

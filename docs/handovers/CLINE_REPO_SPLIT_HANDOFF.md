@@ -444,4 +444,14 @@ If any gate fails: stop, fix the blocker, re-run proof, then continue.
 4. Owner-repo tests passed (`5` tests); commit: `891ea27`.
 5. uCore split-repo smoke requires privacy route parity.
 
+### WordPress mapping + final readiness
+
+1. Added pure bidirectional mapping adapters for WordPress user fields, `udos_` metadata, and `udos_group` taxonomy.
+2. Added `POST /api/identity/wordpress/map-outbound` and `POST /api/identity/wordpress/map-inbound`.
+3. Allowlist tests prove password/role and non-uDos metadata do not cross the mapping boundary.
+4. Owner-repo tests passed (`7` tests); commit: `7d5684b`.
+5. Split-repo smoke passed with `236` routes and all `11` identity method/path pairs.
+6. Configured runtime preflight returned `200`, `ready=true`, and `repair_required=false` for both `identity_gateway` and `wordpress_gateway`.
+7. Representative configured-runtime routes `/api/identity/variables` and `/api/identity/plugin/profile` returned `200`.
+
 The important outcome is architectural clarity and actual separation, not feature expansion. Treat this as both a repo cleanup and a uDev autonomous execution benchmark.
