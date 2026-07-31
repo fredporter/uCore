@@ -418,4 +418,22 @@ If any gate fails: stop, fix the blocker, re-run proof, then continue.
 
 ## Notes for the agent
 
+## Evidence Bundle — 2026-07-31 (Wave F: Identity Story + Variables Slice)
+
+### Owner-repo changes
+
+1. `udos-identity` now owns persistent profile variables at `GET|PUT /api/identity/variables`.
+2. `udos-identity` now owns story creation and progression at:
+   - `POST /api/identity/stories`
+   - `GET /api/identity/stories/{story_id}`
+   - `PATCH /api/identity/stories/{story_id}`
+3. Storage is isolated behind `IdentityStoryStore` and supports `UDOS_IDENTITY_DATA_FILE` overrides.
+
+### Proof
+
+1. `python3 -m unittest discover -s tests -v` passed (`3` tests).
+2. `python3 -m compileall -q udos_identity tests` passed.
+3. uCore split-repo smoke now requires variables and story route parity.
+4. Owner-repo commit: `b0161b3`.
+
 The important outcome is architectural clarity and actual separation, not feature expansion. Treat this as both a repo cleanup and a uDev autonomous execution benchmark.

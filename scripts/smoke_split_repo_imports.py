@@ -95,6 +95,9 @@ def _check_registry_routes() -> None:
         "/api/ceefax/pages",
         "/api/budget/plugin/status",
         "/api/identity/plugin/profile",
+        "/api/identity/variables",
+        "/api/identity/stories",
+        "/api/identity/stories/{story_id}",
     }
     missing_routes = sorted(required_routes - paths)
     if missing_routes:
