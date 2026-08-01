@@ -248,7 +248,8 @@ class HistoryService:
     def get_stats(self, lane: str | None = None) -> dict:
         """Return history statistics."""
         base = (
-            "FROM actions" + (f" WHERE lane = '{lane}'" if lane else "")
+            f"FROM actions WHERE lane = '{lane}'" if lane
+            else "FROM actions WHERE 1=1"
         )
         total = self._conn.execute(
             f"SELECT COUNT(*) as c {base}"
