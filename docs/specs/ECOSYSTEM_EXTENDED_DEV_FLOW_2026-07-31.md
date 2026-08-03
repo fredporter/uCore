@@ -14,6 +14,9 @@ Purpose: keep core infrastructure simple and robust while enabling focused plugi
 4. External plugin repos exist and register via manifest discovery:
    - `udos-budget`
    - `udos-identity`
+   - `udos-google`
+   - `udos-dreamscape`
+   - `udos-publishing` (scaffolded baseline)
 5. Workflow/knowledge/runtime boundaries are already hard-cut to external providers (`uFlow`, `uKnowledge`, `ucode_runtime`).
 
 ### 1.2 Stability snapshot
@@ -55,19 +58,16 @@ Purpose: keep core infrastructure simple and robust while enabling focused plugi
 5. `uFlow` and `uKnowledge`
    - Only if workflow/knowledge orchestration endpoints need bridge updates for Dreamscape.
 
-### 2.3 New repos to create
+### 2.3 Plugin repos baseline (scaffolded)
 
-1. `udos-google`
-   - Canonical name for the Google AI/Workspace plugin (brief alias: GooglePlugin).
-   - Owns Gemini/Gems/Agent Studio and Workspace sync APIs.
-2. `udos-dreamscape`
-   - Owns personalized journey, proactive briefing, and Chronos-driven orchestration.
-3. `udos-publishing` (optional split)
-   - If publishing/review scope becomes large enough, keep it independent from `udos-identity`.
+1. `udos-google` exists with baseline scaffold and Wave G contracts.
+2. `udos-dreamscape` exists with baseline scaffold and Wave H contracts.
+3. `udos-publishing` exists with baseline scaffold and publishing boundary ownership.
+4. `udos-publishing` remains independent from `udos-identity` once publishing/review scope is exercised beyond the local identity flow.
 
-Repo-creation rule:
+Repo-scaffold rule:
 
-1. Start with minimal manifest + route registrar + health endpoint + tests.
+1. Start with minimal manifest + route registrar (or equivalent route contract surface) + health endpoint + tests.
 2. Add capability only after preflight contract exists in uCore.
 
 ## 3. Target Ownership Model
@@ -112,6 +112,14 @@ uCore does not own:
    - Interest parsing, mission generation, proactive briefing, Chronos schedule hooks.
 4. `udos-publishing` (optional)
    - Draft/review/publish flow and external target registry.
+
+### 3.3 Publishing and place mirror direction
+
+1. `udo.guide` is the canonical publishing guide and remote-facing documentation entrypoint.
+2. `udo.place` is the canonical place mirror for local environment, location, and presence-aware publishing state.
+3. `udos-publishing` owns the cloud mirror layer that maps local drafts, frontmatter, tags, location hints, beacons, and portals into published targets.
+4. The publishing layer must support verification and shareable references without pulling publishing logic back into `uCore` or `udos-identity`.
+5. Local shell surfaces may present publishing/place state, but ownership stays in the publishing repo/plugin boundary.
 
 ## 4. Extended Dev Flow (Anti-Mess)
 
@@ -177,6 +185,18 @@ Exit criteria:
 1. Gateway auth/content/permission preflight passes.
 2. End-to-end story submission and content retrieval proof exists.
 
+### Sprint 2B (Publishing and Place Mirror, 1 week)
+
+1. Confirm `udos-publishing` as the owning repo for cloud mirror publishing and review state.
+2. Add frontmatter/tagging/location/beacon/portal contracts for `udo.guide` and `udo.place`.
+3. Add verification and shareable target references for publishing outputs.
+4. Add preflight and route parity checks for publishing/place readiness.
+
+Exit criteria:
+
+1. Publishing/place routes and health checks pass parity tests.
+2. Cloud mirror ownership is documented and isolated from core host shell logic.
+
 ### Sprint 3 (Google Plugin Foundation, 1 week)
 
 1. Create `udos-google` repo with manifest + health + basic Gemini chat tool.
@@ -210,6 +230,17 @@ Exit criteria:
 1. Control panel reflects all new capabilities with accurate status.
 2. Stop-the-line bundle complete for each plugin wave.
 
+### Sprint 6 (Final Dev-Round and Closure, 1 week)
+
+1. Run the final autonomous dev-round after Waves G, H, and I land.
+2. Consolidate evidence, repairs, and release notes into the canonical handoff.
+3. Commit and push all remaining planning, docs, and backlog updates.
+
+Exit criteria:
+
+1. Final round artifacts and repair log are published.
+2. Phase handoff is closed with no open wave items.
+
 ## 6. First-Cut Backlog by Repo
 
 ### uCore
@@ -217,6 +248,7 @@ Exit criteria:
 1. Add capability keys:
    - `identity_gateway`
    - `wordpress_gateway`
+   - `publishing_mirror`
    - `google_ai_bridge`
    - `dreamscape_orchestration`
 2. Add preflight endpoints and failure-repair hints.
@@ -233,6 +265,12 @@ Exit criteria:
 1. Add setup-story schema, step progression, and submissions.
 2. Add privacy rules and share expiry validation.
 3. Add WordPress user/meta/group mapping adapters.
+
+### udos-publishing (new)
+
+1. Manifest + route registrar + health.
+2. Cloud mirror contract for guide/place publishing state.
+3. Frontmatter, tagging, location, beacon, and portal mapping slice.
 
 ### udos-google (new)
 
@@ -256,6 +294,7 @@ Exit criteria:
 
 ## 8. Immediate Next Actions
 
-1. Approve repo names and ownership split (`udos-google`, `udos-dreamscape`, optional `udos-publishing`).
-2. Scaffold new repos with minimal manifests and health routes.
-3. Start Sprint 1 in `udos-identity` while Sprint 0 contract work lands in `uCore` and `uDev`.
+1. Freeze the post-restructure scaffold inventory as the baseline for the next plan.
+2. Complete remaining Wave F2 publishing/place implementation slices against the existing `udos-publishing` scaffold.
+3. Commit and push current planning/tasker documentation updates.
+4. Start the new execution plan from this scaffolded ecosystem baseline.

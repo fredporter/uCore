@@ -47,5 +47,30 @@
     "repos": ["udos-identity"],
     "variables": [],
     "secrets": []
+  },
+  "publishing_mirror": {
+    "extensions": ["udos-publishing"],
+    "tools": [],
+    "repos": ["udos-publishing"],
+    "variables": [],
+    "secrets": []
+  },
+  "google_ai_bridge": {
+    "extensions": ["udos-google"],
+    "tools": [],
+    "repos": ["udos-google"],
+    "variables": [],
+    "secrets": [
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "GOOGLE_REFRESH_TOKEN"
+    ]
+  },
+  "dreamscape_orchestration": {
+    "extensions": ["udos-dreamscape"],
+    "tools": [],
+    "repos": ["udos-dreamscape"],
+    "variables": ["CHRONOS_ENDPOINT", "CHRONOS_TIMEZONE"],
+    "secrets": ["CHRONOS_API_KEY"]
   }
 }

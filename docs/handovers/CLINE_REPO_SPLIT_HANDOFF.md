@@ -455,3 +455,94 @@ If any gate fails: stop, fix the blocker, re-run proof, then continue.
 7. Representative configured-runtime routes `/api/identity/variables` and `/api/identity/plugin/profile` returned `200`.
 
 The important outcome is architectural clarity and actual separation, not feature expansion. Treat this as both a repo cleanup and a uDev autonomous execution benchmark.
+
+## Evidence Bundle — 2026-08-02 (Wave G/H/I Integration Close)
+
+### Scope completed in this round
+
+1. Wave G:
+   - Implemented OAuth/token ownership contract in `udos-google`.
+   - Implemented Gemini/Gems chat thin slice with session-aware turns.
+   - Implemented Vault-docs-to-Drive thin mirror sync with revision and checksum records.
+2. Wave H:
+   - Implemented mission intake/task scaffolding and daily briefing baseline routes in `udos-dreamscape`.
+   - Implemented Chronos contract readiness checks (required variables + secret).
+3. Wave I:
+   - Added capability readiness cards in Developer Surface Control panel.
+   - Added preflight-gated controls (disabled until readiness is green).
+   - Added MCP bridge tools for single and batch capability readiness queries.
+   - Removed stale per-panel API base declarations by normalizing to shared `api/base` imports.
+
+### Commands executed
+
+1. `cd /Users/fredbook/Code/udos-google && python3 -m unittest discover`
+2. `cd /Users/fredbook/Code/udos-dreamscape && python3 -m unittest discover`
+3. `cd /Users/fredbook/Code/uDev/mcp-bridge && npm run build`
+4. `cd /Users/fredbook/Code/uDev/developer-surface && npm run build`
+5. `cd /Users/fredbook/Code/uCore && python3 scripts/audit_duplicate_routes.py && python3 scripts/validate_extension_manifests.py && python3 scripts/validate_legacy_settings_cleanup.py && python3 scripts/validate_capability_requirements.py`
+
+### Runtime and gate proof
+
+| Check                             | Result                              |
+| --------------------------------- | ----------------------------------- |
+| udos-google unit tests            | pass (`3` tests)                    |
+| udos-dreamscape unit tests        | pass (`3` tests)                    |
+| mcp-bridge build                  | pass                                |
+| developer-surface build           | pass                                |
+| duplicate route audit             | `0` duplicates                      |
+| extension manifest validator      | pass                                |
+| legacy settings cleanup validator | pass                                |
+| capability requirements validator | pass (`Discovered 7`, `Declared 9`) |
+
+### Capability preflight delta
+
+1. Added `google_ai_bridge` requirements with secrets:
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
+   - `GOOGLE_REFRESH_TOKEN`
+2. Added `dreamscape_orchestration` requirements with:
+   - variables: `CHRONOS_ENDPOINT`, `CHRONOS_TIMEZONE`
+   - secret: `CHRONOS_API_KEY`
+
+### Residual risk and next entry criteria
+
+1. `udos-google` and `udos-dreamscape` are currently local directories without git history in this workspace snapshot; phase closure should not proceed until repo initialization or remote linkage is confirmed.
+2. Wave J (final dev-round) should run full runbook R0 gate set including split-repo packaging and docs non-regression checks before final handoff close.
+
+### Final closure notes artifact
+
+1. Final repairs log, release notes, and rollback notes are published in:
+   - `docs/handovers/PHASE10_FINAL_CLOSURE_NOTES_2026-08-03.md`
+
+## Restructure Scaffold Checkpoint — 2026-08-03
+
+1. Confirmed core split repos exist and are available as execution targets:
+   - `uCore`, `uDev`, `uFlow`, `uKnowledge`, `uCode`
+2. Confirmed plugin repo baseline exists for:
+   - `udos-budget`, `udos-identity`, `udos-google`, `udos-dreamscape`, `udos-publishing`
+3. Added missing `udos-publishing/ucore-extension.json` to complete manifest-level plugin shape.
+4. This checkpoint intentionally marks structure as ready while allowing feature backlog items to remain open for the next plan.
+
+## Evidence Bundle — 2026-08-03 (Wave F2 Scaffold + Autonomous Metrics)
+
+### Scaffold closure
+
+1. Added `publishing_mirror` capability contract in `uCore/config/capability_requirements.json`.
+2. Added missing plugin manifest: `udos-publishing/ucore-extension.json`.
+3. Added scaffold checks:
+   - `scripts/check_wavef2_publishing_route_contract.py`
+   - `scripts/probe_wavef2_publishing_preflight.py`
+
+### Command proof
+
+1. `python3 scripts/check_wavef2_publishing_route_contract.py`
+2. `python3 scripts/probe_wavef2_publishing_preflight.py`
+3. `bash scripts/ai_stack_health_check.sh`
+4. `POST /api/skills/route_task/run` with `complexity=low`, `prefer_provider=ollama`, `confirm=true`
+
+### Runtime proof
+
+1. Route contract scaffold check passed (`ok: true`).
+2. Publishing capability preflight probe returned expected contract-valid `412` (extension registration pending).
+3. Low-cost route returned `200` and selected `ollama / qwen2.5-coder:3b`.
+4. Broad-strokes diagnostics returned `Pass: 12`, `Warn: 3`, `Fail: 0`.
