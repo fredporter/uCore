@@ -7,6 +7,31 @@ loaded, and registered at runtime. This enables a clean repo split where
 workflow, knowledge, and domain plugins live in separate repositories
 while uCore remains the host platform core.
 
+## Terminology (Extension vs Plugin)
+
+In this architecture, **extension** is the top-level runtime contract and
+**plugin** is one extension kind.
+
+1. **Extension**
+   - Any component discoverable/loadable by uCore via `ucore-extension.json`
+     and the extension registry.
+   - Can be required (`optional=false`) or optional (`optional=true`).
+   - Can represent engine-like services (`workflow`, `knowledge`) or
+     domain features (`plugin`).
+2. **Plugin**
+   - A subtype of extension (`kind: plugin`).
+   - Intended for optional domain capabilities, typically in dedicated
+     `udos-*` repositories.
+   - Usually capability-gated through preflight and readiness checks.
+
+Practical classification used now:
+
+1. `uflow` and `uknowledge` are **required extensions** (not plugins).
+2. `udos-*` repos are **plugin extensions**.
+3. Surface projects such as Groovebox, HomeNest, and SonicScrewdriver can be
+   treated as independent project surfaces that may consume uCore, but are not
+   automatically extension manifests unless explicitly onboarded.
+
 ## Design Principles
 
 1. **Lightweight** — no plugin framework dependency. A dataclass manifest
@@ -82,6 +107,14 @@ python3 scripts/validate_extension_manifests.py
 | `plugin`    | Optional udos-\* domain capability       |
 | `surface`   | UI surface served by uCore               |
 | `tool`      | Dev tool integration (docker, git, etc.) |
+
+### Distinction Matrix
+
+| Scope Type | Typical Kind | Runtime Coupling to uCore | Naming Pattern | Examples |
+| ---------- | ------------ | ------------------------- | -------------- | -------- |
+| Core companion extension | `workflow`, `knowledge`, `tool`, `surface` | often required for active routes | no strict prefix | `uflow`, `uknowledge` |
+| Domain plugin extension | `plugin` | usually optional and preflight-gated | `udos-*` | `udos-identity`, `udos-google`, `udos-dreamscape`, `udos-publishing` |
+| Independent project/surface | n/a unless onboarded | may consume uCore but can evolve independently | project-specific | Groovebox, HomeNest, SonicScrewdriver |
 
 ## Discovery
 
@@ -245,3 +278,29 @@ Wave execution guidance:
 
 Execution should prefer explicit repair flows over fallback behavior for
 required capability paths.
+
+## uVector Position (Current)
+
+`uVector` is currently best treated as an **extension-class engine candidate**
+aligned with uCode2/uCode3-era rendering workflows, not as a `udos-*` domain
+plugin.
+
+Evidence from `uVector` repository:
+
+1. `Cargo.toml` and crate metadata position it as `uvcore`, a universal
+  vector conversion engine.
+2. `src/lib.rs` explicitly describes SVG-to-multiple-target conversion,
+  including grid/cell and ASCII/teletext outputs.
+3. `docs/NANO_BANANA_UVECTOR_SUMMARY.md` describes likely integration with
+  Gemini/Nano-Banana style image generation workflows.
+
+Current recommended interpretation:
+
+1. uVector aligns with future uCode2/uCode3 and grid-runtime rendering
+  concerns.
+2. uVector may also be consumed by Google/Nano-Banana image-generation flows
+  as a conversion/post-processing engine.
+3. uVector is a strong fit for vector/font asset conversion into bitmap/grid
+  uCode-compatible formats.
+4. Do not force immediate migration; document as extension-class and onboard
+  via manifest when integration wave starts.
