@@ -42,6 +42,10 @@ from app.menu.api_helpers import (
     is_uihub_alive,
     open_url,
 )
+from app.clipboard.clipboard_buffer import (
+    add_clipboard_item,
+    copy_text_to_clipboard,
+)
 
 # Import snack registry and plugins
 from app.menu.backend_manager import ensure_backend_running
@@ -138,6 +142,17 @@ def _ensure_frontend_running() -> bool:
 def _is_snackmachine_installed() -> bool:
     """Check whether SnackMachine extension appears locally installed."""
     return (SNACKMACHINE_REPO_DIR / "pyproject.toml").exists()
+
+
+def _clipboard_preview_label(item: dict, max_len: int = 60) -> str:
+    """Build a short, single-line preview label for a clipboard item."""
+    text = str(item.get("content") or "")
+    text = " ".join(text.split())
+    if not text:
+        text = "(empty)"
+    if len(text) > max_len:
+        text = f"{text[:max_len - 3]}..."
+    return text
 
 
 def _installed_extensions() -> list[dict[str, str]]:
@@ -344,9 +359,56 @@ class UnifiedMenuDelegate(NSObject):
             self._menu.addItem_(item)
 
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "🏝️ Clipboard", "showClipboardPopover:", "v",
+            "🏝️ Clipboard", None, "v",
         )
         item.setTarget_(self)
+        clipboard_submenu = NSMenu.alloc().init()
+
+        recent: list[dict] = []
+        if self._clipboard_snack:
+            recent, _saved = self._clipboard_snack.get_items()
+
+        if recent:
+            title_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                "Recent Copies",
+                None,
+                "",
+            )
+            title_item.setEnabled_(False)
+            clipboard_submenu.addItem_(title_item)
+
+            for clip_item in recent[:10]:
+                clip_id = str(clip_item.get("id") or "")
+                if not clip_id:
+                    continue
+                label = _clipboard_preview_label(clip_item)
+                menu_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                    label,
+                    "selectClipboardItem:",
+                    "",
+                )
+                menu_item.setTarget_(self)
+                menu_item.setRepresentedObject_(clip_id)
+                clipboard_submenu.addItem_(menu_item)
+        else:
+            empty_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                "No clipboard history yet",
+                None,
+                "",
+            )
+            empty_item.setEnabled_(False)
+            clipboard_submenu.addItem_(empty_item)
+
+        clipboard_submenu.addItem_(NSMenuItem.separatorItem())
+        open_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "Open Full Clipboard History",
+            "showClipboardPopover:",
+            "",
+        )
+        open_item.setTarget_(self)
+        clipboard_submenu.addItem_(open_item)
+
+        item.setSubmenu_(clipboard_submenu)
         self._menu.addItem_(item)
 
         extensions = _installed_extensions()
@@ -495,6 +557,41 @@ class UnifiedMenuDelegate(NSObject):
         _ensure_frontend_running()
         # Simplified: just open the S310 clipboard page
         open_url("http://localhost:5175/s310")
+
+    def selectClipboardItem_(self, sender):
+        """Promote selected history item back into active system clipboard."""
+        item_id = str(sender.representedObject() or "").strip()
+        if not item_id:
+            return
+
+        recent: list[dict] = []
+        if self._clipboard_snack:
+            recent, _saved = self._clipboard_snack.get_items()
+
+        selected = next(
+            (item for item in recent if str(item.get("id") or "") == item_id),
+            None,
+        )
+        if not selected:
+            log.warning("Clipboard item not found in cached list: %s", item_id)
+            return
+
+        content = str(selected.get("content") or "")
+        try:
+            copy_text_to_clipboard(content)
+            add_clipboard_item(
+                source="menu-select",
+                type=str(selected.get("type") or "text"),
+                content=content,
+                metadata={"selected_item_id": item_id},
+            )
+            log.info("Clipboard item promoted: %s", item_id)
+        except Exception as exc:
+            log.warning(
+                "Failed to promote clipboard item %s: %s",
+                item_id,
+                exc,
+            )
 
     def toggleStartAtLogin_(self, _sender):
         """Toggle start at login."""
