@@ -4,10 +4,14 @@
     <div class="editor-panel__toolbar">
       <div class="editor-panel__toolbar-left">
         <UIcon name="article" />
-        <span class="editor-panel__title">{{ title || 'Untitled' }}</span>
+        <span class="editor-panel__title">{{ title || "Untitled" }}</span>
       </div>
       <div class="editor-panel__toolbar-center">
-        <span v-if="showEditor" class="editor-panel__pane-tab" :class="{ 'editor-panel__pane-tab--active': true }">
+        <span
+          v-if="showEditor"
+          class="editor-panel__pane-tab"
+          :class="{ 'editor-panel__pane-tab--active': true }"
+        >
           <UIcon name="edit" />
           <span>Edit</span>
         </span>
@@ -28,7 +32,11 @@
         <button
           v-if="showEditor"
           class="editor-panel__nav-btn"
-          :title="paneLayout === 'split' ? 'Switch to stacked layout' : 'Switch to side-by-side layout'"
+          :title="
+            paneLayout === 'split'
+              ? 'Switch to stacked layout'
+              : 'Switch to side-by-side layout'
+          "
           @click="emit('toggle-layout')"
         >
           <UIcon :name="paneLayout === 'split' ? 'view_column' : 'view_day'" />
@@ -62,10 +70,11 @@
       <!-- Editing Pane — appears on the left when pencil is toggled -->
       <div v-if="showEditor" class="editor-panel__edit-pane">
         <div class="editor-panel__pane-body">
-          <MarkdownEditor
+          <BangleEditor
             v-model="localContent"
             :preview="false"
             :toolbars="editorToolbars"
+            :read-only="readOnly"
             @save="handleSave"
             @change="onContentChange"
           />
@@ -104,61 +113,90 @@
  * @emits {void} toggle-editor - Toggle edit pane
  * @emits {void} toggle-layout - Toggle pane layout (split ↔ stacked)
  */
-import { ref, watch, withDefaults } from 'vue'
-import UIcon from '../atoms/UIcon.vue'
-import MarkdownEditor from '../molecules/editor/MarkdownEditor.vue'
-import MarkdownPreview from '../molecules/editor/MarkdownPreview.vue'
+import { ref, watch, withDefaults } from "vue";
+import UIcon from "../atoms/UIcon.vue";
+import BangleEditor from "../molecules/editor/BangleEditor.vue";
+import MarkdownPreview from "../molecules/editor/MarkdownPreview.vue";
 
 // ─── Props ───────────────────────────────────────────────────────────
 interface Props {
-  content?: string
-  title?: string
-  readOnly?: boolean
-  showEditor?: boolean
-  paneLayout?: 'split' | 'stacked'
+  content?: string;
+  title?: string;
+  readOnly?: boolean;
+  showEditor?: boolean;
+  paneLayout?: "split" | "stacked";
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  content: '',
-  title: 'Untitled',
+  content: "",
+  title: "Untitled",
   readOnly: false,
   showEditor: false,
-  paneLayout: 'split',
-})
+  paneLayout: "split",
+});
 
 const emit = defineEmits<{
-  'update:content': [value: string]
-  save: [value: string]
-  close: []
-  'toggle-editor': []
-  'toggle-layout': []
-}>()
+  "update:content": [value: string];
+  save: [value: string];
+  close: [];
+  "toggle-editor": [];
+  "toggle-layout": [];
+}>();
 
 // ─── State ───────────────────────────────────────────────────────────
-const localContent = ref(props.content)
-const instanceId = Math.random().toString(36).slice(2, 8)
+const localContent = ref(props.content);
+const instanceId = Math.random().toString(36).slice(2, 8);
 
-// ─── Toolbar config for the CodeMirror editor ────────────────────────
+// ─── Toolbar metadata retained for compatibility with editor adapters ──
 const editorToolbars = [
-  'bold', 'underline', 'italic', 'strikeThrough', '-',
-  'title', 'sub', 'sup', 'quote', 'unorderedList', 'orderedList', 'task', '-',
-  'codeRow', 'code', 'link', 'image', 'table', 'mermaid', 'katex', '-',
-  'revoke', 'next', 'save', '=', 'prettier', 'pageFullscreen', 'fullscreen', 'catalog', 'github',
-]
+  "bold",
+  "underline",
+  "italic",
+  "strikeThrough",
+  "-",
+  "title",
+  "sub",
+  "sup",
+  "quote",
+  "unorderedList",
+  "orderedList",
+  "task",
+  "-",
+  "codeRow",
+  "code",
+  "link",
+  "image",
+  "table",
+  "mermaid",
+  "katex",
+  "-",
+  "revoke",
+  "next",
+  "save",
+  "=",
+  "prettier",
+  "pageFullscreen",
+  "fullscreen",
+  "catalog",
+  "github",
+];
 
 // ─── Sync props ──────────────────────────────────────────────────────
-watch(() => props.content, (val) => {
-  localContent.value = val
-})
+watch(
+  () => props.content,
+  (val) => {
+    localContent.value = val;
+  },
+);
 
 // ─── Handlers ────────────────────────────────────────────────────────
 function onContentChange(value: string) {
-  localContent.value = value
-  emit('update:content', value)
+  localContent.value = value;
+  emit("update:content", value);
 }
 
 function handleSave() {
-  emit('save', localContent.value)
+  emit("save", localContent.value);
 }
 </script>
 
@@ -242,7 +280,9 @@ function handleSave() {
   color: var(--usx-color-on-surface-muted);
   cursor: pointer;
   font-size: 1.25em;
-  transition: color var(--usx-transition-fast), background var(--usx-transition-fast);
+  transition:
+    color var(--usx-transition-fast),
+    background var(--usx-transition-fast);
 }
 
 .editor-panel__nav-btn:hover {

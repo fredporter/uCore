@@ -26,6 +26,10 @@ class UserWorkflowApiTest(AioHTTPTestCase):
             "/api/user/workflow/reset",
             mod.handle_user_workflow_reset,
         )
+        app.router.add_post(
+            "/api/user/workflow/import-markdown",
+            mod.handle_user_workflow_import_markdown,
+        )
         return app
 
     async def test_status_degraded_when_appflowy_discovery_fails(self):
@@ -153,3 +157,96 @@ class UserWorkflowApiTest(AioHTTPTestCase):
                 assert "- task:" in text
                 assert "- binder:" in text
                 assert "- tags:" in text
+
+    async def test_import_markdown_writes_to_binder_docs(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            user_vault = root / "Vault"
+
+            with patch.object(
+                mod,
+                "VAULT_LAYERS",
+                [
+                    {
+                        "id": "user",
+                        "path": str(user_vault),
+                        "permissions": "read_write",
+                    },
+                ],
+            ):
+                resp = await self.client.post(
+                    "/api/user/workflow/import-markdown",
+                    json={
+                        "content": "hello from import",
+                        "source_format": "text",
+                        "title": "Hello Import",
+                        "binder": "Sandbox",
+                    },
+                )
+
+            assert resp.status == 200
+            payload = await resp.json()
+            file_path = Path(payload["path"])
+            assert file_path.exists()
+            text = file_path.read_text(encoding="utf-8")
+            assert "import_plugin: builtin.text_passthrough" in text
+            assert "hello from import" in text
+
+    async def test_import_markdown_rejects_read_only_layer(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            public_vault = root / "Public"
+
+            with patch.object(
+                mod,
+                "VAULT_LAYERS",
+                [
+                    {
+                        "id": "public",
+                        "path": str(public_vault),
+                        "permissions": "read_only",
+                    },
+                ],
+            ):
+                resp = await self.client.post(
+                    "/api/user/workflow/import-markdown",
+                    json={
+                        "content": "# doc",
+                        "source_format": "markdown",
+                        "title": "Public import",
+                        "vault_layer": "public",
+                    },
+                )
+
+            assert resp.status == 403
+            payload = await resp.json()
+            assert "read-only" in payload["error"]
+
+    async def test_import_markdown_auto_detects_json(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            user_vault = root / "Vault"
+
+            with patch.object(
+                mod,
+                "VAULT_LAYERS",
+                [
+                    {
+                        "id": "user",
+                        "path": str(user_vault),
+                        "permissions": "read_write",
+                    },
+                ],
+            ):
+                resp = await self.client.post(
+                    "/api/user/workflow/import-markdown",
+                    json={
+                        "content": '{"alpha":1,"beta":2}',
+                        "title": "JSON Import",
+                    },
+                )
+
+            assert resp.status == 200
+            payload = await resp.json()
+            assert payload["detected_source_format"] == "json"
+            assert payload["import_plugin"] == "builtin.json_fenced"

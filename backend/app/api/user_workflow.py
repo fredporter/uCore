@@ -10,11 +10,13 @@ from pathlib import Path
 from typing import Any
 
 from aiohttp import web
+import yaml
 
 from app.api.vault_api import VAULT_LAYERS
 from app.core.settings import settings
 from app.knowledge.appflowy import list_workspaces
 from app.knowledge.local_first import discover_databases
+from app.services.markdown_import_pipeline import convert_content_to_markdown
 from app.services.tasker_bridge import (
     normalize_priority,
     normalize_status,
@@ -89,6 +91,53 @@ def _appflowy_status() -> dict[str, Any]:
 
 def _utc_stamp() -> str:
     return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _safe_relative_path(root: Path, relative: str) -> Path:
+    candidate = (root / relative).resolve()
+    resolved_root = root.resolve()
+    if resolved_root != candidate and resolved_root not in candidate.parents:
+        raise ValueError("Path escapes vault root")
+    return candidate
+
+
+def _vault_layer_by_id(layer_id: str) -> dict[str, Any] | None:
+    for layer in VAULT_LAYERS:
+        if layer.get("id") == layer_id:
+            return layer
+    return None
+
+
+def _safe_binder_name(raw: str) -> str:
+    binder = (raw or "").strip() or DEFAULT_USER_BINDER
+    if any(part in binder for part in ("..", "/", "\\")):
+        raise ValueError("Invalid binder name")
+    return binder
+
+
+def _build_import_filename(title: str, filename: str) -> str:
+    if filename:
+        candidate = filename.strip()
+        if any(part in candidate for part in ("..", "/", "\\")):
+            raise ValueError("Invalid filename")
+        if not candidate.lower().endswith(".md"):
+            candidate += ".md"
+        return candidate
+
+    base = slugify(title.strip() or "imported-document")
+    return f"{base}-{_utc_stamp().lower()}.md"
+
+
+def _render_import_document(frontmatter: dict[str, Any], markdown: str) -> str:
+    front = yaml.safe_dump(
+        frontmatter,
+        sort_keys=False,
+        allow_unicode=False,
+    ).strip()
+    body = markdown.strip()
+    if not body:
+        body = "Imported document has no body."
+    return f"---\n{front}\n---\n\n{body}\n"
 
 
 def _archive_base_dir() -> Path:
@@ -652,5 +701,121 @@ async def handle_user_workflow_seed(request: web.Request) -> web.Response:
                 "vault_docs": seeded_vault_docs,
                 "workflows": seeded_workflows,
             },
+        },
+    )
+
+
+async def handle_user_workflow_import_markdown(
+    request: web.Request,
+) -> web.Response:
+    """POST /api/user/workflow/import-markdown.
+
+    Canonical import lane: any supported source format -> markdown -> vault/binder.
+    """
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        return web.json_response(
+            {"error": "Invalid JSON payload"},
+            status=400,
+        )
+
+    content = str(body.get("content") or "")
+    if not content.strip():
+        return web.json_response(
+            {"error": "content is required"},
+            status=400,
+        )
+
+    source_format = str(body.get("source_format") or "auto")
+    title = str(body.get("title") or "Imported Document").strip()
+    filename = str(body.get("filename") or "").strip()
+    binder_raw = str(body.get("binder") or DEFAULT_USER_BINDER)
+    vault_layer_id = str(body.get("vault_layer") or "user").strip()
+    relative_dir = str(body.get("relative_dir") or "").strip()
+    overwrite = bool(body.get("overwrite", False))
+    metadata = body.get("metadata") if isinstance(body.get("metadata"), dict) else {}
+
+    layer = _vault_layer_by_id(vault_layer_id)
+    if not layer:
+        return web.json_response(
+            {
+                "error": f"Unknown vault_layer: {vault_layer_id}",
+                "valid_layers": [entry.get("id") for entry in VAULT_LAYERS],
+            },
+            status=400,
+        )
+
+    if str(layer.get("permissions") or "").lower() == "read_only":
+        return web.json_response(
+            {
+                "error": f"vault_layer '{vault_layer_id}' is read-only",
+            },
+            status=403,
+        )
+
+    try:
+        binder = _safe_binder_name(binder_raw)
+        root = Path(str(layer.get("path") or "")).expanduser()
+        root.mkdir(parents=True, exist_ok=True)
+
+        if relative_dir:
+            target_dir = _safe_relative_path(root, relative_dir)
+        else:
+            target_dir = root / "binders" / "active" / binder / "docs"
+
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        output_name = _build_import_filename(title=title, filename=filename)
+        output_path = (target_dir / output_name).resolve()
+        target_dir_resolved = target_dir.resolve()
+        if target_dir_resolved not in output_path.parents:
+            raise ValueError("Output path escapes target directory")
+
+        if output_path.exists() and not overwrite:
+            return web.json_response(
+                {
+                    "error": "Target file already exists",
+                    "path": str(output_path),
+                },
+                status=409,
+            )
+
+        converted = convert_content_to_markdown(
+            content=content,
+            source_format=source_format,
+        )
+
+        frontmatter: dict[str, Any] = {
+            "title": title,
+            "binder": binder,
+            "vault_layer": vault_layer_id,
+            "imported_at": datetime.now(UTC).isoformat(),
+            "import_source_format": source_format,
+            "detected_source_format": converted.source_format,
+            "import_plugin": converted.plugin_id,
+        }
+        if metadata:
+            frontmatter["metadata"] = metadata
+
+        document = _render_import_document(frontmatter, converted.markdown)
+        output_path.write_text(document, encoding="utf-8")
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    except Exception as exc:
+        log.exception("Markdown import failed")
+        return web.json_response({"error": f"import_failed: {exc}"}, status=500)
+
+    return web.json_response(
+        {
+            "status": "ok",
+            "operation": "import-markdown",
+            "path": str(output_path),
+            "vault_layer": vault_layer_id,
+            "binder": binder,
+            "title": title,
+            "import_plugin": converted.plugin_id,
+            "detected_source_format": converted.source_format,
+            "bytes_written": len(document.encode("utf-8")),
         },
     )

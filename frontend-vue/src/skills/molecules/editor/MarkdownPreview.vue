@@ -1,18 +1,17 @@
 <template>
   <div class="markdown-preview">
-    <MdPreview
-      :id="previewId"
-      :model-value="content"
-      :theme="markdown.theme"
-      :language="markdown.language"
-    />
+    <div
+      :id="props.previewId"
+      class="markdown-preview__content"
+      v-html="html"
+    ></div>
   </div>
 </template>
 
 <script setup lang="ts">
 /**
  * @component MarkdownPreview
- * @description Read-only markdown renderer Skill wrapping md-editor-v3's MdPreview.
+ * @description Read-only markdown renderer Skill.
  * Used for displaying rendered markdown content without editing capabilities.
  * @category skills/molecules
  * @props {string} content - Markdown content to render
@@ -20,22 +19,20 @@
  * @usage
  *   <MarkdownPreview :content="doc.content" preview-id="doc-viewer" />
  */
-import { withDefaults } from 'vue'
-import { MdPreview } from '@vendor/md-editor'
-import '@vendor/md-editor-preview'
-import { useMarkdownStore } from '../../../stores/markdown'
+import { computed, withDefaults } from "vue";
+import { renderMarkdown } from "../../../composables/useMarkdown";
 
 interface Props {
-  content?: string
-  previewId?: string
+  content?: string;
+  previewId?: string;
 }
 
-withDefaults(defineProps<Props>(), {
-  content: '',
-  previewId: 'markdown-preview',
-})
+const props = withDefaults(defineProps<Props>(), {
+  content: "",
+  previewId: "markdown-preview",
+});
 
-const markdown = useMarkdownStore()
+const html = computed(() => renderMarkdown(props.content ?? ""));
 </script>
 
 <style scoped>
@@ -46,7 +43,7 @@ const markdown = useMarkdownStore()
   background: var(--usx-color-surface);
 }
 
-:deep(.md-editor-preview) {
+.markdown-preview__content {
   line-height: 1.7;
   padding: var(--usx-spacing-md);
   min-height: 100%;

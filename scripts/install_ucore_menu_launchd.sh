@@ -6,6 +6,7 @@ set -euo pipefail
 
 UCORE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_DIR="$UCORE_ROOT/backend"
+ROOT_VENV_DIR="$UCORE_ROOT/.venv"
 LABEL="com.udos.ucore-menu"
 PLIST_PATH="$HOME/Library/LaunchAgents/${LABEL}.plist"
 LOG_DIR="$HOME/.ucore/logs"
@@ -19,6 +20,31 @@ Usage:
 
 Installs a launchd agent that runs the uCore menu bar app at login.
 EOF
+}
+
+dedupe_menu_processes() {
+    local keep_pid
+    keep_pid="$(launchctl print "gui/$(id -u)/${LABEL}" 2>/dev/null | awk '/pid = / {print $3; exit}')"
+    local pids
+    pids="$(pgrep -f "app.menu.unified_menu|app.menu.unified_menu_simple" 2>/dev/null || true)"
+    local count
+    count="$(echo "$pids" | awk 'NF>0 {c++} END {print c+0}')"
+
+    if [[ "$count" -le 1 ]]; then
+        return
+    fi
+
+    if [[ -z "$keep_pid" ]]; then
+        keep_pid="$(echo "$pids" | head -n 1)"
+    fi
+
+    while IFS= read -r pid; do
+        [[ -z "$pid" ]] && continue
+        if [[ "$pid" != "$keep_pid" ]]; then
+            kill "$pid" 2>/dev/null || true
+            echo "Killed duplicate menu process PID=$pid (keeping PID=$keep_pid)"
+        fi
+    done <<< "$pids"
 }
 
 UNINSTALL=0
@@ -51,8 +77,11 @@ if [[ "$UNINSTALL_ALL" -eq 1 ]]; then
     echo "🧹 Removing all uCore launchd agents..."
     launchctl unload "$HOME/Library/LaunchAgents/com.udos.ucore-menu.plist" 2>/dev/null || true
     launchctl unload "$HOME/Library/LaunchAgents/com.udos.ucore-server.plist" 2>/dev/null || true
+    launchctl unload "$HOME/Library/LaunchAgents/com.udos.ucore-watchdog.plist" 2>/dev/null || true
     rm -f "$HOME/Library/LaunchAgents/com.udos.ucore-menu.plist"
     rm -f "$HOME/Library/LaunchAgents/com.udos.ucore-server.plist"
+    rm -f "$HOME/Library/LaunchAgents/com.udos.ucore-watchdog.plist"
+    dedupe_menu_processes
     echo "✅ All uCore launchd agents removed"
     exit 0
 fi
@@ -67,7 +96,9 @@ if [[ "$UNINSTALL" -eq 1 ]]; then
 fi
 
 # Determine Python binary
-if [[ -f "$BACKEND_DIR/.venv/bin/python" ]]; then
+if [[ -f "$ROOT_VENV_DIR/bin/python" ]]; then
+    PYTHON_BIN="$ROOT_VENV_DIR/bin/python"
+elif [[ -f "$BACKEND_DIR/.venv/bin/python" ]]; then
     PYTHON_BIN="$BACKEND_DIR/.venv/bin/python"
 else
     PYTHON_BIN="/usr/bin/python3"
@@ -115,6 +146,9 @@ EOF
 # Unload existing (if any) and load new
 launchctl unload "$PLIST_PATH" 2>/dev/null || true
 launchctl load "$PLIST_PATH"
+
+# One-time dedupe on install/update to avoid duplicate menu bar icons.
+dedupe_menu_processes
 
 echo "✅ Installed uCore Menu launchd agent"
 echo "   Label: ${LABEL}"

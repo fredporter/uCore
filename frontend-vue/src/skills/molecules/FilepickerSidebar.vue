@@ -9,18 +9,25 @@
           variant="secondary"
           icon="sync"
           :disabled="isMirroring"
-          @click="mirrorUserVault"
-          title="Mirror User Vault to local AppFlowy"
+          @click="syncUserVault"
+          title="Sync User Vault to local index"
         >
-          {{ isMirroring ? 'Mirroring...' : 'Mirror User' }}
+          {{ isMirroring ? "Syncing..." : "Sync User" }}
         </UButton>
-        <UButton size="sm" icon="mdi:plus" @click="handleNewFile" title="New file">
+        <UButton
+          size="sm"
+          icon="mdi:plus"
+          @click="handleNewFile"
+          title="New file"
+        >
           New
         </UButton>
       </div>
     </div>
 
-    <div v-if="mirrorMessage" class="filepicker-sidebar__mirror-message">{{ mirrorMessage }}</div>
+    <div v-if="mirrorMessage" class="filepicker-sidebar__mirror-message">
+      {{ mirrorMessage }}
+    </div>
 
     <!-- Search Section -->
     <UInput
@@ -32,8 +39,14 @@
 
     <!-- Filters Section -->
     <div class="filepicker-sidebar__filters">
-      <WorkspaceFilter ref="workspaceFilterRef" @source-change="onSourceChange" />
-      <BinderMissionFilter ref="binderFilterRef" @binder-change="onBinderChange" />
+      <WorkspaceFilter
+        ref="workspaceFilterRef"
+        @source-change="onSourceChange"
+      />
+      <BinderMissionFilter
+        ref="binderFilterRef"
+        @binder-change="onBinderChange"
+      />
     </div>
 
     <!-- Index Status Banner -->
@@ -65,7 +78,10 @@
         @click="handleFileSelect(file)"
         @dblclick="handleDoubleClick(file)"
       >
-        <UIcon :name="getFileIcon(file.extension)" class="filepicker-sidebar__item-icon" />
+        <UIcon
+          :name="getFileIcon(file.extension)"
+          class="filepicker-sidebar__item-icon"
+        />
         <div class="filepicker-sidebar__item-info">
           <span class="filepicker-sidebar__item-name">{{ file.filename }}</span>
           <span class="filepicker-sidebar__item-path">{{ file.path }}</span>
@@ -77,14 +93,21 @@
           >
             {{ file.vault_layer }}
           </UBadge>
-          <span v-if="file.is_readonly" class="filepicker-sidebar__readonly-icon" title="Read-only">
+          <span
+            v-if="file.is_readonly"
+            class="filepicker-sidebar__readonly-icon"
+            title="Read-only"
+          >
             <UIcon name="mdi:lock-outline" />
           </span>
         </div>
       </div>
 
       <!-- Empty State -->
-      <div v-if="filteredFiles.length === 0 && !loading" class="filepicker-sidebar__empty">
+      <div
+        v-if="filteredFiles.length === 0 && !loading"
+        class="filepicker-sidebar__empty"
+      >
         <UIcon name="mdi:file-document-outline" />
         <span v-if="searchQuery">No files matching "{{ searchQuery }}"</span>
         <span v-else>No files found in this vault layer</span>
@@ -108,229 +131,232 @@
  * @emits {string} newFile - New file requested
  * @usage <FilepickerSidebar :open="true" @file-select="handleFileSelect" />
  */
-import { ref, computed, onMounted, watch } from 'vue'
-import UInput from '../atoms/UInput.vue'
-import UIcon from '../atoms/UIcon.vue'
-import UBadge from '../atoms/UBadge.vue'
-import UButton from '../atoms/UButton.vue'
-import USpinner from '../atoms/USpinner.vue'
-import WorkspaceFilter from './WorkspaceFilter.vue'
-import BinderMissionFilter from './BinderMissionFilter.vue'
-import { ucoreApi } from '../../api/client'
-import type { FileEntry } from '../../types/filepicker'
+import { ref, computed, onMounted, watch } from "vue";
+import UInput from "../atoms/UInput.vue";
+import UIcon from "../atoms/UIcon.vue";
+import UBadge from "../atoms/UBadge.vue";
+import UButton from "../atoms/UButton.vue";
+import USpinner from "../atoms/USpinner.vue";
+import WorkspaceFilter from "./WorkspaceFilter.vue";
+import BinderMissionFilter from "./BinderMissionFilter.vue";
+import { ucoreApi } from "../../api/client";
+import type { FileEntry } from "../../types/filepicker";
 
 interface Props {
-  open?: boolean
-  compact?: boolean
+  open?: boolean;
+  compact?: boolean;
 }
 
 withDefaults(defineProps<Props>(), {
   open: true,
   compact: false,
-})
+});
 
 const emit = defineEmits<{
-  fileSelect: [file: FileEntry]
-  newFile: [binderId: string]
-}>()
+  fileSelect: [file: FileEntry];
+  newFile: [binderId: string];
+}>();
 
 // ─── Refs ───────────────────────────────────────────────────────────
-const workspaceFilterRef = ref<InstanceType<typeof WorkspaceFilter>>()
-const binderFilterRef = ref<InstanceType<typeof BinderMissionFilter>>()
+const workspaceFilterRef = ref<InstanceType<typeof WorkspaceFilter>>();
+const binderFilterRef = ref<InstanceType<typeof BinderMissionFilter>>();
 
-const searchQuery = ref('')
-const selectedSource = ref<string>('user')
-const selectedBinder = ref<string>('Sandbox')
-const files = ref<FileEntry[]>([])
-const loading = ref(false)
-const error = ref<string | null>(null)
-const indexStatus = ref<'ok' | 'not-built' | 'unknown'>('unknown')
-const isMirroring = ref(false)
-const mirrorMessage = ref('')
+const searchQuery = ref("");
+const selectedSource = ref<string>("user");
+const selectedBinder = ref<string>("Sandbox");
+const files = ref<FileEntry[]>([]);
+const loading = ref(false);
+const error = ref<string | null>(null);
+const indexStatus = ref<"ok" | "not-built" | "unknown">("unknown");
+const isMirroring = ref(false);
+const mirrorMessage = ref("");
 
 // ─── Fetch files from the unified library index ────────────────────
 async function fetchFiles() {
-  loading.value = true
-  error.value = null
+  loading.value = true;
+  error.value = null;
   try {
-    const query = searchQuery.value.trim() || '*'
+    const query = searchQuery.value.trim() || "*";
     const res = await ucoreApi.library.search(
       query,
       selectedSource.value || undefined,
-    )
+    );
     if (res.ok && res.data) {
-      const results = (res.data as any).results || []
-      files.value = results
+      const results = (res.data as any).results || [];
+      files.value = results;
 
       // Extract unique binders from results to populate binder filter
-      const binderSet = new Set<string>()
+      const binderSet = new Set<string>();
       results.forEach((f: FileEntry) => {
-        if (f.binder) binderSet.add(f.binder)
-        if (f.mission) binderSet.add(f.mission)
-      })
-      const binderList = Array.from(binderSet).map(id => ({ id, name: id }))
+        if (f.binder) binderSet.add(f.binder);
+        if (f.mission) binderSet.add(f.mission);
+      });
+      const binderList = Array.from(binderSet).map((id) => ({ id, name: id }));
       if (binderFilterRef.value) {
         binderFilterRef.value.setBinders([
-          { id: 'Sandbox', name: 'Sandbox' },
-          { id: 'active', name: 'Active' },
-          { id: 'docs', name: 'Documentation' },
-          { id: 'archive', name: 'Archive' },
+          { id: "Sandbox", name: "Sandbox" },
+          { id: "active", name: "Active" },
+          { id: "docs", name: "Documentation" },
+          { id: "archive", name: "Archive" },
           ...binderList,
-        ])
+        ]);
       }
     }
   } catch (e: any) {
-    error.value = e.message || 'Failed to fetch files'
-    files.value = []
+    error.value = e.message || "Failed to fetch files";
+    files.value = [];
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 // ─── Build index ────────────────────────────────────────────────────
 async function buildIndex() {
-  loading.value = true
+  loading.value = true;
   try {
-    const res = await ucoreApi.library.build()
+    const res = await ucoreApi.library.build();
     if (res.ok) {
-      indexStatus.value = 'ok'
-      await fetchFiles()
+      indexStatus.value = "ok";
+      await fetchFiles();
     }
   } catch (e: any) {
-    error.value = e.message || 'Failed to build index'
+    error.value = e.message || "Failed to build index";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 // ─── Check index status on mount ────────────────────────────────────
 async function checkIndex() {
   try {
-    const res = await ucoreApi.library.stats()
+    const res = await ucoreApi.library.stats();
     if (res.ok) {
-      const total = (res.data as any)?.total_entries || 0
-      indexStatus.value = total > 0 ? 'ok' : 'not-built'
+      const total = (res.data as any)?.total_entries || 0;
+      indexStatus.value = total > 0 ? "ok" : "not-built";
     }
   } catch {
-    indexStatus.value = 'unknown'
+    indexStatus.value = "unknown";
   }
 }
 
 // ─── Debounced search ───────────────────────────────────────────────
-let searchTimer: ReturnType<typeof setTimeout> | null = null
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
 watch(searchQuery, () => {
-  if (searchTimer) clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => fetchFiles(), 300)
-})
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => fetchFiles(), 300);
+});
 
 function onSourceChange(source: string) {
-  selectedSource.value = source
-  if (source === 'user') {
-    void mirrorUserVault()
+  selectedSource.value = source;
+  if (source === "user") {
+    void syncUserVault();
   }
-  fetchFiles()
+  fetchFiles();
 }
 
 function onBinderChange(binder: string) {
-  selectedBinder.value = binder
+  selectedBinder.value = binder;
   // Re-filter locally or re-fetch
-  fetchFiles()
+  fetchFiles();
 }
 
 function handleNewFile() {
-  emit('newFile', selectedBinder.value || 'Sandbox')
+  emit("newFile", selectedBinder.value || "Sandbox");
 }
 
 function handleFileSelect(file: FileEntry) {
-  emit('fileSelect', {
+  emit("fileSelect", {
     ...file,
-    binder: file.binder || 'Sandbox',
-  })
+    binder: file.binder || "Sandbox",
+  });
 }
 
 function handleDoubleClick(file: FileEntry) {
   // Could open in editor or navigate
-  emit('fileSelect', file)
+  emit("fileSelect", file);
 }
 
-async function mirrorUserVault() {
-  isMirroring.value = true
-  mirrorMessage.value = ''
+async function syncUserVault() {
+  isMirroring.value = true;
+  mirrorMessage.value = "";
   try {
-    const res = await ucoreApi.vault.sync('User Vault')
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    mirrorMessage.value = 'User Vault mirrored to local AppFlowy.'
+    const res = await ucoreApi.vault.sync("User Vault");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    mirrorMessage.value = "User Vault synchronized to local index.";
   } catch (e: any) {
-    mirrorMessage.value = `Mirror failed: ${e?.message || e}`
+    mirrorMessage.value = `Sync failed: ${e?.message || e}`;
   } finally {
-    isMirroring.value = false
+    isMirroring.value = false;
   }
 }
 
 onMounted(async () => {
-  await checkIndex()
-  if (indexStatus.value === 'ok') {
-    await fetchFiles()
+  await checkIndex();
+  if (indexStatus.value === "ok") {
+    await fetchFiles();
   }
-})
+});
 
 // ─── Computed ───────────────────────────────────────────────────────
 const filteredFiles = computed(() => {
-  let result = files.value
+  let result = files.value;
 
   // Apply binder filter locally if set
   if (selectedBinder.value) {
-    result = result.filter(f =>
-      f.binder === selectedBinder.value || f.mission === selectedBinder.value,
-    )
+    result = result.filter(
+      (f) =>
+        f.binder === selectedBinder.value || f.mission === selectedBinder.value,
+    );
   }
 
-  return result
-})
+  return result;
+});
 
 // ─── Icon mapping ───────────────────────────────────────────────────
 function getFileIcon(ext: string): string {
   const iconMap: Record<string, string> = {
-    md: 'mdi:language-markdown',
-    ts: 'mdi:language-typescript',
-    tsx: 'mdi:language-typescript',
-    vue: 'mdi:vuejs',
-    json: 'mdi:code-json',
-    yaml: 'mdi:file-code',
-    yml: 'mdi:file-code',
-    py: 'mdi:language-python',
-    js: 'mdi:language-javascript',
-    jsx: 'mdi:language-javascript',
-    css: 'mdi:language-css3',
-    html: 'mdi:language-html5',
-    txt: 'mdi:text',
-    csv: 'mdi:file-delimited',
-    toml: 'mdi:file-cog',
-    env: 'mdi:key-variant',
-    sh: 'mdi:console',
-    svg: 'mdi:svg',
-    png: 'mdi:file-image',
-    jpg: 'mdi:file-image',
-    jpeg: 'mdi:file-image',
-    gif: 'mdi:file-image',
-    pdf: 'mdi:file-pdf',
-    doc: 'mdi:file-word',
-    docx: 'mdi:file-word',
-    xls: 'mdi:file-excel',
-    xlsx: 'mdi:file-excel',
-  }
-  return iconMap[ext] || 'mdi:file-document-outline'
+    md: "mdi:language-markdown",
+    ts: "mdi:language-typescript",
+    tsx: "mdi:language-typescript",
+    vue: "mdi:vuejs",
+    json: "mdi:code-json",
+    yaml: "mdi:file-code",
+    yml: "mdi:file-code",
+    py: "mdi:language-python",
+    js: "mdi:language-javascript",
+    jsx: "mdi:language-javascript",
+    css: "mdi:language-css3",
+    html: "mdi:language-html5",
+    txt: "mdi:text",
+    csv: "mdi:file-delimited",
+    toml: "mdi:file-cog",
+    env: "mdi:key-variant",
+    sh: "mdi:console",
+    svg: "mdi:svg",
+    png: "mdi:file-image",
+    jpg: "mdi:file-image",
+    jpeg: "mdi:file-image",
+    gif: "mdi:file-image",
+    pdf: "mdi:file-pdf",
+    doc: "mdi:file-word",
+    docx: "mdi:file-word",
+    xls: "mdi:file-excel",
+    xlsx: "mdi:file-excel",
+  };
+  return iconMap[ext] || "mdi:file-document-outline";
 }
 
-function getLayerBadgeType(layer: string): 'info' | 'success' | 'warning' | 'error' {
-  const map: Record<string, 'info' | 'success' | 'warning' | 'error'> = {
-    User: 'info',
-    Shared: 'success',
-    Global: 'warning',
-    Public: 'warning',
-    Code: 'error',
-  }
-  return map[layer] || 'info'
+function getLayerBadgeType(
+  layer: string,
+): "info" | "success" | "warning" | "error" {
+  const map: Record<string, "info" | "success" | "warning" | "error"> = {
+    User: "info",
+    Shared: "success",
+    Global: "warning",
+    Public: "warning",
+    Code: "error",
+  };
+  return map[layer] || "info";
 }
 </script>
 
@@ -350,7 +376,8 @@ function getLayerBadgeType(layer: string): 'info' | 'success' | 'warning' | 'err
   align-items: center;
   justify-content: space-between;
   padding-bottom: var(--usx-spacing-xs);
-  border-bottom: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-primary) 10%, transparent);
+  border-bottom: var(--usx-border-width) solid
+    color-mix(in srgb, var(--usx-color-primary) 10%, transparent);
 }
 
 .filepicker-sidebar__header-actions {
@@ -384,7 +411,8 @@ function getLayerBadgeType(layer: string): 'info' | 'success' | 'warning' | 'err
   gap: var(--usx-spacing-xs);
   padding: var(--usx-spacing-sm) 0;
   flex-shrink: 0;
-  border-bottom: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-primary) 10%, transparent);
+  border-bottom: var(--usx-border-width) solid
+    color-mix(in srgb, var(--usx-color-primary) 10%, transparent);
 }
 
 .filepicker-sidebar__banner {

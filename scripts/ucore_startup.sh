@@ -6,6 +6,7 @@ set -e
 
 UCORE_ROOT="${UCORE_ROOT:-$HOME/Code/uCore}"
 BACKEND_DIR="$UCORE_ROOT/backend"
+ROOT_VENV_DIR="$UCORE_ROOT/.venv"
 LOG_DIR="$HOME/.ucore/logs"
 PID_DIR="$HOME/.ucore"
 
@@ -30,10 +31,42 @@ check_menu() {
     pgrep -f "app.menu.unified_menu" > /dev/null 2>&1
 }
 
+launchd_menu_pid() {
+    launchctl print "gui/$(id -u)/com.udos.ucore-menu" 2>/dev/null \
+        | awk '/pid = / {print $3; exit}'
+}
+
+enforce_single_menu_instance() {
+    local keep_pid
+    keep_pid="$(launchd_menu_pid || true)"
+    local pids
+    pids="$(pgrep -f "app.menu.unified_menu|app.menu.unified_menu_simple" 2>/dev/null || true)"
+    local count
+    count="$(echo "$pids" | awk 'NF>0 {c++} END {print c+0}')"
+
+    if [[ "$count" -le 1 ]]; then
+        return
+    fi
+
+    if [[ -z "$keep_pid" ]]; then
+        keep_pid="$(echo "$pids" | head -n 1)"
+    fi
+
+    while IFS= read -r pid; do
+        [[ -z "$pid" ]] && continue
+        if [[ "$pid" != "$keep_pid" ]]; then
+            kill "$pid" 2>/dev/null || true
+            log "🧹 Killed duplicate menu process PID=$pid (keeping PID=$keep_pid)"
+        fi
+    done <<< "$pids"
+}
+
 # Start backend if not running
 if ! check_backend; then
     log "🔧 Starting snackbar backend..."
-    if [ -f "$BACKEND_DIR/.venv/bin/python" ]; then
+    if [ -f "$ROOT_VENV_DIR/bin/python" ]; then
+        PYTHON_BIN="$ROOT_VENV_DIR/bin/python"
+    elif [ -f "$BACKEND_DIR/.venv/bin/python" ]; then
         PYTHON_BIN="$BACKEND_DIR/.venv/bin/python"
     else
         PYTHON_BIN="/usr/bin/python3"
@@ -52,13 +85,19 @@ fi
 # Start menu if not running
 if ! check_menu; then
     log "🔧 Starting uCore menu..."
-    if [ -f "$BACKEND_DIR/.venv/bin/python" ]; then
+    if launchctl print "gui/$(id -u)/com.udos.ucore-menu" >/dev/null 2>&1; then
+        launchctl kickstart "gui/$(id -u)/com.udos.ucore-menu" >/dev/null 2>&1 || true
+    elif [ -f "$ROOT_VENV_DIR/bin/python" ]; then
+        PYTHON_BIN="$ROOT_VENV_DIR/bin/python"
+        cd "$BACKEND_DIR" && PYTHONPATH=. $PYTHON_BIN -m app.menu.unified_menu > "$LOG_DIR/ucore-menu.log" 2>&1 &
+    elif [ -f "$BACKEND_DIR/.venv/bin/python" ]; then
         PYTHON_BIN="$BACKEND_DIR/.venv/bin/python"
+        cd "$BACKEND_DIR" && PYTHONPATH=. $PYTHON_BIN -m app.menu.unified_menu > "$LOG_DIR/ucore-menu.log" 2>&1 &
     else
         PYTHON_BIN="/usr/bin/python3"
+        cd "$BACKEND_DIR" && PYTHONPATH=. $PYTHON_BIN -m app.menu.unified_menu > "$LOG_DIR/ucore-menu.log" 2>&1 &
     fi
-    
-    cd "$BACKEND_DIR" && PYTHONPATH=. $PYTHON_BIN -m app.menu.unified_menu_simple > "$LOG_DIR/ucore-menu.log" 2>&1 &
+
     sleep 2
     
     if check_menu; then
@@ -67,6 +106,9 @@ if ! check_menu; then
         log "❌ Menu failed to start"
     fi
 fi
+
+# Ensure only one menu process remains (single popcorn icon)
+enforce_single_menu_instance
 
 # Run health check skill
 log "🏥 Running health check..."

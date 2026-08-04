@@ -11,11 +11,10 @@ UCORE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 usage() {
   cat <<EOF
 Usage:
-  scripts/install_appflowy_import_launchd.sh [--interval-seconds N] [--config PATH]
   scripts/install_appflowy_import_launchd.sh --uninstall
 
-Installs a launchd agent that runs:
-  python3 scripts/appflowy_import_workspaces.py --config <PATH>
+Deprecated: dedicated AppFlowy import automation has been retired.
+Use Tasker for task workflows and Bangle-based vault workflows instead.
 EOF
 }
 
@@ -52,6 +51,13 @@ if [[ "$UNINSTALL" -eq 1 ]]; then
   echo "Removed launchd job: $LABEL"
   exit 0
 fi
+
+# AppFlowy importer is intentionally deprecated.
+launchctl unload "$PLIST_PATH" >/dev/null 2>&1 || true
+rm -f "$PLIST_PATH"
+echo "AppFlowy importer is deprecated and has been disabled."
+echo "Use Tasker endpoints for tasks and Bangle vault workflow for docs."
+exit 0
 
 mkdir -p "$(dirname "$PLIST_PATH")"
 mkdir -p "$(dirname "$LOG_PATH")"

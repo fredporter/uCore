@@ -6,14 +6,19 @@
         <div class="wf-panel-badges">
           <UBadge type="info" size="sm">User Workflow</UBadge>
           <UBadge
-            :type="wf.workflowStatus?.appflowy?.available ? 'success' : 'warning'"
+            :type="
+              wf.workflowStatus?.appflowy?.available ? 'success' : 'warning'
+            "
             size="sm"
           >
-            AppFlowy {{ wf.workflowStatus?.appflowy?.available ? 'Available' : 'Optional' }}
+            Vault Mirror
+            {{ wf.workflowStatus?.appflowy?.available ? "Ready" : "Optional" }}
           </UBadge>
         </div>
       </div>
-      <p class="surface__panel-description">Track progress across your missions and keep markdown first.</p>
+      <p class="surface__panel-description">
+        Track progress across your missions and keep markdown first.
+      </p>
       <div class="wf-actions-row">
         <UButton
           size="sm"
@@ -22,7 +27,7 @@
           :disabled="!!busyAction"
           @click="archiveState"
         >
-          {{ busyAction === 'archive' ? 'Archiving...' : 'Archive State' }}
+          {{ busyAction === "archive" ? "Archiving..." : "Archive State" }}
         </UButton>
         <UButton
           size="sm"
@@ -31,7 +36,7 @@
           :disabled="!!busyAction"
           @click="seedState"
         >
-          {{ busyAction === 'seed' ? 'Seeding...' : 'Seed User Tasks' }}
+          {{ busyAction === "seed" ? "Seeding..." : "Seed User Tasks" }}
         </UButton>
         <UButton
           size="sm"
@@ -41,10 +46,12 @@
           :disabled="!!busyAction"
           @click="resetState"
         >
-          {{ busyAction === 'reset' ? 'Resetting...' : 'Reset + Seed' }}
+          {{ busyAction === "reset" ? "Resetting..." : "Reset + Seed" }}
         </UButton>
       </div>
-      <div v-if="lastActionMessage" class="wf-action-message">{{ lastActionMessage }}</div>
+      <div v-if="lastActionMessage" class="wf-action-message">
+        {{ lastActionMessage }}
+      </div>
     </div>
 
     <!-- Stats cards -->
@@ -54,15 +61,21 @@
         <span class="wf-stat-label">Total Tasks</span>
       </div>
       <div class="wf-stat">
-        <span class="wf-stat-value wf-stat-value--info">{{ wf.inProgressCount }}</span>
+        <span class="wf-stat-value wf-stat-value--info">{{
+          wf.inProgressCount
+        }}</span>
         <span class="wf-stat-label">In Progress</span>
       </div>
       <div class="wf-stat">
-        <span class="wf-stat-value wf-stat-value--success">{{ wf.completedCount }}</span>
+        <span class="wf-stat-value wf-stat-value--success">{{
+          wf.completedCount
+        }}</span>
         <span class="wf-stat-label">Completed</span>
       </div>
       <div class="wf-stat">
-        <span class="wf-stat-value wf-stat-value--warning">{{ wf.missions.length }}</span>
+        <span class="wf-stat-value wf-stat-value--warning">{{
+          wf.missions.length
+        }}</span>
         <span class="wf-stat-label">Missions</span>
       </div>
     </div>
@@ -74,7 +87,13 @@
     <div v-else-if="wf.error" class="wf-error">
       <UIcon name="error" />
       {{ wf.error }}
-      <UButton size="sm" variant="secondary" icon="refresh" @click="wf.fetchAll()">Retry</UButton>
+      <UButton
+        size="sm"
+        variant="secondary"
+        icon="refresh"
+        @click="wf.fetchAll()"
+        >Retry</UButton
+      >
     </div>
 
     <!-- Tasker Boards from backend -->
@@ -98,7 +117,9 @@
     <div v-if="wf.workflowStatus?.next_actions?.length" class="wf-section">
       <h4 class="wf-section-title">Next Actions</h4>
       <ul class="wf-next-actions">
-        <li v-for="(item, idx) in wf.workflowStatus.next_actions" :key="idx">{{ item }}</li>
+        <li v-for="(item, idx) in wf.workflowStatus.next_actions" :key="idx">
+          {{ item }}
+        </li>
       </ul>
     </div>
 
@@ -106,7 +127,11 @@
     <div class="wf-section">
       <h4 class="wf-section-title">Active Missions</h4>
       <div class="wf-mission-grid">
-        <div v-for="mission in wf.missions" :key="mission.id" class="wf-mission-card">
+        <div
+          v-for="mission in wf.missions"
+          :key="mission.id"
+          class="wf-mission-card"
+        >
           <div class="wf-mission-card-icon">
             <UIcon name="flag" />
           </div>
@@ -115,18 +140,32 @@
             <p class="wf-mission-card-desc">{{ mission.description }}</p>
             <div class="wf-mission-card-badges">
               <UBadge
-                :type="mission.status === 'active' ? 'success' : mission.status === 'completed' ? 'info' : 'warning'"
+                :type="
+                  mission.status === 'active'
+                    ? 'success'
+                    : mission.status === 'completed'
+                      ? 'info'
+                      : 'warning'
+                "
                 size="sm"
               >
                 {{ mission.status }}
               </UBadge>
               <UBadge
-                :type="mission.priority === 'high' ? 'error' : mission.priority === 'medium' ? 'warning' : 'info'"
+                :type="
+                  mission.priority === 'high'
+                    ? 'error'
+                    : mission.priority === 'medium'
+                      ? 'warning'
+                      : 'info'
+                "
                 size="sm"
               >
                 {{ mission.priority }}
               </UBadge>
-              <span class="wf-mission-task-count">{{ mission.taskIds.length }} tasks</span>
+              <span class="wf-mission-task-count"
+                >{{ mission.taskIds.length }} tasks</span
+              >
             </div>
           </div>
         </div>
@@ -143,14 +182,32 @@
           class="wf-run-card"
         >
           <div class="wf-run-card-icon">
-            <UIcon :name="run.status === 'completed' ? 'check_circle' : run.status === 'failed' ? 'error' : 'schedule'" />
+            <UIcon
+              :name="
+                run.status === 'completed'
+                  ? 'check_circle'
+                  : run.status === 'failed'
+                    ? 'error'
+                    : 'schedule'
+              "
+            />
           </div>
           <div class="wf-run-card-content">
-            <span class="wf-run-card-name">{{ run.workflow_name || run.workflow_id }}</span>
-            <span class="wf-run-card-time">{{ formatTime(run.started_at) }}</span>
+            <span class="wf-run-card-name">{{
+              run.workflow_name || run.workflow_id
+            }}</span>
+            <span class="wf-run-card-time">{{
+              formatTime(run.started_at)
+            }}</span>
           </div>
           <UBadge
-            :type="run.status === 'completed' ? 'success' : run.status === 'failed' ? 'error' : 'warning'"
+            :type="
+              run.status === 'completed'
+                ? 'success'
+                : run.status === 'failed'
+                  ? 'error'
+                  : 'warning'
+            "
             size="sm"
             pill
           >
@@ -166,88 +223,99 @@
         <div class="wf-mini-binder-header">
           <UIcon name="folder" />
           <span>Binder Launchpad</span>
-          <UButton size="sm" variant="secondary" icon="open_in_new" @click="openFullBinder">Open Binder</UButton>
+          <UButton
+            size="sm"
+            variant="secondary"
+            icon="open_in_new"
+            @click="openFullBinder"
+            >Open Binder</UButton
+          >
         </div>
-        <p class="wf-mini-binder-desc">Drop files here to quickly compile a binder, or open the full Binder tab.</p>
+        <p class="wf-mini-binder-desc">
+          Drop files here to quickly compile a binder, or open the full Binder
+          tab.
+        </p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import UIcon from '../../../skills/atoms/UIcon.vue'
-import UBadge from '../../../skills/atoms/UBadge.vue'
-import UButton from '../../../skills/atoms/UButton.vue'
-import { useWorkflowStore } from '../../../stores/workflow'
+import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import UIcon from "../../../skills/atoms/UIcon.vue";
+import UBadge from "../../../skills/atoms/UBadge.vue";
+import UButton from "../../../skills/atoms/UButton.vue";
+import { useWorkflowStore } from "../../../stores/workflow";
 
-const wf = useWorkflowStore()
-const router = useRouter()
-const busyAction = ref('')
-const lastActionMessage = ref('')
+const wf = useWorkflowStore();
+const router = useRouter();
+const busyAction = ref("");
+const lastActionMessage = ref("");
 
 function openFullBinder() {
-  router.push('/workflow?tab=binder')
+  router.push("/workflow?tab=binder");
 }
 
 function formatTime(iso: string): string {
-  if (!iso) return ''
+  if (!iso) return "";
   try {
-    return new Date(iso).toLocaleTimeString()
+    return new Date(iso).toLocaleTimeString();
   } catch {
-    return iso
+    return iso;
   }
 }
 
 async function archiveState() {
-  busyAction.value = 'archive'
-  lastActionMessage.value = ''
+  busyAction.value = "archive";
+  lastActionMessage.value = "";
   try {
-    const payload: any = await wf.archiveUserWorkflow('manual-user-archive')
-    const dir = payload?.archive?.archive_dir || 'archive created'
-    lastActionMessage.value = `Archive complete: ${dir}`
+    const payload: any = await wf.archiveUserWorkflow("manual-user-archive");
+    const dir = payload?.archive?.archive_dir || "archive created";
+    lastActionMessage.value = `Archive complete: ${dir}`;
   } catch (e: any) {
-    lastActionMessage.value = `Archive failed: ${e.message || e}`
+    lastActionMessage.value = `Archive failed: ${e.message || e}`;
   } finally {
-    busyAction.value = ''
+    busyAction.value = "";
   }
 }
 
 async function resetState() {
-  const ok = window.confirm('Archive current user workflow and reset to fresh seed data?')
-  if (!ok) return
+  const ok = window.confirm(
+    "Archive current user workflow and reset to fresh seed data?",
+  );
+  if (!ok) return;
 
-  busyAction.value = 'reset'
-  lastActionMessage.value = ''
+  busyAction.value = "reset";
+  lastActionMessage.value = "";
   try {
-    const payload: any = await wf.resetUserWorkflow('user-reset-seed')
-    const count = payload?.seed?.tasks?.created_count || 0
-    lastActionMessage.value = `Reset complete. Seeded ${count} tasks.`
+    const payload: any = await wf.resetUserWorkflow("user-reset-seed");
+    const count = payload?.seed?.tasks?.created_count || 0;
+    lastActionMessage.value = `Reset complete. Seeded ${count} tasks.`;
   } catch (e: any) {
-    lastActionMessage.value = `Reset failed: ${e.message || e}`
+    lastActionMessage.value = `Reset failed: ${e.message || e}`;
   } finally {
-    busyAction.value = ''
+    busyAction.value = "";
   }
 }
 
 async function seedState() {
-  busyAction.value = 'seed'
-  lastActionMessage.value = ''
+  busyAction.value = "seed";
+  lastActionMessage.value = "";
   try {
-    const payload: any = await wf.seedUserWorkflow('user-seed-only')
-    const count = payload?.seed?.tasks?.created_count || 0
-    lastActionMessage.value = `Seed complete. Added or refreshed ${count} tasks.`
+    const payload: any = await wf.seedUserWorkflow("user-seed-only");
+    const count = payload?.seed?.tasks?.created_count || 0;
+    lastActionMessage.value = `Seed complete. Added or refreshed ${count} tasks.`;
   } catch (e: any) {
-    lastActionMessage.value = `Seed failed: ${e.message || e}`
+    lastActionMessage.value = `Seed failed: ${e.message || e}`;
   } finally {
-    busyAction.value = ''
+    busyAction.value = "";
   }
 }
 
 onMounted(() => {
-  wf.fetchAll()
-})
+  wf.fetchAll();
+});
 </script>
 
 <style scoped>
@@ -291,7 +359,11 @@ onMounted(() => {
 }
 
 .wf-button-warning :deep(.u-button:hover) {
-  background: color-mix(in srgb, var(--usx-color-warning) 86%, var(--usx-color-danger));
+  background: color-mix(
+    in srgb,
+    var(--usx-color-warning) 86%,
+    var(--usx-color-danger)
+  );
 }
 
 .wf-next-actions {
@@ -307,7 +379,10 @@ onMounted(() => {
 .wf-stats {
   --wf-column-min: calc(var(--usx-touch-min) * 3.75);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--wf-column-min)), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--wf-column-min)), 1fr)
+  );
   gap: var(--usx-spacing-md);
   min-width: 0;
 }
@@ -335,9 +410,15 @@ onMounted(() => {
   color: var(--usx-color-on-surface-muted);
 }
 
-.wf-stat-value--success { color: var(--usx-color-success); }
-.wf-stat-value--info { color: var(--usx-color-primary); }
-.wf-stat-value--warning { color: var(--usx-color-warning); }
+.wf-stat-value--success {
+  color: var(--usx-color-success);
+}
+.wf-stat-value--info {
+  color: var(--usx-color-primary);
+}
+.wf-stat-value--warning {
+  color: var(--usx-color-warning);
+}
 
 .wf-loading,
 .wf-error {
@@ -356,7 +437,8 @@ onMounted(() => {
 .wf-error {
   color: var(--usx-color-danger);
   background: color-mix(in srgb, var(--usx-color-danger) 10%, transparent);
-  border: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-danger) 20%, transparent);
+  border: var(--usx-border-width) solid
+    color-mix(in srgb, var(--usx-color-danger) 20%, transparent);
 }
 
 .wf-section {
@@ -377,7 +459,10 @@ onMounted(() => {
 .wf-board-grid {
   --wf-column-min: calc(var(--usx-touch-min) * 4.5);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--wf-column-min)), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--wf-column-min)), 1fr)
+  );
   gap: var(--usx-spacing-sm);
   min-width: 0;
 }
@@ -403,7 +488,10 @@ onMounted(() => {
 .wf-mission-grid {
   --wf-column-min: calc(var(--usx-touch-min) * 5);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--wf-column-min)), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--wf-column-min)), 1fr)
+  );
   gap: var(--usx-spacing-md);
   min-width: 0;
 }
@@ -414,11 +502,15 @@ onMounted(() => {
   gap: var(--usx-spacing-md);
   padding: var(--usx-spacing-lg);
   background: var(--usx-color-surface);
-  border: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
+  border: var(--usx-border-width) solid
+    color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
   border-radius: var(--usx-radius-md);
   cursor: pointer;
   min-width: 0;
-  transition: background var(--usx-transition-fast), border-color var(--usx-transition-fast), transform var(--usx-transition-fast);
+  transition:
+    background var(--usx-transition-fast),
+    border-color var(--usx-transition-fast),
+    transform var(--usx-transition-fast);
 }
 
 .wf-mission-card:hover {
@@ -480,7 +572,10 @@ onMounted(() => {
 .wf-run-grid {
   --wf-column-min: calc(var(--usx-touch-min) * 5);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--wf-column-min)), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--wf-column-min)), 1fr)
+  );
   gap: var(--usx-spacing-md);
   min-width: 0;
 }
@@ -494,7 +589,9 @@ onMounted(() => {
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-md);
   min-width: 0;
-  transition: border-color var(--usx-transition-fast), transform var(--usx-transition-fast);
+  transition:
+    border-color var(--usx-transition-fast),
+    transform var(--usx-transition-fast);
 }
 
 .wf-run-card:hover {
@@ -563,5 +660,4 @@ onMounted(() => {
   color: var(--usx-color-on-surface-muted);
   margin: 0;
 }
-
 </style>

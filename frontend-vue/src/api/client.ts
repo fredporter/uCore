@@ -4,21 +4,24 @@
  * Replaces scattered fetch() calls from the React frontend.
  */
 
-import { SNACKBAR_API, UCORE_API, OLLAMA_API } from './base'
+import { SNACKBAR_API, UCORE_API, OLLAMA_API } from "./base";
 
 export interface ApiResponse<T> {
-  data: T
-  status: number
-  ok: boolean
+  data: T;
+  status: number;
+  ok: boolean;
 }
 
-async function request<T>(url: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+async function request<T>(
+  url: string,
+  options: RequestInit = {},
+): Promise<ApiResponse<T>> {
   const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    headers: { "Content-Type": "application/json", ...options.headers },
     ...options,
-  })
-  const data = response.ok ? await response.json() : null
-  return { data, status: response.status, ok: response.ok }
+  });
+  const data = response.ok ? await response.json() : null;
+  return { data, status: response.status, ok: response.ok };
 }
 
 /**
@@ -29,24 +32,48 @@ export const snackbarApi = {
   status: () => request(`${SNACKBAR_API}/api/status`),
   clipboard: {
     list: () => request(`${SNACKBAR_API}/api/snacks/clipboard`),
-    capture: (body: unknown) => request(`${SNACKBAR_API}/api/snacks/clipboard/capture`, { method: 'POST', body: JSON.stringify(body) }),
-    cleanup: () => request(`${SNACKBAR_API}/api/snacks/clipboard/cleanup`, { method: 'DELETE' }),
-    pin: (id: string) => request(`${SNACKBAR_API}/api/snacks/clipboard/${id}/pin`, { method: 'POST' }),
-    delete: (id: string) => request(`${SNACKBAR_API}/api/snacks/clipboard/${id}`, { method: 'DELETE' }),
+    capture: (body: unknown) =>
+      request(`${SNACKBAR_API}/api/snacks/clipboard/capture`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    cleanup: () =>
+      request(`${SNACKBAR_API}/api/snacks/clipboard/cleanup`, {
+        method: "DELETE",
+      }),
+    pin: (id: string) =>
+      request(`${SNACKBAR_API}/api/snacks/clipboard/${id}/pin`, {
+        method: "POST",
+      }),
+    delete: (id: string) =>
+      request(`${SNACKBAR_API}/api/snacks/clipboard/${id}`, {
+        method: "DELETE",
+      }),
   },
   system: {
-    maintenance: () => request(`${SNACKBAR_API}/api/system/maintenance`, { method: 'POST' }),
-    workflow: (body: unknown) => request(`${SNACKBAR_API}/api/system/workflow`, { method: 'POST', body: JSON.stringify(body) }),
+    maintenance: () =>
+      request(`${SNACKBAR_API}/api/system/maintenance`, { method: "POST" }),
+    workflow: (body: unknown) =>
+      request(`${SNACKBAR_API}/api/system/workflow`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
   },
   skills: {
-    taskerSync: () => request(`${SNACKBAR_API}/api/skills/tasker_sync/run`, { method: 'POST' }),
-    vaultSync: () => request(`${SNACKBAR_API}/api/skills/vault_sync/run`, { method: 'POST' }),
+    taskerSync: () =>
+      request(`${SNACKBAR_API}/api/skills/tasker_sync/run`, { method: "POST" }),
+    vaultSync: () =>
+      request(`${SNACKBAR_API}/api/skills/vault_sync/run`, { method: "POST" }),
   },
   docker: {
     ps: () => request(`${SNACKBAR_API}/v1/docker/ps`),
   },
-  exec: (command: string) => request(`${SNACKBAR_API}/v1/exec`, { method: 'POST', body: JSON.stringify({ command }) }),
-}
+  exec: (command: string) =>
+    request(`${SNACKBAR_API}/v1/exec`, {
+      method: "POST",
+      body: JSON.stringify({ command }),
+    }),
+};
 
 /**
  * @description uCore backend API — knowledge, surfaces, health, library, vault
@@ -54,21 +81,40 @@ export const snackbarApi = {
 export const ucoreApi = {
   baseUrl: UCORE_API,
   health: () => request(`${UCORE_API}/health`),
+  userWorkflow: {
+    importMarkdown: (body: {
+      content: string;
+      source_format?: string;
+      title?: string;
+      filename?: string;
+      binder?: string;
+      vault_layer?: string;
+      relative_dir?: string;
+      overwrite?: boolean;
+      metadata?: Record<string, unknown>;
+    }) =>
+      request(`${UCORE_API}/api/user/workflow/import-markdown`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+  },
   knowledge: {
     list: () => request(`${UCORE_API}/api/knowledge`),
-    search: (query: string) => request(`${UCORE_API}/api/knowledge/search?q=${encodeURIComponent(query)}`),
+    search: (query: string) =>
+      request(
+        `${UCORE_API}/api/knowledge/search?q=${encodeURIComponent(query)}`,
+      ),
     workspaces: () => request(`${UCORE_API}/api/knowledge/workspaces`),
   },
   library: {
-    build: () => request(`${UCORE_API}/api/library/build`, { method: 'POST' }),
+    build: () => request(`${UCORE_API}/api/library/build`, { method: "POST" }),
     search: (query: string, source?: string) => {
-      let url = `${UCORE_API}/api/library/search?q=${encodeURIComponent(query)}`
-      if (source) url += `&source=${source}`
-      return request(url)
+      let url = `${UCORE_API}/api/library/search?q=${encodeURIComponent(query)}`;
+      if (source) url += `&source=${source}`;
+      return request(url);
     },
-    file: (path: string) => request(
-      `${UCORE_API}/api/library/file?path=${encodeURIComponent(path)}`,
-    ),
+    file: (path: string) =>
+      request(`${UCORE_API}/api/library/file?path=${encodeURIComponent(path)}`),
     stats: () => request(`${UCORE_API}/api/library/stats`),
   },
   vault: {
@@ -77,12 +123,13 @@ export const ucoreApi = {
     /** Get vault layer details */
     layers: () => request(`${UCORE_API}/api/vault/layers`),
     /** Trigger a vault sync */
-    sync: (source?: string) => request(`${UCORE_API}/api/knowledge/sync`, {
-      method: 'POST',
-      body: JSON.stringify(source ? { source } : {}),
-    }),
+    sync: (source?: string) =>
+      request(`${UCORE_API}/api/knowledge/sync`, {
+        method: "POST",
+        body: JSON.stringify(source ? { source } : {}),
+      }),
   },
-}
+};
 
 /**
  * @description Ollama local LLM API
@@ -90,12 +137,12 @@ export const ucoreApi = {
 export const ollamaApi = {
   baseUrl: OLLAMA_API,
   models: () => request(`${OLLAMA_API}/api/tags`),
-}
+};
 
 export const api = {
   snackbar: snackbarApi,
   ucore: ucoreApi,
   ollama: ollamaApi,
-}
+};
 
-export default api
+export default api;

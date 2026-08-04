@@ -110,11 +110,11 @@ python3 scripts/validate_extension_manifests.py
 
 ### Distinction Matrix
 
-| Scope Type | Typical Kind | Runtime Coupling to uCore | Naming Pattern | Examples |
-| ---------- | ------------ | ------------------------- | -------------- | -------- |
-| Core companion extension | `workflow`, `knowledge`, `tool`, `surface` | often required for active routes | no strict prefix | `uflow`, `uknowledge` |
-| Domain plugin extension | `plugin` | usually optional and preflight-gated | `udos-*` | `udos-identity`, `udos-google`, `udos-dreamscape`, `udos-publishing` |
-| Independent project/surface | n/a unless onboarded | may consume uCore but can evolve independently | project-specific | Groovebox, HomeNest, SonicScrewdriver |
+| Scope Type                  | Typical Kind                               | Runtime Coupling to uCore                      | Naming Pattern   | Examples                                                             |
+| --------------------------- | ------------------------------------------ | ---------------------------------------------- | ---------------- | -------------------------------------------------------------------- |
+| Core companion extension    | `workflow`, `knowledge`, `tool`, `surface` | often required for active routes               | no strict prefix | `uflow`, `uknowledge`                                                |
+| Domain plugin extension     | `plugin`                                   | usually optional and preflight-gated           | `udos-*`         | `udos-identity`, `udos-google`, `udos-dreamscape`, `udos-publishing` |
+| Independent project/surface | n/a unless onboarded                       | may consume uCore but can evolve independently | project-specific | Groovebox, HomeNest, SonicScrewdriver                                |
 
 ## Discovery
 
@@ -288,19 +288,19 @@ plugin.
 Evidence from `uVector` repository:
 
 1. `Cargo.toml` and crate metadata position it as `uvcore`, a universal
-  vector conversion engine.
+   vector conversion engine.
 2. `src/lib.rs` explicitly describes SVG-to-multiple-target conversion,
-  including grid/cell and ASCII/teletext outputs.
+   including grid/cell and ASCII/teletext outputs.
 3. `docs/NANO_BANANA_UVECTOR_SUMMARY.md` describes likely integration with
-  Gemini/Nano-Banana style image generation workflows.
+   Gemini/Nano-Banana style image generation workflows.
 
 Current recommended interpretation:
 
 1. uVector aligns with future uCode2/uCode3 and grid-runtime rendering
-  concerns.
+   concerns.
 2. uVector may also be consumed by Google/Nano-Banana image-generation flows
-  as a conversion/post-processing engine.
+   as a conversion/post-processing engine.
 3. uVector is a strong fit for vector/font asset conversion into bitmap/grid
-  uCode-compatible formats.
+   uCode-compatible formats.
 4. Do not force immediate migration; document as extension-class and onboard
-  via manifest when integration wave starts.
+   via manifest when integration wave starts.

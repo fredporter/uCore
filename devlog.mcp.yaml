@@ -1,72 +1,267 @@
-# Devlog — uCore
+# Devlog MCP — Generated: 2026-08-04T04:51:17Z
 
-version: "2.3.0"
-updated: "2026-07-08T12:14:00Z"
-round: "session.2026-07-08 USX npm packaging + test fixes + sprint planning"
+version: "1.0.0"
+generated_by: "Copilot-Poolside-Laguana-M1"
+hours: 24
+completed_tasks: 2
+spool_entries: 500
 
-## Recent Changes (2026-07-08)
+## Completed Tasks
 
-### USX npm Packaging — Resume & Complete
-- Installed @udos/usx-tokens v3.0.0 as file: dependency from HomeNest monorepo
-- Replaced local token copies with package imports in base.css + main.ts
-- Created usx-extensions.css for uCore-specific patterns
-- Removed duplicated local token files
-- Vite build passes with all CSS resolving from shared package
-- Version: 4.0.5
+- file: .tasker.archived/learning/completed-summarize-this-week-learning-seed-summarize-this-week-learning.md
+  archived: True
 
-### Test Suite Fixes — 502/502 Passing
-- Fixed mcp_guardrails.py: validate_mcp_syntax() now walks mcp_handlers/ package
-- Archived 5 stale tests (BudgetPolicy, container_start, export, surface_repair, surface_restart)
-- Fixed test_api_clipboard.py: clipboard_buffer import path
-- Fixed test_api_chat.py: model count + structure assertions
-- Result: 502 passed, 0 failed, 6 warnings (up from 483 passed, 19 failed, 5 collection errors)
+- file: .tasker.archived/sandbox/completed-publish-sandbox-draft-seed-publish-sandbox-draft.md
+  archived: True
 
-### Sprint Planning
-- Created .tasker/sprints/sprint-plan-2026-07-08.md
-- Sprint 1 complete, Sprint 2 (MCP self-identification/repair) and Sprint 3 (npm publish) planned
-- Documented overall health/maintenance/install/repair strategy
+## Spool Activity
 
-## Recent Changes (2026-07-04)
+- timestamp: 2026-08-04T12:51:01+00:00
+  level: INFO
+  module: stderr
+  message: [2026-08-04 12:51:01] WARNING  ucore.secret — cryptography not installed, using plaintext fallback
 
-### PyCharm Setup + Grid UI Polish + Docs Round
-- PyCharm (Girdui) IDE environment configured for uCore workspace
-- Grid colour popover: true 3x3 square grid, 36px cells, 1px border, inset shadow active states
-- Grid sidebar palette removed; colour popover is standalone component
-- Grid close-up editor pane removed; Layer with Pixel-style toolbar is primary editing surface
-- Version bumped to 4.0.4
-- Handover notes: .tasker/handover-pyrchard-2026-07-04.md
-- Modified: pyproject.toml, package.json, fieldnotes.md, devlog.mcp.yaml, wisdom.md, .tasker.dev-flow.yaml
+- timestamp: 2026-08-04T12:51:00.380000+00:00
+  level: WARNING
+  module: ucore-menu
+  message: ucore-menu: Menu lock file exists — PID 46182 is still running
 
-## Recent Changes (2026-07-02)
+- timestamp: 2026-08-04T12:50:51+00:00
+  level: INFO
+  module: stderr
+  message: [2026-08-04 12:50:51] INFO     ucore.skills.daily_backup — Cleaned up 4 old backups
 
-### Control Panel + Agentic Execution Pipeline
-- Control Panel: unified Developer tab (8 Vue files) replacing 11 scattered panels
-- Aggregation backend: `/api/control/status` endpoint with concurrent health probes
-- Lane A skills: skill-audit (smoke-test), ecosystem-audit assess (health scoring), ucore-index health-report, enhancement-planner
-- Lane B skills: hivemind-consensus, roundtable-dispatch, cline-invoke, dev-mode-executor (flagship 5-stage pipeline), gh-workflow-bridge
-- route_task: enhanced with target_agent parameter for specialized agent routing
-- All 10 existing panels wired to real backend APIs (Models, Agents, MCP, Skills, Repos, Review, Kanban, Workflows, Settings, Server, System)
-- Ecosystem audit: 173 items at 99.4% health (172 working, 1 untested, 0 broken)
-- Version: 4.0.3
+- timestamp: 2026-08-04T12:50:48+00:00
+  level: INFO
+  module: stderr
+  message: [2026-08-04 12:50:48] INFO     ucore — Backup completed: 3 files backed up to /Users/fredbook/.ucore
 
-## Previous Changes (2026-07-01)
+- timestamp: 2026-08-04T12:50:31+00:00
+  level: INFO
+  module: stderr
+  message: [2026-08-04 12:50:31] ERROR    ucore.skills.self_heal — Diagnostics failed: No module named 'psutil'
 
-- USX Refactor: modular token system (5 token files), 6 theme files, pure-variable usx-standard.css
-- Theme system: dark, teletext, c64, high-contrast themes via :root class + data-theme
-- useTheme() composable: singleton theme manager with localStorage persistence
-- usx_standard.py v3: audit, validate-tokens, audit-surface, scaffold-surface, report
-- Feed System: Pod schema, MCP server, API routes, FeedConsumer, frontend store
-- FeedPanel: Developer Surface tab component
-- Cleanup: pruned devlog, purged legacy dot-folders to docs/archive/
-- Version: 4.0.1
+- timestamp: 2026-08-04T12:50:31+00:00
+  level: INFO
+  module: stderr
+  message: [2026-08-04 12:50:31] ERROR    ucore.skills.self_heal — Port recovery failed: No module named 'psuti
 
-## Current Dev Flow
+- timestamp: 2026-08-04T12:50:25+00:00
+  level: INFO
+  module: stderr
+  message: [2026-08-04 12:50:25] WARNING  ucore.secret — cryptography not installed, using plaintext fallback
 
-- usx_standard: USX audit/repair/validate/scaffold skill for agent-driven CSS
-- useTheme: Vue composable for runtime theme switching (5 themes)
-- tasker_ingest: MCP bridge session progress to .tasker/spool/wisdom
-- dev_layer: Dev Mode toggle service
-- docs_roundup: End-of-round docs automation skill
-- feed_server: Activity Pod ingest, query, suggest, link
-- feed_consumer: Feed to Spool bridge
-- feed store: Frontend Pinia feed store
+- timestamp: 2026-08-04T12:50:24.717000+00:00
+  level: INFO
+  module: ucore-menu
+  message: ucore-menu: Global clipboard shortcut registered: Ctrl+Cmd+V
+
+- timestamp: 2026-08-04T12:50:24.638000+00:00
+  level: INFO
+  module: ucore-menu
+  message: ucore-menu: Registered snack: clipboard-buffer (clipboard)
+
+- timestamp: 2026-08-04T12:50:24.599000+00:00
+  level: INFO
+  module: ucore-menu
+  message: ucore-menu: Lockfile is 25 hours old — stale (safety net)
+
+- timestamp: 2026-08-04T12:50:24.599000+00:00
+  level: INFO
+  module: ucore-menu
+  message: ucore-menu: Removing stale lock file
+
+- timestamp: 2026-08-04T12:50:24.599000+00:00
+  level: INFO
+  module: ucore-menu
+  message: ucore-menu: Lock acquired (PID 46182)
+
+- timestamp: 2026-08-04T09:14:46.894000+00:00
+  level: INFO
+  module: autonomy
+  message: 2026-08-04 09:14:46,894 [autonomy] INFO State saved. Health: 99.4% | Ollama: online
+
+- timestamp: 2026-08-04T09:14:46.894000+00:00
+  level: INFO
+  module: autonomy_launchd
+  message: 2026-08-04 09:14:46,894 [autonomy] INFO State saved. Health: 99.4% | Ollama: online
+
+- timestamp: 2026-08-04T09:14:46.893000+00:00
+  level: INFO
+  module: autonomy
+  message: 2026-08-04 09:14:46,893 [autonomy] INFO Health OK: 99.4% (threshold: 95.0%)
+
+- timestamp: 2026-08-04T09:14:46.893000+00:00
+  level: INFO
+  module: autonomy_launchd
+  message: 2026-08-04 09:14:46,893 [autonomy] INFO Health OK: 99.4% (threshold: 95.0%)
+
+- timestamp: 2026-08-04T09:14:46.726000+00:00
+  level: INFO
+  module: autonomy
+  message: 2026-08-04 09:14:46,726 [autonomy] INFO Starting ecosystem audit...
+
+- timestamp: 2026-08-04T09:14:46.726000+00:00
+  level: INFO
+  module: autonomy_launchd
+  message: 2026-08-04 09:14:46,726 [autonomy] INFO Starting ecosystem audit...
+
+- timestamp: 2026-08-04T09:14:46.725000+00:00
+  level: INFO
+  module: autonomy
+  message: 2026-08-04 09:14:46,725 [autonomy] INFO === Autonomy Engine: Full Health Check ===
+
+- timestamp: 2026-08-04T09:14:46.725000+00:00
+  level: INFO
+  module: autonomy_launchd
+  message: 2026-08-04 09:14:46,725 [autonomy] INFO === Autonomy Engine: Full Health Check ===
+
+- timestamp: 2026-08-04T04:51:17.265250+00:00
+  level: INFO
+  module: ucore-server
+  message: (Press CTRL+C to quit)
+
+- timestamp: 2026-08-04T04:51:17.265247+00:00
+  level: INFO
+  module: ucore-server
+  message: ======== Running on http://0.0.0.0:8484 ========
+
+- timestamp: 2026-08-04T04:51:17.265097+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265093+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265090+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265087+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265083+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265080+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265077+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265074+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265070+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265063+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265060+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265056+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265053+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265050+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265047+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265043+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265040+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265037+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265034+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265030+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265027+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265024+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265019+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265015+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265012+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265009+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265005+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn
+
+- timestamp: 2026-08-04T04:51:17.265002+00:00
+  level: INFO
+  module: ucore-popcorn-stderr
+  message: /Applications/Xcode.app/Contents/Developer/usr/bin/python3: No module named app.ui.popcorn

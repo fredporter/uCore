@@ -118,6 +118,7 @@ def register_routes(app: web.Application) -> None:
     )
     from .user_workflow import (
         handle_user_workflow_archive,
+        handle_user_workflow_import_markdown,
         handle_user_workflow_reset,
         handle_user_workflow_seed,
         handle_user_workflow_status,
@@ -250,6 +251,10 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post(
         "/api/user/workflow/seed",
         handle_user_workflow_seed,
+    )
+    app.router.add_post(
+        "/api/user/workflow/import-markdown",
+        handle_user_workflow_import_markdown,
     )
     app.router.add_post("/api/exec", handle_exec)
     app.router.add_get("/api/docker/ps", handle_docker_ps)

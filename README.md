@@ -37,7 +37,7 @@ cd uCore
 ./scripts/vendor_sync.sh --refresh-lock --check
 
 # Install locked Python vendor modules
-source backend/.venv/bin/activate
+source .venv/bin/activate
 ./scripts/vendor_sync.sh --install-python --check
 ```
 
@@ -103,6 +103,16 @@ VS Code (Cline) → MCP Bridge → uCore (port 8484)
 | **HomeNest**   | plugin (udos) | Home automation + app-layer runtime        | `~/Code/HomeNest`   |
 | **uDocs**      | docs          | Canonical documentation                    | GitHub              |
 
+## Editor Strategy
+
+- Dedicated AppFlowy customization inside uCore is deprecated.
+- Vault content should remain portable and work in standard editors such as
+  AppFlowy and Obsidian without uCore-specific lock-in.
+- Primary editing focus is moving to the Bangle.io fork for first-class
+  in-product document workflows.
+- Task flows should link to markdown specs/docs when deeper implementation
+  details are required.
+
 > During the repo split, uCore keeps **routing adapters**
 > (`app.extensions.adapters/`) as import bridges only.
 > Missing required external repos must fail fast.
@@ -145,7 +155,7 @@ curl http://localhost:8484/api/tools           # 7 tools
 curl http://localhost:8484/api/models          # 4 providers
 curl http://localhost:8484/api/secrets         # Encrypted store
 curl http://localhost:8484/api/mcp/tools       # MCP tools
-curl http://localhost:8484/api/knowledge/workspaces  # AppFlowy
+curl http://localhost:8484/api/knowledge/workspaces  # Vault workspace bridge
 ```
 
 ## Status

@@ -21,7 +21,7 @@ set -euo pipefail
 UCORE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_DIR="$UCORE_ROOT/backend"
 FRONTEND_DIR="$UCORE_ROOT/frontend-vue"
-VENV_DIR="$BACKEND_DIR/.venv"
+VENV_DIR="$UCORE_ROOT/.venv"
 LOG_DIR="$HOME/.ucore/logs"
 DATA_DIR="$HOME/.ucore/data"
 CONFIG_DIR="$HOME/.ucore/config"
@@ -78,9 +78,11 @@ if [[ "${1:-}" == "--uninstall" ]]; then
     launchctl bootout gui/$(id -u)/com.udos.ucore-menu 2>/dev/null || true
     launchctl bootout gui/$(id -u)/com.udos.ucore-server 2>/dev/null || true
     launchctl bootout gui/$(id -u)/com.udos.ucore-frontend 2>/dev/null || true
+    launchctl bootout gui/$(id -u)/com.udos.ucore-watchdog 2>/dev/null || true
     rm -f "$HOME/Library/LaunchAgents/com.udos.ucore-menu.plist"
     rm -f "$HOME/Library/LaunchAgents/com.udos.ucore-server.plist"
     rm -f "$HOME/Library/LaunchAgents/com.udos.ucore-frontend.plist"
+    rm -f "$HOME/Library/LaunchAgents/com.udos.ucore-watchdog.plist"
     ok "Launchd agents removed"
 
     # Remove ~/.ucore/ data directory
@@ -354,6 +356,49 @@ PLISTEOF
     ok "Frontend launchd agent installed"
 fi
 
+# Watchdog agent (health + self-heal)
+WATCHDOG_PLIST="$HOME/Library/LaunchAgents/com.udos.ucore-watchdog.plist"
+if [[ -f "$WATCHDOG_PLIST" ]]; then
+    info "Watchdog launchd agent already installed"
+else
+    cat > "$WATCHDOG_PLIST" <<PLISTEOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.udos.ucore-watchdog</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-lc</string>
+        <string>$UCORE_ROOT/scripts/ucore_watchdog.sh</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>$UCORE_ROOT</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StartInterval</key>
+    <integer>60</integer>
+    <key>StandardOutPath</key>
+    <string>$LOG_DIR/ucore-watchdog-stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>$LOG_DIR/ucore-watchdog-stderr.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>UCORE_ROOT</key>
+        <string>$UCORE_ROOT</string>
+    </dict>
+</dict>
+</plist>
+PLISTEOF
+    launchctl bootstrap "gui/$(id -u)" "$WATCHDOG_PLIST" 2>/dev/null || true
+    ok "Watchdog launchd agent installed"
+fi
+
 # ─── Start Services ──────────────────────────────────────────────────
 
 info "Starting services..."
@@ -361,6 +406,7 @@ launchctl kickstart "gui/$(id -u)/com.udos.ucore-server" 2>/dev/null || true
 sleep 2
 launchctl kickstart "gui/$(id -u)/com.udos.ucore-menu" 2>/dev/null || true
 launchctl kickstart "gui/$(id -u)/com.udos.ucore-frontend" 2>/dev/null || true
+launchctl kickstart "gui/$(id -u)/com.udos.ucore-watchdog" 2>/dev/null || true
 
 # ─── Verify ──────────────────────────────────────────────────────────
 
