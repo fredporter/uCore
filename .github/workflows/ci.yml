@@ -29,6 +29,17 @@ jobs:
       - name: Validate extension manifests
         run: python3 scripts/validate_extension_manifests.py
 
+      - name: Checkout SnackMachine contract source
+        uses: actions/checkout@v4
+        with:
+          repository: fredporter/SnackMachine
+          path: external/SnackMachine
+
+      - name: Validate SnackMachine contract compatibility
+        env:
+          UCORE_SNACKMACHINE_PATH: ${{ github.workspace }}/external/SnackMachine
+        run: python3 scripts/check_snackmachine_contract.py
+
       - name: Audit duplicate API routes
         run: python3 scripts/audit_duplicate_routes.py
 
