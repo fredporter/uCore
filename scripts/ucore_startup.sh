@@ -28,7 +28,7 @@ check_backend() {
 
 # Check if menu is running
 check_menu() {
-    pgrep -f "app.menu.unified_menu" > /dev/null 2>&1
+    pgrep -f "app.menu.unified_menu_simple|app.menu.unified_menu" > /dev/null 2>&1
 }
 
 launchd_menu_pid() {
@@ -89,13 +89,13 @@ if ! check_menu; then
         launchctl kickstart "gui/$(id -u)/com.udos.ucore-menu" >/dev/null 2>&1 || true
     elif [ -f "$ROOT_VENV_DIR/bin/python" ]; then
         PYTHON_BIN="$ROOT_VENV_DIR/bin/python"
-        cd "$BACKEND_DIR" && PYTHONPATH=. $PYTHON_BIN -m app.menu.unified_menu > "$LOG_DIR/ucore-menu.log" 2>&1 &
+        cd "$BACKEND_DIR" && PYTHONPATH=. $PYTHON_BIN -m app.menu.unified_menu_simple > "$LOG_DIR/ucore-menu.log" 2>&1 &
     elif [ -f "$BACKEND_DIR/.venv/bin/python" ]; then
         PYTHON_BIN="$BACKEND_DIR/.venv/bin/python"
-        cd "$BACKEND_DIR" && PYTHONPATH=. $PYTHON_BIN -m app.menu.unified_menu > "$LOG_DIR/ucore-menu.log" 2>&1 &
+        cd "$BACKEND_DIR" && PYTHONPATH=. $PYTHON_BIN -m app.menu.unified_menu_simple > "$LOG_DIR/ucore-menu.log" 2>&1 &
     else
         PYTHON_BIN="/usr/bin/python3"
-        cd "$BACKEND_DIR" && PYTHONPATH=. $PYTHON_BIN -m app.menu.unified_menu > "$LOG_DIR/ucore-menu.log" 2>&1 &
+        cd "$BACKEND_DIR" && PYTHONPATH=. $PYTHON_BIN -m app.menu.unified_menu_simple > "$LOG_DIR/ucore-menu.log" 2>&1 &
     fi
 
     sleep 2

@@ -76,7 +76,7 @@ def main(loop_seconds: int = 60):
         venv_python = Path(UCORE_BACKEND_DIR) / ".venv" / "bin" / "python"
         python_bin = str(venv_python) if venv_python.exists() else "/usr/bin/python3"
         subprocess.Popen(
-            [python_bin, "-m", "app.core.snackbar", "--port", "8484"],
+            [python_bin, "-m", "app", "--port", "8484"],
             cwd=UCORE_BACKEND_DIR,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

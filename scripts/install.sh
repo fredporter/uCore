@@ -158,7 +158,7 @@ else
     ALL_OK=false
 fi
 
-if pgrep -f "app.menu.unified_menu" > /dev/null 2>&1; then
+if pgrep -f "app.menu.unified_menu_simple|app.menu.unified_menu" > /dev/null 2>&1; then
     ok "✅ Menu bar: 🍿 icon in menu bar"
 else
     warn "⚠️  Menu bar app not running"

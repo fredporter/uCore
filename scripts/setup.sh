@@ -276,7 +276,7 @@ else
     <array>
         <string>$VENV_DIR/bin/python</string>
         <string>-m</string>
-        <string>app.core.snackbar</string>
+        <string>app</string>
         <string>--port</string>
         <string>8484</string>
         <string>--auto-start</string>
@@ -422,7 +422,7 @@ else
 fi
 
 # Check menu
-if pgrep -f "app.menu.unified_menu" > /dev/null 2>&1; then
+if pgrep -f "app.menu.unified_menu_simple|app.menu.unified_menu" > /dev/null 2>&1; then
     ok "Menu bar app running (look for 🍿 in menu bar)"
 else
     warn "Menu bar app not running — check logs: $LOG_DIR/ucore-menu-stderr.log"

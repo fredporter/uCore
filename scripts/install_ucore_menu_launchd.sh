@@ -120,7 +120,7 @@ cat > "$PLIST_PATH" <<EOF
   <array>
     <string>${PYTHON_BIN}</string>
     <string>-m</string>
-    <string>app.menu.unified_menu</string>
+        <string>app.menu.unified_menu_simple</string>
   </array>
   <key>WorkingDirectory</key>
   <string>${BACKEND_DIR}</string>

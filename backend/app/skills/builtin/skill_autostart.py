@@ -118,7 +118,7 @@ def start_backend() -> bool:
         )
 
         subprocess.Popen(
-            [python_bin, "-m", "app.core.snackbar", "--port", "8484"],
+            [python_bin, "-m", "app", "--port", "8484"],
             cwd=UCORE_BACKEND_DIR,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

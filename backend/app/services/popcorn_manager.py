@@ -70,6 +70,22 @@ def _is_menu_running() -> bool:
         return False
 
 
+def _stop_backend_processes() -> None:
+    """Stop backend listener(s) on port 8484 using process IDs.
+
+    This avoids hard-coding module names and works across launcher variants.
+    """
+    kill_cmd = (
+        "for pid in $(lsof -tiTCP:8484 -sTCP:LISTEN 2>/dev/null); "
+        "do kill $pid 2>/dev/null || true; done"
+    )
+    subprocess.run(
+        ["/bin/sh", "-c", kill_cmd],
+        capture_output=True,
+        timeout=5,
+    )
+
+
 # ─── Public API ──────────────────────────────────────────────────────
 
 
@@ -207,11 +223,7 @@ def perform_action(action: str) -> dict:
                     "action": action,
                     "message": "Backend not running",
                 }
-            subprocess.run(
-                ["pkill", "-f", "python.*-m app.core.snackbar"],
-                capture_output=True,
-                timeout=5,
-            )
+            _stop_backend_processes()
             time.sleep(0.5)
             return {
                 "success": not _is_backend_alive(),
@@ -220,11 +232,7 @@ def perform_action(action: str) -> dict:
             }
 
         elif action == "restart-backend":
-            subprocess.run(
-                ["pkill", "-f", "python.*-m app.core.snackbar"],
-                capture_output=True,
-                timeout=5,
-            )
+            _stop_backend_processes()
             time.sleep(1)
             from app.menu.backend_manager import ensure_backend_running
 

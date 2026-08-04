@@ -67,7 +67,7 @@ def ensure_backend_running(timeout_s: float = 8.0) -> bool:
         python_bin = str(venv_python) if venv_python.exists() else "/usr/bin/python3"
 
         subprocess.Popen(
-            [python_bin, "-m", "app.core.snackbar", "--port", "8484", "--auto-start"],
+            [python_bin, "-m", "app", "--port", "8484", "--auto-start"],
             cwd=UCORE_BACKEND_DIR,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

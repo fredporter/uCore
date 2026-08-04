@@ -190,7 +190,7 @@ class UnifiedMenuDelegate(NSObject):
 
         # ── Header ──────────────────────────────────────────────
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "🍔 SnackShack", None, "h",
+            "🍿 uCore Menu", None, "h",
         )
         item.setEnabled_(True)
         item.setTarget_(self)
@@ -217,7 +217,7 @@ class UnifiedMenuDelegate(NSObject):
 
         # ── Quick Actions ────────────────────────────────────────
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "🍟 SnackMachine", "openSnackMachine:", "s",
+            "🍟 Snacks Workspace", "openSnackMachine:", "s",
         )
         item.setTarget_(self)
         self._menu.addItem_(item)
@@ -241,6 +241,24 @@ class UnifiedMenuDelegate(NSObject):
         state = "✓" if self._start_at_login else "  "
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
             f"{state} Start at Login", "toggleStartAtLogin:", "",
+        )
+        item.setTarget_(self)
+        self._menu.addItem_(item)
+
+        item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "↻ Restart Backend", "restartBackend:", "b",
+        )
+        item.setTarget_(self)
+        self._menu.addItem_(item)
+
+        item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "↻ Restart Frontend", "restartFrontend:", "f",
+        )
+        item.setTarget_(self)
+        self._menu.addItem_(item)
+
+        item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "↻ Restart Menu", "restartMenu:", "m",
         )
         item.setTarget_(self)
         self._menu.addItem_(item)
@@ -308,10 +326,10 @@ class UnifiedMenuDelegate(NSObject):
             alert.runModal()
 
     def openSnackMachine_(self, _sender):
-        """Open SnackMachine surface in browser with auto-start."""
-        log.info("Opening SnackMachine")
+        """Open snack operations area while extension split is in progress."""
+        log.info("Opening snacks workspace")
         _ensure_frontend_running()
-        open_url("http://localhost:5175/snackmachine")
+        open_url("http://localhost:5175/server?tab=snacks")
 
     def showClipboardPopover_(self, _sender):
         """Show the clipboard popover panel."""
@@ -329,6 +347,35 @@ class UnifiedMenuDelegate(NSObject):
         self.performSelectorOnMainThread_withObject_waitUntilDone_(
             "updateUI:", None, False,
         )
+
+    def restartBackend_(self, _sender):
+        """Restart backend via popcorn lifecycle manager."""
+        from app.services.popcorn_manager import perform_action
+
+        result = perform_action("restart-backend")
+        log.info("Restart backend: %s", result.get("message", result))
+        self._connected = is_ucore_alive()
+        self.performSelectorOnMainThread_withObject_waitUntilDone_(
+            "updateUI:", None, False,
+        )
+
+    def restartFrontend_(self, _sender):
+        """Restart frontend via popcorn lifecycle manager."""
+        from app.services.popcorn_manager import perform_action
+
+        result = perform_action("restart-frontend")
+        log.info("Restart frontend: %s", result.get("message", result))
+        self._uihub_connected = is_uihub_alive()
+        self.performSelectorOnMainThread_withObject_waitUntilDone_(
+            "updateUI:", None, False,
+        )
+
+    def restartMenu_(self, _sender):
+        """Restart menu via popcorn lifecycle manager."""
+        from app.services.popcorn_manager import perform_action
+
+        result = perform_action("restart-menu")
+        log.info("Restart menu: %s", result.get("message", result))
 
     def quitApp_(self, _sender):
         """Quit the menu app."""
