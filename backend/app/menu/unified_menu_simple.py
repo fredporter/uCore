@@ -63,6 +63,28 @@ UCORE_LABEL = "com.udos.ucore-menu"
 UCORE_PLIST = os.path.expanduser(f"~/Library/LaunchAgents/{UCORE_LABEL}.plist")
 UCORE_LOCKFILE = os.path.expanduser("~/.ucore/ucore-menu.pid")
 UCORE_BACKEND_DIR = os.environ.get("UCORE_BACKEND_DIR", str(Path.home() / "Code" / "uCore" / "backend"))
+SNACKMACHINE_REPO_DIR = Path(
+    os.environ.get(
+        "SNACKMACHINE_REPO_DIR",
+        str(Path.home() / "Code" / "SnackMachine"),
+    )
+)
+
+CORE_EXTENSION_IDS = {
+    "ucore-core",
+    "ucore-skills",
+    "ucore-surfaces",
+    "ucore-secrets",
+    "ucore-tools",
+    "uflow",
+    "uknowledge",
+}
+
+EXTENSION_LINKS = {
+    "snackmachine-extension": "http://localhost:5175/server?tab=snacks",
+    "hivemind": "http://localhost:5175/assistui",
+    "roundtable": "http://localhost:5175/assistui",
+}
 
 log_dir = os.path.expanduser("~/.ucore/logs")
 os.makedirs(log_dir, exist_ok=True)
@@ -111,6 +133,49 @@ def _ensure_frontend_running() -> bool:
         log.error(f"Failed to start frontend: {e}")
 
     return is_uihub_alive()
+
+
+def _is_snackmachine_installed() -> bool:
+    """Check whether SnackMachine extension appears locally installed."""
+    return (SNACKMACHINE_REPO_DIR / "pyproject.toml").exists()
+
+
+def _installed_extensions() -> list[dict[str, str]]:
+    """List detected installed extras for menu links."""
+    extensions: list[dict[str, str]] = []
+
+    if _is_snackmachine_installed():
+        extensions.append(
+            {
+                "id": "snackmachine-extension",
+                "name": "SnackMachine",
+                "url": EXTENSION_LINKS["snackmachine-extension"],
+            }
+        )
+
+    status = api_get_sync("/api/extensions/status") or {}
+    for ext in status.get("extensions", []):
+        ext_id = str(ext.get("id", "")).strip()
+        if not ext_id or ext_id in CORE_EXTENSION_IDS:
+            continue
+        if not ext.get("loaded", False):
+            continue
+
+        if any(e["id"] == ext_id for e in extensions):
+            continue
+
+        extensions.append(
+            {
+                "id": ext_id,
+                "name": str(ext.get("name", ext_id)),
+                "url": EXTENSION_LINKS.get(
+                    ext_id,
+                    "http://localhost:5175/system",
+                ),
+            }
+        )
+
+    return extensions
 
 
 # ─── App Delegate ─────────────────────────────────────────────────────
@@ -190,11 +255,10 @@ class UnifiedMenuDelegate(NSObject):
 
         # ── Header ──────────────────────────────────────────────
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "🍿 uCore Menu", None, "h",
+            "🍿 Snackbar", None, "h",
         )
-        item.setEnabled_(True)
+        item.setEnabled_(False)
         item.setTarget_(self)
-        item.setAction_("openSnackMachine:")
         self._menu.addItem_(item)
 
         self._menu.addItem_(NSMenuItem.separatorItem())
@@ -216,17 +280,97 @@ class UnifiedMenuDelegate(NSObject):
         self._menu.addItem_(NSMenuItem.separatorItem())
 
         # ── Quick Actions ────────────────────────────────────────
-        item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "🍟 Snacks Workspace", "openSnackMachine:", "s",
-        )
-        item.setTarget_(self)
-        self._menu.addItem_(item)
+        if _is_snackmachine_installed():
+            item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                "🍟 SnackMachine", None, "s",
+            )
+            submenu = NSMenu.alloc().init()
+
+            open_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                "Open Snacks Workspace", "openSnackMachine:", "",
+            )
+            open_item.setTarget_(self)
+            submenu.addItem_(open_item)
+            submenu.addItem_(NSMenuItem.separatorItem())
+
+            snacks = self._registry.get_all(enabled_only=False)
+            if snacks:
+                status_title = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                    "Installed Snacks",
+                    None,
+                    "",
+                )
+                status_title.setEnabled_(False)
+                submenu.addItem_(status_title)
+
+                max_items = 12
+                for snack in snacks[:max_items]:
+                    spec = snack.spec
+                    available = bool(spec.enabled and snack.is_available())
+                    state = "on" if available else "off"
+                    snack_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                        f"{spec.icon} {spec.name} ({state})",
+                        None,
+                        "",
+                    )
+                    snack_item.setEnabled_(False)
+                    submenu.addItem_(snack_item)
+
+                if len(snacks) > max_items:
+                    more = len(snacks) - max_items
+                    more_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                        f"... +{more} more",
+                        None,
+                        "",
+                    )
+                    more_item.setEnabled_(False)
+                    submenu.addItem_(more_item)
+            else:
+                none_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                    "No snacks registered",
+                    None,
+                    "",
+                )
+                none_item.setEnabled_(False)
+                submenu.addItem_(none_item)
+
+            item.setSubmenu_(submenu)
+            self._menu.addItem_(item)
+        else:
+            item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                "🍟 Install SnackMachine", "installSnackMachine:", "s",
+            )
+            item.setTarget_(self)
+            self._menu.addItem_(item)
 
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
             "🏝️ Clipboard", "showClipboardPopover:", "v",
         )
         item.setTarget_(self)
         self._menu.addItem_(item)
+
+        extensions = _installed_extensions()
+        if extensions:
+            self._menu.addItem_(NSMenuItem.separatorItem())
+            ext_header = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                "Extensions",
+                None,
+                "",
+            )
+            ext_header.setEnabled_(False)
+            self._menu.addItem_(ext_header)
+
+            for ext in extensions:
+                if ext["id"] == "snackmachine-extension":
+                    continue
+                ext_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                    f"🧩 {ext['name']}",
+                    "openExtensionLink:",
+                    "",
+                )
+                ext_item.setTarget_(self)
+                ext_item.setRepresentedObject_(ext["url"])
+                self._menu.addItem_(ext_item)
 
         self._menu.addItem_(NSMenuItem.separatorItem())
 
@@ -326,10 +470,25 @@ class UnifiedMenuDelegate(NSObject):
             alert.runModal()
 
     def openSnackMachine_(self, _sender):
-        """Open snack operations area while extension split is in progress."""
-        log.info("Opening snacks workspace")
+        """Open snacks workspace (and extension if installed)."""
+        log.info("Opening SnackMachine/workspace")
         _ensure_frontend_running()
         open_url("http://localhost:5175/server?tab=snacks")
+
+    def installSnackMachine_(self, _sender):
+        """Open the SnackMachine repository for installation instructions."""
+        log.info("Opening SnackMachine install page")
+        open_url("https://github.com/fredporter/SnackMachine")
+
+    def openExtensionLink_(self, sender):
+        """Open an installed extension link from represented object."""
+        try:
+            url = str(sender.representedObject() or "").strip()
+            if not url:
+                return
+            open_url(url)
+        except Exception as exc:
+            log.warning("Failed to open extension link: %s", exc)
 
     def showClipboardPopover_(self, _sender):
         """Show the clipboard popover panel."""
