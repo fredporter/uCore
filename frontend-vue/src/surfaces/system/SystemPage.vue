@@ -8,48 +8,99 @@
       </div>
 
       <div class="system-page-body">
-        <h3 class="system-fallback-title">{{ fallbackModel.heading }}</h3>
-        <p class="system-page-note">{{ fallbackModel.summary }}</p>
+        <template v-if="isClipboardPage">
+          <p class="system-page-note">
+            Full clipboard history. Select an item to promote it to the active
+            system clipboard.
+          </p>
 
-        <section class="system-fallback-block">
-          <h4 class="system-fallback-subtitle">What You Can Do</h4>
-          <ul class="system-fallback-list">
-            <li v-for="step in fallbackModel.steps" :key="step">{{ step }}</li>
-          </ul>
-        </section>
-
-        <section class="system-fallback-block" v-if="fallbackModel.suggestions.length">
-          <h4 class="system-fallback-subtitle">Suggested Pages</h4>
-          <div class="system-fallback-links">
-            <button
-              v-for="suggestion in fallbackModel.suggestions"
-              :key="suggestion.label"
-              class="system-fallback-link"
-              @click="goTo(suggestion.to)"
-            >
-              {{ suggestion.label }}
+          <div class="clipboard-toolbar">
+            <button class="system-page-action" @click="loadClipboardHistory" :disabled="clipboardLoading">
+              {{ clipboardLoading ? 'Refreshing…' : 'Refresh' }}
+            </button>
+            <button class="system-page-action" @click="captureClipboard" :disabled="clipboardLoading">
+              Capture Current Clipboard
+            </button>
+            <button class="system-page-action" @click="clearClipboardHistory" :disabled="clipboardLoading || clipboardItems.length === 0">
+              Clear History
             </button>
           </div>
-        </section>
 
-        <div class="system-actions-row">
-          <button class="system-page-action" @click="goBack">Go Back</button>
-          <button class="system-page-action" @click="retry">Retry</button>
-          <button class="system-page-action" @click="goHome">Home</button>
-          <button class="system-page-action" @click="goTo('/system?tab=pages')">Browse Fallback Pages</button>
-        </div>
+          <p v-if="clipboardMessage" class="clipboard-message">{{ clipboardMessage }}</p>
 
-        <p class="system-fallback-footnote">{{ fallbackModel.footnote }}</p>
+          <section class="system-fallback-block clipboard-block">
+            <div v-if="clipboardLoading" class="clipboard-state">Loading clipboard history…</div>
+            <div v-else-if="clipboardItems.length === 0" class="clipboard-state">No clipboard history yet.</div>
+            <ul v-else class="clipboard-list">
+              <li v-for="item in clipboardItems" :key="item.id" class="clipboard-list-item">
+                <div class="clipboard-item-main">
+                  <div class="clipboard-item-header">
+                    <span class="clipboard-item-source">{{ item.source || 'clipboard' }}</span>
+                    <span class="clipboard-item-time">{{ item.timestamp || 'pending' }}</span>
+                  </div>
+                  <p class="clipboard-item-content">{{ summarizeClipboard(item.content) }}</p>
+                </div>
+                <div class="clipboard-item-actions">
+                  <button class="system-page-action" @click="promoteClipboardItem(item.id)">Use Next Paste</button>
+                  <button class="system-page-action" @click="pinClipboardItem(item)">{{ item.pinned ? 'Unpin' : 'Pin' }}</button>
+                  <button class="system-page-action" @click="deleteClipboardItem(item.id)">Delete</button>
+                </div>
+              </li>
+            </ul>
+          </section>
+
+          <div class="system-actions-row">
+            <button class="system-page-action" @click="goBack">Go Back</button>
+            <button class="system-page-action" @click="goHome">Home</button>
+            <button class="system-page-action" @click="goTo('/server?tab=snacks')">Open SnackMachine</button>
+          </div>
+        </template>
+
+        <template v-else>
+          <h3 class="system-fallback-title">{{ fallbackModel.heading }}</h3>
+          <p class="system-page-note">{{ fallbackModel.summary }}</p>
+
+          <section class="system-fallback-block">
+            <h4 class="system-fallback-subtitle">What You Can Do</h4>
+            <ul class="system-fallback-list">
+              <li v-for="step in fallbackModel.steps" :key="step">{{ step }}</li>
+            </ul>
+          </section>
+
+          <section class="system-fallback-block" v-if="fallbackModel.suggestions.length">
+            <h4 class="system-fallback-subtitle">Suggested Pages</h4>
+            <div class="system-fallback-links">
+              <button
+                v-for="suggestion in fallbackModel.suggestions"
+                :key="suggestion.label"
+                class="system-fallback-link"
+                @click="goTo(suggestion.to)"
+              >
+                {{ suggestion.label }}
+              </button>
+            </div>
+          </section>
+
+          <div class="system-actions-row">
+            <button class="system-page-action" @click="goBack">Go Back</button>
+            <button class="system-page-action" @click="retry">Retry</button>
+            <button class="system-page-action" @click="goHome">Home</button>
+            <button class="system-page-action" @click="goTo('/system?tab=pages')">Browse Fallback Pages</button>
+          </div>
+
+          <p class="system-fallback-footnote">{{ fallbackModel.footnote }}</p>
+        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import UIcon from '../../skills/atoms/UIcon.vue'
 import UBadge from '../../skills/atoms/UBadge.vue'
+import { SNACKBAR_BASE } from '../../api/base'
 
 interface PageMeta { id: string; title: string; icon: string }
 interface SuggestionLink { label: string; to: string }
@@ -61,6 +112,14 @@ interface FallbackModel {
   footnote: string
 }
 
+interface ClipboardItem {
+  id: string
+  content: string
+  source: string
+  timestamp?: string
+  pinned?: boolean
+}
+
 const route = useRoute()
 const router = useRouter()
 
@@ -68,7 +127,7 @@ const LOCAL_FALLBACK_PAGES: PageMeta[] = [
   { id: 'S100', title: 'Page Not Found', icon: 'search_off' },
   { id: 'S101', title: 'Server Offline', icon: 'cloud_off' },
   { id: 'S300', title: 'Internal Server Error', icon: 'error' },
-  { id: 'S310', title: 'Request Timed Out', icon: 'timer_off' },
+  { id: 'S310', title: 'Clipboard Full History', icon: 'content_paste' },
   { id: 'S320', title: 'Access Restricted', icon: 'lock' },
   { id: 'S330', title: 'Configuration Missing', icon: 'settings' },
   { id: 'S340', title: 'Dependency Unavailable', icon: 'link_off' },
@@ -102,6 +161,139 @@ const pageMeta = computed<PageMeta>(() => {
 
 const displayTitle = computed(() => pageMeta.value.title)
 const displayIcon = computed(() => pageMeta.value.icon)
+const isClipboardPage = computed(() => resolvedPageCode.value === 'S310')
+
+const clipboardItems = ref<ClipboardItem[]>([])
+const clipboardLoading = ref(false)
+const clipboardMessage = ref('')
+
+function summarizeClipboard(content: string) {
+  const compact = String(content || '').replace(/\s+/g, ' ').trim()
+  if (!compact) return '(empty clipboard item)'
+  return compact.length > 120 ? `${compact.slice(0, 120)}...` : compact
+}
+
+async function loadClipboardHistory() {
+  clipboardLoading.value = true
+  clipboardMessage.value = ''
+  try {
+    const response = await fetch(`${SNACKBAR_BASE}/api/snacks/clipboard?limit=100`)
+    if (!response.ok) {
+      clipboardMessage.value = `Failed to load clipboard history (${response.status}).`
+      clipboardItems.value = []
+      return
+    }
+    const payload = await response.json()
+    clipboardItems.value = (payload.items || []) as ClipboardItem[]
+  } catch {
+    clipboardMessage.value = 'Clipboard history is currently unavailable.'
+    clipboardItems.value = []
+  } finally {
+    clipboardLoading.value = false
+  }
+}
+
+async function promoteClipboardItem(itemId: string) {
+  clipboardMessage.value = ''
+  try {
+    const response = await fetch(`${SNACKBAR_BASE}/api/snacks/clipboard/${itemId}/paste`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+    if (!response.ok) {
+      clipboardMessage.value = `Failed to set clipboard item (${response.status}).`
+      return
+    }
+    clipboardMessage.value = 'Clipboard item set for next paste.'
+    await loadClipboardHistory()
+  } catch {
+    clipboardMessage.value = 'Failed to set clipboard item.'
+  }
+}
+
+async function pinClipboardItem(item: ClipboardItem) {
+  clipboardMessage.value = ''
+  const desiredPinned = !Boolean(item.pinned)
+  try {
+    const response = await fetch(`${SNACKBAR_BASE}/api/snacks/clipboard/${item.id}/pin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pinned: desiredPinned }),
+    })
+    if (!response.ok) {
+      clipboardMessage.value = `Failed to update pin state (${response.status}).`
+      return
+    }
+    await loadClipboardHistory()
+  } catch {
+    clipboardMessage.value = 'Failed to update pin state.'
+  }
+}
+
+async function deleteClipboardItem(itemId: string) {
+  clipboardMessage.value = ''
+  try {
+    const response = await fetch(`${SNACKBAR_BASE}/api/snacks/clipboard/${itemId}`, {
+      method: 'DELETE',
+    })
+    if (!response.ok) {
+      clipboardMessage.value = `Failed to delete clipboard item (${response.status}).`
+      return
+    }
+    await loadClipboardHistory()
+  } catch {
+    clipboardMessage.value = 'Failed to delete clipboard item.'
+  }
+}
+
+async function captureClipboard() {
+  clipboardMessage.value = ''
+  try {
+    const response = await fetch(`${SNACKBAR_BASE}/api/snacks/clipboard/capture`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: 'system-s310' }),
+    })
+    if (!response.ok) {
+      clipboardMessage.value = `Failed to capture clipboard (${response.status}).`
+      return
+    }
+    clipboardMessage.value = 'Captured current clipboard item.'
+    await loadClipboardHistory()
+  } catch {
+    clipboardMessage.value = 'Failed to capture current clipboard.'
+  }
+}
+
+async function clearClipboardHistory() {
+  clipboardMessage.value = ''
+  try {
+    const response = await fetch(`${SNACKBAR_BASE}/api/snacks/clipboard/clear`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ include_pinned: false }),
+    })
+    if (!response.ok) {
+      clipboardMessage.value = `Failed to clear clipboard history (${response.status}).`
+      return
+    }
+    clipboardMessage.value = 'Clipboard history cleared.'
+    await loadClipboardHistory()
+  } catch {
+    clipboardMessage.value = 'Failed to clear clipboard history.'
+  }
+}
+
+watch(
+  () => resolvedPageCode.value,
+  (code) => {
+    if (code === 'S310') {
+      void loadClipboardHistory()
+    }
+  },
+  { immediate: true },
+)
 
 const fallbackModel = computed<FallbackModel>(() => {
   const title = pageMeta.value.title
@@ -161,18 +353,18 @@ const fallbackModel = computed<FallbackModel>(() => {
 
   if (code === 'S310') {
     return {
-      heading: 'Request Timed Out',
-      summary: 'The request took too long and was canceled.',
+      heading: 'Clipboard Full History',
+      summary: 'Browse and manage clipboard history from the system surfaces area.',
       steps: [
-        'Retry the request once connectivity stabilizes.',
-        'Reduce scope or payload size if possible.',
-        'Verify local services are not overloaded.',
+        'Refresh to load the latest captured clipboard items.',
+        'Use Next Paste to promote any item into the active clipboard.',
+        'Pin important snippets to protect them from cleanup operations.',
       ],
       suggestions: [
-        { label: 'Server Surface', to: '/server' },
-        { label: 'System Services', to: '/system?tab=services' },
+        { label: 'SnackMachine', to: '/server?tab=snacks' },
+        { label: 'System Pages', to: '/system?tab=pages' },
       ],
-      footnote: 'Timeout fallback. Network delays or heavy workloads are common causes.',
+      footnote: 'Clipboard orchestration surface.',
     }
   }
 

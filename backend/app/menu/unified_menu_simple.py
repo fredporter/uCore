@@ -555,8 +555,8 @@ class UnifiedMenuDelegate(NSObject):
     def showClipboardPopover_(self, _sender):
         """Show the clipboard popover panel."""
         _ensure_frontend_running()
-        # Simplified: just open the S310 clipboard page
-        open_url("http://localhost:5175/s310")
+        # Open the canonical clipboard full-history surface page
+        open_url("http://localhost:5175/system/s310")
 
     def selectClipboardItem_(self, sender):
         """Promote selected history item back into active system clipboard."""

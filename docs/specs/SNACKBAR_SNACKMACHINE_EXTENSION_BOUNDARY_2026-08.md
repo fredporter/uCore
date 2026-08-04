@@ -90,6 +90,7 @@
 ## Boundary Rule
 
 If removing a module breaks:
+
 - backend startup,
 - health checks,
 - menu startup,
