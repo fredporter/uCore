@@ -4,6 +4,10 @@
       ref="editorEl"
       v-model="content"
       class="bangle-editor__textarea"
+      :class="{
+        'bangle-editor__textarea--prose': editMode === 'prose',
+        'bangle-editor__textarea--code': editMode === 'code',
+      }"
       :readonly="readOnly"
       spellcheck="false"
       @input="handleInput"
@@ -23,6 +27,7 @@ interface Props {
   noUpload?: boolean;
   autofocus?: boolean;
   readOnly?: boolean;
+  editMode?: "prose" | "code";
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -33,6 +38,7 @@ const props = withDefaults(defineProps<Props>(), {
   noUpload: false,
   autofocus: false,
   readOnly: false,
+  editMode: "prose",
 });
 
 const emit = defineEmits<{
@@ -43,11 +49,19 @@ const emit = defineEmits<{
 
 const content = ref(props.modelValue);
 const editorEl = ref<HTMLTextAreaElement | null>(null);
+const editMode = ref<"prose" | "code">(props.editMode);
 
 watch(
   () => props.modelValue,
   (val) => {
     content.value = val;
+  },
+);
+
+watch(
+  () => props.editMode,
+  (val) => {
+    editMode.value = val;
   },
 );
 
@@ -90,9 +104,17 @@ onMounted(() => {
   padding: var(--usx-spacing-md);
   color: var(--usx-color-on-surface);
   background: var(--usx-color-surface);
-  font-family: var(--usx-font-family-mono);
   font-size: var(--usx-font-size-sm);
-  line-height: 1.6;
+}
+
+.bangle-editor__textarea--prose {
+  font-family: var(--usx-font-family-sans);
+  line-height: var(--usx-line-height-relaxed, 1.7);
+}
+
+.bangle-editor__textarea--code {
+  font-family: var(--usx-font-family-mono);
+  line-height: var(--usx-line-height-normal, 1.6);
 }
 
 .bangle-editor__textarea::placeholder {

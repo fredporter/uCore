@@ -43,7 +43,9 @@
             :read-only="editorReadOnly"
             :show-editor="wf.showEditorPane"
             :pane-layout="wf.paneLayout"
+            :edit-mode="wf.editorMode"
             @update:content="onEditorContentUpdate"
+            @update:edit-mode="onEditorModeUpdate"
             @save="onEditorSave"
             @close="wf.closeEditor()"
             @toggle-editor="wf.toggleEditorPane()"
@@ -85,7 +87,9 @@
             :read-only="editorReadOnly"
             :show-editor="wf.showEditorPane"
             :pane-layout="wf.paneLayout"
+            :edit-mode="wf.editorMode"
             @update:content="onEditorContentUpdate"
+            @update:edit-mode="onEditorModeUpdate"
             @save="onEditorSave"
             @close="wf.closeEditor()"
             @toggle-editor="wf.toggleEditorPane()"
@@ -195,6 +199,10 @@ function onEditorSave(value: string) {
   wf.updateEditorContent(value);
   const itemId = wf.selectedTask?.id || wf.selectedFile?.path;
   console.log("[Workflow] Editor saved:", itemId);
+}
+
+function onEditorModeUpdate(mode: "prose" | "code") {
+  wf.setEditorMode(mode);
 }
 
 const activeEditorItem = computed(() => wf.selectedTask || wf.selectedFile);

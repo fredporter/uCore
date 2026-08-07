@@ -50,6 +50,21 @@
           <UIcon name="save" />
         </button>
         <button
+          v-if="showEditor"
+          class="editor-panel__nav-btn"
+          :class="{
+            'editor-panel__nav-btn--active': localEditMode === 'prose',
+          }"
+          :title="
+            localEditMode === 'prose'
+              ? 'Switch to code editing style'
+              : 'Switch to prose editing style'
+          "
+          @click="toggleEditMode"
+        >
+          <UIcon :name="localEditMode === 'prose' ? 'notes' : 'code'" />
+        </button>
+        <button
           class="editor-panel__nav-btn"
           title="Close editor"
           @click="emit('close')"
@@ -75,6 +90,7 @@
             :preview="false"
             :toolbars="editorToolbars"
             :read-only="readOnly"
+            :edit-mode="localEditMode"
             @save="handleSave"
             @change="onContentChange"
           />
@@ -125,6 +141,7 @@ interface Props {
   readOnly?: boolean;
   showEditor?: boolean;
   paneLayout?: "split" | "stacked";
+  editMode?: "prose" | "code";
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -133,10 +150,12 @@ const props = withDefaults(defineProps<Props>(), {
   readOnly: false,
   showEditor: false,
   paneLayout: "split",
+  editMode: "prose",
 });
 
 const emit = defineEmits<{
   "update:content": [value: string];
+  "update:editMode": [value: "prose" | "code"];
   save: [value: string];
   close: [];
   "toggle-editor": [];
@@ -146,6 +165,7 @@ const emit = defineEmits<{
 // ─── State ───────────────────────────────────────────────────────────
 const localContent = ref(props.content);
 const instanceId = Math.random().toString(36).slice(2, 8);
+const localEditMode = ref<"prose" | "code">(props.editMode);
 
 // ─── Toolbar metadata retained for compatibility with editor adapters ──
 const editorToolbars = [
@@ -189,6 +209,13 @@ watch(
   },
 );
 
+watch(
+  () => props.editMode,
+  (val) => {
+    localEditMode.value = val;
+  },
+);
+
 // ─── Handlers ────────────────────────────────────────────────────────
 function onContentChange(value: string) {
   localContent.value = value;
@@ -197,6 +224,12 @@ function onContentChange(value: string) {
 
 function handleSave() {
   emit("save", localContent.value);
+}
+
+function toggleEditMode() {
+  const next = localEditMode.value === "prose" ? "code" : "prose";
+  localEditMode.value = next;
+  emit("update:editMode", next);
 }
 </script>
 

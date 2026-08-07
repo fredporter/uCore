@@ -97,6 +97,27 @@ export const ucoreApi = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    publishJekyll: (body: {
+      content: string;
+      title?: string;
+      slug?: string;
+      collection?: string;
+      vault_layer?: string;
+      relative_dir?: string;
+      binder?: string;
+      tags?: string[] | string;
+      layout?: string;
+      publish_mode?: "local" | "cloud";
+      target_repo?: string;
+      target_branch?: string;
+      execute_git?: boolean;
+      commit_message?: string;
+      overwrite?: boolean;
+    }) =>
+      request(`${UCORE_API}/api/user/workflow/publish-jekyll`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
   },
   knowledge: {
     list: () => request(`${UCORE_API}/api/knowledge`),

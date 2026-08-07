@@ -2,26 +2,163 @@
   <div class="wf-panel">
     <div class="surface__panel">
       <h3 class="surface__panel-title">Publish</h3>
-      <p class="surface__panel-description">Manage workflow definitions, run workflows, and view execution logs</p>
+      <p class="surface__panel-description">
+        Manage workflow definitions, run workflows, and view execution logs
+      </p>
     </div>
 
     <div v-if="wf.loading" class="wf-loading">
       <UIcon name="sync" /> Loading workflows...
     </div>
 
+    <div class="wf-section">
+      <h4 class="wf-section-title">Jekyll Pathway</h4>
+      <div class="wf-workflow-card wf-jekyll-card">
+        <p class="wf-workflow-desc">
+          Prepare Jekyll-ready markdown from current draft with Prose-first
+          editing and a local/cloud publish path.
+        </p>
+        <div class="wf-form-grid">
+          <label class="wf-field">
+            <span class="wf-field-label">Title</span>
+            <input
+              v-model="jekyllTitle"
+              class="wf-input"
+              type="text"
+              placeholder="My new post"
+            />
+          </label>
+          <label class="wf-field">
+            <span class="wf-field-label">Slug</span>
+            <input
+              v-model="jekyllSlug"
+              class="wf-input"
+              type="text"
+              placeholder="my-new-post"
+            />
+          </label>
+          <label class="wf-field">
+            <span class="wf-field-label">Collection</span>
+            <select v-model="jekyllCollection" class="wf-input">
+              <option value="posts">posts (_posts)</option>
+              <option value="pages">pages</option>
+              <option value="notes">notes (_notes)</option>
+            </select>
+          </label>
+          <label class="wf-field">
+            <span class="wf-field-label">Publish mode</span>
+            <select v-model="jekyllMode" class="wf-input">
+              <option value="local">local</option>
+              <option value="cloud">cloud</option>
+            </select>
+          </label>
+          <label class="wf-field">
+            <span class="wf-field-label">Target repo (optional)</span>
+            <input
+              v-model="jekyllTargetRepo"
+              class="wf-input"
+              type="text"
+              placeholder="owner/repo or git URL"
+            />
+          </label>
+          <label class="wf-field">
+            <span class="wf-field-label">Branch</span>
+            <input
+              v-model="jekyllTargetBranch"
+              class="wf-input"
+              type="text"
+              placeholder="main"
+            />
+          </label>
+          <label class="wf-field">
+            <span class="wf-field-label">Commit message (optional)</span>
+            <input
+              v-model="jekyllCommitMessage"
+              class="wf-input"
+              type="text"
+              placeholder="publish: my-new-post"
+            />
+          </label>
+        </div>
+
+        <label class="wf-checkbox-row">
+          <input
+            v-model="jekyllExecuteGit"
+            type="checkbox"
+            :disabled="jekyllMode !== 'cloud'"
+          />
+          <span>Execute git publish automatically for cloud mode</span>
+        </label>
+
+        <label class="wf-field wf-field--full">
+          <span class="wf-field-label">Markdown draft</span>
+          <textarea
+            v-model="jekyllContent"
+            class="wf-textarea"
+            placeholder="Write or paste markdown content here..."
+          />
+        </label>
+
+        <div class="wf-workflow-footer">
+          <span v-if="jekyllMessage" class="wf-muted">{{ jekyllMessage }}</span>
+          <UButton
+            size="sm"
+            variant="primary"
+            icon="publish"
+            :disabled="jekyllBusy"
+            @click="publishJekyll"
+          >
+            {{ jekyllBusy ? "Preparing..." : "Prepare Jekyll Draft" }}
+          </UButton>
+        </div>
+
+        <div v-if="jekyllOutput.path" class="wf-output">
+          <p class="wf-monospace">Saved: {{ jekyllOutput.path }}</p>
+          <div class="wf-output-grid">
+            <div>
+              <p class="wf-output-title">Local preview</p>
+              <pre class="wf-code-block">{{
+                (jekyllOutput.next_steps?.local_preview || []).join("\n")
+              }}</pre>
+            </div>
+            <div>
+              <p class="wf-output-title">Cloud publish</p>
+              <pre class="wf-code-block">{{
+                (jekyllOutput.next_steps?.cloud_publish || []).join("\n")
+              }}</pre>
+            </div>
+          </div>
+          <div v-if="jekyllOutput.git_publish" class="wf-git-output">
+            <p class="wf-output-title">Direct git publish result</p>
+            <pre class="wf-code-block">{{
+              JSON.stringify(jekyllOutput.git_publish, null, 2)
+            }}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Workflow definitions -->
     <div class="wf-section">
       <h4 class="wf-section-title">Workflow Definitions</h4>
       <div class="wf-workflow-grid" v-if="wf.workflowDefinitions.length > 0">
-        <div v-for="def in wf.workflowDefinitions" :key="def.id" class="wf-workflow-card">
+        <div
+          v-for="def in wf.workflowDefinitions"
+          :key="def.id"
+          class="wf-workflow-card"
+        >
           <div class="wf-workflow-card-header">
             <UIcon name="workflow" />
             <span class="wf-workflow-name">{{ def.name }}</span>
             <UBadge type="info" size="sm">{{ def.schedule }}</UBadge>
           </div>
-          <p class="wf-workflow-desc">{{ def.description || 'No description' }}</p>
+          <p class="wf-workflow-desc">
+            {{ def.description || "No description" }}
+          </p>
           <div class="wf-workflow-steps">
-            <span class="wf-workflow-steps-label">{{ def.steps?.length || 0 }} steps:</span>
+            <span class="wf-workflow-steps-label"
+              >{{ def.steps?.length || 0 }} steps:</span
+            >
             <span v-for="(step, i) in def.steps" :key="i" class="wf-step-badge">
               <UIcon name="extension" />
               {{ step.skill_id }}
@@ -29,7 +166,13 @@
           </div>
           <div class="wf-workflow-footer">
             <span class="wf-workflow-id">ID: {{ def.id }}</span>
-            <UButton size="sm" variant="primary" icon="play_arrow" @click="runWorkflow(def.id)">Run</UButton>
+            <UButton
+              size="sm"
+              variant="primary"
+              icon="play_arrow"
+              @click="runWorkflow(def.id)"
+              >Run</UButton
+            >
           </div>
         </div>
       </div>
@@ -42,15 +185,27 @@
     <div class="wf-section">
       <h4 class="wf-section-title">Recent Runs</h4>
       <div class="wf-run-history" v-if="wf.workflowRuns.length > 0">
-        <div v-for="run in wf.workflowRuns.slice(0, 10)" :key="run.run_id" class="wf-run-card">
+        <div
+          v-for="run in wf.workflowRuns.slice(0, 10)"
+          :key="run.run_id"
+          class="wf-run-card"
+        >
           <div class="wf-run-card-header">
             <UBadge
-              :type="run.status === 'completed' ? 'success' : run.status === 'failed' ? 'error' : 'warning'"
+              :type="
+                run.status === 'completed'
+                  ? 'success'
+                  : run.status === 'failed'
+                    ? 'error'
+                    : 'warning'
+              "
               size="sm"
             >
               {{ run.status }}
             </UBadge>
-            <span class="wf-run-wf-name">{{ run.workflow_name || run.workflow_id }}</span>
+            <span class="wf-run-wf-name">{{
+              run.workflow_name || run.workflow_id
+            }}</span>
             <span class="wf-run-id wf-monospace">{{ run.run_id }}</span>
           </div>
           <div class="wf-run-timing">
@@ -59,19 +214,27 @@
           </div>
           <div class="wf-run-steps" v-if="run.steps?.length">
             <span class="wf-run-steps-label">Steps:</span>
-            <div v-for="step in run.steps" :key="step.index" class="wf-run-step-row">
+            <div
+              v-for="step in run.steps"
+              :key="step.index"
+              class="wf-run-step-row"
+            >
               <UIcon
                 :name="step.success ? 'check_circle' : 'error'"
                 :size="12"
                 :class="step.success ? 'wf-icon--success' : 'wf-icon--danger'"
               />
               <span class="wf-monospace">{{ step.skill_id }}</span>
-              <span v-if="step.error" class="wf-step-error">{{ step.error }}</span>
+              <span v-if="step.error" class="wf-step-error">{{
+                step.error
+              }}</span>
             </div>
           </div>
         </div>
       </div>
-      <div v-else-if="!wf.loading" class="wf-empty-small">No workflow runs yet.</div>
+      <div v-else-if="!wf.loading" class="wf-empty-small">
+        No workflow runs yet.
+      </div>
     </div>
 
     <!-- Create workflow form placeholder -->
@@ -81,7 +244,8 @@
       </summary>
       <div class="wf-create-body">
         <p class="wf-muted">
-          POST to <code>/api/workflows</code> with <code>{ name, steps: [{ type: "skill", skill_id: "..." }] }</code>
+          POST to <code>/api/workflows</code> with
+          <code>{ name, steps: [{ type: "skill", skill_id: "..." }] }</code>
         </p>
         <p class="wf-muted">
           Workflows are defined as a sequence of skill executions run in order.
@@ -93,36 +257,109 @@
 </template>
 
 <script setup lang="ts">
-import UIcon from '../../../skills/atoms/UIcon.vue'
-import UBadge from '../../../skills/atoms/UBadge.vue'
-import UButton from '../../../skills/atoms/UButton.vue'
-import { useWorkflowStore } from '../../../stores/workflow'
+import { ref, watch } from "vue";
+import UIcon from "../../../skills/atoms/UIcon.vue";
+import UBadge from "../../../skills/atoms/UBadge.vue";
+import UButton from "../../../skills/atoms/UButton.vue";
+import { useWorkflowStore } from "../../../stores/workflow";
+import { ucoreApi } from "../../../api/client";
 
-const wf = useWorkflowStore()
+const wf = useWorkflowStore();
+
+const jekyllTitle = ref("");
+const jekyllSlug = ref("");
+const jekyllCollection = ref("posts");
+const jekyllMode = ref<"local" | "cloud">("local");
+const jekyllTargetRepo = ref("");
+const jekyllTargetBranch = ref("main");
+const jekyllExecuteGit = ref(false);
+const jekyllCommitMessage = ref("");
+const jekyllContent = ref("");
+const jekyllBusy = ref(false);
+const jekyllMessage = ref("");
+const jekyllOutput = ref<any>({});
+
+watch(
+  () => wf.selectedTask,
+  (task) => {
+    if (!task) return;
+    if (!jekyllTitle.value) jekyllTitle.value = task.title || "";
+    if (!jekyllContent.value) jekyllContent.value = task.description || "";
+  },
+  { immediate: true },
+);
+
+watch(
+  () => wf.selectedFile,
+  (file) => {
+    if (!file) return;
+    if (!jekyllTitle.value) jekyllTitle.value = file.filename || "";
+    if (!jekyllContent.value) jekyllContent.value = file.content || "";
+  },
+  { immediate: true },
+);
 
 function formatTime(iso: string): string {
-  if (!iso) return '—'
+  if (!iso) return "—";
   try {
-    return new Date(iso).toLocaleString()
+    return new Date(iso).toLocaleString();
   } catch {
-    return iso
+    return iso;
   }
 }
 
-const API = import.meta.env.VITE_SNACKBAR_URL || 'http://localhost:8484'
+const API = import.meta.env.VITE_SNACKBAR_URL || "http://localhost:8484";
 
 async function runWorkflow(workflowId: string): Promise<void> {
   try {
     const res = await fetch(`${API}/api/workflows/${workflowId}/run`, {
-      method: 'POST',
+      method: "POST",
       signal: AbortSignal.timeout(60000),
-    })
+    });
     if (res.ok) {
       // Refresh runs after running
-      await wf.fetchWorkflowRuns()
+      await wf.fetchWorkflowRuns();
     }
   } catch (e: any) {
-    console.warn('Failed to run workflow:', e)
+    console.warn("Failed to run workflow:", e);
+  }
+}
+
+async function publishJekyll(): Promise<void> {
+  if (!jekyllContent.value.trim()) {
+    jekyllMessage.value = "Markdown draft content is required.";
+    return;
+  }
+
+  jekyllBusy.value = true;
+  jekyllMessage.value = "";
+  jekyllOutput.value = {};
+
+  try {
+    const res = await ucoreApi.userWorkflow.publishJekyll({
+      content: jekyllContent.value,
+      title: jekyllTitle.value,
+      slug: jekyllSlug.value,
+      collection: jekyllCollection.value,
+      publish_mode: jekyllMode.value,
+      target_repo: jekyllTargetRepo.value,
+      target_branch: jekyllTargetBranch.value,
+      execute_git: jekyllExecuteGit.value && jekyllMode.value === "cloud",
+      commit_message: jekyllCommitMessage.value,
+      vault_layer: "public",
+    });
+
+    if (!res.ok) {
+      jekyllMessage.value = `Publish prep failed (HTTP ${res.status}).`;
+      return;
+    }
+
+    jekyllOutput.value = res.data || {};
+    jekyllMessage.value = "Jekyll draft prepared successfully.";
+  } catch (e: any) {
+    jekyllMessage.value = e?.message || "Publish prep failed.";
+  } finally {
+    jekyllBusy.value = false;
   }
 }
 </script>
@@ -169,6 +406,92 @@ async function runWorkflow(workflowId: string): Promise<void> {
   background: var(--usx-color-surface);
   border-radius: var(--usx-radius-lg);
   border: var(--usx-border-width) solid var(--usx-color-border);
+}
+
+.wf-jekyll-card {
+  gap: var(--usx-spacing-md);
+  display: flex;
+  flex-direction: column;
+}
+
+.wf-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18ch, 1fr));
+  gap: var(--usx-spacing-sm);
+}
+
+.wf-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-xs);
+}
+
+.wf-field--full {
+  width: 100%;
+}
+
+.wf-field-label {
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
+  font-weight: var(--usx-font-weight-medium);
+}
+
+.wf-input,
+.wf-textarea {
+  width: 100%;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-background);
+  color: var(--usx-color-on-surface);
+  border-radius: var(--usx-radius-md);
+  padding: var(--usx-spacing-sm);
+  font-size: var(--usx-font-size-sm);
+  font-family: var(--usx-font-family-sans);
+}
+
+.wf-textarea {
+  min-height: 18ch;
+  font-family: var(--usx-font-family-mono);
+  resize: vertical;
+}
+
+.wf-output {
+  border-top: var(--usx-border-width) solid var(--usx-color-border);
+  padding-top: var(--usx-spacing-sm);
+}
+
+.wf-output-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(24ch, 1fr));
+  gap: var(--usx-spacing-sm);
+}
+
+.wf-git-output {
+  margin-top: var(--usx-spacing-sm);
+}
+
+.wf-checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm);
+}
+
+.wf-output-title {
+  margin: 0 0 var(--usx-spacing-xs) 0;
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.wf-code-block {
+  margin: 0;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-background);
+  padding: var(--usx-spacing-sm);
+  font-family: var(--usx-font-family-mono);
+  font-size: var(--usx-font-size-sm);
+  overflow-x: auto;
 }
 
 .wf-workflow-card-header {
@@ -237,7 +560,8 @@ async function runWorkflow(workflowId: string): Promise<void> {
   padding: var(--usx-spacing-lg);
   background: var(--usx-color-surface);
   border-radius: var(--usx-radius-md);
-  border-left: calc(var(--usx-border-width) + var(--usx-border-width-thick)) solid var(--usx-color-primary);
+  border-left: calc(var(--usx-border-width) + var(--usx-border-width-thick))
+    solid var(--usx-color-primary);
 }
 
 .wf-run-card-header {
@@ -338,6 +662,10 @@ async function runWorkflow(workflowId: string): Promise<void> {
   font-size: var(--usx-font-size-sm);
 }
 
-.wf-icon--success { color: var(--usx-color-success); }
-.wf-icon--danger { color: var(--usx-color-danger); }
+.wf-icon--success {
+  color: var(--usx-color-success);
+}
+.wf-icon--danger {
+  color: var(--usx-color-danger);
+}
 </style>

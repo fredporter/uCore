@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 import sqlite3
+import subprocess
 import tarfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -138,6 +141,50 @@ def _render_import_document(frontmatter: dict[str, Any], markdown: str) -> str:
     if not body:
         body = "Imported document has no body."
     return f"---\n{front}\n---\n\n{body}\n"
+
+
+def _git_root_for_path(path: Path) -> Path | None:
+    try:
+        env = os.environ.copy()
+        env["GIT_TERMINAL_PROMPT"] = "0"
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=str(path),
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+            env=env,
+        )
+        if result.returncode != 0:
+            return None
+        root = result.stdout.strip()
+        if not root:
+            return None
+        return Path(root)
+    except Exception:
+        return None
+
+
+def _run_git_step(cwd: Path, args: list[str]) -> dict[str, Any]:
+    env = os.environ.copy()
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    result = subprocess.run(
+        ["git", *args],
+        cwd=str(cwd),
+        capture_output=True,
+        text=True,
+        timeout=20,
+        check=False,
+        env=env,
+    )
+    return {
+        "cmd": "git " + " ".join(args),
+        "exit_code": result.returncode,
+        "stdout": result.stdout.strip(),
+        "stderr": result.stderr.strip(),
+        "ok": result.returncode == 0,
+    }
 
 
 def _archive_base_dir() -> Path:
@@ -710,7 +757,8 @@ async def handle_user_workflow_import_markdown(
 ) -> web.Response:
     """POST /api/user/workflow/import-markdown.
 
-    Canonical import lane: any supported source format -> markdown -> vault/binder.
+    Canonical import lane: any supported source format -> markdown ->
+    vault/binder.
     """
     try:
         body = await request.json() if request.body_exists else {}
@@ -734,7 +782,11 @@ async def handle_user_workflow_import_markdown(
     vault_layer_id = str(body.get("vault_layer") or "user").strip()
     relative_dir = str(body.get("relative_dir") or "").strip()
     overwrite = bool(body.get("overwrite", False))
-    metadata = body.get("metadata") if isinstance(body.get("metadata"), dict) else {}
+    metadata = (
+        body.get("metadata")
+        if isinstance(body.get("metadata"), dict)
+        else {}
+    )
 
     layer = _vault_layer_by_id(vault_layer_id)
     if not layer:
@@ -804,7 +856,10 @@ async def handle_user_workflow_import_markdown(
         return web.json_response({"error": str(exc)}, status=400)
     except Exception as exc:
         log.exception("Markdown import failed")
-        return web.json_response({"error": f"import_failed: {exc}"}, status=500)
+        return web.json_response(
+            {"error": f"import_failed: {exc}"},
+            status=500,
+        )
 
     return web.json_response(
         {
@@ -817,5 +872,229 @@ async def handle_user_workflow_import_markdown(
             "import_plugin": converted.plugin_id,
             "detected_source_format": converted.source_format,
             "bytes_written": len(document.encode("utf-8")),
+        },
+    )
+
+
+def _safe_jekyll_collection(raw: str) -> str:
+    collection = (raw or "posts").strip().lower()
+    if not collection:
+        collection = "posts"
+    if not re.fullmatch(r"[a-z0-9_-]+", collection):
+        raise ValueError("Invalid collection")
+    return collection
+
+
+def _safe_slug(raw: str) -> str:
+    slug = slugify((raw or "").strip())
+    if not slug:
+        raise ValueError("slug is required")
+    return slug
+
+
+def _jekyll_filename(collection: str, slug: str) -> str:
+    if collection == "posts":
+        return f"{datetime.now(UTC).strftime('%Y-%m-%d')}-{slug}.md"
+    return f"{slug}.md"
+
+
+def _jekyll_target_dir(root: Path, collection: str, relative_dir: str) -> Path:
+    if relative_dir:
+        return _safe_relative_path(root, relative_dir)
+    if collection == "posts":
+        return root / "jekyll" / "_posts"
+    if collection == "pages":
+        return root / "jekyll" / "pages"
+    return root / "jekyll" / f"_{collection}"
+
+
+async def handle_user_workflow_publish_jekyll(
+    request: web.Request,
+) -> web.Response:
+    """POST /api/user/workflow/publish-jekyll.
+
+    Save markdown as a Jekyll-ready document and return local/cloud
+    publish guidance.
+    """
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        return web.json_response({"error": "Invalid JSON payload"}, status=400)
+
+    content = str(body.get("content") or "")
+    if not content.strip():
+        return web.json_response({"error": "content is required"}, status=400)
+
+    title = str(body.get("title") or "Untitled").strip() or "Untitled"
+    slug_input = str(body.get("slug") or title)
+    collection_raw = str(body.get("collection") or "posts")
+    publish_mode = str(body.get("publish_mode") or "local").strip().lower()
+    if publish_mode not in {"local", "cloud"}:
+        return web.json_response(
+            {"error": "publish_mode must be 'local' or 'cloud'"},
+            status=400,
+        )
+
+    vault_layer_id = str(body.get("vault_layer") or "public").strip()
+    relative_dir = str(body.get("relative_dir") or "").strip()
+    binder_raw = str(body.get("binder") or DEFAULT_USER_BINDER)
+    overwrite = bool(body.get("overwrite", False))
+
+    tags_raw = body.get("tags")
+    tags: list[str] = []
+    if isinstance(tags_raw, str):
+        tags = [part.strip() for part in tags_raw.split(",") if part.strip()]
+    elif isinstance(tags_raw, list):
+        tags = [str(part).strip() for part in tags_raw if str(part).strip()]
+
+    target_repo = str(body.get("target_repo") or "").strip()
+    target_branch = str(body.get("target_branch") or "main").strip() or "main"
+    execute_git = bool(body.get("execute_git", False))
+    commit_message = str(body.get("commit_message") or "").strip()
+    layout = str(body.get("layout") or "post").strip() or "post"
+
+    layer = _vault_layer_by_id(vault_layer_id)
+    if not layer:
+        return web.json_response(
+            {
+                "error": f"Unknown vault_layer: {vault_layer_id}",
+                "valid_layers": [entry.get("id") for entry in VAULT_LAYERS],
+            },
+            status=400,
+        )
+    if str(layer.get("permissions") or "").lower() == "read_only":
+        return web.json_response(
+            {"error": f"vault_layer '{vault_layer_id}' is read-only"},
+            status=403,
+        )
+
+    try:
+        collection = _safe_jekyll_collection(collection_raw)
+        slug = _safe_slug(slug_input)
+        binder = _safe_binder_name(binder_raw)
+
+        root = Path(str(layer.get("path") or "")).expanduser()
+        root.mkdir(parents=True, exist_ok=True)
+        target_dir = _jekyll_target_dir(root, collection, relative_dir)
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        filename = _jekyll_filename(collection, slug)
+        output_path = (target_dir / filename).resolve()
+        if target_dir.resolve() not in output_path.parents:
+            raise ValueError("Output path escapes target directory")
+
+        if output_path.exists() and not overwrite:
+            return web.json_response(
+                {
+                    "error": "Target file already exists",
+                    "path": str(output_path),
+                },
+                status=409,
+            )
+
+        frontmatter: dict[str, Any] = {
+            "layout": layout,
+            "title": title,
+            "date": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S +0000"),
+            "tags": tags,
+            "binder": binder,
+            "workflow": "publish",
+            "publish_mode": publish_mode,
+            "target_branch": target_branch,
+        }
+        if target_repo:
+            frontmatter["target_repo"] = target_repo
+
+        document = _render_import_document(frontmatter, content)
+        output_path.write_text(document, encoding="utf-8")
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    except Exception as exc:
+        log.exception("Jekyll publish preparation failed")
+        return web.json_response(
+            {"error": f"publish_jekyll_failed: {exc}"},
+            status=500,
+        )
+
+    rel_output = str(output_path)
+    local_commands = [
+        "bundle install",
+        "bundle exec jekyll serve --livereload --drafts",
+    ]
+    cloud_commands = [
+        f"git add '{rel_output}'",
+        f"git commit -m 'publish: {slug}'",
+        f"git push origin {target_branch}",
+    ]
+
+    git_publish: dict[str, Any] | None = None
+    if execute_git and publish_mode == "cloud":
+        repo_root = _git_root_for_path(output_path.parent)
+        if not repo_root:
+            git_publish = {
+                "status": "skipped",
+                "reason": "No git repository found for generated file path.",
+            }
+        else:
+            try:
+                rel_path = output_path.resolve().relative_to(
+                    repo_root.resolve(),
+                )
+            except ValueError:
+                rel_path = None
+
+            if rel_path is None:
+                git_publish = {
+                    "status": "skipped",
+                    "reason": (
+                        "Generated file is outside detected git repository "
+                        "root."
+                    ),
+                    "repo_root": str(repo_root),
+                }
+            else:
+                msg = commit_message or f"publish: {slug}"
+                steps: list[dict[str, Any]] = []
+                steps.append(_run_git_step(repo_root, ["add", str(rel_path)]))
+                commit_step = _run_git_step(repo_root, ["commit", "-m", msg])
+                steps.append(commit_step)
+
+                commit_ok = bool(commit_step.get("ok"))
+                nothing_to_commit = "nothing to commit" in (
+                    (
+                        f"{commit_step.get('stdout', '')} "
+                        f"{commit_step.get('stderr', '')}"
+                    ).lower()
+                )
+                if commit_ok or nothing_to_commit:
+                    push_step = _run_git_step(
+                        repo_root,
+                        ["push", "origin", target_branch],
+                    )
+                    steps.append(push_step)
+
+                all_ok = all(step.get("ok", False) for step in steps)
+
+                git_publish = {
+                    "status": "ok" if all_ok else "partial",
+                    "repo_root": str(repo_root),
+                    "steps": steps,
+                }
+
+    return web.json_response(
+        {
+            "status": "ok",
+            "operation": "publish-jekyll",
+            "path": rel_output,
+            "vault_layer": vault_layer_id,
+            "collection": collection,
+            "slug": slug,
+            "publish_mode": publish_mode,
+            "frontmatter": frontmatter,
+            "next_steps": {
+                "local_preview": local_commands,
+                "cloud_publish": cloud_commands,
+            },
+            "git_publish": git_publish,
         },
     )

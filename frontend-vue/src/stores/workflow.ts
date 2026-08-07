@@ -211,6 +211,17 @@ const SAMPLE_MISSIONS: Mission[] = [
 ];
 
 export const useWorkflowStore = defineStore("workflow", () => {
+  const EDITOR_MODE_KEY = "ucore.workflow.editor-mode";
+
+  function readEditorMode(): "prose" | "code" {
+    try {
+      const saved = localStorage.getItem(EDITOR_MODE_KEY);
+      return saved === "code" ? "code" : "prose";
+    } catch {
+      return "prose";
+    }
+  }
+
   const activeTab = ref<WorkflowTab>("mission-control");
   const tasks = ref<WorkflowTask[]>(SAMPLE_TASKS);
   const missions = ref<Mission[]>(SAMPLE_MISSIONS);
@@ -219,6 +230,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   const editorOpen = ref(false);
   const showEditorPane = ref(false);
   const paneLayout = ref<"split" | "stacked">("stacked");
+  const editorMode = ref<"prose" | "code">(readEditorMode());
 
   // Backend-fetched state
   const loading = ref(false);
@@ -511,6 +523,15 @@ export const useWorkflowStore = defineStore("workflow", () => {
     paneLayout.value = paneLayout.value === "split" ? "stacked" : "split";
   }
 
+  function setEditorMode(mode: "prose" | "code") {
+    editorMode.value = mode;
+    try {
+      localStorage.setItem(EDITOR_MODE_KEY, mode);
+    } catch {
+      // no-op: persistence is best-effort in restricted environments
+    }
+  }
+
   return {
     activeTab,
     tasks,
@@ -520,6 +541,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     editorOpen,
     showEditorPane,
     paneLayout,
+    editorMode,
     loading,
     error,
     workflowStatus,
@@ -538,6 +560,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     updateEditorContent,
     toggleEditorPane,
     togglePaneLayout,
+    setEditorMode,
     fetchWorkflowStatus,
     fetchTasks,
     fetchMissionTaskBinder,
