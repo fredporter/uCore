@@ -131,9 +131,22 @@ const FILE_ICONS: Record<string, string> = {
   html: "html",
 };
 
-const fileIcon = computed(
-  () => FILE_ICONS[props.node.extension ?? ""] ?? "draft",
-);
+// Special composite extension icons (.slide.md, .game.md, etc.)
+const NAME_ICONS: Array<[string, string]> = [
+  [".slide.md", "slideshow"],
+  [".story.md", "slideshow"],
+  [".game.md", "sports_esports"],
+  [".publish.md", "public"],
+  [".print.md", "print"],
+];
+
+const fileIcon = computed(() => {
+  const name = props.node.name;
+  for (const [suffix, icon] of NAME_ICONS) {
+    if (name.endsWith(suffix)) return icon;
+  }
+  return FILE_ICONS[props.node.extension ?? ""] ?? "draft";
+});
 
 // ─── Context menu ─────────────────────────────────────────────
 const menuVisible = ref(false);

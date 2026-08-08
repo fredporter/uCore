@@ -15,7 +15,33 @@
         <span class="editor-panel__title">{{ title || "Untitled" }}</span>
       </div>
       <div class="editor-panel__toolbar-center">
-        <span class="editor-panel__engine-chip">Bangle WYSIWYG</span>
+        <!-- Edit / Preview mode tabs -->
+        <div class="editor-panel__mode-tabs">
+          <button
+            class="editor-panel__mode-tab"
+            :class="{ 'editor-panel__mode-tab--active': viewMode === 'edit' }"
+            @click="viewMode = 'edit'"
+          >
+            <UIcon name="edit" /> Edit
+          </button>
+          <button
+            class="editor-panel__mode-tab"
+            :class="{
+              'editor-panel__mode-tab--active': viewMode === 'preview',
+            }"
+            @click="viewMode = 'preview'"
+          >
+            <UIcon name="visibility" /> Preview
+          </button>
+          <button
+            class="editor-panel__mode-tab"
+            :class="{ 'editor-panel__mode-tab--active': viewMode === 'split' }"
+            title="Side-by-side"
+            @click="viewMode = 'split'"
+          >
+            <UIcon name="vertical_split" /> Split
+          </button>
+        </div>
       </div>
       <div class="editor-panel__toolbar-right">
         <button
@@ -60,7 +86,10 @@
       </transition>
 
       <!-- Main editor column -->
-      <div class="editor-panel__main">
+      <div
+        class="editor-panel__main"
+        :class="`editor-panel__main--${viewMode}`"
+      >
         <!-- Frontmatter pills (when metadata present) -->
         <FrontmatterPills
           v-if="hasFrontmatter"
@@ -69,13 +98,26 @@
           @update:model-value="onFrontmatterChange"
         />
 
+        <!-- WYSIWYG editor pane -->
         <BangleEditor
+          v-if="viewMode !== 'preview'"
           v-model="localContent"
           :preview="false"
           :read-only="readOnly"
           :edit-mode="localEditMode"
+          class="editor-panel__bangle"
+          :class="{ 'editor-panel__bangle--split': viewMode === 'split' }"
           @save="handleSave"
           @change="onContentChange"
+        />
+
+        <!-- Markdown preview pane -->
+        <MarkdownPreview
+          v-if="viewMode !== 'edit'"
+          :content="localContent"
+          :filename="currentFilename"
+          class="editor-panel__preview"
+          :class="{ 'editor-panel__preview--split': viewMode === 'split' }"
         />
       </div>
     </div>
@@ -103,6 +145,7 @@ import UIcon from "../atoms/UIcon.vue";
 import BangleEditor from "../molecules/editor/BangleEditor.vue";
 import WorkspaceTree from "../molecules/editor/WorkspaceTree.vue";
 import FrontmatterPills from "../molecules/editor/FrontmatterPills.vue";
+import MarkdownPreview from "../molecules/MarkdownPreview.vue";
 import {
   parseDocument,
   serializeDocument,
@@ -135,6 +178,9 @@ const emit = defineEmits<{
 const localContent = ref(props.content);
 const localEditMode = ref<"prose" | "code">(props.editMode);
 const sidebarOpen = ref(true);
+const viewMode = ref<"edit" | "preview" | "split">("edit");
+
+const currentFilename = computed(() => props.title || "Untitled.md");
 
 // ─── Frontmatter ─────────────────────────────────────────────────────
 const parsed = computed(() => parseDocument(props.content || ""));
@@ -312,6 +358,61 @@ function toggleEditMode() {
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+}
+
+/* Split view: Bangle + Preview side-by-side */
+.editor-panel__main--split {
+  flex-direction: row;
+}
+
+.editor-panel__bangle--split,
+.editor-panel__preview--split {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.editor-panel__bangle--split {
+  border-right: 1px solid var(--usx-color-border);
+}
+
+/* ─── Mode tabs ───────────────────────────────────────────────────── */
+
+.editor-panel__mode-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background-color: var(--usx-color-background);
+  border: 1px solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  padding: 3px;
+}
+
+.editor-panel__mode-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  padding: 3px var(--usx-spacing-md);
+  border: none;
+  background: transparent;
+  border-radius: var(--usx-radius-sm);
+  cursor: pointer;
+  font-size: var(--usx-font-size-xs);
+  font-family: var(--usx-font-family-sans);
+  color: var(--usx-color-on-surface-muted);
+  transition: all 120ms ease;
+  white-space: nowrap;
+}
+
+.editor-panel__mode-tab:hover {
+  color: var(--usx-color-on-surface);
+  background-color: var(--usx-color-surface-variant);
+}
+
+.editor-panel__mode-tab--active {
+  background-color: var(--usx-color-surface);
+  color: var(--usx-color-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* ─── Sidebar slide transition ────────────────────────────────────── */
