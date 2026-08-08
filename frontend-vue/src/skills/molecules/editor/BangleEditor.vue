@@ -39,6 +39,11 @@ import {
   underline,
 } from "@bangle.dev/base-components";
 import { Plugin } from "@bangle.dev/pm";
+import type { Schema } from "@bangle.dev/pm";
+import {
+  defaultMarkdownParser,
+  defaultMarkdownSerializer,
+} from "prosemirror-markdown";
 
 interface Props {
   modelValue?: string;
@@ -73,6 +78,24 @@ const editMode = ref<"prose" | "code">(props.editMode);
 let editor: BangleRuntime | null = null;
 let lastExternalValue = props.modelValue;
 
+function markdownToDoc(schema: Schema, md: string) {
+  try {
+    return (
+      defaultMarkdownParser.parse(md) ?? schema.topNodeType.createAndFill()!
+    );
+  } catch {
+    return schema.topNodeType.createAndFill()!;
+  }
+}
+
+function docToMarkdown(editor: BangleRuntime): string {
+  try {
+    return defaultMarkdownSerializer.serialize(editor.view.state.doc);
+  } catch {
+    return "";
+  }
+}
+
 function createChangePlugin() {
   return new Plugin({
     view: () => ({
@@ -80,7 +103,7 @@ function createChangePlugin() {
         if (view.state.doc.eq(prevState.doc)) {
           return;
         }
-        const value = view.state.doc.toString();
+        const value = defaultMarkdownSerializer.serialize(view.state.doc);
         if (value === lastExternalValue) {
           return;
         }
@@ -109,6 +132,26 @@ function instantiateEditor(initialValue: string) {
   editor?.destroy();
   lastExternalValue = initialValue;
 
+  const specs = [
+    doc.spec(),
+    text.spec(),
+    paragraph.spec(),
+    heading.spec({ levels: [1, 2, 3, 4, 5, 6] }),
+    blockquote.spec(),
+    listItem.spec(),
+    bulletList.spec(),
+    orderedList.spec(),
+    bold.spec(),
+    italic.spec(),
+    strike.spec(),
+    underline.spec(),
+    code.spec(),
+    codeBlock.spec(),
+    hardBreak.spec(),
+    horizontalRule.spec(),
+    link.spec(),
+  ];
+
   const buildPlugins = (payload: any): any => [
     createChangePlugin(),
     ...resolvePlugins(history.plugins(), payload),
@@ -129,29 +172,14 @@ function instantiateEditor(initialValue: string) {
     ...resolvePlugins(link.plugins(), payload),
   ];
 
+  // Parse markdown content to a ProseMirror document node.
+  const parsedDoc = markdownToDoc(defaultMarkdownParser.schema, initialValue);
+
   editor = new BangleRuntime(editorEl.value, {
     state: new BangleEditorState({
-      specs: [
-        doc.spec(),
-        text.spec(),
-        paragraph.spec(),
-        heading.spec({ levels: [1, 2, 3, 4, 5, 6] }),
-        blockquote.spec(),
-        listItem.spec(),
-        bulletList.spec(),
-        orderedList.spec(),
-        bold.spec(),
-        italic.spec(),
-        strike.spec(),
-        underline.spec(),
-        code.spec(),
-        codeBlock.spec(),
-        hardBreak.spec(),
-        horizontalRule.spec(),
-        link.spec(),
-      ],
+      specs,
       plugins: buildPlugins as any,
-      initialValue,
+      initialValue: parsedDoc,
     }),
     focusOnInit: props.autofocus,
     pmViewOpts: {
@@ -161,7 +189,8 @@ function instantiateEditor(initialValue: string) {
 }
 
 function currentValue(): string {
-  return editor?.view.state.doc.toString() ?? props.modelValue;
+  if (!editor) return props.modelValue;
+  return docToMarkdown(editor);
 }
 
 watch(
