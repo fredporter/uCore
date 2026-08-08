@@ -23,6 +23,9 @@ importers:
       '@bangle.dev/pm':
         specifier: ^0.32.1
         version: 0.32.1
+      '@bangle.dev/tooltip':
+        specifier: ^0.32.1
+        version: 0.32.1(@bangle.dev/core@0.32.1(@bangle.dev/pm@0.32.1))(@bangle.dev/pm@0.32.1)
       '@codemirror/commands':
         specifier: ^6.10.4
         version: 6.10.4
@@ -208,6 +211,12 @@ packages:
 
   '@bangle.dev/shared-types@0.32.1':
     resolution: {integrity: sha512-nqzVhTZNEw7oxP2uwSVPbcDSCiH+zfwMF32a0i7BdIBUn1XGh/LEf8bJtWYSd/jzBH8Y6JcAzB8P/Zjxpzj3/g==}
+
+  '@bangle.dev/tooltip@0.32.1':
+    resolution: {integrity: sha512-4dBUH6FJijdV4m6j2gKZdmTX3qamYLUNszcc/FkT76YXeCDTZf/cGuYIMYkl7dpdUdbuRKZcGnH7uKS5piC3yg==}
+    peerDependencies:
+      '@bangle.dev/core': '*'
+      '@bangle.dev/pm': '*'
 
   '@bangle.dev/utils@0.32.1':
     resolution: {integrity: sha512-5IbTNb/Jjgcd7kiWsPHGSwQos/aCk7gpmDvITpcLiw1tRHWSSTWc7mLyVwltiB9JnxdJbnX0LB2JMA2h0YnEdw==}
@@ -590,6 +599,9 @@ packages:
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
+
+  '@popperjs/core@2.11.8':
+    resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
 
   '@rollup/rollup-android-arm-eabi@4.62.2':
     resolution: {integrity: sha512-6o7ZLZK+BeenkZCFNDXqpbjw9bD6nuWonvS/lwQJp7NoVVxm6p3qE7qQ5jGuBjiFsgvqjD8mZAU5oWxTmbOeOg==}
@@ -2784,6 +2796,14 @@ snapshots:
       '@bangle.dev/utils': 0.32.1(@bangle.dev/pm@0.32.1)
       prosemirror-markdown: 1.13.5
 
+  '@bangle.dev/tooltip@0.32.1(@bangle.dev/core@0.32.1(@bangle.dev/pm@0.32.1))(@bangle.dev/pm@0.32.1)':
+    dependencies:
+      '@bangle.dev/core': 0.32.1(@bangle.dev/pm@0.32.1)
+      '@bangle.dev/pm': 0.32.1
+      '@bangle.dev/utils': 0.32.1(@bangle.dev/pm@0.32.1)
+      '@popperjs/core': 2.11.8
+      '@types/jest': 29.5.14
+
   '@bangle.dev/utils@0.32.1(@bangle.dev/pm@0.32.1)':
     dependencies:
       '@bangle.dev/pm': 0.32.1
@@ -3184,6 +3204,8 @@ snapshots:
     optional: true
 
   '@polka/url@1.0.0-next.29': {}
+
+  '@popperjs/core@2.11.8': {}
 
   '@rollup/rollup-android-arm-eabi@4.62.2':
     optional: true

@@ -2,7 +2,7 @@
   <div class="wf-panel">
     <div class="surface__panel">
       <div class="wf-panel-header">
-        <h3 class="surface__panel-title">Mission Control</h3>
+        <h3 class="surface__panel-title">Workflow</h3>
         <div class="wf-panel-badges">
           <UBadge type="info" size="sm">User Workflow</UBadge>
           <UBadge

@@ -63,7 +63,7 @@ const hasUdevRepo = ref(false);
 // Hub navigation tabs
 const HUB_TABS = [
   { id: "dashboard", label: "Dashboard", icon: "home" },
-  { id: "missions", label: "Missions", icon: "flag" },
+  { id: "workflow", label: "Workflow", icon: "flag" },
   { id: "server", label: "Server", icon: "server" },
   { id: "system", label: "System", icon: "settings" },
   { id: "groovebox", label: "Groovebox", icon: "music_note" },
@@ -76,7 +76,7 @@ const visibleHubTabs = computed(() => HUB_TABS);
 watch(activeHubTab, (tabId) => {
   if (!tabId || tabId === "dashboard") return;
   const routes: Record<string, string> = {
-    missions: "/workflow?tab=mission-control",
+    workflow: "/workflow?tab=mission-control",
     server: "/server",
     system: "/system",
     groovebox: "/groovebox",
