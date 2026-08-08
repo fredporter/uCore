@@ -12,7 +12,7 @@
           <UIcon name="account_tree" />
         </button>
         <UIcon name="article" />
-        <span class="editor-panel__title">{{ title || 'Untitled' }}</span>
+        <span class="editor-panel__title">{{ title || "Untitled" }}</span>
       </div>
       <div class="editor-panel__toolbar-center">
         <span class="editor-panel__engine-chip">Bangle WYSIWYG</span>
@@ -28,8 +28,14 @@
         </button>
         <button
           class="editor-panel__nav-btn"
-          :class="{ 'editor-panel__nav-btn--active': localEditMode === 'prose' }"
-          :title="localEditMode === 'prose' ? 'Switch to code view' : 'Switch to prose view'"
+          :class="{
+            'editor-panel__nav-btn--active': localEditMode === 'prose',
+          }"
+          :title="
+            localEditMode === 'prose'
+              ? 'Switch to code view'
+              : 'Switch to prose view'
+          "
           @click="toggleEditMode"
         >
           <UIcon :name="localEditMode === 'prose' ? 'notes' : 'code'" />
@@ -97,7 +103,11 @@ import UIcon from "../atoms/UIcon.vue";
 import BangleEditor from "../molecules/editor/BangleEditor.vue";
 import WorkspaceTree from "../molecules/editor/WorkspaceTree.vue";
 import FrontmatterPills from "../molecules/editor/FrontmatterPills.vue";
-import { parseDocument, serializeDocument, type Frontmatter } from "../../utils/frontmatterParser";
+import {
+  parseDocument,
+  serializeDocument,
+  type Frontmatter,
+} from "../../utils/frontmatterParser";
 
 // ─── Props ───────────────────────────────────────────────────────────
 interface Props {
@@ -129,7 +139,9 @@ const sidebarOpen = ref(true);
 // ─── Frontmatter ─────────────────────────────────────────────────────
 const parsed = computed(() => parseDocument(props.content || ""));
 const frontmatter = ref<Frontmatter>(parsed.value.frontmatter);
-const hasFrontmatter = computed(() => Object.keys(frontmatter.value).length > 0);
+const hasFrontmatter = computed(
+  () => Object.keys(frontmatter.value).length > 0,
+);
 
 function onFrontmatterChange(updated: Frontmatter) {
   frontmatter.value = updated;
@@ -305,7 +317,9 @@ function toggleEditMode() {
 /* ─── Sidebar slide transition ────────────────────────────────────── */
 .editor-sidebar-enter-active,
 .editor-sidebar-leave-active {
-  transition: width 200ms ease, opacity 200ms ease;
+  transition:
+    width 200ms ease,
+    opacity 200ms ease;
   overflow: hidden;
 }
 

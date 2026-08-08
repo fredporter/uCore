@@ -373,7 +373,11 @@ onBeforeUnmount(() => {
 .bangle-btn .material-symbols-outlined {
   font-size: 18px;
   line-height: 1;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 20;
 }
 
 .bangle-btn:hover {

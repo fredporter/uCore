@@ -10,116 +10,227 @@
         <UIcon name="search" class="browserui-empty-icon" />
         <p>No results found</p>
       </div>
-      <div v-for="stack in filteredStacks" :key="stack.id" class="browserui-stack">
+      <div
+        v-for="stack in filteredStacks"
+        :key="stack.id"
+        class="browserui-stack"
+      >
         <div class="browserui-stack-header">
           <UIcon :name="stack.icon" class="browserui-stack-icon" />
           <h3>{{ stack.title }}</h3>
           <UBadge type="info" circle>{{ stack.items.length }}</UBadge>
         </div>
         <div class="browserui-cards">
-          <a
+          <button
             v-for="item in stack.items"
             :key="item.id"
-            :href="item.url"
-            target="_blank"
-            rel="noopener"
             class="browserui-card"
+            @click="openCard(item)"
           >
-            <div class="browserui-card-title">{{ item.title }}</div>
+            <div class="browserui-card-header">
+              <div class="browserui-card-title">{{ item.title }}</div>
+              <UIcon
+                name="edit_note"
+                class="browserui-card-bangle-hint"
+                title="Open in Bangle"
+              />
+            </div>
             <div class="browserui-card-desc">{{ item.description }}</div>
             <div class="browserui-card-tags">
-              <span v-for="tag in item.tags" :key="tag" class="browserui-tag">{{ tag }}</span>
+              <span v-for="tag in item.tags" :key="tag" class="browserui-tag">{{
+                tag
+              }}</span>
             </div>
-          </a>
+          </button>
         </div>
       </div>
     </div>
+
+    <!-- Web scraper modal -->
+    <WebScraperModal
+      v-if="scraperCard"
+      :card="scraperCard"
+      :visible="!!scraperCard"
+      @cancel="scraperCard = null"
+      @opened="scraperCard = null"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import UInput from '../../skills/atoms/UInput.vue'
-import UIcon from '../../skills/atoms/UIcon.vue'
-import UBadge from '../../skills/atoms/UBadge.vue'
+import { ref, computed, onMounted } from "vue";
+import UInput from "../../skills/atoms/UInput.vue";
+import UIcon from "../../skills/atoms/UIcon.vue";
+import UBadge from "../../skills/atoms/UBadge.vue";
+import WebScraperModal from "../../skills/molecules/editor/WebScraperModal.vue";
 
-const API_BASE = import.meta.env.VITE_SNACKBAR_URL || 'http://localhost:8484'
-const searchQuery = ref('')
-const loading = ref(true)
+const API_BASE = import.meta.env.VITE_SNACKBAR_URL || "http://localhost:8484";
+const searchQuery = ref("");
+const loading = ref(true);
 
 interface StackItem {
-  id: string; title: string; url: string; description: string; tags: string[]
+  id: string;
+  title: string;
+  url: string;
+  description: string;
+  tags: string[];
 }
 
-const stacks = ref<Array<{ id: string; title: string; icon: string; items: StackItem[] }>>([])
+const stacks = ref<
+  Array<{ id: string; title: string; icon: string; items: StackItem[] }>
+>([]);
 
 const DEFAULT_STACKS = [
   {
-    id: 'research', title: 'Research', icon: 'search',
+    id: "research",
+    title: "Research",
+    icon: "search",
     items: [
-      { id: 'r1', title: 'MCP Protocol Spec', url: 'https://modelcontextprotocol.io', description: 'Official MCP specification', tags: ['#mcp', '#protocol'] },
-      { id: 'r2', title: 'Vue 3 Docs', url: 'https://vuejs.org', description: 'Vue 3 framework documentation', tags: ['#vue', '#frontend'] },
-      { id: 'r3', title: 'Rust Async Book', url: 'https://rust-lang.github.io/async-book/', description: 'Async Rust guide', tags: ['#rust', '#async'] },
+      {
+        id: "r1",
+        title: "MCP Protocol Spec",
+        url: "https://modelcontextprotocol.io",
+        description: "Official MCP specification",
+        tags: ["#mcp", "#protocol"],
+      },
+      {
+        id: "r2",
+        title: "Vue 3 Docs",
+        url: "https://vuejs.org",
+        description: "Vue 3 framework documentation",
+        tags: ["#vue", "#frontend"],
+      },
+      {
+        id: "r3",
+        title: "Rust Async Book",
+        url: "https://rust-lang.github.io/async-book/",
+        description: "Async Rust guide",
+        tags: ["#rust", "#async"],
+      },
     ],
   },
   {
-    id: 'bookmarks', title: 'Bookmarks', icon: 'bookmark',
+    id: "bookmarks",
+    title: "Bookmarks",
+    icon: "bookmark",
     items: [
-      { id: 'b1', title: 'GitHub Copilot Docs', url: 'https://docs.github.com/en/copilot', description: 'Copilot documentation', tags: ['#tools', '#ai'] },
-      { id: 'b2', title: 'MDN Web Docs', url: 'https://developer.mozilla.org', description: 'Web platform reference', tags: ['#reference', '#web'] },
-      { id: 'b3', title: 'Docker Compose Docs', url: 'https://docs.docker.com/compose/', description: 'Multi-container apps', tags: ['#docker', '#devops'] },
-      { id: 'b4', title: 'Tailwind CSS Docs', url: 'https://tailwindcss.com/docs', description: 'Utility-first CSS', tags: ['#css', '#frontend'] },
+      {
+        id: "b1",
+        title: "GitHub Copilot Docs",
+        url: "https://docs.github.com/en/copilot",
+        description: "Copilot documentation",
+        tags: ["#tools", "#ai"],
+      },
+      {
+        id: "b2",
+        title: "MDN Web Docs",
+        url: "https://developer.mozilla.org",
+        description: "Web platform reference",
+        tags: ["#reference", "#web"],
+      },
+      {
+        id: "b3",
+        title: "Docker Compose Docs",
+        url: "https://docs.docker.com/compose/",
+        description: "Multi-container apps",
+        tags: ["#docker", "#devops"],
+      },
+      {
+        id: "b4",
+        title: "Tailwind CSS Docs",
+        url: "https://tailwindcss.com/docs",
+        description: "Utility-first CSS",
+        tags: ["#css", "#frontend"],
+      },
     ],
   },
   {
-    id: 'learning', title: 'Learning', icon: 'school',
+    id: "learning",
+    title: "Learning",
+    icon: "school",
     items: [
-      { id: 'l1', title: 'Pinia Docs', url: 'https://pinia.vuejs.org', description: 'Vue state management', tags: ['#vue', '#state'] },
-      { id: 'l2', title: 'Vite Docs', url: 'https://vitejs.dev', description: 'Next-gen frontend tooling', tags: ['#build', '#frontend'] },
-      { id: 'l3', title: 'CodeMirror 6', url: 'https://codemirror.net', description: 'Code editor component', tags: ['#editor', '#code'] },
+      {
+        id: "l1",
+        title: "Pinia Docs",
+        url: "https://pinia.vuejs.org",
+        description: "Vue state management",
+        tags: ["#vue", "#state"],
+      },
+      {
+        id: "l2",
+        title: "Vite Docs",
+        url: "https://vitejs.dev",
+        description: "Next-gen frontend tooling",
+        tags: ["#build", "#frontend"],
+      },
+      {
+        id: "l3",
+        title: "CodeMirror 6",
+        url: "https://codemirror.net",
+        description: "Code editor component",
+        tags: ["#editor", "#code"],
+      },
     ],
   },
-]
+];
 
 async function fetchBookmarks() {
-  loading.value = true
+  loading.value = true;
   try {
     const res = await fetch(`${API_BASE}/api/knowledge?type=bookmark`, {
       signal: AbortSignal.timeout(5000),
-    })
+    });
     if (res.ok) {
-      const data = await res.json()
+      const data = await res.json();
       const items = (data.items || data || []).map((b: any) => ({
         id: b.id || b.url,
-        title: b.title || b.name || 'Untitled',
-        url: b.url || b.link || '#',
-        description: b.description || b.summary || '',
-        tags: (b.tags || b.keywords || []).map((t: string) => t.startsWith('#') ? t : `#${t}`),
-      }))
+        title: b.title || b.name || "Untitled",
+        url: b.url || b.link || "#",
+        description: b.description || b.summary || "",
+        tags: (b.tags || b.keywords || []).map((t: string) =>
+          t.startsWith("#") ? t : `#${t}`,
+        ),
+      }));
       if (items.length > 0) {
-        stacks.value = [{ id: 'bookmarks', title: 'Bookmarks', icon: 'bookmark', items }]
-        return
+        stacks.value = [
+          { id: "bookmarks", title: "Bookmarks", icon: "bookmark", items },
+        ];
+        return;
       }
     }
-  } catch { /* backend offline, use defaults */ }
-  stacks.value = DEFAULT_STACKS
-  loading.value = false
+  } catch {
+    /* backend offline, use defaults */
+  }
+  stacks.value = DEFAULT_STACKS;
+  loading.value = false;
 }
 
-onMounted(() => { fetchBookmarks() })
+onMounted(() => {
+  fetchBookmarks();
+});
+
+// ─── Phase 4: Card → Bangle ─────────────────────────────────────
+const scraperCard = ref<StackItem | null>(null);
+
+function openCard(item: StackItem) {
+  scraperCard.value = item;
+}
 
 const filteredStacks = computed(() => {
-  if (!searchQuery.value) return stacks.value
-  const q = searchQuery.value.toLowerCase()
-  return stacks.value.map(stack => ({
-    ...stack,
-    items: stack.items.filter(item =>
-      item.title.toLowerCase().includes(q) ||
-      item.description.toLowerCase().includes(q) ||
-      item.tags.some(t => t.toLowerCase().includes(q))
-    ),
-  })).filter(stack => stack.items.length > 0)
-})
+  if (!searchQuery.value) return stacks.value;
+  const q = searchQuery.value.toLowerCase();
+  return stacks.value
+    .map((stack) => ({
+      ...stack,
+      items: stack.items.filter(
+        (item) =>
+          item.title.toLowerCase().includes(q) ||
+          item.description.toLowerCase().includes(q) ||
+          item.tags.some((t) => t.toLowerCase().includes(q)),
+      ),
+    }))
+    .filter((stack) => stack.items.length > 0);
+});
 </script>
 
 <style scoped>
@@ -192,7 +303,10 @@ const filteredStacks = computed(() => {
 .browserui-cards {
   --browserui-card-column-min: calc(var(--usx-touch-min) * 4.5);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--browserui-card-column-min)), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--browserui-card-column-min)), 1fr)
+  );
   gap: var(--usx-spacing-sm);
   min-width: 0;
 }
@@ -208,13 +322,37 @@ const filteredStacks = computed(() => {
   text-decoration: none;
   color: inherit;
   min-width: 0;
-  transition: border-color var(--usx-transition-fast), transform var(--usx-transition-fast), box-shadow var(--usx-transition-fast);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color var(--usx-transition-fast),
+    transform var(--usx-transition-fast),
+    box-shadow var(--usx-transition-fast);
 }
 
 .browserui-card:hover {
   border-color: var(--usx-color-primary);
   transform: translateY(calc(var(--usx-spacing-1) * -1));
   box-shadow: var(--usx-shadow-md);
+}
+
+.browserui-card:hover .browserui-card-bangle-hint {
+  opacity: 1;
+}
+
+.browserui-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--usx-spacing-xs);
+}
+
+.browserui-card-bangle-hint {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--usx-color-primary);
+  opacity: 0;
+  transition: opacity 150ms ease;
 }
 
 .browserui-card-title {
