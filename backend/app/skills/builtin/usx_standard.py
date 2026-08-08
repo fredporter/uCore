@@ -14,6 +14,43 @@ Theme overrides:
   frontend-vue/src/styles/themes/{base,dark,teletext,c64,high-contrast}.css
 Canonical class library:
   frontend-vue/src/styles/usx-standard.css
+
+=== EXTENDED UI SYSTEM (v3.1) ===
+
+Overlay System (frontend-vue/src/styles/usx-chat-bubble.css):
+  --usx-chat-bubble-button-size: 56px
+  --usx-chat-bubble-button-bg: var(--usx-color-primary)
+  --usx-chat-panel-width: 384px  --usx-chat-panel-height: 600px
+  --usx-zindex-chat-overlay: 999  --usx-zindex-chat-panel: 1001  --usx-zindex-chat-button: 1000
+  Overlay z-index stack: toast=1100, alert=1200, popup=1300, stories=1400
+  Components: ToastOverlay, AlertOverlay, PopupOverlay, StoriesOverlay (all Teleported to body)
+  Composables: useToast.ts, useOverlay.ts, useFeed.ts (module-level singletons)
+
+Bangle WYSIWYG Editor (frontend-vue/src/skills/molecules/editor/):
+  Components: BangleEditor.vue, WorkspaceTree.vue, WorkspaceTreeNode.vue,
+              FrontmatterPills.vue, WebScraperModal.vue, ResearchPanel.vue, SummarizeModal.vue
+  Toolbar icons: Material Symbols Outlined (self-hosted, 18px)
+  3-column layout: [WorkspaceTree 220px] | [FrontmatterPills + BangleEditor] | [ResearchPanel 200px]
+  View modes: Edit | Preview | Split (mode-tabs in EditorPanel toolbar)
+  Frontmatter pills: tag (--usx-color-info), status (dot), date (muted), source (primary), generic
+
+Markdown Renderer (frontend-vue/src/utils/markdownRenderer.ts):
+  Formats: prose (marked+GFM), story (Marp Core), game (GridCore stub), publish/print
+  Callout syntax: > [!NOTE], [!TIP], [!WARNING], [!CAUTION], [!IMPORTANT]
+  Safe HTML: DOMPurify.sanitize() on all rendered output
+
+SSE Feed (backend/app/api/render_api.py):
+  GET /api/render/stream — EventSource endpoint
+  POST /api/render — JSON → Markdown/HTML
+  POST /api/render/event — publish event to subscribers
+  Frontend: useFeed.ts composable (auto-reconnect 5s, last 100 events)
+
+FORBIDDEN (v3.1 additions):
+  - inline style="..." with ANY hardcoded values (color, spacing, or font)
+  - --pico-* variables
+  - window.confirm / window.prompt (use useOverlay().showPopup() instead)
+  - Direct navigation (window.location.href) when Vue Router is available
+  - Hardcoded z-index integers (use --usx-zindex-* tokens or overlay layer ordering)
 """
 from __future__ import annotations
 
@@ -101,6 +138,17 @@ EXPECTED_VARIABLES = {
         "--usx-grid-gap",
         "--usx-btn-padding",
         "--usx-topbar-height",
+    ],
+    "overlay": [
+        "--usx-chat-bubble-button-size",
+        "--usx-chat-bubble-button-bg",
+        "--usx-chat-panel-width",
+        "--usx-chat-panel-height",
+        "--usx-chat-animation-duration",
+        "--usx-chat-animation-easing",
+        "--usx-zindex-chat-overlay",
+        "--usx-zindex-chat-panel",
+        "--usx-zindex-chat-button",
     ],
 }
 

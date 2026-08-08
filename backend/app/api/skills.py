@@ -202,6 +202,48 @@ async def handle_list_skills(request: web.Request) -> web.Response:
     return web.json_response({"skills": skills, "count": len(skills)})
 
 
+async def handle_skill_source(request: web.Request) -> web.Response:
+    """GET /api/skills/{skill_id}/source — return skill source code for editor viewing."""
+    skill_id = request.match_info.get("skill_id", "")
+
+    # Try Python registry (builtin skills are .py files)
+    skill = get_skill(skill_id)
+    if skill:
+        try:
+            import inspect
+            source = inspect.getsource(type(skill))
+            return web.json_response({
+                "skill_id": skill_id,
+                "source": source,
+                "language": "python",
+                "filename": f"{skill_id}.py",
+            })
+        except (OSError, TypeError):
+            pass
+
+    # Try filesystem skill directory
+    skill_dir = _find_skill(skill_id)
+    if not skill_dir:
+        return web.json_response({"error": f"Skill '{skill_id}' not found"}, status=404)
+
+    # Find the primary source file
+    CANDIDATES = ["run.py", "main.py", "run.sh", "index.js", "index.ts", "skill.py"]
+    for name in CANDIDATES:
+        f = skill_dir / name
+        if f.exists():
+            source = f.read_text(errors="replace")
+            lang = "python" if name.endswith(".py") else "bash" if name.endswith(".sh") else "javascript"
+            return web.json_response({
+                "skill_id": skill_id,
+                "source": source,
+                "language": lang,
+                "filename": name,
+                "path": str(f),
+            })
+
+    return web.json_response({"error": f"No readable source file in {skill_dir}"}, status=404)
+
+
 async def handle_skill_state(request: web.Request) -> web.Response:
     """GET /api/skills/state — return persisted skill run state."""
     try:

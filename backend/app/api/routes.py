@@ -269,9 +269,10 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/skills/{skill_id}/run", handle_run_skill)
     app.router.add_post("/api/skills/run", handle_run_named_skill)
     # Health and skill state endpoints
-    from .skills import handle_health, handle_skill_state
+    from .skills import handle_health, handle_skill_state, handle_skill_source
     app.router.add_get("/api/skills/state", handle_skill_state)
     app.router.add_get("/api/skills/health", handle_health)
+    app.router.add_get("/api/skills/{skill_id}/source", handle_skill_source)
 
     # ── Render / SSE (Layered Output) ──────────────────────────────
     from .render_api import handle_render, handle_stream, handle_publish_event
