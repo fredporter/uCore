@@ -10,6 +10,7 @@ import {
   ensureCapabilityReady,
   type CapabilityPreflightResult,
 } from "@/api/preflight";
+import { getEditorSurface } from "@/composables/useEditorSurface";
 
 export type WorkflowTab =
   | "mission-control"
@@ -326,6 +327,7 @@ Start writing in Bangle right away.
 
 export const useWorkflowStore = defineStore("workflow", () => {
   const EDITOR_MODE_KEY = "ucore.workflow.editor-mode";
+  const editorSurface = getEditorSurface();
 
   function readEditorMode(): "prose" | "code" {
     try {
@@ -728,6 +730,13 @@ export const useWorkflowStore = defineStore("workflow", () => {
       ...file,
       binder: file.binder || "Sandbox",
     };
+    editorSurface.openFile({
+      path: selectedFile.value.path,
+      filename: selectedFile.value.filename,
+      content: selectedFile.value.content,
+      extension: selectedFile.value.extension,
+      readOnly: selectedFile.value.readOnly,
+    });
     editorOpen.value = true;
     showEditorPane.value = true;
     activeTab.value = "editor";
@@ -792,6 +801,13 @@ export const useWorkflowStore = defineStore("workflow", () => {
       return;
     }
     selectedFile.value = { ...DEFAULT_EDITOR_FILE };
+    editorSurface.openFile({
+      path: selectedFile.value.path,
+      filename: selectedFile.value.filename,
+      content: selectedFile.value.content,
+      extension: selectedFile.value.extension,
+      readOnly: selectedFile.value.readOnly,
+    });
     editorOpen.value = true;
     showEditorPane.value = true;
   }
@@ -801,6 +817,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     selectedTask.value = null;
     selectedFile.value = null;
     showEditorPane.value = true;
+    editorSurface.closeEditor();
   }
 
   function updateEditorContent(value: string) {
@@ -810,6 +827,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     if (selectedFile.value) {
       selectedFile.value.content = value;
     }
+    editorSurface.updateContent(value);
   }
 
   function toggleEditorPane() {

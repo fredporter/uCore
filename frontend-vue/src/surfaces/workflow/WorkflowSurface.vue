@@ -120,6 +120,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useWorkflowStore, WORKFLOW_TABS } from "../../stores/workflow";
 import type { WorkflowTab } from "../../stores/workflow";
+import { getEditorSurface } from "../../composables/useEditorSurface";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import CapabilityRepairPanel from "../../skills/molecules/CapabilityRepairPanel.vue";
 import MissionControlPanel from "./panels/MissionControlPanel.vue";
@@ -141,6 +142,7 @@ import UButton from "../../skills/atoms/UButton.vue";
 
 const shell = useShellStore();
 const wf = useWorkflowStore();
+const editorSurface = getEditorSurface();
 const route = useRoute();
 const router = useRouter();
 
@@ -229,14 +231,32 @@ function onEditorModeUpdate(mode: "prose" | "code") {
   wf.setEditorMode(mode);
 }
 
-const activeEditorItem = computed(() => wf.selectedTask || wf.selectedFile);
+const sharedEditorFile = computed(
+  () => editorSurface.currentFile.value ?? null,
+);
+const activeWorkflowFile = computed(
+  () => wf.selectedFile || sharedEditorFile.value,
+);
+const activeEditorTask = computed(() => wf.selectedTask || null);
+const activeEditorItem = computed(
+  () => activeEditorTask.value || activeWorkflowFile.value,
+);
 const editorTitle = computed(
-  () => wf.selectedTask?.title || wf.selectedFile?.filename || "Untitled",
+  () =>
+    activeEditorTask.value?.title ||
+    activeWorkflowFile.value?.filename ||
+    editorSurface.title.value ||
+    "Untitled",
 );
 const editorContent = computed(
-  () => wf.selectedTask?.description || wf.selectedFile?.content || "",
+  () =>
+    activeEditorTask.value?.description ||
+    activeWorkflowFile.value?.content ||
+    "",
 );
-const editorReadOnly = computed(() => Boolean(wf.selectedFile?.readOnly));
+const editorReadOnly = computed(() =>
+  Boolean(activeWorkflowFile.value?.readOnly),
+);
 
 /**
  * Dynamic column class based on edit pane visibility:
