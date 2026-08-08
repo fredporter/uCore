@@ -100,19 +100,6 @@
       </button>
       <button
         class="global-toolbar__icon-only"
-        :title="
-          uiSkinResolved === 'flowbite'
-            ? 'UI skin: Flowbite (click for USX)'
-            : 'UI skin: USX (click for Flowbite)'
-        "
-        @click="toggleUiSkin()"
-      >
-        <UIcon
-          :name="uiSkinResolved === 'flowbite' ? 'format_paint' : 'palette'"
-        />
-      </button>
-      <button
-        class="global-toolbar__icon-only"
         title="Settings"
         @click="navigate('/system')"
       >
@@ -130,12 +117,11 @@
  * to the SurfaceTabNav component rendered by each surface.
  * @category organisms
  */
-import { computed, onMounted } from "vue";
+import { computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useDevModeStore } from "../../stores/devMode";
 import { useSettingsStore } from "../../stores/settings";
-import { useUiSkin } from "../../composables/useUiSkin";
 import UIcon from "../atoms/UIcon.vue";
 import UBadge from "../atoms/UBadge.vue";
 
@@ -154,7 +140,6 @@ const route = useRoute();
 const shell = useShellStore();
 const devMode = useDevModeStore();
 const settings = useSettingsStore();
-const { uiSkinResolved, initUiSkin, toggleUiSkin } = useUiSkin();
 
 const isDark = computed(() => settings.themeMode === "dark");
 
@@ -165,10 +150,6 @@ function toggleTheme() {
 function navigate(path: string) {
   router.push(path);
 }
-
-onMounted(() => {
-  initUiSkin();
-});
 </script>
 
 <!-- All styles moved to usx-standard.css for consistency -->

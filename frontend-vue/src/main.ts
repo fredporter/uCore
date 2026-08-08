@@ -7,7 +7,6 @@ import { createPinia } from "pinia";
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 import App from "./App.vue";
 import { router } from "./router";
-import { useUiSkin } from "./composables/useUiSkin";
 
 // Self-hosted fonts (offline-first, zero Google CDN dependency)
 import "@fontsource/inter/300.css";
@@ -35,10 +34,8 @@ import "@udos/usx-tokens/themes/high-contrast.css"; // high-contrast from packag
 import "@udos/usx-tokens"; // usx-standard.css from package
 import "./styles/gridcore.css"; // GridCore internal variable contract
 import "./styles/usx-extensions.css"; // uCore-specific extensions: toolbar, multi-column, dev toggle
+import "./styles/usx-chat-bubble.css"; // Chat bubble overlay component
 import "./styles/flowbite-skin.css"; // optional flowbite-inspired skin via data-ui-skin
-
-const { initUiSkin } = useUiSkin();
-initUiSkin();
 
 const app = createApp(App);
 const pinia = createPinia();

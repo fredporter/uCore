@@ -1,0 +1,313 @@
+/**
+ * USX Design System — Chat Bubble Component
+ * Floating assistant/chat bubble overlay component
+ * 
+ * Scope: Atom/molecule level — provides visual container and animation
+ * Used by: ChatBubble, ChatBubblePanel molecules
+ * 
+ * Tokens follow USX standard naming convention:
+ * --usx-[component]-[element]-[variant]-[property]
+ */
+
+/* ─────────────────────────────────────────────────────────────── */
+/* CHAT BUBBLE TOKEN DEFINITIONS                                   */
+/* ─────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Chat Bubble Button */
+  --usx-chat-bubble-button-size: 56px;
+  --usx-chat-bubble-button-radius: 9999px;
+  --usx-chat-bubble-button-bg: var(--usx-color-primary);
+  --usx-chat-bubble-button-bg-hover: var(--usx-color-primary-hover);
+  --usx-chat-bubble-button-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  --usx-chat-bubble-button-shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.3);
+
+  /* Chat Bubble Badge */
+  --usx-chat-bubble-badge-bg: var(--usx-color-danger);
+  --usx-chat-bubble-badge-color: var(--usx-color-on-surface);
+  --usx-chat-bubble-badge-size: 24px;
+  --usx-chat-bubble-badge-radius: var(--usx-radius-full);
+
+  /* Chat Bubble Panel */
+  --usx-chat-panel-width: 384px;
+  --usx-chat-panel-height: 600px;
+  --usx-chat-panel-radius: var(--usx-radius-lg);
+  --usx-chat-panel-bg: var(--usx-color-surface);
+  --usx-chat-panel-shadow: 0 16px 64px rgba(0, 0, 0, 0.3);
+  --usx-chat-panel-border: var(--usx-border-width) solid var(--usx-color-border);
+
+  /* Chat Bubble Overlay */
+  --usx-chat-overlay-bg: rgba(0, 0, 0, 0.5);
+
+  /* Z-Index Stack */
+  --usx-zindex-chat-overlay: 999;
+  --usx-zindex-chat-panel: 1001;
+  --usx-zindex-chat-button: 1000;
+
+  /* Animation */
+  --usx-chat-animation-duration: 200ms;
+  --usx-chat-animation-easing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark theme adjustments */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --usx-chat-panel-bg: var(--usx-color-surface);
+    --usx-chat-bubble-button-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --usx-chat-overlay-bg: rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────── */
+/* CHAT BUBBLE BUTTON                                               */
+/* ─────────────────────────────────────────────────────────────── */
+
+.usx-chat-bubble {
+  position: fixed;
+  bottom: var(--usx-spacing-lg);
+  right: var(--usx-spacing-lg);
+  z-index: var(--usx-zindex-chat-button);
+
+  width: var(--usx-chat-bubble-button-size);
+  height: var(--usx-chat-bubble-button-size);
+
+  background-color: var(--usx-chat-bubble-button-bg);
+  border: none;
+  border-radius: var(--usx-chat-bubble-button-radius);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  box-shadow: var(--usx-chat-bubble-button-shadow);
+
+  font-size: var(--usx-font-size-xl);
+  color: white;
+
+  transition: all var(--usx-chat-animation-duration)
+    var(--usx-chat-animation-easing);
+}
+
+.usx-chat-bubble:hover {
+  background-color: var(--usx-chat-bubble-button-bg-hover);
+  box-shadow: var(--usx-chat-bubble-button-shadow-hover);
+  transform: scale(1.05);
+}
+
+.usx-chat-bubble:active {
+  transform: scale(0.95);
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  .usx-chat-bubble {
+    transition: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────── */
+/* CHAT BUBBLE BADGE (unread count)                                 */
+/* ─────────────────────────────────────────────────────────────── */
+
+.usx-chat-bubble-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+
+  min-width: var(--usx-chat-bubble-badge-size);
+  height: var(--usx-chat-bubble-badge-size);
+
+  background-color: var(--usx-chat-bubble-badge-bg);
+  color: var(--usx-chat-bubble-badge-color);
+  border-radius: var(--usx-chat-bubble-badge-radius);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-bold);
+  border: 2px solid var(--usx-color-surface);
+
+  animation: usx-chat-badge-pulse 2s infinite;
+}
+
+@keyframes usx-chat-badge-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usx-chat-bubble-badge {
+    animation: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────── */
+/* CHAT BUBBLE PANEL (modal/drawer)                                 */
+/* ─────────────────────────────────────────────────────────────── */
+
+.usx-chat-panel {
+  position: fixed;
+  bottom: calc(
+    var(--usx-spacing-lg) + var(--usx-chat-bubble-button-size) +
+      var(--usx-spacing-md)
+  );
+  right: var(--usx-spacing-lg);
+  z-index: var(--usx-zindex-chat-panel);
+
+  width: var(--usx-chat-panel-width);
+  height: var(--usx-chat-panel-height);
+  max-height: calc(100vh - 120px);
+
+  background-color: var(--usx-chat-panel-bg);
+  border: var(--usx-chat-panel-border);
+  border-radius: var(--usx-chat-panel-radius);
+  box-shadow: var(--usx-chat-panel-shadow);
+
+  display: flex;
+  flex-direction: column;
+
+  animation: usx-chat-panel-slide-up var(--usx-chat-animation-duration)
+    var(--usx-chat-animation-easing);
+}
+
+@keyframes usx-chat-panel-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Closed state */
+.usx-chat-panel--closed {
+  animation: usx-chat-panel-slide-down var(--usx-chat-animation-duration)
+    var(--usx-chat-animation-easing);
+}
+
+@keyframes usx-chat-panel-slide-down {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usx-chat-panel,
+  .usx-chat-panel--closed {
+    animation: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────── */
+/* CHAT BUBBLE OVERLAY (focus/modal backdrop)                       */
+/* ─────────────────────────────────────────────────────────────── */
+
+.usx-chat-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--usx-zindex-chat-overlay);
+
+  background-color: var(--usx-chat-overlay-bg);
+
+  animation: usx-chat-overlay-fade-in var(--usx-chat-animation-duration)
+    var(--usx-chat-animation-easing);
+}
+
+@keyframes usx-chat-overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.usx-chat-overlay--closed {
+  animation: usx-chat-overlay-fade-out var(--usx-chat-animation-duration)
+    var(--usx-chat-animation-easing);
+}
+
+@keyframes usx-chat-overlay-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usx-chat-overlay,
+  .usx-chat-overlay--closed {
+    animation: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────── */
+/* RESPONSIVE (Mobile/Tablet)                                       */
+/* ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .usx-chat-bubble {
+    bottom: var(--usx-spacing-md);
+    right: var(--usx-spacing-md);
+    width: 48px;
+    height: 48px;
+    --usx-chat-bubble-button-size: 48px;
+  }
+
+  .usx-chat-panel {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    top: auto;
+
+    width: 100%;
+    height: calc(100vh - 64px);
+
+    border-radius: var(--usx-radius-lg) var(--usx-radius-lg) 0 0;
+    border-top: var(--usx-chat-panel-border);
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────── */
+/* KEYBOARD & ACCESSIBILITY                                         */
+/* ─────────────────────────────────────────────────────────────── */
+
+.usx-chat-bubble:focus-visible {
+  outline: 2px solid var(--usx-color-primary);
+  outline-offset: 2px;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  .usx-chat-bubble {
+    border: 2px solid var(--usx-color-on-surface);
+  }
+
+  .usx-chat-panel {
+    border-width: 2px;
+  }
+}
