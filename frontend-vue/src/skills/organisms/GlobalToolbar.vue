@@ -12,9 +12,18 @@
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
         @click="shell.toggleTabOrientation()"
-        :title="shell.tabOrientation === 'horizontal' ? 'Switch to vertical tab layout' : 'Switch to horizontal tab layout'"
+        :title="
+          shell.tabOrientation === 'horizontal'
+            ? 'Switch to vertical tab layout'
+            : 'Switch to horizontal tab layout'
+        "
       >
-        <UIcon :name="shell.tabOrientation === 'horizontal' ? 'swap_vert' : 'swap_horiz'" class="global-toolbar__icon" />
+        <UIcon
+          :name="
+            shell.tabOrientation === 'horizontal' ? 'swap_vert' : 'swap_horiz'
+          "
+          class="global-toolbar__icon"
+        />
       </button>
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
@@ -26,7 +35,9 @@
       </button>
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
-        :class="{ 'global-toolbar__tab--active': route.path.includes('/browserui') }"
+        :class="{
+          'global-toolbar__tab--active': route.path.includes('/browserui'),
+        }"
         @click="navigate('/browserui')"
         title="Research"
       >
@@ -34,7 +45,9 @@
       </button>
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
-        :class="{ 'global-toolbar__tab--active': route.path.includes('/assistui') }"
+        :class="{
+          'global-toolbar__tab--active': route.path.includes('/assistui'),
+        }"
         @click="navigate('/assistui')"
         title="Assistant"
       >
@@ -42,7 +55,9 @@
       </button>
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
-        :class="{ 'global-toolbar__tab--active': route.path.includes('/ucode') }"
+        :class="{
+          'global-toolbar__tab--active': route.path.includes('/ucode'),
+        }"
         @click="navigate('/ucode')"
         title="GridCore"
       >
@@ -58,15 +73,24 @@
       <button
         v-if="!devMode.isOffline"
         class="global-toolbar__dev-toggle"
-        :class="{ 'global-toolbar__dev-toggle--on': devMode.mode === 'on' || devMode.mode === 'minimal' }"
+        :class="{
+          'global-toolbar__dev-toggle--on':
+            devMode.mode === 'on' || devMode.mode === 'minimal',
+        }"
         @click="devMode.toggle()"
-        :title="(devMode.mode === 'on' || devMode.mode === 'minimal') ? 'Dev Mode ON — click to disable' : 'Dev Mode OFF — click to enable'"
+        :title="
+          devMode.mode === 'on' || devMode.mode === 'minimal'
+            ? 'Dev Mode ON — click to disable'
+            : 'Dev Mode OFF — click to enable'
+        "
       >
         <span class="global-toolbar__dev-dot"></span>
         <span class="global-toolbar__dev-label">Dev</span>
       </button>
       <UBadge v-else-if="!devMode.loading" type="info">Dev Offline</UBadge>
-      <UBadge v-else type="warning" title="Probing dev server...">Probing...</UBadge>
+      <UBadge v-else type="warning" title="Probing dev server..."
+        >Probing...</UBadge
+      >
       <button
         class="global-toolbar__icon-only global-toolbar__theme-toggle"
         :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
@@ -74,7 +98,24 @@
       >
         <UIcon :name="isDark ? 'light_mode' : 'dark_mode'" />
       </button>
-      <button class="global-toolbar__icon-only" title="Settings" @click="navigate('/system')">
+      <button
+        class="global-toolbar__icon-only"
+        :title="
+          uiSkinResolved === 'flowbite'
+            ? 'UI skin: Flowbite (click for USX)'
+            : 'UI skin: USX (click for Flowbite)'
+        "
+        @click="toggleUiSkin()"
+      >
+        <UIcon
+          :name="uiSkinResolved === 'flowbite' ? 'format_paint' : 'palette'"
+        />
+      </button>
+      <button
+        class="global-toolbar__icon-only"
+        title="Settings"
+        @click="navigate('/system')"
+      >
         <UIcon name="settings" />
       </button>
     </div>
@@ -89,39 +130,45 @@
  * to the SurfaceTabNav component rendered by each surface.
  * @category organisms
  */
-import { computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useShellStore } from '../../stores/shell'
-import { useDevModeStore } from '../../stores/devMode'
-import { useSettingsStore } from '../../stores/settings'
-import UIcon from '../atoms/UIcon.vue'
-import UBadge from '../atoms/UBadge.vue'
+import { computed, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { useShellStore } from "../../stores/shell";
+import { useDevModeStore } from "../../stores/devMode";
+import { useSettingsStore } from "../../stores/settings";
+import { useUiSkin } from "../../composables/useUiSkin";
+import UIcon from "../atoms/UIcon.vue";
+import UBadge from "../atoms/UBadge.vue";
 
 interface Props {
-  chatMode?: string
-  sidebarOpen?: boolean
+  chatMode?: string;
+  sidebarOpen?: boolean;
 }
 
 const emit = defineEmits<{
-  'toggle-chat': []
-  'toggle-sidebar': []
-}>()
+  "toggle-chat": [];
+  "toggle-sidebar": [];
+}>();
 
-const router = useRouter()
-const route = useRoute()
-const shell = useShellStore()
-const devMode = useDevModeStore()
-const settings = useSettingsStore()
+const router = useRouter();
+const route = useRoute();
+const shell = useShellStore();
+const devMode = useDevModeStore();
+const settings = useSettingsStore();
+const { uiSkinResolved, initUiSkin, toggleUiSkin } = useUiSkin();
 
-const isDark = computed(() => settings.themeMode === 'dark')
+const isDark = computed(() => settings.themeMode === "dark");
 
 function toggleTheme() {
-  settings.setThemeMode(isDark.value ? 'light' : 'dark')
+  settings.setThemeMode(isDark.value ? "light" : "dark");
 }
 
 function navigate(path: string) {
-  router.push(path)
+  router.push(path);
 }
+
+onMounted(() => {
+  initUiSkin();
+});
 </script>
 
 <!-- All styles moved to usx-standard.css for consistency -->

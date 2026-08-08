@@ -324,6 +324,11 @@ onMounted(() => {
   flex-direction: column;
   gap: var(--usx-spacing-lg);
   height: 100%;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--usx-color-primary) 3%, transparent) 0%,
+    transparent 20%
+  );
 }
 
 .wf-panel-header {
@@ -445,6 +450,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-md);
+  background: var(--usx-color-surface);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-lg);
+  box-shadow: 0 var(--usx-border-width-thick) 0
+    color-mix(in srgb, var(--usx-color-border) 35%, transparent);
 }
 
 .wf-section-title {

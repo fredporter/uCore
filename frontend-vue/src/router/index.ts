@@ -4,123 +4,131 @@
  * Mirrors the React Router config from the legacy frontend.
  * Enhanced with Dev Mode guard that watches for toggle changes.
  */
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import {
+  createRouter,
+  createWebHistory,
+  type RouteRecordRaw,
+} from "vue-router";
 
 const routes: RouteRecordRaw[] = [
   {
-    path: '/',
-    name: 'dashboard',
-    component: () => import('../surfaces/dashboard/DashboardSurface.vue'),
-    meta: { title: 'Mission Control', icon: 'home' },
+    path: "/",
+    name: "dashboard",
+    component: () => import("../surfaces/dashboard/DashboardSurface.vue"),
+    meta: { title: "Mission Control", icon: "home" },
   },
   {
-    path: '/assistui/:pathMatch(.*)*',
-    name: 'assistui',
-    component: () => import('../surfaces/assistui/AssistUISurface.vue'),
-    meta: { title: 'Assistant', icon: 'bolt' },
+    path: "/assistui/:pathMatch(.*)*",
+    name: "assistui",
+    component: () => import("../surfaces/assistui/AssistUISurface.vue"),
+    meta: { title: "Assistant", icon: "bolt" },
   },
   {
-    path: '/ucode/:pathMatch(.*)*',
-    name: 'ucode',
-    component: () => import('../surfaces/ucode/UCodeSurface.vue'),
-    meta: { title: 'uCode', icon: 'grid' },
+    path: "/ucode/:pathMatch(.*)*",
+    name: "ucode",
+    component: () => import("../surfaces/ucode/UCodeSurface.vue"),
+    meta: { title: "uCode", icon: "grid" },
   },
   {
-    path: '/server/:pathMatch(.*)*',
-    name: 'server',
-    component: () => import('../surfaces/server/ServerSurface.vue'),
-    meta: { title: 'Server', icon: 'server' },
-  },
-  // Developer surface moved to uDev repo (port 5176)
-  {
-    path: '/developer/:pathMatch(.*)*',
-    redirect: () => { window.location.href = 'http://localhost:5176'; return '/'; },
+    path: "/server/:pathMatch(.*)*",
+    name: "server",
+    component: () => import("../surfaces/server/ServerSurface.vue"),
+    meta: { title: "Server", icon: "server" },
   },
   {
-    path: '/workflow/:pathMatch(.*)*',
-    name: 'workflow',
-    component: () => import('../surfaces/workflow/WorkflowSurface.vue'),
-    meta: { title: 'Workflow', icon: 'workflow' },
+    path: "/developer/:pathMatch(.*)*",
+    name: "developer",
+    component: () =>
+      import("../surfaces/developer/DeveloperGatewaySurface.vue"),
+    meta: { title: "Developer", icon: "code" },
   },
   {
-    path: '/system/:pageId(s\\d{3}|p\\d{3})',
-    name: 'systempage',
-    component: () => import('../surfaces/system/SystemPage.vue'),
-    meta: { title: 'System Page' },
+    path: "/workflow/:pathMatch(.*)*",
+    name: "workflow",
+    component: () => import("../surfaces/workflow/WorkflowSurface.vue"),
+    meta: { title: "Workflow", icon: "workflow" },
   },
   {
-    path: '/system/:pathMatch(.*)*',
-    name: 'system',
-    component: () => import('../surfaces/system/SystemSurface.vue'),
-    meta: { title: 'System', icon: 'settings' },
+    path: "/system/:pageId(s\\d{3}|p\\d{3})",
+    name: "systempage",
+    component: () => import("../surfaces/system/SystemPage.vue"),
+    meta: { title: "System Page" },
   },
   {
-    path: '/snackmachine/:pathMatch(.*)*',
+    path: "/system/:pathMatch(.*)*",
+    name: "system",
+    component: () => import("../surfaces/system/SystemSurface.vue"),
+    meta: { title: "System", icon: "settings" },
+  },
+  {
+    path: "/snackmachine/:pathMatch(.*)*",
     redirect: (to) => {
-      const tab = String(to.query.tab || 'snacks')
-      if (tab === 'workflows') return '/workflow?tab=publish'
-      if (tab === 'vault') return '/workflow?tab=binder'
-      if (tab === 'mcp') return '/developer?tab=mcp-servers'
-      if (tab === 'variables') return '/system?tab=variables'
-      if (tab === 'scheduler') return '/server?tab=dashboard'
-      return '/server?tab=snacks'
+      const tab = String(to.query.tab || "snacks");
+      if (tab === "workflows") return "/workflow?tab=publish";
+      if (tab === "vault") return "/workflow?tab=binder";
+      if (tab === "mcp") return "/developer?tab=mcp-servers";
+      if (tab === "variables") return "/system?tab=variables";
+      if (tab === "scheduler") return "/server?tab=dashboard";
+      return "/server?tab=snacks";
     },
   },
   {
-    path: '/groovebox/:pathMatch(.*)*',
-    name: 'groovebox',
-    component: () => import('../surfaces/groovebox/GrooveboxSurface.vue'),
-    meta: { title: 'Groovebox', icon: 'music_note' },
+    path: "/groovebox/:pathMatch(.*)*",
+    name: "groovebox",
+    component: () => import("../surfaces/groovebox/GrooveboxSurface.vue"),
+    meta: { title: "Groovebox", icon: "music_note" },
   },
   {
-    path: '/sonic/:pathMatch(.*)*',
-    name: 'sonic',
-    component: () => import('../surfaces/sonic/SonicScrewdriverSurface.vue'),
-    meta: { title: 'SonicScrewdriver', icon: 'usb' },
+    path: "/sonic/:pathMatch(.*)*",
+    name: "sonic",
+    component: () => import("../surfaces/sonic/SonicScrewdriverSurface.vue"),
+    meta: { title: "SonicScrewdriver", icon: "usb" },
   },
   {
-    path: '/browserui/:pathMatch(.*)*',
-    name: 'browserui',
-    component: () => import('../surfaces/browserui/BrowserUISurface.vue'),
-    meta: { title: 'Browser', icon: 'globe', hidden: true },
+    path: "/browserui/:pathMatch(.*)*",
+    name: "browserui",
+    component: () => import("../surfaces/browserui/BrowserUISurface.vue"),
+    meta: { title: "Browser", icon: "globe", hidden: true },
   },
   {
-    path: '/documentation/:pathMatch(.*)*',
-    name: 'documentation',
-    component: () => import('../surfaces/documentation/DocumentationSurface.vue'),
-    meta: { title: 'Documentation', icon: 'help' },
+    path: "/documentation/:pathMatch(.*)*",
+    name: "documentation",
+    component: () =>
+      import("../surfaces/documentation/DocumentationSurface.vue"),
+    meta: { title: "Documentation", icon: "help" },
   },
   {
-    path: '/teletext/:pathMatch(.*)*',
-    redirect: '/ucode?tab=teletext',
+    path: "/teletext/:pathMatch(.*)*",
+    redirect: "/ucode?tab=teletext",
   },
   {
-    path: '/terminal/:pathMatch(.*)*',
-    redirect: '/ucode?tab=terminal',
+    path: "/terminal/:pathMatch(.*)*",
+    redirect: "/ucode?tab=terminal",
   },
   // Legacy redirects
   {
-    path: '/gridui/:pathMatch(.*)*',
-    redirect: to => `/ucode${to.path.replace('/gridui', '')}`,
+    path: "/gridui/:pathMatch(.*)*",
+    redirect: (to) => `/ucode${to.path.replace("/gridui", "")}`,
   },
   {
-    path: '/userver/:pathMatch(.*)*',
-    redirect: to => `/server${to.path.replace('/userver', '')}`,
+    path: "/userver/:pathMatch(.*)*",
+    redirect: (to) => `/server${to.path.replace("/userver", "")}`,
   },
   // Legacy direct shortcuts
   {
-    path: '/:pathMatch(s\\d{3}|p\\d{3})',
-    redirect: to => `/system/${String(to.params.pathMatch || '').toLowerCase()}`,
+    path: "/:pathMatch(s\\d{3}|p\\d{3})",
+    redirect: (to) =>
+      `/system/${String(to.params.pathMatch || "").toLowerCase()}`,
   },
-]
+];
 
 export const router = createRouter({
   history: createWebHistory(),
   routes,
-})
+});
 
 // Update document title
 router.afterEach((to) => {
-  const title = to.meta.title as string | undefined
-  document.title = title ? `${title} — uCore` : 'uCore'
-})
+  const title = to.meta.title as string | undefined;
+  document.title = title ? `${title} — uCore` : "uCore";
+});

@@ -7,6 +7,7 @@
         <span class="editor-panel__title">{{ title || "Untitled" }}</span>
       </div>
       <div class="editor-panel__toolbar-center">
+        <span class="editor-panel__engine-chip">Bangle editor</span>
         <span
           v-if="showEditor"
           class="editor-panel__pane-tab"
@@ -129,7 +130,7 @@
  * @emits {void} toggle-editor - Toggle edit pane
  * @emits {void} toggle-layout - Toggle pane layout (split ↔ stacked)
  */
-import { ref, watch, withDefaults } from "vue";
+import { ref, watch } from "vue";
 import UIcon from "../atoms/UIcon.vue";
 import BangleEditor from "../molecules/editor/BangleEditor.vue";
 import MarkdownPreview from "../molecules/editor/MarkdownPreview.vue";
@@ -287,6 +288,17 @@ function toggleEditMode() {
   color: var(--usx-color-on-surface-muted);
   padding: var(--usx-spacing-2) var(--usx-spacing-sm);
   border-radius: var(--usx-radius-sm);
+}
+
+.editor-panel__engine-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--usx-spacing-2) var(--usx-spacing-sm);
+  border-radius: var(--usx-radius-full);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm);
 }
 
 .editor-panel__pane-tab--active {

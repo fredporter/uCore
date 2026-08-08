@@ -18,6 +18,8 @@ from app.services.tasker_bridge import (
     normalize_priority,
     normalize_status,
     normalize_tags,
+    render_task_markdown,
+    slugify,
 )
 from app.services.workflow_status import default_tasker_dir, scan_tasker_boards
 
@@ -305,6 +307,151 @@ async def handle_tasker_summary(request: web.Request) -> web.Response:
     })
 
 
+def _find_task_file(base: Path, task_id: str) -> Path | None:
+    for board_dir in sorted(p for p in base.iterdir() if p.is_dir()):
+        candidate = board_dir / f"{task_id}.md"
+        if candidate.exists() and candidate.is_file():
+            return candidate
+    return None
+
+
+def _build_task_filename(
+    status: str,
+    title: str,
+    source_id: str,
+    task_id: str,
+) -> str:
+    safe_source = slugify(source_id or task_id)
+    return f"{normalize_status(status)}-{slugify(title)}-{safe_source}.md"
+
+
+def _task_metadata_from_record(task: dict[str, Any]) -> dict[str, Any]:
+    metadata: dict[str, Any] = {
+        "priority": task.get("priority") or "medium",
+        "mission": task.get("mission") or "",
+        "task": task.get("task") or "",
+        "binder": task.get("binder") or "",
+        "tags": task.get("tags") or [],
+    }
+    return metadata
+
+
+def _update_task_file(
+    *,
+    base: Path,
+    task_id: str,
+    patch: dict[str, Any],
+) -> dict[str, Any]:
+    source_path = _find_task_file(base, task_id)
+    if not source_path:
+        raise FileNotFoundError(task_id)
+
+    current = _parse_markdown_task(source_path)
+
+    new_status = normalize_status(
+        str(patch.get("status") or current.get("status") or "todo"),
+    )
+    new_priority = normalize_priority(
+        str(patch.get("priority") or current.get("priority") or "medium"),
+    )
+    new_board = str(
+        patch.get("board") or current.get("board") or source_path.parent.name,
+    ).strip() or source_path.parent.name
+    new_title = (
+        str(patch.get("title") or current.get("title") or "Untitled").strip()
+        or "Untitled"
+    )
+    new_tags = normalize_tags(
+        patch.get("tags") if "tags" in patch else current.get("tags") or [],
+    )
+    new_body = str(
+        patch.get("body")
+        or current.get("body")
+        or current.get("description")
+        or "",
+    ).strip()
+    source = str(current.get("source") or "manual")
+    source_id = str(current.get("source_id") or task_id)
+
+    metadata = _task_metadata_from_record(current)
+    metadata["priority"] = new_priority
+    metadata["tags"] = new_tags
+
+    target_dir = base / new_board
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = _build_task_filename(new_status, new_title, source_id, task_id)
+    target_path = target_dir / filename
+
+    content = render_task_markdown(
+        title=new_title,
+        source=source,
+        source_id=source_id,
+        status=new_status,
+        body=new_body,
+        metadata=metadata,
+    )
+    target_path.write_text(content, encoding="utf-8")
+
+    if source_path.resolve() != target_path.resolve() and source_path.exists():
+        source_path.unlink(missing_ok=True)
+
+    updated = _parse_markdown_task(target_path)
+    return {
+        "updated": updated,
+        "path": str(target_path),
+        "source_path": str(source_path),
+    }
+
+
+async def handle_update_task(request: web.Request) -> web.Response:
+    """PATCH /api/developer/tasker/tasks/{task_id}.
+
+    Update Tasker-backed markdown task state for kanban/list transitions.
+    """
+    task_id = request.match_info.get("task_id", "").strip()
+    if not task_id:
+        return web.json_response({"error": "task_id required"}, status=400)
+
+    try:
+        patch = await request.json() if request.body_exists else {}
+    except Exception:
+        return web.json_response({"error": "Invalid JSON payload"}, status=400)
+
+    if not isinstance(patch, dict):
+        return web.json_response(
+            {"error": "Invalid patch payload"},
+            status=400,
+        )
+
+    base = default_tasker_dir()
+    if not base.exists():
+        return web.json_response(
+            {"error": "Tasker directory not found"},
+            status=404,
+        )
+
+    try:
+        result = _update_task_file(base=base, task_id=task_id, patch=patch)
+    except FileNotFoundError:
+        return web.json_response(
+            {"error": f"Task '{task_id}' not found"},
+            status=404,
+        )
+    except Exception as exc:
+        log.exception("Task update failed")
+        return web.json_response(
+            {"error": f"task_update_failed: {exc}"},
+            status=500,
+        )
+
+    return web.json_response({
+        "status": "ok",
+        "task_id": task_id,
+        **result,
+    })
+
+
 def register_tasker_routes(app: web.Application) -> None:
     """Register tasker API routes under /api/developer/tasker/."""
     app.router.add_get("/api/developer/tasker/boards", handle_list_boards)
@@ -313,4 +460,9 @@ def register_tasker_routes(app: web.Application) -> None:
         handle_list_board_tasks,
     )
     app.router.add_get("/api/developer/tasker/tasks", handle_all_tasks)
+    app.router.add_patch(
+        "/api/developer/tasker/tasks/{task_id}",
+        handle_update_task,
+    )
     app.router.add_get("/api/developer/tasker/summary", handle_tasker_summary)
+    app.router.add_patch("/api/workflow/tasks/{task_id}", handle_update_task)

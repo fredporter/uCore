@@ -1,5 +1,10 @@
 <template>
-  <div class="surface" :class="{ 'surface--tab-nav-vertical': shell.tabOrientation === 'vertical' }">
+  <div
+    class="surface"
+    :class="{
+      'surface--tab-nav-vertical': shell.tabOrientation === 'vertical',
+    }"
+  >
     <!-- AssistUI mode tabs (Chat, Workflow) -->
     <SurfaceTabNav
       v-model="activeModeTab"
@@ -16,7 +21,10 @@
           <div class="assistui-controls-row">
             <!-- Model picker -->
             <div class="assistui-model-section" ref="modelSectionRef">
-              <button class="usx-button" @click="modelPickerOpen = !modelPickerOpen">
+              <button
+                class="usx-button"
+                @click="modelPickerOpen = !modelPickerOpen"
+              >
                 <UIcon name="smart_toy" />
                 <span>{{ chat.currentModelName }}</span>
                 <UIcon name="expand_more" />
@@ -26,10 +34,18 @@
                   v-for="model in chat.models"
                   :key="model.id"
                   class="assistui-model-option"
-                  :class="{ 'assistui-model-option--active': chat.selectedModel === model.id }"
-                  @click="chat.setModel(model.id); modelPickerOpen = false"
+                  :class="{
+                    'assistui-model-option--active':
+                      chat.selectedModel === model.id,
+                  }"
+                  @click="
+                    chat.setModel(model.id);
+                    modelPickerOpen = false;
+                  "
                 >
-                  <span class="assistui-model-provider">{{ model.provider }}</span>
+                  <span class="assistui-model-provider">{{
+                    model.provider
+                  }}</span>
                   <span class="assistui-model-name">{{ model.name }}</span>
                   <UIcon v-if="chat.selectedModel === model.id" name="check" />
                 </button>
@@ -40,7 +56,10 @@
             <div class="assistui-status-bar">
               <span
                 class="assistui-status-dot"
-                :class="{ 'assistui-status-dot--online': chat.snackbarStatus === 'online' }"
+                :class="{
+                  'assistui-status-dot--online':
+                    chat.snackbarStatus === 'online',
+                }"
               />
               <span class="assistui-status-text">
                 {{ statusText }}
@@ -67,24 +86,38 @@
           >
             <div class="surface__message-header">
               <span class="surface__message-role">
-                {{ msg.role === 'user' ? 'You' : 'Assistant' }}
+                {{ msg.role === "user" ? "You" : "Assistant" }}
               </span>
-              <span class="surface__message-time">{{ formatTime(msg.timestamp) }}</span>
+              <span class="surface__message-time">{{
+                formatTime(msg.timestamp)
+              }}</span>
             </div>
-            <div class="surface__message-body" v-html="renderMarkdown(msg.content)" />
+            <div
+              class="surface__message-body"
+              v-html="renderMarkdown(msg.content)"
+            />
           </div>
 
           <!-- Prompt cards (shown when only welcome message) -->
-          <div v-if="chat.prompts.length > 0 && chat.messages.length <= 1" class="assistui-prompt-row">
+          <div
+            v-if="chat.prompts.length > 0 && chat.messages.length <= 1"
+            class="assistui-prompt-row"
+          >
             <div
               v-for="prompt in chat.prompts"
               :key="prompt.id"
               class="assistui-prompt-card"
               @click="handlePromptClick(prompt)"
             >
-            <span class="assistui-prompt-card-icon"><UIcon :name="resolveIcon(prompt.icon)" /></span>
-            <span class="assistui-prompt-card-label">{{ prompt.label }}</span>
-              <span v-if="prompt.context" class="assistui-prompt-card-context">{{ prompt.context }}</span>
+              <span class="assistui-prompt-card-icon"
+                ><UIcon :name="resolveIcon(prompt.icon)"
+              /></span>
+              <span class="assistui-prompt-card-label">{{ prompt.label }}</span>
+              <span
+                v-if="prompt.context"
+                class="assistui-prompt-card-context"
+                >{{ prompt.context }}</span
+              >
             </div>
           </div>
 
@@ -124,12 +157,18 @@
           <div v-if="wf.workflowStatus" class="assistui-workflow-status">
             <div class="assistui-workflow-card">
               <h3>Tasks</h3>
-              <p>{{ wf.totalTasks }} total · {{ wf.inProgressCount }} in progress · {{ wf.completedCount }} completed</p>
+              <p>
+                {{ wf.totalTasks }} total · {{ wf.inProgressCount }} in progress
+                · {{ wf.completedCount }} completed
+              </p>
             </div>
             <div v-if="wf.workflowStatus.tasker" class="assistui-workflow-card">
               <h3>Boards</h3>
               <ul>
-                <li v-for="board in wf.workflowStatus.tasker.boards" :key="board.name">
+                <li
+                  v-for="board in wf.workflowStatus.tasker.boards"
+                  :key="board.name"
+                >
                   {{ board.name }} ({{ board.count }})
                 </li>
               </ul>
@@ -144,15 +183,24 @@
               <span class="assistui-loading-dot" />
               <span class="assistui-loading-dot" />
             </div>
-            <div v-else-if="wf.tasks.length === 0" class="assistui-empty">
-              <p>No tasks yet. Start a conversation in Chat mode to plan your work!</p>
-              <button class="usx-button" @click="chat.setPromptMode('chat'); activeModeTab = 'chat'">
+            <div v-else-if="wf.activeTasks.length === 0" class="assistui-empty">
+              <p>
+                No tasks yet. Start a conversation in Chat mode to plan your
+                work!
+              </p>
+              <button
+                class="usx-button"
+                @click="
+                  chat.setPromptMode('chat');
+                  activeModeTab = 'chat';
+                "
+              >
                 <UIcon name="chat" /> Go to Chat
               </button>
             </div>
             <div v-else class="assistui-task-cards">
               <div
-                v-for="task in wf.tasks"
+                v-for="task in wf.activeTasks"
                 :key="task.id"
                 class="assistui-workflow-card assistui-task-card"
                 :class="`assistui-task-card--${task.status}`"
@@ -163,16 +211,32 @@
                 @keydown.space.prevent="handleTaskClick(task)"
               >
                 <div class="assistui-task-header">
-                  <span class="assistui-task-priority" :class="`assistui-task-priority--${task.priority}`">
-                    {{ task.priority === 'high' ? '🔴' : task.priority === 'medium' ? '🟡' : '🟢' }}
+                  <span
+                    class="assistui-task-priority"
+                    :class="`assistui-task-priority--${task.priority}`"
+                  >
+                    {{
+                      task.priority === "high"
+                        ? "🔴"
+                        : task.priority === "medium"
+                          ? "🟡"
+                          : "🟢"
+                    }}
                   </span>
                   <strong>{{ task.title }}</strong>
                   <span class="assistui-task-status">{{ task.status }}</span>
-                  <span class="assistui-task-open-link"><UIcon name="open_in_new" /></span>
+                  <span class="assistui-task-open-link"
+                    ><UIcon name="open_in_new"
+                  /></span>
                 </div>
                 <p v-if="task.description">{{ task.description }}</p>
                 <div class="assistui-task-tags">
-                  <span v-for="tag in task.tags" :key="tag" class="assistui-task-tag">{{ tag }}</span>
+                  <span
+                    v-for="tag in task.tags"
+                    :key="tag"
+                    class="assistui-task-tag"
+                    >{{ tag }}</span
+                  >
                 </div>
               </div>
             </div>
@@ -188,7 +252,9 @@
             >
               <strong>{{ mission.title }}</strong>
               <p>{{ mission.description }}</p>
-              <span class="assistui-task-status">{{ mission.status }} · {{ mission.taskIds.length }} tasks</span>
+              <span class="assistui-task-status"
+                >{{ mission.status }} · {{ mission.taskIds.length }} tasks</span
+              >
             </div>
           </div>
         </div>
@@ -204,113 +270,124 @@
  * and task/planning integration. Uses USX surface classes from usx-standard.css.
  * @category surfaces
  */
-import { ref, computed, onMounted, watch, provide } from 'vue'
-import { useShellStore } from '../../stores/shell'
-import { useWorkflowStore } from '../../stores/workflow'
-import UIcon from '../../skills/atoms/UIcon.vue'
-import { useChatStore, ASSISTUI_MODES } from '../../stores/chat'
-import SurfaceTabNav from '../../skills/molecules/SurfaceTabNav.vue'
-import type { TabDef } from '../../skills/molecules/SurfaceTabNav.vue'
+import { ref, computed, onMounted, watch, provide } from "vue";
+import { useShellStore } from "../../stores/shell";
+import { useWorkflowStore } from "../../stores/workflow";
+import UIcon from "../../skills/atoms/UIcon.vue";
+import { useChatStore, ASSISTUI_MODES } from "../../stores/chat";
+import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
+import type { TabDef } from "../../skills/molecules/SurfaceTabNav.vue";
 
-const shell = useShellStore()
-const chat = useChatStore()
-const wf = useWorkflowStore()
+const shell = useShellStore();
+const chat = useChatStore();
+const wf = useWorkflowStore();
 
 // AssistUI mode tabs — Chat and Workflow
-const ASSISTUI_TABS: TabDef[] = ASSISTUI_MODES.map(a => ({
+const ASSISTUI_TABS: TabDef[] = ASSISTUI_MODES.map((a) => ({
   id: a.id,
   label: a.label,
   icon: a.icon,
-}))
+}));
 
-const activeModeTab = ref(chat.promptMode)
+const activeModeTab = ref(chat.promptMode);
 
 // Sync activeModeTab when chat.promptMode changes externally
-watch(() => chat.promptMode, (mode) => {
-  activeModeTab.value = mode
-})
+watch(
+  () => chat.promptMode,
+  (mode) => {
+    activeModeTab.value = mode;
+  },
+);
 
 // Update mode when a tab is clicked
 watch(activeModeTab, (tabId) => {
-  if (tabId === 'chat' || tabId === 'workflow') {
+  if (tabId === "chat" || tabId === "workflow") {
     if (tabId !== chat.promptMode) {
-      chat.setPromptMode(tabId)
+      chat.setPromptMode(tabId);
     }
-    if (tabId === 'workflow') {
-      wf.fetchAll()
+    if (tabId === "workflow") {
+      wf.fetchAll();
     }
   }
-})
+});
 
-const modelPickerOpen = ref(false)
-const messagesEl = ref<HTMLElement | null>(null)
-const inputRef = ref<HTMLTextAreaElement | null>(null)
+const modelPickerOpen = ref(false);
+const messagesEl = ref<HTMLElement | null>(null);
+const inputRef = ref<HTMLTextAreaElement | null>(null);
 
 const statusText = computed(() => {
   switch (chat.snackbarStatus) {
-    case 'online': return 'AI Online'
-    case 'checking': return 'Connecting...'
-    default: return 'AI Offline'
+    case "online":
+      return "AI Online";
+    case "checking":
+      return "Connecting...";
+    default:
+      return "AI Offline";
   }
-})
+});
 
 const formatTime = (timestamp: Date) => {
-  return new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit' }).format(timestamp)
-}
+  return new Intl.DateTimeFormat("en", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(timestamp);
+};
 
 const renderMarkdown = (content: string) => {
   return content
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br>')
-}
+    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+    .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`(.+?)`/g, "<code>$1</code>")
+    .replace(/\n/g, "<br>");
+};
 
 const resolveIcon = (icon: string) => {
   const emojiMap: Record<string, string> = {
-    '⚡': 'bolt',
-    '📝': 'edit',
-    '🔍': 'search',
-    '💡': 'lightbulb',
-    '🚀': 'rocket_launch',
-  }
-  return emojiMap[icon] || icon
-}
+    "⚡": "bolt",
+    "📝": "edit",
+    "🔍": "search",
+    "💡": "lightbulb",
+    "🚀": "rocket_launch",
+  };
+  return emojiMap[icon] || icon;
+};
 
 const handlePromptClick = (prompt: any) => {
-  chat.input = prompt.label
-  chat.sendMessage()
-}
+  chat.input = prompt.label;
+  chat.sendMessage();
+};
 
 const handleTaskClick = (task: any) => {
-  wf.selectTask(task)
+  wf.selectTask(task);
   // Dispatch custom event for any listener that wants to open editor
-  window.dispatchEvent(new CustomEvent('assistui-task-open', { detail: { task } }))
-}
+  window.dispatchEvent(
+    new CustomEvent("assistui-task-open", { detail: { task } }),
+  );
+};
 
 const handleInputKeydown = (e: KeyboardEvent) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    chat.sendMessage()
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    chat.sendMessage();
   }
-}
+};
 
 onMounted(() => {
-  fetch('http://localhost:8484/api/health')
-    .then(res => {
+  fetch("http://localhost:8484/api/health")
+    .then((res) => {
       if (res.ok) {
-        chat.snackbarStatus = 'online'
+        chat.snackbarStatus = "online";
       } else {
-        chat.snackbarStatus = 'offline'
+        chat.snackbarStatus = "offline";
       }
     })
     .catch(() => {
-      chat.snackbarStatus = 'offline'
-    })
-})
+      chat.snackbarStatus = "offline";
+    });
+});
 </script>
 
 <style scoped>
@@ -326,7 +403,9 @@ onMounted(() => {
   color: var(--usx-color-on-surface-muted);
   font-size: var(--usx-font-size-sm);
   font-weight: var(--usx-font-weight-medium);
-  transition: color var(--usx-transition-fast), background var(--usx-transition-fast);
+  transition:
+    color var(--usx-transition-fast),
+    background var(--usx-transition-fast);
 }
 
 .assistui-model-section .usx-button:hover,
@@ -528,7 +607,10 @@ onMounted(() => {
 .assistui-prompt-row {
   --assistui-prompt-column-min: calc(var(--usx-touch-min) * 4.5);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--assistui-prompt-column-min)), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--assistui-prompt-column-min)), 1fr)
+  );
   gap: var(--usx-spacing-lg);
   margin: var(--usx-spacing-lg) 0;
   padding: var(--usx-spacing-lg) 0;
@@ -546,12 +628,14 @@ onMounted(() => {
   background: var(--usx-color-surface);
   border: var(--usx-border-width) solid var(--usx-color-border);
   cursor: pointer;
-  transition: background var(--usx-transition-base), border-color var(--usx-transition-base), color var(--usx-transition-base), transform var(--usx-transition-base);
+  transition:
+    background var(--usx-transition-base),
+    border-color var(--usx-transition-base),
+    color var(--usx-transition-base),
+    transform var(--usx-transition-base);
   color: var(--usx-color-on-surface);
   min-width: 0;
 }
-
-
 
 .assistui-prompt-card:hover {
   background: var(--usx-color-surface-hover);
@@ -594,7 +678,8 @@ onMounted(() => {
   height: var(--usx-spacing-sm);
   border-radius: 50%;
   background: var(--usx-color-primary);
-  animation: assistui-pulse var(--usx-motion-duration-pulse) ease-in-out infinite;
+  animation: assistui-pulse var(--usx-motion-duration-pulse) ease-in-out
+    infinite;
 }
 
 .assistui-loading-dot:nth-child(2) {
@@ -606,8 +691,13 @@ onMounted(() => {
 }
 
 @keyframes assistui-pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* ─── Input & Submit ────────────────────────────────────────────── */
@@ -642,7 +732,9 @@ onMounted(() => {
   color: var(--usx-color-on-primary);
   cursor: pointer;
   font-size: var(--usx-font-size-lg);
-  transition: background var(--usx-transition-fast), transform var(--usx-transition-fast);
+  transition:
+    background var(--usx-transition-fast),
+    transform var(--usx-transition-fast);
   flex-shrink: 0;
 }
 
@@ -677,7 +769,10 @@ onMounted(() => {
 
 .assistui-workflow-status {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--usx-touch-min) * 6)), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, calc(var(--usx-touch-min) * 6)), 1fr)
+  );
   gap: var(--usx-spacing-md);
 }
 
@@ -735,7 +830,9 @@ onMounted(() => {
 .assistui-task-card {
   border-left: var(--usx-spacing-xs) solid var(--usx-color-border);
   cursor: pointer;
-  transition: background var(--usx-transition-fast), border-color var(--usx-transition-fast);
+  transition:
+    background var(--usx-transition-fast),
+    border-color var(--usx-transition-fast);
 }
 
 .assistui-task-card:hover {

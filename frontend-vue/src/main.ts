@@ -2,43 +2,48 @@
  * uCore Vue — Entry Point
  * Skills-First Vue 3 + Pinia + Vite Architecture
  */
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
-import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
-import App from './App.vue'
-import { router } from './router'
+import { createApp } from "vue";
+import { createPinia } from "pinia";
+import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
+import App from "./App.vue";
+import { router } from "./router";
+import { useUiSkin } from "./composables/useUiSkin";
 
 // Self-hosted fonts (offline-first, zero Google CDN dependency)
-import '@fontsource/inter/300.css'
-import '@fontsource/inter/400.css'
-import '@fontsource/inter/500.css'
-import '@fontsource/inter/600.css'
-import '@fontsource/inter/700.css'
-import '@fontsource/jetbrains-mono/400.css'
-import '@fontsource/jetbrains-mono/500.css'
-import '@fontsource/jetbrains-mono/700.css'
-import '@fontsource/merriweather/400.css'
-import '@fontsource/merriweather/700.css'
-import '@fontsource/press-start-2p/400.css'
-import '@fontsource/vt323/400.css'
-import 'material-symbols/outlined.css'
+import "@fontsource/inter/300.css";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/500.css";
+import "@fontsource/jetbrains-mono/700.css";
+import "@fontsource/merriweather/400.css";
+import "@fontsource/merriweather/700.css";
+import "@fontsource/press-start-2p/400.css";
+import "@fontsource/vt323/400.css";
+import "material-symbols/outlined.css";
 
 // USX Design System - Import in correct order
 // Core tokens come from the shared @udos/usx-tokens package
-import './styles/base.css' // local: wraps package tokens + PicoCSS mappings
-import '@udos/usx-tokens/themes/dark.css' // dark from package
-import '@udos/usx-tokens/themes/light.css' // light from package
-import '@udos/usx-tokens/themes/c64.css' // c64 from package
-import '@udos/usx-tokens/themes/teletext.css' // teletext from package
-import '@udos/usx-tokens/themes/high-contrast.css' // high-contrast from package
-import '@udos/usx-tokens' // usx-standard.css from package
-import './styles/gridcore.css' // GridCore internal variable contract
-import './styles/usx-extensions.css' // uCore-specific extensions: toolbar, multi-column, dev toggle
+import "./styles/base.css"; // local: wraps package tokens + PicoCSS mappings
+import "@udos/usx-tokens/themes/dark.css"; // dark from package
+import "@udos/usx-tokens/themes/light.css"; // light from package
+import "@udos/usx-tokens/themes/c64.css"; // c64 from package
+import "@udos/usx-tokens/themes/teletext.css"; // teletext from package
+import "@udos/usx-tokens/themes/high-contrast.css"; // high-contrast from package
+import "@udos/usx-tokens"; // usx-standard.css from package
+import "./styles/gridcore.css"; // GridCore internal variable contract
+import "./styles/usx-extensions.css"; // uCore-specific extensions: toolbar, multi-column, dev toggle
+import "./styles/flowbite-skin.css"; // optional flowbite-inspired skin via data-ui-skin
 
-const app = createApp(App)
-const pinia = createPinia()
-pinia.use(piniaPluginPersistedstate)
+const { initUiSkin } = useUiSkin();
+initUiSkin();
 
-app.use(pinia)
-app.use(router)
-app.mount('#app')
+const app = createApp(App);
+const pinia = createPinia();
+pinia.use(piniaPluginPersistedstate);
+
+app.use(pinia);
+app.use(router);
+app.mount("#app");

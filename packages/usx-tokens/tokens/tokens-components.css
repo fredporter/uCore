@@ -16,9 +16,12 @@
   --usx-border-width-thick: 2px;
 
   /* ===== SHADOWS ===== */
-  --usx-shadow-sm: 0 var(--usx-spacing-xs) var(--usx-spacing-md) color-mix(in srgb, var(--usx-color-on-surface) 15%, transparent);
-  --usx-shadow-md: 0 var(--usx-spacing-sm) var(--usx-spacing-lg) color-mix(in srgb, var(--usx-color-on-surface) 8%, transparent);
-  --usx-shadow-lg: 0 var(--usx-spacing-sm) var(--usx-spacing-xl) color-mix(in srgb, var(--usx-color-on-surface) 20%, transparent);
+  --usx-shadow-sm: 0 var(--usx-spacing-xs) var(--usx-spacing-md)
+    color-mix(in srgb, var(--usx-color-on-surface) 15%, transparent);
+  --usx-shadow-md: 0 var(--usx-spacing-sm) var(--usx-spacing-lg)
+    color-mix(in srgb, var(--usx-color-on-surface) 8%, transparent);
+  --usx-shadow-lg: 0 var(--usx-spacing-sm) var(--usx-spacing-xl)
+    color-mix(in srgb, var(--usx-color-on-surface) 20%, transparent);
 
   /* ===== CARD ===== */
   --usx-card-padding: var(--usx-spacing-lg);
@@ -28,8 +31,12 @@
   /* ===== SIDEBAR ===== */
   --usx-sidebar-width: 280px;
   --usx-sidebar-compact-width: 56px;
-  --usx-sidebar-width-sm: calc(var(--usx-sidebar-width) - var(--usx-spacing-2xl) + var(--usx-spacing-sm));
-  --usx-sidebar-width-lg: calc(var(--usx-sidebar-width) + var(--usx-spacing-xl) + var(--usx-spacing-sm));
+  --usx-sidebar-width-sm: calc(
+    var(--usx-sidebar-width) - var(--usx-spacing-2xl) + var(--usx-spacing-sm)
+  );
+  --usx-sidebar-width-lg: calc(
+    var(--usx-sidebar-width) + var(--usx-spacing-xl) + var(--usx-spacing-sm)
+  );
   --usx-sidebar-padding: var(--usx-spacing-md);
 
   /* ===== TABS ===== */
@@ -37,12 +44,41 @@
   --usx-tab-border-width: 2px;
 
   /* ===== ICONS ===== */
-  --usx-icon-size: 20px;
-  --usx-icon-size-sm: 16px;
-  --usx-icon-size-lg: 24px;
-  --usx-icon-size-2lg: 28px;
-  --usx-icon-size-xl: 32px;
+  --usx-icon-size-sm: clamp(
+    var(--usx-font-size-sm),
+    calc(var(--usx-font-size-sm) + 0.15vw),
+    var(--usx-font-size-base)
+  );
+  --usx-icon-size: clamp(
+    var(--usx-font-size-base),
+    calc(var(--usx-font-size-sm) + 0.35vw),
+    var(--usx-font-size-lg)
+  );
+  --usx-icon-size-lg: clamp(
+    var(--usx-font-size-lg),
+    calc(var(--usx-font-size-base) + 0.55vw),
+    var(--usx-font-size-xl)
+  );
+  --usx-icon-size-2lg: clamp(
+    var(--usx-font-size-xl),
+    calc(var(--usx-font-size-lg) + 0.7vw),
+    var(--usx-font-size-2xl)
+  );
+  --usx-icon-size-xl: clamp(
+    var(--usx-font-size-2xl),
+    calc(var(--usx-font-size-xl) + 0.9vw),
+    var(--usx-font-size-3xl)
+  );
   --usx-icon-gap: var(--usx-spacing-sm);
+
+  /* ===== TOOLBAR SCALE ===== */
+  --usx-toolbar-icon-size: var(--usx-icon-size-lg);
+  --usx-toolbar-icon-size-nav: var(--usx-icon-size-lg);
+  --usx-toolbar-font-size: clamp(
+    var(--usx-font-size-sm),
+    calc(var(--usx-font-size-sm) + 0.15vw),
+    var(--usx-font-size-base)
+  );
 
   /* ===== CONTROLS ===== */
   --usx-control-size-sm: 32px;
@@ -68,9 +104,14 @@
   --usx-dropdown-min-width: 180px;
   --usx-border-overlap: 1px;
   --usx-error-panel-max-width: calc(var(--usx-spacing-2xl) * 12);
-  --usx-editor-min-height: calc(var(--usx-spacing-2xl) * 8 + var(--usx-spacing-lg));
+  --usx-editor-min-height: calc(
+    var(--usx-spacing-2xl) * 8 + var(--usx-spacing-lg)
+  );
   --usx-toast-offset: var(--usx-icon-size);
-  --usx-toast-max-width: calc(var(--usx-sidebar-width) + var(--usx-spacing-2xl) + var(--usx-spacing-xl) + var(--usx-spacing-lg));
+  --usx-toast-max-width: calc(
+    var(--usx-sidebar-width) + var(--usx-spacing-2xl) + var(--usx-spacing-xl) +
+      var(--usx-spacing-lg)
+  );
   --usx-breakpoint-md: 768px;
   --usx-breakpoint-lg: 1024px;
 

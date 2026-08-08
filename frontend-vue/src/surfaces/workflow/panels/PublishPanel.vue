@@ -92,11 +92,21 @@
 
         <label class="wf-field wf-field--full">
           <span class="wf-field-label">Markdown draft</span>
-          <textarea
+          <BangleEditor
             v-model="jekyllContent"
-            class="wf-textarea"
-            placeholder="Write or paste markdown content here..."
+            :edit-mode="jekyllEditMode"
+            :autofocus="true"
           />
+        </label>
+
+        <label class="wf-checkbox-row">
+          <input
+            v-model="jekyllEditMode"
+            type="checkbox"
+            true-value="code"
+            false-value="prose"
+          />
+          <span>Code editing mode (off = prose mode)</span>
         </label>
 
         <div class="wf-workflow-footer">
@@ -261,6 +271,7 @@ import { ref, watch } from "vue";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 import UBadge from "../../../skills/atoms/UBadge.vue";
 import UButton from "../../../skills/atoms/UButton.vue";
+import BangleEditor from "../../../skills/molecules/editor/BangleEditor.vue";
 import { useWorkflowStore } from "../../../stores/workflow";
 import { ucoreApi } from "../../../api/client";
 
@@ -275,6 +286,7 @@ const jekyllTargetBranch = ref("main");
 const jekyllExecuteGit = ref(false);
 const jekyllCommitMessage = ref("");
 const jekyllContent = ref("");
+const jekyllEditMode = ref<"prose" | "code">("prose");
 const jekyllBusy = ref(false);
 const jekyllMessage = ref("");
 const jekyllOutput = ref<any>({});
@@ -436,8 +448,7 @@ async function publishJekyll(): Promise<void> {
   font-weight: var(--usx-font-weight-medium);
 }
 
-.wf-input,
-.wf-textarea {
+.wf-input {
   width: 100%;
   border: var(--usx-border-width) solid var(--usx-color-border);
   background: var(--usx-color-background);
@@ -446,12 +457,6 @@ async function publishJekyll(): Promise<void> {
   padding: var(--usx-spacing-sm);
   font-size: var(--usx-font-size-sm);
   font-family: var(--usx-font-family-sans);
-}
-
-.wf-textarea {
-  min-height: 18ch;
-  font-family: var(--usx-font-family-mono);
-  resize: vertical;
 }
 
 .wf-output {

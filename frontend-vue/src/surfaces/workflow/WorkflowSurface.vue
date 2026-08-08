@@ -146,6 +146,12 @@ const router = useRouter();
 
 const VALID_WORKFLOW_TABS = new Set(WORKFLOW_TABS.map((t) => t.id));
 
+function ensureEditorDocument() {
+  if (wf.activeTab === "editor") {
+    wf.ensureDefaultEditorFile();
+  }
+}
+
 function asWorkflowTab(tab: string): WorkflowTab | null {
   return VALID_WORKFLOW_TABS.has(tab as WorkflowTab)
     ? (tab as WorkflowTab)
@@ -164,6 +170,8 @@ onMounted(() => {
     });
   }
 
+  ensureEditorDocument();
+
   void wf.fetchAll();
 });
 
@@ -176,18 +184,34 @@ watch(
     if (wf.activeTab !== routeTab) {
       wf.setTab(safeTab);
     }
+    if (safeTab === "editor") {
+      wf.ensureDefaultEditorFile();
+    }
   },
 );
 
 watch(
   () => wf.activeTab,
   (tab) => {
+    if (tab === "editor") {
+      wf.ensureDefaultEditorFile();
+    }
     const current = String(route.query.tab || "");
     if (current === tab) return;
     router.replace({
       path: "/workflow",
       query: { ...route.query, tab },
     });
+  },
+);
+
+watch(
+  () => [wf.activeTab, wf.selectedTask?.id || "", wf.selectedFile?.id || ""],
+  ([tab, taskId, fileId]) => {
+    if (tab !== "editor") return;
+    if (!taskId && !fileId) {
+      wf.ensureDefaultEditorFile();
+    }
   },
 );
 

@@ -25,6 +25,7 @@
   box-sizing: border-box;
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
   position: relative;
+  font-size: var(--usx-toolbar-font-size);
 }
 
 /* Neutralise Pico CSS button styling inside the toolbar */
@@ -98,7 +99,7 @@
   transition: color var(--usx-transition-fast);
   width: var(--usx-touch-min);
   height: var(--usx-touch-min);
-  font-size: 1.5em;
+  font-size: var(--usx-toolbar-icon-size-nav);
   line-height: 1;
 }
 
@@ -141,7 +142,7 @@
   color: var(--usx-color-on-surface-muted);
   cursor: pointer;
   transition: color var(--usx-transition-fast);
-  font-size: 1.5em;
+  font-size: var(--usx-toolbar-icon-size);
   line-height: 1;
   width: var(--usx-touch-min);
   height: var(--usx-touch-min);
@@ -224,7 +225,10 @@
   font-size: var(--usx-font-size-sm);
   font-weight: var(--usx-font-weight-semibold);
   font-family: var(--usx-font-family-sans);
-  transition: color var(--usx-transition-fast), border-color var(--usx-transition-fast), background var(--usx-transition-fast);
+  transition:
+    color var(--usx-transition-fast),
+    border-color var(--usx-transition-fast),
+    background var(--usx-transition-fast);
   line-height: 1;
 }
 
@@ -308,21 +312,57 @@
   column-gap: var(--usx-grid-gap-lg);
 }
 
-.usx-columns-1 { columns: 1; }
-.usx-columns-2 { columns: 2; }
-.usx-columns-3 { columns: 3; }
-.usx-columns-4 { columns: 4; }
-.usx-columns-6 { columns: 6; }
+.usx-columns-1 {
+  columns: 1;
+}
+.usx-columns-2 {
+  columns: 2;
+}
+.usx-columns-3 {
+  columns: 3;
+}
+.usx-columns-4 {
+  columns: 4;
+}
+.usx-columns-6 {
+  columns: 6;
+}
 
 .usx-columns--responsive {
   columns: 1;
 }
-@media (min-width: 30em) { .usx-columns--responsive { columns: 2; } }
-@media (min-width: 48em) { .usx-columns--responsive { columns: 2; } }
-@media (min-width: 64em) { .usx-columns--responsive { columns: 3; } }
-@media (min-width: 90em) { .usx-columns--responsive { columns: 3; } }
-@media (min-width: 120em) { .usx-columns--responsive { columns: 4; } }
+@media (min-width: 30em) {
+  .usx-columns--responsive {
+    columns: 2;
+  }
+}
+@media (min-width: 48em) {
+  .usx-columns--responsive {
+    columns: 2;
+  }
+}
+@media (min-width: 64em) {
+  .usx-columns--responsive {
+    columns: 3;
+  }
+}
+@media (min-width: 90em) {
+  .usx-columns--responsive {
+    columns: 3;
+  }
+}
+@media (min-width: 120em) {
+  .usx-columns--responsive {
+    columns: 4;
+  }
+}
 
-.usx-prose--sm { max-width: var(--usx-prose-width); }
-.usx-prose--md { max-width: var(--usx-prose-width); }
-.usx-prose--lg { max-width: var(--usx-prose-width); }
+.usx-prose--sm {
+  max-width: var(--usx-prose-width);
+}
+.usx-prose--md {
+  max-width: var(--usx-prose-width);
+}
+.usx-prose--lg {
+  max-width: var(--usx-prose-width);
+}

@@ -1,5 +1,10 @@
 <template>
-  <div class="surface" :class="{ 'surface--tab-nav-vertical': shell.tabOrientation === 'vertical' }">
+  <div
+    class="surface"
+    :class="{
+      'surface--tab-nav-vertical': shell.tabOrientation === 'vertical',
+    }"
+  >
     <!-- Hub navigation: quick-launch links to key surfaces -->
     <SurfaceTabNav
       v-model="activeHubTab"
@@ -21,12 +26,11 @@
           />
         </div>
 
-        <!-- Dev Mode hint when backend is reachable but Dev Mode is off -->
-        <div v-if="devMode.isOffline" class="dashboard-surface__dev-hint">
+        <div v-if="!hasUdevRepo" class="dashboard-surface__dev-hint">
           <p>
-            <UIcon name="code" />
-            Developer tools are available.
-            <button class="dashboard-surface__dev-link" @click="devMode.setMode('on')">Enable Dev Mode</button>
+            <UIcon name="folder_off" />
+            Developer card is hidden until a uDev repository is present under
+            the code workspace.
           </p>
         </div>
       </div>
@@ -43,82 +47,177 @@
  * @category surfaces
  * @usage Routed at '/' — default landing page.
  */
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { useShellStore } from '../../stores/shell'
-import { useDevModeStore } from '../../stores/devMode'
-import SurfaceCard from '../../skills/molecules/SurfaceCard.vue'
-import SurfaceTabNav from '../../skills/molecules/SurfaceTabNav.vue'
-import UIcon from '../../skills/atoms/UIcon.vue'
-import type { SurfaceCard as SurfaceCardType } from '../../types'
+import { ref, computed, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
+import { useShellStore } from "../../stores/shell";
+import { SNACKBAR_BASE } from "@/api/base";
+import SurfaceCard from "../../skills/molecules/SurfaceCard.vue";
+import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
+import UIcon from "../../skills/atoms/UIcon.vue";
+import type { SurfaceCard as SurfaceCardType } from "../../types";
 
-const router = useRouter()
-const shell = useShellStore()
-const devMode = useDevModeStore()
+const router = useRouter();
+const shell = useShellStore();
+const hasUdevRepo = ref(false);
 
 // Hub navigation tabs
 const HUB_TABS = [
-  { id: 'dashboard', label: 'Dashboard', icon: 'home' },
-  { id: 'missions', label: 'Missions', icon: 'flag' },
-  { id: 'server', label: 'Server', icon: 'server' },
-  { id: 'system', label: 'System', icon: 'settings' },
-  { id: 'developer', label: 'Developer', icon: 'code' },
-  { id: 'groovebox', label: 'Groovebox', icon: 'music_note' },
-]
+  { id: "dashboard", label: "Dashboard", icon: "home" },
+  { id: "missions", label: "Missions", icon: "flag" },
+  { id: "server", label: "Server", icon: "server" },
+  { id: "system", label: "System", icon: "settings" },
+  { id: "groovebox", label: "Groovebox", icon: "music_note" },
+];
 
-const activeHubTab = ref('dashboard')
+const activeHubTab = ref("dashboard");
 
-const visibleHubTabs = computed(() =>
-  HUB_TABS.filter(t => t.id !== 'developer' || !devMode.isOffline)
-)
+const visibleHubTabs = computed(() => HUB_TABS);
 
 watch(activeHubTab, (tabId) => {
-  if (!tabId || tabId === 'dashboard') return
+  if (!tabId || tabId === "dashboard") return;
   const routes: Record<string, string> = {
-    missions: '/workflow?tab=mission-control',
-    server: '/server',
-    system: '/system',
-    developer: '/developer',
-    groovebox: '/groovebox',
-  }
-  const path = routes[tabId]
-  if (path) router.push(path)
-})
+    missions: "/workflow?tab=mission-control",
+    server: "/server",
+    system: "/system",
+    groovebox: "/groovebox",
+  };
+  const path = routes[tabId];
+  if (path) router.push(path);
+});
 
 const ALL_SURFACES: SurfaceCardType[] = [
-  { id: 'assistui', title: 'Assistant', description: 'Agent Assisted Workflows', icon: 'bolt', route: '/assistui', color: 'var(--usx-color-accent)' },
-  { id: 'ucode', title: 'uCode', description: 'GridCore — Grid, Teletext & Terminal', icon: 'grid', route: '/ucode', color: 'var(--usx-color-success)' },
-  { id: 'server', title: 'Server', description: 'Backend Operations & Services', icon: 'server', route: '/server', color: 'var(--usx-color-warning)' },
-  { id: 'workflow', title: 'Workflow', description: 'Missions, Tasks & Binder', icon: 'workflow', route: '/workflow', color: 'var(--usx-color-primary)' },
-  { id: 'system', title: 'System', description: 'Admin, Pages & Tools', icon: 'settings', route: '/system', color: 'var(--usx-color-on-surface-muted)' },
-  { id: 'documentation', title: 'Documentation', description: 'Learning Hub & Guides', icon: 'help', route: '/documentation', color: 'var(--usx-color-accent)' },
-  { id: 'browserui', title: 'Browser', description: 'Web Reader & Bookmarks', icon: 'globe', route: '/browserui', color: 'var(--usx-color-info)' },
-  { id: 'groovebox', title: 'Groovebox', description: 'Music Production — Pattern Composer, Vault & Songscribe', icon: 'music_note', route: '/groovebox', color: 'var(--usx-color-warning)' },
-  { id: 'sonic', title: 'SonicScrewdriver', description: 'Universal USB Bootloader & System Toolkit — Multi-boot USB, Security Keys, Device Flashing', icon: 'usb', route: '/sonic', color: 'var(--usx-color-success)', status: 'running' },
-]
+  {
+    id: "assistui",
+    title: "Assistant",
+    description: "Agent Assisted Workflows",
+    icon: "bolt",
+    route: "/assistui",
+    color: "var(--usx-color-accent)",
+  },
+  {
+    id: "bangle-editor",
+    title: "Bangle Editor",
+    description: "Prose/Code drafting workspace with live preview",
+    icon: "edit_note",
+    route: "/workflow?tab=editor",
+    color: "var(--usx-color-primary)",
+  },
+  {
+    id: "ucode",
+    title: "uCode",
+    description: "GridCore — Grid, Teletext & Terminal",
+    icon: "grid",
+    route: "/ucode",
+    color: "var(--usx-color-success)",
+  },
+  {
+    id: "server",
+    title: "Server",
+    description: "Backend Operations & Services",
+    icon: "server",
+    route: "/server",
+    color: "var(--usx-color-warning)",
+  },
+  {
+    id: "workflow",
+    title: "Workflow",
+    description: "Missions, Tasks & Binder",
+    icon: "workflow",
+    route: "/workflow",
+    color: "var(--usx-color-primary)",
+  },
+  {
+    id: "system",
+    title: "System",
+    description: "Admin, Pages & Tools",
+    icon: "settings",
+    route: "/system",
+    color: "var(--usx-color-on-surface-muted)",
+  },
+  {
+    id: "documentation",
+    title: "Documentation",
+    description: "Learning Hub & Guides",
+    icon: "help",
+    route: "/documentation",
+    color: "var(--usx-color-accent)",
+  },
+  {
+    id: "browserui",
+    title: "Browser",
+    description: "Web Reader & Bookmarks",
+    icon: "globe",
+    route: "/browserui",
+    color: "var(--usx-color-info)",
+  },
+  {
+    id: "groovebox",
+    title: "Groovebox",
+    description: "Music Production — Pattern Composer, Vault & Songscribe",
+    icon: "music_note",
+    route: "/groovebox",
+    color: "var(--usx-color-warning)",
+  },
+  {
+    id: "sonic",
+    title: "SonicScrewdriver",
+    description:
+      "Universal USB Bootloader & System Toolkit — Multi-boot USB, Security Keys, Device Flashing",
+    icon: "usb",
+    route: "/sonic",
+    color: "var(--usx-color-success)",
+    status: "running",
+  },
+];
 
 const DEV_SURFACES: SurfaceCardType[] = [
-  { id: 'developer', title: 'Developer', description: 'Dev Lane — Models, Agents, Kanban', icon: 'code', route: '/developer', color: 'var(--usx-color-danger)' },
-]
+  {
+    id: "developer",
+    title: "Developer",
+    description: "Dev Lane — Models, Agents, Kanban",
+    icon: "code",
+    route: "/developer",
+    color: "var(--usx-color-danger)",
+  },
+];
 
 const visibleSurfaces = computed(() => {
-  const base = [...ALL_SURFACES]
-  if (devMode.showDevContent) {
-    base.push(...DEV_SURFACES)
+  const base = [...ALL_SURFACES];
+  if (hasUdevRepo.value) {
+    base.push(...DEV_SURFACES);
   }
-  return base
-})
+  return base;
+});
+
+async function probeUdevRepo(): Promise<void> {
+  try {
+    const res = await fetch(`${SNACKBAR_BASE}/api/developer/repos?scope=all`, {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) {
+      hasUdevRepo.value = false;
+      return;
+    }
+    const payload = await res.json();
+    const repos = Array.isArray(payload?.repos) ? payload.repos : [];
+    hasUdevRepo.value = repos.some(
+      (repo: any) => String(repo?.name || "").toLowerCase() === "udev",
+    );
+  } catch {
+    hasUdevRepo.value = false;
+  }
+}
 
 onMounted(async () => {
-  await devMode.probe()
-})
+  await probeUdevRepo();
+});
 
 function navigate(route: string) {
-  if (route.startsWith('http')) {
-    window.open(route, '_blank')
-    return
+  if (route.startsWith("http")) {
+    window.open(route, "_blank");
+    return;
   }
-  router.push(route)
+  router.push(route);
 }
 </script>
 
@@ -147,7 +246,10 @@ function navigate(route: string) {
   --dashboard-column-min: calc(var(--usx-touch-min) * 8);
   --dashboard-column-max: 3;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--dashboard-column-min)), 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, var(--dashboard-column-min)), 1fr)
+  );
   width: 100%;
   gap: var(--usx-spacing-md);
   min-width: 0;
@@ -157,7 +259,8 @@ function navigate(route: string) {
   margin-top: var(--usx-spacing-xl);
   padding: var(--usx-spacing-md);
   background: color-mix(in srgb, var(--usx-color-info) 5%, transparent);
-  border: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-info) 15%, transparent);
+  border: var(--usx-border-width) solid
+    color-mix(in srgb, var(--usx-color-info) 15%, transparent);
   border-radius: var(--usx-radius-md);
   font-size: var(--usx-font-size-sm);
   color: var(--usx-color-on-surface-muted);

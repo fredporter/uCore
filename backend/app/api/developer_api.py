@@ -545,20 +545,20 @@ async def handle_start_developer(request: web.Request) -> web.Response:
     """Start the developer server (DevMode).
 
     DevMode is internal dev ops - when active:
-    - Dev server (Vite) runs on port 5174
+    - Dev server (Vite) runs on port 5176
     - Developer Surface is accessible at /developer
     - DevMode icon appears in global toolbar
     """
-    import subprocess
-    from pathlib import Path
+    import urllib.request
 
     from app.core.logging import log
+
+    dev_url = "http://localhost:5176"
 
     try:
         # Check if already running
         try:
-            import urllib.request
-            req = urllib.request.Request("http://localhost:5174/developer", method="HEAD")
+            req = urllib.request.Request(dev_url, method="HEAD")
             with urllib.request.urlopen(req, timeout=2) as resp:
                 if resp.status < 500:
                     return web.json_response({
@@ -569,20 +569,20 @@ async def handle_start_developer(request: web.Request) -> web.Response:
         except Exception:
             pass
 
-        # Start Vite dev server
-        frontend_dir = Path(__file__).resolve().parents[3] / "frontend"
-        if not frontend_dir.exists():
+        # Start uDev developer-surface server.
+        udev_dir = (settings.udos_root.expanduser() / "uDev").resolve()
+        if not udev_dir.exists():
             return web.json_response({
                 "success": False,
-                "error": "Frontend directory not found"
+                "error": "uDev directory not found under ~/Code"
             }, status=404)
 
-        log.info("🚀 [DEVMODE] Starting developer server (internal dev ops)")
+        log.info("🚀 [DEVMODE] Starting uDev developer-surface server")
 
         # Start in background
         subprocess.Popen(
-            ["pnpm", "dev"],
-            cwd=str(frontend_dir),
+            ["npm", "run", "dev:surface"],
+            cwd=str(udev_dir),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             start_new_session=True
@@ -613,9 +613,9 @@ async def handle_stop_developer(request: web.Request) -> web.Response:
     try:
         log.info("🛑 [DEVMODE] Stopping developer server (internal dev ops)")
 
-        # Find and kill Vite process
+        # Find and kill uDev Vite process.
         subprocess.run(
-            ["pkill", "-f", "vite.*5174"],
+            ["pkill", "-f", "developer-surface.*vite|vite.*5176"],
             capture_output=True,
             text=True,
             timeout=5
@@ -644,7 +644,7 @@ async def handle_developer_status(request: web.Request) -> web.Response:
     from app.core.logging import log
 
     try:
-        req = urllib.request.Request("http://localhost:5174/developer", method="HEAD")
+        req = urllib.request.Request("http://localhost:5176", method="HEAD")
         with urllib.request.urlopen(req, timeout=2) as resp:
             active = resp.status < 500
             if active:

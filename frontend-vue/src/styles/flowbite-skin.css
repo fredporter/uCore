@@ -1,0 +1,67 @@
+/*
+  Optional Flowbite-inspired skin for uCore UIHub.
+  Enabled via: html[data-ui-skin="flowbite"].
+*/
+
+:root {
+  --uihub-flowbite-page-bg: #f8fafc;
+  --uihub-flowbite-surface: #ffffff;
+  --uihub-flowbite-surface-subtle: #f1f5f9;
+  --uihub-flowbite-text: #0f172a;
+  --uihub-flowbite-text-muted: #64748b;
+  --uihub-flowbite-border: #e2e8f0;
+  --uihub-flowbite-primary: #2563eb;
+  --uihub-flowbite-primary-hover: #1d4ed8;
+}
+
+html[data-ui-skin="flowbite"] {
+  --usx-color-background: var(--uihub-flowbite-page-bg);
+  --usx-color-surface: var(--uihub-flowbite-surface);
+  --usx-color-surface-variant: var(--uihub-flowbite-surface-subtle);
+  --usx-color-on-surface: var(--uihub-flowbite-text);
+  --usx-color-on-surface-muted: var(--uihub-flowbite-text-muted);
+  --usx-color-border: var(--uihub-flowbite-border);
+  --usx-color-primary: var(--uihub-flowbite-primary);
+  --usx-color-primary-hover: var(--uihub-flowbite-primary-hover);
+}
+
+html[data-ui-skin="flowbite"] body {
+  background:
+    radial-gradient(
+      circle at 10% 0%,
+      rgba(37, 99, 235, 0.07) 0%,
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at 90% 0%,
+      rgba(14, 165, 233, 0.06) 0%,
+      transparent 40%
+    ),
+    var(--usx-color-background);
+}
+
+html[data-ui-skin="flowbite"] .global-toolbar,
+html[data-ui-skin="flowbite"] .surface-tab-nav {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+}
+
+html[data-ui-skin="flowbite"] .surface-card,
+html[data-ui-skin="flowbite"] .surface__panel,
+html[data-ui-skin="flowbite"] .filepicker-sidebar,
+html[data-ui-skin="flowbite"] .editor-panel,
+html[data-ui-skin="flowbite"] .wf-workflow-card {
+  border-color: color-mix(in srgb, var(--usx-color-border) 86%, transparent);
+  box-shadow:
+    0 1px 2px 0 rgba(15, 23, 42, 0.05),
+    0 8px 24px -20px rgba(15, 23, 42, 0.28);
+}
+
+html[data-ui-skin="flowbite"] .editor-panel__engine-chip,
+html[data-ui-skin="flowbite"] .filepicker-sidebar__bangle-card {
+  background: color-mix(
+    in srgb,
+    var(--usx-color-surface-variant) 70%,
+    transparent
+  );
+}

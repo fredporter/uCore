@@ -2,7 +2,9 @@
   <div class="wf-panel">
     <div class="surface__panel">
       <h3 class="surface__panel-title">Missions</h3>
-      <p class="surface__panel-description">Track and manage migration missions with progress tracking</p>
+      <p class="surface__panel-description">
+        Track and manage migration missions with progress tracking
+      </p>
     </div>
 
     <div v-if="wf.loading" class="wf-loading">
@@ -10,18 +12,34 @@
     </div>
 
     <div class="wf-mission-list">
-      <div v-for="mission in wf.missions" :key="mission.id" class="wf-mission-card">
+      <div
+        v-for="mission in wf.missions"
+        :key="mission.id"
+        class="wf-mission-card"
+      >
         <div class="wf-mission-card-header">
           <UIcon name="flag" />
           <span class="wf-mission-card-title">{{ mission.title }}</span>
           <UBadge
-            :type="mission.status === 'active' ? 'success' : mission.status === 'completed' ? 'info' : 'warning'"
+            :type="
+              mission.status === 'active'
+                ? 'success'
+                : mission.status === 'completed'
+                  ? 'info'
+                  : 'warning'
+            "
             size="sm"
           >
             {{ mission.status }}
           </UBadge>
           <UBadge
-            :type="mission.priority === 'high' ? 'error' : mission.priority === 'medium' ? 'warning' : 'info'"
+            :type="
+              mission.priority === 'high'
+                ? 'error'
+                : mission.priority === 'medium'
+                  ? 'warning'
+                  : 'info'
+            "
             size="sm"
           >
             {{ mission.priority }}
@@ -29,39 +47,53 @@
         </div>
         <p class="wf-mission-card-desc">{{ mission.description }}</p>
         <div class="wf-progress-row">
-          <progress class="wf-progress-bar" :value="missionProgress(mission)" max="100" />
+          <progress
+            class="wf-progress-bar"
+            :value="missionProgress(mission)"
+            max="100"
+          />
           <span class="wf-progress-text">{{ missionProgress(mission) }}%</span>
         </div>
-        <div class="wf-mission-task-count">{{ mission.taskIds.length }} tasks</div>
+        <div class="wf-mission-task-count">
+          {{ mission.taskIds.length }} tasks
+        </div>
         <div class="wf-mission-card-meta">
-          <UBadge v-for="tid in mission.taskIds.slice(0, 12)" :key="tid" type="info" size="sm">
+          <UBadge
+            v-for="tid in mission.taskIds.slice(0, 12)"
+            :key="tid"
+            type="info"
+            size="sm"
+          >
             {{ tid }}
           </UBadge>
-          <span v-if="mission.taskIds.length > 12" class="wf-more">+{{ mission.taskIds.length - 12 }} more</span>
+          <span v-if="mission.taskIds.length > 12" class="wf-more"
+            >+{{ mission.taskIds.length - 12 }} more</span
+          >
         </div>
       </div>
     </div>
 
     <div v-if="wf.missions.length === 0 && !wf.loading" class="wf-empty">
-      No missions found. Import tasks with mission context to populate this view.
+      No missions found. Import tasks with mission context to populate this
+      view.
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import UIcon from '../../../skills/atoms/UIcon.vue'
-import UBadge from '../../../skills/atoms/UBadge.vue'
-import { useWorkflowStore } from '../../../stores/workflow'
-import type { Mission } from '../../../stores/workflow'
+import UIcon from "../../../skills/atoms/UIcon.vue";
+import UBadge from "../../../skills/atoms/UBadge.vue";
+import { useWorkflowStore } from "../../../stores/workflow";
+import type { Mission } from "../../../stores/workflow";
 
-const wf = useWorkflowStore()
+const wf = useWorkflowStore();
 
 function missionProgress(mission: Mission): number {
-  if (mission.taskIds.length === 0) return 0
-  const done = wf.tasks.filter(
-    t => mission.taskIds.includes(t.id) && t.status === 'completed'
-  ).length
-  return Math.round((done / mission.taskIds.length) * 100)
+  if (mission.taskIds.length === 0) return 0;
+  const done = wf.flowLogTasks.filter((t) =>
+    mission.taskIds.includes(t.id),
+  ).length;
+  return Math.round((done / mission.taskIds.length) * 100);
 }
 </script>
 
@@ -91,7 +123,8 @@ function missionProgress(mission: Mission): number {
   padding: var(--usx-spacing-md);
   background: var(--usx-color-surface);
   border-radius: var(--usx-radius-lg);
-  border-left: calc(var(--usx-border-width) + var(--usx-border-width-thick)) solid var(--usx-color-primary);
+  border-left: calc(var(--usx-border-width) + var(--usx-border-width-thick))
+    solid var(--usx-color-primary);
   transition: border-color var(--usx-transition-fast);
 }
 

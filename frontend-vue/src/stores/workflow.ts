@@ -26,6 +26,38 @@ export interface WorkflowTask {
   board: string;
   tags: string[];
   description: string;
+  binder?: string;
+  workspace?: string;
+  workflowType?: "user" | "developer" | "system" | "autonomous";
+  summary?: string;
+  notes?: string;
+  assetPaths?: string[];
+  steps?: WorkflowStep[];
+  completedAt?: string | null;
+}
+
+export type WorkflowStepStatus =
+  | "todo"
+  | "in-progress"
+  | "completed"
+  | "blocked";
+
+export interface WorkflowStep {
+  id: string;
+  title: string;
+  status: WorkflowStepStatus;
+  notes?: string;
+  summary?: string;
+  assetPaths?: string[];
+}
+
+interface WorkflowTaskPatch {
+  status?: string;
+  priority?: "low" | "medium" | "high";
+  board?: string;
+  title?: string;
+  tags?: string[];
+  body?: string;
 }
 
 export interface WorkflowFile {
@@ -210,6 +242,88 @@ const SAMPLE_MISSIONS: Mission[] = [
   },
 ];
 
+function createDefaultSteps(
+  taskId: string,
+  title: string,
+  status: string,
+): WorkflowStep[] {
+  const labels = ["Plan", "Draft", "Review", "Publish"];
+  return labels.map((label, index) => ({
+    id: `${taskId}:step-${index + 1}`,
+    title: `${label} ${title}`,
+    status:
+      status === "completed"
+        ? "completed"
+        : status === "blocked" && index === 0
+          ? "blocked"
+          : index === 0 && status === "in-progress"
+            ? "in-progress"
+            : "todo",
+    notes: "",
+    summary: "",
+    assetPaths: [],
+  }));
+}
+
+function normalizeWorkflowTask(task: WorkflowTask): WorkflowTask {
+  const steps = task.steps?.length
+    ? task.steps.map((step, index) => ({
+        id: step.id || `${task.id}:step-${index + 1}`,
+        title: step.title || `Step ${index + 1}`,
+        status: step.status || "todo",
+        notes: step.notes || "",
+        summary: step.summary || "",
+        assetPaths: Array.isArray(step.assetPaths) ? step.assetPaths : [],
+      }))
+    : createDefaultSteps(task.id, task.title, task.status);
+
+  return {
+    ...task,
+    binder: task.binder || "Sandbox",
+    workspace: task.workspace || "User Vault",
+    workflowType: task.workflowType || "user",
+    summary: task.summary ?? task.description ?? "",
+    notes: task.notes ?? "",
+    assetPaths: Array.isArray(task.assetPaths) ? task.assetPaths : [],
+    steps,
+    completedAt: task.completedAt ?? null,
+  };
+}
+
+function deriveTaskStatusFromSteps(steps: WorkflowStep[]): string {
+  if (steps.length === 0) return "todo";
+  if (steps.some((step) => step.status === "blocked")) return "blocked";
+  if (steps.every((step) => step.status === "completed")) return "completed";
+  if (steps.some((step) => step.status === "in-progress")) return "in-progress";
+  return "todo";
+}
+
+function nextStepStatus(status: WorkflowStepStatus): WorkflowStepStatus {
+  if (status === "todo") return "in-progress";
+  if (status === "in-progress") return "completed";
+  if (status === "completed") return "todo";
+  return "todo";
+}
+
+const DEFAULT_EDITOR_FILE: WorkflowFile = {
+  id: "system:welcome-ucode",
+  path: "virtual/Welcome to uCode.md",
+  filename: "Welcome to uCode.md",
+  extension: "md",
+  binder: "Sandbox",
+  content: `# Welcome to uCode
+
+Start writing in Bangle right away.
+
+## Quick start
+
+- Use the left sidebar to open files from your vault.
+- Switch edit mode between Prose and Code in the editor toolbar.
+- Changes here are local until you save/publish through your workflow lane.
+`,
+  readOnly: false,
+};
+
 export const useWorkflowStore = defineStore("workflow", () => {
   const EDITOR_MODE_KEY = "ucore.workflow.editor-mode";
 
@@ -223,7 +337,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   }
 
   const activeTab = ref<WorkflowTab>("mission-control");
-  const tasks = ref<WorkflowTask[]>(SAMPLE_TASKS);
+  const tasks = ref<WorkflowTask[]>(SAMPLE_TASKS.map(normalizeWorkflowTask));
   const missions = ref<Mission[]>(SAMPLE_MISSIONS);
   const selectedTask = ref<WorkflowTask | null>(null);
   const selectedFile = ref<WorkflowFile | null>(null);
@@ -263,6 +377,17 @@ export const useWorkflowStore = defineStore("workflow", () => {
     activeTab.value = tab;
   }
 
+  const activeTasks = computed(() => {
+    return tasks.value.filter((task) => task.status !== "completed");
+  });
+
+  const flowLogTasks = computed(() => {
+    return [...tasks.value.filter((task) => task.status === "completed")].sort(
+      (a, b) =>
+        String(b.completedAt || "").localeCompare(String(a.completedAt || "")),
+    );
+  });
+
   const tasksByStatus = computed(() => {
     const groups: Record<string, WorkflowTask[]> = {
       todo: [],
@@ -271,7 +396,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
       blocked: [],
       completed: [],
     };
-    for (const t of tasks.value) {
+    for (const t of activeTasks.value) {
       if (!groups[t.status]) groups[t.status] = [];
       groups[t.status].push(t);
     }
@@ -280,11 +405,9 @@ export const useWorkflowStore = defineStore("workflow", () => {
 
   const totalTasks = computed(() => tasks.value.length);
   const inProgressCount = computed(
-    () => tasks.value.filter((t) => t.status === "in-progress").length,
+    () => activeTasks.value.filter((t) => t.status === "in-progress").length,
   );
-  const completedCount = computed(
-    () => tasks.value.filter((t) => t.status === "completed").length,
-  );
+  const completedCount = computed(() => flowLogTasks.value.length);
 
   /** Fetch overall workflow status from user endpoint with legacy fallback */
   async function fetchWorkflowStatus(): Promise<void> {
@@ -326,16 +449,48 @@ export const useWorkflowStore = defineStore("workflow", () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (Array.isArray(data.tasks)) {
-        const mapped = data.tasks.map((t: any) => ({
-          id: t.id || t.source_id || "",
-          title: t.title || "Untitled",
-          status: t.status || "todo",
-          priority: t.priority || "medium",
-          board: t.board || "general",
-          tags: t.tags || [],
-          description: t.description || t.summary || "",
-        }));
-        tasks.value = mapped.length > 0 ? mapped : [...SAMPLE_TASKS];
+        const mapped = data.tasks.map((t: any) =>
+          normalizeWorkflowTask({
+            id: t.id || t.source_id || "",
+            title: t.title || "Untitled",
+            status: t.status || "todo",
+            priority: t.priority || "medium",
+            board: t.board || "general",
+            tags: Array.isArray(t.tags)
+              ? t.tags.map((tag: unknown) => String(tag))
+              : [],
+            description: t.description || t.summary || "",
+            binder: t.binder,
+            workspace: t.workspace,
+            workflowType: t.workflow_type || t.workflowType,
+            summary: t.summary,
+            notes: t.notes,
+            assetPaths: Array.isArray(t.asset_paths)
+              ? t.asset_paths.map((path: unknown) => String(path))
+              : Array.isArray(t.assetPaths)
+                ? t.assetPaths.map((path: unknown) => String(path))
+                : [],
+            steps: Array.isArray(t.steps)
+              ? t.steps.map((step: any, index: number) => ({
+                  id:
+                    step.id ||
+                    `${t.id || t.source_id || "task"}:step-${index + 1}`,
+                  title: step.title || `Step ${index + 1}`,
+                  status: step.status || "todo",
+                  notes: step.notes || "",
+                  summary: step.summary || "",
+                  assetPaths: Array.isArray(step.assetPaths)
+                    ? step.assetPaths.map((path: unknown) => String(path))
+                    : [],
+                }))
+              : undefined,
+            completedAt: t.completed_at || t.completedAt || null,
+          }),
+        );
+        tasks.value =
+          mapped.length > 0
+            ? mapped
+            : [...SAMPLE_TASKS.map(normalizeWorkflowTask)];
       }
     } catch (e: any) {
       error.value = e.message || "Failed to fetch tasks";
@@ -343,6 +498,85 @@ export const useWorkflowStore = defineStore("workflow", () => {
     } finally {
       loading.value = false;
     }
+  }
+
+  async function patchTask(
+    taskId: string,
+    patch: WorkflowTaskPatch,
+  ): Promise<WorkflowTask> {
+    if (!(await preflightOrBlock("workflow.run"))) {
+      throw new Error("workflow.run capability not ready");
+    }
+
+    const res = await fetch(
+      `${API}/api/workflow/tasks/${encodeURIComponent(taskId)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+        signal: AbortSignal.timeout(8000),
+      },
+    );
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const updated = data?.updated || {};
+    const existing = tasks.value.find((task) => task.id === taskId);
+    const mapped: WorkflowTask = normalizeWorkflowTask({
+      id: String(updated.id || taskId),
+      title: String(updated.title || "Untitled"),
+      status: String(updated.status || "todo"),
+      priority: String(updated.priority || "medium") as
+        | "low"
+        | "medium"
+        | "high",
+      board: String(updated.board || "general"),
+      tags: Array.isArray(updated.tags)
+        ? updated.tags.map((tag: unknown) => String(tag))
+        : [],
+      description: String(updated.description || updated.body || ""),
+      binder: String(updated.binder || existing?.binder || "Sandbox"),
+      workspace: String(
+        updated.workspace || existing?.workspace || "User Vault",
+      ),
+      workflowType: (updated.workflowType ||
+        existing?.workflowType ||
+        "user") as "user" | "developer" | "system" | "autonomous",
+      summary: String(updated.summary || existing?.summary || ""),
+      notes: String(updated.notes || existing?.notes || ""),
+      assetPaths: Array.isArray(updated.assetPaths)
+        ? updated.assetPaths.map((path: unknown) => String(path))
+        : existing?.assetPaths || [],
+      steps: Array.isArray(updated.steps)
+        ? updated.steps.map((step: any, index: number) => ({
+            id: step.id || `${taskId}:step-${index + 1}`,
+            title: step.title || `Step ${index + 1}`,
+            status: step.status || "todo",
+            notes: step.notes || "",
+            summary: step.summary || "",
+            assetPaths: Array.isArray(step.assetPaths)
+              ? step.assetPaths.map((path: unknown) => String(path))
+              : [],
+          }))
+        : existing?.steps,
+      completedAt:
+        updated.completedAt ||
+        updated.completed_at ||
+        (String(updated.status || existing?.status || "todo") === "completed"
+          ? existing?.completedAt || new Date().toISOString()
+          : null),
+    });
+
+    const idx = tasks.value.findIndex((task) => task.id === taskId);
+    if (idx >= 0) {
+      tasks.value[idx] = mapped;
+    }
+    if (selectedTask.value?.id === taskId) {
+      selectedTask.value = mapped;
+    }
+    return mapped;
   }
 
   /** Fetch mission/task/binder projections from /api/knowledge/adapter/mission-task-binder */
@@ -499,6 +733,69 @@ export const useWorkflowStore = defineStore("workflow", () => {
     activeTab.value = "editor";
   }
 
+  function updateTaskNotes(taskId: string, notes: string) {
+    const task = tasks.value.find((item) => item.id === taskId);
+    if (!task) return;
+    task.notes = notes;
+  }
+
+  function updateTaskSummary(taskId: string, summary: string) {
+    const task = tasks.value.find((item) => item.id === taskId);
+    if (!task) return;
+    task.summary = summary;
+  }
+
+  function updateTaskStep(
+    taskId: string,
+    stepId: string,
+    patch: Partial<WorkflowStep>,
+  ) {
+    const task = tasks.value.find((item) => item.id === taskId);
+    if (!task || !task.steps) return;
+    const step = task.steps.find((item) => item.id === stepId);
+    if (!step) return;
+    Object.assign(step, patch);
+  }
+
+  function cycleTaskStep(taskId: string, stepId: string) {
+    const task = tasks.value.find((item) => item.id === taskId);
+    if (!task || !task.steps) return;
+    const step = task.steps.find((item) => item.id === stepId);
+    if (!step) return;
+    step.status = nextStepStatus(step.status);
+    const nextStatus = deriveTaskStatusFromSteps(task.steps);
+    task.status = nextStatus;
+    task.completedAt =
+      nextStatus === "completed"
+        ? task.completedAt || new Date().toISOString()
+        : null;
+  }
+
+  function updateTaskStatus(taskId: string, status: string) {
+    const task = tasks.value.find((item) => item.id === taskId);
+    if (!task) return;
+    task.status = status;
+    task.completedAt =
+      status === "completed"
+        ? task.completedAt || new Date().toISOString()
+        : null;
+  }
+
+  function updateTaskAssetPaths(taskId: string, assetPaths: string[]) {
+    const task = tasks.value.find((item) => item.id === taskId);
+    if (!task) return;
+    task.assetPaths = assetPaths;
+  }
+
+  function ensureDefaultEditorFile() {
+    if (selectedTask.value || selectedFile.value) {
+      return;
+    }
+    selectedFile.value = { ...DEFAULT_EDITOR_FILE };
+    editorOpen.value = true;
+    showEditorPane.value = true;
+  }
+
   function closeEditor() {
     editorOpen.value = false;
     selectedTask.value = null;
@@ -535,6 +832,8 @@ export const useWorkflowStore = defineStore("workflow", () => {
   return {
     activeTab,
     tasks,
+    activeTasks,
+    flowLogTasks,
     missions,
     selectedTask,
     selectedFile,
@@ -556,6 +855,13 @@ export const useWorkflowStore = defineStore("workflow", () => {
     setTab,
     selectTask,
     selectFile,
+    updateTaskNotes,
+    updateTaskSummary,
+    updateTaskStep,
+    cycleTaskStep,
+    updateTaskStatus,
+    updateTaskAssetPaths,
+    ensureDefaultEditorFile,
     closeEditor,
     updateEditorContent,
     toggleEditorPane,
@@ -567,6 +873,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     fetchWorkflowDefinitions,
     fetchWorkflowRuns,
     fetchAll,
+    patchTask,
     archiveUserWorkflow,
     resetUserWorkflow,
     seedUserWorkflow,
