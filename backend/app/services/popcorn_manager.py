@@ -150,6 +150,9 @@ def perform_action(action: str) -> dict:
         uninstall_frontend,
     )
     from app.menu.launchd_manager import (
+        restart as restart_launchd,
+    )
+    from app.menu.launchd_manager import (
         uninstall as uninstall_launchd,
     )
 
@@ -190,14 +193,23 @@ def perform_action(action: str) -> dict:
             }
 
         elif action == "restart-menu":
-            uninstall_launchd()
-            time.sleep(0.5)
-            install_launchd()
-            time.sleep(1)
+            # Atomic kickstart-based restart: bootout would kill this very
+            # process (the menu) before it could re-bootstrap, so the tray
+            # icon disappears and never returns.
+            restarted = restart_launchd()
+            # Give the replacement process time to acquire the lockfile.
+            for _ in range(10):
+                if _is_menu_running():
+                    break
+                time.sleep(0.5)
             return {
-                "success": _is_menu_running(),
+                "success": bool(restarted) or _is_menu_running(),
                 "action": action,
-                "message": "Menu restarted" if _is_menu_running() else "Menu failed to restart",
+                "message": (
+                    "Menu restarted"
+                    if _is_menu_running()
+                    else "Menu restart requested"
+                ),
             }
 
         elif action == "start-backend":

@@ -41,26 +41,12 @@
       >
         <SnackbarLogsPanel />
       </div>
-      <!-- Models -->
+      <!-- Plugins -->
       <div
-        v-else-if="activeTab === 'models'"
+        v-else-if="activeTab === 'plugins'"
         class="surface__panel server-tab-shell"
       >
-        <SnackbarModelsPanel />
-      </div>
-      <!-- Agents -->
-      <div
-        v-else-if="activeTab === 'agents'"
-        class="surface__panel server-tab-shell"
-      >
-        <SnackbarAgentsPanel />
-      </div>
-      <!-- Budget -->
-      <div
-        v-else-if="activeTab === 'budget'"
-        class="surface__panel server-tab-shell"
-      >
-        <SnackbarBudgetPanel />
+        <SnackbarPluginsPanel />
       </div>
       <div v-else class="surface__panel server-tab-shell">
         <SnackbarDashboardPanel />
@@ -73,7 +59,7 @@
 /**
  * @component SnackbarSurface
  * @description Snackbar operations surface — wired to /api/server/* backend.
- * Dashboard, services, logs, models, runtime agents, budget.
+ * Dashboard, services, snacks, logs, plugins.
  * @category surfaces
  * @usage Routed at '/snackbar/*'
  */
@@ -90,14 +76,8 @@ const SnackbarSnacksPanel = defineAsyncComponent(
 const SnackbarLogsPanel = defineAsyncComponent(
   () => import("./panels/SnackbarLogsPanel.vue"),
 );
-const SnackbarModelsPanel = defineAsyncComponent(
-  () => import("./panels/SnackbarModelsPanel.vue"),
-);
-const SnackbarAgentsPanel = defineAsyncComponent(
-  () => import("./panels/SnackbarAgentsPanel.vue"),
-);
-const SnackbarBudgetPanel = defineAsyncComponent(
-  () => import("./panels/SnackbarBudgetPanel.vue"),
+const SnackbarPluginsPanel = defineAsyncComponent(
+  () => import("./panels/SnackbarPluginsPanel.vue"),
 );
 import {
   useSnackbarOpsStore,

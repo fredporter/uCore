@@ -154,6 +154,37 @@ def is_running() -> bool:
         return False
 
 
+def restart() -> bool:
+    """Restart the launchd-managed menu job atomically.
+
+    Uses `launchctl kickstart -k` (kill + restart in one launchd call) so
+    the restart survives even though it is invoked FROM the menu process
+    itself. Do NOT restart via uninstall()+install(): bootout terminates
+    the running menu process before it can re-bootstrap, so the tray icon
+    disappears and never returns. Falls back to install() if the job is
+    not currently loaded.
+    """
+    try:
+        uid = os.getuid()
+        log.info("Restarting uCore Menu via launchctl kickstart -k ...")
+        result = subprocess.run(
+            ["launchctl", "kickstart", "-k", f"gui/{uid}/{UCORE_LABEL}"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode == 0:
+            log.info("uCore Menu kickstarted — restarting")
+            return True
+        log.warning(
+            "launchctl kickstart failed (%s): %s",
+            result.returncode,
+            result.stderr.strip() or "job may not be loaded",
+        )
+        return install()
+    except Exception as e:
+        log.error(f"Failed to kickstart menu: {e}")
+        return False
+
+
 # ─── Frontend Launchd ────────────────────────────────────────────────
 
 UCORE_FRONTEND_LABEL = "com.udos.ucore-frontend"

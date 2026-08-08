@@ -15,7 +15,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -34,11 +35,15 @@ html, body {
    The @font-face is loaded by material-symbols/outlined.css (imported in main.ts).
    This class overrides the npm package defaults for USX token compatibility. */
 .material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
+  font-family: "Material Symbols Outlined";
   font-size: inherit;
   font-weight: normal;
   font-style: normal;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
@@ -49,20 +54,52 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: 'liga';
+  font-feature-settings: "liga";
 }
 
 /* ─── Global Touch Targets ──────────────────────────────────────── */
-button, input, select, textarea, optgroup, label, [role="button"],
-.usx-button, .u-button {
+button,
+input,
+select,
+textarea,
+optgroup,
+label,
+[role="button"],
+.usx-button,
+.u-button {
   font-family: var(--usx-font-family-sans);
   font-size: inherit;
   min-height: var(--usx-touch-min);
 }
 
-button.usx-btn--sm, .usx-btn--sm,
-input.usx-input--sm, .usx-input--sm {
+button.usx-btn--sm,
+.usx-btn--sm,
+input.usx-input--sm,
+.usx-input--sm {
   min-height: var(--usx-touch-min-sm);
+}
+
+/* Checkboxes & radios — square, exempt from the touch-target min-height
+   (otherwise the 44px touch min stretches them tall). */
+input[type="checkbox"],
+input[type="radio"] {
+  min-height: 0;
+  width: var(--usx-spacing-md);
+  height: var(--usx-spacing-md);
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+  vertical-align: middle;
+  accent-color: var(--usx-color-primary);
+  cursor: pointer;
+}
+
+/* Compact checkbox/radio rows — a checkbox label shouldn't reserve a
+   full 44px touch row, which adds a large line space between items on
+   settings panes. */
+label:has(input[type="checkbox"]),
+label:has(input[type="radio"]) {
+  min-height: 0;
+  line-height: 1.2;
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -381,7 +418,10 @@ section {
 .grid {
   display: grid;
   gap: var(--usx-grid-gap-lg);
-  grid-template-columns: repeat(auto-fill, minmax(var(--usx-grid-min-col-width), 1fr));
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(var(--usx-grid-min-col-width), 1fr)
+  );
   width: 100%;
   padding: var(--usx-spacing-lg);
   box-sizing: border-box;
@@ -399,8 +439,12 @@ section {
   }
 }
 
-.usx-grid--dense { gap: var(--usx-grid-gap-sm); }
-.usx-grid--loose { gap: var(--usx-grid-gap-lg); }
+.usx-grid--dense {
+  gap: var(--usx-grid-gap-sm);
+}
+.usx-grid--loose {
+  gap: var(--usx-grid-gap-lg);
+}
 
 /* ─────────────────────────────────────────────────────────────────────
    TABS
@@ -434,7 +478,9 @@ section {
   cursor: pointer;
   font-weight: var(--usx-font-weight-medium);
   font-size: var(--usx-font-size-base);
-  transition: color var(--usx-transition-base), border-color var(--usx-transition-base);
+  transition:
+    color var(--usx-transition-base),
+    border-color var(--usx-transition-base);
   text-decoration: none;
   white-space: nowrap;
   margin-bottom: calc(var(--usx-border-overlap) * -1);
@@ -572,61 +618,177 @@ button[type="submit"]:hover {
    UTILITY CLASSES
    ───────────────────────────────────────────────────────────────────── */
 
-.usx-p-xs { padding: var(--usx-spacing-xs); }
-.usx-p-sm { padding: var(--usx-spacing-sm); }
-.usx-p-md { padding: var(--usx-spacing-md); }
-.usx-p-lg { padding: var(--usx-spacing-lg); }
-.usx-p-xl { padding: var(--usx-spacing-xl); }
-.usx-p-2xl { padding: var(--usx-spacing-2xl); }
+.usx-p-xs {
+  padding: var(--usx-spacing-xs);
+}
+.usx-p-sm {
+  padding: var(--usx-spacing-sm);
+}
+.usx-p-md {
+  padding: var(--usx-spacing-md);
+}
+.usx-p-lg {
+  padding: var(--usx-spacing-lg);
+}
+.usx-p-xl {
+  padding: var(--usx-spacing-xl);
+}
+.usx-p-2xl {
+  padding: var(--usx-spacing-2xl);
+}
 
-.usx-px-xs { padding-left: var(--usx-spacing-xs); padding-right: var(--usx-spacing-xs); }
-.usx-px-sm { padding-left: var(--usx-spacing-sm); padding-right: var(--usx-spacing-sm); }
-.usx-px-md { padding-left: var(--usx-spacing-md); padding-right: var(--usx-spacing-md); }
-.usx-px-lg { padding-left: var(--usx-spacing-lg); padding-right: var(--usx-spacing-lg); }
-.usx-px-xl { padding-left: var(--usx-spacing-xl); padding-right: var(--usx-spacing-xl); }
+.usx-px-xs {
+  padding-left: var(--usx-spacing-xs);
+  padding-right: var(--usx-spacing-xs);
+}
+.usx-px-sm {
+  padding-left: var(--usx-spacing-sm);
+  padding-right: var(--usx-spacing-sm);
+}
+.usx-px-md {
+  padding-left: var(--usx-spacing-md);
+  padding-right: var(--usx-spacing-md);
+}
+.usx-px-lg {
+  padding-left: var(--usx-spacing-lg);
+  padding-right: var(--usx-spacing-lg);
+}
+.usx-px-xl {
+  padding-left: var(--usx-spacing-xl);
+  padding-right: var(--usx-spacing-xl);
+}
 
-.usx-py-xs { padding-top: var(--usx-spacing-xs); padding-bottom: var(--usx-spacing-xs); }
-.usx-py-sm { padding-top: var(--usx-spacing-sm); padding-bottom: var(--usx-spacing-sm); }
-.usx-py-md { padding-top: var(--usx-spacing-md); padding-bottom: var(--usx-spacing-md); }
-.usx-py-lg { padding-top: var(--usx-spacing-lg); padding-bottom: var(--usx-spacing-lg); }
-.usx-py-xl { padding-top: var(--usx-spacing-xl); padding-bottom: var(--usx-spacing-xl); }
+.usx-py-xs {
+  padding-top: var(--usx-spacing-xs);
+  padding-bottom: var(--usx-spacing-xs);
+}
+.usx-py-sm {
+  padding-top: var(--usx-spacing-sm);
+  padding-bottom: var(--usx-spacing-sm);
+}
+.usx-py-md {
+  padding-top: var(--usx-spacing-md);
+  padding-bottom: var(--usx-spacing-md);
+}
+.usx-py-lg {
+  padding-top: var(--usx-spacing-lg);
+  padding-bottom: var(--usx-spacing-lg);
+}
+.usx-py-xl {
+  padding-top: var(--usx-spacing-xl);
+  padding-bottom: var(--usx-spacing-xl);
+}
 
-.usx-m-xs { margin: var(--usx-spacing-xs); }
-.usx-m-sm { margin: var(--usx-spacing-sm); }
-.usx-m-md { margin: var(--usx-spacing-md); }
-.usx-m-lg { margin: var(--usx-spacing-lg); }
-.usx-m-xl { margin: var(--usx-spacing-xl); }
+.usx-m-xs {
+  margin: var(--usx-spacing-xs);
+}
+.usx-m-sm {
+  margin: var(--usx-spacing-sm);
+}
+.usx-m-md {
+  margin: var(--usx-spacing-md);
+}
+.usx-m-lg {
+  margin: var(--usx-spacing-lg);
+}
+.usx-m-xl {
+  margin: var(--usx-spacing-xl);
+}
 
-.usx-mb-xs { margin-bottom: var(--usx-spacing-xs); }
-.usx-mb-sm { margin-bottom: var(--usx-spacing-sm); }
-.usx-mb-md { margin-bottom: var(--usx-spacing-md); }
-.usx-mb-lg { margin-bottom: var(--usx-spacing-lg); }
-.usx-mb-xl { margin-bottom: var(--usx-spacing-xl); }
+.usx-mb-xs {
+  margin-bottom: var(--usx-spacing-xs);
+}
+.usx-mb-sm {
+  margin-bottom: var(--usx-spacing-sm);
+}
+.usx-mb-md {
+  margin-bottom: var(--usx-spacing-md);
+}
+.usx-mb-lg {
+  margin-bottom: var(--usx-spacing-lg);
+}
+.usx-mb-xl {
+  margin-bottom: var(--usx-spacing-xl);
+}
 
-.usx-mt-xs { margin-top: var(--usx-spacing-xs); }
-.usx-mt-sm { margin-top: var(--usx-spacing-sm); }
-.usx-mt-md { margin-top: var(--usx-spacing-md); }
-.usx-mt-lg { margin-top: var(--usx-spacing-lg); }
-.usx-mt-xl { margin-top: var(--usx-spacing-xl); }
+.usx-mt-xs {
+  margin-top: var(--usx-spacing-xs);
+}
+.usx-mt-sm {
+  margin-top: var(--usx-spacing-sm);
+}
+.usx-mt-md {
+  margin-top: var(--usx-spacing-md);
+}
+.usx-mt-lg {
+  margin-top: var(--usx-spacing-lg);
+}
+.usx-mt-xl {
+  margin-top: var(--usx-spacing-xl);
+}
 
-.usx-gap-xs { gap: var(--usx-spacing-xs); }
-.usx-gap-sm { gap: var(--usx-spacing-sm); }
-.usx-gap-md { gap: var(--usx-spacing-md); }
-.usx-gap-lg { gap: var(--usx-spacing-lg); }
-.usx-gap-xl { gap: var(--usx-spacing-xl); }
+.usx-gap-xs {
+  gap: var(--usx-spacing-xs);
+}
+.usx-gap-sm {
+  gap: var(--usx-spacing-sm);
+}
+.usx-gap-md {
+  gap: var(--usx-spacing-md);
+}
+.usx-gap-lg {
+  gap: var(--usx-spacing-lg);
+}
+.usx-gap-xl {
+  gap: var(--usx-spacing-xl);
+}
 
-.usx-flex { display: flex; }
-.usx-flex-row { display: flex; flex-direction: row; align-items: center; gap: var(--usx-spacing-md); }
-.usx-flex-col { display: flex; flex-direction: column; gap: var(--usx-spacing-md); }
-.usx-flex-between { display: flex; justify-content: space-between; align-items: center; gap: var(--usx-spacing-md); }
-.usx-flex-center { display: flex; justify-content: center; align-items: center; gap: var(--usx-spacing-md); }
-.usx-items-center { align-items: center; }
-.usx-justify-between { justify-content: space-between; }
+.usx-flex {
+  display: flex;
+}
+.usx-flex-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--usx-spacing-md);
+}
+.usx-flex-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-md);
+}
+.usx-flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--usx-spacing-md);
+}
+.usx-flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--usx-spacing-md);
+}
+.usx-items-center {
+  align-items: center;
+}
+.usx-justify-between {
+  justify-content: space-between;
+}
 
-.usx-no-padding { padding: 0; }
-.usx-no-margin { margin: 0; }
-.usx-no-gap { gap: 0; }
-.usx-no-space { margin: 0; padding: 0; }
+.usx-no-padding {
+  padding: 0;
+}
+.usx-no-margin {
+  margin: 0;
+}
+.usx-no-gap {
+  gap: 0;
+}
+.usx-no-space {
+  margin: 0;
+  padding: 0;
+}
 
 /* ─────────────────────────────────────────────────────────────────────
    FOCUS VISIBLE
@@ -639,7 +801,9 @@ button[type="submit"]:hover {
 
 /* ─── Reduced Motion ────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

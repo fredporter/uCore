@@ -11,6 +11,8 @@
       :class="{
         'app-body--tabs-first':
           shell.sidebarOpen && shell.tabOrientation === 'vertical',
+        'app-body--tabs-top':
+          shell.sidebarOpen && shell.tabOrientation === 'horizontal',
       }"
     >
       <aside v-if="shell.sidebarOpen" class="app-sidebar">
@@ -205,6 +207,47 @@ async function handleNewFile(binderId: string) {
   flex: 1;
   min-width: 0;
   min-height: 0;
+  background: var(--usx-color-background);
+}
+
+/* ─── Horizontal tab layout: tabs row on top of the vault sidebar ──
+   ORDER IS: Tabs, then Vault. When the surface tab nav is a top bar
+   (horizontal) AND the filepicker sidebar is open, hoist the surface
+   root into a grid so the tab row spans the full width ABOVE the vault
+   sidebar, with content to the right of the vault. */
+.app-body--tabs-top {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "tabs tabs"
+    "vault content";
+}
+
+.app-body--tabs-top :deep(.app-main),
+.app-body--tabs-top :deep(.surface),
+.app-body--tabs-top :deep(.documentation-surface) {
+  display: contents;
+}
+
+.app-body--tabs-top .app-sidebar {
+  grid-area: vault;
+  min-height: 0;
+}
+
+.app-body--tabs-top :deep(.surface-tab-nav) {
+  grid-area: tabs;
+  width: 100%;
+  min-height: 0;
+}
+
+.app-body--tabs-top :deep(.surface__content),
+.app-body--tabs-top :deep(.surface__body),
+.app-body--tabs-top :deep(.documentation-content-inner) {
+  grid-area: content;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
   background: var(--usx-color-background);
 }
 </style>

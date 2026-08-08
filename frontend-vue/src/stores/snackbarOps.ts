@@ -11,9 +11,7 @@ export type SnackbarOpsTab =
   | "services"
   | "snacks"
   | "logs"
-  | "models"
-  | "agents"
-  | "budget";
+  | "plugins";
 
 export interface RuntimeSnack {
   id: string;
@@ -86,9 +84,7 @@ export const SNACKBAR_OPS_TABS: {
   { id: "services", label: "Services", icon: "dns" },
   { id: "snacks", label: "Snacks", icon: "restaurant_menu" },
   { id: "logs", label: "Logs", icon: "article" },
-  { id: "models", label: "Models", icon: "smart_toy" },
-  { id: "agents", label: "Runtime Agents", icon: "group" },
-  { id: "budget", label: "Budget", icon: "attach_money" },
+  { id: "plugins", label: "Plugins", icon: "extension" },
 ];
 
 export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {

@@ -447,23 +447,15 @@ class UnifiedMenuDelegate(NSObject):
         self._menu.addItem_(item)
 
         # ── Developer (Dev Mode) ─────────────────────────────────
-        # Start/stop the uDev developer-surface server (port 5176).
-        # The Developer card only appears in UI Hub while this runs.
-        dev_status = "😊" if self._dev_connected else "😢"
-        item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            f"{dev_status} Developer", None, "",
+        # Single toggle item — Dev Server status shown inline; click to start/stop.
+        dev_dot = "💎" if self._dev_connected else "🔹"
+        dev_label = (
+            f"{dev_dot} Dev Server: Running"
+            if self._dev_connected
+            else f"{dev_dot} Dev Server: Stopped"
         )
-        item.setEnabled_(False)
-        self._menu.addItem_(item)
-
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "🚀 Start Dev Server", "startDevMode:", "",
-        )
-        item.setTarget_(self)
-        self._menu.addItem_(item)
-
-        item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "⏹ Stop Dev Server", "stopDevMode:", "",
+            dev_label, "toggleDevMode:", "",
         )
         item.setTarget_(self)
         self._menu.addItem_(item)
@@ -738,6 +730,17 @@ class UnifiedMenuDelegate(NSObject):
         self.performSelectorOnMainThread_withObject_waitUntilDone_(
             "updateUI:", None, False,
         )
+
+    def toggleDevMode_(self, _sender):
+        """Toggle the uDev developer server (Dev Mode).
+
+        Single menu item shows the live status; clicking starts the
+        server when stopped and stops it when running.
+        """
+        if is_dev_alive():
+            self.stopDevMode_(None)
+        else:
+            self.startDevMode_(None)
 
     def quitApp_(self, _sender):
         """Quit the menu app."""

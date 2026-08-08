@@ -315,7 +315,7 @@ function toggleEditMode() {
   flex-shrink: 0;
 }
 
-/* ─── Nav buttons — icon-only, transparent, hover highlights ───────── */
+/* ─── Nav buttons — icon-only, transparent, colour toggles active ───── */
 .editor-panel__nav-btn {
   display: flex;
   align-items: center;
@@ -324,24 +324,19 @@ function toggleEditMode() {
   height: var(--usx-control-size-sm);
   padding: 0;
   border: none;
-  border-radius: var(--usx-radius-sm);
   background: transparent;
   color: var(--usx-color-on-surface-muted);
   cursor: pointer;
   font-size: 1.25em;
-  transition:
-    color var(--usx-transition-fast),
-    background var(--usx-transition-fast);
+  transition: color var(--usx-transition-fast);
 }
 
 .editor-panel__nav-btn:hover {
-  background: var(--usx-color-surface-hover);
   color: var(--usx-color-on-surface);
 }
 
 .editor-panel__nav-btn--active {
   color: var(--usx-color-primary);
-  background: var(--usx-color-primary-disabled);
 }
 
 .editor-panel__nav-btn--save {
@@ -349,8 +344,7 @@ function toggleEditMode() {
 }
 
 .editor-panel__nav-btn--save:hover {
-  background: var(--usx-color-primary);
-  color: var(--usx-color-on-primary);
+  color: var(--usx-color-on-surface);
 }
 
 /* ─── 3-column body layout ───────────────────────────────────────── */

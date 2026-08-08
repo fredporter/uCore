@@ -64,59 +64,6 @@
       <!-- Budget — reused from SnackbarSurface -->
       <SnackbarBudgetPanel v-else-if="activeTab === 'budget'" />
 
-      <!-- Plugin Store -->
-      <div v-else-if="activeTab === 'plugins'" class="intel-panel">
-        <h3 class="surface__panel-title">Plugin Store</h3>
-        <p class="intel-muted">Browse and manage installed extensions.</p>
-
-        <div v-if="catalogue.length === 0" class="intel-empty">
-          <span class="material-symbols-outlined">extension</span>
-          <p>
-            No plugins available yet. Extensions will appear here when detected.
-          </p>
-        </div>
-
-        <div v-else class="intel-plugin-grid">
-          <div
-            v-for="entry in catalogue"
-            :key="entry.manifest.id"
-            class="intel-plugin-card"
-            :class="`intel-plugin-card--${entry.status}`"
-          >
-            <div class="intel-plugin-card__icon">
-              <span class="material-symbols-outlined">{{
-                entry.manifest.icon
-              }}</span>
-            </div>
-            <div class="intel-plugin-card__body">
-              <div class="intel-plugin-card__header">
-                <span class="intel-plugin-card__name">{{
-                  entry.manifest.name
-                }}</span>
-                <span
-                  class="intel-plugin-card__badge"
-                  :class="`intel-plugin-card__badge--${entry.status}`"
-                >
-                  {{ statusLabel(entry.status) }}
-                </span>
-              </div>
-              <p
-                v-if="entry.manifest.description"
-                class="intel-plugin-card__desc"
-              >
-                {{ entry.manifest.description }}
-              </p>
-              <p
-                v-if="entry.manifest.version"
-                class="intel-plugin-card__version"
-              >
-                v{{ entry.manifest.version }}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- History -->
       <div v-else-if="activeTab === 'history'" class="intel-panel">
         <h3 class="surface__panel-title">Chat History</h3>
@@ -134,9 +81,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { useShellStore } from "../../stores/shell";
-import { useExtensionStore } from "../../stores/extensions";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import SnackbarModelsPanel from "../snackbar/panels/SnackbarModelsPanel.vue";
 import SnackbarAgentsPanel from "../snackbar/panels/SnackbarAgentsPanel.vue";
@@ -147,28 +93,14 @@ const INTEL_TABS = [
   { id: "models", label: "Models", icon: "smart_toy" },
   { id: "agents", label: "Agents", icon: "group" },
   { id: "budget", label: "Budget", icon: "account_balance" },
-  { id: "plugins", label: "Plugins", icon: "extension" },
   { id: "history", label: "History", icon: "history" },
 ];
 
 const shell = useShellStore();
-const extStore = useExtensionStore();
 const activeTab = ref("chat");
 
 const systemPrompt = ref("You are a helpful assistant.");
 const ctx = ref({ vault: true, tasks: true, surface: true });
-
-const catalogue = computed(() => extStore.catalogue);
-
-const STATUS_LABELS: Record<string, string> = {
-  unknown: "unknown",
-  available: "available",
-  installed: "installed",
-  running: "running",
-};
-function statusLabel(s: string) {
-  return STATUS_LABELS[s] ?? s;
-}
 
 function savePrompt() {
   try {
@@ -229,7 +161,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-xs) 0;
+  padding: var(--usx-spacing-1) 0;
   font-size: var(--usx-font-size-sm);
   color: var(--usx-color-on-surface);
 }
@@ -258,97 +190,5 @@ onMounted(() => {
 .intel-empty .material-symbols-outlined {
   font-size: 40px;
   opacity: 0.4;
-}
-
-/* Plugin grid */
-.intel-plugin-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--usx-spacing-md);
-  margin-top: var(--usx-spacing-md);
-}
-
-.intel-plugin-card {
-  display: flex;
-  gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-md);
-  background-color: var(--usx-color-surface);
-  border: 1px solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  transition: border-color 120ms ease;
-}
-
-.intel-plugin-card--running {
-  border-color: var(--usx-color-success);
-}
-
-.intel-plugin-card__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background-color: var(--usx-color-surface-variant);
-  border-radius: var(--usx-radius-md);
-  flex-shrink: 0;
-}
-
-.intel-plugin-card__icon .material-symbols-outlined {
-  font-size: 20px;
-  color: var(--usx-color-primary);
-}
-
-.intel-plugin-card__body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.intel-plugin-card__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--usx-spacing-xs);
-}
-
-.intel-plugin-card__name {
-  font-size: var(--usx-font-size-sm);
-  font-weight: var(--usx-font-weight-semibold);
-  color: var(--usx-color-on-surface);
-}
-
-.intel-plugin-card__badge {
-  font-size: 10px;
-  padding: 1px var(--usx-spacing-xs);
-  border-radius: var(--usx-radius-full);
-  flex-shrink: 0;
-}
-
-.intel-plugin-card__badge--running {
-  background: color-mix(in srgb, var(--usx-color-success) 15%, transparent);
-  color: var(--usx-color-success);
-}
-.intel-plugin-card__badge--installed {
-  background: color-mix(in srgb, var(--usx-color-info) 15%, transparent);
-  color: var(--usx-color-info);
-}
-.intel-plugin-card__badge--available {
-  background: var(--usx-color-surface-variant);
-  color: var(--usx-color-on-surface-muted);
-}
-
-.intel-plugin-card__desc {
-  font-size: var(--usx-font-size-xs);
-  color: var(--usx-color-on-surface-muted);
-  margin: 0;
-  line-height: 1.4;
-}
-
-.intel-plugin-card__version {
-  font-size: 10px;
-  color: var(--usx-color-on-surface-muted);
-  margin: 0;
 }
 </style>
