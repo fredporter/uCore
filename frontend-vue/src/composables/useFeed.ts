@@ -93,5 +93,13 @@ export function useFeed() {
   onMounted(connect);
   onBeforeUnmount(disconnect);
 
-  return { events, isConnected, error, connect, disconnect, clearEvents, eventsOfType };
+  return {
+    events,
+    isConnected,
+    error,
+    connect,
+    disconnect,
+    clearEvents,
+    eventsOfType,
+  };
 }

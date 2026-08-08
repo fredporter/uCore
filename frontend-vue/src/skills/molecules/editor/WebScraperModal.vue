@@ -107,8 +107,13 @@ async function openInBangle() {
     ws.createFile("/research", filename);
     // Patch content into the newly created node
     const node = ws.tree
-      .flatMap((n: import('../../../stores/workspace').FileNode) => n.children ?? [])
-      .find((n: import('../../../stores/workspace').FileNode) => n.name === filename);
+      .flatMap(
+        (n: import("../../../stores/workspace").FileNode) => n.children ?? [],
+      )
+      .find(
+        (n: import("../../../stores/workspace").FileNode) =>
+          n.name === filename,
+      );
     if (node) ws.updateFileContent(node.id, content);
 
     emit("opened");

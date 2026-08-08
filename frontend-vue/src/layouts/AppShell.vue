@@ -24,6 +24,8 @@
     />
     <!-- Snackbar Host -->
     <SnackbarHost />
+    <!-- Overlay Layer: toasts, alerts, popups, stories -->
+    <OverlayLayer />
   </div>
 </template>
 
@@ -42,6 +44,7 @@ import GlobalToolbar from "../skills/organisms/GlobalToolbar.vue";
 import FilepickerSidebar from "../skills/molecules/FilepickerSidebar.vue";
 import FloatingChat from "../surfaces/assistui/FloatingChat.vue";
 import SnackbarHost from "../skills/molecules/SnackbarHost.vue";
+import OverlayLayer from "../skills/organisms/OverlayLayer.vue";
 import { ucoreApi } from "../api/client";
 import type { FileEntry } from "../types/filepicker";
 

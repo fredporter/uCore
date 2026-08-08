@@ -842,7 +842,8 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
   {
     id: "output-p7-002",
     title: "Backend render_api.py — POST /api/render + GET /api/render/stream",
-    description: "REST endpoint for rendering + SSE stream for real-time skill events",
+    description:
+      "REST endpoint for rendering + SSE stream for real-time skill events",
     phase: 7,
     component: "backend/app/api/render_api.py",
     priority: "high",
@@ -897,7 +898,8 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
   {
     id: "output-p7-005",
     title: "SkillsPanel rendered markdown output",
-    description: "Replace raw JSON pre block with rendered HTML; add raw/rendered toggle",
+    description:
+      "Replace raw JSON pre block with rendered HTML; add raw/rendered toggle",
     phase: 7,
     component: "uDev/panels/SkillsPanel.vue",
     priority: "high",
@@ -935,7 +937,8 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
   {
     id: "overlay-p8-001",
     title: "Create AlertOverlay.vue",
-    description: "System alerts (critical, warning, info, success) as modal or top-right toast",
+    description:
+      "System alerts (critical, warning, info, success) as modal or top-right toast",
     phase: 8,
     component: "skills/organisms/AlertOverlay.vue",
     priority: "high",
@@ -1011,7 +1014,8 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
   {
     id: "overlay-p8-005",
     title: "Create StoriesOverlay.vue",
-    description: "Marp-style slide presentation overlay for onboarding/tutorials",
+    description:
+      "Marp-style slide presentation overlay for onboarding/tutorials",
     phase: 8,
     component: "skills/organisms/StoriesOverlay.vue",
     priority: "medium",
@@ -1071,7 +1075,8 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
   {
     id: "markdown-p9-001",
     title: "Create markdownRenderer.ts utility",
-    description: "Format-aware markdown router: prose | story | game | publish | print",
+    description:
+      "Format-aware markdown router: prose | story | game | publish | print",
     phase: 9,
     component: "utils/markdownRenderer.ts",
     priority: "high",
