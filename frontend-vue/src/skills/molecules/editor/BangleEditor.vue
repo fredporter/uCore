@@ -39,7 +39,6 @@ import {
   underline,
 } from "@bangle.dev/base-components";
 import { Plugin } from "@bangle.dev/pm";
-import type { Schema } from "@bangle.dev/pm";
 import {
   defaultMarkdownParser,
   defaultMarkdownSerializer,
@@ -77,16 +76,6 @@ const editorEl = ref<HTMLDivElement | null>(null);
 const editMode = ref<"prose" | "code">(props.editMode);
 let editor: BangleRuntime | null = null;
 let lastExternalValue = props.modelValue;
-
-function markdownToDoc(schema: Schema, md: string) {
-  try {
-    return (
-      defaultMarkdownParser.parse(md) ?? schema.topNodeType.createAndFill()!
-    );
-  } catch {
-    return schema.topNodeType.createAndFill()!;
-  }
-}
 
 function docToMarkdown(editor: BangleRuntime): string {
   try {
@@ -172,14 +161,11 @@ function instantiateEditor(initialValue: string) {
     ...resolvePlugins(link.plugins(), payload),
   ];
 
-  // Parse markdown content to a ProseMirror document node.
-  const parsedDoc = markdownToDoc(defaultMarkdownParser.schema, initialValue);
-
   editor = new BangleRuntime(editorEl.value, {
     state: new BangleEditorState({
       specs,
       plugins: buildPlugins as any,
-      initialValue: parsedDoc,
+      initialValue, // Pass markdown string directly; Bangle parses it
     }),
     focusOnInit: props.autofocus,
     pmViewOpts: {
