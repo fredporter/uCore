@@ -89,7 +89,8 @@ async def handle_summarize(request: web.Request) -> web.Response:
         return web.json_response({"summary": ". ".join(sentences) + ".", "fallback": True})
 
 
-async def handle_save_to_binder(request: web.Request) -> web.Response:    """POST /api/editor/save-to-binder — save document to Binder project.
+async def handle_save_to_binder(request: web.Request) -> web.Response:
+    """POST /api/editor/save-to-binder — save document to Binder project.
 
     Body: { "title": "...", "content": "...", "project": "...", "tags": [...] }
     Returns: { "ok": true, "id": "..." }
