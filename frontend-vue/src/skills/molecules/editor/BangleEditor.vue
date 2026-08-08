@@ -1,5 +1,42 @@
 <template>
   <div class="bangle-editor">
+    <!-- Formatting toolbar -->
+    <div v-if="!readOnly" class="bangle-editor__toolbar">
+      <button class="bangle-btn" title="Bold (Ctrl+B)" @click="applyBold">
+        <strong>B</strong>
+      </button>
+      <button class="bangle-btn" title="Italic (Ctrl+I)" @click="applyItalic">
+        <em>I</em>
+      </button>
+      <button
+        class="bangle-btn"
+        title="Underline (Ctrl+U)"
+        @click="applyUnderline"
+      >
+        <u>U</u>
+      </button>
+      <button class="bangle-btn" title="Code" @click="applyCode">
+        <code>&lt;/&gt;</code>
+      </button>
+      <div class="bangle-separator"></div>
+      <button class="bangle-btn" title="Heading" @click="applyHeading">
+        H1
+      </button>
+      <button class="bangle-btn" title="Block quote" @click="applyBlockquote">
+        &quot;
+      </button>
+      <button class="bangle-btn" title="Bullet list" @click="applyBulletList">
+        •
+      </button>
+      <button class="bangle-btn" title="Ordered list" @click="applyOrderedList">
+        1.
+      </button>
+      <div class="bangle-separator"></div>
+      <button class="bangle-btn" title="Undo" @click="undo">↶</button>
+      <button class="bangle-btn" title="Redo" @click="redo">↷</button>
+    </div>
+
+    <!-- Bangle editor content area -->
     <div
       ref="editorEl"
       class="bangle-editor__host"
@@ -116,6 +153,76 @@ function resolvePlugins(raw: unknown, payload: any): unknown[] {
   return [raw];
 }
 
+// ─── Toolbar action handlers ───────────────────────────────
+function applyBold() {
+  if (!editor) return;
+  bold.commands.toggleBold()(editor.view.state, editor.view.dispatch);
+  editor.view.focus();
+}
+
+function applyItalic() {
+  if (!editor) return;
+  italic.commands.toggleItalic()(editor.view.state, editor.view.dispatch);
+  editor.view.focus();
+}
+
+function applyUnderline() {
+  if (!editor) return;
+  underline.commands.toggleUnderline()(editor.view.state, editor.view.dispatch);
+  editor.view.focus();
+}
+
+function applyCode() {
+  if (!editor) return;
+  code.commands.toggleCode()(editor.view.state, editor.view.dispatch);
+  editor.view.focus();
+}
+
+function applyHeading() {
+  if (!editor) return;
+  heading.commands.toggleHeading(2)(editor.view.state, editor.view.dispatch);
+  editor.view.focus();
+}
+
+function applyBlockquote() {
+  if (!editor) return;
+  blockquote.commands.wrapInBlockquote()(
+    editor.view.state,
+    editor.view.dispatch,
+  );
+  editor.view.focus();
+}
+
+function applyBulletList() {
+  if (!editor) return;
+  bulletList.commands.toggleBulletList()(
+    editor.view.state,
+    editor.view.dispatch,
+  );
+  editor.view.focus();
+}
+
+function applyOrderedList() {
+  if (!editor) return;
+  orderedList.commands.toggleOrderedList()(
+    editor.view.state,
+    editor.view.dispatch,
+  );
+  editor.view.focus();
+}
+
+function undo() {
+  if (!editor) return;
+  history.commands.undo()(editor.view.state, editor.view.dispatch);
+  editor.view.focus();
+}
+
+function redo() {
+  if (!editor) return;
+  history.commands.redo()(editor.view.state, editor.view.dispatch);
+  editor.view.focus();
+}
+
 function instantiateEditor(initialValue: string) {
   if (!editorEl.value) return;
   editor?.destroy();
@@ -165,7 +272,7 @@ function instantiateEditor(initialValue: string) {
     state: new BangleEditorState({
       specs,
       plugins: buildPlugins as any,
-      initialValue, // Pass markdown string directly; Bangle parses it
+      initialValue,
     }),
     focusOnInit: props.autofocus,
     pmViewOpts: {
@@ -216,53 +323,171 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .bangle-editor {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   min-height: var(--usx-editor-min-height);
+  background: var(--usx-color-background);
+}
+
+.bangle-editor__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-sm);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-surface);
+  flex-shrink: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.bangle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 var(--usx-spacing-xs);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
+  cursor: pointer;
+  font-size: var(--usx-font-size-sm);
+  font-weight: var(--usx-font-weight-medium);
+  transition:
+    background var(--usx-transition-fast),
+    color var(--usx-transition-fast),
+    border-color var(--usx-transition-fast);
+}
+
+.bangle-btn:hover {
+  background: var(--usx-color-surface-hover);
+  border-color: var(--usx-color-primary);
+}
+
+.bangle-btn:active {
+  background: var(--usx-color-primary);
+  color: var(--usx-color-on-primary);
+  border-color: var(--usx-color-primary);
+}
+
+.bangle-separator {
+  width: 1px;
+  height: 1.5rem;
+  background: var(--usx-color-border);
+  margin: 0 var(--usx-spacing-xs);
 }
 
 .bangle-editor__host {
+  flex: 1;
   width: 100%;
-  height: 100%;
-  min-height: var(--usx-editor-min-height);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 :deep(.ProseMirror) {
-  min-height: var(--usx-editor-min-height);
+  flex: 1;
+  overflow-y: auto;
   padding: var(--usx-spacing-md);
   outline: none;
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--usx-color-on-surface);
   background: var(--usx-color-surface);
-  font-size: var(--usx-font-size-sm);
+  font-size: var(--usx-font-size-base);
+  line-height: 1.6;
+  font-family: var(--usx-font-family-sans);
 }
 
-:deep(.ProseMirror p),
+/* Markdown formatting */
+:deep(.ProseMirror strong) {
+  font-weight: var(--usx-font-weight-bold);
+}
+
+:deep(.ProseMirror em) {
+  font-style: italic;
+}
+
+:deep(.ProseMirror u) {
+  text-decoration: underline;
+}
+
+:deep(.ProseMirror code) {
+  font-family: var(--usx-font-family-mono);
+  background: var(--usx-color-surface-variant);
+  padding: 0 var(--usx-spacing-xs);
+  border-radius: var(--usx-radius-sm);
+  font-size: 0.9em;
+}
+
+:deep(.ProseMirror pre) {
+  background: var(--usx-color-surface-variant);
+  padding: var(--usx-spacing-md);
+  border-radius: var(--usx-radius-md);
+  overflow-x: auto;
+  font-family: var(--usx-font-family-mono);
+  line-height: 1.4;
+}
+
+:deep(.ProseMirror pre code) {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+:deep(.ProseMirror blockquote) {
+  padding-left: var(--usx-spacing-md);
+  margin-left: 0;
+  border-left: 3px solid var(--usx-color-border);
+  color: var(--usx-color-on-surface-muted);
+  font-style: italic;
+}
+
 :deep(.ProseMirror h1),
 :deep(.ProseMirror h2),
 :deep(.ProseMirror h3),
 :deep(.ProseMirror h4),
 :deep(.ProseMirror h5),
-:deep(.ProseMirror h6),
-:deep(.ProseMirror blockquote),
+:deep(.ProseMirror h6) {
+  margin-top: var(--usx-spacing-lg);
+  margin-bottom: var(--usx-spacing-sm);
+  font-weight: var(--usx-font-weight-bold);
+  line-height: 1.3;
+}
+
+:deep(.ProseMirror h1) {
+  font-size: var(--usx-font-size-2xl);
+}
+
+:deep(.ProseMirror h2) {
+  font-size: var(--usx-font-size-xl);
+}
+
+:deep(.ProseMirror h3) {
+  font-size: var(--usx-font-size-lg);
+}
+
 :deep(.ProseMirror ul),
 :deep(.ProseMirror ol) {
-  margin-top: 0;
+  margin-left: var(--usx-spacing-lg);
+  margin-top: var(--usx-spacing-sm);
   margin-bottom: var(--usx-spacing-sm);
 }
 
-:deep(.ProseMirror blockquote) {
-  padding-left: var(--usx-spacing-md);
-  border-left: var(--usx-border-width-thick) solid var(--usx-color-border);
-  color: var(--usx-color-on-surface-muted);
+:deep(.ProseMirror li) {
+  margin-bottom: var(--usx-spacing-xs);
 }
 
-.bangle-editor__host--code :deep(.ProseMirror) {
-  font-family: var(--usx-font-family-mono);
+:deep(.ProseMirror p) {
+  margin-bottom: var(--usx-spacing-sm);
 }
 
 .bangle-editor__host--readonly :deep(.ProseMirror) {
-  opacity: 0.95;
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface-muted);
 }
 </style>
