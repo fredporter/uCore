@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import ToastOverlay from "../molecules/ToastOverlay.vue";
 import AlertOverlay from "./AlertOverlay.vue";
 import PopupOverlay from "./PopupOverlay.vue";
@@ -40,6 +40,35 @@ const { toast } = useToast();
 const { events } = useFeed();
 const shell = useShellStore();
 const extStore = useExtensionStore();
+
+// ─── uDev dev-server probe ──────────────────────────────────────
+// Keep the Developer surface card / Dashboard "hidden" hint in sync with
+// the actual dev server, even when it was started outside the SSE announce
+// path (independently, or while the backend was unreachable).
+let devProbeTimer: ReturnType<typeof setInterval> | null = null;
+
+async function probeDevStatus() {
+  try {
+    const res = await fetch(`${SNACKBAR_BASE}/api/developer/status`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.active) extStore.markRunning("udev");
+    else extStore.markOffline("udev");
+  } catch {
+    // Backend unreachable — leave current state.
+  }
+}
+
+onMounted(() => {
+  void probeDevStatus();
+  devProbeTimer = setInterval(() => void probeDevStatus(), 15000);
+});
+
+onBeforeUnmount(() => {
+  if (devProbeTimer) clearInterval(devProbeTimer);
+});
 
 // ─── Dev mode state ─────────────────────────────────────────────
 const devMode = useDevModeStore();

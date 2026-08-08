@@ -541,6 +541,29 @@ def _summarize_binder_context(
     return "\n".join(lines)
 
 
+def _announce_dev(status: str) -> None:
+    """Broadcast the uDev extension online/offline state to the UI Hub.
+
+    This is what makes the Developer surface card appear (extension_online)
+    or the "Developer surface hidden" hint return (extension_offline).
+    """
+    try:
+        from app.api.render_api import publish_event
+
+        publish_event(
+            "extension_online" if status == "online" else "extension_offline",
+            {
+                "id": "udev",
+                "name": "Developer",
+                "version": "0.1.0-dev",
+                "status": status,
+            },
+        )
+    except Exception:
+        # Best-effort; the frontend polls /api/developer/status as a fallback.
+        pass
+
+
 async def handle_start_developer(request: web.Request) -> web.Response:
     """Start the developer server (DevMode).
 
@@ -561,6 +584,7 @@ async def handle_start_developer(request: web.Request) -> web.Response:
             req = urllib.request.Request(dev_url, method="HEAD")
             with urllib.request.urlopen(req, timeout=2) as resp:
                 if resp.status < 500:
+                    _announce_dev("online")
                     return web.json_response({
                         "success": True,
                         "message": "Developer server already running",
@@ -588,6 +612,7 @@ async def handle_start_developer(request: web.Request) -> web.Response:
             start_new_session=True
         )
 
+        _announce_dev("online")
         return web.json_response({
             "success": True,
             "message": "Developer server starting",
@@ -621,6 +646,7 @@ async def handle_stop_developer(request: web.Request) -> web.Response:
             timeout=5
         )
 
+        _announce_dev("offline")
         return web.json_response({
             "success": True,
             "message": "Developer server stopped",

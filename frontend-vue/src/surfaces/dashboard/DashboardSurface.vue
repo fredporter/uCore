@@ -156,7 +156,8 @@ const SURFACE_CARD_DATA: Record<
     route: "/sonic",
     color: "var(--usx-color-success)",
   },
-  developer: {
+  // Manifest id for the uDev extension is "udev" — map it to the Developer card.
+  udev: {
     title: "Developer",
     description: "Dev Lane — Models, Agents, Kanban",
     icon: "code",
