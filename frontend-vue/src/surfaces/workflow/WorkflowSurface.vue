@@ -41,15 +41,11 @@
             :content="editorContent"
             :title="editorTitle"
             :read-only="editorReadOnly"
-            :show-editor="wf.showEditorPane"
-            :pane-layout="wf.paneLayout"
             :edit-mode="wf.editorMode"
             @update:content="onEditorContentUpdate"
             @update:edit-mode="onEditorModeUpdate"
             @save="onEditorSave"
             @close="wf.closeEditor()"
-            @toggle-editor="wf.toggleEditorPane()"
-            @toggle-layout="wf.togglePaneLayout()"
           />
           <div v-else class="wf-editor-empty">
             <UIcon name="article" />
@@ -79,21 +75,16 @@
         <div
           v-if="wf.activeTab !== 'editor' && wf.editorOpen && activeEditorItem"
           class="workflow-editor"
-          :class="editorColumnClass"
         >
           <EditorPanel
             :content="editorContent"
             :title="editorTitle"
             :read-only="editorReadOnly"
-            :show-editor="wf.showEditorPane"
-            :pane-layout="wf.paneLayout"
             :edit-mode="wf.editorMode"
             @update:content="onEditorContentUpdate"
             @update:edit-mode="onEditorModeUpdate"
             @save="onEditorSave"
             @close="wf.closeEditor()"
-            @toggle-editor="wf.toggleEditorPane()"
-            @toggle-layout="wf.togglePaneLayout()"
           />
         </div>
       </div>
@@ -263,11 +254,7 @@ const editorReadOnly = computed(() =>
  *   - Edit pane open: wider column (50% for both panes stacked vertically)
  *   - Edit pane hidden: narrower column (50% — preview fills it)
  */
-const editorColumnClass = computed(() => {
-  return wf.showEditorPane
-    ? "workflow-editor--wide"
-    : "workflow-editor--single";
-});
+// Bangle editor now full-width; no dynamic layout needed
 
 const blockedRepairs = computed(() => {
   return Object.values(wf.capabilityRepairs || {}).filter(
@@ -314,25 +301,15 @@ function onRetryPreflight() {
 }
 
 /* ─── Editor Column — right sidebar, full height ──────────────── */
+/* Editor column: Bangle takes 1/3 width as sidecar */
 .workflow-editor {
   flex-shrink: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   background: var(--usx-color-background);
-}
-
-/* Preview only: editor takes 1/3, main panel takes 2/3 */
-.workflow-editor--single {
   width: 33.33%;
   min-width: 22ch;
-}
-
-/* Both edit + preview: editor takes 2/3, main panel takes 1/3,
-   then edit/preview split evenly inside = 1/3 each of full width */
-.workflow-editor--wide {
-  width: 66.66%;
-  min-width: 32ch;
 }
 
 /* ─── Empty editor state ──────────────────────────────────────────── */

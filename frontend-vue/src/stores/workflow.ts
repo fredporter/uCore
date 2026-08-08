@@ -344,8 +344,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   const selectedTask = ref<WorkflowTask | null>(null);
   const selectedFile = ref<WorkflowFile | null>(null);
   const editorOpen = ref(false);
-  const showEditorPane = ref(false);
-  const paneLayout = ref<"split" | "stacked">("stacked");
+  // Note: side-by-side editor (showEditorPane, paneLayout) deprecated in favor of Bangle WYSIWYG
   const editorMode = ref<"prose" | "code">(readEditorMode());
 
   // Backend-fetched state
@@ -738,7 +737,6 @@ export const useWorkflowStore = defineStore("workflow", () => {
       readOnly: selectedFile.value.readOnly,
     });
     editorOpen.value = true;
-    showEditorPane.value = true;
     activeTab.value = "editor";
   }
 
@@ -809,14 +807,12 @@ export const useWorkflowStore = defineStore("workflow", () => {
       readOnly: selectedFile.value.readOnly,
     });
     editorOpen.value = true;
-    showEditorPane.value = true;
   }
 
   function closeEditor() {
     editorOpen.value = false;
     selectedTask.value = null;
     selectedFile.value = null;
-    showEditorPane.value = true;
     editorSurface.closeEditor();
   }
 
@@ -830,13 +826,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     editorSurface.updateContent(value);
   }
 
-  function toggleEditorPane() {
-    showEditorPane.value = !showEditorPane.value;
-  }
-
-  function togglePaneLayout() {
-    paneLayout.value = paneLayout.value === "split" ? "stacked" : "split";
-  }
+  // toggleEditorPane and togglePaneLayout deprecated with side-by-side editor
 
   function setEditorMode(mode: "prose" | "code") {
     editorMode.value = mode;
@@ -856,8 +846,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     selectedTask,
     selectedFile,
     editorOpen,
-    showEditorPane,
-    paneLayout,
+
     editorMode,
     loading,
     error,
@@ -882,8 +871,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     ensureDefaultEditorFile,
     closeEditor,
     updateEditorContent,
-    toggleEditorPane,
-    togglePaneLayout,
+
     setEditorMode,
     fetchWorkflowStatus,
     fetchTasks,

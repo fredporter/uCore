@@ -1,65 +1,32 @@
 <template>
   <div class="editor-panel">
-    <!-- Unified toolbar — full-size icons, pane indicators inline -->
+    <!-- Bangle-first toolbar — title, engine chip, essential controls -->
     <div class="editor-panel__toolbar">
       <div class="editor-panel__toolbar-left">
         <UIcon name="article" />
         <span class="editor-panel__title">{{ title || "Untitled" }}</span>
       </div>
       <div class="editor-panel__toolbar-center">
-        <span class="editor-panel__engine-chip">Bangle editor</span>
-        <span
-          v-if="showEditor"
-          class="editor-panel__pane-tab"
-          :class="{ 'editor-panel__pane-tab--active': true }"
-        >
-          <UIcon name="edit" />
-          <span>Edit</span>
-        </span>
-        <span class="editor-panel__pane-tab editor-panel__pane-tab--active">
-          <UIcon name="visibility" />
-          <span>Preview</span>
-        </span>
+        <span class="editor-panel__engine-chip">Bangle WYSIWYG</span>
       </div>
       <div class="editor-panel__toolbar-right">
-        <button
-          class="editor-panel__nav-btn"
-          :class="{ 'editor-panel__nav-btn--active': showEditor }"
-          :title="showEditor ? 'Hide edit pane' : 'Show edit pane'"
-          @click="emit('toggle-editor')"
-        >
-          <UIcon name="edit" />
-        </button>
-        <button
-          v-if="showEditor"
-          class="editor-panel__nav-btn"
-          :title="
-            paneLayout === 'split'
-              ? 'Switch to stacked layout'
-              : 'Switch to side-by-side layout'
-          "
-          @click="emit('toggle-layout')"
-        >
-          <UIcon :name="paneLayout === 'split' ? 'view_column' : 'view_day'" />
-        </button>
         <button
           v-if="!readOnly"
           class="editor-panel__nav-btn editor-panel__nav-btn--save"
           @click="handleSave"
-          title="Save"
+          title="Save (Ctrl+S)"
         >
           <UIcon name="save" />
         </button>
         <button
-          v-if="showEditor"
           class="editor-panel__nav-btn"
           :class="{
             'editor-panel__nav-btn--active': localEditMode === 'prose',
           }"
           :title="
             localEditMode === 'prose'
-              ? 'Switch to code editing style'
-              : 'Switch to prose editing style'
+              ? 'Switch to code view'
+              : 'Switch to prose view'
           "
           @click="toggleEditMode"
         >
@@ -75,38 +42,16 @@
       </div>
     </div>
 
-    <!-- Panes — no individual headers, all controls are in the unified toolbar -->
-    <div
-      class="editor-panel__panes"
-      :class="{
-        'editor-panel__panes--split': showEditor && paneLayout === 'split',
-        'editor-panel__panes--stacked': showEditor && paneLayout === 'stacked',
-      }"
-    >
-      <!-- Editing Pane — appears on the left when pencil is toggled -->
-      <div v-if="showEditor" class="editor-panel__edit-pane">
-        <div class="editor-panel__pane-body">
-          <BangleEditor
-            v-model="localContent"
-            :preview="false"
-            :toolbars="editorToolbars"
-            :read-only="readOnly"
-            :edit-mode="localEditMode"
-            @save="handleSave"
-            @change="onContentChange"
-          />
-        </div>
-      </div>
-
-      <!-- Preview Pane — always visible, stays on the right -->
-      <div class="editor-panel__preview-pane">
-        <div class="editor-panel__pane-body">
-          <MarkdownPreview
-            :content="localContent"
-            :preview-id="`editor-panel-preview-${instanceId}`"
-          />
-        </div>
-      </div>
+    <!-- Full-width Bangle editor — WYSIWYG as primary interaction -->
+    <div class="editor-panel__content">
+      <BangleEditor
+        v-model="localContent"
+        :preview="false"
+        :read-only="readOnly"
+        :edit-mode="localEditMode"
+        @save="handleSave"
+        @change="onContentChange"
+      />
     </div>
   </div>
 </template>
@@ -114,34 +59,28 @@
 <script setup lang="ts">
 /**
  * @component EditorPanel
- * @description Reusable markdown editor organism with shared toolbar.
- *   - Default: Preview pane only (single pane, prose output).
- *   - Pencil toggle: Edit pane slides in alongside Preview (side by side).
- * Single shared toolbar across both panes.
+ * @description Simplified markdown editor using Bangle WYSIWYG as the primary interface.
+ *   - Full-width Bangle editor with unified toolbar
+ *   - Essential controls: save, mode toggle, close
+ *   - No preview pane (WYSIWYG eliminates need for side-by-side preview)
  * @category skills/organisms
  * @props {string} content - Markdown content (v-model)
  * @props {string} title - Display title
  * @props {boolean} readOnly - Disable edits
- * @props {boolean} showEditor - Edit pane visible (default: false)
- * @props {'split' | 'stacked'} paneLayout - Layout direction when both panes visible
+ * @props {'prose' | 'code'} editMode - Edit mode preference
  * @emits {string} update:content - v-model update
  * @emits {void} save - Save requested
  * @emits {void} close - Close entire editor
- * @emits {void} toggle-editor - Toggle edit pane
- * @emits {void} toggle-layout - Toggle pane layout (split ↔ stacked)
  */
 import { ref, watch } from "vue";
 import UIcon from "../atoms/UIcon.vue";
 import BangleEditor from "../molecules/editor/BangleEditor.vue";
-import MarkdownPreview from "../molecules/editor/MarkdownPreview.vue";
 
 // ─── Props ───────────────────────────────────────────────────────────
 interface Props {
   content?: string;
   title?: string;
   readOnly?: boolean;
-  showEditor?: boolean;
-  paneLayout?: "split" | "stacked";
   editMode?: "prose" | "code";
 }
 
@@ -149,8 +88,6 @@ const props = withDefaults(defineProps<Props>(), {
   content: "",
   title: "Untitled",
   readOnly: false,
-  showEditor: false,
-  paneLayout: "split",
   editMode: "prose",
 });
 
@@ -159,48 +96,11 @@ const emit = defineEmits<{
   "update:editMode": [value: "prose" | "code"];
   save: [value: string];
   close: [];
-  "toggle-editor": [];
-  "toggle-layout": [];
 }>();
 
 // ─── State ───────────────────────────────────────────────────────────
 const localContent = ref(props.content);
-const instanceId = Math.random().toString(36).slice(2, 8);
 const localEditMode = ref<"prose" | "code">(props.editMode);
-
-// ─── Toolbar metadata retained for compatibility with editor adapters ──
-const editorToolbars = [
-  "bold",
-  "underline",
-  "italic",
-  "strikeThrough",
-  "-",
-  "title",
-  "sub",
-  "sup",
-  "quote",
-  "unorderedList",
-  "orderedList",
-  "task",
-  "-",
-  "codeRow",
-  "code",
-  "link",
-  "image",
-  "table",
-  "mermaid",
-  "katex",
-  "-",
-  "revoke",
-  "next",
-  "save",
-  "=",
-  "prettier",
-  "pageFullscreen",
-  "fullscreen",
-  "catalog",
-  "github",
-];
 
 // ─── Sync props ──────────────────────────────────────────────────────
 watch(
@@ -244,7 +144,7 @@ function toggleEditMode() {
   background: var(--usx-color-background);
 }
 
-/* ─── Unified Toolbar — nav-link buttons, compact height ─────────── */
+/* ─── Toolbar — compact, essential controls only ─────────────────── */
 .editor-panel__toolbar {
   display: flex;
   align-items: center;
@@ -277,17 +177,8 @@ function toggleEditMode() {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-md);
-}
-
-.editor-panel__pane-tab {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  font-size: var(--usx-font-size-base);
-  font-weight: var(--usx-font-weight-medium);
-  color: var(--usx-color-on-surface-muted);
-  padding: var(--usx-spacing-2) var(--usx-spacing-sm);
-  border-radius: var(--usx-radius-sm);
+  flex: 1;
+  justify-content: center;
 }
 
 .editor-panel__engine-chip {
@@ -299,19 +190,17 @@ function toggleEditMode() {
   background: var(--usx-color-surface-variant);
   color: var(--usx-color-on-surface-muted);
   font-size: var(--usx-font-size-sm);
-}
-
-.editor-panel__pane-tab--active {
-  color: var(--usx-color-primary);
+  font-weight: var(--usx-font-weight-medium);
 }
 
 .editor-panel__toolbar-right {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-2);
+  flex-shrink: 0;
 }
 
-/* ─── Nav-link buttons — no borders, transparent bg, hover only ── */
+/* ─── Nav buttons — icon-only, transparent, hover highlights ───────── */
 .editor-panel__nav-btn {
   display: flex;
   align-items: center;
@@ -349,49 +238,12 @@ function toggleEditMode() {
   color: var(--usx-color-on-primary);
 }
 
-.editor-panel__toggle--active {
-  color: var(--usx-color-primary);
-  background: var(--usx-color-primary-disabled);
-}
-
-/* ─── Panes container ─────────────────────────────────────────────── */
-.editor-panel__panes {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-}
-
-.editor-panel__panes--split {
-  flex-direction: row;
-}
-
-.editor-panel__panes--stacked {
-  flex-direction: column-reverse;
-}
-
-.editor-panel__preview-pane,
-.editor-panel__edit-pane {
+/* ─── Full-width editor content ──────────────────────────────────── */
+.editor-panel__content {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-width: 0;
   min-height: 0;
-}
-
-.editor-panel__panes--split .editor-panel__edit-pane {
-  border-right: var(--usx-border-width) solid var(--usx-color-border);
-}
-
-.editor-panel__panes--stacked .editor-panel__edit-pane {
-  border-top: var(--usx-border-width) solid var(--usx-color-border);
-}
-
-/* ─── Pane body — content fills full height, no extra padding ── */
-.editor-panel__pane-body {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 </style>
