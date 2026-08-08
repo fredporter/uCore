@@ -275,10 +275,11 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/skills/{skill_id}/source", handle_skill_source)
 
     # ── Render / SSE (Layered Output) ──────────────────────────────
-    from .render_api import handle_render, handle_stream, handle_publish_event
+    from .render_api import handle_render, handle_stream, handle_publish_event, handle_extension_announce
     app.router.add_post("/api/render", handle_render)
     app.router.add_get("/api/render/stream", handle_stream)
     app.router.add_post("/api/render/event", handle_publish_event)
+    app.router.add_post("/api/extensions/announce", handle_extension_announce)
 
     # ── Editor surface (Bangle scrape/summarize/binder) ───────────
     from .editor_api import handle_scrape_web, handle_summarize, handle_save_to_binder

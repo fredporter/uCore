@@ -40,6 +40,8 @@ export function useFeed() {
         "toast",
         "alert",
         "event",
+        "extension_online",
+        "extension_offline",
       ];
 
       for (const type of KNOWN_EVENTS) {
