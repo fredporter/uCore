@@ -92,6 +92,15 @@ async def _run_skill_by_id(
             }, status=403)
 
         result = await skill.run(**kwargs)
+        # Broadcast completion to SSE subscribers
+        try:
+            from app.api.render_api import publish_event
+            from app.services.render import render_markdown
+            payload = result if isinstance(result, dict) else {"result": str(result)}
+            payload["skill"] = skill_id
+            publish_event("skill_complete", {**payload, "rendered": render_markdown(payload)})
+        except Exception:
+            pass
         return web.json_response(result)
 
     # Fallback: find the skill directory on filesystem

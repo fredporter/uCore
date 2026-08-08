@@ -820,7 +820,6 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
       "No performance regressions",
     ],
   },
-  // ─── PHASE 7: Layered Output System ─────────────────────────────────
   {
     id: "output-p7-001",
     title: "Backend render.py service",
@@ -1187,6 +1186,279 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
       "File icons: slide.md → slideshow, game.md → sports_esports",
     ],
   },
+
+  // ─── SPRINT 2: System Integration & Polish (phase 20) ───────────────
+  {
+    id: "s2-001",
+    phase: 20,
+    title: "Wire render_api routes",
+    description:
+      "Register /api/render, /api/render/stream, /api/render/event in routes.py",
+    priority: "critical",
+    status: "done",
+    estimatedHours: 0.5,
+    tags: ["sprint-2", "backend"],
+    checklist: [
+      "Import render_api handlers",
+      "Register 3 routes",
+      "Smoke test SSE",
+    ],
+  },
+  {
+    id: "s2-002",
+    phase: 20,
+    title: "Wire publish_event() into skill runner",
+    description: "After skill run, broadcast SSE event with rendered output",
+    priority: "high",
+    status: "done",
+    estimatedHours: 1,
+    tags: ["sprint-2", "backend"],
+    checklist: [
+      "Import publish_event",
+      "Call after success",
+      "Include rendered markdown",
+    ],
+  },
+  {
+    id: "s2-003",
+    phase: 20,
+    title: "Register editor_api routes",
+    description: "POST /api/editor/scrape-web, /summarize, /save-to-binder",
+    priority: "high",
+    status: "done",
+    estimatedHours: 0.5,
+    tags: ["sprint-2", "backend"],
+    checklist: ["3 routes registered", "Smoke test each"],
+  },
+  {
+    id: "s2-004",
+    phase: 20,
+    title: "Mount ChatBubble in OverlayLayer (both surfaces)",
+    description: "ChatBubble.vue created but unmounted — wire with /api/chat",
+    priority: "critical",
+    status: "done",
+    estimatedHours: 1.5,
+    tags: ["sprint-2", "chat"],
+    checklist: [
+      "uCore OverlayLayer wired",
+      "uDev OverlayLayer wired",
+      "sendChatMessage() functional",
+    ],
+  },
+  {
+    id: "s2-005",
+    phase: 20,
+    title: "Phase 5 — HtmlToMarkdown.ts",
+    description:
+      "Convert HTML → Markdown preserving tables, code, lists, images (no deps)",
+    priority: "high",
+    status: "done",
+    estimatedHours: 2,
+    tags: ["sprint-2", "phase-5"],
+    checklist: [
+      "htmlToMarkdown(html)→string",
+      "Tables→GFM",
+      "Skip nav/header/footer",
+    ],
+  },
+  {
+    id: "s2-006",
+    phase: 20,
+    title: "Phase 5 — editor_api.py scrape endpoint",
+    description:
+      "POST /api/editor/scrape-web — aiohttp fetch + article extraction",
+    priority: "high",
+    status: "done",
+    estimatedHours: 2,
+    tags: ["sprint-2", "phase-5", "backend"],
+    checklist: [
+      "Fetch URL",
+      "Extract title/desc/text",
+      "Regex-based extraction (no BeautifulSoup)",
+    ],
+  },
+  {
+    id: "s2-007",
+    phase: 20,
+    title: "Phase 6 — ResearchPanel.vue",
+    description:
+      "Right sidebar: research docs, summarize, copy-to-binder actions",
+    priority: "high",
+    status: "done",
+    estimatedHours: 2,
+    tags: ["sprint-2", "phase-6"],
+    checklist: [
+      "Filter by type:research",
+      "Summarize action",
+      "Copy to Binder action",
+    ],
+  },
+  {
+    id: "s2-008",
+    phase: 20,
+    title: "Phase 6 — SummarizeModal.vue",
+    description:
+      "Textarea + style toggle + /api/editor/summarize + insert into doc",
+    priority: "high",
+    status: "done",
+    estimatedHours: 2,
+    tags: ["sprint-2", "phase-6"],
+    checklist: [
+      "Pre-fill with body",
+      "Bullets/paragraph styles",
+      "Insert as ## Summary",
+    ],
+  },
+  {
+    id: "s2-009",
+    phase: 20,
+    title: "Phase 6 — ResearchPanel in EditorPanel",
+    description: "Science icon toggle, right column slide-in, 200px width",
+    priority: "high",
+    status: "done",
+    estimatedHours: 1,
+    tags: ["sprint-2", "phase-6"],
+    checklist: ["Toggle button wired", "Slide transition matches sidebar"],
+  },
+
+  // ─── SPRINT 3: Authentication & User Profiles (phase 30) ────────────
+  {
+    id: "s3-001",
+    phase: 30,
+    title: "User identity integration",
+    description: "GET /api/identity/me → show user in GlobalToolbar",
+    priority: "high",
+    status: "backlog",
+    estimatedHours: 3,
+    tags: ["sprint-3", "auth"],
+    checklist: [
+      "useIdentityStore",
+      "Avatar/name in toolbar",
+      "Unauthenticated state",
+    ],
+  },
+  {
+    id: "s3-002",
+    phase: 30,
+    title: "Per-user workspace persistence",
+    description: "Server-side file tree via GET/POST /api/workspace/tree",
+    priority: "high",
+    status: "backlog",
+    estimatedHours: 4,
+    tags: ["sprint-3", "storage"],
+    checklist: [
+      "API integration",
+      "Optimistic updates",
+      "Conflict resolution",
+      "Offline fallback",
+    ],
+  },
+  {
+    id: "s3-003",
+    phase: 30,
+    title: "Settings sync across surfaces",
+    description:
+      "POST /api/user/preferences — sync theme/font/model between surfaces",
+    priority: "medium",
+    status: "backlog",
+    estimatedHours: 2,
+    tags: ["sprint-3", "settings"],
+    checklist: [
+      "Save to backend",
+      "Load on mount",
+      "Migrate from localStorage",
+    ],
+  },
+  {
+    id: "s3-004",
+    phase: 30,
+    title: "Chat history persistence",
+    description: "Save chat conversations to backend per user",
+    priority: "medium",
+    status: "backlog",
+    estimatedHours: 2,
+    tags: ["sprint-3", "chat"],
+    checklist: [
+      "POST /api/chat/history",
+      "Restore on reopen",
+      "Clear history button",
+    ],
+  },
+  {
+    id: "s3-005",
+    phase: 30,
+    title: "Workspace file API backend",
+    description:
+      "CRUD endpoints for workspace files (create, read, update, delete)",
+    priority: "high",
+    status: "backlog",
+    estimatedHours: 5,
+    tags: ["sprint-3", "backend", "api"],
+    checklist: [
+      "GET /api/workspace/files",
+      "POST/PUT/DELETE",
+      "File content storage (vault or DB)",
+      "Access control per user",
+    ],
+  },
+
+  // ─── SPRINT 4: Mobile PWA & Offline (phase 40) ──────────────────────
+  {
+    id: "s4-001",
+    phase: 40,
+    title: "Service worker + offline-first workspace",
+    description: "vite-plugin-pwa with workbox cache strategies",
+    priority: "medium",
+    status: "backlog",
+    estimatedHours: 4,
+    tags: ["sprint-4", "pwa"],
+    checklist: [
+      "Install vite-plugin-pwa",
+      "Cache app shell",
+      "Offline indicator",
+      "Sync queue",
+    ],
+  },
+  {
+    id: "s4-002",
+    phase: 40,
+    title: "Mobile gesture navigation",
+    description:
+      "useSwipe() composable — swipe right/left for sidebar on touch devices",
+    priority: "medium",
+    status: "backlog",
+    estimatedHours: 3,
+    tags: ["sprint-4", "mobile"],
+    checklist: ["useSwipe composable", "Sidebar open/close", "Tab scroll"],
+  },
+  {
+    id: "s4-003",
+    phase: 40,
+    title: "Mobile toolbar collapse",
+    description:
+      "BangleEditor toolbar → icon-only on < 640px with overflow menu",
+    priority: "medium",
+    status: "backlog",
+    estimatedHours: 2,
+    tags: ["sprint-4", "mobile", "toolbar"],
+    checklist: [
+      "useBreakpoint composable",
+      "4 primary + overflow",
+      "44px touch targets",
+    ],
+  },
+  {
+    id: "s4-004",
+    phase: 40,
+    title: "PWA install prompt",
+    description:
+      "'Add to Home Screen' banner after 30s dwell, remembers preference",
+    priority: "low",
+    status: "backlog",
+    estimatedHours: 1,
+    tags: ["sprint-4", "pwa"],
+    checklist: ["beforeinstallprompt", "30s dwell", "Success toast"],
+  },
 ];
 
 /**
@@ -1202,6 +1474,9 @@ export const BANGLE_TASKS_BY_PHASE = {
   7: BANGLE_UPGRADE_TASKS.filter((t) => t.phase === 7),
   8: BANGLE_UPGRADE_TASKS.filter((t) => t.phase === 8),
   9: BANGLE_UPGRADE_TASKS.filter((t) => t.phase === 9),
+  20: BANGLE_UPGRADE_TASKS.filter((t) => t.phase === 20), // Sprint 2
+  30: BANGLE_UPGRADE_TASKS.filter((t) => t.phase === 30), // Sprint 3
+  40: BANGLE_UPGRADE_TASKS.filter((t) => t.phase === 40), // Sprint 4
 };
 
 /**

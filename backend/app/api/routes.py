@@ -273,6 +273,18 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/skills/state", handle_skill_state)
     app.router.add_get("/api/skills/health", handle_health)
 
+    # ── Render / SSE (Layered Output) ──────────────────────────────
+    from .render_api import handle_render, handle_stream, handle_publish_event
+    app.router.add_post("/api/render", handle_render)
+    app.router.add_get("/api/render/stream", handle_stream)
+    app.router.add_post("/api/render/event", handle_publish_event)
+
+    # ── Editor surface (Bangle scrape/summarize/binder) ───────────
+    from .editor_api import handle_scrape_web, handle_summarize, handle_save_to_binder
+    app.router.add_post("/api/editor/scrape-web", handle_scrape_web)
+    app.router.add_post("/api/editor/summarize", handle_summarize)
+    app.router.add_post("/api/editor/save-to-binder", handle_save_to_binder)
+
     # ── Autonomy Engine ────────────────────────────────────────────
     try:
         import json

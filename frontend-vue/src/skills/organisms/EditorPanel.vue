@@ -54,6 +54,14 @@
         </button>
         <button
           class="editor-panel__nav-btn"
+          :class="{ 'editor-panel__nav-btn--active': researchOpen }"
+          title="Research panel"
+          @click="researchOpen = !researchOpen"
+        >
+          <UIcon name="science" />
+        </button>
+        <button
+          class="editor-panel__nav-btn"
           :class="{
             'editor-panel__nav-btn--active': localEditMode === 'prose',
           }"
@@ -76,7 +84,7 @@
       </div>
     </div>
 
-    <!-- 3-column body: sidebar | editor | (future research panel) -->
+    <!-- 3-column body: sidebar | editor | research panel -->
     <div class="editor-panel__body">
       <!-- Workspace tree sidebar -->
       <transition name="editor-sidebar">
@@ -120,6 +128,13 @@
           :class="{ 'editor-panel__preview--split': viewMode === 'split' }"
         />
       </div>
+
+      <!-- Research panel (right column) -->
+      <transition name="editor-sidebar">
+        <div v-if="researchOpen" class="editor-panel__research">
+          <ResearchPanel />
+        </div>
+      </transition>
     </div>
   </div>
 </template>
@@ -146,6 +161,7 @@ import BangleEditor from "../molecules/editor/BangleEditor.vue";
 import WorkspaceTree from "../molecules/editor/WorkspaceTree.vue";
 import FrontmatterPills from "../molecules/editor/FrontmatterPills.vue";
 import MarkdownPreview from "../molecules/MarkdownPreview.vue";
+import ResearchPanel from "../molecules/editor/ResearchPanel.vue";
 import {
   parseDocument,
   serializeDocument,
@@ -179,6 +195,7 @@ const localContent = ref(props.content);
 const localEditMode = ref<"prose" | "code">(props.editMode);
 const sidebarOpen = ref(true);
 const viewMode = ref<"edit" | "preview" | "split">("edit");
+const researchOpen = ref(false);
 
 const currentFilename = computed(() => props.title || "Untitled.md");
 
@@ -346,6 +363,14 @@ function toggleEditMode() {
 
 .editor-panel__sidebar {
   width: 220px;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-panel__research {
+  width: 200px;
   flex-shrink: 0;
   overflow: hidden;
   display: flex;
