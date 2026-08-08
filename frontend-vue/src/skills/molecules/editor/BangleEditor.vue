@@ -1,39 +1,46 @@
 <template>
   <div class="bangle-editor">
-    <!-- Formatting toolbar -->
+    <!-- Formatting toolbar — Phase 3: Material Symbols icons -->
     <div v-if="!readOnly" class="bangle-editor__toolbar">
+      <!-- Text formatting -->
       <button class="bangle-btn" title="Bold (Ctrl+B)" @click="applyBold">
-        <strong>B</strong>
+        <span class="material-symbols-outlined">format_bold</span>
       </button>
       <button class="bangle-btn" title="Italic (Ctrl+I)" @click="applyItalic">
-        <em>I</em>
+        <span class="material-symbols-outlined">format_italic</span>
       </button>
       <button
         class="bangle-btn"
         title="Underline (Ctrl+U)"
         @click="applyUnderline"
       >
-        <u>U</u>
+        <span class="material-symbols-outlined">format_underlined</span>
       </button>
-      <button class="bangle-btn" title="Code" @click="applyCode">
-        <code>&lt;/&gt;</code>
+      <button class="bangle-btn" title="Inline code" @click="applyCode">
+        <span class="material-symbols-outlined">code</span>
       </button>
-      <div class="bangle-separator"></div>
-      <button class="bangle-btn" title="Heading" @click="applyHeading">
-        H1
+      <div class="bangle-separator" />
+      <!-- Block elements -->
+      <button class="bangle-btn" title="Heading 2" @click="applyHeading">
+        <span class="material-symbols-outlined">title</span>
       </button>
       <button class="bangle-btn" title="Block quote" @click="applyBlockquote">
-        &quot;
+        <span class="material-symbols-outlined">format_quote</span>
       </button>
       <button class="bangle-btn" title="Bullet list" @click="applyBulletList">
-        •
+        <span class="material-symbols-outlined">format_list_bulleted</span>
       </button>
       <button class="bangle-btn" title="Ordered list" @click="applyOrderedList">
-        1.
+        <span class="material-symbols-outlined">format_list_numbered</span>
       </button>
-      <div class="bangle-separator"></div>
-      <button class="bangle-btn" title="Undo" @click="undo">↶</button>
-      <button class="bangle-btn" title="Redo" @click="redo">↷</button>
+      <div class="bangle-separator" />
+      <!-- Edit controls -->
+      <button class="bangle-btn" title="Undo" @click="undo">
+        <span class="material-symbols-outlined">undo</span>
+      </button>
+      <button class="bangle-btn" title="Redo" @click="redo">
+        <span class="material-symbols-outlined">redo</span>
+      </button>
     </div>
 
     <!-- Bangle editor content area -->
@@ -361,6 +368,12 @@ onBeforeUnmount(() => {
     background var(--usx-transition-fast),
     color var(--usx-transition-fast),
     border-color var(--usx-transition-fast);
+}
+
+.bangle-btn .material-symbols-outlined {
+  font-size: 18px;
+  line-height: 1;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
 }
 
 .bangle-btn:hover {

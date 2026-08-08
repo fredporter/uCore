@@ -1,10 +1,18 @@
 <template>
   <div class="editor-panel">
-    <!-- Bangle-first toolbar — title, engine chip, essential controls -->
+    <!-- Top toolbar: title, engine chip, essential controls -->
     <div class="editor-panel__toolbar">
       <div class="editor-panel__toolbar-left">
+        <button
+          class="editor-panel__nav-btn"
+          :class="{ 'editor-panel__nav-btn--active': sidebarOpen }"
+          title="Toggle file tree"
+          @click="sidebarOpen = !sidebarOpen"
+        >
+          <UIcon name="account_tree" />
+        </button>
         <UIcon name="article" />
-        <span class="editor-panel__title">{{ title || "Untitled" }}</span>
+        <span class="editor-panel__title">{{ title || 'Untitled' }}</span>
       </div>
       <div class="editor-panel__toolbar-center">
         <span class="editor-panel__engine-chip">Bangle WYSIWYG</span>
@@ -13,21 +21,15 @@
         <button
           v-if="!readOnly"
           class="editor-panel__nav-btn editor-panel__nav-btn--save"
-          @click="handleSave"
           title="Save (Ctrl+S)"
+          @click="handleSave"
         >
           <UIcon name="save" />
         </button>
         <button
           class="editor-panel__nav-btn"
-          :class="{
-            'editor-panel__nav-btn--active': localEditMode === 'prose',
-          }"
-          :title="
-            localEditMode === 'prose'
-              ? 'Switch to code view'
-              : 'Switch to prose view'
-          "
+          :class="{ 'editor-panel__nav-btn--active': localEditMode === 'prose' }"
+          :title="localEditMode === 'prose' ? 'Switch to code view' : 'Switch to prose view'"
           @click="toggleEditMode"
         >
           <UIcon :name="localEditMode === 'prose' ? 'notes' : 'code'" />
@@ -42,16 +44,34 @@
       </div>
     </div>
 
-    <!-- Full-width Bangle editor — WYSIWYG as primary interaction -->
-    <div class="editor-panel__content">
-      <BangleEditor
-        v-model="localContent"
-        :preview="false"
-        :read-only="readOnly"
-        :edit-mode="localEditMode"
-        @save="handleSave"
-        @change="onContentChange"
-      />
+    <!-- 3-column body: sidebar | editor | (future research panel) -->
+    <div class="editor-panel__body">
+      <!-- Workspace tree sidebar -->
+      <transition name="editor-sidebar">
+        <div v-if="sidebarOpen" class="editor-panel__sidebar">
+          <WorkspaceTree />
+        </div>
+      </transition>
+
+      <!-- Main editor column -->
+      <div class="editor-panel__main">
+        <!-- Frontmatter pills (when metadata present) -->
+        <FrontmatterPills
+          v-if="hasFrontmatter"
+          v-model="frontmatter"
+          :can-edit="!readOnly"
+          @update:model-value="onFrontmatterChange"
+        />
+
+        <BangleEditor
+          v-model="localContent"
+          :preview="false"
+          :read-only="readOnly"
+          :edit-mode="localEditMode"
+          @save="handleSave"
+          @change="onContentChange"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -72,9 +92,12 @@
  * @emits {void} save - Save requested
  * @emits {void} close - Close entire editor
  */
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import UIcon from "../atoms/UIcon.vue";
 import BangleEditor from "../molecules/editor/BangleEditor.vue";
+import WorkspaceTree from "../molecules/editor/WorkspaceTree.vue";
+import FrontmatterPills from "../molecules/editor/FrontmatterPills.vue";
+import { parseDocument, serializeDocument, type Frontmatter } from "../../utils/frontmatterParser";
 
 // ─── Props ───────────────────────────────────────────────────────────
 interface Props {
@@ -101,12 +124,29 @@ const emit = defineEmits<{
 // ─── State ───────────────────────────────────────────────────────────
 const localContent = ref(props.content);
 const localEditMode = ref<"prose" | "code">(props.editMode);
+const sidebarOpen = ref(true);
+
+// ─── Frontmatter ─────────────────────────────────────────────────────
+const parsed = computed(() => parseDocument(props.content || ""));
+const frontmatter = ref<Frontmatter>(parsed.value.frontmatter);
+const hasFrontmatter = computed(() => Object.keys(frontmatter.value).length > 0);
+
+function onFrontmatterChange(updated: Frontmatter) {
+  frontmatter.value = updated;
+  // Re-serialize document with updated frontmatter
+  const doc = parseDocument(localContent.value);
+  const newMarkdown = serializeDocument(doc.body, updated);
+  localContent.value = newMarkdown;
+  emit("update:content", newMarkdown);
+}
 
 // ─── Sync props ──────────────────────────────────────────────────────
 watch(
   () => props.content,
   (val) => {
     localContent.value = val;
+    const p = parseDocument(val);
+    frontmatter.value = p.frontmatter;
   },
 );
 
@@ -238,12 +278,53 @@ function toggleEditMode() {
   color: var(--usx-color-on-primary);
 }
 
-/* ─── Full-width editor content ──────────────────────────────────── */
-.editor-panel__content {
+/* ─── 3-column body layout ───────────────────────────────────────── */
+.editor-panel__body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.editor-panel__sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-panel__main {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 0;
+  min-width: 0;
+}
+
+/* ─── Sidebar slide transition ────────────────────────────────────── */
+.editor-sidebar-enter-active,
+.editor-sidebar-leave-active {
+  transition: width 200ms ease, opacity 200ms ease;
+  overflow: hidden;
+}
+
+.editor-sidebar-enter-from,
+.editor-sidebar-leave-to {
+  width: 0;
+  opacity: 0;
+}
+
+/* ─── Mobile: collapse sidebar below 640px ────────────────────────── */
+@media (max-width: 640px) {
+  .editor-panel__sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 100;
+    width: 280px;
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
+  }
 }
 </style>
