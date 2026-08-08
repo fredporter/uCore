@@ -100,7 +100,7 @@
             <button class="system-page-action" @click="goHome">Home</button>
             <button
               class="system-page-action"
-              @click="goTo('/server?tab=snacks')"
+              @click="goTo('/snackbar?tab=snacks')"
             >
               Open SnackMachine
             </button>
@@ -402,7 +402,7 @@ const fallbackModel = computed<FallbackModel>(() => {
       suggestions: [
         { label: "System Surface", to: "/system" },
         { label: "Developer Surface", to: "/developer" },
-        { label: "Server Surface", to: "/server" },
+        { label: "Snackbar Surface", to: "/snackbar" },
       ],
       footnote:
         "Error 404. If this persists, verify router paths and page registry configuration.",
@@ -420,7 +420,7 @@ const fallbackModel = computed<FallbackModel>(() => {
       ],
       suggestions: [
         { label: "System Services", to: "/system?tab=services" },
-        { label: "Server Surface", to: "/server" },
+        { label: "Snackbar Surface", to: "/snackbar" },
       ],
       footnote:
         "Error 503. This fallback is local and available without backend data.",
@@ -456,7 +456,7 @@ const fallbackModel = computed<FallbackModel>(() => {
         "Pin important snippets to protect them from cleanup operations.",
       ],
       suggestions: [
-        { label: "SnackMachine", to: "/server?tab=snacks" },
+        { label: "SnackMachine", to: "/snackbar?tab=snacks" },
         { label: "System Pages", to: "/system?tab=pages" },
       ],
       footnote: "Clipboard orchestration surface.",
@@ -510,7 +510,7 @@ const fallbackModel = computed<FallbackModel>(() => {
       ],
       suggestions: [
         { label: "System Services", to: "/system?tab=services" },
-        { label: "Server Surface", to: "/server" },
+        { label: "Snackbar Surface", to: "/snackbar" },
       ],
       footnote:
         "Dependency fallback. No live dependency introspection is required to render this page.",

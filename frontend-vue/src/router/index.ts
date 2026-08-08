@@ -25,7 +25,7 @@ const routes: RouteRecordRaw[] = [
     path: "/intelligence/:pathMatch(.*)*",
     name: "intelligence",
     component: () => import("../surfaces/intelligence/IntelligenceSurface.vue"),
-    meta: { title: "Intelligence", icon: "psychology" },
+    meta: { title: "Intelligence", icon: "lightbulb" },
   },
   {
     path: "/ucode/:pathMatch(.*)*",
@@ -34,10 +34,17 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "uCode", icon: "grid" },
   },
   {
+    path: "/snackbar/:pathMatch(.*)*",
+    name: "snackbar",
+    component: () => import("../surfaces/snackbar/SnackbarSurface.vue"),
+    meta: { title: "Snackbar", icon: "storefront" },
+  },
+  {
     path: "/server/:pathMatch(.*)*",
-    name: "server",
-    component: () => import("../surfaces/server/ServerSurface.vue"),
-    meta: { title: "Server", icon: "server" },
+    redirect: (to) => ({
+      path: `/snackbar${to.path.replace(/^\/server/, "")}`,
+      query: to.query,
+    }),
   },
   {
     path: "/developer/:pathMatch(.*)*",
@@ -72,8 +79,8 @@ const routes: RouteRecordRaw[] = [
       if (tab === "vault") return "/workflow?tab=binder";
       if (tab === "mcp") return "/developer?tab=mcp-servers";
       if (tab === "variables") return "/system?tab=variables";
-      if (tab === "scheduler") return "/server?tab=dashboard";
-      return "/server?tab=snacks";
+      if (tab === "scheduler") return "/snackbar?tab=dashboard";
+      return "/snackbar?tab=snacks";
     },
   },
   {
@@ -116,7 +123,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/userver/:pathMatch(.*)*",
-    redirect: (to) => `/server${to.path.replace("/userver", "")}`,
+    redirect: (to) => `/snackbar${to.path.replace("/userver", "")}`,
   },
   // Legacy direct shortcuts
   {

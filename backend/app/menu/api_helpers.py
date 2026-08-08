@@ -77,6 +77,47 @@ def api_get_sync(path: str, timeout: float = 3.0) -> Optional[dict]:
         return None
 
 
+async def api_post(path: str, timeout: float = 3.0) -> Optional[dict]:
+    """Make an HTTP POST request to the uCore backend.
+
+    Args:
+        path: API endpoint path (e.g., "/api/developer/start")
+        timeout: Request timeout in seconds
+
+    Returns:
+        JSON response dict or None if request fails
+    """
+    try:
+        async with ClientSession() as session:
+            async with session.post(
+                f"http://localhost:8484{path}", timeout=timeout
+            ) as response:
+                if response.status in (200, 202):
+                    return await response.json()
+                log.warning("API POST failed: %s %s", response.status, path)
+                return None
+    except Exception as exc:
+        log.error("API POST error: %s %s - %s", path, exc)
+        return None
+
+
+def api_post_sync(path: str, timeout: float = 3.0) -> Optional[dict]:
+    """Synchronous wrapper for api_post — runs the coroutine in a fresh event loop.
+
+    Use this from non-async code (e.g. threading.Timer callbacks).
+    """
+    import asyncio
+    try:
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(api_post(path, timeout))
+        finally:
+            loop.close()
+    except Exception as exc:
+        log.error("api_post_sync error: %s %s - %s", path, exc)
+        return None
+
+
 def is_ucore_alive() -> bool:
     """Check if uCore backend is running.
     
@@ -111,9 +152,28 @@ def is_uihub_alive() -> bool:
         return False
 
 
+def is_dev_alive() -> bool:
+    """Check if the uDev developer surface server (Dev Mode) is running.
+
+    The developer surface runs on port 5176. Returns True when the server
+    is responding.
+
+    Returns:
+        True if the developer server is responding, False otherwise
+    """
+    try:
+        import urllib.request
+
+        req = urllib.request.Request("http://localhost:5176", method="HEAD")
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            return resp.status < 500
+    except Exception:
+        return False
+
+
 def open_url(url: str) -> None:
     """Open a URL in the default browser.
-    
+
     Args:
         url: URL to open
     """

@@ -54,6 +54,7 @@ const contextLabel = computed(() => {
   if (path.includes("/workflow")) return "Workflow";
   if (path.includes("/browserui")) return "Browser";
   if (path.includes("/intelligence")) return "Intelligence";
+  if (path.includes("/snackbar")) return "Snackbar";
   if (path.includes("/system")) return "System";
   if (path.includes("/developer")) return "Developer";
   if (path.includes("/ucode")) return "uCode";

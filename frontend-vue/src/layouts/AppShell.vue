@@ -6,7 +6,13 @@
       @toggle-chat="shell.toggleChat"
       @toggle-sidebar="shell.toggleSidebar"
     />
-    <div class="app-body">
+    <div
+      class="app-body"
+      :class="{
+        'app-body--tabs-first':
+          shell.sidebarOpen && shell.tabOrientation === 'vertical',
+      }"
+    >
       <aside v-if="shell.sidebarOpen" class="app-sidebar">
         <FilepickerSidebar
           @file-select="handleFileSelect"
@@ -171,5 +177,34 @@ async function handleNewFile(binderId: string) {
   padding: 0;
   background: var(--usx-color-background);
   min-height: 0;
+}
+
+/* ─── Vertical tab layout: tabs become the first column ──────────
+   When the surface tab nav is in sidebar (vertical) mode AND the
+   filepicker sidebar is open, hoist the surface root so the vertical
+   tab nav renders as the leftmost column — before the Filepicker.
+   Without this the Filepicker would stay in the first column. */
+.app-body--tabs-first :deep(.app-main),
+.app-body--tabs-first :deep(.surface),
+.app-body--tabs-first :deep(.documentation-surface) {
+  display: contents;
+}
+
+.app-body--tabs-first .app-sidebar {
+  order: 2;
+}
+
+.app-body--tabs-first :deep(.surface-tab-nav) {
+  order: 1;
+}
+
+.app-body--tabs-first :deep(.surface__content),
+.app-body--tabs-first :deep(.surface__body),
+.app-body--tabs-first :deep(.documentation-content-inner) {
+  order: 3;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--usx-color-background);
 }
 </style>

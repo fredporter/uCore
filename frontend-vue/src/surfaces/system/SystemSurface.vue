@@ -90,26 +90,26 @@
         <div class="system-runtime-redirect surface__panel">
           <h4 class="system-section-title">Runtime Operations</h4>
           <p class="system-muted-copy">
-            Live runtime diagnostics have moved to Server.
+            Live runtime diagnostics have moved to Snackbar.
           </p>
           <div class="system-runtime-actions">
             <button
               class="system-action-btn"
-              @click="goTo('/server?tab=dashboard')"
+              @click="goTo('/snackbar?tab=dashboard')"
             >
-              Open Server Dashboard
+              Open Snackbar Dashboard
             </button>
             <button
               class="system-action-btn"
-              @click="goTo('/server?tab=services')"
+              @click="goTo('/snackbar?tab=services')"
             >
-              Open Server Services
+              Open Snackbar Services
             </button>
             <button
               class="system-action-btn"
-              @click="goTo('/server?tab=snacks')"
+              @click="goTo('/snackbar?tab=snacks')"
             >
-              Open Server Snacks
+              Open Snackbar Snacks
             </button>
           </div>
         </div>

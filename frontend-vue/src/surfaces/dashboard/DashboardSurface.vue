@@ -61,7 +61,8 @@ const extStore = useExtensionStore();
 const HUB_TABS = [
   { id: "dashboard", label: "Dashboard", icon: "home" },
   { id: "workflow", label: "Workflow", icon: "flag" },
-  { id: "intelligence", label: "Intelligence", icon: "psychology" },
+  { id: "intelligence", label: "Intelligence", icon: "lightbulb" },
+  { id: "snackbar", label: "Snackbar", icon: "storefront" },
   { id: "system", label: "System", icon: "settings" },
 ];
 
@@ -74,6 +75,7 @@ watch(activeHubTab, (tabId) => {
   const routes: Record<string, string> = {
     workflow: "/workflow?tab=mission-control",
     intelligence: "/intelligence",
+    snackbar: "/snackbar",
     system: "/system",
   };
   const path = routes[tabId];
@@ -94,7 +96,7 @@ const SURFACE_CARD_DATA: Record<
   intelligence: {
     title: "Intelligence",
     description: "Chat settings, models, agents & budget",
-    icon: "psychology",
+    icon: "lightbulb",
     route: "/intelligence",
     color: "var(--usx-color-accent)",
   },
@@ -112,11 +114,11 @@ const SURFACE_CARD_DATA: Record<
     route: "/ucode",
     color: "var(--usx-color-success)",
   },
-  server: {
-    title: "Server",
-    description: "Backend Operations & Services",
-    icon: "server",
-    route: "/server",
+  snackbar: {
+    title: "Snackbar",
+    description: "Backend Ops, Services, Snacks & Logs",
+    icon: "storefront",
+    route: "/snackbar",
     color: "var(--usx-color-warning)",
   },
   system: {

@@ -55,14 +55,14 @@
         </button>
       </div>
 
-      <!-- Models — reused from ServerSurface -->
-      <ServerModelsPanel v-else-if="activeTab === 'models'" />
+      <!-- Models — reused from SnackbarSurface -->
+      <SnackbarModelsPanel v-else-if="activeTab === 'models'" />
 
-      <!-- Agents — reused from ServerSurface -->
-      <ServerAgentsPanel v-else-if="activeTab === 'agents'" />
+      <!-- Agents — reused from SnackbarSurface -->
+      <SnackbarAgentsPanel v-else-if="activeTab === 'agents'" />
 
-      <!-- Budget — reused from ServerSurface -->
-      <ServerBudgetPanel v-else-if="activeTab === 'budget'" />
+      <!-- Budget — reused from SnackbarSurface -->
+      <SnackbarBudgetPanel v-else-if="activeTab === 'budget'" />
 
       <!-- Plugin Store -->
       <div v-else-if="activeTab === 'plugins'" class="intel-panel">
@@ -138,9 +138,9 @@ import { ref, computed, onMounted } from "vue";
 import { useShellStore } from "../../stores/shell";
 import { useExtensionStore } from "../../stores/extensions";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
-import ServerModelsPanel from "../server/panels/ServerModelsPanel.vue";
-import ServerAgentsPanel from "../server/panels/ServerAgentsPanel.vue";
-import ServerBudgetPanel from "../server/panels/ServerBudgetPanel.vue";
+import SnackbarModelsPanel from "../snackbar/panels/SnackbarModelsPanel.vue";
+import SnackbarAgentsPanel from "../snackbar/panels/SnackbarAgentsPanel.vue";
+import SnackbarBudgetPanel from "../snackbar/panels/SnackbarBudgetPanel.vue";
 
 const INTEL_TABS = [
   { id: "chat", label: "Chat", icon: "chat" },

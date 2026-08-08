@@ -2,10 +2,18 @@
   <div>
     <div class="usx-flex-between usx-mb-md">
       <h3 class="surface__panel-title">Runtime Snacks</h3>
-      <UButton variant="secondary" size="sm" icon="refresh" @click="srv.fetchSnacks">Refresh</UButton>
+      <UButton
+        variant="secondary"
+        size="sm"
+        icon="refresh"
+        @click="srv.fetchSnacks"
+        >Refresh</UButton
+      >
     </div>
 
-    <div v-if="srv.snacks.length === 0" class="server-muted-text">No queued snacks.</div>
+    <div v-if="srv.snacks.length === 0" class="server-muted-text">
+      No queued snacks.
+    </div>
     <div v-else class="server-table-wrap">
       <table class="server-table">
         <thead>
@@ -21,18 +29,39 @@
           <tr v-for="snack in srv.snacks" :key="snack.id">
             <td>
               <span class="server-snack-type">
-                <UIcon :name="snack.type === 'workflow' ? 'account_tree' : snack.type === 'clipboard' ? 'content_paste' : 'restaurant_menu'" />
+                <UIcon
+                  :name="
+                    snack.type === 'workflow'
+                      ? 'account_tree'
+                      : snack.type === 'clipboard'
+                        ? 'content_paste'
+                        : 'restaurant_menu'
+                  "
+                />
                 <span>{{ snack.type }}</span>
               </span>
             </td>
-            <td><UBadge type="info" size="sm">{{ snack.priority }}</UBadge></td>
             <td>
-              <UBadge :type="snack.status === 'queued' ? 'warning' : snack.status === 'active' ? 'success' : 'neutral'" size="sm">
+              <UBadge type="info" size="sm">{{ snack.priority }}</UBadge>
+            </td>
+            <td>
+              <UBadge
+                :type="
+                  snack.status === 'queued'
+                    ? 'warning'
+                    : snack.status === 'active'
+                      ? 'success'
+                      : 'neutral'
+                "
+                size="sm"
+              >
                 {{ snack.status }}
               </UBadge>
             </td>
             <td class="server-muted-text">{{ snack.source }}</td>
-            <td class="server-muted-text">{{ snack.timestamp || 'pending' }}</td>
+            <td class="server-muted-text">
+              {{ snack.timestamp || "pending" }}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -40,7 +69,9 @@
 
     <div class="surface__panel usx-mt-md">
       <h4 class="surface__panel-title server-subheading">System Snacks</h4>
-      <div v-if="srv.systemSnacks.length === 0" class="server-muted-text">No system snacks discovered.</div>
+      <div v-if="srv.systemSnacks.length === 0" class="server-muted-text">
+        No system snacks discovered.
+      </div>
       <div v-else class="server-table-wrap">
         <table class="server-table">
           <thead>
@@ -52,7 +83,9 @@
           <tbody>
             <tr v-for="snack in srv.systemSnacks" :key="snack.id">
               <td class="server-system-snack-name">{{ snack.name }}</td>
-              <td><UBadge type="info" size="sm">{{ snack.kind }}</UBadge></td>
+              <td>
+                <UBadge type="info" size="sm">{{ snack.kind }}</UBadge>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -62,12 +95,12 @@
 </template>
 
 <script setup lang="ts">
-import { useServerStore } from '../../../stores/server'
-import UIcon from '../../../skills/atoms/UIcon.vue'
-import UBadge from '../../../skills/atoms/UBadge.vue'
-import UButton from '../../../skills/atoms/UButton.vue'
+import { useSnackbarOpsStore } from "../../../stores/snackbarOps";
+import UIcon from "../../../skills/atoms/UIcon.vue";
+import UBadge from "../../../skills/atoms/UBadge.vue";
+import UButton from "../../../skills/atoms/UButton.vue";
 
-const srv = useServerStore()
+const srv = useSnackbarOpsStore();
 </script>
 
 <style scoped>
