@@ -46,12 +46,12 @@
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
         :class="{
-          'global-toolbar__tab--active': route.path.includes('/assistui'),
+          'global-toolbar__tab--active': route.path.includes('/intelligence'),
         }"
-        @click="navigate('/assistui')"
-        title="Assistant"
+        @click="navigate('/intelligence')"
+        title="Intelligence"
       >
-        <UIcon name="lightbulb" class="global-toolbar__icon" />
+        <UIcon name="psychology" class="global-toolbar__icon" />
       </button>
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
@@ -68,29 +68,8 @@
     <!-- Middle: always empty — surface tab navigation is now handled by SurfaceTabNav below -->
     <div class="global-toolbar__center"></div>
 
-    <!-- Right: Dev Mode toggle + Theme toggle + Settings -->
+    <!-- Right: Theme toggle + Settings (Dev mode moved to chat bubble) -->
     <div class="global-toolbar__right">
-      <button
-        v-if="!devMode.isOffline"
-        class="global-toolbar__dev-toggle"
-        :class="{
-          'global-toolbar__dev-toggle--on':
-            devMode.mode === 'on' || devMode.mode === 'minimal',
-        }"
-        @click="devMode.toggle()"
-        :title="
-          devMode.mode === 'on' || devMode.mode === 'minimal'
-            ? 'Dev Mode ON — click to disable'
-            : 'Dev Mode OFF — click to enable'
-        "
-      >
-        <span class="global-toolbar__dev-dot"></span>
-        <span class="global-toolbar__dev-label">Dev</span>
-      </button>
-      <UBadge v-else-if="!devMode.loading" type="info">Dev Offline</UBadge>
-      <UBadge v-else type="warning" title="Probing dev server..."
-        >Probing...</UBadge
-      >
       <button
         class="global-toolbar__icon-only global-toolbar__theme-toggle"
         :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
@@ -120,7 +99,6 @@
 import { computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useShellStore } from "../../stores/shell";
-import { useDevModeStore } from "../../stores/devMode";
 import { useSettingsStore } from "../../stores/settings";
 import UIcon from "../atoms/UIcon.vue";
 import UBadge from "../atoms/UBadge.vue";
@@ -138,7 +116,6 @@ const emit = defineEmits<{
 const router = useRouter();
 const route = useRoute();
 const shell = useShellStore();
-const devMode = useDevModeStore();
 const settings = useSettingsStore();
 
 const isDark = computed(() => settings.themeMode === "dark");

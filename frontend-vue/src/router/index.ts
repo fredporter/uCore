@@ -19,9 +19,13 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/assistui/:pathMatch(.*)*",
-    name: "assistui",
-    component: () => import("../surfaces/assistui/AssistUISurface.vue"),
-    meta: { title: "Assistant", icon: "bolt" },
+    redirect: "/intelligence",
+  },
+  {
+    path: "/intelligence/:pathMatch(.*)*",
+    name: "intelligence",
+    component: () => import("../surfaces/intelligence/IntelligenceSurface.vue"),
+    meta: { title: "Intelligence", icon: "psychology" },
   },
   {
     path: "/ucode/:pathMatch(.*)*",

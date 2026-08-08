@@ -26,11 +26,10 @@
           />
         </div>
 
-        <div v-if="!hasUdevRepo" class="dashboard-surface__dev-hint">
+        <div v-if="!hasUdevRunning" class="dashboard-surface__dev-hint">
           <p>
-            <UIcon name="folder_off" />
-            Developer card is hidden until a uDev repository is present under
-            the code workspace.
+            <span class="material-symbols-outlined">code_off</span>
+            Developer surface hidden — start uDev to enable.
           </p>
         </div>
       </div>
@@ -47,26 +46,23 @@
  * @category surfaces
  * @usage Routed at '/' — default landing page.
  */
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
-import { SNACKBAR_BASE } from "@/api/base";
+import { useExtensionStore } from "../../stores/extensions";
 import SurfaceCard from "../../skills/molecules/SurfaceCard.vue";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
-import UIcon from "../../skills/atoms/UIcon.vue";
-import type { SurfaceCard as SurfaceCardType } from "../../types";
 
 const router = useRouter();
 const shell = useShellStore();
-const hasUdevRepo = ref(false);
+const extStore = useExtensionStore();
 
-// Hub navigation tabs
+// Hub navigation tabs — core + running surfaces
 const HUB_TABS = [
   { id: "dashboard", label: "Dashboard", icon: "home" },
   { id: "workflow", label: "Workflow", icon: "flag" },
-  { id: "server", label: "Server", icon: "server" },
+  { id: "intelligence", label: "Intelligence", icon: "psychology" },
   { id: "system", label: "System", icon: "settings" },
-  { id: "groovebox", label: "Groovebox", icon: "music_note" },
 ];
 
 const activeHubTab = ref("dashboard");
@@ -77,140 +73,133 @@ watch(activeHubTab, (tabId) => {
   if (!tabId || tabId === "dashboard") return;
   const routes: Record<string, string> = {
     workflow: "/workflow?tab=mission-control",
-    server: "/server",
+    intelligence: "/intelligence",
     system: "/system",
-    groovebox: "/groovebox",
   };
   const path = routes[tabId];
   if (path) router.push(path);
 });
 
-const ALL_SURFACES: SurfaceCardType[] = [
+// Surface cards — driven by extension store: required OR running
+const SURFACE_CARD_DATA: Record<
+  string,
   {
-    id: "assistui",
-    title: "Assistant",
-    description: "Agent Assisted Workflows",
-    icon: "bolt",
-    route: "/assistui",
+    title: string;
+    description: string;
+    icon: string;
+    route: string;
+    color: string;
+  }
+> = {
+  intelligence: {
+    title: "Intelligence",
+    description: "Chat settings, models, agents & budget",
+    icon: "psychology",
+    route: "/intelligence",
     color: "var(--usx-color-accent)",
   },
-  {
-    id: "bangle-editor",
-    title: "Bangle Editor",
-    description: "Prose/Code drafting workspace with live preview",
-    icon: "edit_note",
-    route: "/workflow?tab=editor",
+  workflow: {
+    title: "Workflow",
+    description: "Missions, Tasks & Binder",
+    icon: "flag",
+    route: "/workflow",
     color: "var(--usx-color-primary)",
   },
-  {
-    id: "ucode",
+  ucode: {
     title: "uCode",
     description: "GridCore — Grid, Teletext & Terminal",
     icon: "grid",
     route: "/ucode",
     color: "var(--usx-color-success)",
   },
-  {
-    id: "server",
+  server: {
     title: "Server",
     description: "Backend Operations & Services",
     icon: "server",
     route: "/server",
     color: "var(--usx-color-warning)",
   },
-  {
-    id: "workflow",
-    title: "Workflow",
-    description: "Missions, Tasks & Binder",
-    icon: "workflow",
-    route: "/workflow",
-    color: "var(--usx-color-primary)",
-  },
-  {
-    id: "system",
+  system: {
     title: "System",
     description: "Admin, Pages & Tools",
     icon: "settings",
     route: "/system",
     color: "var(--usx-color-on-surface-muted)",
   },
-  {
-    id: "documentation",
+  documentation: {
     title: "Documentation",
     description: "Learning Hub & Guides",
-    icon: "help",
+    icon: "menu_book",
     route: "/documentation",
     color: "var(--usx-color-accent)",
   },
-  {
-    id: "browserui",
+  browserui: {
     title: "Browser",
     description: "Web Reader & Bookmarks",
-    icon: "globe",
+    icon: "language",
     route: "/browserui",
     color: "var(--usx-color-info)",
   },
-  {
-    id: "groovebox",
+  groovebox: {
     title: "Groovebox",
-    description: "Music Production — Pattern Composer, Vault & Songscribe",
+    description: "Music Production — Pattern Composer & Vault",
     icon: "music_note",
     route: "/groovebox",
     color: "var(--usx-color-warning)",
   },
-  {
-    id: "sonic",
-    title: "SonicScrewdriver",
-    description:
-      "Universal USB Bootloader & System Toolkit — Multi-boot USB, Security Keys, Device Flashing",
+  sonic: {
+    title: "Sonic",
+    description: "USB Bootloader & System Toolkit",
     icon: "usb",
     route: "/sonic",
     color: "var(--usx-color-success)",
-    status: "running",
   },
-];
-
-const DEV_SURFACES: SurfaceCardType[] = [
-  {
-    id: "developer",
+  developer: {
     title: "Developer",
     description: "Dev Lane — Models, Agents, Kanban",
     icon: "code",
     route: "/developer",
     color: "var(--usx-color-danger)",
   },
-];
+  bangle: {
+    title: "Bangle Editor",
+    description: "Prose/Code drafting workspace with live preview",
+    icon: "edit_note",
+    route: "/workflow?tab=editor",
+    color: "var(--usx-color-primary)",
+  },
+};
 
 const visibleSurfaces = computed(() => {
-  const base = [...ALL_SURFACES];
-  if (hasUdevRepo.value) {
-    base.push(...DEV_SURFACES);
-  }
-  return base;
-});
+  const cards: Array<{
+    id: string;
+    title: string;
+    description: string;
+    icon: string;
+    route: string;
+    color: string;
+    status?: "running" | "stopped" | "error";
+  }> = [];
 
-async function probeUdevRepo(): Promise<void> {
-  try {
-    const res = await fetch(`${SNACKBAR_BASE}/api/developer/repos?scope=all`, {
-      signal: AbortSignal.timeout(4000),
-    });
-    if (!res.ok) {
-      hasUdevRepo.value = false;
-      return;
+  // Always show core surfaces + running optional surfaces
+  for (const surface of extStore.visibleSurfaces) {
+    const card = SURFACE_CARD_DATA[surface.manifest.id];
+    if (card) {
+      cards.push({
+        id: surface.manifest.id,
+        ...card,
+        status: surface.status === "running" ? "running" : undefined,
+      });
     }
-    const payload = await res.json();
-    const repos = Array.isArray(payload?.repos) ? payload.repos : [];
-    hasUdevRepo.value = repos.some(
-      (repo: any) => String(repo?.name || "").toLowerCase() === "udev",
-    );
-  } catch {
-    hasUdevRepo.value = false;
   }
-}
+  // Always show Bangle Editor card
+  cards.push({ id: "bangle", ...SURFACE_CARD_DATA.bangle });
 
-onMounted(async () => {
-  await probeUdevRepo();
+  return cards;
 });
+
+// Dev hint: show when developer not running
+const hasUdevRunning = computed(() => extStore.isRunning("udev"));
 
 function navigate(route: string) {
   if (route.startsWith("http")) {
