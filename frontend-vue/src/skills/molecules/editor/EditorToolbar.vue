@@ -1,14 +1,5 @@
 <template>
   <div class="editor-toolbar">
-    <button
-      class="editor-toolbar__btn"
-      :class="{ 'editor-toolbar__btn--active': sidebarOpen }"
-      title="Toggle Files sidebar"
-      @click="emit('toggle-sidebar')"
-    >
-      <UIcon name="account_tree" />
-    </button>
-
     <!-- Edit / Preview / Split mode tabs (icon-only) -->
     <div class="editor-toolbar__mode-tabs">
       <button
@@ -79,17 +70,17 @@
 <script setup lang="ts">
 /**
  * @component EditorToolbar
- * @description Compact, icon-only control row for the editor panel: sidebar
- * toggle, Edit/Preview/Split view modes, save, research, prose/code edit mode,
- * and close. Rendered inside the MarkdownEditor toolbar (or a slim preview
- * bar when in Preview-only mode) so the editor keeps a single toolbar.
+ * @description Compact, icon-only control row for the editor panel:
+ * Edit/Preview/Split view modes, save, research, prose/code edit mode,
+ * and close. The Files sidebar toggle lives in the global toolbar, not here.
+ * Rendered inside the MarkdownEditor toolbar (or a slim preview bar when in
+ * Preview-only mode) so the editor keeps a single toolbar.
  * @category skills/molecules
  * @props {string} viewMode - 'edit' | 'preview' | 'split'
  * @props {boolean} researchOpen - Research panel visibility
  * @props {string} editMode - 'prose' | 'code'
  * @props {boolean} readOnly - Hide save when read-only
- * @props {boolean} sidebarOpen - Files sidebar visibility (active highlight)
- * @emits update:viewMode, toggle-sidebar, toggle-research, toggle-edit-mode, save, close
+ * @emits update:viewMode, toggle-research, toggle-edit-mode, save, close
  */
 import UIcon from "../../atoms/UIcon.vue";
 
@@ -98,17 +89,14 @@ interface Props {
   researchOpen: boolean;
   editMode: "prose" | "code";
   readOnly?: boolean;
-  sidebarOpen?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   readOnly: false,
-  sidebarOpen: false,
 });
 
 const emit = defineEmits<{
   "update:viewMode": [value: "edit" | "preview" | "split"];
-  "toggle-sidebar": [];
   "toggle-research": [];
   "toggle-edit-mode": [];
   save: [];
