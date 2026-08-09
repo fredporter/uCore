@@ -42,6 +42,104 @@ EXCLUDE_DIRS = {
     ".pytest_cache", ".venv", "venv",
 }
 
+# Additional workspaces (user-registered vaults/folders) ---------------
+WORKSPACES_FILE = Path.home() / ".ucore" / "workspaces.json"
+
+
+def _slugify(name: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", name.strip().lower()).strip("-")
+    return slug or "workspace"
+
+
+def _load_workspaces() -> list[dict[str, Any]]:
+    if not WORKSPACES_FILE.exists():
+        return []
+    try:
+        data = json.loads(WORKSPACES_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
+def _save_workspaces(workspaces: list[dict[str, Any]]) -> None:
+    WORKSPACES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    WORKSPACES_FILE.write_text(
+        json.dumps(workspaces, indent=2), encoding="utf-8",
+    )
+
+
+def list_workspaces() -> list[dict[str, Any]]:
+    workspaces: list[dict[str, Any]] = []
+    for ws in _load_workspaces():
+        path = Path(str(ws.get("path") or "")).expanduser()
+        name = str(ws.get("name") or "") or path.name or "Workspace"
+        workspaces.append({
+            "name": name,
+            "path": str(path),
+            "source": str(ws.get("source") or _slugify(name)),
+            "exists": path.exists() and path.is_dir(),
+        })
+    return workspaces
+
+
+def register_workspace(name: str, path_value: str) -> dict[str, Any]:
+    """Register an existing vault/folder as an additional workspace."""
+    path = Path(path_value).expanduser()
+    if not path.exists() or not path.is_dir():
+        raise ValueError(f"Not an existing directory: {path}")
+    safe_name = (name or "").strip() or path.name or "Workspace"
+    source = _slugify(safe_name)
+    workspaces = [
+        w for w in _load_workspaces()
+        if str(w.get("path") or "") != str(path)
+        or (w.get("source") or "") != source
+    ]
+    workspaces.append({
+        "name": safe_name,
+        "path": str(path),
+        "source": source,
+    })
+    _save_workspaces(workspaces)
+
+    # Index the workspace files immediately so they appear in the sidebar.
+    entries = _scan_source(source, path)
+    conn = sqlite3.connect(str(INDEX_DB))
+    _ensure_schema(conn)
+    for entry in entries:
+        _upsert_entry(conn, entry)
+    conn.commit()
+    conn.close()
+
+    return {
+        "name": safe_name,
+        "path": str(path),
+        "source": source,
+        "files": len(entries),
+    }
+
+
+def browse_directory(path_value: str) -> dict[str, Any]:
+    """List immediate subdirectories for the Add-Workspace folder browser."""
+    path = Path(path_value or "").expanduser()
+    if not path_value.strip() or not path.exists():
+        path = Path.home()
+    if not path.is_dir():
+        path = path.parent
+    try:
+        dirs = sorted(
+            (d for d in path.iterdir() if d.is_dir()),
+            key=lambda d: d.name.lower(),
+        )
+    except Exception:
+        dirs = []
+    return {
+        "path": str(path),
+        "parent": str(path.parent) if path.parent != path else None,
+        "name": path.name or str(path),
+        "dirs": [d.name for d in dirs],
+    }
+
+
 FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 
 
@@ -227,6 +325,20 @@ def _upsert_entry(
     fm_json = json.dumps(entry["frontmatter"], default=str)
     title = entry["frontmatter"].get("title") or entry["filename"]
 
+    # Reclaim a path that is already owned by another source (e.g. an added
+    # workspace overlapping a built-in vault) so the new source wins.
+    existing = conn.execute(
+        "SELECT id FROM library_entries WHERE path = ? AND id != ?",
+        (entry["path"], entry["id"]),
+    ).fetchone()
+    if existing:
+        conn.execute(
+            "DELETE FROM library_fts WHERE id = ?", (existing[0],),
+        )
+        conn.execute(
+            "DELETE FROM library_entries WHERE id = ?", (existing[0],),
+        )
+
     conn.execute(
         """
         INSERT INTO library_entries
@@ -289,7 +401,11 @@ def build_index(
     vault_paths: dict[str, Path] | None = None,
 ) -> dict[str, Any]:
     """Build the unified library index from all vault sources."""
-    paths = vault_paths or VAULT_PATHS
+    paths = dict(vault_paths or VAULT_PATHS)
+    # Include user-registered additional workspaces (vaults/folders).
+    for ws in list_workspaces():
+        if ws.get("source"):
+            paths[ws["source"]] = Path(ws["path"])
     target_sources = sources or list(paths.keys())
 
     INDEX_DIR.mkdir(parents=True, exist_ok=True)

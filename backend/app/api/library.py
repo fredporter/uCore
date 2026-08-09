@@ -1,9 +1,57 @@
 """Library Index API — endpoints for unified vault search."""
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from aiohttp import web
+
+log = logging.getLogger("ucore.library_api")
+
+
+async def handle_library_workspaces(request: web.Request) -> web.Response:
+    """GET /api/library/workspaces — list registered additional workspaces."""
+    try:
+        from app.services.library_index import list_workspaces
+
+        return web.json_response({"workspaces": list_workspaces()})
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
+
+
+async def handle_library_add_workspace(request: web.Request) -> web.Response:
+    """POST /api/library/workspaces — register an existing vault/folder."""
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        return web.json_response({"error": "Invalid JSON payload"}, status=400)
+
+    path_value = str(body.get("path") or "").strip()
+    name = str(body.get("name") or "").strip()
+    if not path_value:
+        return web.json_response({"error": "path is required"}, status=400)
+
+    try:
+        from app.services.library_index import register_workspace
+
+        result = register_workspace(name, path_value)
+        return web.json_response({"status": "ok", **result})
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    except Exception as exc:
+        log.exception("Add workspace failed")
+        return web.json_response({"error": str(exc)}, status=500)
+
+
+async def handle_library_browse(request: web.Request) -> web.Response:
+    """GET /api/library/browse?path=... — list subdirectories for the picker."""
+    try:
+        from app.services.library_index import browse_directory
+
+        path_value = request.query.get("path", "").strip()
+        return web.json_response(browse_directory(path_value))
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
 
 
 def _is_allowed_library_path(path: Path) -> bool:
@@ -109,3 +157,6 @@ def register_library_routes(app: web.Application) -> None:
     app.router.add_get("/api/library/search", handle_library_search)
     app.router.add_get("/api/library/file", handle_library_file)
     app.router.add_get("/api/library/stats", handle_library_stats)
+    app.router.add_get("/api/library/workspaces", handle_library_workspaces)
+    app.router.add_post("/api/library/workspaces", handle_library_add_workspace)
+    app.router.add_get("/api/library/browse", handle_library_browse)

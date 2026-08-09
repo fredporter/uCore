@@ -17,28 +17,18 @@
         >
           <UIcon name="create_new_folder" />
         </button>
+        <button
+          class="filepicker-sidebar__action-btn"
+          title="Add Workspace"
+          @click="pickerOpen = true"
+        >
+          <UIcon name="add_box" />
+        </button>
       </div>
     </div>
 
     <div v-if="mirrorMessage" class="filepicker-sidebar__mirror-message">
       {{ mirrorMessage }}
-    </div>
-
-    <div class="filepicker-sidebar__switcher">
-      <UIcon name="account_tree" class="filepicker-sidebar__switcher-icon" />
-      <select
-        v-model="activeWorkspace"
-        class="filepicker-sidebar__switcher-select"
-        title="Workspace / Binder"
-      >
-        <option
-          v-for="ws in workspaceOptions"
-          :key="ws.source"
-          :value="ws.source"
-        >
-          {{ ws.label }}
-        </option>
-      </select>
     </div>
 
     <div v-if="indexStatus === 'not-built'" class="filepicker-sidebar__banner">
@@ -57,9 +47,10 @@
       <UButton size="sm" @click="fetchFiles">Retry</UButton>
     </div>
 
-    <div v-else class="filepicker-sidebar__list">
+    <div v-else class="filepicker-sidebar__scroll">
+      <!-- User Vault — always shown, locked as the default -->
       <div
-        v-for="row in activeRows"
+        v-for="row in userRows"
         :key="row.id"
         class="filepicker-sidebar__tree-row"
         :style="{ '--depth': String(row.depth) }"
@@ -67,11 +58,11 @@
         <button
           v-if="row.type === 'folder'"
           class="filepicker-sidebar__folder"
-          @click="toggleFolder(activeWorkspace, row.path)"
+          @click="toggleFolder('user', row.path)"
         >
           <UIcon
             :name="
-              isFolderExpanded(activeWorkspace, row.path)
+              isFolderExpanded('user', row.path)
                 ? 'expand_more'
                 : 'chevron_right'
             "
@@ -119,23 +110,119 @@
         </div>
       </div>
 
-      <div v-if="activeRows.length === 0" class="filepicker-sidebar__empty">
+      <div v-if="userRows.length === 0" class="filepicker-sidebar__empty">
         <UIcon name="mdi:file-document-outline" />
-        <span>No files found in this workspace</span>
+        <span>No files in the User Vault</span>
         <UButton size="sm" variant="ghost" @click="handleNewFile">
           Create a new file
         </UButton>
       </div>
+
+      <!-- Added workspaces -->
+      <section
+        v-for="ws in addedSections"
+        :key="ws.source"
+        class="filepicker-sidebar__section"
+      >
+        <button
+          class="filepicker-sidebar__section-toggle"
+          @click="toggleSection(ws.source)"
+        >
+          <UIcon
+            :name="isSectionOpen(ws.source) ? 'expand_more' : 'chevron_right'"
+            class="filepicker-sidebar__section-chevron"
+          />
+          <UIcon name="folder_open" class="filepicker-sidebar__section-icon" />
+          <span class="filepicker-sidebar__section-title">{{ ws.label }}</span>
+          <span class="filepicker-sidebar__section-count">{{
+            ws.count
+          }}</span>
+        </button>
+
+        <div
+          v-if="isSectionOpen(ws.source)"
+          class="filepicker-sidebar__section-body"
+        >
+          <div
+            v-for="row in ws.rows"
+            :key="row.id"
+            class="filepicker-sidebar__tree-row"
+            :style="{ '--depth': String(row.depth) }"
+          >
+            <button
+              v-if="row.type === 'folder'"
+              class="filepicker-sidebar__folder"
+              @click="toggleFolder(ws.source, row.path)"
+            >
+              <UIcon
+                :name="
+                  isFolderExpanded(ws.source, row.path)
+                    ? 'expand_more'
+                    : 'chevron_right'
+                "
+                class="filepicker-sidebar__folder-chevron"
+              />
+              <UIcon name="folder" class="filepicker-sidebar__folder-icon" />
+              <span class="filepicker-sidebar__folder-name">{{
+                row.name
+              }}</span>
+              <span class="filepicker-sidebar__folder-count">{{
+                row.fileCount
+              }}</span>
+            </button>
+
+            <div
+              v-else
+              class="filepicker-sidebar__item"
+              :class="{
+                'filepicker-sidebar__item--readonly': row.file.is_readonly,
+                'filepicker-sidebar__item--active':
+                  selectedFile?.path === row.file.path,
+              }"
+              @click="handleFileSelect(row.file)"
+              @dblclick="handleDoubleClick(row.file)"
+            >
+              <UIcon
+                :name="getFileIcon(row.file.extension)"
+                class="filepicker-sidebar__item-icon"
+              />
+              <span class="filepicker-sidebar__item-name">{{
+                row.file.filename
+              }}</span>
+              <button
+                class="filepicker-sidebar__item-open"
+                title="Open prose"
+                @click.stop="openInMode(row.file, 'prose')"
+              >
+                <UIcon name="notes" />
+              </button>
+              <button
+                class="filepicker-sidebar__item-open"
+                title="Open code"
+                @click.stop="openInMode(row.file, 'code')"
+              >
+                <UIcon name="code" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
+
+    <WorkspacePickerModal
+      v-if="pickerOpen"
+      @close="pickerOpen = false"
+      @added="onWorkspaceAdded"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 /**
  * @component FilepickerSidebar
- * @description Files-style vault sidebar — a single combined Workspace/Binder
- * switcher over the local vaults (User/Shared/Public) with New File + New Binder
- * actions. Wired to the uCore unified library index API with vault plate integration.
+ * @description Files-style vault sidebar — always locked to the local User Vault,
+ * with user-added workspaces (existing vaults/folders) shown as sections below.
+ * New File / New Binder / Add Workspace actions. Wired to the unified library index.
  * @category molecules
  * @props {boolean} open - Sidebar visibility
  * @props {boolean} compact - Compact mode
@@ -147,6 +234,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import UIcon from "../atoms/UIcon.vue";
 import UButton from "../atoms/UButton.vue";
 import USpinner from "../atoms/USpinner.vue";
+import WorkspacePickerModal from "./WorkspacePickerModal.vue";
 import { ucoreApi } from "../../api/client";
 import { useWorkflowStore } from "../../stores/workflow";
 import type { FileEntry } from "../../types/filepicker";
@@ -173,7 +261,9 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const indexStatus = ref<"ok" | "not-built" | "unknown">("unknown");
 const mirrorMessage = ref("");
-const activeWorkspace = ref<string>("user");
+const pickerOpen = ref(false);
+const addedWorkspaces = ref<AddedWorkspace[]>([]);
+const collapsedSections = ref<Set<string>>(new Set());
 const MARKDOWN_OPEN_MODE_KEY = "ucore.filepicker.markdown-open-mode";
 const markdownOpenMode = ref<"auto" | "prose" | "code">("auto");
 const selectedFile = ref<FileEntry | null>(null);
@@ -229,28 +319,55 @@ function resolveModeForFile(file: FileEntry): "prose" | "code" {
 }
 
 // ─── Fetch files from the unified library index ────────────────────
-// Fetches the full index (all vault sources) once; the Workspace/Binder
-// switcher filters client-side.
+// Fetches per source (User Vault + added workspaces) so added workspaces
+// are never crowded out of the result window by other index entries.
 async function fetchFiles() {
   loading.value = true;
   error.value = null;
   try {
-    const res = await ucoreApi.library.search("*", undefined, 1000);
-    if (res.ok && res.data) {
-      const results = (res.data as any).results || [];
-      // Only vault sources belong in the sidebar — ignore stale index
-      // entries written by other indexers (e.g. code sources).
-      files.value = results.filter(
-        (f: FileEntry) => Boolean(f.source) && VAULT_SOURCES.has(f.source),
-      );
-      autoExpandFirstLevel(files.value);
+    const targets = [
+      "user",
+      ...addedWorkspaces.value.map((w) => w.source),
+    ];
+    const results: FileEntry[] = [];
+    for (const src of targets) {
+      const res = await ucoreApi.library.search("*", src, 1000);
+      if (res.ok && res.data) {
+        results.push(...((res.data as any).results || []));
+      }
     }
+    files.value = results.filter(
+      (f: FileEntry) => Boolean(f.source) && targets.includes(f.source),
+    );
+    autoExpandFirstLevel(files.value);
   } catch (e: any) {
     error.value = e.message || "Failed to fetch files";
     files.value = [];
   } finally {
     loading.value = false;
   }
+}
+
+async function fetchWorkspaces() {
+  try {
+    const res = await ucoreApi.library.workspaces();
+    if (res.ok && res.data) {
+      addedWorkspaces.value = ((res.data as any).workspaces || [])
+        .filter((w: any) => w.exists)
+        .map((w: any) => ({
+          name: String(w.name || ""),
+          path: String(w.path || ""),
+          source: String(w.source || ""),
+        }));
+    }
+  } catch {
+    addedWorkspaces.value = [];
+  }
+}
+
+function onWorkspaceAdded() {
+  mirrorMessage.value = "Workspace added.";
+  void fetchWorkspaces().then(() => fetchFiles());
 }
 
 // ─── Build index ────────────────────────────────────────────────────
@@ -349,29 +466,36 @@ function toggleFolder(source: string, path: string) {
 
 onMounted(async () => {
   loadMarkdownOpenMode();
+  await fetchWorkspaces();
   await checkIndex();
   if (indexStatus.value === "ok") {
     await fetchFiles();
   }
 });
 
-// ─── Workspace / Binder definitions ────────────────────────────────
-const VAULT_SOURCES = new Set(["user", "shared", "public"]);
+// ─── Workspace definitions ─────────────────────────────────────────
+interface AddedWorkspace {
+  name: string;
+  path: string;
+  source: string;
+}
 
-const WORKSPACE_META: Record<string, { label: string; icon: string }> = {
-  user: { label: "Files", icon: "account_tree" },
-  shared: { label: "Shared Vaults", icon: "folder_shared" },
-  public: { label: "Public Vaults", icon: "public" },
-};
-
-const SECTION_ORDER = ["user", "shared", "public"];
-
-interface VaultSection {
+interface AddedSection {
   source: string;
   label: string;
-  icon: string;
   count: number;
-  files: FileEntry[];
+  rows: TreeRow[];
+}
+
+function isSectionOpen(source: string): boolean {
+  return !collapsedSections.value.has(source);
+}
+
+function toggleSection(source: string) {
+  const next = new Set(collapsedSections.value);
+  if (next.has(source)) next.delete(source);
+  else next.add(source);
+  collapsedSections.value = next;
 }
 
 /** Longest common directory prefix across a set of absolute paths. */
@@ -492,38 +616,24 @@ function buildTreeRows(secFiles: FileEntry[], source: string): TreeRow[] {
   return rows;
 }
 
-// ─── Workspace / Binder switcher ────────────────────────────────────
-const workspaceOptions = computed<VaultSection[]>(() => {
-  const bySource = new Map<string, FileEntry[]>();
-  for (const f of files.value) {
-    const key = f.source || "user";
-    const list = bySource.get(key);
-    if (list) list.push(f);
-    else bySource.set(key, [f]);
-  }
-
-  const options: VaultSection[] = [];
-  for (const key of SECTION_ORDER) {
-    const list = bySource.get(key) || [];
-    if (list.length === 0) continue;
-    const meta = WORKSPACE_META[key] || { label: key, icon: "folder" };
-    options.push({
-      source: key,
-      label: meta.label,
-      icon: meta.icon,
-      count: list.length,
-      files: list,
-    });
-  }
-  return options;
-});
-
-const activeFiles = computed<FileEntry[]>(() =>
-  files.value.filter((f) => (f.source || "user") === activeWorkspace.value),
+// ─── Lists ──────────────────────────────────────────────────────────
+const userRows = computed<TreeRow[]>(() =>
+  buildTreeRows(
+    files.value.filter((f) => (f.source || "user") === "user"),
+    "user",
+  ),
 );
 
-const activeRows = computed<TreeRow[]>(() =>
-  buildTreeRows(activeFiles.value, activeWorkspace.value),
+const addedSections = computed<AddedSection[]>(() =>
+  addedWorkspaces.value.map((ws) => {
+    const wsFiles = files.value.filter((f) => f.source === ws.source);
+    return {
+      source: ws.source,
+      label: ws.name,
+      count: wsFiles.length,
+      rows: buildTreeRows(wsFiles, ws.source),
+    };
+  }),
 );
 
 /** Expand the first-level folders of each section once after a fetch. */
@@ -672,36 +782,6 @@ function getFileIcon(ext: string): string {
   color: var(--usx-color-on-surface);
 }
 
-.filepicker-sidebar__switcher {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
-  border-bottom: 1px solid var(--usx-color-border);
-  background-color: var(--usx-color-background);
-  flex-shrink: 0;
-}
-
-.filepicker-sidebar__switcher-icon {
-  font-size: 16px;
-  color: var(--usx-color-on-surface-muted);
-  flex-shrink: 0;
-}
-
-.filepicker-sidebar__switcher-select {
-  flex: 1;
-  min-width: 0;
-  min-height: var(--usx-control-size-sm);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-sm);
-  background: var(--usx-color-surface);
-  color: var(--usx-color-on-surface);
-  padding: 0 var(--usx-spacing-sm);
-  font-size: var(--usx-font-size-sm);
-  font-family: var(--usx-font-family-sans);
-  cursor: pointer;
-}
-
 .filepicker-sidebar__mirror-message {
   padding: var(--usx-spacing-sm);
   border-radius: var(--usx-radius-sm);
@@ -724,7 +804,7 @@ function getFileIcon(ext: string): string {
   flex-shrink: 0;
 }
 
-.filepicker-sidebar__list {
+.filepicker-sidebar__scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -734,13 +814,82 @@ function getFileIcon(ext: string): string {
   padding: var(--usx-spacing-xs) 0;
 }
 
-.filepicker-sidebar__list::-webkit-scrollbar {
+.filepicker-sidebar__scroll::-webkit-scrollbar {
   width: 4px;
 }
 
-.filepicker-sidebar__list::-webkit-scrollbar-thumb {
+.filepicker-sidebar__scroll::-webkit-scrollbar-thumb {
   background-color: var(--usx-color-border);
   border-radius: 2px;
+}
+
+/* ─── Added workspace sections ───────────────────────────────────── */
+.filepicker-sidebar__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: var(--usx-spacing-xs);
+  border-top: 1px solid var(--usx-color-border);
+}
+
+.filepicker-sidebar__section-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  width: 100%;
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  cursor: pointer;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: left;
+  min-height: 0;
+}
+
+.filepicker-sidebar__section-toggle:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--usx-color-primary) 6%,
+    transparent
+  );
+  color: var(--usx-color-on-surface);
+}
+
+.filepicker-sidebar__section-chevron {
+  font-size: 16px;
+  color: var(--usx-color-on-surface-muted);
+  flex-shrink: 0;
+  width: 16px;
+}
+
+.filepicker-sidebar__section-icon {
+  font-size: 14px;
+  color: var(--usx-color-on-surface-muted);
+  flex-shrink: 0;
+}
+
+.filepicker-sidebar__section-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filepicker-sidebar__section-count {
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+  opacity: 0.7;
+}
+
+.filepicker-sidebar__section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .filepicker-sidebar__tree-row {

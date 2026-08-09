@@ -138,6 +138,16 @@ export const ucoreApi = {
     file: (path: string) =>
       request(`${UCORE_API}/api/library/file?path=${encodeURIComponent(path)}`),
     stats: () => request(`${UCORE_API}/api/library/stats`),
+    workspaces: () => request(`${UCORE_API}/api/library/workspaces`),
+    addWorkspace: (body: { path: string; name?: string }) =>
+      request(`${UCORE_API}/api/library/workspaces`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    browse: (path?: string) =>
+      request(
+        `${UCORE_API}/api/library/browse?path=${encodeURIComponent(path || "")}`,
+      ),
   },
   vault: {
     /** Fetch vault layer topology from the plate system */
