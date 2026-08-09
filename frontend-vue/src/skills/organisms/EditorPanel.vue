@@ -1,7 +1,8 @@
 <template>
   <div class="editor-panel">
-    <!-- Document header: prose title + frontmatter table (full-width) -->
-    <div class="editor-panel__doc-header">
+    <!-- Document header: prose title + frontmatter table (full-width).
+         Hidden in Preview (Prose view) — the rendered document takes over. -->
+    <div v-if="viewMode !== 'preview'" class="editor-panel__doc-header">
       <div class="editor-panel__doc-titlebar">
         <h1 class="editor-panel__doc-title">{{ docTitle }}</h1>
         <button
