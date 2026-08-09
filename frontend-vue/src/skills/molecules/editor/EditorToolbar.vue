@@ -189,14 +189,17 @@ const emit = defineEmits<{
   color: var(--usx-color-on-surface);
 }
 
-/* Mode tabs: subtle segmented grouping */
+/* Mode tabs: subtle segmented grouping. Uses an inset ring (no real border or
+   padding) so the wrapper adds ZERO height — the toolbar stays 2rem tall and
+   matches the editor toolbar height when side by side. */
 .editor-toolbar__mode-tabs {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  background-color: var(--usx-color-background);
-  border: 1px solid var(--usx-color-border);
+  padding: 0;
+  border: none;
+  background: transparent;
   border-radius: var(--usx-radius-md);
-  padding: 2px;
+  box-shadow: inset 0 0 0 1px var(--usx-color-border);
 }
 </style>
