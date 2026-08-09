@@ -1,60 +1,85 @@
 <template>
   <div class="markdown-editor">
-    <!-- Formatting toolbar — Phase 3: Material Symbols icons -->
-    <div v-if="!readOnly" class="markdown-editor__toolbar">
-      <!-- Text formatting -->
-      <button class="markdown-btn" title="Bold (Ctrl+B)" @click="applyBold">
-        <span class="material-symbols-outlined">format_bold</span>
-      </button>
-      <button class="markdown-btn" title="Italic (Ctrl+I)" @click="applyItalic">
-        <span class="material-symbols-outlined">format_italic</span>
-      </button>
-      <button
-        class="markdown-btn"
-        title="Underline (Ctrl+U)"
-        @click="applyUnderline"
-      >
-        <span class="material-symbols-outlined">format_underlined</span>
-      </button>
-      <button class="markdown-btn" title="Inline code" @click="applyCode">
-        <span class="material-symbols-outlined">code</span>
-      </button>
-      <div class="markdown-separator" />
-      <!-- Block elements -->
-      <button class="markdown-btn" title="Heading 2" @click="applyHeading">
-        <span class="material-symbols-outlined">title</span>
-      </button>
-      <button class="markdown-btn" title="Block quote" @click="applyBlockquote">
-        <span class="material-symbols-outlined">format_quote</span>
-      </button>
-      <button class="markdown-btn" title="Bullet list" @click="applyBulletList">
-        <span class="material-symbols-outlined">format_list_bulleted</span>
-      </button>
-      <button
-        class="markdown-btn"
-        title="Ordered list"
-        @click="applyOrderedList"
-      >
-        <span class="material-symbols-outlined">format_list_numbered</span>
-      </button>
-      <div class="markdown-separator" />
-      <!-- Edit controls -->
-      <button class="markdown-btn" title="Undo" @click="undo">
-        <span class="material-symbols-outlined">undo</span>
-      </button>
-      <button class="markdown-btn" title="Redo" @click="redo">
-        <span class="material-symbols-outlined">redo</span>
-      </button>
+    <!-- Toolbar: formatting buttons (prose + editable only) plus a slot for
+         external controls (save, view mode, close) injected by the parent -->
+    <div class="markdown-editor__toolbar">
+      <template v-if="!readOnly && editMode !== 'code'">
+        <!-- Text formatting -->
+        <button class="markdown-btn" title="Bold (Ctrl+B)" @click="applyBold">
+          <span class="material-symbols-outlined">format_bold</span>
+        </button>
+        <button
+          class="markdown-btn"
+          title="Italic (Ctrl+I)"
+          @click="applyItalic"
+        >
+          <span class="material-symbols-outlined">format_italic</span>
+        </button>
+        <button
+          class="markdown-btn"
+          title="Underline (Ctrl+U)"
+          @click="applyUnderline"
+        >
+          <span class="material-symbols-outlined">format_underlined</span>
+        </button>
+        <button class="markdown-btn" title="Inline code" @click="applyCode">
+          <span class="material-symbols-outlined">code</span>
+        </button>
+        <div class="markdown-separator" />
+        <!-- Block elements -->
+        <button class="markdown-btn" title="Heading 2" @click="applyHeading">
+          <span class="material-symbols-outlined">title</span>
+        </button>
+        <button
+          class="markdown-btn"
+          title="Block quote"
+          @click="applyBlockquote"
+        >
+          <span class="material-symbols-outlined">format_quote</span>
+        </button>
+        <button
+          class="markdown-btn"
+          title="Bullet list"
+          @click="applyBulletList"
+        >
+          <span class="material-symbols-outlined">format_list_bulleted</span>
+        </button>
+        <button
+          class="markdown-btn"
+          title="Ordered list"
+          @click="applyOrderedList"
+        >
+          <span class="material-symbols-outlined">format_list_numbered</span>
+        </button>
+        <div class="markdown-separator" />
+        <!-- Edit controls -->
+        <button class="markdown-btn" title="Undo" @click="undo">
+          <span class="material-symbols-outlined">undo</span>
+        </button>
+        <button class="markdown-btn" title="Redo" @click="redo">
+          <span class="material-symbols-outlined">redo</span>
+        </button>
+      </template>
+      <!-- External controls injected by parent (save, view mode, close, …) -->
+      <slot name="toolbar-actions" />
     </div>
 
-    <!-- Markdown editor content area -->
+    <!-- Raw markdown code editor (preserves line breaks) -->
+    <textarea
+      v-if="editMode === 'code'"
+      class="markdown-editor__code"
+      :value="modelValue"
+      :readonly="readOnly"
+      spellcheck="false"
+      @input="onCodeInput"
+    />
+
+    <!-- ProseMirror WYSIWYG editor -->
     <div
+      v-else
       ref="editorEl"
       class="markdown-editor__host"
-      :class="{
-        'markdown-editor__host--code': editMode === 'code',
-        'markdown-editor__host--readonly': readOnly,
-      }"
+      :class="{ 'markdown-editor__host--readonly': readOnly }"
     />
   </div>
 </template>
@@ -293,13 +318,30 @@ function instantiateEditor(initialValue: string) {
 }
 
 function currentValue(): string {
+  if (editMode.value === "code") return props.modelValue;
   if (!editor) return props.modelValue;
   return docToMarkdown(editor);
+}
+
+/** Handle typing in the raw markdown (code) textarea. */
+function onCodeInput(event: Event) {
+  const value = (event.target as HTMLTextAreaElement).value;
+  if (value === lastExternalValue) {
+    return;
+  }
+  lastExternalValue = value;
+  emit("update:modelValue", value);
+  emit("change", value);
 }
 
 watch(
   () => props.modelValue,
   (value) => {
+    // In code mode the textarea binds directly to modelValue.
+    if (editMode.value === "code") {
+      lastExternalValue = value;
+      return;
+    }
     if (value === currentValue()) {
       lastExternalValue = value;
       return;
@@ -408,6 +450,30 @@ onBeforeUnmount(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* ─── Raw markdown (code) editor ────────────────────────────────── */
+.markdown-editor__code {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  resize: none;
+  border: none;
+  outline: none;
+  box-sizing: border-box;
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
+  font-family: var(--usx-font-family-mono);
+  font-size: var(--usx-font-size-sm);
+  line-height: 1.6;
+  padding: var(--usx-spacing-md);
+  white-space: pre-wrap;
+  word-break: break-word;
+  tab-size: 2;
+}
+
+.markdown-editor__code:focus {
+  outline: none;
 }
 
 :deep(.ProseMirror) {

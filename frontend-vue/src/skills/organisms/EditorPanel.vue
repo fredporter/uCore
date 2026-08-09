@@ -1,88 +1,7 @@
 <template>
   <div class="editor-panel">
-    <!-- Compact toolbar: file tree, view modes, essential controls (no title) -->
-    <div class="editor-panel__toolbar">
-      <div class="editor-panel__toolbar-left">
-        <button
-          class="editor-panel__nav-btn"
-          :class="{ 'editor-panel__nav-btn--active': shell.sidebarOpen }"
-          title="Toggle Files sidebar"
-          @click="shell.toggleSidebar()"
-        >
-          <UIcon name="account_tree" />
-        </button>
-      </div>
-      <div class="editor-panel__toolbar-center">
-        <!-- Edit / Preview mode tabs -->
-        <div class="editor-panel__mode-tabs">
-          <button
-            class="editor-panel__mode-tab"
-            :class="{ 'editor-panel__mode-tab--active': viewMode === 'edit' }"
-            @click="viewMode = 'edit'"
-          >
-            <UIcon name="edit" /> Edit
-          </button>
-          <button
-            class="editor-panel__mode-tab"
-            :class="{
-              'editor-panel__mode-tab--active': viewMode === 'preview',
-            }"
-            @click="viewMode = 'preview'"
-          >
-            <UIcon name="visibility" /> Preview
-          </button>
-          <button
-            class="editor-panel__mode-tab"
-            :class="{ 'editor-panel__mode-tab--active': viewMode === 'split' }"
-            title="Side-by-side"
-            @click="viewMode = 'split'"
-          >
-            <UIcon name="vertical_split" /> Split
-          </button>
-        </div>
-      </div>
-      <div class="editor-panel__toolbar-right">
-        <button
-          v-if="!readOnly"
-          class="editor-panel__nav-btn editor-panel__nav-btn--save"
-          title="Save (Ctrl+S)"
-          @click="handleSave"
-        >
-          <UIcon name="save" />
-        </button>
-        <button
-          class="editor-panel__nav-btn"
-          :class="{ 'editor-panel__nav-btn--active': researchOpen }"
-          title="Research panel"
-          @click="researchOpen = !researchOpen"
-        >
-          <UIcon name="science" />
-        </button>
-        <button
-          class="editor-panel__nav-btn"
-          :class="{
-            'editor-panel__nav-btn--active': localEditMode === 'prose',
-          }"
-          :title="
-            localEditMode === 'prose'
-              ? 'Switch to code view'
-              : 'Switch to prose view'
-          "
-          @click="toggleEditMode"
-        >
-          <UIcon :name="localEditMode === 'prose' ? 'notes' : 'code'" />
-        </button>
-        <button
-          class="editor-panel__nav-btn"
-          title="Close editor"
-          @click="emit('close')"
-        >
-          <UIcon name="close" />
-        </button>
-      </div>
-    </div>
-
-    <!-- Body: editor | research panel (single global sidebar handles files) -->
+    <!-- Body: editor | preview | research panel (no redundant topbar —
+         controls live in the MarkdownEditor toolbar below) -->
     <div class="editor-panel__body">
       <!-- Main editor column -->
       <div
@@ -97,9 +16,33 @@
           @update:model-value="onFrontmatterChange"
         />
 
-        <!-- WYSIWYG editor pane -->
+        <!-- Preview-only: slim control bar so the document stays reachable -->
+        <template v-if="viewMode === 'preview'">
+          <div class="editor-panel__preview-bar">
+            <EditorToolbar
+              :view-mode="viewMode"
+              :research-open="researchOpen"
+              :edit-mode="localEditMode"
+              :read-only="readOnly"
+              :sidebar-open="shell.sidebarOpen"
+              @update:view-mode="onViewModeChange"
+              @toggle-sidebar="shell.toggleSidebar()"
+              @toggle-research="researchOpen = !researchOpen"
+              @toggle-edit-mode="toggleEditMode"
+              @save="handleSave"
+              @close="emit('close')"
+            />
+          </div>
+          <MarkdownPreview
+            :content="localContent"
+            :filename="currentFilename"
+            class="editor-panel__preview"
+          />
+        </template>
+
+        <!-- WYSIWYG / code editor pane (controls injected into its toolbar) -->
         <MarkdownEditor
-          v-if="viewMode !== 'preview'"
+          v-else
           v-model="localContent"
           :preview="false"
           :read-only="readOnly"
@@ -108,11 +51,27 @@
           :class="{ 'editor-panel__markdown--split': viewMode === 'split' }"
           @save="handleSave"
           @change="onContentChange"
-        />
+        >
+          <template #toolbar-actions>
+            <EditorToolbar
+              :view-mode="viewMode"
+              :research-open="researchOpen"
+              :edit-mode="localEditMode"
+              :read-only="readOnly"
+              :sidebar-open="shell.sidebarOpen"
+              @update:view-mode="onViewModeChange"
+              @toggle-sidebar="shell.toggleSidebar()"
+              @toggle-research="researchOpen = !researchOpen"
+              @toggle-edit-mode="toggleEditMode"
+              @save="handleSave"
+              @close="emit('close')"
+            />
+          </template>
+        </MarkdownEditor>
 
-        <!-- Markdown preview pane -->
+        <!-- Markdown preview pane (split view) -->
         <MarkdownPreview
-          v-if="viewMode !== 'edit'"
+          v-if="viewMode === 'split'"
           :content="localContent"
           :filename="currentFilename"
           class="editor-panel__preview"
@@ -133,10 +92,10 @@
 <script setup lang="ts">
 /**
  * @component EditorPanel
- * @description Simplified markdown editor using Markdown WYSIWYG as the primary interface.
- *   - Full-width Markdown editor with unified toolbar
- *   - Essential controls: save, mode toggle, close
- *   - No preview pane (WYSIWYG eliminates need for side-by-side preview)
+ * @description Markdown editor using Markdown WYSIWYG as the primary interface.
+ *   - Split view (editor + preview) shown by default
+ *   - No redundant topbar: controls live in the MarkdownEditor toolbar below
+ *   - Prose (WYSIWYG) and code (raw markdown, line breaks preserved) modes
  * @category skills/organisms
  * @props {string} content - Markdown content (v-model)
  * @props {string} title - Display title
@@ -147,8 +106,8 @@
  * @emits {void} close - Close entire editor
  */
 import { ref, watch, computed } from "vue";
-import UIcon from "../atoms/UIcon.vue";
 import MarkdownEditor from "../molecules/editor/MarkdownEditor.vue";
+import EditorToolbar from "../molecules/editor/EditorToolbar.vue";
 import FrontmatterPills from "../molecules/editor/FrontmatterPills.vue";
 import MarkdownPreview from "../molecules/MarkdownPreview.vue";
 import ResearchPanel from "../molecules/editor/ResearchPanel.vue";
@@ -186,10 +145,14 @@ const shell = useShellStore();
 // ─── State ───────────────────────────────────────────────────────────
 const localContent = ref(props.content);
 const localEditMode = ref<"prose" | "code">(props.editMode);
-const viewMode = ref<"edit" | "preview" | "split">("edit");
+const viewMode = ref<"edit" | "preview" | "split">("split");
 const researchOpen = ref(false);
 
 const currentFilename = computed(() => props.title || "Untitled.md");
+
+function onViewModeChange(mode: "edit" | "preview" | "split") {
+  viewMode.value = mode;
+}
 
 // ─── Frontmatter ─────────────────────────────────────────────────────
 const parsed = computed(() => parseDocument(props.content || ""));
@@ -251,83 +214,21 @@ function toggleEditMode() {
   background: var(--usx-color-background);
 }
 
-/* ─── Toolbar — compact, essential controls only ─────────────────── */
-.editor-panel__toolbar {
+/* ─── Preview-only control bar (keeps actions reachable without editor) ── */
+.editor-panel__preview-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--usx-spacing-md);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  justify-content: flex-end;
   flex-shrink: 0;
-  min-height: var(--usx-touch-min-sm);
-  gap: var(--usx-spacing-sm);
-}
-
-.editor-panel__toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-sm);
-  min-width: 0;
-  font-size: 1.25em;
-}
-
-.editor-panel__toolbar-center {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-md);
-  flex: 1;
-  justify-content: center;
-}
-
-.editor-panel__engine-chip {
-  display: inline-flex;
-  align-items: center;
   padding: var(--usx-spacing-2) var(--usx-spacing-sm);
-  border-radius: var(--usx-radius-full);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  background: var(--usx-color-surface-variant);
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-sm);
-  font-weight: var(--usx-font-weight-medium);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-surface);
 }
 
-.editor-panel__toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-2);
-  flex-shrink: 0;
-}
-
-/* ─── Nav buttons — icon-only, transparent, colour toggles active ───── */
-.editor-panel__nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--usx-control-size-sm);
-  height: var(--usx-control-size-sm);
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--usx-color-on-surface-muted);
-  cursor: pointer;
-  font-size: 1.25em;
-  transition: color var(--usx-transition-fast);
-}
-
-.editor-panel__nav-btn:hover {
-  color: var(--usx-color-on-surface);
-}
-
-.editor-panel__nav-btn--active {
-  color: var(--usx-color-primary);
-}
-
-.editor-panel__nav-btn--save {
-  color: var(--usx-color-primary);
-}
-
-.editor-panel__nav-btn--save:hover {
-  color: var(--usx-color-on-surface);
+.editor-panel__preview-bar .editor-toolbar {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: none;
 }
 
 /* ─── 2-column body layout ───────────────────────────────────────── */
@@ -368,45 +269,6 @@ function toggleEditMode() {
 
 .editor-panel__markdown--split {
   border-right: 1px solid var(--usx-color-border);
-}
-
-/* ─── Mode tabs ───────────────────────────────────────────────────── */
-
-.editor-panel__mode-tabs {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  background-color: var(--usx-color-background);
-  border: 1px solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  padding: 3px;
-}
-
-.editor-panel__mode-tab {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  padding: 3px var(--usx-spacing-md);
-  border: none;
-  background: transparent;
-  border-radius: var(--usx-radius-sm);
-  cursor: pointer;
-  font-size: var(--usx-font-size-xs);
-  font-family: var(--usx-font-family-sans);
-  color: var(--usx-color-on-surface-muted);
-  transition: all 120ms ease;
-  white-space: nowrap;
-}
-
-.editor-panel__mode-tab:hover {
-  color: var(--usx-color-on-surface);
-  background-color: var(--usx-color-surface-variant);
-}
-
-.editor-panel__mode-tab--active {
-  background-color: var(--usx-color-surface);
-  color: var(--usx-color-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* ─── Sidebar slide transition ────────────────────────────────────── */
