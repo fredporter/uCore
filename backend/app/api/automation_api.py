@@ -137,12 +137,48 @@ async def handle_notebooks(request: web.Request) -> web.Response:
     return web.json_response({"notebooks": _list_notebooks()})
 
 
+async def handle_notebook_markdown(request: web.Request) -> web.Response:
+    """POST /api/automation/notebooks/markdown — convert a notebook to
+    markdown for viewing in a markdown editor.
+
+    Body: { path }
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON payload"}, status=400)
+
+    rel_path = str(body.get("path") or "").strip()
+    if not rel_path:
+        return web.json_response({"error": "path is required"}, status=400)
+
+    nb_path = (KNOWLEDGE_ROOT / rel_path).resolve()
+    if not nb_path.exists() or nb_path.suffix.lower() != ".ipynb":
+        return web.json_response(
+            {"error": f"Notebook not found: {rel_path}"}, status=404,
+        )
+
+    try:
+        markdown = _notebook_to_markdown(nb_path)
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
+    return web.json_response(
+        {
+            "path": rel_path,
+            "title": nb_path.stem.replace("-", " ").title(),
+            "markdown": markdown,
+        },
+    )
+
+
 # ── Notebook → Jekyll publishing ─────────────────────────────────
 
 def _notebook_to_markdown(path: Path) -> str:
     """Convert a .ipynb notebook into markdown (cell by cell).
 
-    Falls back to a naive read if nbformat is unavailable.
+    Parses the notebook JSON directly (no nbformat dependency). Falls back
+    to a naive text read if the JSON is malformed.
     """
     try:
         import nbformat
@@ -151,21 +187,51 @@ def _notebook_to_markdown(path: Path) -> str:
         parts: list[str] = []
         for cell in nb.cells:
             if cell.cell_type == "markdown":
-                parts.append(cell.source.strip("\n"))
+                parts.append(_cell_source(cell))
             elif cell.cell_type == "code":
-                source = cell.source.strip("\n")
-                if not source:
+                source = _cell_source(cell)
+                if not source.strip():
                     continue
-                parts.append("```python\n" + source + "\n```")
+                parts.append("```python\n" + source.strip("\n") + "\n```")
             elif cell.cell_type == "raw":
-                parts.append(cell.source.strip("\n"))
+                parts.append(_cell_source(cell))
         return "\n\n".join(parts)
     except ImportError:
-        log.warning("nbformat unavailable — falling back to naive notebook read")
-        text = path.read_text(errors="replace")
-        return text[:20000]
+        log.warning("nbformat unavailable — parsing notebook JSON directly")
+        return _notebook_to_markdown_json(path)
     except Exception as exc:
         raise ValueError(f"Failed to convert notebook: {exc}") from exc
+
+
+def _cell_source(cell) -> str:
+    src = getattr(cell, "source", "")
+    if isinstance(src, list):
+        return "".join(str(line) for line in src)
+    return str(src)
+
+
+def _notebook_to_markdown_json(path: Path) -> str:
+    """Convert a .ipynb notebook to markdown by parsing the JSON directly."""
+    import json as _json
+
+    data = _json.loads(path.read_text(encoding="utf-8"))
+    cells = data.get("cells", [])
+    parts: list[str] = []
+    for cell in cells:
+        ctype = cell.get("cell_type", "")
+        src = cell.get("source", [])
+        if isinstance(src, list):
+            src = "".join(str(line) for line in src)
+        src = str(src)
+        if ctype == "markdown":
+            parts.append(src.strip("\n"))
+        elif ctype == "code":
+            if not src.strip():
+                continue
+            parts.append("```python\n" + src.strip("\n") + "\n```")
+        elif ctype == "raw":
+            parts.append(src.strip("\n"))
+    return "\n\n".join(parts)
 
 
 async def handle_publish_notebook(request: web.Request) -> web.Response:
@@ -448,6 +514,7 @@ async def handle_research_generate(request: web.Request) -> web.Response:
         "path": str(out_path),
         "filename": out_path.name,
         "source": "llm" if enriched else "template",
+        "content": document,
     }
 
     # Optionally publish to Jekyll.
@@ -473,6 +540,9 @@ def register_automation_routes(app: web.Application) -> None:
     app.router.add_get("/api/automation/status", handle_status)
     app.router.add_post("/api/automation/run", handle_run)
     app.router.add_get("/api/automation/notebooks", handle_notebooks)
+    app.router.add_post(
+        "/api/automation/notebooks/markdown", handle_notebook_markdown,
+    )
     app.router.add_post(
         "/api/automation/notebooks/publish", handle_publish_notebook,
     )
