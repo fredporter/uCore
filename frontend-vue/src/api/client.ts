@@ -129,9 +129,10 @@ export const ucoreApi = {
   },
   library: {
     build: () => request(`${UCORE_API}/api/library/build`, { method: "POST" }),
-    search: (query: string, source?: string) => {
+    search: (query: string, source?: string, limit?: number) => {
       let url = `${UCORE_API}/api/library/search?q=${encodeURIComponent(query)}`;
       if (source) url += `&source=${source}`;
+      if (limit) url += `&limit=${limit}`;
       return request(url);
     },
     file: (path: string) =>

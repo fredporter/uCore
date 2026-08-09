@@ -58,38 +58,26 @@
       {{ mirrorMessage }}
     </div>
 
-    <div class="filepicker-sidebar__filters">
-      <div class="filepicker-sidebar__filter-row">
-        <WorkspaceFilter
-          ref="workspaceFilterRef"
-          @source-change="onSourceChange"
-        />
-        <BinderMissionFilter
-          ref="binderFilterRef"
-          @binder-change="onBinderChange"
-        />
-      </div>
-      <div class="filepicker-sidebar__search-row">
-        <UInput
-          v-model="searchQuery"
-          placeholder="Filter current binder..."
-          icon="search"
-          class="filepicker-sidebar__search"
-        />
-        <label class="filepicker-sidebar__mode-inline" for="markdown-open-mode">
-          <UIcon name="diamond" class="filepicker-sidebar__inline-icon" />
-          <select
-            id="markdown-open-mode"
-            v-model="markdownOpenMode"
-            class="filepicker-sidebar__mode-select"
-            title="Open as"
-          >
-            <option value="auto">Auto</option>
-            <option value="prose">Prose</option>
-            <option value="code">Code</option>
-          </select>
-        </label>
-      </div>
+    <div class="filepicker-sidebar__search-row">
+      <UInput
+        v-model="searchQuery"
+        placeholder="Filter files..."
+        icon="search"
+        class="filepicker-sidebar__search"
+      />
+      <label class="filepicker-sidebar__mode-inline" for="markdown-open-mode">
+        <UIcon name="diamond" class="filepicker-sidebar__inline-icon" />
+        <select
+          id="markdown-open-mode"
+          v-model="markdownOpenMode"
+          class="filepicker-sidebar__mode-select"
+          title="Open as"
+        >
+          <option value="auto">Auto</option>
+          <option value="prose">Prose</option>
+          <option value="code">Code</option>
+        </select>
+      </label>
     </div>
 
     <div v-if="indexStatus === 'not-built'" class="filepicker-sidebar__banner">
@@ -109,71 +97,117 @@
     </div>
 
     <div v-else class="filepicker-sidebar__tree">
-      <div class="filepicker-sidebar__tree-summary">
-        <span>{{ filteredFiles.length }} files</span>
-        <span>Binder: {{ selectedBinder || "All" }}</span>
-      </div>
-      <div
-        v-for="row in treeRows"
-        :key="row.id"
-        class="filepicker-sidebar__tree-row"
-        :style="{ '--depth': String(row.depth) }"
+      <!-- Files-style sections: default Files (User Vault) + other Workspaces -->
+      <section
+        v-for="section in sections"
+        :key="section.source"
+        class="filepicker-sidebar__section"
+        :class="{
+          'filepicker-sidebar__section--open': isSectionOpen(section.source),
+        }"
       >
         <button
-          v-if="row.type === 'folder'"
-          class="filepicker-sidebar__folder"
-          @click="toggleFolder(row.path)"
+          class="filepicker-sidebar__section-head"
+          @click="toggleSection(section.source)"
         >
           <UIcon
-            :name="isFolderExpanded(row.path) ? 'expand_more' : 'chevron_right'"
-            class="filepicker-sidebar__folder-chevron"
+            :name="
+              isSectionOpen(section.source) ? 'expand_more' : 'chevron_right'
+            "
+            class="filepicker-sidebar__section-chevron"
           />
-          <UIcon name="folder" class="filepicker-sidebar__folder-icon" />
-          <span class="filepicker-sidebar__folder-name">{{ row.name }}</span>
-          <span class="filepicker-sidebar__folder-count">{{
-            row.fileCount
+          <UIcon
+            :name="section.icon"
+            class="filepicker-sidebar__section-icon"
+          />
+          <span class="filepicker-sidebar__section-title">{{
+            section.label
+          }}</span>
+          <span class="filepicker-sidebar__section-count">{{
+            section.count
           }}</span>
         </button>
 
         <div
-          v-else
-          class="filepicker-sidebar__item"
-          :class="{
-            'filepicker-sidebar__item--readonly': row.file.is_readonly,
-            'filepicker-sidebar__item--active':
-              selectedFile?.path === row.file.path,
-          }"
-          @click="handleFileSelect(row.file)"
-          @dblclick="handleDoubleClick(row.file)"
+          v-if="isSectionOpen(section.source)"
+          class="filepicker-sidebar__section-body"
         >
-          <UIcon
-            :name="getFileIcon(row.file.extension)"
-            class="filepicker-sidebar__item-icon"
-          />
-          <span class="filepicker-sidebar__item-name">{{
-            row.file.filename
-          }}</span>
-          <button
-            class="filepicker-sidebar__item-open"
-            title="Open prose"
-            @click.stop="openInMode(row.file, 'prose')"
+          <div
+            v-for="row in rowsFor(section)"
+            :key="row.id"
+            class="filepicker-sidebar__tree-row"
+            :style="{ '--depth': String(row.depth) }"
           >
-            <UIcon name="notes" />
-          </button>
-          <button
-            class="filepicker-sidebar__item-open"
-            title="Open code"
-            @click.stop="openInMode(row.file, 'code')"
-          >
-            <UIcon name="code" />
-          </button>
-        </div>
-      </div>
+            <button
+              v-if="row.type === 'folder'"
+              class="filepicker-sidebar__folder"
+              @click="toggleFolder(section.source, row.path)"
+            >
+              <UIcon
+                :name="
+                  isFolderExpanded(section.source, row.path)
+                    ? 'expand_more'
+                    : 'chevron_right'
+                "
+                class="filepicker-sidebar__folder-chevron"
+              />
+              <UIcon name="folder" class="filepicker-sidebar__folder-icon" />
+              <span class="filepicker-sidebar__folder-name">{{
+                row.name
+              }}</span>
+              <span class="filepicker-sidebar__folder-count">{{
+                row.fileCount
+              }}</span>
+            </button>
 
-      <div v-if="treeRows.length === 0" class="filepicker-sidebar__empty">
+            <div
+              v-else
+              class="filepicker-sidebar__item"
+              :class="{
+                'filepicker-sidebar__item--readonly': row.file.is_readonly,
+                'filepicker-sidebar__item--active':
+                  selectedFile?.path === row.file.path,
+              }"
+              @click="handleFileSelect(row.file)"
+              @dblclick="handleDoubleClick(row.file)"
+            >
+              <UIcon
+                :name="getFileIcon(row.file.extension)"
+                class="filepicker-sidebar__item-icon"
+              />
+              <span class="filepicker-sidebar__item-name">{{
+                row.file.filename
+              }}</span>
+              <button
+                class="filepicker-sidebar__item-open"
+                title="Open prose"
+                @click.stop="openInMode(row.file, 'prose')"
+              >
+                <UIcon name="notes" />
+              </button>
+              <button
+                class="filepicker-sidebar__item-open"
+                title="Open code"
+                @click.stop="openInMode(row.file, 'code')"
+              >
+                <UIcon name="code" />
+              </button>
+            </div>
+          </div>
+
+          <div
+            v-if="section.count === 0 && searchQuery"
+            class="filepicker-sidebar__section-empty"
+          >
+            No files match "{{ searchQuery }}"
+          </div>
+        </div>
+      </section>
+
+      <div v-if="sections.length === 0" class="filepicker-sidebar__empty">
         <UIcon name="mdi:file-document-outline" />
         <span v-if="searchQuery">No files matching "{{ searchQuery }}"</span>
-        <span v-else>No files found in this binder</span>
+        <span v-else>No files found in the vault</span>
         <UButton size="sm" variant="ghost" @click="handleNewFile">
           Create a new file
         </UButton>
@@ -185,7 +219,8 @@
 <script setup lang="ts">
 /**
  * @component FilepickerSidebar
- * @description Unified filepicker sidebar — vault layer → binder/mission → search.
+ * @description Files-style vault sidebar — default User Vault Files view, with
+ * other workspaces (Shared/Public vaults) shown as their own Files sections.
  * Wired to the uCore unified library index API with vault plate integration.
  * @category molecules
  * @props {boolean} open - Sidebar visibility
@@ -199,8 +234,6 @@ import UInput from "../atoms/UInput.vue";
 import UIcon from "../atoms/UIcon.vue";
 import UButton from "../atoms/UButton.vue";
 import USpinner from "../atoms/USpinner.vue";
-import WorkspaceFilter from "./WorkspaceFilter.vue";
-import BinderMissionFilter from "./BinderMissionFilter.vue";
 import { ucoreApi } from "../../api/client";
 import { SNACKBAR_BASE } from "../../api/base";
 import { useRouter } from "vue-router";
@@ -225,12 +258,7 @@ const router = useRouter();
 const wf = useWorkflowStore();
 
 // ─── Refs ───────────────────────────────────────────────────────────
-const workspaceFilterRef = ref<InstanceType<typeof WorkspaceFilter>>();
-const binderFilterRef = ref<InstanceType<typeof BinderMissionFilter>>();
-
 const searchQuery = ref("");
-const selectedSource = ref<string>("user");
-const selectedBinder = ref<string>("Sandbox");
 const files = ref<FileEntry[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -309,35 +337,22 @@ async function refreshDeveloperServerStatus() {
 }
 
 // ─── Fetch files from the unified library index ────────────────────
+// Fetches the full index (all vault sources) so the sidebar can show the
+// default User Vault Files view plus other workspaces as separate sections.
 async function fetchFiles() {
   loading.value = true;
   error.value = null;
   try {
     const query = searchQuery.value.trim() || "*";
-    const res = await ucoreApi.library.search(
-      query,
-      selectedSource.value || undefined,
-    );
+    const res = await ucoreApi.library.search(query, undefined, 1000);
     if (res.ok && res.data) {
       const results = (res.data as any).results || [];
-      files.value = results;
-
-      // Extract unique binders from results to populate binder filter
-      const binderSet = new Set<string>();
-      results.forEach((f: FileEntry) => {
-        if (f.binder) binderSet.add(f.binder);
-        if (f.mission) binderSet.add(f.mission);
-      });
-      const binderList = Array.from(binderSet).map((id) => ({ id, name: id }));
-      if (binderFilterRef.value) {
-        binderFilterRef.value.setBinders([
-          { id: "Sandbox", name: "Sandbox" },
-          { id: "active", name: "Active" },
-          { id: "docs", name: "Documentation" },
-          { id: "archive", name: "Archive" },
-          ...binderList,
-        ]);
-      }
+      // Only vault sources belong in the sidebar — ignore stale index
+      // entries written by other indexers (e.g. code sources).
+      files.value = results.filter(
+        (f: FileEntry) => Boolean(f.source) && VAULT_SOURCES.has(f.source),
+      );
+      autoExpandFirstLevel(files.value);
     }
   } catch (e: any) {
     error.value = e.message || "Failed to fetch files";
@@ -383,39 +398,19 @@ watch(searchQuery, () => {
   searchTimer = setTimeout(() => fetchFiles(), 300);
 });
 
-function onSourceChange(source: string) {
-  selectedSource.value = source;
-  if (source === "user") {
-    void syncUserVault();
-  }
-  fetchFiles();
-}
-
-function onBinderChange(binder: string) {
-  selectedBinder.value = binder;
-  // Re-filter locally or re-fetch
-  fetchFiles();
-}
-
 function handleNewFile() {
-  emit("newFile", selectedBinder.value || "Sandbox");
+  emit("newFile", "user");
 }
 
 function handleFileSelect(file: FileEntry) {
   selectedFile.value = file;
   wf.setEditorMode(resolveModeForFile(file));
-  emit("fileSelect", {
-    ...file,
-    binder: file.binder || "Sandbox",
-  });
+  emit("fileSelect", { ...file });
 }
 
 function openInMode(file: FileEntry, mode: "prose" | "code") {
   wf.setEditorMode(mode);
-  emit("fileSelect", {
-    ...file,
-    binder: file.binder || "Sandbox",
-  });
+  emit("fileSelect", { ...file });
 }
 
 function openMarkdownWorkspace() {
@@ -469,7 +464,9 @@ async function duplicateSelectedFile() {
       content,
       source_format: "markdown",
       title: cleanTitle,
-      binder: source.binder || selectedBinder.value || "Sandbox",
+      binder: source.source || "user",
+      vault_layer: source.source || "user",
+      relative_dir: ".",
       filename: `${safeStem}.${ext}`,
       metadata: {
         imported_from: "filepicker.duplicate",
@@ -483,16 +480,21 @@ async function duplicateSelectedFile() {
   }
 }
 
-function isFolderExpanded(path: string): boolean {
-  return expandedFolders.value.has(path);
+function folderKey(source: string, path: string): string {
+  return `${source}:${path}`;
 }
 
-function toggleFolder(path: string) {
+function isFolderExpanded(source: string, path: string): boolean {
+  return expandedFolders.value.has(folderKey(source, path));
+}
+
+function toggleFolder(source: string, path: string) {
+  const key = folderKey(source, path);
   const next = new Set(expandedFolders.value);
-  if (next.has(path)) {
-    next.delete(path);
+  if (next.has(key)) {
+    next.delete(key);
   } else {
-    next.add(path);
+    next.add(key);
   }
   expandedFolders.value = next;
 }
@@ -520,22 +522,65 @@ onMounted(async () => {
   }
 });
 
-// ─── Computed ───────────────────────────────────────────────────────
-const filteredFiles = computed(() => {
-  let result = files.value;
+// ─── Files-style sections ───────────────────────────────────────────
+const VAULT_SOURCES = new Set(["user", "shared", "public"]);
 
-  // Apply binder filter locally if set
-  if (selectedBinder.value) {
-    result = result.filter(
-      (f) =>
-        f.binder === selectedBinder.value || f.mission === selectedBinder.value,
-    );
+const WORKSPACE_META: Record<string, { label: string; icon: string }> = {
+  user: { label: "Files", icon: "account_tree" },
+  shared: { label: "Shared Vaults", icon: "folder_shared" },
+  public: { label: "Public Vaults", icon: "public" },
+};
+
+const SECTION_ORDER = ["user", "shared", "public"];
+
+const collapsedSections = ref<Set<string>>(new Set(["shared", "public"]));
+
+function isSectionOpen(source: string): boolean {
+  return !collapsedSections.value.has(source);
+}
+
+function toggleSection(source: string) {
+  const next = new Set(collapsedSections.value);
+  if (next.has(source)) {
+    next.delete(source);
+  } else {
+    next.add(source);
   }
+  collapsedSections.value = next;
+}
 
-  return result;
-});
+interface VaultSection {
+  source: string;
+  label: string;
+  icon: string;
+  count: number;
+  files: FileEntry[];
+}
 
-const treeRows = computed<TreeRow[]>(() => {
+/** Longest common directory prefix across a set of absolute paths. */
+function commonRoot(paths: string[]): string {
+  if (paths.length === 0) return "";
+  let prefix = paths[0];
+  for (const p of paths) {
+    let i = 0;
+    while (i < prefix.length && i < p.length && prefix[i] === p[i]) i += 1;
+    prefix = prefix.slice(0, i);
+  }
+  const idx = prefix.lastIndexOf("/");
+  return idx > 0 ? prefix.slice(0, idx) : prefix;
+}
+
+/** Path relative to the vault root (e.g. "Notes/foo.md" or "foo.md"). */
+function relPath(file: FileEntry, root: string): string {
+  if (!root) return file.path;
+  const p = file.path.startsWith(root)
+    ? file.path.slice(root.length)
+    : file.path;
+  return p.replace(/^\/+/, "");
+}
+
+function buildTreeRows(secFiles: FileEntry[], source: string): TreeRow[] {
+  const root = commonRoot(secFiles.map((f) => f.path));
   const folders = new Map<
     string,
     {
@@ -563,12 +608,10 @@ const treeRows = computed<TreeRow[]>(() => {
     childFiles.get(parent)!.push(file);
   };
 
-  for (const file of filteredFiles.value) {
-    const parts = String(file.path || "")
-      .split("/")
-      .filter(Boolean);
-
-    const filename = file.filename || parts[parts.length - 1] || file.path;
+  for (const file of secFiles) {
+    const rel = relPath(file, root);
+    const parts = rel.split("/").filter(Boolean);
+    const filename = parts[parts.length - 1] || file.filename || file.path;
     const folderParts = parts.length > 1 ? parts.slice(0, -1) : [];
     let parent = "";
     for (let i = 0; i < folderParts.length; i += 1) {
@@ -588,10 +631,7 @@ const treeRows = computed<TreeRow[]>(() => {
       parent = path;
     }
 
-    addFileChild(parent, {
-      ...file,
-      filename,
-    });
+    addFileChild(parent, { ...file, filename });
   }
 
   const rows: TreeRow[] = [];
@@ -605,14 +645,14 @@ const treeRows = computed<TreeRow[]>(() => {
       const folder = folders.get(folderId);
       if (!folder) continue;
       rows.push({
-        id: `folder:${folder.path}`,
+        id: `folder:${source}:${folder.path}`,
         type: "folder",
         path: folder.path,
         name: folder.name,
         depth,
         fileCount: folder.fileCount,
       });
-      if (isFolderExpanded(folder.path)) {
+      if (isFolderExpanded(source, folder.path)) {
         walk(folder.path, depth + 1);
       }
     }
@@ -633,29 +673,81 @@ const treeRows = computed<TreeRow[]>(() => {
 
   walk("", 0);
   return rows;
+}
+
+function rowsFor(section: VaultSection): TreeRow[] {
+  return buildTreeRows(section.files, section.source);
+}
+
+const sections = computed<VaultSection[]>(() => {
+  const bySource = new Map<string, FileEntry[]>();
+  for (const f of files.value) {
+    const key = f.source || "user";
+    const list = bySource.get(key);
+    if (list) {
+      list.push(f);
+    } else {
+      bySource.set(key, [f]);
+    }
+  }
+
+  const ordered: VaultSection[] = [];
+  const seen = new Set<string>();
+
+  for (const key of SECTION_ORDER) {
+    const list = bySource.get(key) || [];
+    if (list.length === 0) continue;
+    seen.add(key);
+    const meta = WORKSPACE_META[key] || { label: key, icon: "folder" };
+    ordered.push({
+      source: key,
+      label: meta.label,
+      icon: meta.icon,
+      count: list.length,
+      files: list,
+    });
+  }
+
+  for (const [key, list] of bySource) {
+    if (seen.has(key)) continue;
+    if (!VAULT_SOURCES.has(key)) continue;
+    const meta = WORKSPACE_META[key] || { label: key, icon: "folder" };
+    ordered.push({
+      source: key,
+      label: meta.label,
+      icon: meta.icon,
+      count: list.length,
+      files: list,
+    });
+  }
+
+  return ordered;
 });
 
-watch(filteredFiles, (next) => {
-  if (next.length === 0) {
-    expandedFolders.value = new Set();
+/** Expand the first-level folders of each section once after a fetch. */
+function autoExpandFirstLevel(results: FileEntry[]) {
+  if (expandedFolders.value.size > 0 || results.length === 0) {
     return;
   }
-
-  if (expandedFolders.value.size > 0) {
-    return;
+  const bySource = new Map<string, FileEntry[]>();
+  for (const f of results) {
+    const key = f.source || "user";
+    const list = bySource.get(key);
+    if (list) list.push(f);
+    else bySource.set(key, [f]);
   }
-
   const firstLevel = new Set<string>();
-  for (const file of next) {
-    const parts = String(file.path || "")
-      .split("/")
-      .filter(Boolean);
-    if (parts.length > 1) {
-      firstLevel.add(parts[0]);
+  for (const [source, list] of bySource) {
+    const root = commonRoot(list.map((f) => f.path));
+    for (const f of list) {
+      const parts = relPath(f, root).split("/").filter(Boolean);
+      if (parts.length > 1) {
+        firstLevel.add(`${source}:${parts[0]}`);
+      }
     }
   }
   expandedFolders.value = firstLevel;
-});
+}
 
 // ─── Icon mapping ───────────────────────────────────────────────────
 function getFileIcon(ext: string): string {
@@ -843,34 +935,6 @@ function getFileIcon(ext: string): string {
   font-size: var(--filepicker-ui-font-size);
 }
 
-.filepicker-sidebar__filters {
-  --filepicker-filter-label-size: var(--usx-font-size-xs);
-  --filepicker-filter-label-weight: var(--usx-font-weight-semibold);
-  --filepicker-filter-label-transform: none;
-  --filepicker-filter-label-color: var(--usx-color-on-surface-muted);
-  --filepicker-filter-label-spacing: 0.01em;
-  --filepicker-select-min-height: var(--usx-control-size-sm);
-  --filepicker-select-height: var(--usx-control-size-sm);
-  --filepicker-select-padding-y: 0;
-  --filepicker-select-padding-x: var(--usx-spacing-sm);
-  --filepicker-select-radius: var(--usx-radius-sm);
-  --filepicker-select-font-size: var(--usx-font-size-sm);
-  --filepicker-select-bg: var(--usx-color-surface);
-  --filepicker-select-border-width: var(--usx-border-width);
-  --filepicker-select-border-color: var(--usx-color-border);
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-xs);
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.filepicker-sidebar__filter-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--usx-spacing-xs);
-}
-
 .filepicker-sidebar__banner {
   display: flex;
   align-items: center;
@@ -907,6 +971,73 @@ function getFileIcon(ext: string): string {
   top: 0;
   z-index: 1;
   background: var(--usx-color-surface);
+}
+
+/* ─── Files-style sections ───────────────────────────────────────── */
+.filepicker-sidebar__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.filepicker-sidebar__section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  width: 100%;
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  border: none;
+  background: transparent;
+  border-radius: var(--usx-radius-sm);
+  cursor: pointer;
+  color: var(--usx-color-on-surface);
+  font-size: var(--usx-font-size-sm);
+  font-weight: var(--usx-font-weight-semibold);
+  min-height: var(--usx-control-size-sm);
+  text-align: left;
+}
+
+.filepicker-sidebar__section-head:hover {
+  background: color-mix(in srgb, var(--usx-color-primary) 7%, transparent);
+}
+
+.filepicker-sidebar__section-chevron,
+.filepicker-sidebar__section-icon {
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-base);
+  flex-shrink: 0;
+}
+
+.filepicker-sidebar__section-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filepicker-sidebar__section-count {
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-full);
+  min-width: calc(var(--usx-control-size-sm) * 0.8);
+  min-height: calc(var(--usx-control-size-sm) * 0.6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--usx-spacing-xs);
+}
+
+.filepicker-sidebar__section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.filepicker-sidebar__section-empty {
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-xs);
 }
 
 .filepicker-sidebar__tree-row {

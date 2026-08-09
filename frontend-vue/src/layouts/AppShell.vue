@@ -87,7 +87,7 @@ async function handleFileSelect(file: FileEntry) {
 }
 
 async function handleNewFile(binderId: string) {
-  const binder = (binderId || "Sandbox").trim() || "Sandbox";
+  const binder = (binderId || "user").trim() || "user";
   const titleInput = window.prompt(
     "New markdown document title",
     "Untitled Note",
@@ -108,6 +108,8 @@ async function handleNewFile(binderId: string) {
     source_format: "markdown",
     title,
     binder,
+    vault_layer: "user",
+    relative_dir: ".",
     filename: `${safeStem}.md`,
     metadata: {
       imported_from: "filepicker.new-file",
