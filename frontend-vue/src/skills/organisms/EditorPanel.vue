@@ -159,10 +159,7 @@ const docTitle = computed(() => {
   if (typeof fmTitle === "string" && fmTitle.trim()) {
     return fmTitle.trim();
   }
-  return String(props.title || "Untitled").replace(
-    /\.(md|markdown|txt)$/i,
-    "",
-  );
+  return String(props.title || "Untitled").replace(/\.(md|markdown|txt)$/i, "");
 });
 
 function onViewModeChange(mode: "edit" | "preview" | "split") {
