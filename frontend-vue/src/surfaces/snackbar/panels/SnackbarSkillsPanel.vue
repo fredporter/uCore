@@ -2,14 +2,14 @@
   <div>
     <div class="usx-flex-between usx-mb-md">
       <div>
-        <h3 class="surface__panel-title">Executables</h3>
+        <h3 class="surface__panel-title">Skills</h3>
         <p class="server-muted-text-sm">
-          {{ filteredExecutables.length }} executable{{
+          {{ filteredExecutables.length }} skill{{
             filteredExecutables.length !== 1 ? "s" : ""
           }}
-          (skills + snack plugins) &middot;
+          &middot; on-demand &middot;
           <span v-if="filter !== ''"
-            >filtered from {{ srv.executables.length }}</span
+            >filtered from {{ srv.executables.length }} total</span
           >
         </p>
       </div>
@@ -17,7 +17,7 @@
         <input
           v-model="filter"
           type="search"
-          placeholder="Filter executables..."
+          placeholder="Filter skills..."
           class="usx-input skills-search-input"
         />
         <UButton
@@ -33,9 +33,9 @@
 
     <div v-if="filteredExecutables.length === 0" class="server-muted-text">
       {{
-        srv.executables.length === 0
-          ? "No executables discovered."
-          : "No executables match your filter."
+        skills.length === 0
+          ? "No skills discovered."
+          : "No skills match your filter."
       }}
     </div>
     <div v-else class="server-table-wrap">
@@ -140,6 +140,12 @@ const runResult = ref<unknown>(null);
 const runSkillId = ref("");
 const runError = ref<string | null>(null);
 
+// Skills = executables of kind "skill" — on-demand, may be composed into
+// automations. (Snacks live under the Snacks tab for the scheduler.)
+const skills = computed(() =>
+  srv.executables.filter((s) => s.kind === "skill"),
+);
+
 const CATEGORY_ICONS: Record<string, string> = {
   orchestration: "account_tree",
   devtools: "code",
@@ -161,8 +167,8 @@ function exeIcon(exe: { kind: string; category: string }): string {
 
 const filteredExecutables = computed(() => {
   const q = filter.value.toLowerCase().trim();
-  if (!q) return srv.executables;
-  return srv.executables.filter(
+  if (!q) return skills.value;
+  return skills.value.filter(
     (s) =>
       s.name.toLowerCase().includes(q) ||
       s.id.toLowerCase().includes(q) ||

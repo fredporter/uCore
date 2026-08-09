@@ -128,50 +128,6 @@
         </tbody>
       </table>
     </div>
-
-    <!-- Agents subsection -->
-    <div class="usx-mt-xl">
-      <div class="usx-flex-between usx-mb-sm">
-        <h4 class="surface__panel-title server-subheading">Agents</h4>
-        <UButton
-          variant="secondary"
-          size="sm"
-          icon="refresh"
-          @click="srv.fetchAgents"
-          >Refresh</UButton
-        >
-      </div>
-      <div v-if="srv.agents.length === 0" class="server-muted-text-sm">
-        No agents available.
-      </div>
-      <div v-else class="server-table-wrap">
-        <table class="server-table">
-          <thead>
-            <tr>
-              <th>Agent</th>
-              <th>Description</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="agent in srv.agents" :key="agent.id">
-              <td>
-                <span class="server-service-name-cell">
-                  <UIcon :name="agent.icon || 'smart_toy'" />
-                  <span>{{ agent.name }}</span>
-                </span>
-              </td>
-              <td class="server-muted-text-sm">{{ agent.description }}</td>
-              <td>
-                <UBadge :type="agent.active ? 'success' : 'info'" size="sm">
-                  {{ agent.active ? "running" : "idle" }}
-                </UBadge>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
   </div>
 </template>
 

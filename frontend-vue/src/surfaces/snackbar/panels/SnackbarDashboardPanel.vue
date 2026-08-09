@@ -28,12 +28,6 @@
         }}</span>
         <span class="server-stat-label">Down</span>
       </div>
-      <div class="server-stat">
-        <span class="server-stat-value server-stat-value--budget"
-          >${{ budgetDisplay }}</span
-        >
-        <span class="server-stat-label">Budget</span>
-      </div>
     </div>
     <div class="surface__panel">
       <h3 class="surface__panel-title">Services</h3>
@@ -63,9 +57,6 @@ import { useSnackbarOpsStore } from "../../../stores/snackbarOps";
 
 const srv = useSnackbarOpsStore();
 
-const budgetDisplay = computed(() =>
-  srv.budgetRemaining != null ? srv.budgetRemaining.toFixed(2) : "—",
-);
 const healthClass = computed(() => {
   const pct = srv.healthPct;
   return pct >= 80
@@ -126,9 +117,6 @@ const healthClass = computed(() => {
 }
 .server-stat-value--down {
   color: var(--usx-color-danger);
-}
-.server-stat-value--budget {
-  color: var(--usx-color-primary);
 }
 .server-stat-label {
   font-size: var(--usx-font-size-sm);

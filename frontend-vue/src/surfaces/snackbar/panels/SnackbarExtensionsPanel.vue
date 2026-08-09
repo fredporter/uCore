@@ -1,6 +1,6 @@
 <template>
   <div class="snackbar-plugins">
-    <h3 class="surface__panel-title">Plugin Store</h3>
+    <h3 class="surface__panel-title">Extensions</h3>
     <p class="snackbar-plugins__muted">
       Browse and manage installed extensions.
     </p>
@@ -8,7 +8,7 @@
     <div v-if="catalogue.length === 0" class="snackbar-plugins__empty">
       <span class="material-symbols-outlined">extension</span>
       <p>
-        No plugins available yet. Extensions will appear here when detected.
+        No extensions available yet. Extensions will appear here when detected.
       </p>
     </div>
 

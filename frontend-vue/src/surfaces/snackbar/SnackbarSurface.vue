@@ -21,11 +21,19 @@
       <div v-else-if="activeTab === 'services'" class="server-tab-shell">
         <SnackbarServicesPanel />
       </div>
-      <!-- Skills/Executables -->
+      <!-- Agents -->
+      <div v-else-if="activeTab === 'agents'" class="server-tab-shell">
+        <SnackbarAgentsPanel />
+      </div>
+      <!-- Feeds (feed-spool) -->
+      <div v-else-if="activeTab === 'feeds'" class="server-tab-shell">
+        <SnackbarFeedsPanel />
+      </div>
+      <!-- Skills (on-demand) -->
       <div v-else-if="activeTab === 'skills'" class="server-tab-shell">
         <SnackbarSkillsPanel />
       </div>
-      <!-- Events (feed-spool) -->
+      <!-- Snacks (scheduler / set-and-forget) -->
       <div v-else-if="activeTab === 'snacks'" class="server-tab-shell">
         <SnackbarSnacksPanel />
       </div>
@@ -33,9 +41,9 @@
       <div v-else-if="activeTab === 'logs'" class="server-tab-shell">
         <SnackbarLogsPanel />
       </div>
-      <!-- Plugins -->
-      <div v-else-if="activeTab === 'plugins'" class="server-tab-shell">
-        <SnackbarPluginsPanel />
+      <!-- Extensions -->
+      <div v-else-if="activeTab === 'extensions'" class="server-tab-shell">
+        <SnackbarExtensionsPanel />
       </div>
       <div v-else class="server-tab-shell">
         <SnackbarDashboardPanel />
@@ -48,7 +56,7 @@
 /**
  * @component SnackbarSurface
  * @description Snackbar operations surface — wired to /api/server/* backend.
- * Dashboard, services, snacks, logs, plugins.
+ * Dashboard, services, agents, feeds, skills, snacks, logs, extensions.
  * @category surfaces
  * @usage Routed at '/snackbar/*'
  */
@@ -65,17 +73,23 @@ import SnackbarDashboardPanel from "./panels/SnackbarDashboardPanel.vue";
 const SnackbarServicesPanel = defineAsyncComponent(
   () => import("./panels/SnackbarServicesPanel.vue"),
 );
-const SnackbarSnacksPanel = defineAsyncComponent(
-  () => import("./panels/SnackbarSnacksPanel.vue"),
+const SnackbarAgentsPanel = defineAsyncComponent(
+  () => import("./panels/SnackbarAgentsPanel.vue"),
+);
+const SnackbarFeedsPanel = defineAsyncComponent(
+  () => import("./panels/SnackbarFeedsPanel.vue"),
 );
 const SnackbarSkillsPanel = defineAsyncComponent(
   () => import("./panels/SnackbarSkillsPanel.vue"),
 );
+const SnackbarSnacksPanel = defineAsyncComponent(
+  () => import("./panels/SnackbarSnacksPanel.vue"),
+);
 const SnackbarLogsPanel = defineAsyncComponent(
   () => import("./panels/SnackbarLogsPanel.vue"),
 );
-const SnackbarPluginsPanel = defineAsyncComponent(
-  () => import("./panels/SnackbarPluginsPanel.vue"),
+const SnackbarExtensionsPanel = defineAsyncComponent(
+  () => import("./panels/SnackbarExtensionsPanel.vue"),
 );
 import {
   useSnackbarOpsStore,
