@@ -125,7 +125,9 @@ async function addCurrent() {
   adding.value = true;
   error.value = "";
   try {
-    const res = await ucoreApi.library.addWorkspace({ path: currentPath.value });
+    const res = await ucoreApi.library.addWorkspace({
+      path: currentPath.value,
+    });
     if (!res.ok) {
       throw new Error((res.data as any)?.error || `HTTP ${res.status}`);
     }

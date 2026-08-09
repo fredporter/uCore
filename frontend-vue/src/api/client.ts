@@ -144,6 +144,17 @@ export const ucoreApi = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    createWorkspaceFile: (body: {
+      source: string;
+      title: string;
+      filename?: string;
+      binder?: string;
+      content?: string;
+    }) =>
+      request(`${UCORE_API}/api/library/workspaces/file`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
     browse: (path?: string) =>
       request(
         `${UCORE_API}/api/library/browse?path=${encodeURIComponent(path || "")}`,

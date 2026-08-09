@@ -102,19 +102,77 @@ def register_workspace(name: str, path_value: str) -> dict[str, Any]:
     _save_workspaces(workspaces)
 
     # Index the workspace files immediately so they appear in the sidebar.
-    entries = _scan_source(source, path)
+    count = _index_source_entries(source, path)
+
+    return {
+        "name": safe_name,
+        "path": str(path),
+        "source": source,
+        "files": count,
+    }
+
+
+def _index_source_entries(source: str, root: Path) -> int:
+    """Scan a source root and upsert all its entries into the index."""
+    entries = _scan_source(source, root)
     conn = sqlite3.connect(str(INDEX_DB))
     _ensure_schema(conn)
     for entry in entries:
         _upsert_entry(conn, entry)
     conn.commit()
     conn.close()
+    return len(entries)
 
+
+def workspace_root(source: str) -> Path | None:
+    """Resolve the filesystem root for a source (user vault or added workspace)."""
+    if source == "user":
+        return Path.home() / "Vault"
+    for ws in list_workspaces():
+        if ws.get("source") == source:
+            return Path(ws["path"])
+    return None
+
+
+def create_workspace_file(
+    source: str, title: str, filename: str, binder: str, content: str,
+) -> dict[str, Any]:
+    """Create a markdown file (optionally inside a binder subfolder) in a workspace."""
+    root = workspace_root(source)
+    if root is None:
+        raise ValueError(f"Unknown workspace: {source}")
+    if not root.exists():
+        raise ValueError(f"Workspace path does not exist: {root}")
+
+    clean_title = (title or "").strip() or "Untitled"
+    safe_name = (filename or "").strip() or (
+        re.sub(r"[^a-zA-Z0-9._ -]+", "-", clean_title).strip().replace(" ", "-")
+        + ".md"
+    )
+    if not safe_name.lower().endswith(".md"):
+        safe_name += ".md"
+    if any(part in safe_name for part in ("..", "/", "\\")):
+        raise ValueError("Invalid filename")
+
+    safe_binder = (binder or "").strip()
+    if any(part in safe_binder for part in ("..", "/", "\\")):
+        raise ValueError("Invalid binder name")
+
+    target = root
+    if safe_binder:
+        target = root / safe_binder
+    target.mkdir(parents=True, exist_ok=True)
+
+    body = content or f"# {clean_title}\n\n"
+    out = target / safe_name
+    out.write_text(body, encoding="utf-8")
+
+    _index_source_entries(source, root)
     return {
-        "name": safe_name,
-        "path": str(path),
+        "status": "ok",
+        "path": str(out),
         "source": source,
-        "files": len(entries),
+        "binder": safe_binder or None,
     }
 
 

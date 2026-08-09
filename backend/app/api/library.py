@@ -43,6 +43,35 @@ async def handle_library_add_workspace(request: web.Request) -> web.Response:
         return web.json_response({"error": str(exc)}, status=500)
 
 
+async def handle_library_workspace_file(request: web.Request) -> web.Response:
+    """POST /api/library/workspaces/file — create a markdown file in a workspace."""
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        return web.json_response({"error": "Invalid JSON payload"}, status=400)
+
+    source = str(body.get("source") or "").strip()
+    if not source:
+        return web.json_response({"error": "source is required"}, status=400)
+
+    try:
+        from app.services.library_index import create_workspace_file
+
+        result = create_workspace_file(
+            source=source,
+            title=str(body.get("title") or ""),
+            filename=str(body.get("filename") or ""),
+            binder=str(body.get("binder") or ""),
+            content=str(body.get("content") or ""),
+        )
+        return web.json_response(result)
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    except Exception as exc:
+        log.exception("Create workspace file failed")
+        return web.json_response({"error": str(exc)}, status=500)
+
+
 async def handle_library_browse(request: web.Request) -> web.Response:
     """GET /api/library/browse?path=... — list subdirectories for the picker."""
     try:
@@ -159,4 +188,7 @@ def register_library_routes(app: web.Application) -> None:
     app.router.add_get("/api/library/stats", handle_library_stats)
     app.router.add_get("/api/library/workspaces", handle_library_workspaces)
     app.router.add_post("/api/library/workspaces", handle_library_add_workspace)
+    app.router.add_post(
+        "/api/library/workspaces/file", handle_library_workspace_file,
+    )
     app.router.add_get("/api/library/browse", handle_library_browse)

@@ -1,7 +1,7 @@
 <template>
   <div class="filepicker-sidebar">
     <div class="filepicker-sidebar__header">
-      <span class="filepicker-sidebar__heading">Files</span>
+      <span class="filepicker-sidebar__heading">Vault</span>
       <div class="filepicker-sidebar__actions">
         <button
           class="filepicker-sidebar__action-btn"
@@ -91,7 +91,7 @@
             class="filepicker-sidebar__item-icon"
           />
           <span class="filepicker-sidebar__item-name">{{
-            row.file.filename
+            displayName(row.file.filename)
           }}</span>
           <button
             class="filepicker-sidebar__item-open"
@@ -118,31 +118,41 @@
         </UButton>
       </div>
 
-      <!-- Added workspaces -->
+      <!-- Added workspaces: each its own row like Vault, 3 icons as breaker -->
       <section
         v-for="ws in addedSections"
         :key="ws.source"
-        class="filepicker-sidebar__section"
+        class="filepicker-sidebar__workspace"
       >
-        <button
-          class="filepicker-sidebar__section-toggle"
-          @click="toggleSection(ws.source)"
-        >
-          <UIcon
-            :name="isSectionOpen(ws.source) ? 'expand_more' : 'chevron_right'"
-            class="filepicker-sidebar__section-chevron"
-          />
-          <UIcon name="folder_open" class="filepicker-sidebar__section-icon" />
-          <span class="filepicker-sidebar__section-title">{{ ws.label }}</span>
-          <span class="filepicker-sidebar__section-count">{{
-            ws.count
+        <div class="filepicker-sidebar__workspace-header">
+          <span class="filepicker-sidebar__workspace-title">{{
+            ws.label
           }}</span>
-        </button>
-
-        <div
-          v-if="isSectionOpen(ws.source)"
-          class="filepicker-sidebar__section-body"
-        >
+          <div class="filepicker-sidebar__actions">
+            <button
+              class="filepicker-sidebar__action-btn"
+              title="New file"
+              @click="handleWorkspaceNewFile(ws.source)"
+            >
+              <UIcon name="note_add" />
+            </button>
+            <button
+              class="filepicker-sidebar__action-btn"
+              title="New binder"
+              @click="handleWorkspaceNewBinder(ws.source)"
+            >
+              <UIcon name="create_new_folder" />
+            </button>
+            <button
+              class="filepicker-sidebar__action-btn"
+              title="Add Workspace"
+              @click="pickerOpen = true"
+            >
+              <UIcon name="add_box" />
+            </button>
+          </div>
+        </div>
+        <div class="filepicker-sidebar__workspace-body">
           <div
             v-for="row in ws.rows"
             :key="row.id"
@@ -187,7 +197,7 @@
                 class="filepicker-sidebar__item-icon"
               />
               <span class="filepicker-sidebar__item-name">{{
-                row.file.filename
+                displayName(row.file.filename)
               }}</span>
               <button
                 class="filepicker-sidebar__item-open"
@@ -220,9 +230,9 @@
 <script setup lang="ts">
 /**
  * @component FilepickerSidebar
- * @description Files-style vault sidebar — always locked to the local User Vault,
- * with user-added workspaces (existing vaults/folders) shown as sections below.
- * New File / New Binder / Add Workspace actions. Wired to the unified library index.
+ * @description Vault-style sidebar — always locked to the local User Vault,
+ * with user-added workspaces (existing vaults/folders) shown as their own rows
+ * below. Shows markdown files only. New File / New Binder / Add Workspace actions.
  * @category molecules
  * @props {boolean} open - Sidebar visibility
  * @props {boolean} compact - Compact mode
@@ -263,7 +273,6 @@ const indexStatus = ref<"ok" | "not-built" | "unknown">("unknown");
 const mirrorMessage = ref("");
 const pickerOpen = ref(false);
 const addedWorkspaces = ref<AddedWorkspace[]>([]);
-const collapsedSections = ref<Set<string>>(new Set());
 const MARKDOWN_OPEN_MODE_KEY = "ucore.filepicker.markdown-open-mode";
 const markdownOpenMode = ref<"auto" | "prose" | "code">("auto");
 const selectedFile = ref<FileEntry | null>(null);
@@ -325,10 +334,7 @@ async function fetchFiles() {
   loading.value = true;
   error.value = null;
   try {
-    const targets = [
-      "user",
-      ...addedWorkspaces.value.map((w) => w.source),
-    ];
+    const targets = ["user", ...addedWorkspaces.value.map((w) => w.source)];
     const results: FileEntry[] = [];
     for (const src of targets) {
       const res = await ucoreApi.library.search("*", src, 1000);
@@ -428,6 +434,54 @@ async function handleNewBinder() {
   }
 }
 
+/** Create a markdown file inside an added workspace. */
+async function handleWorkspaceNewFile(source: string) {
+  const raw = window.prompt("New file title", "Untitled");
+  const title = (raw || "").trim();
+  if (!title) return;
+  if (await createWorkspaceDoc(source, { title })) {
+    mirrorMessage.value = "File created.";
+  }
+}
+
+/** Create a binder folder inside an added workspace. */
+async function handleWorkspaceNewBinder(source: string) {
+  const raw = window.prompt("New binder name", "");
+  const name = (raw || "").trim();
+  if (!name) return;
+  if (
+    await createWorkspaceDoc(source, {
+      title: `${name} README`,
+      filename: "README.md",
+      binder: name,
+    })
+  ) {
+    mirrorMessage.value = `Binder "${name}" created.`;
+  }
+}
+
+async function createWorkspaceDoc(
+  source: string,
+  payload: { title: string; filename?: string; binder?: string },
+): Promise<boolean> {
+  mirrorMessage.value = "";
+  try {
+    const res = await ucoreApi.library.createWorkspaceFile({
+      source,
+      title: payload.title,
+      filename: payload.filename || "",
+      binder: payload.binder || "",
+      content: `# ${payload.title}\n\n`,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    await fetchFiles();
+    return true;
+  } catch (e: any) {
+    mirrorMessage.value = `Create failed: ${e?.message || e}`;
+    return false;
+  }
+}
+
 function handleFileSelect(file: FileEntry) {
   selectedFile.value = file;
   wf.setEditorMode(resolveModeForFile(file));
@@ -487,15 +541,22 @@ interface AddedSection {
   rows: TreeRow[];
 }
 
-function isSectionOpen(source: string): boolean {
-  return !collapsedSections.value.has(source);
+/** Segments to hide in the file tree (dot-folders, @-workspaces). */
+function isHiddenSegment(segment: string): boolean {
+  return segment.startsWith(".") || segment.startsWith("@");
 }
 
-function toggleSection(source: string) {
-  const next = new Set(collapsedSections.value);
-  if (next.has(source)) next.delete(source);
-  else next.add(source);
-  collapsedSections.value = next;
+/** Markdown files only, skipping hidden (. / @) paths — hides empty folders. */
+function isVisibleFile(f: FileEntry): boolean {
+  if (String(f.extension || "").toLowerCase() !== "md") return false;
+  return !String(f.path || "")
+    .split("/")
+    .some(isHiddenSegment);
+}
+
+/** Strip the .md extension for display. */
+function displayName(filename: string): string {
+  return filename.replace(/\.md$/i, "");
 }
 
 /** Longest common directory prefix across a set of absolute paths. */
@@ -619,14 +680,18 @@ function buildTreeRows(secFiles: FileEntry[], source: string): TreeRow[] {
 // ─── Lists ──────────────────────────────────────────────────────────
 const userRows = computed<TreeRow[]>(() =>
   buildTreeRows(
-    files.value.filter((f) => (f.source || "user") === "user"),
+    files.value.filter(
+      (f) => (f.source || "user") === "user" && isVisibleFile(f),
+    ),
     "user",
   ),
 );
 
 const addedSections = computed<AddedSection[]>(() =>
   addedWorkspaces.value.map((ws) => {
-    const wsFiles = files.value.filter((f) => f.source === ws.source);
+    const wsFiles = files.value.filter(
+      (f) => f.source === ws.source && isVisibleFile(f),
+    );
     return {
       source: ws.source,
       label: ws.name,
@@ -823,70 +888,36 @@ function getFileIcon(ext: string): string {
   border-radius: 2px;
 }
 
-/* ─── Added workspace sections ───────────────────────────────────── */
-.filepicker-sidebar__section {
+/* ─── Added workspaces — each its own row like Vault ─────────────── */
+.filepicker-sidebar__workspace {
   display: flex;
   flex-direction: column;
   gap: 0;
-  margin-top: var(--usx-spacing-xs);
+  margin-top: var(--usx-spacing-sm);
   border-top: 1px solid var(--usx-color-border);
 }
 
-.filepicker-sidebar__section-toggle {
+.filepicker-sidebar__workspace-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--usx-spacing-xs);
-  width: 100%;
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border: none;
-  background: transparent;
-  border-radius: 0;
-  cursor: pointer;
-  color: var(--usx-color-on-surface-muted);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  flex-shrink: 0;
+}
+
+.filepicker-sidebar__workspace-title {
   font-size: var(--usx-font-size-xs);
   font-weight: var(--usx-font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  text-align: left;
-  min-height: 0;
-}
-
-.filepicker-sidebar__section-toggle:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--usx-color-primary) 6%,
-    transparent
-  );
-  color: var(--usx-color-on-surface);
-}
-
-.filepicker-sidebar__section-chevron {
-  font-size: 16px;
   color: var(--usx-color-on-surface-muted);
-  flex-shrink: 0;
-  width: 16px;
-}
-
-.filepicker-sidebar__section-icon {
-  font-size: 14px;
-  color: var(--usx-color-on-surface-muted);
-  flex-shrink: 0;
-}
-
-.filepicker-sidebar__section-title {
-  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.filepicker-sidebar__section-count {
-  font-size: var(--usx-font-size-xs);
-  color: var(--usx-color-on-surface-muted);
-  opacity: 0.7;
-}
-
-.filepicker-sidebar__section-body {
+.filepicker-sidebar__workspace-body {
   display: flex;
   flex-direction: column;
   gap: 0;
