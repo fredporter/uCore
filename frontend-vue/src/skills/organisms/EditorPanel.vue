@@ -303,7 +303,7 @@ function toggleEditMode() {
   display: flex;
   flex-direction: column;
   gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-md) var(--usx-spacing-lg);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-lg) var(--usx-spacing-md);
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
   background: transparent;
   max-height: 40%;
