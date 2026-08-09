@@ -1,5 +1,16 @@
 <template>
   <div class="editor-panel">
+    <!-- Document header: prose title + frontmatter table (full-width) -->
+    <div class="editor-panel__doc-header">
+      <h1 class="editor-panel__doc-title">{{ docTitle }}</h1>
+      <FrontmatterPills
+        v-if="hasFrontmatter"
+        v-model="frontmatter"
+        :can-edit="!readOnly"
+        @update:model-value="onFrontmatterChange"
+      />
+    </div>
+
     <!-- Body: editor | preview | research panel (no redundant topbar —
          controls live in the MarkdownEditor toolbar below) -->
     <div class="editor-panel__body">
@@ -8,14 +19,6 @@
         class="editor-panel__main"
         :class="`editor-panel__main--${viewMode}`"
       >
-        <!-- Frontmatter pills (when metadata present) -->
-        <FrontmatterPills
-          v-if="hasFrontmatter"
-          v-model="frontmatter"
-          :can-edit="!readOnly"
-          @update:model-value="onFrontmatterChange"
-        />
-
         <!-- Preview-only: slim control bar so the document stays reachable -->
         <template v-if="viewMode === 'preview'">
           <div class="editor-panel__preview-bar">
@@ -150,6 +153,18 @@ const researchOpen = ref(false);
 
 const currentFilename = computed(() => props.title || "Untitled.md");
 
+/** Prose document title: frontmatter title if present, else filename stem. */
+const docTitle = computed(() => {
+  const fmTitle = frontmatter.value?.title;
+  if (typeof fmTitle === "string" && fmTitle.trim()) {
+    return fmTitle.trim();
+  }
+  return String(props.title || "Untitled").replace(
+    /\.(md|markdown|txt)$/i,
+    "",
+  );
+});
+
 function onViewModeChange(mode: "edit" | "preview" | "split") {
   viewMode.value = mode;
 }
@@ -255,9 +270,39 @@ function toggleEditMode() {
   min-width: 0;
 }
 
+/* Document header (title + frontmatter table) — full-width block above body */
+.editor-panel__doc-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-lg);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-surface-variant);
+  max-height: 40%;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.editor-panel__doc-title {
+  margin: 0;
+  padding: 0;
+  font-family: var(--usx-font-family-sans);
+  font-size: var(--usx-font-size-2xl);
+  font-weight: var(--usx-font-weight-bold);
+  color: var(--usx-color-on-surface);
+  line-height: 1.2;
+  word-break: break-word;
+}
+
 /* Split view: Markdown + Preview side-by-side */
 .editor-panel__main--split {
   flex-direction: row;
+}
+
+/* The editor pane fills its container — disable the standalone
+   --usx-editor-min-height so it never overflows the split body */
+.editor-panel__markdown {
+  --usx-editor-min-height: 0;
 }
 
 .editor-panel__markdown--split,

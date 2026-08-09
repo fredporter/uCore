@@ -1,53 +1,62 @@
 <template>
-  <div v-if="pills.length > 0 || canEdit" class="frontmatter-pills">
-    <div class="frontmatter-pills__list">
-      <button
-        v-for="pill in pills"
-        :key="pill.key"
-        class="frontmatter-pill"
-        :class="`frontmatter-pill--${pill.type}`"
-        :title="`${pill.key}: ${pill.rawValue}`"
-        @click="editPill(pill)"
-      >
-        <span v-if="pill.type === 'status'" class="frontmatter-pill__dot" />
-        <span class="frontmatter-pill__label">{{ pill.display }}</span>
-      </button>
+  <div v-if="rows.length > 0 || canEdit" class="frontmatter-pills">
+    <table class="frontmatter-pills__table">
+      <tbody>
+        <tr
+          v-for="row in rows"
+          :key="row.key"
+          class="frontmatter-pills__row"
+          :class="`frontmatter-pills__row--${row.type}`"
+        >
+          <th class="frontmatter-pills__key" scope="row">{{ row.key }}</th>
+          <td class="frontmatter-pills__value">
+            <input
+              v-if="isEditing(row)"
+              ref="editInputEl"
+              v-model="editValue"
+              class="frontmatter-pills__input"
+              @keydown.enter="confirmEdit"
+              @keydown.escape="cancelEdit"
+              @blur="confirmEdit"
+            />
+            <span v-else>{{ row.display }}</span>
+          </td>
+          <td v-if="canEdit" class="frontmatter-pills__actions">
+            <button
+              class="frontmatter-pills__action"
+              title="Edit field"
+              @click="editRow(row)"
+            >
+              <UIcon name="edit" />
+            </button>
+            <button
+              class="frontmatter-pills__action frontmatter-pills__action--remove"
+              title="Remove field"
+              @click="removeRow(row.key)"
+            >
+              <UIcon name="close" />
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-      <button
-        v-if="canEdit"
-        class="frontmatter-pill frontmatter-pill--add"
-        @click="addPill"
-      >
-        <UIcon name="add" />
-      </button>
-    </div>
-
-    <!-- Inline edit popover -->
-    <div v-if="editTarget" class="frontmatter-pill-edit">
-      <span class="frontmatter-pill-edit__key">{{ editTarget.key }}</span>
-      <input
-        ref="editInputEl"
-        v-model="editValue"
-        class="frontmatter-pill-edit__input"
-        @keydown.enter="confirmEdit"
-        @keydown.escape="cancelEdit"
-        @blur="cancelEdit"
-      />
-      <button
-        class="frontmatter-pill-edit__delete"
-        title="Remove"
-        @mousedown.prevent="removePill(editTarget.key)"
-      >
-        <UIcon name="close" />
-      </button>
-    </div>
+    <button
+      v-if="canEdit"
+      class="frontmatter-pills__add"
+      title="Add field"
+      @click="addRow"
+    >
+      <UIcon name="add" /> Add field
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
 /**
  * @component FrontmatterPills
- * @description Visual editable pills for YAML frontmatter metadata.
+ * @description Editable YAML frontmatter metadata, displayed as a compact
+ * key/value table with inline editing and removal.
  */
 import { computed, ref, nextTick } from "vue";
 import UIcon from "../../atoms/UIcon.vue";
@@ -61,21 +70,14 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), { canEdit: true });
 const emit = defineEmits<{ "update:modelValue": [value: Frontmatter] }>();
 
-interface Pill {
+interface Row {
   key: string;
   display: string;
   rawValue: string;
   type: "tag" | "status" | "date" | "author" | "source" | "generic";
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: "warning",
-  published: "success",
-  archived: "muted",
-  review: "info",
-};
-
-const pills = computed<Pill[]>(() => {
+const rows = computed<Row[]>(() => {
   return Object.entries(props.modelValue).map(([key, value]) => {
     const raw = Array.isArray(value) ? value.join(", ") : String(value ?? "");
     return {
@@ -87,7 +89,7 @@ const pills = computed<Pill[]>(() => {
   });
 });
 
-function classifyKey(key: string): Pill["type"] {
+function classifyKey(key: string): Row["type"] {
   if (key === "tags") return "tag";
   if (key === "status") return "status";
   if (key === "date" || key === "created" || key === "updated") return "date";
@@ -97,7 +99,6 @@ function classifyKey(key: string): Pill["type"] {
 }
 
 function formatDisplay(key: string, value: unknown): string {
-  if (key === "title") return String(value).slice(0, 20);
   if (key === "tags") {
     const arr = Array.isArray(value) ? value : [String(value)];
     return arr.map((t) => (String(t).startsWith("#") ? t : `#${t}`)).join(" ");
@@ -106,27 +107,29 @@ function formatDisplay(key: string, value: unknown): string {
     try {
       return new URL(String(value)).hostname;
     } catch {
-      return String(value).slice(0, 20);
+      return String(value);
     }
   }
-  if (key === "date" || key === "created" || key === "updated") {
-    return `${key}: ${String(value).slice(0, 10)}`;
-  }
-  return `${key}: ${String(value).slice(0, 16)}`;
+  return String(value);
 }
 
-// ─── Edit ────────────────────────────────────────────────────
-const editTarget = ref<Pill | null>(null);
+// ─── Edit (inline in the value cell) ──────────────────────────
+const editTarget = ref<Row | null>(null);
 const editValue = ref("");
 const editInputEl = ref<HTMLInputElement | null>(null);
 
-async function editPill(pill: Pill) {
+function isEditing(row: Row): boolean {
+  return editTarget.value?.key === row.key;
+}
+
+function editRow(row: Row) {
   if (!props.canEdit) return;
-  editTarget.value = pill;
-  editValue.value = pill.rawValue;
-  await nextTick();
-  editInputEl.value?.focus();
-  editInputEl.value?.select();
+  editTarget.value = row;
+  editValue.value = row.rawValue;
+  nextTick(() => {
+    editInputEl.value?.focus();
+    editInputEl.value?.select();
+  });
 }
 
 function confirmEdit() {
@@ -147,14 +150,14 @@ function cancelEdit() {
   editTarget.value = null;
 }
 
-function removePill(key: string) {
+function removeRow(key: string) {
   const updated = { ...props.modelValue };
   delete updated[key];
   emit("update:modelValue", updated);
   editTarget.value = null;
 }
 
-function addPill() {
+function addRow() {
   const key = window.prompt("New field name (e.g. status, author):");
   if (!key?.trim()) return;
   const value = window.prompt(`Value for "${key}":`);
@@ -168,131 +171,118 @@ function addPill() {
   display: flex;
   flex-direction: column;
   gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
-  border-bottom: 1px solid var(--usx-color-border);
-  background-color: var(--usx-color-surface-variant);
 }
 
-.frontmatter-pills__list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--usx-spacing-xs);
-  align-items: center;
-}
-
-/* ─── Pill base ───────────────────────────────────────────────── */
-
-.frontmatter-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px var(--usx-spacing-sm);
-  border: 1px solid var(--usx-color-border);
-  border-radius: var(--usx-radius-full);
-  background-color: var(--usx-color-surface);
-  color: var(--usx-color-on-surface);
+/* ─── Table ─────────────────────────────────────────────────── */
+.frontmatter-pills__table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: var(--usx-font-size-xs);
   font-family: var(--usx-font-family-sans);
-  cursor: pointer;
-  transition: all 120ms ease;
+}
+
+.frontmatter-pills__row {
+  border-top: 1px solid var(--usx-color-border);
+}
+
+.frontmatter-pills__key {
+  width: 30%;
+  min-width: 96px;
+  padding: 2px var(--usx-spacing-sm) 2px 0;
+  text-align: left;
+  font-weight: var(--usx-font-weight-medium);
+  color: var(--usx-color-on-surface-muted);
+  vertical-align: top;
   white-space: nowrap;
 }
 
-.frontmatter-pill:hover {
-  border-color: var(--usx-color-primary);
-  color: var(--usx-color-primary);
+.frontmatter-pills__value {
+  padding: 2px var(--usx-spacing-sm);
+  color: var(--usx-color-on-surface);
+  word-break: break-word;
 }
 
-.frontmatter-pill--tag {
-  background-color: color-mix(in srgb, var(--usx-color-info) 12%, transparent);
-  border-color: color-mix(in srgb, var(--usx-color-info) 30%, transparent);
+.frontmatter-pills__row--tag .frontmatter-pills__value {
   color: var(--usx-color-info);
 }
 
-.frontmatter-pill--status .frontmatter-pill__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--usx-color-success);
-  flex-shrink: 0;
-}
-
-.frontmatter-pill--date {
-  color: var(--usx-color-on-surface-muted);
-}
-
-.frontmatter-pill--source {
+.frontmatter-pills__row--source .frontmatter-pills__value {
   color: var(--usx-color-primary);
-  background-color: color-mix(
-    in srgb,
-    var(--usx-color-primary) 8%,
-    transparent
-  );
-  border-color: color-mix(in srgb, var(--usx-color-primary) 20%, transparent);
 }
 
-.frontmatter-pill--add {
-  border-style: dashed;
-  color: var(--usx-color-on-surface-muted);
-  padding: 2px var(--usx-spacing-xs);
+.frontmatter-pills__row--status .frontmatter-pills__value {
+  color: var(--usx-color-success);
 }
 
-.frontmatter-pill--add:hover {
-  color: var(--usx-color-primary);
-  border-color: var(--usx-color-primary);
-  background-color: color-mix(
-    in srgb,
-    var(--usx-color-primary) 8%,
-    transparent
-  );
+.frontmatter-pills__actions {
+  width: 1%;
+  padding: 2px 0 2px var(--usx-spacing-xs);
+  text-align: right;
+  white-space: nowrap;
 }
 
-/* ─── Inline edit ─────────────────────────────────────────────── */
-
-.frontmatter-pill-edit {
-  display: flex;
+.frontmatter-pills__action {
+  display: inline-flex;
   align-items: center;
-  gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-xs) 0;
-}
-
-.frontmatter-pill-edit__key {
-  font-size: var(--usx-font-size-xs);
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--usx-radius-sm);
+  background: transparent;
   color: var(--usx-color-on-surface-muted);
-  font-weight: var(--usx-font-weight-medium);
-  flex-shrink: 0;
+  cursor: pointer;
+  transition:
+    background var(--usx-transition-fast),
+    color var(--usx-transition-fast);
 }
 
-.frontmatter-pill-edit__input {
-  padding: 2px var(--usx-spacing-sm);
+.frontmatter-pills__action:hover {
+  background: var(--usx-color-surface-hover);
+  color: var(--usx-color-on-surface);
+}
+
+.frontmatter-pills__action--remove:hover {
+  color: var(--usx-color-danger);
+}
+
+.frontmatter-pills__input {
+  width: 100%;
+  padding: 1px var(--usx-spacing-xs);
   border: 1px solid var(--usx-color-primary);
   border-radius: var(--usx-radius-sm);
   background-color: var(--usx-color-background);
   color: var(--usx-color-on-surface);
   font-size: var(--usx-font-size-xs);
-  font-family: var(--usx-font-family-sans);
+  font-family: var(--usx-font-family-mono);
   outline: none;
-  min-width: 120px;
 }
 
-.frontmatter-pill-edit__delete {
-  display: flex;
+/* ─── Add field ─────────────────────────────────────────────── */
+.frontmatter-pills__add {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: var(--usx-color-danger);
+  gap: var(--usx-spacing-xs);
+  align-self: flex-start;
+  min-height: 0;
+  height: 1.75rem;
+  padding: 0 var(--usx-spacing-sm);
+  border: 1px dashed var(--usx-color-border);
   border-radius: var(--usx-radius-sm);
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-xs);
+  font-family: var(--usx-font-family-sans);
+  cursor: pointer;
+  transition:
+    color var(--usx-transition-fast),
+    border-color var(--usx-transition-fast);
 }
 
-.frontmatter-pill-edit__delete:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--usx-color-danger) 10%,
-    transparent
-  );
+.frontmatter-pills__add:hover {
+  color: var(--usx-color-primary);
+  border-color: var(--usx-color-primary);
 }
 </style>

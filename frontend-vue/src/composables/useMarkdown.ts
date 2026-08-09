@@ -54,7 +54,17 @@ function renderTable(rows: string[]): string {
 export function renderMarkdown(text: string): string {
   if (!text) return ''
 
-  const lines = text.split('\n')
+  let lines = text.split('\n')
+
+  // Strip a leading YAML frontmatter block — it is metadata, shown separately
+  // by the document header table, not prose content.
+  if (lines[0]?.trim() === '---') {
+    const closeIdx = lines.findIndex((l, i) => i > 0 && l.trim() === '---')
+    if (closeIdx > 0) {
+      lines = lines.slice(closeIdx + 1)
+    }
+  }
+
   const htmlParts: string[] = []
   let inCodeBlock = false
   let codeBuffer: string[] = []

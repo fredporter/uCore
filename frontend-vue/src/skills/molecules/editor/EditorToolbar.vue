@@ -132,6 +132,7 @@ const emit = defineEmits<{
   align-items: center;
   justify-content: center;
   min-width: 2rem;
+  min-height: 0;
   height: 2rem;
   padding: 0 var(--usx-spacing-xs);
   border: none;
