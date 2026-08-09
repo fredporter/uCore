@@ -2,7 +2,17 @@
   <div class="editor-panel">
     <!-- Document header: prose title + frontmatter table (full-width) -->
     <div class="editor-panel__doc-header">
-      <h1 class="editor-panel__doc-title">{{ docTitle }}</h1>
+      <div class="editor-panel__doc-titlebar">
+        <h1 class="editor-panel__doc-title">{{ docTitle }}</h1>
+        <button
+          v-if="!readOnly"
+          class="editor-panel__add-field"
+          title="Add frontmatter field"
+          @click="handleAddField"
+        >
+          <UIcon name="add" />
+        </button>
+      </div>
       <FrontmatterPills
         v-if="hasFrontmatter"
         v-model="frontmatter"
@@ -109,6 +119,7 @@
  * @emits {void} close - Close entire editor
  */
 import { ref, watch, computed } from "vue";
+import UIcon from "../atoms/UIcon.vue";
 import MarkdownEditor from "../molecules/editor/MarkdownEditor.vue";
 import EditorToolbar from "../molecules/editor/EditorToolbar.vue";
 import FrontmatterPills from "../molecules/editor/FrontmatterPills.vue";
@@ -180,6 +191,15 @@ function onFrontmatterChange(updated: Frontmatter) {
   const newMarkdown = serializeDocument(doc.body, updated);
   localContent.value = newMarkdown;
   emit("update:content", newMarkdown);
+}
+
+/** Add a new frontmatter field (triggered by the header add icon). */
+function handleAddField() {
+  const key = window.prompt("New field name (e.g. status, author):");
+  if (!key?.trim()) return;
+  const value = window.prompt(`Value for "${key}":`);
+  if (value === null) return;
+  onFrontmatterChange({ ...frontmatter.value, [key.trim()]: value });
 }
 
 // ─── Sync props ──────────────────────────────────────────────────────
@@ -280,15 +300,48 @@ function toggleEditMode() {
   flex-shrink: 0;
 }
 
+.editor-panel__doc-titlebar {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+}
+
 .editor-panel__doc-title {
   margin: 0;
   padding: 0;
+  flex: 1;
+  min-width: 0;
   font-family: var(--usx-font-family-sans);
   font-size: var(--usx-font-size-2xl);
   font-weight: var(--usx-font-weight-bold);
   color: var(--usx-color-on-surface);
   line-height: 1.2;
   word-break: break-word;
+}
+
+/* Add-frontmatter-field icon at the right of the doc title */
+.editor-panel__add-field {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  min-height: 0;
+  padding: 0;
+  border: 1px dashed var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    color var(--usx-transition-fast),
+    border-color var(--usx-transition-fast);
+}
+
+.editor-panel__add-field:hover {
+  color: var(--usx-color-primary);
+  border-color: var(--usx-color-primary);
 }
 
 /* Split view: Markdown + Preview side-by-side */

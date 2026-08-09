@@ -1,54 +1,45 @@
 <template>
-  <div v-if="rows.length > 0 || canEdit" class="frontmatter-pills">
-    <table class="frontmatter-pills__table">
-      <tbody>
-        <tr
-          v-for="row in rows"
-          :key="row.key"
-          class="frontmatter-pills__row"
-          :class="`frontmatter-pills__row--${row.type}`"
-        >
-          <th class="frontmatter-pills__key" scope="row">{{ row.key }}</th>
-          <td class="frontmatter-pills__value">
-            <input
-              v-if="isEditing(row)"
-              ref="editInputEl"
-              v-model="editValue"
-              class="frontmatter-pills__input"
-              @keydown.enter="confirmEdit"
-              @keydown.escape="cancelEdit"
-              @blur="confirmEdit"
-            />
-            <span v-else>{{ row.display }}</span>
-          </td>
-          <td v-if="canEdit" class="frontmatter-pills__actions">
-            <button
-              class="frontmatter-pills__action"
-              title="Edit field"
-              @click="editRow(row)"
-            >
-              <UIcon name="edit" />
-            </button>
-            <button
-              class="frontmatter-pills__action frontmatter-pills__action--remove"
-              title="Remove field"
-              @click="removeRow(row.key)"
-            >
-              <UIcon name="close" />
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <button
-      v-if="canEdit"
-      class="frontmatter-pills__add"
-      title="Add field"
-      @click="addRow"
-    >
-      <UIcon name="add" /> Add field
-    </button>
+  <div v-if="rows.length > 0" class="frontmatter-pills">
+    <div class="frontmatter-pills__grid">
+      <div
+        v-for="row in rows"
+        :key="row.key"
+        class="frontmatter-pills__cell"
+        :class="`frontmatter-pills__cell--${row.type}`"
+      >
+        <span class="frontmatter-pills__cell-key">{{ row.key }}</span>
+        <span class="frontmatter-pills__cell-value">
+          <input
+            v-if="isEditing(row)"
+            ref="editInputEl"
+            v-model="editValue"
+            class="frontmatter-pills__input"
+            @keydown.enter="confirmEdit"
+            @keydown.escape="cancelEdit"
+            @blur="confirmEdit"
+          />
+          <span v-else class="frontmatter-pills__cell-display">{{
+            row.display
+          }}</span>
+        </span>
+        <span v-if="canEdit" class="frontmatter-pills__cell-actions">
+          <button
+            class="frontmatter-pills__action"
+            title="Edit field"
+            @click="editRow(row)"
+          >
+            <UIcon name="edit" />
+          </button>
+          <button
+            class="frontmatter-pills__action frontmatter-pills__action--remove"
+            title="Remove field"
+            @click="removeRow(row.key)"
+          >
+            <UIcon name="close" />
+          </button>
+        </span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -156,14 +147,6 @@ function removeRow(key: string) {
   emit("update:modelValue", updated);
   editTarget.value = null;
 }
-
-function addRow() {
-  const key = window.prompt("New field name (e.g. status, author):");
-  if (!key?.trim()) return;
-  const value = window.prompt(`Value for "${key}":`);
-  if (value === null) return;
-  emit("update:modelValue", { ...props.modelValue, [key.trim()]: value });
-}
 </script>
 
 <style scoped>
@@ -173,52 +156,70 @@ function addRow() {
   gap: var(--usx-spacing-xs);
 }
 
-/* ─── Table ─────────────────────────────────────────────────── */
-.frontmatter-pills__table {
-  width: 100%;
-  border-collapse: collapse;
+/* ─── Condensed multi-column grid (stacks in narrow views) ──────── */
+.frontmatter-pills__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--usx-spacing-2) var(--usx-spacing-sm);
+}
+
+.frontmatter-pills__cell {
+  display: flex;
+  align-items: baseline;
+  gap: var(--usx-spacing-xs);
+  min-width: 0;
+  padding: 1px var(--usx-spacing-sm);
+  border: 1px solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
   font-size: var(--usx-font-size-xs);
   font-family: var(--usx-font-family-sans);
 }
 
-.frontmatter-pills__row {
-  border-top: 1px solid var(--usx-color-border);
-}
-
-.frontmatter-pills__key {
-  width: 30%;
-  min-width: 96px;
-  padding: 2px var(--usx-spacing-sm) 2px 0;
-  text-align: left;
-  font-weight: var(--usx-font-weight-medium);
+.frontmatter-pills__cell-key {
   color: var(--usx-color-on-surface-muted);
-  vertical-align: top;
+  font-weight: var(--usx-font-weight-medium);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.frontmatter-pills__value {
-  padding: 2px var(--usx-spacing-sm);
+.frontmatter-pills__cell-value {
+  min-width: 0;
+  flex: 1;
+}
+
+.frontmatter-pills__cell-display {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--usx-color-on-surface);
-  word-break: break-word;
 }
 
-.frontmatter-pills__row--tag .frontmatter-pills__value {
+.frontmatter-pills__cell--tag .frontmatter-pills__cell-display {
   color: var(--usx-color-info);
 }
 
-.frontmatter-pills__row--source .frontmatter-pills__value {
+.frontmatter-pills__cell--source .frontmatter-pills__cell-display {
   color: var(--usx-color-primary);
 }
 
-.frontmatter-pills__row--status .frontmatter-pills__value {
+.frontmatter-pills__cell--status .frontmatter-pills__cell-display {
   color: var(--usx-color-success);
 }
 
-.frontmatter-pills__actions {
-  width: 1%;
-  padding: 2px 0 2px var(--usx-spacing-xs);
-  text-align: right;
-  white-space: nowrap;
+.frontmatter-pills__cell-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--usx-transition-fast);
+}
+
+.frontmatter-pills__cell:hover .frontmatter-pills__cell-actions,
+.frontmatter-pills__cell:focus-within .frontmatter-pills__cell-actions {
+  opacity: 1;
 }
 
 .frontmatter-pills__action {
@@ -258,31 +259,5 @@ function addRow() {
   font-size: var(--usx-font-size-xs);
   font-family: var(--usx-font-family-mono);
   outline: none;
-}
-
-/* ─── Add field ─────────────────────────────────────────────── */
-.frontmatter-pills__add {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  align-self: flex-start;
-  min-height: 0;
-  height: 1.75rem;
-  padding: 0 var(--usx-spacing-sm);
-  border: 1px dashed var(--usx-color-border);
-  border-radius: var(--usx-radius-sm);
-  background: transparent;
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-xs);
-  font-family: var(--usx-font-family-sans);
-  cursor: pointer;
-  transition:
-    color var(--usx-transition-fast),
-    border-color var(--usx-transition-fast);
-}
-
-.frontmatter-pills__add:hover {
-  color: var(--usx-color-primary);
-  border-color: var(--usx-color-primary);
 }
 </style>
