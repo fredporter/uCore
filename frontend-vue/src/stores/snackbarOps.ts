@@ -10,6 +10,7 @@ export type SnackbarOpsTab =
   | "dashboard"
   | "services"
   | "snacks"
+  | "skills"
   | "logs"
   | "plugins";
 
@@ -37,6 +38,17 @@ export interface ServiceStatus {
   description: string;
 }
 
+export interface UnifiedServiceInfo {
+  id: string;
+  name: string;
+  kind: "service" | "tool" | "mcp";
+  description: string;
+  status: "up" | "degraded" | "down";
+  port: number;
+  type: string;
+  meta: Record<string, unknown>;
+}
+
 export interface LogEntry {
   timestamp: string;
   service: string;
@@ -57,6 +69,31 @@ export interface AgentInfo {
   icon: string;
   active: boolean;
   description: string;
+}
+
+export interface ExecutableInfo {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  kind: "skill" | "snack";
+  icon: string;
+  enabled: boolean;
+  requires_confirmation: boolean;
+  actions: string[];
+}
+
+export interface MCPTool {
+  name: string;
+  description: string;
+  server: string;
+}
+
+export interface MCPServerInfo {
+  name: string;
+  status: "online" | "offline" | "unknown";
+  port: number;
+  tools: number;
 }
 
 export interface BudgetInfo {
@@ -82,7 +119,8 @@ export const SNACKBAR_OPS_TABS: {
 }[] = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard" },
   { id: "services", label: "Services", icon: "dns" },
-  { id: "snacks", label: "Snacks", icon: "restaurant_menu" },
+  { id: "snacks", label: "Events", icon: "rss_feed" },
+  { id: "skills", label: "Executables", icon: "extension" },
   { id: "logs", label: "Logs", icon: "article" },
   { id: "plugins", label: "Plugins", icon: "extension" },
 ];
@@ -90,11 +128,15 @@ export const SNACKBAR_OPS_TABS: {
 export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
   const activeTab = ref<SnackbarOpsTab>("dashboard");
   const services = ref<ServiceStatus[]>([]);
+  const unifiedServices = ref<UnifiedServiceInfo[]>([]);
   const snacks = ref<RuntimeSnack[]>([]);
   const systemSnacks = ref<RuntimeSystemSnack[]>([]);
   const logs = ref<LogEntry[]>([]);
   const modelUsage = ref<ModelUsage[]>([]);
   const agents = ref<AgentInfo[]>([]);
+  const executables = ref<ExecutableInfo[]>([]);
+  const mcpTools = ref<MCPTool[]>([]);
+  const mcpServers = ref<MCPServerInfo[]>([]);
   const budgetRemaining = ref<number | null>(null);
   const budgetLimit = ref<number>(50.0);
   const budgetUsed = ref<number>(0.0);
@@ -133,6 +175,26 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
       services.value = data.services || [];
     } catch (e: any) {
       console.warn("Server services fetch failed:", e.message);
+    }
+  }
+
+  async function fetchUnifiedServices(): Promise<void> {
+    try {
+      const res = await fetch("/api/services");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      unifiedServices.value = (data.services || []).map((s: any) => ({
+        id: s.id || s.name || "",
+        name: s.name || "Unknown",
+        kind: s.kind || "service",
+        description: s.description || "",
+        status: s.status || "down",
+        port: s.port || 0,
+        type: s.type || "system",
+        meta: s.meta || {},
+      }));
+    } catch (e: any) {
+      console.warn("Unified services fetch failed:", e.message);
     }
   }
 
@@ -222,13 +284,70 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
     }
   }
 
+  async function fetchExecutables(): Promise<void> {
+    try {
+      const res = await fetch("/api/executables");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const raw = Array.isArray(data?.executables) ? data.executables : [];
+      executables.value = raw.map((s: any) => ({
+        id: s.id || "",
+        name: s.name || s.id || "Unknown",
+        category: s.category || "general",
+        description: s.description || "",
+        kind: s.kind === "snack" ? "snack" : "skill",
+        icon: s.icon || "extension",
+        enabled: s.enabled !== false,
+        requires_confirmation: Boolean(s.requires_confirmation),
+        actions: Array.isArray(s.actions) ? s.actions : [],
+      }));
+    } catch (e: any) {
+      console.warn("Executables fetch failed:", e.message);
+    }
+  }
+
+  async function fetchMCP(): Promise<void> {
+    try {
+      const [toolsRes, controlRes] = await Promise.all([
+        fetch("/api/mcp/tools"),
+        fetch("/api/control/status"),
+      ]);
+
+      if (toolsRes.ok) {
+        const toolsData = await toolsRes.json();
+        const raw = Array.isArray(toolsData?.tools) ? toolsData.tools : [];
+        mcpTools.value = raw.map((t: any) => ({
+          name: t.name || "",
+          description: t.description || "",
+          server: t.server || "ucore",
+        }));
+      }
+
+      if (controlRes.ok) {
+        const controlData = await controlRes.json();
+        const mcpList = controlData?.mcp_servers || [];
+        mcpServers.value = mcpList.map((s: any) => ({
+          name: s.name || s.id || "Unknown",
+          status: s.status || "unknown",
+          port: s.port || 0,
+          tools: s.tool_count || 0,
+        }));
+      }
+    } catch (e: any) {
+      console.warn("MCP status fetch failed:", e.message);
+    }
+  }
+
   async function fetchAll(): Promise<void> {
     loading.value = true;
     error.value = null;
     try {
       await Promise.all([
         fetchHealth(),
+        fetchUnifiedServices(),
         fetchSnacks(),
+        fetchExecutables(),
+        fetchMCP(),
         fetchLogs(),
         fetchModels(),
         fetchAgents(),
@@ -244,8 +363,12 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
   return {
     activeTab,
     services,
+    unifiedServices,
     snacks,
     systemSnacks,
+    executables,
+    mcpTools,
+    mcpServers,
     logs,
     modelUsage,
     agents,
@@ -262,8 +385,11 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
     setTab,
     fetchHealth,
     fetchServices,
+    fetchUnifiedServices,
     fetchLogs,
     fetchSnacks,
+    fetchExecutables,
+    fetchMCP,
     fetchModels,
     fetchAgents,
     fetchBudget,

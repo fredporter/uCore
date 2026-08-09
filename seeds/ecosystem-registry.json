@@ -1069,8 +1069,36 @@
       },
       {
         "method": "POST",
+        "path": "/api/editor/save-to-binder",
+        "handler": "handle_save_to_binder",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "POST",
+        "path": "/api/editor/scrape-web",
+        "handler": "handle_scrape_web",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "POST",
+        "path": "/api/editor/summarize",
+        "handler": "handle_summarize",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "POST",
         "path": "/api/exec",
         "handler": "handle_exec",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "POST",
+        "path": "/api/extensions/announce",
+        "handler": "handle_extension_announce",
         "health": "working",
         "issues": []
       },
@@ -1194,6 +1222,27 @@
         "issues": []
       },
       {
+        "method": "POST",
+        "path": "/api/render",
+        "handler": "handle_render",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "POST",
+        "path": "/api/render/event",
+        "handler": "handle_publish_event",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "GET",
+        "path": "/api/render/stream",
+        "handler": "handle_stream",
+        "health": "working",
+        "issues": []
+      },
+      {
         "method": "GET",
         "path": "/api/secrets",
         "handler": "handle_list_secrets",
@@ -1288,6 +1337,13 @@
         "method": "POST",
         "path": "/api/skills/{skill_id}/run",
         "handler": "handle_run_skill",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "GET",
+        "path": "/api/skills/{skill_id}/source",
+        "handler": "handle_skill_source",
         "health": "working",
         "issues": []
       },
@@ -1589,8 +1645,8 @@
     ]
   },
   "health": {
-    "total_items": 156,
-    "working": 155,
+    "total_items": 164,
+    "working": 163,
     "untested": 1,
     "broken": 0,
     "orphaned": 0,

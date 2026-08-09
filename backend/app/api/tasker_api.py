@@ -70,9 +70,15 @@ def _is_user_workflow_task(task: dict[str, Any]) -> bool:
 
 
 def _parse_markdown_task(path: Path) -> dict[str, Any]:
-    """Parse a single .tasker markdown file into a structured dict."""
+    """Parse a single .tasker markdown file into a structured dict.
+
+    Supports both Obsidian-style YAML frontmatter (Properties) and the legacy
+    `- key: value` metadata lines, so tasker notes work in Obsidian and in uCore.
+    Frontmatter takes precedence over legacy metadata lines.
+    """
     content = path.read_text(encoding="utf-8", errors="replace")
-    lines = content.splitlines()
+    frontmatter, body_content = _parse_frontmatter(content)
+    lines = body_content.splitlines()
 
     task: dict[str, Any] = {
         "id": path.stem,
@@ -97,22 +103,7 @@ def _parse_markdown_task(path: Path) -> dict[str, Any]:
         if not cleaned:
             return
 
-        aliases: dict[str, str] = {
-            "state": "status",
-            "task_status": "status",
-            "prio": "priority",
-            "urgency": "priority",
-            "project": "mission",
-            "objective": "mission",
-            "work_item": "task",
-            "todo": "task",
-            "notebook": "binder",
-            "collection": "binder",
-            "label": "tags",
-            "labels": "tags",
-            "tag": "tags",
-        }
-        canonical = aliases.get(key, key)
+        canonical = _META_ALIASES.get(key, key)
 
         if canonical == "status":
             task["status"] = normalize_status(cleaned)
@@ -125,6 +116,7 @@ def _parse_markdown_task(path: Path) -> dict[str, Any]:
         else:
             task[canonical] = cleaned
 
+    # ── Legacy `- key: value` metadata lines + body ──────────────
     for line in lines:
         if line.startswith("# ") and not task["title"]:
             task["title"] = line[2:].strip()
@@ -148,6 +140,20 @@ def _parse_markdown_task(path: Path) -> dict[str, Any]:
         ):
             body_parts.append(line.strip())
 
+    # ── Obsidian frontmatter (Properties) — takes precedence ─────
+    for key, value in frontmatter.items():
+        canonical = _META_ALIASES.get(str(key).strip().lower(), str(key).strip().lower())
+        if canonical == "tags":
+            task["tags"] = normalize_tags(value)
+        elif canonical == "status":
+            task["status"] = normalize_status(str(value))
+        elif canonical == "priority":
+            task["priority"] = normalize_priority(str(value))
+        elif canonical in {"mission", "task", "binder", "board"}:
+            task[canonical] = str(value).strip()
+        elif value is not None:
+            task[canonical] = value
+
     task["description"] = (
         "\n".join(summary_parts)
         if summary_parts
@@ -155,7 +161,7 @@ def _parse_markdown_task(path: Path) -> dict[str, Any]:
     )
     task["body"] = "\n".join(body_parts) if body_parts else task["description"]
 
-    # Derive status from filename prefix
+    # Derive status from filename prefix (fallback only)
     name_lower = path.stem.lower()
     if not task["status"] or task["status"] == "unknown":
         if name_lower.startswith("done-"):
@@ -176,6 +182,51 @@ def _parse_markdown_task(path: Path) -> dict[str, Any]:
     task["tags"] = normalize_tags(task.get("tags") or [])
 
     return task
+
+
+_META_ALIASES: dict[str, str] = {
+    "state": "status",
+    "task_status": "status",
+    "prio": "priority",
+    "urgency": "priority",
+    "project": "mission",
+    "objective": "mission",
+    "work_item": "task",
+    "todo": "task",
+    "notebook": "binder",
+    "collection": "binder",
+    "label": "tags",
+    "labels": "tags",
+    "tag": "tags",
+}
+
+
+def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
+    """Parse an Obsidian-style YAML frontmatter block.
+
+    Returns (meta_dict, remaining_content). If the file has no leading `---`
+    block, returns ({}, original_content).
+    """
+    if not content.startswith("---"):
+        return {}, content
+    lines = content.splitlines()
+    end = None
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            end = i
+            break
+    if end is None:
+        return {}, content
+    fm_block = "\n".join(lines[1:end])
+    rest = "\n".join(lines[end + 1:])
+    try:
+        import yaml
+        data = yaml.safe_load(fm_block) or {}
+        if not isinstance(data, dict):
+            data = {}
+    except Exception:
+        data = {}
+    return data, rest
 
 
 async def handle_list_boards(request: web.Request) -> web.Response:

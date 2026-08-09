@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 
 STATUS_ALIASES: dict[str, str] = {
     "todo": "todo",
@@ -91,7 +93,14 @@ def render_task_markdown(
     status: str,
     body: str,
     metadata: dict[str, Any],
+    created_at: str | None = None,
 ) -> str:
+    """Render a task as Obsidian-compatible markdown.
+
+    Format: YAML frontmatter (Properties) + `# Title` + `## Summary` body.
+    Obsidian reads the frontmatter natively (properties panel) and scans the
+    body for `- [ ]` task checkboxes, so tasker notes open/query in Obsidian.
+    """
     timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     mission = pick_alias(metadata, "mission", "project", "objective")
     task_name = pick_alias(metadata, "task", "todo", "work_item")
@@ -103,30 +112,26 @@ def render_task_markdown(
         metadata.get("tags") or metadata.get("labels") or metadata.get("tag"),
     )
 
-    lines = [
-        f"# {title}",
-        "",
-        f"- status: {normalize_status(status)}",
-        f"- source: {source}",
-        f"- source_id: {source_id}",
-        f"- synced_at: {timestamp}",
-        f"- priority: {priority}",
-    ]
-
+    frontmatter: dict[str, Any] = {
+        "id": metadata.get("id") or source_id or slugify(title),
+        "board": metadata.get("board") or "",
+        "status": normalize_status(status),
+        "priority": priority,
+        "source": source,
+        "source_id": source_id,
+        "created": created_at or metadata.get("created") or timestamp,
+        "updated": timestamp,
+    }
     if mission:
-        lines.append(f"- mission: {mission}")
+        frontmatter["mission"] = mission
     if task_name:
-        lines.append(f"- task: {task_name}")
+        frontmatter["task"] = task_name
     if binder:
-        lines.append(f"- binder: {binder}")
+        frontmatter["binder"] = binder
     if tags:
-        lines.append(f"- tags: {', '.join(tags)}")
-
-    lines.extend([
-        "",
-        "## Summary",
-        body or "No summary available.",
-    ])
+        frontmatter["tags"] = tags
+    if metadata.get("due"):
+        frontmatter["due"] = metadata.get("due")
 
     extra_meta = {
         key: value
@@ -153,14 +158,36 @@ def render_task_markdown(
             "uuid",
             "description",
             "notes",
+            "board",
+            "created",
+            "created_at",
+            "updated",
         }
     }
     if extra_meta:
-        lines.extend(["", "## Metadata"])
         for key, value in extra_meta.items():
-            lines.append(f"- {key}: {value}")
+            if value not in (None, ""):
+                frontmatter[key] = value
 
-    lines.append("")
+    # Drop empty optional fields for a clean properties panel
+    frontmatter = {
+        key: value for key, value in frontmatter.items() if value not in (None, "")
+    }
+
+    try:
+        fm_text = yaml.safe_dump(
+            frontmatter,
+            sort_keys=False,
+            allow_unicode=True,
+        ).strip()
+    except Exception:
+        fm_text = "\n".join(
+            f"{key}: {value}" for key, value in frontmatter.items()
+        )
+
+    lines = ["---", fm_text, "---", "", f"# {title}", ""]
+    if body:
+        lines.extend(["## Summary", body, ""])
     return "\n".join(lines)
 
 

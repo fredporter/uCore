@@ -23,10 +23,10 @@
         </button>
         <button
           class="filepicker-sidebar__icon-btn"
-          title="Open Bangle Workspace"
+          title="Open Markdown Workspace"
           @click="openBangleWorkspace"
         >
-          <UIcon name="edit_note" />
+          <UIcon name="diamond" />
         </button>
         <button
           class="filepicker-sidebar__icon-btn"
@@ -75,7 +75,7 @@
       />
       <div class="filepicker-sidebar__inline-tools">
         <label class="filepicker-sidebar__bangle-inline" for="bangle-open-mode">
-          <UIcon name="edit_note" class="filepicker-sidebar__inline-icon" />
+          <UIcon name="diamond" class="filepicker-sidebar__inline-icon" />
           <span>Open</span>
           <select
             id="bangle-open-mode"
@@ -738,11 +738,10 @@ function getFileIcon(ext: string): string {
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: var(--usx-spacing-xs) 0;
+  padding: 0;
   border: none;
   border-radius: 0;
-  background: color-mix(in srgb, var(--usx-color-surface) 96%, transparent);
-  backdrop-filter: blur(4px);
+  background: transparent;
 }
 
 .filepicker-sidebar__toolbar {
@@ -758,14 +757,15 @@ function getFileIcon(ext: string): string {
   background: transparent;
   color: var(--usx-color-on-surface-muted);
   border-radius: var(--usx-radius-sm);
-  width: var(--usx-touch-min);
-  height: var(--usx-touch-min);
+  width: var(--usx-touch-min-sm);
+  height: var(--usx-touch-min-sm);
+  min-height: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   padding: 0;
-  font-size: var(--filepicker-toolbar-icon-size);
+  font-size: var(--usx-font-size-lg);
 }
 
 .filepicker-sidebar__inline-icon {
@@ -854,11 +854,8 @@ function getFileIcon(ext: string): string {
   display: flex;
   flex-direction: column;
   gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-sm);
+  padding: 0;
   flex-shrink: 0;
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  background: var(--usx-color-surface);
 }
 
 .filepicker-sidebar__banner {
@@ -881,10 +878,7 @@ function getFileIcon(ext: string): string {
   display: flex;
   flex-direction: column;
   gap: 0;
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  background: var(--usx-color-surface);
-  padding: var(--usx-spacing-xs);
+  padding: 0;
 }
 
 .filepicker-sidebar__tree-summary {
@@ -1036,13 +1030,13 @@ function getFileIcon(ext: string): string {
 
   .filepicker-sidebar__toolbar {
     gap: var(--usx-spacing-xs);
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-start;
   }
 
   .filepicker-sidebar__icon-btn {
-    width: calc(var(--usx-touch-min) - var(--usx-spacing-xs));
-    height: calc(var(--usx-touch-min) - var(--usx-spacing-xs));
+    width: var(--usx-touch-min-sm);
+    height: var(--usx-touch-min-sm);
   }
 }
 </style>

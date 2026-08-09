@@ -25,13 +25,6 @@
             @click="navigate(surface.route)"
           />
         </div>
-
-        <div v-if="!hasUdevRunning" class="dashboard-surface__dev-hint">
-          <p>
-            <span class="material-symbols-outlined">code_off</span>
-            Developer surface hidden — start uDev to enable.
-          </p>
-        </div>
       </div>
     </div>
   </div>
@@ -46,12 +39,13 @@
  * @category surfaces
  * @usage Routed at '/' — default landing page.
  */
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useExtensionStore } from "../../stores/extensions";
 import SurfaceCard from "../../skills/molecules/SurfaceCard.vue";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
+import { SNACKBAR_BASE } from "@/api/base";
 
 const router = useRouter();
 const shell = useShellStore();
@@ -165,9 +159,9 @@ const SURFACE_CARD_DATA: Record<
     color: "var(--usx-color-danger)",
   },
   bangle: {
-    title: "Bangle Editor",
-    description: "Prose/Code drafting workspace with live preview",
-    icon: "edit_note",
+    title: "Markdown",
+    description: "WYSIWYG Prose and Code Editor",
+    icon: "diamond",
     route: "/workflow?tab=editor",
     color: "var(--usx-color-primary)",
   },
@@ -185,6 +179,7 @@ const visibleSurfaces = computed(() => {
   }> = [];
 
   // Always show core surfaces + running optional surfaces
+  const seen = new Set<string>();
   for (const surface of extStore.visibleSurfaces) {
     const card = SURFACE_CARD_DATA[surface.manifest.id];
     if (card) {
@@ -193,7 +188,13 @@ const visibleSurfaces = computed(() => {
         ...card,
         status: surface.status === "running" ? "running" : undefined,
       });
+      seen.add(surface.manifest.id);
     }
+  }
+  // Always show Developer card when the uDev repo exists (or is running)
+  // Guard against duplicates if the extension loop already added it.
+  if ((udevRepoExists || extStore.isRunning("udev")) && !seen.has("udev")) {
+    cards.push({ id: "udev", ...SURFACE_CARD_DATA.udev });
   }
   // Always show Bangle Editor card
   cards.push({ id: "bangle", ...SURFACE_CARD_DATA.bangle });
@@ -201,8 +202,28 @@ const visibleSurfaces = computed(() => {
   return cards;
 });
 
-// Dev hint: show when developer not running
-const hasUdevRunning = computed(() => extStore.isRunning("udev"));
+// uDev repo presence — show Developer card when ~/Code/uDev exists
+const udevRepoExists = ref(false);
+
+async function probeUdevRepo() {
+  try {
+    const res = await fetch(`${SNACKBAR_BASE}/api/developer/repos?scope=all`, {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return;
+    const payload = await res.json();
+    const repos = Array.isArray(payload?.repos) ? payload.repos : [];
+    udevRepoExists.value = repos.some(
+      (repo: any) => String(repo?.name || "").toLowerCase() === "udev",
+    );
+  } catch {
+    // Backend unreachable — fall back to running state
+  }
+}
+
+onMounted(() => {
+  void probeUdevRepo();
+});
 
 function navigate(route: string) {
   if (route.startsWith("http")) {
@@ -245,41 +266,5 @@ function navigate(route: string) {
   width: 100%;
   gap: var(--usx-spacing-md);
   min-width: 0;
-}
-
-.dashboard-surface__dev-hint {
-  margin-top: var(--usx-spacing-xl);
-  padding: var(--usx-spacing-md);
-  background: color-mix(in srgb, var(--usx-color-info) 5%, transparent);
-  border: var(--usx-border-width) solid
-    color-mix(in srgb, var(--usx-color-info) 15%, transparent);
-  border-radius: var(--usx-radius-md);
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-sm);
-}
-
-.dashboard-surface__dev-hint p {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-sm);
-  margin: 0;
-}
-
-.dashboard-surface__dev-link {
-  background: none;
-  border: none;
-  color: var(--usx-color-primary);
-  cursor: pointer;
-  font-size: inherit;
-  font-family: inherit;
-  text-decoration: underline;
-  padding: 0;
-}
-
-.dashboard-surface__dev-link:hover {
-  color: var(--usx-color-primary-hover);
 }
 </style>

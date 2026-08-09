@@ -1,19 +1,31 @@
 <template>
-  <div
-    class="surface"
-    :class="{
-      'surface--tab-nav-vertical': shell.tabOrientation === 'vertical',
-    }"
-  >
-    <!-- AssistUI mode tabs (Chat, Workflow) -->
-    <SurfaceTabNav
-      v-model="activeModeTab"
-      :tabs="ASSISTUI_TABS"
-      :show-toggle="false"
-      :orientation="shell.tabOrientation"
-      @toggle-orientation="shell.toggleTabOrientation()"
-    />
+  <div class="surface">
     <div class="surface__content assistui-shell">
+      <!-- Mode toggle: Chat / Workflow -->
+      <div class="assistui-mode-toggle">
+        <button
+          class="assistui-mode-btn"
+          :class="{ 'assistui-mode-btn--active': chat.promptMode === 'chat' }"
+          @click="chat.setPromptMode('chat')"
+        >
+          <UIcon name="chat" />
+          <span>Chat</span>
+        </button>
+        <button
+          class="assistui-mode-btn"
+          :class="{
+            'assistui-mode-btn--active': chat.promptMode === 'workflow',
+          }"
+          @click="
+            chat.setPromptMode('workflow');
+            wf.fetchAll();
+          "
+        >
+          <UIcon name="account_tree" />
+          <span>Workflow</span>
+        </button>
+      </div>
+
       <!-- Chat Mode -->
       <template v-if="chat.promptMode === 'chat'">
         <!-- Top Bar: Model picker + Status + Actions -->
@@ -188,13 +200,7 @@
                 No tasks yet. Start a conversation in Chat mode to plan your
                 work!
               </p>
-              <button
-                class="usx-button"
-                @click="
-                  chat.setPromptMode('chat');
-                  activeModeTab = 'chat';
-                "
-              >
+              <button class="usx-button" @click="chat.setPromptMode('chat')">
                 <UIcon name="chat" /> Go to Chat
               </button>
             </div>
@@ -270,46 +276,13 @@
  * and task/planning integration. Uses USX surface classes from usx-standard.css.
  * @category surfaces
  */
-import { ref, computed, onMounted, watch, provide } from "vue";
-import { useShellStore } from "../../stores/shell";
+import { ref, computed, onMounted } from "vue";
 import { useWorkflowStore } from "../../stores/workflow";
 import UIcon from "../../skills/atoms/UIcon.vue";
-import { useChatStore, ASSISTUI_MODES } from "../../stores/chat";
-import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
-import type { TabDef } from "../../skills/molecules/SurfaceTabNav.vue";
+import { useChatStore } from "../../stores/chat";
 
-const shell = useShellStore();
 const chat = useChatStore();
 const wf = useWorkflowStore();
-
-// AssistUI mode tabs — Chat and Workflow
-const ASSISTUI_TABS: TabDef[] = ASSISTUI_MODES.map((a) => ({
-  id: a.id,
-  label: a.label,
-  icon: a.icon,
-}));
-
-const activeModeTab = ref(chat.promptMode);
-
-// Sync activeModeTab when chat.promptMode changes externally
-watch(
-  () => chat.promptMode,
-  (mode) => {
-    activeModeTab.value = mode;
-  },
-);
-
-// Update mode when a tab is clicked
-watch(activeModeTab, (tabId) => {
-  if (tabId === "chat" || tabId === "workflow") {
-    if (tabId !== chat.promptMode) {
-      chat.setPromptMode(tabId);
-    }
-    if (tabId === "workflow") {
-      wf.fetchAll();
-    }
-  }
-});
 
 const modelPickerOpen = ref(false);
 const messagesEl = ref<HTMLElement | null>(null);
@@ -391,7 +364,58 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Surface-specific overrides only — layout handled by .surface__* classes */
+/* ─── Mode toggle ────────────────────────────────────────────── */
+.assistui-mode-toggle {
+  display: inline-flex;
+  gap: 0;
+  padding: var(--usx-spacing-md);
+  flex-shrink: 0;
+}
+
+.assistui-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-lg);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-base);
+  font-weight: var(--usx-font-weight-medium);
+  font-family: var(--usx-font-family-sans);
+  cursor: pointer;
+  transition:
+    background var(--usx-transition-fast),
+    color var(--usx-transition-fast),
+    border-color var(--usx-transition-fast);
+}
+
+.assistui-mode-btn:first-child {
+  border-radius: var(--usx-radius-md) 0 0 var(--usx-radius-md);
+}
+
+.assistui-mode-btn:last-child {
+  border-radius: 0 var(--usx-radius-md) var(--usx-radius-md) 0;
+  border-left: none;
+}
+
+.assistui-mode-btn:hover {
+  background: var(--usx-color-surface-hover);
+  color: var(--usx-color-on-surface);
+}
+
+.assistui-mode-btn--active {
+  background: var(--usx-color-primary);
+  color: var(--usx-color-on-primary);
+  border-color: var(--usx-color-primary);
+}
+
+.assistui-mode-btn--active:hover {
+  background: var(--usx-color-primary-hover);
+  color: var(--usx-color-on-primary);
+}
+
+/* ─── Topbar ─────────────────────────────────────────────────── */
 
 /* ─── Nav-link styled buttons in topbar (model picker + New/Clear) ─── */
 .assistui-model-section .usx-button,

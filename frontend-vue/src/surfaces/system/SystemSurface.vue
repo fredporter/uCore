@@ -13,10 +13,7 @@
     />
     <div class="surface__content">
       <!-- Pages Browser -->
-      <div
-        v-if="currentTab === 'pages'"
-        class="system-panel surface__panel system-tab-shell"
-      >
+      <div v-if="currentTab === 'pages'" class="system-panel system-tab-shell">
         <h3 class="surface__panel-title">System Pages</h3>
         <p class="system-muted-copy">Browse S-pages.</p>
 
@@ -118,7 +115,7 @@
       <!-- Variables -->
       <div
         v-else-if="currentTab === 'variables'"
-        class="system-panel surface__panel system-tab-shell"
+        class="system-panel system-tab-shell"
       >
         <h3 class="surface__panel-title">Variables</h3>
         <p class="system-muted-copy">User and installation variables.</p>
@@ -196,13 +193,80 @@
               </tbody>
             </table>
           </div>
+
+          <h4 class="system-section-title">Models (Config)</h4>
+          <p class="system-muted-copy">
+            Provider / model configuration treated as variables.
+          </p>
+          <div v-if="modelsProviders.length === 0" class="system-muted-copy">
+            No models configured.
+          </div>
+          <div v-else class="system-table-wrap">
+            <table class="system-table">
+              <thead>
+                <tr>
+                  <th>Provider</th>
+                  <th>Name</th>
+                  <th>Models</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="prov in modelsProviders" :key="prov.id">
+                  <td>
+                    <code class="system-var-key">{{ prov.id }}</code>
+                  </td>
+                  <td class="system-var-value">{{ prov.name }}</td>
+                  <td>
+                    <span class="system-var-value">
+                      {{ (prov.models || []).join(", ") }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 class="system-section-title">Agents (Config)</h4>
+          <p class="system-muted-copy">
+            Agent definitions are configuration (provider + model +
+            capabilities).
+          </p>
+          <div v-if="agentConfigs.length === 0" class="system-muted-copy">
+            No agent configs.
+          </div>
+          <div v-else class="system-table-wrap">
+            <table class="system-table">
+              <thead>
+                <tr>
+                  <th>Agent</th>
+                  <th>Provider</th>
+                  <th>Model</th>
+                  <th>Capabilities</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="agent in agentConfigs" :key="agent.id">
+                  <td>
+                    <code class="system-var-key">{{ agent.name }}</code>
+                  </td>
+                  <td class="system-var-value">{{ agent.provider }}</td>
+                  <td class="system-var-value">{{ agent.model || "—" }}</td>
+                  <td>
+                    <span class="system-var-value">
+                      {{ (agent.capabilities || []).join(", ") }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       <!-- Secrets -->
       <div
         v-else-if="currentTab === 'secrets'"
-        class="system-panel surface__panel system-tab-shell"
+        class="system-panel system-tab-shell"
       >
         <h3 class="surface__panel-title">Secrets</h3>
         <p class="system-muted-copy">
@@ -282,7 +346,7 @@
       <!-- Global Settings -->
       <div
         v-else-if="currentTab === 'global-settings'"
-        class="system-panel surface__panel system-tab-shell"
+        class="system-panel system-tab-shell"
       >
         <h3 class="surface__panel-title">Global Settings</h3>
         <p class="system-muted-copy">
@@ -327,7 +391,7 @@
       <!-- User Settings -->
       <div
         v-else-if="currentTab === 'user-settings'"
-        class="system-panel surface__panel system-tab-shell"
+        class="system-panel system-tab-shell"
       >
         <h3 class="surface__panel-title">User Settings</h3>
         <p class="system-muted-copy">
@@ -411,6 +475,7 @@ const LOCAL_FALLBACK_PAGES = [
   { id: "S320", title: "Access Restricted", icon: "lock" },
   { id: "S330", title: "Configuration Missing", icon: "settings" },
   { id: "S340", title: "Dependency Unavailable", icon: "link_off" },
+  { id: "S500", title: "Service Crash Recovery", icon: "bug_report" },
   { id: "S600", title: "Help and Recovery", icon: "help" },
 ];
 const allPages = ref<Array<{ id: string; title: string; icon: string }>>([]);
@@ -440,6 +505,18 @@ const userVariables = ref<Record<string, string>>({});
 const installVariables = ref<Record<string, string>>({});
 const editingVar = ref<string | null>(null);
 const editVarValue = ref("");
+const modelsProviders = ref<
+  Array<{ id: string; name: string; models: string[] }>
+>([]);
+const agentConfigs = ref<
+  Array<{
+    id: string;
+    name: string;
+    provider: string;
+    model: string;
+    capabilities: string[];
+  }>
+>([]);
 
 function startEditVar(key: string, value: string) {
   editingVar.value = key;
@@ -608,6 +685,44 @@ async function fetchVariables() {
   loadingVars.value = false;
 }
 
+async function fetchModelsConfig() {
+  try {
+    const res = await fetch(`${API_BASE}/api/models`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      modelsProviders.value = (data.providers || []).map((p: any) => ({
+        id: p.id || "",
+        name: p.name || p.id || "",
+        models: Array.isArray(p.models) ? p.models : [],
+      }));
+    }
+  } catch {}
+}
+
+async function fetchAgentsConfig() {
+  try {
+    const res = await fetch(`${API_BASE}/api/agents`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const agents = Array.isArray(data.agents) ? data.agents : [];
+      // Demote agents to config — show only config-defined agents
+      agentConfigs.value = agents
+        .filter((a: any) => a.config || a.id === a.name)
+        .map((a: any) => ({
+          id: a.id || "",
+          name: a.name || a.id || "",
+          provider: a.provider || "ollama",
+          model: a.model || "",
+          capabilities: Array.isArray(a.capabilities) ? a.capabilities : [],
+        }));
+    }
+  } catch {}
+}
+
 async function fetchSecrets() {
   loadingSecrets.value = true;
   try {
@@ -662,6 +777,8 @@ onMounted(() => {
   fetchPages();
   fetchReadiness();
   fetchVariables();
+  fetchModelsConfig();
+  fetchAgentsConfig();
   fetchSecrets();
   loadSettings();
 });

@@ -13,42 +13,31 @@
     />
     <div class="surface__content">
       <!-- Dashboard -->
-      <div
-        v-if="activeTab === 'dashboard'"
-        class="surface__panel server-tab-shell"
-      >
+      <div v-if="activeTab === 'dashboard'" class="server-tab-shell">
         <SnackbarDashboardPanel />
       </div>
 
       <!-- Services -->
-      <div
-        v-else-if="activeTab === 'services'"
-        class="surface__panel server-tab-shell"
-      >
+      <div v-else-if="activeTab === 'services'" class="server-tab-shell">
         <SnackbarServicesPanel />
       </div>
-      <!-- Snacks -->
-      <div
-        v-else-if="activeTab === 'snacks'"
-        class="surface__panel server-tab-shell"
-      >
+      <!-- Skills/Executables -->
+      <div v-else-if="activeTab === 'skills'" class="server-tab-shell">
+        <SnackbarSkillsPanel />
+      </div>
+      <!-- Events (feed-spool) -->
+      <div v-else-if="activeTab === 'snacks'" class="server-tab-shell">
         <SnackbarSnacksPanel />
       </div>
       <!-- Logs -->
-      <div
-        v-else-if="activeTab === 'logs'"
-        class="surface__panel server-tab-shell"
-      >
+      <div v-else-if="activeTab === 'logs'" class="server-tab-shell">
         <SnackbarLogsPanel />
       </div>
       <!-- Plugins -->
-      <div
-        v-else-if="activeTab === 'plugins'"
-        class="surface__panel server-tab-shell"
-      >
+      <div v-else-if="activeTab === 'plugins'" class="server-tab-shell">
         <SnackbarPluginsPanel />
       </div>
-      <div v-else class="surface__panel server-tab-shell">
+      <div v-else class="server-tab-shell">
         <SnackbarDashboardPanel />
       </div>
     </div>
@@ -72,6 +61,9 @@ const SnackbarServicesPanel = defineAsyncComponent(
 );
 const SnackbarSnacksPanel = defineAsyncComponent(
   () => import("./panels/SnackbarSnacksPanel.vue"),
+);
+const SnackbarSkillsPanel = defineAsyncComponent(
+  () => import("./panels/SnackbarSkillsPanel.vue"),
 );
 const SnackbarLogsPanel = defineAsyncComponent(
   () => import("./panels/SnackbarLogsPanel.vue"),

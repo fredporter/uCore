@@ -107,6 +107,128 @@
           </div>
         </template>
 
+        <!-- S500: Service Crash Recovery — live health + restart/repair/destroy -->
+        <template v-else-if="isCrashRecoveryPage">
+          <p class="system-page-note">
+            Live service health monitor. Restart, repair, or revert crashed
+            services to a working release.
+          </p>
+
+          <div class="crash-toolbar">
+            <button
+              class="crash-action"
+              @click="refreshCrashHealth"
+              :disabled="crashLoading"
+            >
+              {{ crashLoading ? "Checking..." : "Refresh Health" }}
+            </button>
+            <button
+              class="crash-action crash-action--danger"
+              @click="restartAllServices"
+              :disabled="crashLoading"
+            >
+              Restart All
+            </button>
+          </div>
+
+          <div v-if="crashLoading" class="crash-state">
+            Checking service health...
+          </div>
+
+          <div v-else-if="crashServices.length === 0" class="crash-state">
+            All services are healthy. No recovery needed.
+          </div>
+
+          <div v-else class="crash-service-list">
+            <div
+              v-for="svc in crashServices"
+              :key="svc.name"
+              class="crash-service-card"
+              :class="'crash-service-card--' + svc.status"
+            >
+              <div class="crash-service-head">
+                <span
+                  class="crash-service-dot"
+                  :class="'crash-service-dot--' + svc.status"
+                />
+                <div class="crash-service-info">
+                  <span class="crash-service-name">{{ svc.name }}</span>
+                  <span class="crash-service-desc">{{ svc.description }}</span>
+                </div>
+                <UBadge
+                  :type="
+                    svc.status === 'up'
+                      ? 'success'
+                      : svc.status === 'degraded'
+                        ? 'warning'
+                        : 'error'
+                  "
+                  size="sm"
+                >
+                  {{ svc.status }}
+                </UBadge>
+              </div>
+              <div class="crash-service-meta">
+                <span>Port {{ svc.port }} · Uptime {{ svc.uptime }}%</span>
+              </div>
+              <div class="crash-service-actions">
+                <button
+                  class="crash-action"
+                  @click="restartService(svc.name)"
+                  :disabled="actionLoading === svc.name"
+                >
+                  {{ actionLoading === svc.name ? "..." : "Restart" }}
+                </button>
+                <button
+                  class="crash-action"
+                  @click="repairService(svc.name)"
+                  :disabled="actionLoading === svc.name"
+                >
+                  Repair
+                </button>
+                <button
+                  class="crash-action crash-action--danger"
+                  @click="confirmDestroy(svc.name)"
+                  :disabled="actionLoading === svc.name"
+                >
+                  {{
+                    destroyConfirm === svc.name ? "Confirm Destroy" : "Destroy"
+                  }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-if="crashMessage"
+            class="crash-message"
+            :class="'crash-message--' + crashMessageType"
+          >
+            {{ crashMessage }}
+          </div>
+
+          <div class="system-actions-row">
+            <button
+              class="system-page-action"
+              @click="goTo('/snackbar?tab=dashboard')"
+            >
+              Snackbar Dashboard
+            </button>
+            <button
+              class="system-page-action"
+              @click="goTo('/snackbar?tab=logs')"
+            >
+              System Logs
+            </button>
+            <button
+              class="system-page-action"
+              @click="goTo('/snackbar?tab=services')"
+            >
+              All Services
+            </button>
+          </div>
+        </template>
+
         <template v-else>
           <h3 class="system-fallback-title">{{ fallbackModel.heading }}</h3>
           <p class="system-page-note">{{ fallbackModel.summary }}</p>
@@ -162,6 +284,8 @@ import { useRoute, useRouter } from "vue-router";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import UBadge from "../../skills/atoms/UBadge.vue";
 import { SNACKBAR_BASE } from "../../api/base";
+import { useSnackbarOpsStore } from "../../stores/snackbarOps";
+import { useSnackbarStore } from "../../stores/snackbar";
 
 interface PageMeta {
   id: string;
@@ -190,6 +314,8 @@ interface ClipboardItem {
 
 const route = useRoute();
 const router = useRouter();
+const srv = useSnackbarOpsStore();
+const toast = useSnackbarStore();
 
 const LOCAL_FALLBACK_PAGES: PageMeta[] = [
   { id: "S100", title: "Page Not Found", icon: "search_off" },
@@ -198,6 +324,9 @@ const LOCAL_FALLBACK_PAGES: PageMeta[] = [
   { id: "S310", title: "Clipboard Full History", icon: "content_paste" },
   { id: "S320", title: "Access Restricted", icon: "lock" },
   { id: "S330", title: "Configuration Missing", icon: "settings" },
+  { id: "S340", title: "Dependency Unavailable", icon: "link_off" },
+  { id: "S500", title: "Service Crash Recovery", icon: "bug_report" },
+  { id: "S600", title: "Help and Recovery", icon: "help" },
   { id: "S340", title: "Dependency Unavailable", icon: "link_off" },
   { id: "S600", title: "Help and Recovery", icon: "help" },
 ];
@@ -217,6 +346,146 @@ const pageCode = computed(() => {
 
 const resolvedPageCode = computed(
   () => LEGACY_P_TO_S_ALIAS[pageCode.value] || pageCode.value,
+);
+
+// ── S500 Crash Recovery ──────────────────────────────────────
+const crashServices = ref<
+  Array<{
+    name: string;
+    status: string;
+    port: number;
+    uptime: number;
+    description: string;
+  }>
+>([]);
+const crashLoading = ref(false);
+const crashMessage = ref("");
+const crashMessageType = ref<"info" | "success" | "error">("info");
+const actionLoading = ref<string | null>(null);
+const destroyConfirm = ref<string | null>(null);
+
+const isCrashRecoveryPage = computed(() => resolvedPageCode.value === "S500");
+
+async function refreshCrashHealth() {
+  crashLoading.value = true;
+  crashMessage.value = "";
+  try {
+    const res = await fetch(`${SNACKBAR_BASE}/api/server/services`);
+    if (res.ok) {
+      const data = await res.json();
+      crashServices.value = (data.services || []).filter(
+        (s: any) => s.status !== "up",
+      );
+    }
+  } catch {
+    crashMessage.value = "Failed to fetch service health.";
+    crashMessageType.value = "error";
+  } finally {
+    crashLoading.value = false;
+  }
+}
+
+async function restartService(name: string) {
+  actionLoading.value = name;
+  crashMessage.value = "";
+  try {
+    const res = await fetch(
+      `${SNACKBAR_BASE}/api/server/services/${name}/restart`,
+      { method: "POST" },
+    );
+    if (res.ok) {
+      crashMessage.value = `${name} restarted successfully.`;
+      crashMessageType.value = "success";
+      toast.show(`${name} restarted`, "success", 3000, "s500");
+    } else {
+      crashMessage.value = `Failed to restart ${name} (HTTP ${res.status}).`;
+      crashMessageType.value = "error";
+    }
+  } catch {
+    crashMessage.value = `Restart request for ${name} failed (backend may be down).`;
+    crashMessageType.value = "error";
+  } finally {
+    actionLoading.value = null;
+    refreshCrashHealth();
+  }
+}
+
+async function repairService(name: string) {
+  actionLoading.value = name;
+  crashMessage.value = "";
+  try {
+    const res = await fetch(
+      `${SNACKBAR_BASE}/api/server/services/${name}/repair`,
+      { method: "POST" },
+    );
+    if (res.ok) {
+      crashMessage.value = `${name} repair initiated.`;
+      crashMessageType.value = "success";
+      toast.show(`${name} repair started`, "info", 4000, "s500");
+    } else {
+      crashMessage.value = `Repair failed for ${name} (HTTP ${res.status}).`;
+      crashMessageType.value = "error";
+    }
+  } catch {
+    crashMessage.value = `Repair request for ${name} failed.`;
+    crashMessageType.value = "error";
+  } finally {
+    actionLoading.value = null;
+    refreshCrashHealth();
+  }
+}
+
+function confirmDestroy(name: string) {
+  if (destroyConfirm.value === name) {
+    destroyService(name);
+  } else {
+    destroyConfirm.value = name;
+    setTimeout(() => {
+      if (destroyConfirm.value === name) destroyConfirm.value = null;
+    }, 5000);
+  }
+}
+
+async function destroyService(name: string) {
+  actionLoading.value = name;
+  destroyConfirm.value = null;
+  crashMessage.value = "";
+  try {
+    const res = await fetch(
+      `${SNACKBAR_BASE}/api/server/services/${name}/reset`,
+      { method: "POST" },
+    );
+    if (res.ok) {
+      crashMessage.value = `${name} reverted to last working release.`;
+      crashMessageType.value = "success";
+      toast.show(`${name} reverted to git release`, "warning", 5000, "s500");
+    } else {
+      crashMessage.value = `Destroy/reset failed for ${name} (HTTP ${res.status}).`;
+      crashMessageType.value = "error";
+    }
+  } catch {
+    crashMessage.value = `Destroy request for ${name} failed.`;
+    crashMessageType.value = "error";
+  } finally {
+    actionLoading.value = null;
+    refreshCrashHealth();
+  }
+}
+
+async function restartAllServices() {
+  crashLoading.value = true;
+  for (const svc of crashServices.value) {
+    if (svc.status !== "up") await restartService(svc.name);
+  }
+  await refreshCrashHealth();
+}
+
+watch(
+  resolvedPageCode,
+  (code) => {
+    if (code === "S500") refreshCrashHealth();
+  },
+  { immediate: true },
 );
 
 const pageMeta = computed<PageMeta>(() => {
@@ -517,6 +786,27 @@ const fallbackModel = computed<FallbackModel>(() => {
     };
   }
 
+  if (code === "S500") {
+    return {
+      heading: "Service Crash Recovery",
+      summary:
+        "One or more services are not responding. Use this page to restart, repair, or revert to a working release.",
+      steps: [
+        "Check service health status and uptime metrics.",
+        "Restart individual services to attempt recovery.",
+        "Use Repair to run automated fix scripts.",
+        "Destroy to revert to the last working git release version.",
+      ],
+      suggestions: [
+        { label: "Snackbar Dashboard", to: "/snackbar?tab=dashboard" },
+        { label: "System Logs", to: "/snackbar?tab=logs" },
+        { label: "All Services", to: "/snackbar?tab=services" },
+      ],
+      footnote:
+        "S500: Crash recovery surface. Live health data is fetched from /api/server/services.",
+    };
+  }
+
   if (code === "S600") {
     return {
       heading: "Help and Recovery",
@@ -690,7 +980,150 @@ function goHome() {
 .system-fallback-footnote {
   margin: 0;
   color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-xs);
+  font-size: var(--usx-font-size-sm);
   text-align: center;
+}
+
+/* ─── S500 Crash Recovery ───────────────────────────────────── */
+.crash-toolbar {
+  display: flex;
+  gap: var(--usx-spacing-sm);
+  margin-bottom: var(--usx-spacing-md);
+}
+
+.crash-action {
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
+  font-size: var(--usx-font-size-sm);
+  font-family: var(--usx-font-family-sans);
+  cursor: pointer;
+  transition:
+    background var(--usx-transition-fast),
+    border-color var(--usx-transition-fast);
+}
+
+.crash-action:hover:not(:disabled) {
+  background: var(--usx-color-surface-hover);
+  border-color: var(--usx-color-primary);
+}
+
+.crash-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.crash-action--danger {
+  color: var(--usx-color-danger);
+  border-color: var(--usx-color-danger);
+}
+
+.crash-action--danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--usx-color-danger) 10%, transparent);
+}
+
+.crash-state {
+  padding: var(--usx-spacing-lg);
+  text-align: center;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-base);
+}
+
+.crash-service-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-sm);
+  margin-bottom: var(--usx-spacing-md);
+}
+
+.crash-service-card {
+  padding: var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface);
+}
+
+.crash-service-card--down {
+  border-color: color-mix(in srgb, var(--usx-color-danger) 40%, transparent);
+}
+
+.crash-service-card--degraded {
+  border-color: color-mix(in srgb, var(--usx-color-warning) 40%, transparent);
+}
+
+.crash-service-head {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  margin-bottom: var(--usx-spacing-sm);
+}
+
+.crash-service-dot {
+  width: var(--usx-spacing-sm);
+  height: var(--usx-spacing-sm);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.crash-service-dot--up {
+  background: var(--usx-color-success);
+}
+.crash-service-dot--degraded {
+  background: var(--usx-color-warning);
+}
+.crash-service-dot--down {
+  background: var(--usx-color-danger);
+}
+
+.crash-service-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.crash-service-name {
+  font-size: var(--usx-font-size-base);
+  font-weight: var(--usx-font-weight-semibold);
+  display: block;
+}
+
+.crash-service-desc {
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.crash-service-meta {
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
+  margin-bottom: var(--usx-spacing-sm);
+}
+
+.crash-service-actions {
+  display: flex;
+  gap: var(--usx-spacing-xs);
+  flex-wrap: wrap;
+}
+
+.crash-message {
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border-radius: var(--usx-radius-md);
+  margin-bottom: var(--usx-spacing-md);
+  font-size: var(--usx-font-size-base);
+}
+
+.crash-message--success {
+  background: color-mix(in srgb, var(--usx-color-success) 12%, transparent);
+  color: var(--usx-color-success);
+}
+
+.crash-message--error {
+  background: color-mix(in srgb, var(--usx-color-danger) 12%, transparent);
+  color: var(--usx-color-danger);
+}
+
+.crash-message--info {
+  background: color-mix(in srgb, var(--usx-color-info) 12%, transparent);
+  color: var(--usx-color-info);
 }
 </style>

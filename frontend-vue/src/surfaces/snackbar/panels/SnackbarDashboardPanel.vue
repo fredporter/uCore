@@ -1,40 +1,38 @@
 <template>
   <div class="server-dashboard" v-if="!srv.loading">
-    <div class="surface__panel">
-      <div class="server-dashboard-header">
-        <div>
-          <h2 class="usx-no-margin">Server Operations</h2>
-          <p class="usx-mt-xs server-muted-text">
-            {{ srv.services.length }} services · {{ srv.upCount }} online
-          </p>
-        </div>
-        <div class="health-ring" :class="healthClass">{{ srv.healthPct }}%</div>
+    <div class="server-dashboard-header">
+      <div>
+        <h2 class="usx-no-margin">Server Operations</h2>
+        <p class="usx-mt-xs server-muted-text">
+          {{ srv.services.length }} services · {{ srv.upCount }} online
+        </p>
       </div>
-      <div class="server-stats-row">
-        <div class="server-stat">
-          <span class="server-stat-value server-stat-value--up">{{
-            srv.upCount
-          }}</span>
-          <span class="server-stat-label">Up</span>
-        </div>
-        <div class="server-stat">
-          <span class="server-stat-value server-stat-value--degraded">{{
-            srv.degradedCount
-          }}</span>
-          <span class="server-stat-label">Degraded</span>
-        </div>
-        <div class="server-stat">
-          <span class="server-stat-value server-stat-value--down">{{
-            srv.downCount
-          }}</span>
-          <span class="server-stat-label">Down</span>
-        </div>
-        <div class="server-stat">
-          <span class="server-stat-value server-stat-value--budget"
-            >${{ budgetDisplay }}</span
-          >
-          <span class="server-stat-label">Budget</span>
-        </div>
+      <div class="health-ring" :class="healthClass">{{ srv.healthPct }}%</div>
+    </div>
+    <div class="server-stats-row">
+      <div class="server-stat">
+        <span class="server-stat-value server-stat-value--up">{{
+          srv.upCount
+        }}</span>
+        <span class="server-stat-label">Up</span>
+      </div>
+      <div class="server-stat">
+        <span class="server-stat-value server-stat-value--degraded">{{
+          srv.degradedCount
+        }}</span>
+        <span class="server-stat-label">Degraded</span>
+      </div>
+      <div class="server-stat">
+        <span class="server-stat-value server-stat-value--down">{{
+          srv.downCount
+        }}</span>
+        <span class="server-stat-label">Down</span>
+      </div>
+      <div class="server-stat">
+        <span class="server-stat-value server-stat-value--budget"
+          >${{ budgetDisplay }}</span
+        >
+        <span class="server-stat-label">Budget</span>
       </div>
     </div>
     <div class="surface__panel">

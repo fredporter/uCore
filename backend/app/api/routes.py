@@ -274,6 +274,22 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/skills/health", handle_health)
     app.router.add_get("/api/skills/{skill_id}/source", handle_skill_source)
 
+    # ── Unified Executables (Skills + Snack plugins) ──────────────
+    try:
+        from .executables_api import register_executables_routes
+        register_executables_routes(app)
+        log.debug("Executables API routes registered")
+    except ImportError as e:
+        log.debug("Executables API routes not available: %s", e)
+
+    # ── Unified Services (Services + Tools + MCP) ─────────────────
+    try:
+        from .services_api import register_services_routes
+        register_services_routes(app)
+        log.debug("Services API routes registered")
+    except ImportError as e:
+        log.debug("Services API routes not available: %s", e)
+
     # ── Render / SSE (Layered Output) ──────────────────────────────
     from .render_api import handle_render, handle_stream, handle_publish_event, handle_extension_announce
     app.router.add_post("/api/render", handle_render)

@@ -64,18 +64,8 @@
       <!-- Budget — reused from SnackbarSurface -->
       <SnackbarBudgetPanel v-else-if="activeTab === 'budget'" />
 
-      <!-- History -->
-      <div v-else-if="activeTab === 'history'" class="intel-panel">
-        <h3 class="surface__panel-title">Chat History</h3>
-        <p class="intel-muted">
-          Conversation log — search, replay, and export.
-        </p>
-
-        <div class="intel-empty">
-          <span class="material-symbols-outlined">history</span>
-          <p>Chat history will appear here. Conversations are saved locally.</p>
-        </div>
-      </div>
+      <!-- Combined History -->
+      <CombinedHistoryPanel v-else-if="activeTab === 'history'" />
     </div>
   </div>
 </template>
@@ -87,6 +77,7 @@ import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import SnackbarModelsPanel from "../snackbar/panels/SnackbarModelsPanel.vue";
 import SnackbarAgentsPanel from "../snackbar/panels/SnackbarAgentsPanel.vue";
 import SnackbarBudgetPanel from "../snackbar/panels/SnackbarBudgetPanel.vue";
+import CombinedHistoryPanel from "./panels/CombinedHistoryPanel.vue";
 
 const INTEL_TABS = [
   { id: "chat", label: "Chat", icon: "chat" },

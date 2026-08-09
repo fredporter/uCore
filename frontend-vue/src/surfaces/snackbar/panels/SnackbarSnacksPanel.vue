@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="usx-flex-between usx-mb-md">
-      <h3 class="surface__panel-title">Runtime Snacks</h3>
+      <h3 class="surface__panel-title">Events</h3>
       <UButton
         variant="secondary"
         size="sm"
@@ -10,9 +10,13 @@
         >Refresh</UButton
       >
     </div>
+    <p class="server-muted-text">
+      Feed-spool queue — messages, tasks, commands and notifications flowing
+      through the system.
+    </p>
 
     <div v-if="srv.snacks.length === 0" class="server-muted-text">
-      No queued snacks.
+      No queued events.
     </div>
     <div v-else class="server-table-wrap">
       <table class="server-table">
@@ -35,7 +39,7 @@
                       ? 'account_tree'
                       : snack.type === 'clipboard'
                         ? 'content_paste'
-                        : 'restaurant_menu'
+                        : 'rss_feed'
                   "
                 />
                 <span>{{ snack.type }}</span>
@@ -65,31 +69,6 @@
           </tr>
         </tbody>
       </table>
-    </div>
-
-    <div class="surface__panel usx-mt-md">
-      <h4 class="surface__panel-title server-subheading">System Snacks</h4>
-      <div v-if="srv.systemSnacks.length === 0" class="server-muted-text">
-        No system snacks discovered.
-      </div>
-      <div v-else class="server-table-wrap">
-        <table class="server-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Kind</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="snack in srv.systemSnacks" :key="snack.id">
-              <td class="server-system-snack-name">{{ snack.name }}</td>
-              <td>
-                <UBadge type="info" size="sm">{{ snack.kind }}</UBadge>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </div>
   </div>
 </template>
