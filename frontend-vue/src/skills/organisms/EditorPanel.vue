@@ -30,10 +30,44 @@
         class="editor-panel__main"
         :class="`editor-panel__main--${viewMode}`"
       >
-        <!-- Preview-only: slim control bar so the document stays reachable -->
-        <template v-if="viewMode === 'preview'">
-          <div class="editor-panel__preview-bar">
+        <!-- Editor pane: formatting toolbar. In editor-only view the
+             view-research-close toolbar sits right-aligned next to it. -->
+        <MarkdownEditor
+          v-if="viewMode !== 'preview'"
+          v-model="localContent"
+          :preview="false"
+          :read-only="readOnly"
+          :edit-mode="localEditMode"
+          class="editor-panel__markdown"
+          :class="{ 'editor-panel__markdown--split': viewMode === 'split' }"
+          @save="handleSave"
+          @change="onContentChange"
+        >
+          <template #toolbar-actions>
             <EditorToolbar
+              v-if="viewMode === 'edit'"
+              right
+              :view-mode="viewMode"
+              :research-open="researchOpen"
+              :edit-mode="localEditMode"
+              :read-only="readOnly"
+              @update:view-mode="onViewModeChange"
+              @toggle-research="researchOpen = !researchOpen"
+              @toggle-edit-mode="toggleEditMode"
+              @save="handleSave"
+              @close="emit('close')"
+            />
+          </template>
+        </MarkdownEditor>
+
+        <!-- Prose panel: view-research-close toolbar + rendered document -->
+        <div
+          v-if="viewMode === 'split' || viewMode === 'preview'"
+          class="editor-panel__prose"
+        >
+          <div class="editor-panel__prose-bar">
+            <EditorToolbar
+              bare
               :view-mode="viewMode"
               :research-open="researchOpen"
               :edit-mode="localEditMode"
@@ -50,43 +84,7 @@
             :filename="currentFilename"
             class="editor-panel__preview"
           />
-        </template>
-
-        <!-- WYSIWYG / code editor pane (controls injected into its toolbar) -->
-        <MarkdownEditor
-          v-else
-          v-model="localContent"
-          :preview="false"
-          :read-only="readOnly"
-          :edit-mode="localEditMode"
-          class="editor-panel__markdown"
-          :class="{ 'editor-panel__markdown--split': viewMode === 'split' }"
-          @save="handleSave"
-          @change="onContentChange"
-        >
-          <template #toolbar-actions>
-            <EditorToolbar
-              :view-mode="viewMode"
-              :research-open="researchOpen"
-              :edit-mode="localEditMode"
-              :read-only="readOnly"
-              @update:view-mode="onViewModeChange"
-              @toggle-research="researchOpen = !researchOpen"
-              @toggle-edit-mode="toggleEditMode"
-              @save="handleSave"
-              @close="emit('close')"
-            />
-          </template>
-        </MarkdownEditor>
-
-        <!-- Markdown preview pane (split view) -->
-        <MarkdownPreview
-          v-if="viewMode === 'split'"
-          :content="localContent"
-          :filename="currentFilename"
-          class="editor-panel__preview"
-          :class="{ 'editor-panel__preview--split': viewMode === 'split' }"
-        />
+        </div>
       </div>
 
       <!-- Research panel (right column) -->
@@ -243,21 +241,35 @@ function toggleEditMode() {
   background: var(--usx-color-background);
 }
 
-/* ─── Preview-only control bar (keeps actions reachable without editor) ── */
-.editor-panel__preview-bar {
+/* ─── Prose panel: view-research-close bar + rendered document ───── */
+.editor-panel__prose {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-panel__prose-bar {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   flex-shrink: 0;
-  padding: var(--usx-spacing-2) var(--usx-spacing-sm);
+  padding: var(--usx-spacing-sm);
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
   background: var(--usx-color-surface);
+  overflow-x: auto;
 }
 
-.editor-panel__preview-bar .editor-toolbar {
-  margin-left: 0;
-  padding-left: 0;
-  border-left: none;
+.editor-panel__prose-bar .editor-toolbar {
+  flex-shrink: 0;
+}
+
+.editor-panel__prose .editor-panel__preview {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* ─── 2-column body layout ───────────────────────────────────────── */
@@ -284,14 +296,16 @@ function toggleEditMode() {
   min-width: 0;
 }
 
-/* Document header (title + frontmatter table) — full-width block above body */
+/* Document header (title + frontmatter table) — full-width block above body.
+   No background so it blends with the editor/page background. Even vertical
+   padding above and below the title. */
 .editor-panel__doc-header {
   display: flex;
   flex-direction: column;
-  gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-sm) var(--usx-spacing-lg);
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-md) var(--usx-spacing-lg);
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
-  background: var(--usx-color-surface-variant);
+  background: transparent;
   max-height: 40%;
   overflow-y: auto;
   flex-shrink: 0;
@@ -352,14 +366,10 @@ function toggleEditMode() {
   --usx-editor-min-height: 0;
 }
 
-.editor-panel__markdown--split,
-.editor-panel__preview--split {
+.editor-panel__markdown--split {
   flex: 1;
   min-width: 0;
   overflow: hidden;
-}
-
-.editor-panel__markdown--split {
   border-right: 1px solid var(--usx-color-border);
 }
 

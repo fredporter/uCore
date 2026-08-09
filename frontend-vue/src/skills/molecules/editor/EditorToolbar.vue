@@ -1,5 +1,11 @@
 <template>
-  <div class="editor-toolbar">
+  <div
+    class="editor-toolbar"
+    :class="{
+      'editor-toolbar--bare': bare,
+      'editor-toolbar--right': right,
+    }"
+  >
     <!-- Edit / Preview / Split mode tabs (icon-only) -->
     <div class="editor-toolbar__mode-tabs">
       <button
@@ -70,16 +76,18 @@
 <script setup lang="ts">
 /**
  * @component EditorToolbar
- * @description Compact, icon-only control row for the editor panel:
- * Edit/Preview/Split view modes, save, research, prose/code edit mode,
- * and close. The Files sidebar toggle lives in the global toolbar, not here.
- * Rendered inside the MarkdownEditor toolbar (or a slim preview bar when in
- * Preview-only mode) so the editor keeps a single toolbar.
+ * @description Compact, icon-only view-research-close control row for the
+ * editor panel: Edit/Preview/Split view modes, save, research, prose/code edit
+ * mode, and close. Rendered on the Prose panel, or right-aligned inside the
+ * editor toolbar in editor-only view. The Files sidebar toggle lives in the
+ * global toolbar, not here.
  * @category skills/molecules
  * @props {string} viewMode - 'edit' | 'preview' | 'split'
  * @props {boolean} researchOpen - Research panel visibility
  * @props {string} editMode - 'prose' | 'code'
  * @props {boolean} readOnly - Hide save when read-only
+ * @props {boolean} bare - Drop left margin/separator (sits alone in a bar)
+ * @props {boolean} right - Push to the right edge of the parent toolbar
  * @emits update:viewMode, toggle-research, toggle-edit-mode, save, close
  */
 import UIcon from "../../atoms/UIcon.vue";
@@ -89,10 +97,14 @@ interface Props {
   researchOpen: boolean;
   editMode: "prose" | "code";
   readOnly?: boolean;
+  bare?: boolean;
+  right?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   readOnly: false,
+  bare: false,
+  right: false,
 });
 
 const emit = defineEmits<{
@@ -113,6 +125,18 @@ const emit = defineEmits<{
   padding-left: var(--usx-spacing-sm);
   border-left: 1px solid var(--usx-color-border);
   flex-shrink: 0;
+}
+
+/* Sits alone in a bar (no preceding controls) — drop the left separator */
+.editor-toolbar--bare {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: none;
+}
+
+/* Right-aligned inside the editor toolbar (editor-only view) */
+.editor-toolbar--right {
+  margin-left: auto;
 }
 
 .editor-toolbar__btn {
