@@ -5,9 +5,9 @@
       <div class="editor-panel__toolbar-left">
         <button
           class="editor-panel__nav-btn"
-          :class="{ 'editor-panel__nav-btn--active': sidebarOpen }"
-          title="Toggle file tree"
-          @click="sidebarOpen = !sidebarOpen"
+          :class="{ 'editor-panel__nav-btn--active': shell.sidebarOpen }"
+          title="Toggle Files sidebar"
+          @click="shell.toggleSidebar()"
         >
           <UIcon name="account_tree" />
         </button>
@@ -82,15 +82,8 @@
       </div>
     </div>
 
-    <!-- 3-column body: sidebar | editor | research panel -->
+    <!-- Body: editor | research panel (single global sidebar handles files) -->
     <div class="editor-panel__body">
-      <!-- Workspace tree sidebar -->
-      <transition name="editor-sidebar">
-        <div v-if="sidebarOpen" class="editor-panel__sidebar">
-          <WorkspaceTree />
-        </div>
-      </transition>
-
       <!-- Main editor column -->
       <div
         class="editor-panel__main"
@@ -156,10 +149,10 @@
 import { ref, watch, computed } from "vue";
 import UIcon from "../atoms/UIcon.vue";
 import MarkdownEditor from "../molecules/editor/MarkdownEditor.vue";
-import WorkspaceTree from "../molecules/editor/WorkspaceTree.vue";
 import FrontmatterPills from "../molecules/editor/FrontmatterPills.vue";
 import MarkdownPreview from "../molecules/MarkdownPreview.vue";
 import ResearchPanel from "../molecules/editor/ResearchPanel.vue";
+import { useShellStore } from "../../stores/shell";
 import {
   parseDocument,
   serializeDocument,
@@ -188,10 +181,11 @@ const emit = defineEmits<{
   close: [];
 }>();
 
+const shell = useShellStore();
+
 // ─── State ───────────────────────────────────────────────────────────
 const localContent = ref(props.content);
 const localEditMode = ref<"prose" | "code">(props.editMode);
-const sidebarOpen = ref(true);
 const viewMode = ref<"edit" | "preview" | "split">("edit");
 const researchOpen = ref(false);
 
@@ -336,20 +330,12 @@ function toggleEditMode() {
   color: var(--usx-color-on-surface);
 }
 
-/* ─── 3-column body layout ───────────────────────────────────────── */
+/* ─── 2-column body layout ───────────────────────────────────────── */
 .editor-panel__body {
   flex: 1;
   display: flex;
   overflow: hidden;
   min-height: 0;
-}
-
-.editor-panel__sidebar {
-  width: 220px;
-  flex-shrink: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 .editor-panel__research {
@@ -436,18 +422,5 @@ function toggleEditMode() {
 .editor-sidebar-leave-to {
   width: 0;
   opacity: 0;
-}
-
-/* ─── Mobile: collapse sidebar below 640px ────────────────────────── */
-@media (max-width: 640px) {
-  .editor-panel__sidebar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 100;
-    width: 280px;
-    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
-  }
 }
 </style>

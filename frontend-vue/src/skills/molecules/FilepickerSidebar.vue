@@ -1,55 +1,21 @@
 <template>
   <div class="filepicker-sidebar">
     <div class="filepicker-sidebar__header">
-      <div
-        class="filepicker-sidebar__toolbar"
-        role="toolbar"
-        aria-label="file-actions"
-      >
+      <span class="filepicker-sidebar__heading">Files</span>
+      <div class="filepicker-sidebar__actions">
         <button
-          class="filepicker-sidebar__icon-btn"
-          :disabled="isMirroring"
-          title="Sync User Vault"
-          @click="syncUserVault"
-        >
-          <UIcon :name="isMirroring ? 'sync' : 'sync'" :spin="isMirroring" />
-        </button>
-        <button
-          class="filepicker-sidebar__icon-btn"
+          class="filepicker-sidebar__action-btn"
           title="New file"
           @click="handleNewFile"
         >
-          <UIcon name="add" />
+          <UIcon name="note_add" />
         </button>
         <button
-          class="filepicker-sidebar__icon-btn"
-          title="Open Markdown Workspace"
-          @click="openMarkdownWorkspace"
+          class="filepicker-sidebar__action-btn"
+          title="New binder"
+          @click="handleNewBinder"
         >
-          <UIcon name="diamond" />
-        </button>
-        <button
-          class="filepicker-sidebar__icon-btn"
-          :disabled="!selectedFile"
-          title="Duplicate selected file"
-          @click="duplicateSelectedFile"
-        >
-          <UIcon name="content_copy" />
-        </button>
-        <button
-          class="filepicker-sidebar__icon-btn"
-          title="Dashboard"
-          @click="router.push('/')"
-        >
-          <UIcon name="home" />
-        </button>
-        <button
-          v-if="developerServerActive"
-          class="filepicker-sidebar__icon-btn"
-          title="Developer"
-          @click="router.push('/developer')"
-        >
-          <UIcon name="terminal" />
+          <UIcon name="create_new_folder" />
         </button>
       </div>
     </div>
@@ -58,26 +24,21 @@
       {{ mirrorMessage }}
     </div>
 
-    <div class="filepicker-sidebar__search-row">
-      <UInput
-        v-model="searchQuery"
-        placeholder="Filter files..."
-        icon="search"
-        class="filepicker-sidebar__search"
-      />
-      <label class="filepicker-sidebar__mode-inline" for="markdown-open-mode">
-        <UIcon name="diamond" class="filepicker-sidebar__inline-icon" />
-        <select
-          id="markdown-open-mode"
-          v-model="markdownOpenMode"
-          class="filepicker-sidebar__mode-select"
-          title="Open as"
+    <div class="filepicker-sidebar__switcher">
+      <UIcon name="account_tree" class="filepicker-sidebar__switcher-icon" />
+      <select
+        v-model="activeWorkspace"
+        class="filepicker-sidebar__switcher-select"
+        title="Workspace / Binder"
+      >
+        <option
+          v-for="ws in workspaceOptions"
+          :key="ws.source"
+          :value="ws.source"
         >
-          <option value="auto">Auto</option>
-          <option value="prose">Prose</option>
-          <option value="code">Code</option>
-        </select>
-      </label>
+          {{ ws.label }}
+        </option>
+      </select>
     </div>
 
     <div v-if="indexStatus === 'not-built'" class="filepicker-sidebar__banner">
@@ -96,118 +57,71 @@
       <UButton size="sm" @click="fetchFiles">Retry</UButton>
     </div>
 
-    <div v-else class="filepicker-sidebar__tree">
-      <!-- Files-style sections: default Files (User Vault) + other Workspaces -->
-      <section
-        v-for="section in sections"
-        :key="section.source"
-        class="filepicker-sidebar__section"
-        :class="{
-          'filepicker-sidebar__section--open': isSectionOpen(section.source),
-        }"
+    <div v-else class="filepicker-sidebar__list">
+      <div
+        v-for="row in activeRows"
+        :key="row.id"
+        class="filepicker-sidebar__tree-row"
+        :style="{ '--depth': String(row.depth) }"
       >
         <button
-          class="filepicker-sidebar__section-head"
-          @click="toggleSection(section.source)"
+          v-if="row.type === 'folder'"
+          class="filepicker-sidebar__folder"
+          @click="toggleFolder(activeWorkspace, row.path)"
         >
           <UIcon
             :name="
-              isSectionOpen(section.source) ? 'expand_more' : 'chevron_right'
+              isFolderExpanded(activeWorkspace, row.path)
+                ? 'expand_more'
+                : 'chevron_right'
             "
-            class="filepicker-sidebar__section-chevron"
+            class="filepicker-sidebar__folder-chevron"
           />
-          <UIcon
-            :name="section.icon"
-            class="filepicker-sidebar__section-icon"
-          />
-          <span class="filepicker-sidebar__section-title">{{
-            section.label
-          }}</span>
-          <span class="filepicker-sidebar__section-count">{{
-            section.count
+          <UIcon name="folder" class="filepicker-sidebar__folder-icon" />
+          <span class="filepicker-sidebar__folder-name">{{ row.name }}</span>
+          <span class="filepicker-sidebar__folder-count">{{
+            row.fileCount
           }}</span>
         </button>
 
         <div
-          v-if="isSectionOpen(section.source)"
-          class="filepicker-sidebar__section-body"
+          v-else
+          class="filepicker-sidebar__item"
+          :class="{
+            'filepicker-sidebar__item--readonly': row.file.is_readonly,
+            'filepicker-sidebar__item--active':
+              selectedFile?.path === row.file.path,
+          }"
+          @click="handleFileSelect(row.file)"
+          @dblclick="handleDoubleClick(row.file)"
         >
-          <div
-            v-for="row in rowsFor(section)"
-            :key="row.id"
-            class="filepicker-sidebar__tree-row"
-            :style="{ '--depth': String(row.depth) }"
+          <UIcon
+            :name="getFileIcon(row.file.extension)"
+            class="filepicker-sidebar__item-icon"
+          />
+          <span class="filepicker-sidebar__item-name">{{
+            row.file.filename
+          }}</span>
+          <button
+            class="filepicker-sidebar__item-open"
+            title="Open prose"
+            @click.stop="openInMode(row.file, 'prose')"
           >
-            <button
-              v-if="row.type === 'folder'"
-              class="filepicker-sidebar__folder"
-              @click="toggleFolder(section.source, row.path)"
-            >
-              <UIcon
-                :name="
-                  isFolderExpanded(section.source, row.path)
-                    ? 'expand_more'
-                    : 'chevron_right'
-                "
-                class="filepicker-sidebar__folder-chevron"
-              />
-              <UIcon name="folder" class="filepicker-sidebar__folder-icon" />
-              <span class="filepicker-sidebar__folder-name">{{
-                row.name
-              }}</span>
-              <span class="filepicker-sidebar__folder-count">{{
-                row.fileCount
-              }}</span>
-            </button>
-
-            <div
-              v-else
-              class="filepicker-sidebar__item"
-              :class="{
-                'filepicker-sidebar__item--readonly': row.file.is_readonly,
-                'filepicker-sidebar__item--active':
-                  selectedFile?.path === row.file.path,
-              }"
-              @click="handleFileSelect(row.file)"
-              @dblclick="handleDoubleClick(row.file)"
-            >
-              <UIcon
-                :name="getFileIcon(row.file.extension)"
-                class="filepicker-sidebar__item-icon"
-              />
-              <span class="filepicker-sidebar__item-name">{{
-                row.file.filename
-              }}</span>
-              <button
-                class="filepicker-sidebar__item-open"
-                title="Open prose"
-                @click.stop="openInMode(row.file, 'prose')"
-              >
-                <UIcon name="notes" />
-              </button>
-              <button
-                class="filepicker-sidebar__item-open"
-                title="Open code"
-                @click.stop="openInMode(row.file, 'code')"
-              >
-                <UIcon name="code" />
-              </button>
-            </div>
-          </div>
-
-          <div
-            v-if="section.count === 0 && searchQuery"
-            class="filepicker-sidebar__section-empty"
+            <UIcon name="notes" />
+          </button>
+          <button
+            class="filepicker-sidebar__item-open"
+            title="Open code"
+            @click.stop="openInMode(row.file, 'code')"
           >
-            No files match "{{ searchQuery }}"
-          </div>
+            <UIcon name="code" />
+          </button>
         </div>
-      </section>
+      </div>
 
-      <div v-if="sections.length === 0" class="filepicker-sidebar__empty">
+      <div v-if="activeRows.length === 0" class="filepicker-sidebar__empty">
         <UIcon name="mdi:file-document-outline" />
-        <span v-if="searchQuery">No files matching "{{ searchQuery }}"</span>
-        <span v-else>No files found in the vault</span>
+        <span>No files found in this workspace</span>
         <UButton size="sm" variant="ghost" @click="handleNewFile">
           Create a new file
         </UButton>
@@ -219,9 +133,9 @@
 <script setup lang="ts">
 /**
  * @component FilepickerSidebar
- * @description Files-style vault sidebar — default User Vault Files view, with
- * other workspaces (Shared/Public vaults) shown as their own Files sections.
- * Wired to the uCore unified library index API with vault plate integration.
+ * @description Files-style vault sidebar — a single combined Workspace/Binder
+ * switcher over the local vaults (User/Shared/Public) with New File + New Binder
+ * actions. Wired to the uCore unified library index API with vault plate integration.
  * @category molecules
  * @props {boolean} open - Sidebar visibility
  * @props {boolean} compact - Compact mode
@@ -230,13 +144,10 @@
  * @usage <FilepickerSidebar :open="true" @file-select="handleFileSelect" />
  */
 import { ref, computed, onMounted, watch } from "vue";
-import UInput from "../atoms/UInput.vue";
 import UIcon from "../atoms/UIcon.vue";
 import UButton from "../atoms/UButton.vue";
 import USpinner from "../atoms/USpinner.vue";
 import { ucoreApi } from "../../api/client";
-import { SNACKBAR_BASE } from "../../api/base";
-import { useRouter } from "vue-router";
 import { useWorkflowStore } from "../../stores/workflow";
 import type { FileEntry } from "../../types/filepicker";
 
@@ -254,18 +165,15 @@ const emit = defineEmits<{
   fileSelect: [file: FileEntry];
   newFile: [binderId: string];
 }>();
-const router = useRouter();
 const wf = useWorkflowStore();
 
 // ─── Refs ───────────────────────────────────────────────────────────
-const searchQuery = ref("");
 const files = ref<FileEntry[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const indexStatus = ref<"ok" | "not-built" | "unknown">("unknown");
-const isMirroring = ref(false);
 const mirrorMessage = ref("");
-const developerServerActive = ref(false);
+const activeWorkspace = ref<string>("user");
 const MARKDOWN_OPEN_MODE_KEY = "ucore.filepicker.markdown-open-mode";
 const markdownOpenMode = ref<"auto" | "prose" | "code">("auto");
 const selectedFile = ref<FileEntry | null>(null);
@@ -320,31 +228,14 @@ function resolveModeForFile(file: FileEntry): "prose" | "code" {
   return ext === "md" || ext === "txt" ? "prose" : "code";
 }
 
-async function refreshDeveloperServerStatus() {
-  try {
-    const res = await fetch(`${SNACKBAR_BASE}/api/developer/status`, {
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) {
-      developerServerActive.value = false;
-      return;
-    }
-    const data = await res.json();
-    developerServerActive.value = Boolean(data?.active);
-  } catch {
-    developerServerActive.value = false;
-  }
-}
-
 // ─── Fetch files from the unified library index ────────────────────
-// Fetches the full index (all vault sources) so the sidebar can show the
-// default User Vault Files view plus other workspaces as separate sections.
+// Fetches the full index (all vault sources) once; the Workspace/Binder
+// switcher filters client-side.
 async function fetchFiles() {
   loading.value = true;
   error.value = null;
   try {
-    const query = searchQuery.value.trim() || "*";
-    const res = await ucoreApi.library.search(query, undefined, 1000);
+    const res = await ucoreApi.library.search("*", undefined, 1000);
     if (res.ok && res.data) {
       const results = (res.data as any).results || [];
       // Only vault sources belong in the sidebar — ignore stale index
@@ -391,15 +282,33 @@ async function checkIndex() {
   }
 }
 
-// ─── Debounced search ───────────────────────────────────────────────
-let searchTimer: ReturnType<typeof setTimeout> | null = null;
-watch(searchQuery, () => {
-  if (searchTimer) clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => fetchFiles(), 300);
-});
-
 function handleNewFile() {
   emit("newFile", "user");
+}
+
+/** Create a new binder (workspace folder) in the User Vault root. */
+async function handleNewBinder() {
+  const raw = window.prompt("New binder name", "");
+  const name = (raw || "").trim();
+  if (!name) return;
+  mirrorMessage.value = "";
+  try {
+    const res = await ucoreApi.userWorkflow.importMarkdown({
+      content: `# ${name}\n\nBinder workspace for **${name}**.\n`,
+      source_format: "markdown",
+      title: `${name} README`,
+      binder: name,
+      vault_layer: "user",
+      relative_dir: name,
+      filename: "README.md",
+      metadata: { imported_from: "filepicker.new-binder" },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    mirrorMessage.value = `Binder \"${name}\" created.`;
+    await fetchFiles();
+  } catch (e: any) {
+    mirrorMessage.value = `Binder create failed: ${e?.message || e}`;
+  }
 }
 
 function handleFileSelect(file: FileEntry) {
@@ -413,71 +322,10 @@ function openInMode(file: FileEntry, mode: "prose" | "code") {
   emit("fileSelect", { ...file });
 }
 
-function openMarkdownWorkspace() {
-  if (markdownOpenMode.value === "prose" || markdownOpenMode.value === "code") {
-    wf.setEditorMode(markdownOpenMode.value);
-  }
-  router.push({ path: "/workflow", query: { tab: "editor" } });
-}
-
 function handleDoubleClick(file: FileEntry) {
   // Could open in editor or navigate
   selectedFile.value = file;
   emit("fileSelect", file);
-}
-
-async function duplicateSelectedFile() {
-  if (!selectedFile.value) {
-    mirrorMessage.value = "Select a file to duplicate.";
-    return;
-  }
-
-  const source = selectedFile.value;
-  const ext = String(source.extension || "md").toLowerCase();
-  if (ext !== "md" && ext !== "txt") {
-    mirrorMessage.value = "Duplicate currently supports markdown/text files.";
-    return;
-  }
-
-  const base = source.filename.replace(/\.[^.]+$/, "");
-  const title = window.prompt("Duplicate file title", `${base} Copy`);
-  if (title === null) return;
-  const cleanTitle = title.trim() || `${base} Copy`;
-  const safeStem =
-    cleanTitle
-      .replace(/[^a-zA-Z0-9._ -]+/g, "-")
-      .replace(/\s+/g, " ")
-      .trim() || `${base}-copy`;
-
-  let content = source.preview || "";
-  try {
-    const fileRes = await ucoreApi.library.file(source.path);
-    if (fileRes.ok && (fileRes.data as any)?.content !== undefined) {
-      content = String((fileRes.data as any).content || "");
-    }
-  } catch {
-    // keep preview fallback
-  }
-
-  try {
-    const res = await ucoreApi.userWorkflow.importMarkdown({
-      content,
-      source_format: "markdown",
-      title: cleanTitle,
-      binder: source.source || "user",
-      vault_layer: source.source || "user",
-      relative_dir: ".",
-      filename: `${safeStem}.${ext}`,
-      metadata: {
-        imported_from: "filepicker.duplicate",
-      },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    mirrorMessage.value = "File duplicated.";
-    await fetchFiles();
-  } catch (e: any) {
-    mirrorMessage.value = `Duplicate failed: ${e?.message || e}`;
-  }
 }
 
 function folderKey(source: string, path: string): string {
@@ -499,30 +347,15 @@ function toggleFolder(source: string, path: string) {
   expandedFolders.value = next;
 }
 
-async function syncUserVault() {
-  isMirroring.value = true;
-  mirrorMessage.value = "";
-  try {
-    const res = await ucoreApi.vault.sync("User Vault");
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    mirrorMessage.value = "User Vault synchronized to local index.";
-  } catch (e: any) {
-    mirrorMessage.value = `Sync failed: ${e?.message || e}`;
-  } finally {
-    isMirroring.value = false;
-  }
-}
-
 onMounted(async () => {
   loadMarkdownOpenMode();
-  await refreshDeveloperServerStatus();
   await checkIndex();
   if (indexStatus.value === "ok") {
     await fetchFiles();
   }
 });
 
-// ─── Files-style sections ───────────────────────────────────────────
+// ─── Workspace / Binder definitions ────────────────────────────────
 const VAULT_SOURCES = new Set(["user", "shared", "public"]);
 
 const WORKSPACE_META: Record<string, { label: string; icon: string }> = {
@@ -532,22 +365,6 @@ const WORKSPACE_META: Record<string, { label: string; icon: string }> = {
 };
 
 const SECTION_ORDER = ["user", "shared", "public"];
-
-const collapsedSections = ref<Set<string>>(new Set(["shared", "public"]));
-
-function isSectionOpen(source: string): boolean {
-  return !collapsedSections.value.has(source);
-}
-
-function toggleSection(source: string) {
-  const next = new Set(collapsedSections.value);
-  if (next.has(source)) {
-    next.delete(source);
-  } else {
-    next.add(source);
-  }
-  collapsedSections.value = next;
-}
 
 interface VaultSection {
   source: string;
@@ -675,31 +492,22 @@ function buildTreeRows(secFiles: FileEntry[], source: string): TreeRow[] {
   return rows;
 }
 
-function rowsFor(section: VaultSection): TreeRow[] {
-  return buildTreeRows(section.files, section.source);
-}
-
-const sections = computed<VaultSection[]>(() => {
+// ─── Workspace / Binder switcher ────────────────────────────────────
+const workspaceOptions = computed<VaultSection[]>(() => {
   const bySource = new Map<string, FileEntry[]>();
   for (const f of files.value) {
     const key = f.source || "user";
     const list = bySource.get(key);
-    if (list) {
-      list.push(f);
-    } else {
-      bySource.set(key, [f]);
-    }
+    if (list) list.push(f);
+    else bySource.set(key, [f]);
   }
 
-  const ordered: VaultSection[] = [];
-  const seen = new Set<string>();
-
+  const options: VaultSection[] = [];
   for (const key of SECTION_ORDER) {
     const list = bySource.get(key) || [];
     if (list.length === 0) continue;
-    seen.add(key);
     const meta = WORKSPACE_META[key] || { label: key, icon: "folder" };
-    ordered.push({
+    options.push({
       source: key,
       label: meta.label,
       icon: meta.icon,
@@ -707,22 +515,16 @@ const sections = computed<VaultSection[]>(() => {
       files: list,
     });
   }
-
-  for (const [key, list] of bySource) {
-    if (seen.has(key)) continue;
-    if (!VAULT_SOURCES.has(key)) continue;
-    const meta = WORKSPACE_META[key] || { label: key, icon: "folder" };
-    ordered.push({
-      source: key,
-      label: meta.label,
-      icon: meta.icon,
-      count: list.length,
-      files: list,
-    });
-  }
-
-  return ordered;
+  return options;
 });
+
+const activeFiles = computed<FileEntry[]>(() =>
+  files.value.filter((f) => (f.source || "user") === activeWorkspace.value),
+);
+
+const activeRows = computed<TreeRow[]>(() =>
+  buildTreeRows(activeFiles.value, activeWorkspace.value),
+);
 
 /** Expand the first-level folders of each section once after a fetch. */
 function autoExpandFirstLevel(results: FileEntry[]) {
@@ -813,74 +615,91 @@ function getFileIcon(ext: string): string {
   );
   display: flex;
   flex-direction: column;
+  height: 100%;
   min-height: 100%;
-  padding: var(--usx-spacing-sm);
-  gap: var(--usx-spacing-xs);
+  padding: 0;
+  gap: 0;
   box-sizing: border-box;
-  overflow-y: auto;
-  background: transparent;
+  overflow: hidden;
+  background-color: var(--usx-color-surface-variant);
 }
 
 .filepicker-sidebar__header {
   display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-}
-
-.filepicker-sidebar__toolbar {
-  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--usx-spacing-xs);
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  width: 100%;
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border-bottom: 1px solid var(--usx-color-border);
+  flex-shrink: 0;
 }
 
-.filepicker-sidebar__icon-btn {
-  border: none;
-  background: transparent;
+.filepicker-sidebar__heading {
+  font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--usx-color-on-surface-muted);
-  border-radius: var(--usx-radius-sm);
-  width: var(--usx-control-size-sm);
-  height: var(--usx-control-size-sm);
-  min-height: 0;
+  white-space: nowrap;
+}
+
+.filepicker-sidebar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  flex-shrink: 0;
+}
+
+.filepicker-sidebar__action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  min-height: 0;
   padding: 0;
-  font-size: var(--usx-font-size-base);
+  border: none;
+  background: transparent;
+  border-radius: var(--usx-radius-sm);
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 120ms ease;
 }
 
-.filepicker-sidebar__inline-icon {
-  font-size: var(--filepicker-inline-icon-size);
+.filepicker-sidebar__action-btn:hover {
+  background-color: var(--usx-color-border);
+  color: var(--usx-color-on-surface);
 }
 
-.filepicker-sidebar__icon-btn:hover {
-  color: var(--usx-color-primary);
-  background: color-mix(in srgb, var(--usx-color-primary) 10%, transparent);
-}
-
-.filepicker-sidebar__icon-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.filepicker-sidebar__search-row {
+.filepicker-sidebar__switcher {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
+  border-bottom: 1px solid var(--usx-color-border);
+  background-color: var(--usx-color-background);
+  flex-shrink: 0;
 }
 
-.filepicker-sidebar__search {
+.filepicker-sidebar__switcher-icon {
+  font-size: 16px;
+  color: var(--usx-color-on-surface-muted);
+  flex-shrink: 0;
+}
+
+.filepicker-sidebar__switcher-select {
   flex: 1;
   min-width: 0;
+  min-height: var(--usx-control-size-sm);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
+  padding: 0 var(--usx-spacing-sm);
+  font-size: var(--usx-font-size-sm);
+  font-family: var(--usx-font-family-sans);
+  cursor: pointer;
 }
 
 .filepicker-sidebar__mirror-message {
@@ -889,49 +708,6 @@ function getFileIcon(ext: string): string {
   border: var(--usx-border-width) solid var(--usx-color-border);
   background: color-mix(in srgb, var(--usx-color-info) 10%, transparent);
   color: var(--usx-color-on-surface);
-  font-size: var(--filepicker-ui-font-size);
-}
-
-.filepicker-sidebar__mode-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  flex-shrink: 0;
-  color: var(--usx-color-on-surface-muted);
-}
-
-.filepicker-sidebar__mode-inline .filepicker-sidebar__inline-icon {
-  font-size: var(--usx-font-size-sm);
-}
-
-.filepicker-sidebar__mode-select {
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-sm);
-  background: var(--usx-color-surface);
-  color: var(--usx-color-on-surface);
-  min-height: var(--usx-control-size-sm);
-  height: var(--usx-control-size-sm);
-  padding: 0 var(--usx-spacing-sm);
-  font-size: var(--usx-font-size-sm);
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-.filepicker-sidebar :deep(.u-input) {
-  min-height: var(--usx-control-size-sm);
-  height: var(--usx-control-size-sm);
-  padding: 0 var(--usx-spacing-sm);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-sm);
-  background: var(--usx-color-surface);
-}
-
-.filepicker-sidebar :deep(.u-input__icon) {
-  font-size: var(--usx-font-size-base);
-}
-
-.filepicker-sidebar :deep(.u-input__field) {
   font-size: var(--filepicker-ui-font-size);
 }
 
@@ -948,100 +724,27 @@ function getFileIcon(ext: string): string {
   flex-shrink: 0;
 }
 
-.filepicker-sidebar__tree {
+.filepicker-sidebar__list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 0;
+  padding: var(--usx-spacing-xs) 0;
 }
 
-.filepicker-sidebar__tree-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-xs);
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--usx-color-surface);
+.filepicker-sidebar__list::-webkit-scrollbar {
+  width: 4px;
 }
 
-/* ─── Files-style sections ───────────────────────────────────────── */
-.filepicker-sidebar__section {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.filepicker-sidebar__section-head {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  width: 100%;
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border: none;
-  background: transparent;
-  border-radius: var(--usx-radius-sm);
-  cursor: pointer;
-  color: var(--usx-color-on-surface);
-  font-size: var(--usx-font-size-sm);
-  font-weight: var(--usx-font-weight-semibold);
-  min-height: var(--usx-control-size-sm);
-  text-align: left;
-}
-
-.filepicker-sidebar__section-head:hover {
-  background: color-mix(in srgb, var(--usx-color-primary) 7%, transparent);
-}
-
-.filepicker-sidebar__section-chevron,
-.filepicker-sidebar__section-icon {
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-base);
-  flex-shrink: 0;
-}
-
-.filepicker-sidebar__section-title {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.filepicker-sidebar__section-count {
-  font-size: var(--usx-font-size-xs);
-  color: var(--usx-color-on-surface-muted);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-full);
-  min-width: calc(var(--usx-control-size-sm) * 0.8);
-  min-height: calc(var(--usx-control-size-sm) * 0.6);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 var(--usx-spacing-xs);
-}
-
-.filepicker-sidebar__section-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.filepicker-sidebar__section-empty {
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-xs);
+.filepicker-sidebar__list::-webkit-scrollbar-thumb {
+  background-color: var(--usx-color-border);
+  border-radius: 2px;
 }
 
 .filepicker-sidebar__tree-row {
-  padding-left: calc(var(--depth) * var(--usx-spacing-sm));
+  padding-left: calc(8px + var(--depth) * 16px);
 }
 
 .filepicker-sidebar__folder {
@@ -1052,27 +755,39 @@ function getFileIcon(ext: string): string {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border-radius: var(--usx-radius-sm);
+  padding: 3px var(--usx-spacing-sm);
+  border-radius: 0;
   cursor: pointer;
   text-align: left;
-  min-height: var(--usx-control-size-sm);
+  user-select: none;
+  min-height: 0;
 }
 
 .filepicker-sidebar__folder:hover {
-  background: color-mix(in srgb, var(--usx-color-primary) 7%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--usx-color-primary) 8%,
+    transparent
+  );
 }
 
-.filepicker-sidebar__folder-chevron,
-.filepicker-sidebar__folder-icon {
+.filepicker-sidebar__folder-chevron {
+  font-size: 16px;
   color: var(--usx-color-on-surface-muted);
-  font-size: var(--filepicker-tree-icon-size);
+  flex-shrink: 0;
+  width: 16px;
+}
+
+.filepicker-sidebar__folder-icon {
+  font-size: 14px;
+  color: var(--usx-color-warning);
+  flex-shrink: 0;
 }
 
 .filepicker-sidebar__folder-name {
   flex: 1;
-  font-size: var(--usx-font-size-base);
-  font-weight: var(--usx-font-weight-medium);
+  font-size: var(--usx-font-size-sm);
+  font-weight: var(--usx-font-weight-regular);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1081,33 +796,39 @@ function getFileIcon(ext: string): string {
 .filepicker-sidebar__folder-count {
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-full);
-  min-width: calc(var(--usx-control-size-sm) * 0.8);
-  min-height: calc(var(--usx-control-size-sm) * 0.6);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 var(--usx-spacing-xs);
+  opacity: 0.7;
 }
 
 .filepicker-sidebar__item {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border-radius: var(--usx-radius-sm);
+  padding: 3px var(--usx-spacing-sm);
+  border-radius: 0;
   cursor: pointer;
-  transition: background var(--usx-transition-fast);
-  min-height: var(--usx-control-size-sm);
+  transition: background-color 100ms ease;
+  user-select: none;
 }
 
 .filepicker-sidebar__item:hover {
-  background: color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--usx-color-primary) 8%,
+    transparent
+  );
 }
 
 .filepicker-sidebar__item--active {
-  background: color-mix(in srgb, var(--usx-color-primary) 13%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--usx-color-primary) 16%,
+    transparent
+  );
+}
+
+.filepicker-sidebar__item--active .filepicker-sidebar__item-name {
+  color: var(--usx-color-primary);
+  font-weight: var(--usx-font-weight-medium);
 }
 
 .filepicker-sidebar__item--readonly {
@@ -1117,36 +838,47 @@ function getFileIcon(ext: string): string {
 .filepicker-sidebar__item-icon {
   flex-shrink: 0;
   color: var(--usx-color-on-surface-muted);
-  font-size: var(--filepicker-tree-icon-size);
+  font-size: 14px;
+}
+
+.filepicker-sidebar__item--active .filepicker-sidebar__item-icon {
+  color: var(--usx-color-primary);
 }
 
 .filepicker-sidebar__item-name {
   flex: 1;
-  font-size: var(--usx-font-size-base);
+  font-size: var(--usx-font-size-sm);
   font-weight: var(--usx-font-weight-regular);
+  color: var(--usx-color-on-surface);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .filepicker-sidebar__item-open {
-  border: var(--usx-border-width) solid transparent;
+  border: none;
   background: transparent;
   color: var(--usx-color-on-surface-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: calc(var(--usx-control-size-sm) - var(--usx-spacing-xs));
-  height: calc(var(--usx-control-size-sm) - var(--usx-spacing-xs));
+  width: 24px;
+  height: 24px;
+  min-height: 0;
   border-radius: var(--usx-radius-sm);
   cursor: pointer;
   font-size: var(--usx-font-size-sm);
+  opacity: 0;
+  transition: all 120ms ease;
+}
+
+.filepicker-sidebar__item:hover .filepicker-sidebar__item-open {
+  opacity: 1;
 }
 
 .filepicker-sidebar__item-open:hover {
-  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
-  color: var(--usx-color-primary);
-  border-color: color-mix(in srgb, var(--usx-color-primary) 35%, transparent);
+  background-color: var(--usx-color-border);
+  color: var(--usx-color-on-surface);
 }
 
 .filepicker-sidebar__loading,
@@ -1168,19 +900,8 @@ function getFileIcon(ext: string): string {
 }
 
 @media (max-width: 880px) {
-  .filepicker-sidebar {
-    padding: var(--usx-spacing-xs);
-  }
-
-  .filepicker-sidebar__toolbar {
+  .filepicker-sidebar__actions {
     gap: var(--usx-spacing-xs);
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-  }
-
-  .filepicker-sidebar__icon-btn {
-    width: var(--usx-touch-min-sm);
-    height: var(--usx-touch-min-sm);
   }
 }
 </style>
