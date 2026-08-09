@@ -45,7 +45,7 @@
         >
           <template #toolbar-actions>
             <EditorToolbar
-              v-if="viewMode === 'edit'"
+              v-if="viewMode === 'edit' || localEditMode === 'code'"
               right
               :view-mode="viewMode"
               :research-open="researchOpen"
