@@ -246,7 +246,7 @@ function toggleEditMode() {
 .editor-panel__preview-bar {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   flex-shrink: 0;
   padding: var(--usx-spacing-2) var(--usx-spacing-sm);
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
