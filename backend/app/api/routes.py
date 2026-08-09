@@ -282,6 +282,14 @@ def register_routes(app: web.Application) -> None:
     except ImportError as e:
         log.debug("Executables API routes not available: %s", e)
 
+    # ── Automation (uDev knowledge pipeline) ─────────────────────
+    try:
+        from .automation_api import register_automation_routes
+        register_automation_routes(app)
+        log.debug("Automation API routes registered")
+    except ImportError as e:
+        log.debug("Automation API routes not available: %s", e)
+
     # ── Unified Services (Services + Tools + MCP) ─────────────────
     try:
         from .services_api import register_services_routes

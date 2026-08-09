@@ -241,6 +241,7 @@ class UnifiedMenuDelegate(NSObject):
         self._uihub_connected = False
         self._dev_connected = False
         self._start_at_login = False
+        self._services = []
         self._status_item = None
         self._menu = None
         self._refresh_timer = None
@@ -325,6 +326,66 @@ class UnifiedMenuDelegate(NSObject):
             "🍒 Open UI Hub", "openUIHub:", "o",
         )
         item.setTarget_(self)
+        self._menu.addItem_(item)
+
+        # ── Services Health ─────────────────────────────────────
+        down = [s for s in self._services if s.get("status") != "up"]
+        srv_icon = "⚠️" if down else "✅"
+        item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            f"{srv_icon} Services Health", None, "",
+        )
+        srv_submenu = NSMenu.alloc().init()
+
+        if not self._services:
+            none_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                "Backend unreachable", None, "",
+            )
+            none_item.setEnabled_(False)
+            srv_submenu.addItem_(none_item)
+        else:
+            title_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                f"{len(self._services)} services · {len(down)} down",
+                None,
+                "",
+            )
+            title_item.setEnabled_(False)
+            srv_submenu.addItem_(title_item)
+            srv_submenu.addItem_(NSMenuItem.separatorItem())
+
+            for svc in self._services[:12]:
+                name = svc.get("name", "?")
+                status = svc.get("status", "unknown")
+                port = svc.get("port", "")
+                dot = {
+                    "up": "🟢",
+                    "degraded": "🟡",
+                    "down": "🔴",
+                }.get(status, "⚪")
+                label = f"{dot} {name}"
+                if port:
+                    label += f"  :{port}"
+                svc_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                    label, None, "",
+                )
+                svc_item.setEnabled_(False)
+                srv_submenu.addItem_(svc_item)
+
+            srv_submenu.addItem_(NSMenuItem.separatorItem())
+            if down:
+                crash_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                    "🚨 Open Crash Recovery (S500)",
+                    "openServicesCrash:",
+                    "",
+                )
+                crash_item.setTarget_(self)
+                srv_submenu.addItem_(crash_item)
+            services_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                "Open All Services", "openServicesPanel:", "",
+            )
+            services_item.setTarget_(self)
+            srv_submenu.addItem_(services_item)
+
+        item.setSubmenu_(srv_submenu)
         self._menu.addItem_(item)
 
         self._menu.addItem_(NSMenuItem.separatorItem())
@@ -547,6 +608,15 @@ class UnifiedMenuDelegate(NSObject):
                     saved = [c for c in clip_items if c.get("pinned")]
                     if self._clipboard_snack:
                         self._clipboard_snack.update_items(recent, saved)
+
+                services = api_get_sync("/api/server/services")
+                self._services = (
+                    (services or {}).get("services", [])
+                    if services
+                    else []
+                )
+            else:
+                self._services = []
         except Exception as e:
             log.warning(f"Refresh error: {e}")
             self._connected = False
@@ -586,6 +656,18 @@ class UnifiedMenuDelegate(NSObject):
         log.info("Opening SnackMachine/workspace")
         _ensure_frontend_running()
         open_url("http://localhost:5175/server?tab=snacks")
+
+    def openServicesCrash_(self, _sender):
+        """Open the S500 crash recovery page."""
+        log.info("Opening S500 crash recovery")
+        _ensure_frontend_running()
+        open_url("http://localhost:5175/system/s500")
+
+    def openServicesPanel_(self, _sender):
+        """Open the Snackbar services panel."""
+        log.info("Opening Snackbar services panel")
+        _ensure_frontend_running()
+        open_url("http://localhost:5175/snackbar?tab=services")
 
     def installSnackMachine_(self, _sender):
         """Open the SnackMachine repository for installation instructions."""
