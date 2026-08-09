@@ -26,11 +26,11 @@ Overlay System (frontend-vue/src/styles/usx-chat-bubble.css):
   Components: ToastOverlay, AlertOverlay, PopupOverlay, StoriesOverlay (all Teleported to body)
   Composables: useToast.ts, useOverlay.ts, useFeed.ts (module-level singletons)
 
-Bangle WYSIWYG Editor (frontend-vue/src/skills/molecules/editor/):
-  Components: BangleEditor.vue, WorkspaceTree.vue, WorkspaceTreeNode.vue,
+Markdown WYSIWYG Editor (frontend-vue/src/skills/molecules/editor/):
+  Components: MarkdownEditor.vue, WorkspaceTree.vue, WorkspaceTreeNode.vue,
               FrontmatterPills.vue, WebScraperModal.vue, ResearchPanel.vue, SummarizeModal.vue
   Toolbar icons: Material Symbols Outlined (self-hosted, 18px)
-  3-column layout: [WorkspaceTree 220px] | [FrontmatterPills + BangleEditor] | [ResearchPanel 200px]
+  3-column layout: [WorkspaceTree 220px] | [FrontmatterPills + MarkdownEditor] | [ResearchPanel 200px]
   View modes: Edit | Preview | Split (mode-tabs in EditorPanel toolbar)
   Frontmatter pills: tag (--usx-color-info), status (dot), date (muted), source (primary), generic
 

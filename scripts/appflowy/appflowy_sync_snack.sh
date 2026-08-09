@@ -3,5 +3,5 @@ set -euo pipefail
 
 # Deprecated: AppFlowy sync snack has been retired.
 echo "AppFlowy sync snack is deprecated and disabled."
-echo "Use Tasker and Bangle-first vault workflow."
+echo "Use Tasker and the Markdown editor vault workflow."
 exit 0

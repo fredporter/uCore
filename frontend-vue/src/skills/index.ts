@@ -26,8 +26,8 @@ export { default as SurfaceTabNav } from "./molecules/SurfaceTabNav.vue";
 export { default as WorkspaceFilter } from "./molecules/WorkspaceFilter.vue";
 export { default as BinderMissionFilter } from "./molecules/BinderMissionFilter.vue";
 
-// ─── Editor Skills (Bangle-first) ───────────────────────────────────
-export { default as BangleEditor } from "./molecules/editor/BangleEditor.vue";
+// ─── Editor Skills (Markdown-first) ────────────────────────────────
+export { default as MarkdownEditor } from "./molecules/editor/MarkdownEditor.vue";
 export { default as MarkdownPreview } from "./molecules/editor/MarkdownPreview.vue";
 
 // ─── Organisms ──────────────────────────────────────────────────────
@@ -138,9 +138,9 @@ export const skillRegistry: SkillMeta[] = [
     path: "skills/molecules/BinderMissionFilter.vue",
   },
   {
-    name: "BangleEditor",
+    name: "MarkdownEditor",
     category: "molecule",
-    description: "Markdown editor adapter for Bangle-first workflow",
+    description: "Markdown WYSIWYG editor (Markdown-first)",
     props: [
       "modelValue",
       "toolbars",
@@ -151,7 +151,7 @@ export const skillRegistry: SkillMeta[] = [
       "readOnly",
     ],
     emits: ["update:modelValue", "save", "change"],
-    path: "skills/molecules/editor/BangleEditor.vue",
+    path: "skills/molecules/editor/MarkdownEditor.vue",
   },
   {
     name: "MarkdownPreview",

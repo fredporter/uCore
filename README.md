@@ -134,8 +134,8 @@ VS Code (Cline) → MCP Bridge → uCore (port 8484)
 - Dedicated AppFlowy customization inside uCore is deprecated.
 - Vault content should remain portable and work in standard editors such as
   AppFlowy and Obsidian without uCore-specific lock-in.
-- Primary editing focus is moving to the Bangle.io fork for first-class
-  in-product document workflows.
+- Primary editing happens in the in-product Markdown editor for first-class
+  document workflows.
 - Task flows should link to markdown specs/docs when deeper implementation
   details are required.
 

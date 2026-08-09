@@ -24,7 +24,7 @@
         <button
           class="filepicker-sidebar__icon-btn"
           title="Open Markdown Workspace"
-          @click="openBangleWorkspace"
+          @click="openMarkdownWorkspace"
         >
           <UIcon name="diamond" />
         </button>
@@ -59,28 +59,30 @@
     </div>
 
     <div class="filepicker-sidebar__filters">
-      <WorkspaceFilter
-        ref="workspaceFilterRef"
-        @source-change="onSourceChange"
-      />
-      <BinderMissionFilter
-        ref="binderFilterRef"
-        @binder-change="onBinderChange"
-      />
-      <UInput
-        v-model="searchQuery"
-        placeholder="Filter current binder..."
-        icon="search"
-        class="filepicker-sidebar__search"
-      />
-      <div class="filepicker-sidebar__inline-tools">
-        <label class="filepicker-sidebar__bangle-inline" for="bangle-open-mode">
+      <div class="filepicker-sidebar__filter-row">
+        <WorkspaceFilter
+          ref="workspaceFilterRef"
+          @source-change="onSourceChange"
+        />
+        <BinderMissionFilter
+          ref="binderFilterRef"
+          @binder-change="onBinderChange"
+        />
+      </div>
+      <div class="filepicker-sidebar__search-row">
+        <UInput
+          v-model="searchQuery"
+          placeholder="Filter current binder..."
+          icon="search"
+          class="filepicker-sidebar__search"
+        />
+        <label class="filepicker-sidebar__mode-inline" for="markdown-open-mode">
           <UIcon name="diamond" class="filepicker-sidebar__inline-icon" />
-          <span>Open</span>
           <select
-            id="bangle-open-mode"
-            v-model="bangleOpenMode"
-            class="filepicker-sidebar__bangle-select"
+            id="markdown-open-mode"
+            v-model="markdownOpenMode"
+            class="filepicker-sidebar__mode-select"
+            title="Open as"
           >
             <option value="auto">Auto</option>
             <option value="prose">Prose</option>
@@ -236,8 +238,8 @@ const indexStatus = ref<"ok" | "not-built" | "unknown">("unknown");
 const isMirroring = ref(false);
 const mirrorMessage = ref("");
 const developerServerActive = ref(false);
-const BANGLE_OPEN_MODE_KEY = "ucore.filepicker.bangle-open-mode";
-const bangleOpenMode = ref<"auto" | "prose" | "code">("auto");
+const MARKDOWN_OPEN_MODE_KEY = "ucore.filepicker.markdown-open-mode";
+const markdownOpenMode = ref<"auto" | "prose" | "code">("auto");
 const selectedFile = ref<FileEntry | null>(null);
 const expandedFolders = ref<Set<string>>(new Set());
 
@@ -259,32 +261,32 @@ interface FileTreeRow {
 
 type TreeRow = FolderTreeRow | FileTreeRow;
 
-function loadBangleOpenMode() {
+function loadMarkdownOpenMode() {
   try {
-    const saved = localStorage.getItem(BANGLE_OPEN_MODE_KEY);
+    const saved = localStorage.getItem(MARKDOWN_OPEN_MODE_KEY);
     if (saved === "auto" || saved === "prose" || saved === "code") {
-      bangleOpenMode.value = saved;
+      markdownOpenMode.value = saved;
     }
   } catch {
     // no-op
   }
 }
 
-function persistBangleOpenMode() {
+function persistMarkdownOpenMode() {
   try {
-    localStorage.setItem(BANGLE_OPEN_MODE_KEY, bangleOpenMode.value);
+    localStorage.setItem(MARKDOWN_OPEN_MODE_KEY, markdownOpenMode.value);
   } catch {
     // no-op
   }
 }
 
-watch(bangleOpenMode, () => {
-  persistBangleOpenMode();
+watch(markdownOpenMode, () => {
+  persistMarkdownOpenMode();
 });
 
 function resolveModeForFile(file: FileEntry): "prose" | "code" {
-  if (bangleOpenMode.value === "prose" || bangleOpenMode.value === "code") {
-    return bangleOpenMode.value;
+  if (markdownOpenMode.value === "prose" || markdownOpenMode.value === "code") {
+    return markdownOpenMode.value;
   }
   const ext = String(file.extension || "").toLowerCase();
   return ext === "md" || ext === "txt" ? "prose" : "code";
@@ -416,9 +418,9 @@ function openInMode(file: FileEntry, mode: "prose" | "code") {
   });
 }
 
-function openBangleWorkspace() {
-  if (bangleOpenMode.value === "prose" || bangleOpenMode.value === "code") {
-    wf.setEditorMode(bangleOpenMode.value);
+function openMarkdownWorkspace() {
+  if (markdownOpenMode.value === "prose" || markdownOpenMode.value === "code") {
+    wf.setEditorMode(markdownOpenMode.value);
   }
   router.push({ path: "/workflow", query: { tab: "editor" } });
 }
@@ -510,7 +512,7 @@ async function syncUserVault() {
 }
 
 onMounted(async () => {
-  loadBangleOpenMode();
+  loadMarkdownOpenMode();
   await refreshDeveloperServerStatus();
   await checkIndex();
   if (indexStatus.value === "ok") {
@@ -721,14 +723,10 @@ function getFileIcon(ext: string): string {
   flex-direction: column;
   min-height: 100%;
   padding: var(--usx-spacing-sm);
-  gap: var(--usx-spacing-sm);
+  gap: var(--usx-spacing-xs);
   box-sizing: border-box;
   overflow-y: auto;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--usx-color-primary) 5%, transparent) 0%,
-    transparent 30%
-  );
+  background: transparent;
 }
 
 .filepicker-sidebar__header {
@@ -757,15 +755,15 @@ function getFileIcon(ext: string): string {
   background: transparent;
   color: var(--usx-color-on-surface-muted);
   border-radius: var(--usx-radius-sm);
-  width: var(--usx-touch-min-sm);
-  height: var(--usx-touch-min-sm);
+  width: var(--usx-control-size-sm);
+  height: var(--usx-control-size-sm);
   min-height: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   padding: 0;
-  font-size: var(--usx-font-size-lg);
+  font-size: var(--usx-font-size-base);
 }
 
 .filepicker-sidebar__inline-icon {
@@ -782,8 +780,15 @@ function getFileIcon(ext: string): string {
   cursor: not-allowed;
 }
 
+.filepicker-sidebar__search-row {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+}
+
 .filepicker-sidebar__search {
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .filepicker-sidebar__mirror-message {
@@ -795,38 +800,39 @@ function getFileIcon(ext: string): string {
   font-size: var(--filepicker-ui-font-size);
 }
 
-.filepicker-sidebar__inline-tools {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--usx-spacing-xs);
-}
-
-.filepicker-sidebar__bangle-inline {
+.filepicker-sidebar__mode-inline {
   display: inline-flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
-  font-size: var(--filepicker-ui-font-size);
-  font-weight: var(--usx-font-weight-medium);
+  flex-shrink: 0;
   color: var(--usx-color-on-surface-muted);
 }
 
-.filepicker-sidebar__bangle-select {
-  border: var(--usx-border-width-thick) solid var(--usx-color-border);
+.filepicker-sidebar__mode-inline .filepicker-sidebar__inline-icon {
+  font-size: var(--usx-font-size-sm);
+}
+
+.filepicker-sidebar__mode-select {
+  border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-sm);
-  background: var(--usx-color-background);
+  background: var(--usx-color-surface);
   color: var(--usx-color-on-surface);
-  min-height: var(--usx-touch-min);
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-  font-size: var(--filepicker-ui-font-size);
+  min-height: var(--usx-control-size-sm);
+  height: var(--usx-control-size-sm);
+  padding: 0 var(--usx-spacing-sm);
+  font-size: var(--usx-font-size-sm);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .filepicker-sidebar :deep(.u-input) {
-  min-height: var(--usx-touch-min);
-  padding: 0 var(--usx-spacing-md);
-  border: var(--usx-border-width-thick) solid var(--usx-color-border);
+  min-height: var(--usx-control-size-sm);
+  height: var(--usx-control-size-sm);
+  padding: 0 var(--usx-spacing-sm);
+  border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-sm);
-  background: var(--usx-color-background);
+  background: var(--usx-color-surface);
 }
 
 .filepicker-sidebar :deep(.u-input__icon) {
@@ -838,24 +844,31 @@ function getFileIcon(ext: string): string {
 }
 
 .filepicker-sidebar__filters {
-  --filepicker-filter-label-size: var(--usx-font-size-sm);
+  --filepicker-filter-label-size: var(--usx-font-size-xs);
   --filepicker-filter-label-weight: var(--usx-font-weight-semibold);
   --filepicker-filter-label-transform: none;
-  --filepicker-filter-label-color: var(--usx-color-on-surface);
+  --filepicker-filter-label-color: var(--usx-color-on-surface-muted);
   --filepicker-filter-label-spacing: 0.01em;
-  --filepicker-select-min-height: var(--usx-touch-min);
-  --filepicker-select-padding-y: var(--usx-spacing-sm);
-  --filepicker-select-padding-x: var(--usx-spacing-md);
+  --filepicker-select-min-height: var(--usx-control-size-sm);
+  --filepicker-select-height: var(--usx-control-size-sm);
+  --filepicker-select-padding-y: 0;
+  --filepicker-select-padding-x: var(--usx-spacing-sm);
   --filepicker-select-radius: var(--usx-radius-sm);
   --filepicker-select-font-size: var(--usx-font-size-sm);
-  --filepicker-select-bg: var(--usx-color-background);
-  --filepicker-select-border-width: var(--usx-border-width-thick);
+  --filepicker-select-bg: var(--usx-color-surface);
+  --filepicker-select-border-width: var(--usx-border-width);
   --filepicker-select-border-color: var(--usx-color-border);
   display: flex;
   flex-direction: column;
-  gap: var(--usx-spacing-sm);
+  gap: var(--usx-spacing-xs);
   padding: 0;
   flex-shrink: 0;
+}
+
+.filepicker-sidebar__filter-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--usx-spacing-xs);
 }
 
 .filepicker-sidebar__banner {
@@ -889,7 +902,7 @@ function getFileIcon(ext: string): string {
   padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
   color: var(--usx-color-on-surface-muted);
-  font-size: var(--filepicker-ui-font-size);
+  font-size: var(--usx-font-size-xs);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -908,11 +921,11 @@ function getFileIcon(ext: string): string {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
   border-radius: var(--usx-radius-sm);
   cursor: pointer;
   text-align: left;
-  min-height: var(--usx-touch-min);
+  min-height: var(--usx-control-size-sm);
 }
 
 .filepicker-sidebar__folder:hover {
@@ -935,12 +948,12 @@ function getFileIcon(ext: string): string {
 }
 
 .filepicker-sidebar__folder-count {
-  font-size: var(--filepicker-ui-font-size);
+  font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-full);
-  min-width: calc(var(--usx-touch-min) * 0.75);
-  min-height: calc(var(--usx-touch-min) * 0.55);
+  min-width: calc(var(--usx-control-size-sm) * 0.8);
+  min-height: calc(var(--usx-control-size-sm) * 0.6);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -951,11 +964,11 @@ function getFileIcon(ext: string): string {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
   border-radius: var(--usx-radius-sm);
   cursor: pointer;
   transition: background var(--usx-transition-fast);
-  min-height: var(--usx-touch-min);
+  min-height: var(--usx-control-size-sm);
 }
 
 .filepicker-sidebar__item:hover {
@@ -992,11 +1005,11 @@ function getFileIcon(ext: string): string {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: calc(var(--usx-touch-min) - var(--usx-spacing-sm));
-  height: calc(var(--usx-touch-min) - var(--usx-spacing-sm));
+  width: calc(var(--usx-control-size-sm) - var(--usx-spacing-xs));
+  height: calc(var(--usx-control-size-sm) - var(--usx-spacing-xs));
   border-radius: var(--usx-radius-sm);
   cursor: pointer;
-  font-size: var(--filepicker-aux-icon-size);
+  font-size: var(--usx-font-size-sm);
 }
 
 .filepicker-sidebar__item-open:hover {

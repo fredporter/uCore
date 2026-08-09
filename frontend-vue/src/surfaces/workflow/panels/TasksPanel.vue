@@ -23,7 +23,7 @@
           <UIcon name="view_kanban" />
           Kanban
         </button>
-        <span class="wf-engine-chip">Bangle-aligned task cards</span>
+        <span class="wf-engine-chip">Markdown-aligned task cards</span>
       </div>
     </div>
 

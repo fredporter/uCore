@@ -158,8 +158,8 @@ const SURFACE_CARD_DATA: Record<
     route: "/developer",
     color: "var(--usx-color-danger)",
   },
-  bangle: {
-    title: "Markdown",
+  markdown: {
+    title: "Editor",
     description: "WYSIWYG Prose and Code Editor",
     icon: "diamond",
     route: "/workflow?tab=editor",
@@ -196,8 +196,8 @@ const visibleSurfaces = computed(() => {
   if ((udevRepoExists || extStore.isRunning("udev")) && !seen.has("udev")) {
     cards.push({ id: "udev", ...SURFACE_CARD_DATA.udev });
   }
-  // Always show Bangle Editor card
-  cards.push({ id: "bangle", ...SURFACE_CARD_DATA.bangle });
+  // Always show Markdown Editor card
+  cards.push({ id: "markdown", ...SURFACE_CARD_DATA.markdown });
 
   return cards;
 });

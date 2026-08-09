@@ -151,7 +151,7 @@ export const WORKFLOW_TABS: { id: WorkflowTab; label: string; icon: string }[] =
     { id: "mission-control", label: "Workflow", icon: "dashboard" },
     { id: "binder", label: "Binder", icon: "folder" },
     { id: "tasks", label: "Tasks", icon: "task" },
-    { id: "editor", label: "Editor", icon: "article" },
+    { id: "editor", label: "Editor", icon: "diamond" },
     { id: "publish", label: "Publish", icon: "publish" },
   ];
 
@@ -314,7 +314,7 @@ const DEFAULT_EDITOR_FILE: WorkflowFile = {
   binder: "Sandbox",
   content: `# Welcome to uCode
 
-Start writing in Bangle right away.
+Start writing in the Markdown editor right away.
 
 ## Quick start
 
@@ -344,7 +344,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   const selectedTask = ref<WorkflowTask | null>(null);
   const selectedFile = ref<WorkflowFile | null>(null);
   const editorOpen = ref(false);
-  // Note: side-by-side editor (showEditorPane, paneLayout) deprecated in favor of Bangle WYSIWYG
+  // Note: side-by-side editor (showEditorPane, paneLayout) deprecated in favor of Markdown WYSIWYG
   const editorMode = ref<"prose" | "code">(readEditorMode());
 
   // Backend-fetched state

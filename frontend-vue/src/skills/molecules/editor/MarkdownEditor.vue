@@ -1,55 +1,59 @@
 <template>
-  <div class="bangle-editor">
+  <div class="markdown-editor">
     <!-- Formatting toolbar — Phase 3: Material Symbols icons -->
-    <div v-if="!readOnly" class="bangle-editor__toolbar">
+    <div v-if="!readOnly" class="markdown-editor__toolbar">
       <!-- Text formatting -->
-      <button class="bangle-btn" title="Bold (Ctrl+B)" @click="applyBold">
+      <button class="markdown-btn" title="Bold (Ctrl+B)" @click="applyBold">
         <span class="material-symbols-outlined">format_bold</span>
       </button>
-      <button class="bangle-btn" title="Italic (Ctrl+I)" @click="applyItalic">
+      <button class="markdown-btn" title="Italic (Ctrl+I)" @click="applyItalic">
         <span class="material-symbols-outlined">format_italic</span>
       </button>
       <button
-        class="bangle-btn"
+        class="markdown-btn"
         title="Underline (Ctrl+U)"
         @click="applyUnderline"
       >
         <span class="material-symbols-outlined">format_underlined</span>
       </button>
-      <button class="bangle-btn" title="Inline code" @click="applyCode">
+      <button class="markdown-btn" title="Inline code" @click="applyCode">
         <span class="material-symbols-outlined">code</span>
       </button>
-      <div class="bangle-separator" />
+      <div class="markdown-separator" />
       <!-- Block elements -->
-      <button class="bangle-btn" title="Heading 2" @click="applyHeading">
+      <button class="markdown-btn" title="Heading 2" @click="applyHeading">
         <span class="material-symbols-outlined">title</span>
       </button>
-      <button class="bangle-btn" title="Block quote" @click="applyBlockquote">
+      <button class="markdown-btn" title="Block quote" @click="applyBlockquote">
         <span class="material-symbols-outlined">format_quote</span>
       </button>
-      <button class="bangle-btn" title="Bullet list" @click="applyBulletList">
+      <button class="markdown-btn" title="Bullet list" @click="applyBulletList">
         <span class="material-symbols-outlined">format_list_bulleted</span>
       </button>
-      <button class="bangle-btn" title="Ordered list" @click="applyOrderedList">
+      <button
+        class="markdown-btn"
+        title="Ordered list"
+        @click="applyOrderedList"
+      >
         <span class="material-symbols-outlined">format_list_numbered</span>
       </button>
-      <div class="bangle-separator" />
+      <div class="markdown-separator" />
       <!-- Edit controls -->
-      <button class="bangle-btn" title="Undo" @click="undo">
+      <button class="markdown-btn" title="Undo" @click="undo">
         <span class="material-symbols-outlined">undo</span>
       </button>
-      <button class="bangle-btn" title="Redo" @click="redo">
+      <button class="markdown-btn" title="Redo" @click="redo">
         <span class="material-symbols-outlined">redo</span>
       </button>
     </div>
 
-    <!-- Bangle editor content area -->
+    <!-- Markdown editor content area -->
     <div
       ref="editorEl"
-      class="bangle-editor__host"
+      class="markdown-editor__host"
       :class="{
-        'bangle-editor__host--code': editMode === 'code',
-        'bangle-editor__host--readonly': readOnly,
+        'markdown-editor__host--code': editMode === 'code',
+        'markdown-editor__host--readonly': readOnly,
       }"
     />
   </div>
@@ -59,7 +63,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import "@bangle.dev/core/style.css";
 import {
-  BangleEditor as BangleRuntime,
+  BangleEditor as MarkdownRuntime,
   BangleEditorState,
 } from "@bangle.dev/core";
 import {
@@ -118,10 +122,10 @@ const emit = defineEmits<{
 
 const editorEl = ref<HTMLDivElement | null>(null);
 const editMode = ref<"prose" | "code">(props.editMode);
-let editor: BangleRuntime | null = null;
+let editor: MarkdownRuntime | null = null;
 let lastExternalValue = props.modelValue;
 
-function docToMarkdown(editor: BangleRuntime): string {
+function docToMarkdown(editor: MarkdownRuntime): string {
   try {
     return defaultMarkdownSerializer.serialize(editor.view.state.doc);
   } catch {
@@ -275,7 +279,7 @@ function instantiateEditor(initialValue: string) {
     ...resolvePlugins(link.plugins(), payload),
   ];
 
-  editor = new BangleRuntime(editorEl.value, {
+  editor = new MarkdownRuntime(editorEl.value, {
     state: new BangleEditorState({
       specs,
       plugins: buildPlugins as any,
@@ -329,7 +333,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.bangle-editor {
+.markdown-editor {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -338,7 +342,7 @@ onBeforeUnmount(() => {
   background: var(--usx-color-background);
 }
 
-.bangle-editor__toolbar {
+.markdown-editor__toolbar {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
@@ -350,7 +354,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.bangle-btn {
+.markdown-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -370,7 +374,7 @@ onBeforeUnmount(() => {
     border-color var(--usx-transition-fast);
 }
 
-.bangle-btn .material-symbols-outlined {
+.markdown-btn .material-symbols-outlined {
   font-size: 18px;
   line-height: 1;
   font-variation-settings:
@@ -380,25 +384,25 @@ onBeforeUnmount(() => {
     "opsz" 20;
 }
 
-.bangle-btn:hover {
+.markdown-btn:hover {
   background: var(--usx-color-surface-hover);
   border-color: var(--usx-color-primary);
 }
 
-.bangle-btn:active {
+.markdown-btn:active {
   background: var(--usx-color-primary);
   color: var(--usx-color-on-primary);
   border-color: var(--usx-color-primary);
 }
 
-.bangle-separator {
+.markdown-separator {
   width: 1px;
   height: 1.5rem;
   background: var(--usx-color-border);
   margin: 0 var(--usx-spacing-xs);
 }
 
-.bangle-editor__host {
+.markdown-editor__host {
   flex: 1;
   width: 100%;
   overflow: hidden;
@@ -503,7 +507,7 @@ onBeforeUnmount(() => {
   margin-bottom: var(--usx-spacing-sm);
 }
 
-.bangle-editor__host--readonly :deep(.ProseMirror) {
+.markdown-editor__host--readonly :deep(.ProseMirror) {
   background: var(--usx-color-surface-variant);
   color: var(--usx-color-on-surface-muted);
 }

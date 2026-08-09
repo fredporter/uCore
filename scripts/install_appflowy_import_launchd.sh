@@ -14,7 +14,7 @@ Usage:
   scripts/install_appflowy_import_launchd.sh --uninstall
 
 Deprecated: dedicated AppFlowy import automation has been retired.
-Use Tasker for task workflows and Bangle-based vault workflows instead.
+Use Tasker for task workflows and the Markdown editor vault workflows instead.
 EOF
 }
 

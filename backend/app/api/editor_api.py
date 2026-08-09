@@ -1,5 +1,5 @@
 """
-Editor API — web scraping and document operations for the Bangle editor surface.
+Editor API — web scraping and document operations for the Markdown editor surface.
 
 POST /api/editor/scrape-web     — fetch URL and extract article text
 POST /api/editor/summarize      — AI-powered text summarization

@@ -58,7 +58,7 @@ html[data-ui-skin="flowbite"] .wf-workflow-card {
 }
 
 html[data-ui-skin="flowbite"] .editor-panel__engine-chip,
-html[data-ui-skin="flowbite"] .filepicker-sidebar__bangle-card {
+html[data-ui-skin="flowbite"] .filepicker-sidebar__mode-inline {
   background: color-mix(
     in srgb,
     var(--usx-color-surface-variant) 70%,

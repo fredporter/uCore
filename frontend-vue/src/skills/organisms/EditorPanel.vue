@@ -1,6 +1,6 @@
 <template>
   <div class="editor-panel">
-    <!-- Top toolbar: title, engine chip, essential controls -->
+    <!-- Compact toolbar: file tree, view modes, essential controls (no title) -->
     <div class="editor-panel__toolbar">
       <div class="editor-panel__toolbar-left">
         <button
@@ -11,8 +11,6 @@
         >
           <UIcon name="account_tree" />
         </button>
-        <UIcon name="article" />
-        <span class="editor-panel__title">{{ title || "Untitled" }}</span>
       </div>
       <div class="editor-panel__toolbar-center">
         <!-- Edit / Preview mode tabs -->
@@ -107,14 +105,14 @@
         />
 
         <!-- WYSIWYG editor pane -->
-        <BangleEditor
+        <MarkdownEditor
           v-if="viewMode !== 'preview'"
           v-model="localContent"
           :preview="false"
           :read-only="readOnly"
           :edit-mode="localEditMode"
-          class="editor-panel__bangle"
-          :class="{ 'editor-panel__bangle--split': viewMode === 'split' }"
+          class="editor-panel__markdown"
+          :class="{ 'editor-panel__markdown--split': viewMode === 'split' }"
           @save="handleSave"
           @change="onContentChange"
         />
@@ -142,8 +140,8 @@
 <script setup lang="ts">
 /**
  * @component EditorPanel
- * @description Simplified markdown editor using Bangle WYSIWYG as the primary interface.
- *   - Full-width Bangle editor with unified toolbar
+ * @description Simplified markdown editor using Markdown WYSIWYG as the primary interface.
+ *   - Full-width Markdown editor with unified toolbar
  *   - Essential controls: save, mode toggle, close
  *   - No preview pane (WYSIWYG eliminates need for side-by-side preview)
  * @category skills/organisms
@@ -157,7 +155,7 @@
  */
 import { ref, watch, computed } from "vue";
 import UIcon from "../atoms/UIcon.vue";
-import BangleEditor from "../molecules/editor/BangleEditor.vue";
+import MarkdownEditor from "../molecules/editor/MarkdownEditor.vue";
 import WorkspaceTree from "../molecules/editor/WorkspaceTree.vue";
 import FrontmatterPills from "../molecules/editor/FrontmatterPills.vue";
 import MarkdownPreview from "../molecules/MarkdownPreview.vue";
@@ -279,15 +277,6 @@ function toggleEditMode() {
   font-size: 1.25em;
 }
 
-.editor-panel__title {
-  font-size: var(--usx-font-size-base);
-  font-weight: var(--usx-font-weight-semibold);
-  color: var(--usx-color-on-surface);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .editor-panel__toolbar-center {
   display: flex;
   align-items: center;
@@ -379,19 +368,19 @@ function toggleEditMode() {
   min-width: 0;
 }
 
-/* Split view: Bangle + Preview side-by-side */
+/* Split view: Markdown + Preview side-by-side */
 .editor-panel__main--split {
   flex-direction: row;
 }
 
-.editor-panel__bangle--split,
+.editor-panel__markdown--split,
 .editor-panel__preview--split {
   flex: 1;
   min-width: 0;
   overflow: hidden;
 }
 
-.editor-panel__bangle--split {
+.editor-panel__markdown--split {
   border-right: 1px solid var(--usx-color-border);
 }
 

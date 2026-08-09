@@ -146,7 +146,7 @@ async function copyToBinder() {
       body: JSON.stringify({
         title: current.filename,
         content: current.content,
-        source: "bangle-editor",
+        source: "markdown-editor",
       }),
       signal: AbortSignal.timeout(10000),
     });

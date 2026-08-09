@@ -6,7 +6,7 @@
         <div class="scraper-modal__header">
           <div class="scraper-modal__title">
             <UIcon name="language" />
-            <span>Open in Bangle</span>
+            <span>Open in Markdown Editor</span>
           </div>
           <button class="scraper-modal__close" @click="emit('cancel')">
             <UIcon name="close" />
@@ -53,10 +53,10 @@
         <div v-else class="scraper-modal__actions">
           <button
             class="scraper-modal__btn scraper-modal__btn--primary"
-            @click="openInBangle"
+            @click="openInMarkdown"
           >
             <UIcon name="edit_note" />
-            Open in Bangle Editor
+            Open in Markdown Editor
           </button>
           <button class="scraper-modal__btn" @click="emit('cancel')">
             Cancel
@@ -96,7 +96,7 @@ const siteLabel = computed(() => {
   }
 });
 
-async function openInBangle() {
+async function openInMarkdown() {
   loading.value = true;
   try {
     // Try backend scraper; fall back to card metadata gracefully

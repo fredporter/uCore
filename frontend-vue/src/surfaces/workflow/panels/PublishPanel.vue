@@ -92,7 +92,7 @@
 
         <label class="wf-field wf-field--full">
           <span class="wf-field-label">Markdown draft</span>
-          <BangleEditor
+          <MarkdownEditor
             v-model="jekyllContent"
             :edit-mode="jekyllEditMode"
             :autofocus="true"
@@ -271,7 +271,7 @@ import { ref, watch } from "vue";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 import UBadge from "../../../skills/atoms/UBadge.vue";
 import UButton from "../../../skills/atoms/UButton.vue";
-import BangleEditor from "../../../skills/molecules/editor/BangleEditor.vue";
+import MarkdownEditor from "../../../skills/molecules/editor/MarkdownEditor.vue";
 import { useWorkflowStore } from "../../../stores/workflow";
 import { ucoreApi } from "../../../api/client";
 

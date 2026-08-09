@@ -48,7 +48,7 @@
             @close="wf.closeEditor()"
           />
           <div v-else class="wf-editor-empty">
-            <UIcon name="article" />
+            <UIcon name="diamond" />
             <p>
               Select a file from the User Vault sidebar or a task from Tasks.
             </p>
@@ -254,7 +254,7 @@ const editorReadOnly = computed(() =>
  *   - Edit pane open: wider column (50% for both panes stacked vertically)
  *   - Edit pane hidden: narrower column (50% — preview fills it)
  */
-// Bangle editor now full-width; no dynamic layout needed
+// Markdown editor now full-width; no dynamic layout needed
 
 const blockedRepairs = computed(() => {
   return Object.values(wf.capabilityRepairs || {}).filter(
@@ -295,13 +295,20 @@ function onRetryPreflight() {
   min-height: 0;
 }
 
+/* Editor tab is full-width — hoist the editor to fill the layout
+   directly, removing the intermediate box (compact, no border layer). */
 .workflow-panel--editor {
-  overflow: hidden;
-  background: var(--usx-color-background);
+  display: contents;
+}
+
+.workflow-layout--editor-tab > .editor-panel {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
 }
 
 /* ─── Editor Column — right sidebar, full height ──────────────── */
-/* Editor column: Bangle takes 1/3 width as sidecar */
+/* Editor column: Markdown takes 1/3 width as sidecar */
 .workflow-editor {
   flex-shrink: 0;
   overflow: hidden;

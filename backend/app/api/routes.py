@@ -305,7 +305,7 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/render/event", handle_publish_event)
     app.router.add_post("/api/extensions/announce", handle_extension_announce)
 
-    # ── Editor surface (Bangle scrape/summarize/binder) ───────────
+    # ── Editor surface (Markdown scrape/summarize/binder) ───────────
     from .editor_api import handle_scrape_web, handle_summarize, handle_save_to_binder
     app.router.add_post("/api/editor/scrape-web", handle_scrape_web)
     app.router.add_post("/api/editor/summarize", handle_summarize)
