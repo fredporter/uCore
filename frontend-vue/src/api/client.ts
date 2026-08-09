@@ -144,6 +144,11 @@ export const ucoreApi = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    removeWorkspace: (source: string) =>
+      request(
+        `${UCORE_API}/api/library/workspaces?source=${encodeURIComponent(source)}`,
+        { method: "DELETE" },
+      ),
     createWorkspaceFile: (body: {
       source: string;
       title: string;

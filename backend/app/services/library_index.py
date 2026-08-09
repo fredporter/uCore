@@ -44,6 +44,22 @@ EXCLUDE_DIRS = {
 
 # Additional workspaces (user-registered vaults/folders) ---------------
 WORKSPACES_FILE = Path.home() / ".ucore" / "workspaces.json"
+# Workspaces may only be selected from the shared/public vault roots.
+WORKSPACE_ROOTS = [Path.home() / "Shared", Path.home() / "Public"]
+
+
+def _within_workspace_roots(path: Path) -> bool:
+    try:
+        resolved = path.expanduser().resolve()
+    except Exception:
+        return False
+    for root in WORKSPACE_ROOTS:
+        try:
+            if resolved.is_relative_to(root.expanduser().resolve()):
+                return True
+        except Exception:
+            continue
+    return False
 
 
 def _slugify(name: str) -> str:
@@ -87,6 +103,10 @@ def register_workspace(name: str, path_value: str) -> dict[str, Any]:
     path = Path(path_value).expanduser()
     if not path.exists() or not path.is_dir():
         raise ValueError(f"Not an existing directory: {path}")
+    if not _within_workspace_roots(path):
+        raise ValueError(
+            "Workspaces must live under ~/Shared or ~/Public",
+        )
     safe_name = (name or "").strip() or path.name or "Workspace"
     source = _slugify(safe_name)
     workspaces = [
@@ -122,6 +142,16 @@ def _index_source_entries(source: str, root: Path) -> int:
     conn.commit()
     conn.close()
     return len(entries)
+
+
+def remove_workspace(source: str) -> dict[str, Any]:
+    """Unregister an added workspace (files on disk are left untouched)."""
+    workspaces = [
+        w for w in _load_workspaces()
+        if (w.get("source") or "") != source
+    ]
+    _save_workspaces(workspaces)
+    return {"status": "ok", "source": source}
 
 
 def workspace_root(source: str) -> Path | None:
@@ -177,24 +207,52 @@ def create_workspace_file(
 
 
 def browse_directory(path_value: str) -> dict[str, Any]:
-    """List immediate subdirectories for the Add-Workspace folder browser."""
-    path = Path(path_value or "").expanduser()
-    if not path_value.strip() or not path.exists():
-        path = Path.home()
-    if not path.is_dir():
-        path = path.parent
+    """List subdirectories for the Add-Workspace picker, restricted to
+    ~/Shared and ~/Public. Returns dirs as {name, path} with absolute paths."""
+    requested = Path(path_value or "").expanduser()
+
+    def roots_view() -> dict[str, Any]:
+        return {
+            "path": "",
+            "parent": None,
+            "name": "Workspaces",
+            "dirs": [
+                {"name": root.name, "path": str(root)}
+                for root in WORKSPACE_ROOTS
+            ],
+        }
+
+    if not path_value.strip() or not requested.exists():
+        return roots_view()
+    if not _within_workspace_roots(requested):
+        return roots_view()
+    if not requested.is_dir():
+        requested = requested.parent
+
     try:
         dirs = sorted(
-            (d for d in path.iterdir() if d.is_dir()),
+            (
+                d for d in requested.iterdir()
+                if d.is_dir() and not d.name.startswith((".", "@", "_"))
+            ),
             key=lambda d: d.name.lower(),
         )
     except Exception:
         dirs = []
+
+    root = next(
+        (
+            r for r in WORKSPACE_ROOTS
+            if requested.resolve().is_relative_to(r.expanduser().resolve())
+        ),
+        None,
+    )
+    parent = str(requested.parent) if root is not None and requested != root else None
     return {
-        "path": str(path),
-        "parent": str(path.parent) if path.parent != path else None,
-        "name": path.name or str(path),
-        "dirs": [d.name for d in dirs],
+        "path": str(requested),
+        "parent": parent,
+        "name": requested.name or str(requested),
+        "dirs": [{"name": d.name, "path": str(d)} for d in dirs],
     }
 
 

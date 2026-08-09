@@ -145,10 +145,10 @@
             </button>
             <button
               class="filepicker-sidebar__action-btn"
-              title="Add Workspace"
-              @click="pickerOpen = true"
+              title="Remove workspace"
+              @click="handleRemoveWorkspace(ws.source)"
             >
-              <UIcon name="add_box" />
+              <UIcon name="close" />
             </button>
           </div>
         </div>
@@ -482,6 +482,20 @@ async function createWorkspaceDoc(
   }
 }
 
+/** Unregister an added workspace from the sidebar. */
+async function handleRemoveWorkspace(source: string) {
+  mirrorMessage.value = "";
+  try {
+    const res = await ucoreApi.library.removeWorkspace(source);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    mirrorMessage.value = "Workspace removed.";
+    await fetchWorkspaces();
+    await fetchFiles();
+  } catch (e: any) {
+    mirrorMessage.value = `Remove failed: ${e?.message || e}`;
+  }
+}
+
 function handleFileSelect(file: FileEntry) {
   selectedFile.value = file;
   wf.setEditorMode(resolveModeForFile(file));
@@ -541,9 +555,14 @@ interface AddedSection {
   rows: TreeRow[];
 }
 
-/** Segments to hide in the file tree (dot-folders, @-workspaces). */
+/** Segments to hide in the file tree (dot / @ / underscore folders). */
 function isHiddenSegment(segment: string): boolean {
-  return segment.startsWith(".") || segment.startsWith("@");
+  return (
+    segment.startsWith(".") ||
+    segment.startsWith("@") ||
+    segment.startsWith("_") ||
+    segment === "Drop Box"
+  );
 }
 
 /** Markdown files only, skipping hidden (. / @) paths — hides empty folders. */
@@ -889,12 +908,14 @@ function getFileIcon(ext: string): string {
 }
 
 /* ─── Added workspaces — each its own row like Vault ─────────────── */
+/* padding: 0 overrides the global `.usx-section, section` rule. */
 .filepicker-sidebar__workspace {
   display: flex;
   flex-direction: column;
   gap: 0;
   margin-top: var(--usx-spacing-sm);
   border-top: 1px solid var(--usx-color-border);
+  padding: 0;
 }
 
 .filepicker-sidebar__workspace-header {

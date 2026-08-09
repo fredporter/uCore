@@ -11,14 +11,16 @@
         </div>
 
         <p class="ws-picker__hint">
-          Browse to an existing vault or folder, then add it as a workspace.
+          Pick a vault from the Shared or Public folders to add as a workspace.
         </p>
 
         <div class="ws-picker__path">
-          <button class="ws-picker__home" title="Home" @click="goHome">
+          <button class="ws-picker__home" title="Vaults" @click="goHome">
             <UIcon name="home" />
           </button>
-          <span class="ws-picker__current">{{ currentPath || "—" }}</span>
+          <span class="ws-picker__current">{{
+            currentPath || "Workspaces"
+          }}</span>
         </div>
 
         <input
@@ -38,11 +40,11 @@
           </button>
           <button
             v-for="dir in dirs"
-            :key="dir"
+            :key="dir.path"
             class="ws-picker__dir"
-            @click="openDir(dir)"
+            @click="openDir(dir.path)"
           >
-            <UIcon name="folder" /> {{ dir }}
+            <UIcon name="folder" /> {{ dir.name }}
           </button>
           <div v-if="dirs.length === 0 && !parentPath" class="ws-picker__empty">
             No subfolders
@@ -84,7 +86,7 @@ const emit = defineEmits<{
 
 const currentPath = ref("");
 const parentPath = ref<string | null>(null);
-const dirs = ref<string[]>([]);
+const dirs = ref<{ name: string; path: string }[]>([]);
 const typedPath = ref("");
 const adding = ref(false);
 const error = ref("");
@@ -111,8 +113,8 @@ function goUp() {
   if (parentPath.value) load(parentPath.value);
 }
 
-function openDir(name: string) {
-  load(`${currentPath.value}/${name}`);
+function openDir(path: string) {
+  load(path);
 }
 
 function openTyped() {

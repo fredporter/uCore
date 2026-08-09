@@ -19,6 +19,20 @@ async def handle_library_workspaces(request: web.Request) -> web.Response:
         return web.json_response({"error": str(e)}, status=500)
 
 
+async def handle_library_remove_workspace(request: web.Request) -> web.Response:
+    """DELETE /api/library/workspaces?source=... — unregister a workspace."""
+    source = request.query.get("source", "").strip()
+    if not source:
+        return web.json_response({"error": "source is required"}, status=400)
+    try:
+        from app.services.library_index import remove_workspace
+
+        return web.json_response(remove_workspace(source))
+    except Exception as exc:
+        log.exception("Remove workspace failed")
+        return web.json_response({"error": str(exc)}, status=500)
+
+
 async def handle_library_add_workspace(request: web.Request) -> web.Response:
     """POST /api/library/workspaces — register an existing vault/folder."""
     try:
@@ -188,6 +202,7 @@ def register_library_routes(app: web.Application) -> None:
     app.router.add_get("/api/library/stats", handle_library_stats)
     app.router.add_get("/api/library/workspaces", handle_library_workspaces)
     app.router.add_post("/api/library/workspaces", handle_library_add_workspace)
+    app.router.add_delete("/api/library/workspaces", handle_library_remove_workspace)
     app.router.add_post(
         "/api/library/workspaces/file", handle_library_workspace_file,
     )
