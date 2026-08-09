@@ -5,6 +5,7 @@
  */
 import { defineStore } from "pinia";
 import { ref } from "vue";
+import { useSnackbarStore } from "./snackbar";
 
 export type SnackbarOpsTab =
   | "dashboard"
@@ -164,6 +165,119 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
       healthPct.value = data.health_pct;
     } catch (e: any) {
       console.warn("Server health fetch failed:", e.message);
+    }
+  }
+
+  // ── Health polling + crash alerts ──────────────────────────────
+  // Tracks last-seen status per service to fire toasts on transitions.
+  const lastHealthSnapshot = ref<Record<string, string>>({});
+  let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+  /** Fetch health, diff against the previous snapshot, and toast on changes. */
+  async function pollHealthWithAlerts(): Promise<void> {
+    try {
+      const res = await fetch("/api/server/health");
+      if (!res.ok) return;
+      const data: HealthInfo = await res.json();
+      const next: Record<string, string> = {};
+      for (const s of data.services || []) {
+        next[s.name] = s.status;
+      }
+
+      const toast = useSnackbarStore();
+      const previous = lastHealthSnapshot.value;
+
+      for (const name of Object.keys(next)) {
+        const prev = previous[name];
+        const cur = next[name];
+        if (!prev) continue; // first poll — seed only, no alert
+        if (prev === cur) continue;
+
+        if (prev === "up" && (cur === "down" || cur === "degraded")) {
+          toast.show(
+            `Service "${name}" ${cur === "down" ? "went down" : "is degraded"}. Open S500 to recover.`,
+            cur === "down" ? "error" : "warning",
+            8000,
+            "health",
+          );
+        } else if (cur === "up") {
+          toast.show(`Service "${name}" recovered`, "success", 4000, "health");
+        }
+      }
+
+      lastHealthSnapshot.value = next;
+      services.value = data.services;
+      upCount.value = data.up;
+      degradedCount.value = data.degraded;
+      downCount.value = data.down;
+      healthPct.value = data.health_pct;
+    } catch {
+      // Backend unreachable — keep last snapshot, no false alerts.
+    }
+  }
+
+  /** Start periodic health polling with crash/restore toasts. */
+  function startHealthPolling(intervalMs = 15000): void {
+    if (pollTimer) return;
+    // Seed the snapshot without alerting, then begin polling.
+    void (async () => {
+      try {
+        const res = await fetch("/api/server/health");
+        if (res.ok) {
+          const data: HealthInfo = await res.json();
+          const seed: Record<string, string> = {};
+          for (const s of data.services || []) seed[s.name] = s.status;
+          lastHealthSnapshot.value = seed;
+        }
+      } catch {
+        /* backend down */
+      }
+    })();
+    pollTimer = setInterval(() => void pollHealthWithAlerts(), intervalMs);
+  }
+
+  /** Stop periodic health polling. */
+  function stopHealthPolling(): void {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  // ── Service recovery actions ───────────────────────────────────
+  async function restartService(name: string): Promise<boolean> {
+    try {
+      const res = await fetch(
+        `/api/server/services/${encodeURIComponent(name)}/restart`,
+        { method: "POST" },
+      );
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  async function repairService(name: string): Promise<boolean> {
+    try {
+      const res = await fetch(
+        `/api/server/services/${encodeURIComponent(name)}/repair`,
+        { method: "POST" },
+      );
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  async function resetService(name: string): Promise<boolean> {
+    try {
+      const res = await fetch(
+        `/api/server/services/${encodeURIComponent(name)}/reset`,
+        { method: "POST" },
+      );
+      return res.ok;
+    } catch {
+      return false;
     }
   }
 
@@ -394,5 +508,11 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
     fetchAgents,
     fetchBudget,
     fetchAll,
+    pollHealthWithAlerts,
+    startHealthPolling,
+    stopHealthPolling,
+    restartService,
+    repairService,
+    resetService,
   };
 });

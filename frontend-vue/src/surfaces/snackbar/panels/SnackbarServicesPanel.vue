@@ -19,6 +19,30 @@
         >Refresh</UButton
       >
     </div>
+
+    <!-- Crash recovery banner -->
+    <div v-if="downServices.length > 0" class="crash-banner">
+      <UIcon name="bug_report" class="crash-banner-icon" />
+      <div class="crash-banner-text">
+        <strong
+          >{{ downServices.length }} service{{
+            downServices.length > 1 ? "s" : ""
+          }}
+          not responding.</strong
+        >
+        <span>Restart, repair, or revert to a working release.</span>
+      </div>
+      <UButton
+        variant="secondary"
+        size="sm"
+        icon="medical_services"
+        class="crash-banner-btn"
+        @click="$router.push('/system/s500')"
+      >
+        Open Crash Recovery
+      </UButton>
+    </div>
+
     <div v-if="srv.unifiedServices.length === 0" class="server-muted-text-sm">
       No services available.
     </div>
@@ -31,6 +55,7 @@
             <th>Description</th>
             <th>Detail</th>
             <th>Status</th>
+            <th v-if="downServices.length > 0">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -61,6 +86,43 @@
               >
                 {{ svc.status }}
               </UBadge>
+            </td>
+            <td v-if="downServices.length > 0">
+              <div v-if="svc.status !== 'up'" class="crash-inline-actions">
+                <button
+                  class="crash-btn"
+                  title="Restart service"
+                  :disabled="actionLoading === svc.name"
+                  @click="doRestart(svc.name)"
+                >
+                  <UIcon name="restart_alt" />
+                </button>
+                <button
+                  class="crash-btn"
+                  title="Repair service"
+                  :disabled="actionLoading === svc.name"
+                  @click="doRepair(svc.name)"
+                >
+                  <UIcon name="build" />
+                </button>
+                <button
+                  class="crash-btn crash-btn--danger"
+                  :title="
+                    destroyConfirm === svc.name
+                      ? 'Confirm destroy'
+                      : 'Destroy (revert to release)'
+                  "
+                  :disabled="actionLoading === svc.name"
+                  @click="doDestroy(svc.name)"
+                >
+                  <UIcon
+                    :name="
+                      destroyConfirm === svc.name ? 'warning' : 'delete_forever'
+                    "
+                  />
+                </button>
+              </div>
+              <span v-else class="server-muted-text-sm">—</span>
             </td>
           </tr>
         </tbody>
@@ -114,13 +176,75 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useSnackbarOpsStore } from "../../../stores/snackbarOps";
+import { useSnackbarStore } from "../../../stores/snackbar";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 import UBadge from "../../../skills/atoms/UBadge.vue";
 import UButton from "../../../skills/atoms/UButton.vue";
 
 const srv = useSnackbarOpsStore();
+const toast = useSnackbarStore();
+
+const actionLoading = ref<string | null>(null);
+const destroyConfirm = ref<string | null>(null);
+
+const downServices = computed(() =>
+  srv.unifiedServices.filter((s) => s.status !== "up"),
+);
+
+async function doRestart(name: string) {
+  actionLoading.value = name;
+  const ok = await srv.restartService(name);
+  toast.show(
+    ok ? `Service "${name}" restarted` : `Failed to restart "${name}"`,
+    ok ? "success" : "error",
+    4000,
+    "services",
+  );
+  actionLoading.value = null;
+  srv.fetchUnifiedServices();
+}
+
+async function doRepair(name: string) {
+  actionLoading.value = name;
+  const ok = await srv.repairService(name);
+  toast.show(
+    ok ? `Service "${name}" repair initiated` : `Repair failed for "${name}"`,
+    ok ? "info" : "error",
+    4000,
+    "services",
+  );
+  actionLoading.value = null;
+  srv.fetchUnifiedServices();
+}
+
+function doDestroy(name: string) {
+  if (destroyConfirm.value === name) {
+    destroyConfirm.value = null;
+    void destroyService(name);
+  } else {
+    destroyConfirm.value = name;
+    setTimeout(() => {
+      if (destroyConfirm.value === name) destroyConfirm.value = null;
+    }, 5000);
+  }
+}
+
+async function destroyService(name: string) {
+  actionLoading.value = name;
+  const ok = await srv.resetService(name);
+  toast.show(
+    ok
+      ? `Service "${name}" reverted to working release`
+      : `Destroy failed for "${name}"`,
+    ok ? "warning" : "error",
+    5000,
+    "services",
+  );
+  actionLoading.value = null;
+  srv.fetchUnifiedServices();
+}
 
 function kindCount(kind: string): number {
   return srv.unifiedServices.filter((s) => s.kind === kind).length;
@@ -216,5 +340,82 @@ onMounted(() => {
   font-size: var(--usx-font-size-base);
   margin-bottom: var(--usx-spacing-sm);
   color: var(--usx-color-on-surface);
+}
+
+/* ─── Crash recovery banner ──────────────────────────────────── */
+.crash-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-md);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border: var(--usx-border-width) solid
+    color-mix(in srgb, var(--usx-color-danger) 40%, transparent);
+  border-radius: var(--usx-radius-md);
+  background: color-mix(in srgb, var(--usx-color-danger) 8%, transparent);
+  margin-bottom: var(--usx-spacing-md);
+}
+
+.crash-banner-icon {
+  color: var(--usx-color-danger);
+  font-size: var(--usx-font-size-xl);
+  flex-shrink: 0;
+}
+
+.crash-banner-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  color: var(--usx-color-on-surface);
+  font-size: var(--usx-font-size-base);
+}
+
+.crash-banner-text span {
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
+}
+
+/* ─── Inline per-service actions ─────────────────────────────── */
+.crash-inline-actions {
+  display: flex;
+  gap: var(--usx-spacing-xs);
+}
+
+.crash-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--usx-spacing-xl);
+  height: var(--usx-spacing-xl);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+  transition:
+    color var(--usx-transition-fast),
+    border-color var(--usx-transition-fast),
+    background var(--usx-transition-fast);
+}
+
+.crash-btn:hover:not(:disabled) {
+  color: var(--usx-color-primary);
+  border-color: var(--usx-color-primary);
+  background: color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
+}
+
+.crash-btn--danger:hover:not(:disabled) {
+  color: var(--usx-color-danger);
+  border-color: var(--usx-color-danger);
+  background: color-mix(in srgb, var(--usx-color-danger) 8%, transparent);
+}
+
+.crash-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.crash-banner-btn {
+  flex-shrink: 0;
 }
 </style>

@@ -52,7 +52,13 @@
  * @category surfaces
  * @usage Routed at '/snackbar/*'
  */
-import { computed, onMounted, defineAsyncComponent, watch } from "vue";
+import {
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  defineAsyncComponent,
+  watch,
+} from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import SnackbarDashboardPanel from "./panels/SnackbarDashboardPanel.vue";
@@ -130,6 +136,11 @@ watch(
 
 onMounted(() => {
   srv.fetchAll();
+  srv.startHealthPolling(15000);
+});
+
+onBeforeUnmount(() => {
+  srv.stopHealthPolling();
 });
 </script>
 
