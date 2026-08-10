@@ -3,9 +3,13 @@
  * @description Event-driven extension presence registry.
  * Extensions announce themselves via SSE (extension_online / extension_offline).
  * Required/core surfaces always appear; optional ones only when running.
+ *
+ * Also provides API actions for the Snackbar extensions tab:
+ * fetchCatalogue, toggleExtension, installExtension, repairExtension.
  */
 import { ref, computed } from "vue";
 import { defineStore } from "pinia";
+import { SNACKBAR_BASE } from "@/api/base";
 
 export type ExtensionKind = "core" | "surface" | "service" | "plugin";
 export type ExtensionStatus = "unknown" | "available" | "installed" | "running";
@@ -163,6 +167,79 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
     description: "Discover and install uDOS extensions",
     install_url: "#",
   },
+  // External udos-* extension manifest entries
+  {
+    id: "udos-budget",
+    name: "uDos Budget",
+    kind: "plugin",
+    required: false,
+    icon: "savings",
+    activation_required: false,
+    description: "Budget policy & status plugin",
+  },
+  {
+    id: "udos-identity",
+    name: "uDos Identity",
+    kind: "plugin",
+    required: false,
+    icon: "fingerprint",
+    activation_required: false,
+    description: "Identity profile & session plugin",
+  },
+  {
+    id: "udos-google",
+    name: "Google Bridge",
+    kind: "plugin",
+    required: false,
+    icon: "cloud",
+    activation_required: false,
+    description: "Google OAuth, Gemini/Gems, Drive mirror",
+  },
+  {
+    id: "udos-dreamscape",
+    name: "Dreamscape",
+    kind: "plugin",
+    required: false,
+    icon: "psychology",
+    activation_required: false,
+    description: "Mission scaffolding & daily briefing",
+  },
+  {
+    id: "udos-publishing",
+    name: "Publishing",
+    kind: "plugin",
+    required: false,
+    icon: "publish",
+    activation_required: false,
+    description: "Cloud mirror for udo.guide/udo.place",
+  },
+  {
+    id: "udos-vaults",
+    name: "Vault Topology",
+    kind: "plugin",
+    required: false,
+    icon: "folder_special",
+    activation_required: false,
+    description: "Vault topology & AppFlowy bridge",
+  },
+  {
+    id: "udos-agents",
+    name: "uDos Agents",
+    kind: "plugin",
+    required: false,
+    icon: "smart_toy",
+    activation_required: false,
+    description: "Specialized agent scaffolding",
+  },
+  {
+    id: "homenest",
+    name: "HomeNest",
+    kind: "plugin",
+    required: false,
+    icon: "home",
+    activation_required: false,
+    description: "Home stream server — Jellyfin + Home Assistant bridge",
+  },
 ];
 
 // ─── Store ───────────────────────────────────────────────────────
@@ -257,6 +334,115 @@ export const useExtensionStore = defineStore("extensions", () => {
     }
   }
 
+  // ─── API-driven catalogue & actions (Snackbar Extensions tab) ──
+
+  /** Runtime catalogue enriched with backend probe data */
+  const runtimeCatalogue = ref<any[]>([]);
+  /** Loading states per action */
+  const loading = ref<Record<string, string>>({}); // id -> action
+  const actionMessage = ref<string>("");
+
+  async function fetchCatalogue() {
+    try {
+      const res = await fetch(`${SNACKBAR_BASE}/api/extensions/catalogue`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      runtimeCatalogue.value = data.extensions ?? [];
+
+      // Sync status back into known entries
+      for (const ext of runtimeCatalogue.value) {
+        const existing = entries.value.get(ext.id);
+        if (existing) {
+          if (ext.status === "running" || ext.enabled) {
+            existing.status = "running";
+          } else if (ext.is_installed) {
+            existing.status = "installed";
+          } else {
+            existing.status = "available";
+          }
+          if (ext.version) existing.manifest.version = ext.version;
+        }
+      }
+    } catch {
+      // Backend unreachable — stick with built-in status
+    }
+  }
+
+  async function toggleExtension(id: string, enabled: boolean) {
+    loading.value = { ...loading.value, [id]: "toggling" };
+
+    // Optimistic update — set local status immediately
+    const existing = entries.value.get(id);
+    if (existing) {
+      existing.status = enabled ? "running" : "installed";
+    }
+
+    try {
+      const res = await fetch(`${SNACKBAR_BASE}/api/extensions/${id}/toggle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+        signal: AbortSignal.timeout(5000),
+      });
+      const data = await res.json();
+      actionMessage.value = data.message ?? "";
+    } catch {
+      // Backend unreachable — optimistic state is already set
+      actionMessage.value = "";
+    } finally {
+      loading.value = { ...loading.value, [id]: "" };
+    }
+  }
+
+  async function installExtension(id: string) {
+    loading.value = { ...loading.value, [id]: "installing" };
+    try {
+      const res = await fetch(`${SNACKBAR_BASE}/api/extensions/${id}/install`, {
+        method: "POST",
+        signal: AbortSignal.timeout(120_000), // 2min timeout for clone+install
+      });
+      const data = await res.json();
+      actionMessage.value = data.message ?? "";
+      if (data.success) {
+        const existing = entries.value.get(id);
+        if (existing) {
+          existing.status = "running";
+        }
+      }
+    } catch (e: any) {
+      actionMessage.value = `Install failed: ${e.message}`;
+    } finally {
+      loading.value = { ...loading.value, [id]: "" };
+      // Refresh catalogue after install
+      await fetchCatalogue();
+    }
+  }
+
+  async function repairExtension(id: string) {
+    loading.value = { ...loading.value, [id]: "repairing" };
+    try {
+      const res = await fetch(`${SNACKBAR_BASE}/api/extensions/${id}/repair`, {
+        method: "POST",
+        signal: AbortSignal.timeout(120_000),
+      });
+      const data = await res.json();
+      actionMessage.value = data.message ?? "";
+      if (data.success) {
+        const existing = entries.value.get(id);
+        if (existing) {
+          existing.status = "running";
+        }
+      }
+    } catch (e: any) {
+      actionMessage.value = `Repair failed: ${e.message}`;
+    } finally {
+      loading.value = { ...loading.value, [id]: "" };
+      await fetchCatalogue();
+    }
+  }
+
   return {
     entries,
     all,
@@ -269,5 +455,13 @@ export const useExtensionStore = defineStore("extensions", () => {
     markOffline,
     markInstalled,
     pruneStale,
+    // API-driven
+    runtimeCatalogue,
+    loading,
+    actionMessage,
+    fetchCatalogue,
+    toggleExtension,
+    installExtension,
+    repairExtension,
   };
 });

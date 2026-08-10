@@ -2,57 +2,79 @@
   <div class="chat-panel">
     <!-- ── Header ─────────────────────────────────────────────── -->
     <div class="chat-panel__header">
-      <!-- Lane tabs: Chat / Dev (Dev hidden unless devMode available) -->
-      <div class="chat-panel__lanes">
-        <button
-          class="chat-panel__lane-btn"
-          :class="{ 'chat-panel__lane-btn--active': activeLane === 'chat' }"
-          @click="activeLane = 'chat'"
+      <!-- Lane toggle: Chat / Dev -->
+      <div class="chat-panel__lane-toggle-wrap">
+        <span
+          class="chat-panel__lane-label"
+          :class="{ 'chat-panel__lane-label--active': activeLane === 'chat' }"
         >
-          <span class="material-symbols-outlined">chat</span>
           Chat
-        </button>
+        </span>
         <button
-          v-if="devAvailable"
-          class="chat-panel__lane-btn chat-panel__lane-btn--dev"
-          :class="{ 'chat-panel__lane-btn--active': activeLane === 'dev' }"
-          @click="activeLane = 'dev'"
+          class="chat-panel__lane-toggle"
+          :class="{ 'chat-panel__lane-toggle--dev': activeLane === 'dev' }"
+          :aria-checked="activeLane === 'dev' ? 'true' : 'false'"
+          aria-label="Toggle Chat/Dev lane"
+          role="switch"
+          :disabled="!devAvailable"
+          :title="
+            devAvailable
+              ? 'Toggle between Chat and Dev lanes'
+              : 'Dev lane unavailable in this context'
+          "
+          @click="toggleLane"
         >
-          <span class="material-symbols-outlined">code</span>
-          Dev
+          <span class="chat-panel__lane-toggle-track">
+            <span class="chat-panel__lane-toggle-thumb" />
+          </span>
         </button>
+        <span
+          class="chat-panel__lane-label"
+          :class="{ 'chat-panel__lane-label--active': activeLane === 'dev' }"
+        >
+          Developer
+        </span>
       </div>
 
-      <div class="chat-panel__header-right">
-        <!-- Dev mode toggle (only shown when uDev detected) -->
-        <button
-          v-if="devAvailable"
-          class="chat-panel__dev-toggle"
-          :class="{ 'chat-panel__dev-toggle--on': devModeOn }"
-          :title="devModeOn ? 'Dev Mode ON — click to disable' : 'Dev Mode OFF — click to enable'"
-          @click="emit('toggle-dev-mode')"
-        >
-          <span class="chat-panel__dev-dot" />
-          Dev
-        </button>
-        <button class="chat-panel__close-btn" title="Close (Esc)" @click="closeChat">
-          <span class="material-symbols-outlined">close</span>
-        </button>
-      </div>
+      <!-- Dev mode toggle (only shown when uDev detected) -->
+      <button
+        v-if="devAvailable"
+        class="chat-panel__dev-toggle"
+        :class="{ 'chat-panel__dev-toggle--on': devModeOn }"
+        :title="
+          devModeOn
+            ? 'Dev Mode ON — click to disable'
+            : 'Dev Mode OFF — click to enable'
+        "
+        @click="emit('toggle-dev-mode')"
+      >
+        <span class="chat-panel__dev-dot" />
+        Dev
+      </button>
+      <button
+        class="chat-panel__close-btn"
+        title="Close (Esc)"
+        @click="closeChat"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
 
     <!-- ── Context strip ──────────────────────────────────────── -->
-    <div v-if="contextLabel" class="chat-panel__context">
+    <div
+      v-if="contextLabel && contextLabel.trim().toLowerCase() !== 'developer'"
+      class="chat-panel__context"
+    >
       <span class="material-symbols-outlined">location_on</span>
       <span class="chat-panel__context-text">{{ contextLabel }}</span>
-      <button
+      <span
         v-if="activeLane === 'dev' && currentTask"
         class="chat-panel__context-badge"
         title="Task context active"
       >
         <span class="material-symbols-outlined">assignment</span>
         {{ currentTask }}
-      </button>
+      </span>
     </div>
 
     <!-- ── Messages ───────────────────────────────────────────── -->
@@ -60,15 +82,21 @@
       <!-- Empty state -->
       <div v-if="activeMessages.length === 0" class="chat-panel__empty">
         <span class="material-symbols-outlined chat-panel__empty-icon">
-          {{ activeLane === 'dev' ? 'terminal' : 'auto_awesome' }}
+          {{ activeLane === "dev" ? "terminal" : "auto_awesome" }}
         </span>
         <p class="chat-panel__empty-title">
-          {{ activeLane === 'dev' ? 'Developer Assistant' : 'Start a conversation' }}
+          {{
+            activeLane === "dev"
+              ? "Developer Assistant"
+              : "Start a conversation"
+          }}
         </p>
         <p class="chat-panel__empty-hint">
-          {{ activeLane === 'dev'
-            ? 'Ask about code, run skills, manage repos. Context-aware.'
-            : 'Ask anything. Outputs can go directly into your documents.' }}
+          {{
+            activeLane === "dev"
+              ? "Ask about code, run skills, manage repos. Context-aware."
+              : "Ask anything. Outputs can go directly into your documents."
+          }}
         </p>
         <!-- Dev lane shortcuts -->
         <div v-if="activeLane === 'dev'" class="chat-panel__shortcuts">
@@ -85,33 +113,49 @@
       </div>
 
       <!-- Message list -->
-      <div
+      <article
         v-for="(msg, i) in activeMessages"
         :key="`${activeLane}-${i}`"
         class="chat-panel__msg"
         :class="`chat-panel__msg--${msg.role}`"
       >
-        <div class="chat-panel__msg-avatar">
-          <span class="material-symbols-outlined">
-            {{ msg.role === 'user' ? 'person' : activeLane === 'dev' ? 'terminal' : 'auto_awesome' }}
+        <div class="chat-panel__msg-text">
+          <span class="material-symbols-outlined chat-panel__msg-icon">
+            {{
+              msg.role === "user"
+                ? "person"
+                : activeLane === "dev"
+                  ? "terminal"
+                  : "auto_awesome"
+            }}
           </span>
+          <p class="chat-panel__msg-content">{{ msg.content }}</p>
         </div>
-        <div class="chat-panel__msg-body">
-          <div class="chat-panel__msg-text">{{ msg.content }}</div>
-          <!-- Output routing (assistant messages only) -->
-          <div v-if="msg.role === 'assistant'" class="chat-panel__msg-actions">
-            <button class="chat-panel__msg-action" title="Append to current document" @click="appendToDoc(msg.content)">
-              <span class="material-symbols-outlined">note_add</span>
-            </button>
-            <button class="chat-panel__msg-action" title="New note" @click="newNote(msg.content)">
-              <span class="material-symbols-outlined">post_add</span>
-            </button>
-            <button class="chat-panel__msg-action" title="Copy to clipboard" @click="copyText(msg.content)">
-              <span class="material-symbols-outlined">content_copy</span>
-            </button>
-          </div>
+        <!-- Output routing (assistant messages only) -->
+        <div v-if="msg.role === 'assistant'" class="chat-panel__msg-actions">
+          <button
+            class="chat-panel__msg-action"
+            title="Append to current document"
+            @click="appendToDoc(msg.content)"
+          >
+            <span class="material-symbols-outlined">note_add</span>
+          </button>
+          <button
+            class="chat-panel__msg-action"
+            title="New note"
+            @click="newNote(msg.content)"
+          >
+            <span class="material-symbols-outlined">post_add</span>
+          </button>
+          <button
+            class="chat-panel__msg-action"
+            title="Copy to clipboard"
+            @click="copyText(msg.content)"
+          >
+            <span class="material-symbols-outlined">content_copy</span>
+          </button>
         </div>
-      </div>
+      </article>
 
       <!-- Loading dots -->
       <div v-if="loading" class="chat-panel__loading">
@@ -127,7 +171,11 @@
         ref="inputEl"
         v-model="inputText"
         class="chat-panel__input"
-        :placeholder="activeLane === 'dev' ? 'Dev command or question… (/ for shortcuts)' : 'Message…'"
+        :placeholder="
+          activeLane === 'dev'
+            ? 'Dev command or question… (/ for shortcuts)'
+            : 'Message…'
+        "
         @keydown.enter.exact.prevent="sendMessage"
         @keydown.shift.enter.prevent="inputText += '\n'"
         @input="onInputChange"
@@ -152,25 +200,31 @@ import { getEditorSurface } from "../../composables/useEditorSurface";
 import { useWorkspaceStore } from "../../stores/workspace";
 import { useToast } from "../../composables/useToast";
 
-interface Message { role: "user" | "assistant"; content: string }
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
 
-const props = withDefaults(defineProps<{
-  chatMessages?: Message[];
-  devMessages?: Message[];
-  loading?: boolean;
-  devAvailable?: boolean;
-  devModeOn?: boolean;
-  contextLabel?: string;
-  currentTask?: string;
-}>(), {
-  chatMessages: () => [],
-  devMessages: () => [],
-  loading: false,
-  devAvailable: false,
-  devModeOn: false,
-  contextLabel: "",
-  currentTask: "",
-});
+const props = withDefaults(
+  defineProps<{
+    chatMessages?: Message[];
+    devMessages?: Message[];
+    loading?: boolean;
+    devAvailable?: boolean;
+    devModeOn?: boolean;
+    contextLabel?: string;
+    currentTask?: string;
+  }>(),
+  {
+    chatMessages: () => [],
+    devMessages: () => [],
+    loading: false,
+    devAvailable: false,
+    devModeOn: false,
+    contextLabel: "",
+    currentTask: "",
+  },
+);
 
 const emit = defineEmits<{
   "send-chat": [message: string];
@@ -194,17 +248,38 @@ const activeMessages = computed(() =>
 );
 
 const DEV_SHORTCUTS = [
-  { label: "Audit ecosystem", icon: "analytics",   prompt: "Run ecosystem audit and show me a summary" },
-  { label: "Explain this file", icon: "description", prompt: "Explain the current file I have open" },
-  { label: "Suggest next task", icon: "assignment",  prompt: "Based on my current context, what should I work on next?" },
-  { label: "Check build",       icon: "build",       prompt: "Check if there are any build errors in the current project" },
+  {
+    label: "Audit ecosystem",
+    icon: "analytics",
+    prompt: "Run ecosystem audit and show me a summary",
+  },
+  {
+    label: "Explain this file",
+    icon: "description",
+    prompt: "Explain the current file I have open",
+  },
+  {
+    label: "Suggest next task",
+    icon: "assignment",
+    prompt: "Based on my current context, what should I work on next?",
+  },
+  {
+    label: "Check build",
+    icon: "build",
+    prompt: "Check if there are any build errors in the current project",
+  },
 ];
 
 // Auto-scroll on new messages
-watch(activeMessages, async () => {
-  await nextTick();
-  if (messagesEl.value) messagesEl.value.scrollTop = messagesEl.value.scrollHeight;
-}, { deep: true });
+watch(
+  activeMessages,
+  async () => {
+    await nextTick();
+    if (messagesEl.value)
+      messagesEl.value.scrollTop = messagesEl.value.scrollHeight;
+  },
+  { deep: true },
+);
 
 function sendMessage() {
   const text = inputText.value.trim();
@@ -224,6 +299,10 @@ function insertShortcut(prompt: string) {
 
 function onInputChange() {
   // Slash command hint — future feature placeholder
+}
+
+function toggleLane() {
+  activeLane.value = activeLane.value === "chat" ? "dev" : "chat";
 }
 
 function closeChat() {
@@ -247,7 +326,11 @@ function newNote(content: string) {
   const filename = `Chat Note ${today}.md`;
   const md = `---\ntitle: "Chat Note"\ndate: "${today}"\ntype: note\nsource: chat\n---\n\n${content}`;
   ws.createFile("/notes", filename);
-  const node = ws.tree.flatMap((n) => n.children ?? []).find((n) => n.name === filename);
+  const node = ws.tree
+    .flatMap((n: import("../../stores/workspace").FileNode) => n.children ?? [])
+    .find(
+      (n: import("../../stores/workspace").FileNode) => n.name === filename,
+    );
   if (node) ws.updateFileContent(node.id, md);
   toast(`Saved as "${filename}"`, "success");
 }
@@ -268,7 +351,7 @@ async function copyText(content: string) {
   flex-direction: column;
   height: 100%;
   background-color: var(--usx-color-surface);
-  border-radius: var(--usx-radius-lg);
+  border-radius: var(--usx-radius-md);
   overflow: hidden;
 }
 
@@ -278,61 +361,115 @@ async function copyText(content: string) {
   align-items: center;
   justify-content: space-between;
   padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border-bottom: 1px solid var(--usx-color-border);
   background-color: var(--usx-color-surface-variant);
   flex-shrink: 0;
   gap: var(--usx-spacing-xs);
 }
 
-.chat-panel__lanes {
-  display: flex;
-  gap: 2px;
-  background-color: var(--usx-color-background);
-  border: 1px solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  padding: 2px;
+.chat-panel__lane-toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.chat-panel__lane-btn {
+.chat-panel__lane-label {
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.chat-panel__lane-label--active {
+  color: var(--usx-color-on-surface);
+  font-weight: var(--usx-font-weight-medium);
+}
+
+.chat-panel__lane-static {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface);
+}
+
+.chat-panel__lane-toggle {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 0;
+}
+
+.chat-panel__lane-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.chat-panel__lane-toggle-track {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: calc(var(--usx-spacing-2xl) + var(--usx-spacing-sm));
+  min-width: calc(var(--usx-spacing-2xl) + var(--usx-spacing-sm));
+  height: calc(var(--usx-spacing-xl) + var(--usx-spacing-xs));
+  border-radius: var(--usx-radius-full);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  background: color-mix(
+    in srgb,
+    var(--usx-color-on-surface-muted) 16%,
+    var(--usx-color-surface)
+  );
+  padding: 0 var(--usx-spacing-xs);
+  transition:
+    background var(--usx-transition-fast),
+    border-color var(--usx-transition-fast),
+    box-shadow var(--usx-transition-fast);
+}
+
+.chat-panel__lane-toggle-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--usx-spacing-lg);
+  height: var(--usx-spacing-lg);
+  border-radius: var(--usx-radius-full);
+  background: var(--usx-color-surface);
+  box-shadow: 0 1px 2px
+    color-mix(in srgb, var(--usx-color-background) 55%, transparent);
+  transform: translateX(0);
+  transition:
+    transform var(--usx-transition-fast),
+    background var(--usx-transition-fast),
+    box-shadow var(--usx-transition-fast);
+}
+
+.chat-panel__lane-toggle--dev .chat-panel__lane-toggle-track {
+  background: color-mix(in srgb, var(--usx-color-primary) 28%, transparent);
+  border-color: color-mix(in srgb, var(--usx-color-primary) 70%, transparent);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--usx-color-primary) 24%, transparent);
+}
+
+.chat-panel__lane-toggle--dev .chat-panel__lane-toggle-thumb {
+  transform: translateX(calc(var(--usx-spacing-lg) - var(--usx-spacing-xs)));
+  background: var(--usx-color-primary);
+  box-shadow: 0 1px 3px
+    color-mix(in srgb, var(--usx-color-primary) 35%, transparent);
+}
+
+.chat-panel__dev-toggle {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 4px;
   padding: 3px var(--usx-spacing-sm);
   border: none;
-  background: transparent;
-  border-radius: var(--usx-radius-sm);
-  cursor: pointer;
-  font-size: var(--usx-font-size-xs);
-  font-family: var(--usx-font-family-sans);
-  color: var(--usx-color-on-surface-muted);
-  transition: all 120ms ease;
-  white-space: nowrap;
-}
-
-.chat-panel__lane-btn--active {
-  background-color: var(--usx-color-surface);
-  color: var(--usx-color-primary);
-  box-shadow: 0 1px 3px rgba(0,0,0,.1);
-}
-
-.chat-panel__lane-btn--dev.chat-panel__lane-btn--active {
-  color: var(--usx-color-warning);
-}
-
-.chat-panel__header-right {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-}
-
-.chat-panel__dev-toggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px var(--usx-spacing-sm);
-  border: 1px solid var(--usx-color-border);
   border-radius: var(--usx-radius-full);
-  background: transparent;
+  background: var(--usx-color-surface);
   cursor: pointer;
   font-size: var(--usx-font-size-xs);
   font-family: var(--usx-font-family-sans);
@@ -341,7 +478,11 @@ async function copyText(content: string) {
 }
 
 .chat-panel__dev-toggle--on {
-  background-color: color-mix(in srgb, var(--usx-color-warning) 12%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--usx-color-warning) 12%,
+    transparent
+  );
   border-color: var(--usx-color-warning);
   color: var(--usx-color-warning);
 }
@@ -383,22 +524,33 @@ async function copyText(content: string) {
   gap: var(--usx-spacing-xs);
   padding: 4px var(--usx-spacing-md);
   background-color: color-mix(in srgb, var(--usx-color-info) 6%, transparent);
-  border-bottom: 1px solid var(--usx-color-border);
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
   flex-shrink: 0;
 }
 
-.chat-panel__context .material-symbols-outlined { font-size: 14px; color: var(--usx-color-info); }
+.chat-panel__context .material-symbols-outlined {
+  font-size: 14px;
+  color: var(--usx-color-info);
+}
 
-.chat-panel__context-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-panel__context-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .chat-panel__context-badge {
   display: flex;
   align-items: center;
   gap: 2px;
   padding: 1px var(--usx-spacing-xs);
-  background-color: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--usx-color-primary) 12%,
+    transparent
+  );
   border: none;
   border-radius: var(--usx-radius-full);
   color: var(--usx-color-primary);
@@ -462,9 +614,9 @@ async function copyText(content: string) {
   align-items: center;
   gap: 4px;
   padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border: 1px solid var(--usx-color-border);
+  border: none;
   border-radius: var(--usx-radius-sm);
-  background: transparent;
+  background: var(--usx-color-surface-variant);
   cursor: pointer;
   font-size: var(--usx-font-size-xs);
   font-family: var(--usx-font-family-sans);
@@ -474,39 +626,39 @@ async function copyText(content: string) {
 }
 
 .chat-panel__shortcut:hover {
-  background-color: color-mix(in srgb, var(--usx-color-warning) 8%, transparent);
-  border-color: var(--usx-color-warning);
+  background-color: color-mix(
+    in srgb,
+    var(--usx-color-warning) 8%,
+    transparent
+  );
   color: var(--usx-color-warning);
 }
 
 /* Message bubbles */
 .chat-panel__msg {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--usx-spacing-sm);
   animation: msgIn 200ms ease;
 }
 
-@keyframes msgIn { from { opacity: 0; transform: translateY(6px); } }
-
-.chat-panel__msg--user { flex-direction: row-reverse; }
-
-.chat-panel__msg-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--usx-radius-full);
-  flex-shrink: 0;
-  font-size: 14px;
+@keyframes msgIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
-.chat-panel__msg--user .chat-panel__msg-avatar { background-color: var(--usx-color-primary); color: white; }
-.chat-panel__msg--assistant .chat-panel__msg-avatar { background-color: var(--usx-color-surface-variant); color: var(--usx-color-on-surface); }
-
-.chat-panel__msg-body { display: flex; flex-direction: column; gap: 3px; max-width: 82%; }
+.chat-panel__msg--user {
+  align-items: flex-end;
+}
 
 .chat-panel__msg-text {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--usx-spacing-xs);
+  max-width: 86%;
   padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
   border-radius: var(--usx-radius-md);
   font-size: var(--usx-font-size-sm);
@@ -514,8 +666,29 @@ async function copyText(content: string) {
   word-wrap: break-word;
 }
 
-.chat-panel__msg--user .chat-panel__msg-text { background-color: var(--usx-color-primary); color: white; border-radius: var(--usx-radius-md) var(--usx-radius-sm) var(--usx-radius-md) var(--usx-radius-md); }
-.chat-panel__msg--assistant .chat-panel__msg-text { background-color: var(--usx-color-surface-variant); color: var(--usx-color-on-surface); border-radius: var(--usx-radius-sm) var(--usx-radius-md) var(--usx-radius-md) var(--usx-radius-md); }
+.chat-panel__msg-icon {
+  font-size: 14px;
+  opacity: 0.75;
+  margin-top: 1px;
+}
+
+.chat-panel__msg-content {
+  display: block;
+  margin: 0;
+}
+
+.chat-panel__msg--user .chat-panel__msg-text {
+  background-color: var(--usx-color-primary);
+  color: white;
+  border-radius: var(--usx-radius-md) var(--usx-radius-sm) var(--usx-radius-md)
+    var(--usx-radius-md);
+}
+.chat-panel__msg--assistant .chat-panel__msg-text {
+  background-color: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface);
+  border-radius: var(--usx-radius-sm) var(--usx-radius-md) var(--usx-radius-md)
+    var(--usx-radius-md);
+}
 
 .chat-panel__msg-actions {
   display: flex;
@@ -524,7 +697,9 @@ async function copyText(content: string) {
   transition: opacity 120ms ease;
 }
 
-.chat-panel__msg:hover .chat-panel__msg-actions { opacity: 1; }
+.chat-panel__msg:hover .chat-panel__msg-actions {
+  opacity: 1;
+}
 
 .chat-panel__msg-action {
   display: flex;
@@ -540,7 +715,10 @@ async function copyText(content: string) {
   font-size: 13px;
 }
 
-.chat-panel__msg-action:hover { background-color: var(--usx-color-border); color: var(--usx-color-on-surface); }
+.chat-panel__msg-action:hover {
+  background-color: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface);
+}
 
 /* Loading */
 .chat-panel__loading {
@@ -556,60 +734,131 @@ async function copyText(content: string) {
   background-color: var(--usx-color-on-surface-muted);
   animation: bounce 1.4s infinite;
 }
-.chat-panel__dot:nth-child(2) { animation-delay: 0.2s; }
-.chat-panel__dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes bounce { 0%,80%,100%{opacity:.4;transform:translateY(0)} 40%{opacity:1;transform:translateY(-6px)} }
+.chat-panel__dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.chat-panel__dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-6px);
+  }
+}
 
 /* ─── Input ───────────────────────────────────────────────────── */
 .chat-panel__input-row {
   display: flex;
+  align-items: center;
   gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-sm);
-  border-top: 1px solid var(--usx-color-border);
-  background-color: var(--usx-color-surface);
+  margin: var(--usx-spacing-xs);
+  padding: 0 var(--usx-spacing-xs) 0 var(--usx-spacing-sm);
+  min-height: calc(var(--usx-spacing-xl) + var(--usx-spacing-sm));
+  background-color: var(--usx-color-surface-variant);
+  border: var(--usx-border-width) solid transparent;
+  border-radius: var(--usx-radius-md);
   flex-shrink: 0;
+  transition:
+    border-color var(--usx-transition-fast),
+    background-color var(--usx-transition-fast),
+    box-shadow var(--usx-transition-fast);
+}
+
+.chat-panel__input-row:focus-within {
+  border-color: color-mix(in srgb, var(--usx-color-primary) 48%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--usx-color-primary) 6%,
+    var(--usx-color-surface-variant)
+  );
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--usx-color-primary) 24%, transparent);
 }
 
 .chat-panel__input {
   flex: 1;
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border: 1px solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  background-color: var(--usx-color-background);
+  height: calc(var(--usx-spacing-xl) + var(--usx-spacing-xs));
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
   color: var(--usx-color-on-surface);
   font-size: var(--usx-font-size-sm);
   font-family: var(--usx-font-family-sans);
+  line-height: 1.35;
   outline: none;
 }
 
-.chat-panel__input:focus { border-color: var(--usx-color-primary); }
-.chat-panel__input::placeholder { color: var(--usx-color-on-surface-muted); }
+.chat-panel__input:focus {
+  box-shadow: none;
+}
+.chat-panel__input::placeholder {
+  color: var(--usx-color-on-surface-muted);
+}
 
 .chat-panel__send {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
+  display: grid;
+  place-items: center;
+  width: calc(var(--usx-spacing-lg) + var(--usx-spacing-lg));
+  height: calc(var(--usx-spacing-lg) + var(--usx-spacing-lg));
   border: none;
-  background-color: var(--usx-color-primary);
-  color: white;
-  border-radius: var(--usx-radius-md);
+  background: transparent;
+  color: var(--usx-color-primary);
+  border-radius: var(--usx-radius-full);
+  padding: 0;
   cursor: pointer;
-  transition: all 150ms ease;
+  transition:
+    color var(--usx-transition-fast),
+    background-color var(--usx-transition-fast),
+    transform var(--usx-transition-fast);
   flex-shrink: 0;
 }
 
-.chat-panel__send--dev { background-color: var(--usx-color-warning); }
-.chat-panel__send:hover:not(:disabled) { opacity: 0.85; transform: scale(1.05); }
-.chat-panel__send:disabled { opacity: 0.4; cursor: not-allowed; }
+.chat-panel__send--dev {
+  color: var(--usx-color-warning);
+}
+
+.chat-panel__send .material-symbols-outlined {
+  font-size: var(--usx-font-size-lg);
+  line-height: 1;
+}
+.chat-panel__send:hover:not(:disabled) {
+  background-color: color-mix(in srgb, currentColor 12%, transparent);
+  transform: translateY(-1px);
+}
+
+.chat-panel__send:active:not(:disabled) {
+  transform: translateY(0);
+}
+.chat-panel__send:disabled {
+  color: var(--usx-color-on-surface-muted);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
 /* Scrollbar */
-.chat-panel__messages::-webkit-scrollbar { width: 4px; }
-.chat-panel__messages::-webkit-scrollbar-thumb { background-color: var(--usx-color-border); border-radius: 2px; }
+.chat-panel__messages::-webkit-scrollbar {
+  width: 4px;
+}
+.chat-panel__messages::-webkit-scrollbar-thumb {
+  background-color: var(--usx-color-border);
+  border-radius: 2px;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .chat-panel__msg { animation: none; }
-  .chat-panel__dot { animation: none; opacity: 1; }
+  .chat-panel__msg {
+    animation: none;
+  }
+  .chat-panel__dot {
+    animation: none;
+    opacity: 1;
+  }
 }
 </style>

@@ -25,6 +25,21 @@
             @click="navigate(surface.route)"
           />
         </div>
+
+        <!-- Active Extensions section -->
+        <template v-if="activeExtensions.length > 0">
+          <h2 class="dashboard-surface__section-title">Active Extensions</h2>
+          <div
+            class="dashboard-surface__grid-inner dashboard-surface__grid-inner--extensions"
+          >
+            <SurfaceCard
+              v-for="ext in activeExtensions"
+              :key="ext.id"
+              :surface="ext"
+              @click="navigate(ext.route)"
+            />
+          </div>
+        </template>
       </div>
     </div>
   </div>
@@ -202,6 +217,26 @@ const visibleSurfaces = computed(() => {
   return cards;
 });
 
+// Active extensions to show as cards below the main surfaces
+const activeExtensions = computed(() => {
+  // Filter out surface/core kinds — only show actual plugins that are enabled/running
+  return extStore.all
+    .filter(
+      (e) =>
+        e.manifest.kind === "plugin" &&
+        (e.status === "running" || e.status === "installed"),
+    )
+    .map((e) => ({
+      id: e.manifest.id,
+      title: e.manifest.name,
+      description: e.manifest.description || "Installed extension",
+      icon: e.manifest.icon || "extension",
+      route: `/snackbar?tab=extensions#${e.manifest.id}`,
+      color: "var(--usx-color-primary)",
+      status: e.status as "running" | "stopped" | "error",
+    }));
+});
+
 // uDev repo presence — show Developer card when ~/Code/uDev exists
 const udevRepoExists = ref(false);
 
@@ -223,6 +258,7 @@ async function probeUdevRepo() {
 
 onMounted(() => {
   void probeUdevRepo();
+  void extStore.fetchCatalogue();
 });
 
 function navigate(route: string) {
@@ -266,5 +302,19 @@ function navigate(route: string) {
   width: 100%;
   gap: var(--usx-spacing-md);
   min-width: 0;
+}
+
+.dashboard-surface__grid-inner--extensions {
+  --dashboard-column-min: calc(var(--usx-touch-min) * 10);
+  opacity: 0.85;
+}
+
+.dashboard-surface__section-title {
+  font-size: var(--usx-font-size-xl);
+  font-weight: var(--usx-font-weight-semibold);
+  color: var(--usx-color-on-surface-muted);
+  margin: var(--usx-spacing-xl) 0 var(--usx-spacing-md);
+  padding-bottom: var(--usx-spacing-sm);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
 }
 </style>
