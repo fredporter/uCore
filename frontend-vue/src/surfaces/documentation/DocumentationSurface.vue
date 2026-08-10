@@ -147,6 +147,11 @@
           </div>
         </div>
 
+        <!-- Learning Tab -->
+        <div v-else-if="activeTab === 'learning'">
+          <LearningPanel />
+        </div>
+
         <!-- Publishing Tab -->
         <div v-else-if="activeTab === 'publish'">
           <div class="doc-stats">
@@ -237,6 +242,7 @@ const activeTab = ref("guide");
 const TABS = [
   { id: "guide", label: "Guide & Docs", icon: "menu_book" },
   { id: "knowledge", label: "Knowledge", icon: "auto_stories" },
+  { id: "learning", label: "Learning", icon: "school" },
   { id: "publish", label: "Publishing", icon: "publish" },
   { id: "api", label: "API Reference", icon: "code" },
 ];

@@ -1,4 +1,4 @@
-"""Tests for Backup and DailyBackup skills."""
+"""Tests for Backup skill."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -30,26 +30,34 @@ async def test_backup_creates_file(tmp_path: Path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_daily_backup_full(tmp_path: Path, monkeypatch):
-    """Daily backup runs without error."""
-    from app.skills.builtin.daily_backup import DailyBackup
+async def test_backup_full(tmp_path: Path, monkeypatch):
+    """Full backup runs without error."""
+    from app.skills.builtin.backup import BackupData
 
-    monkeypatch.setattr("app.skills.builtin.daily_backup.BACKUP_DIR", tmp_path / "backups")
-    monkeypatch.setattr("app.skills.builtin.daily_backup.RETENTION_DAYS", 999)
+    dest = tmp_path / "backups"
+    dest.mkdir()
 
-    skill = DailyBackup()
-    result = await skill.run(type="full")
+    skill = BackupData()
+    result = await skill.run(type="full", destination=str(dest), retention_days=999)
     assert result["success"] is True
     assert result["type"] == "full"
 
 
 @pytest.mark.asyncio
-async def test_daily_backup_database_only(tmp_path: Path, monkeypatch):
-    from app.skills.builtin.daily_backup import DailyBackup
+async def test_backup_database_only(tmp_path: Path, monkeypatch):
+    """Database-only backup runs without error."""
+    from app.skills.builtin.backup import BackupData
 
-    monkeypatch.setattr("app.skills.builtin.daily_backup.BACKUP_DIR", tmp_path / "backups")
+    fake_db = tmp_path / "ucore.db"
+    fake_db.write_text("fake sqlite content", encoding="utf-8")
 
-    skill = DailyBackup()
-    result = await skill.run(type="database")
+    import app.core.database as db_mod
+    monkeypatch.setattr(db_mod, "get_db_path", lambda: str(fake_db))
+
+    dest = tmp_path / "backups"
+    dest.mkdir()
+
+    skill = BackupData()
+    result = await skill.run(type="database", destination=str(dest))
     assert result["success"] is True
     assert result["type"] == "database"

@@ -43,7 +43,7 @@
         "name": "Backup Data",
         "skill_id": "backup",
         "category": "maintenance",
-        "description": "Backup uCore database, config, secrets, private wisdom,  and user data",
+        "description": "Backup uCore database, config, secrets, private wisdom,  and user data with retention management",
         "params": [],
         "timeout": 120,
         "requires_confirmation": true,
@@ -55,11 +55,11 @@
         "name": "Brain Sync",
         "skill_id": "brain_sync",
         "category": "assist",
-        "description": "Synthesize recent project changes, spool activity, and  AppFlowy events into private wisdom",
+        "description": "Synthesize recent project changes, spool activity, and  AppFlowy events into private wisdom. Also provides  tasker/devlog bridge actions (sync, read, write, archive, purge",
         "params": [
           {
-            "name": "hours",
-            "type": "integer",
+            "name": "action",
+            "type": "string",
             "description": "Include AppFlowy activity summary in private wisdom"
           },
           {
@@ -86,18 +86,6 @@
         "description": "Capture current clipboard text and clean clipboard history",
         "params": [],
         "timeout": 30,
-        "requires_confirmation": true,
-        "health": "working",
-        "issues": []
-      },
-      {
-        "file": "backend/app/skills/builtin/daily_backup.py",
-        "name": "Daily Backup",
-        "skill_id": "daily_backup",
-        "category": "maintenance",
-        "description": "",
-        "params": [],
-        "timeout": 120,
         "requires_confirmation": true,
         "health": "working",
         "issues": []
@@ -208,12 +196,12 @@
       },
       {
         "file": "backend/app/skills/builtin/skill_autostart.py",
-        "name": "autostart",
-        "skill_id": "",
-        "category": "unknown",
+        "name": "Auto-Start Health Check",
+        "skill_id": "autostart",
+        "category": "system",
         "description": "",
         "params": [],
-        "timeout": 0,
+        "timeout": 30,
         "requires_confirmation": false,
         "health": "working",
         "issues": []
@@ -244,14 +232,20 @@
       },
       {
         "file": "backend/app/skills/builtin/skill_dev_destroy_rebuild.py",
-        "name": "dev destroy rebuild",
-        "skill_id": "",
-        "category": "unknown",
-        "description": "f\"Auto-saved before DESTROY of {', .join(targets",
-        "params": [],
-        "timeout": 0,
-        "requires_confirmation": false,
-        "health": "untested",
+        "name": "Dev Destroy Rebuild",
+        "skill_id": "dev-destroy-rebuild",
+        "category": "system",
+        "description": "Safely destroy and rebuild Dev Mode components using  template snapshots with full SPOOL preservation.",
+        "params": [
+          {
+            "name": "action",
+            "type": "string",
+            "description": "f\"Auto-saved before DESTROY of {', .join(targets"
+          }
+        ],
+        "timeout": 120,
+        "requires_confirmation": true,
+        "health": "working",
         "issues": []
       },
       {
@@ -510,30 +504,6 @@
         "description": "",
         "params": [],
         "timeout": 120,
-        "requires_confirmation": false,
-        "health": "working",
-        "issues": []
-      },
-      {
-        "file": "backend/app/skills/builtin/spool_maintenance.py",
-        "name": "Spool Maintenance",
-        "skill_id": "spool_maintenance",
-        "category": "maintenance",
-        "description": "",
-        "params": [],
-        "timeout": 60,
-        "requires_confirmation": true,
-        "health": "working",
-        "issues": []
-      },
-      {
-        "file": "backend/app/skills/builtin/tasker_devlog_bridge.py",
-        "name": "Tasker Devlog Bridge",
-        "skill_id": "tasker_devlog_bridge",
-        "category": "workflow",
-        "description": "",
-        "params": [],
-        "timeout": 60,
         "requires_confirmation": false,
         "health": "working",
         "issues": []
@@ -1645,15 +1615,12 @@
     ]
   },
   "health": {
-    "total_items": 164,
-    "working": 163,
-    "untested": 1,
+    "total_items": 161,
+    "working": 161,
+    "untested": 0,
     "broken": 0,
     "orphaned": 0,
-    "health_pct": 99.4
+    "health_pct": 100.0
   },
-  "recommendations": [
-    "Smoke-test 1 untested items to validate they work",
-    "Untested skills: dev destroy rebuild"
-  ]
+  "recommendations": []
 }

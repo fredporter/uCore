@@ -14,7 +14,6 @@ export type SnackbarOpsTab =
   | "feeds"
   | "skills"
   | "snacks"
-  | "logs"
   | "extensions";
 
 export interface RuntimeSnack {
@@ -126,7 +125,6 @@ export const SNACKBAR_OPS_TABS: {
   { id: "feeds", label: "Feeds", icon: "rss_feed" },
   { id: "skills", label: "Skills", icon: "extension" },
   { id: "snacks", label: "Snacks", icon: "storefront" },
-  { id: "logs", label: "Logs", icon: "article" },
   { id: "extensions", label: "Extensions", icon: "extension" },
 ];
 

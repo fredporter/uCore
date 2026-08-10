@@ -159,15 +159,45 @@
         </div>
       </div>
     </CollapsibleSection>
+
+    <!-- Service Logs -->
+    <CollapsibleSection
+      title="Service Logs"
+      :count="serviceLogs.length"
+      icon="terminal"
+    >
+      <div v-if="serviceLogs.length === 0" class="ch-muted ch-empty">
+        No service logs.
+      </div>
+      <div v-else class="ch-list">
+        <div
+          v-for="(log, i) in serviceLogs.slice(0, 30)"
+          :key="i"
+          class="ch-item"
+        >
+          <div class="ch-item-head">
+            <span class="ch-level" :class="'ch-level--' + log.level">{{
+              log.level
+            }}</span>
+            <span class="ch-item-title">{{ log.service }}</span>
+            <span class="ch-muted ch-message-trunc">{{ log.message }}</span>
+            <span class="ch-muted ch-timestamp">{{ log.timestamp }}</span>
+          </div>
+        </div>
+      </div>
+    </CollapsibleSection>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 import UBadge from "../../../skills/atoms/UBadge.vue";
 import UButton from "../../../skills/atoms/UButton.vue";
 import CollapsibleSection from "../../../skills/molecules/CollapsibleSection.vue";
+import { useSnackbarOpsStore } from "../../../stores/snackbarOps";
+
+const srv = useSnackbarOpsStore();
 
 // ── Data ─────────────────────────────────────────────────────────
 
@@ -221,6 +251,9 @@ const taskTotal = ref(0);
 const feedItems = ref<FeedEntry[]>([]);
 const feedCount = ref(0);
 const snapshotLoading = ref(false);
+
+// Service logs from snackbarOpsStore
+const serviceLogs = computed(() => srv.logs || []);
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -422,6 +455,30 @@ onMounted(refreshAll);
   font-size: var(--usx-font-size-xs);
   margin-left: auto;
   flex-shrink: 0;
+}
+
+.ch-level {
+  font-family: var(--usx-font-family-mono);
+  font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-bold);
+  padding: 1px var(--usx-spacing-xs);
+  border-radius: var(--usx-radius-sm);
+  flex-shrink: 0;
+}
+
+.ch-level--INFO {
+  color: var(--usx-color-info);
+  background: color-mix(in srgb, var(--usx-color-info) 10%, transparent);
+}
+
+.ch-level--WARNING {
+  color: var(--usx-color-warning);
+  background: color-mix(in srgb, var(--usx-color-warning) 10%, transparent);
+}
+
+.ch-level--ERROR {
+  color: var(--usx-color-danger);
+  background: color-mix(in srgb, var(--usx-color-danger) 10%, transparent);
 }
 
 .ch-action-bar {

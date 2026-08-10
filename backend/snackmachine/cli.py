@@ -92,7 +92,7 @@ SNACKMACHINE_CONFIG = """\
 scheduler:
   interval: 60  # seconds between job checks
   jobs:
-    - skill_id: daily_backup
+    - skill_id: backup
       time: "03:00"
     - skill_id: appflowy-sync
       time: "*/2 * * * *"  # every 2 hours

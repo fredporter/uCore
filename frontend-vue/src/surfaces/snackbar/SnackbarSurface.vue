@@ -37,10 +37,6 @@
       <div v-else-if="activeTab === 'snacks'" class="server-tab-shell">
         <SnackbarSnacksPanel />
       </div>
-      <!-- Logs -->
-      <div v-else-if="activeTab === 'logs'" class="server-tab-shell">
-        <SnackbarLogsPanel />
-      </div>
       <!-- Extensions -->
       <div v-else-if="activeTab === 'extensions'" class="server-tab-shell">
         <SnackbarExtensionsPanel />
@@ -84,9 +80,6 @@ const SnackbarSkillsPanel = defineAsyncComponent(
 );
 const SnackbarSnacksPanel = defineAsyncComponent(
   () => import("./panels/SnackbarSnacksPanel.vue"),
-);
-const SnackbarLogsPanel = defineAsyncComponent(
-  () => import("./panels/SnackbarLogsPanel.vue"),
 );
 const SnackbarExtensionsPanel = defineAsyncComponent(
   () => import("./panels/SnackbarExtensionsPanel.vue"),

@@ -356,7 +356,7 @@ class UnifiedMenuDelegate(NSObject):
         self._menu.addItem_(NSMenuItem.separatorItem())
 
         # ── UI Hub Section ──────────────────────────────────────
-        uihub_status = "🟢" if self._uihub_connected else "🔴"
+        uihub_status = "�" if self._uihub_connected else "😞"
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
             f"{uihub_status} UI Hub", None, "",
         )
@@ -594,7 +594,7 @@ class UnifiedMenuDelegate(NSObject):
         services_title.setEnabled_(False)
         self._menu.addItem_(services_title)
 
-        backend_status = "🟢" if self._connected else "🔴"
+        backend_status = "�" if self._connected else "😞"
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
             f"{backend_status} Backend (uCore on :8484)", None, "",
         )

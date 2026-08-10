@@ -1,275 +1,158 @@
 <template>
   <div class="wf-panel">
-    <div class="surface__panel">
-      <h3 class="surface__panel-title">Publish</h3>
-      <p class="surface__panel-description">
-        Manage workflow definitions, run workflows, and view execution logs
-      </p>
-    </div>
+    <div class="wf-panel__main">
+      <!-- Compact toolbar -->
+      <div class="wf-toolbar">
+        <span class="wf-toolbar__count">
+          <UIcon name="publish" />
+          Publish
+        </span>
+      </div>
 
-    <div v-if="wf.loading" class="wf-loading">
-      <UIcon name="sync" /> Loading workflows...
-    </div>
+      <div v-if="wf.loading" class="wf-loading">
+        <UIcon name="sync" /> Loading workflows...
+      </div>
 
-    <div class="wf-section">
-      <h4 class="wf-section-title">Jekyll Pathway</h4>
-      <div class="wf-workflow-card wf-jekyll-card">
-        <p class="wf-workflow-desc">
-          Prepare Jekyll-ready markdown from current draft with Prose-first
-          editing and a local/cloud publish path.
-        </p>
-        <div class="wf-form-grid">
-          <label class="wf-field">
-            <span class="wf-field-label">Title</span>
-            <input
-              v-model="jekyllTitle"
-              class="wf-input"
-              type="text"
-              placeholder="My new post"
-            />
-          </label>
-          <label class="wf-field">
-            <span class="wf-field-label">Slug</span>
-            <input
-              v-model="jekyllSlug"
-              class="wf-input"
-              type="text"
-              placeholder="my-new-post"
-            />
-          </label>
-          <label class="wf-field">
-            <span class="wf-field-label">Collection</span>
-            <select v-model="jekyllCollection" class="wf-input">
-              <option value="posts">posts (_posts)</option>
-              <option value="pages">pages</option>
-              <option value="notes">notes (_notes)</option>
-            </select>
-          </label>
-          <label class="wf-field">
-            <span class="wf-field-label">Publish mode</span>
-            <select v-model="jekyllMode" class="wf-input">
-              <option value="local">local</option>
-              <option value="cloud">cloud</option>
-            </select>
-          </label>
-          <label class="wf-field">
-            <span class="wf-field-label">Target repo (optional)</span>
-            <input
-              v-model="jekyllTargetRepo"
-              class="wf-input"
-              type="text"
-              placeholder="owner/repo or git URL"
-            />
-          </label>
-          <label class="wf-field">
-            <span class="wf-field-label">Branch</span>
-            <input
-              v-model="jekyllTargetBranch"
-              class="wf-input"
-              type="text"
-              placeholder="main"
-            />
-          </label>
-          <label class="wf-field">
-            <span class="wf-field-label">Commit message (optional)</span>
-            <input
-              v-model="jekyllCommitMessage"
-              class="wf-input"
-              type="text"
-              placeholder="publish: my-new-post"
-            />
-          </label>
-        </div>
-
-        <label class="wf-checkbox-row">
-          <input
-            v-model="jekyllExecuteGit"
-            type="checkbox"
-            :disabled="jekyllMode !== 'cloud'"
-          />
-          <span>Execute git publish automatically for cloud mode</span>
-        </label>
-
-        <label class="wf-field wf-field--full">
-          <span class="wf-field-label">Markdown draft</span>
-          <MarkdownEditor
-            v-model="jekyllContent"
-            :edit-mode="jekyllEditMode"
-            :autofocus="true"
-          />
-        </label>
-
-        <label class="wf-checkbox-row">
-          <input
-            v-model="jekyllEditMode"
-            type="checkbox"
-            true-value="code"
-            false-value="prose"
-          />
-          <span>Code editing mode (off = prose mode)</span>
-        </label>
-
-        <div class="wf-workflow-footer">
-          <span v-if="jekyllMessage" class="wf-muted">{{ jekyllMessage }}</span>
-          <UButton
-            size="sm"
-            variant="primary"
-            icon="publish"
-            :disabled="jekyllBusy"
-            @click="publishJekyll"
-          >
-            {{ jekyllBusy ? "Preparing..." : "Prepare Jekyll Draft" }}
-          </UButton>
-        </div>
-
-        <div v-if="jekyllOutput.path" class="wf-output">
-          <p class="wf-monospace">Saved: {{ jekyllOutput.path }}</p>
-          <div class="wf-output-grid">
-            <div>
-              <p class="wf-output-title">Local preview</p>
-              <pre class="wf-code-block">{{
-                (jekyllOutput.next_steps?.local_preview || []).join("\n")
-              }}</pre>
+      <div class="wf-section">
+        <h4 class="wf-section-title">Jekyll Pathway</h4>
+        <div class="wf-publish-layout">
+          <!-- Left: form fields -->
+          <div class="wf-publish-form">
+            <div class="wf-form-grid">
+              <label class="wf-field">
+                <span class="wf-field-label">Title</span>
+                <input
+                  v-model="jekyllTitle"
+                  class="wf-input"
+                  type="text"
+                  placeholder="My new post"
+                />
+              </label>
+              <label class="wf-field">
+                <span class="wf-field-label">Slug</span>
+                <input
+                  v-model="jekyllSlug"
+                  class="wf-input"
+                  type="text"
+                  placeholder="my-new-post"
+                />
+              </label>
+              <label class="wf-field">
+                <span class="wf-field-label">Collection</span>
+                <select v-model="jekyllCollection" class="wf-input">
+                  <option value="posts">posts (_posts)</option>
+                  <option value="pages">pages</option>
+                  <option value="notes">notes (_notes)</option>
+                </select>
+              </label>
+              <label class="wf-field">
+                <span class="wf-field-label">Publish mode</span>
+                <select v-model="jekyllMode" class="wf-input">
+                  <option value="local">local</option>
+                  <option value="cloud">cloud</option>
+                </select>
+              </label>
+              <label class="wf-field">
+                <span class="wf-field-label">Target repo</span>
+                <input
+                  v-model="jekyllTargetRepo"
+                  class="wf-input"
+                  type="text"
+                  placeholder="owner/repo"
+                />
+              </label>
+              <label class="wf-field">
+                <span class="wf-field-label">Branch</span>
+                <input
+                  v-model="jekyllTargetBranch"
+                  class="wf-input"
+                  type="text"
+                  placeholder="main"
+                />
+              </label>
+              <label class="wf-field">
+                <span class="wf-field-label">Commit message</span>
+                <input
+                  v-model="jekyllCommitMessage"
+                  class="wf-input"
+                  type="text"
+                  placeholder="publish: my-new-post"
+                />
+              </label>
             </div>
-            <div>
-              <p class="wf-output-title">Cloud publish</p>
-              <pre class="wf-code-block">{{
-                (jekyllOutput.next_steps?.cloud_publish || []).join("\n")
-              }}</pre>
-            </div>
-          </div>
-          <div v-if="jekyllOutput.git_publish" class="wf-git-output">
-            <p class="wf-output-title">Direct git publish result</p>
-            <pre class="wf-code-block">{{
-              JSON.stringify(jekyllOutput.git_publish, null, 2)
-            }}</pre>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Workflow definitions -->
-    <div class="wf-section">
-      <h4 class="wf-section-title">Workflow Definitions</h4>
-      <div class="wf-workflow-grid" v-if="wf.workflowDefinitions.length > 0">
-        <div
-          v-for="def in wf.workflowDefinitions"
-          :key="def.id"
-          class="wf-workflow-card"
-        >
-          <div class="wf-workflow-card-header">
-            <UIcon name="workflow" />
-            <span class="wf-workflow-name">{{ def.name }}</span>
-            <UBadge type="info" size="sm">{{ def.schedule }}</UBadge>
-          </div>
-          <p class="wf-workflow-desc">
-            {{ def.description || "No description" }}
-          </p>
-          <div class="wf-workflow-steps">
-            <span class="wf-workflow-steps-label"
-              >{{ def.steps?.length || 0 }} steps:</span
-            >
-            <span v-for="(step, i) in def.steps" :key="i" class="wf-step-badge">
-              <UIcon name="extension" />
-              {{ step.skill_id }}
-            </span>
-          </div>
-          <div class="wf-workflow-footer">
-            <span class="wf-workflow-id">ID: {{ def.id }}</span>
-            <UButton
-              size="sm"
-              variant="primary"
-              icon="play_arrow"
-              @click="runWorkflow(def.id)"
-              >Run</UButton
-            >
-          </div>
-        </div>
-      </div>
-      <div v-else-if="!wf.loading" class="wf-empty-small">
-        No workflow definitions found. Create one via POST /api/workflows.
-      </div>
-    </div>
-
-    <!-- Workflow runs history -->
-    <div class="wf-section">
-      <h4 class="wf-section-title">Recent Runs</h4>
-      <div class="wf-run-history" v-if="wf.workflowRuns.length > 0">
-        <div
-          v-for="run in wf.workflowRuns.slice(0, 10)"
-          :key="run.run_id"
-          class="wf-run-card"
-        >
-          <div class="wf-run-card-header">
-            <UBadge
-              :type="
-                run.status === 'completed'
-                  ? 'success'
-                  : run.status === 'failed'
-                    ? 'error'
-                    : 'warning'
-              "
-              size="sm"
-            >
-              {{ run.status }}
-            </UBadge>
-            <span class="wf-run-wf-name">{{
-              run.workflow_name || run.workflow_id
-            }}</span>
-            <span class="wf-run-id wf-monospace">{{ run.run_id }}</span>
-          </div>
-          <div class="wf-run-timing">
-            <span>Started: {{ formatTime(run.started_at) }}</span>
-            <span>Finished: {{ formatTime(run.finished_at) }}</span>
-          </div>
-          <div class="wf-run-steps" v-if="run.steps?.length">
-            <span class="wf-run-steps-label">Steps:</span>
-            <div
-              v-for="step in run.steps"
-              :key="step.index"
-              class="wf-run-step-row"
-            >
-              <UIcon
-                :name="step.success ? 'check_circle' : 'error'"
-                :size="12"
-                :class="step.success ? 'wf-icon--success' : 'wf-icon--danger'"
+            <label class="wf-checkbox-row">
+              <input
+                v-model="jekyllExecuteGit"
+                type="checkbox"
+                :disabled="jekyllMode !== 'cloud'"
               />
-              <span class="wf-monospace">{{ step.skill_id }}</span>
-              <span v-if="step.error" class="wf-step-error">{{
-                step.error
+              <span>Execute git publish (cloud only)</span>
+            </label>
+            <label class="wf-checkbox-row">
+              <input
+                v-model="jekyllEditMode"
+                type="checkbox"
+                true-value="code"
+                false-value="prose"
+              />
+              <span>Code editing mode</span>
+            </label>
+
+            <div class="wf-workflow-footer">
+              <span v-if="jekyllMessage" class="wf-muted">{{
+                jekyllMessage
               }}</span>
+              <UButton
+                size="sm"
+                variant="primary"
+                icon="publish"
+                :disabled="jekyllBusy"
+                @click="publishJekyll"
+              >
+                {{ jekyllBusy ? "Preparing..." : "Prepare Jekyll Draft" }}
+              </UButton>
             </div>
+
+            <div v-if="jekyllOutput.path" class="wf-output">
+              <p class="wf-monospace">Saved: {{ jekyllOutput.path }}</p>
+              <div class="wf-output-grid">
+                <div>
+                  <p class="wf-output-title">Local preview</p>
+                  <pre class="wf-code-block">{{
+                    (jekyllOutput.next_steps?.local_preview || []).join("\n")
+                  }}</pre>
+                </div>
+                <div>
+                  <p class="wf-output-title">Cloud publish</p>
+                  <pre class="wf-code-block">{{
+                    (jekyllOutput.next_steps?.cloud_publish || []).join("\n")
+                  }}</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Markdown editor -->
+          <div class="wf-publish-editor">
+            <div class="wf-publish-editor__header">
+              <span class="wf-field-label">Markdown draft</span>
+            </div>
+            <MarkdownEditor
+              v-model="jekyllContent"
+              :edit-mode="jekyllEditMode"
+              :autofocus="true"
+            />
           </div>
         </div>
       </div>
-      <div v-else-if="!wf.loading" class="wf-empty-small">
-        No workflow runs yet.
-      </div>
     </div>
-
-    <!-- Create workflow form placeholder -->
-    <details class="wf-create-form">
-      <summary class="wf-create-summary">
-        <UIcon name="add" /> Create New Workflow
-      </summary>
-      <div class="wf-create-body">
-        <p class="wf-muted">
-          POST to <code>/api/workflows</code> with
-          <code>{ name, steps: [{ type: "skill", skill_id: "..." }] }</code>
-        </p>
-        <p class="wf-muted">
-          Workflows are defined as a sequence of skill executions run in order.
-          Each step references a registered skill by ID.
-        </p>
-      </div>
-    </details>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import UIcon from "../../../skills/atoms/UIcon.vue";
-import UBadge from "../../../skills/atoms/UBadge.vue";
 import UButton from "../../../skills/atoms/UButton.vue";
 import MarkdownEditor from "../../../skills/molecules/editor/MarkdownEditor.vue";
 import { useWorkflowStore } from "../../../stores/workflow";
@@ -310,32 +193,6 @@ watch(
   },
   { immediate: true },
 );
-
-function formatTime(iso: string): string {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
-}
-
-const API = import.meta.env.VITE_SNACKBAR_URL || "http://localhost:8484";
-
-async function runWorkflow(workflowId: string): Promise<void> {
-  try {
-    const res = await fetch(`${API}/api/workflows/${workflowId}/run`, {
-      method: "POST",
-      signal: AbortSignal.timeout(60000),
-    });
-    if (res.ok) {
-      // Refresh runs after running
-      await wf.fetchWorkflowRuns();
-    }
-  } catch (e: any) {
-    console.warn("Failed to run workflow:", e);
-  }
-}
 
 async function publishJekyll(): Promise<void> {
   if (!jekyllContent.value.trim()) {
@@ -379,8 +236,63 @@ async function publishJekyll(): Promise<void> {
 <style scoped>
 .wf-panel {
   display: flex;
+  flex-direction: row;
+  gap: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.wf-panel__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
-  gap: var(--usx-spacing-lg);
+  gap: var(--usx-spacing-md);
+  overflow-y: auto;
+}
+
+.wf-publish-layout {
+  display: flex;
+  gap: var(--usx-spacing-md);
+  min-height: 0;
+}
+
+.wf-publish-form {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-sm);
+  max-width: 480px;
+}
+
+.wf-publish-editor {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-xs);
+  border-left: var(--usx-border-width) solid var(--usx-color-border);
+  padding-left: var(--usx-spacing-md);
+}
+
+.wf-publish-editor__header {
+  flex-shrink: 0;
+}
+
+/* Stack on narrow screens */
+@media (max-width: 800px) {
+  .wf-publish-layout {
+    flex-direction: column;
+  }
+  .wf-publish-form {
+    max-width: none;
+  }
+  .wf-publish-editor {
+    border-left: none;
+    padding-left: 0;
+  }
 }
 
 .wf-loading {
@@ -405,25 +317,6 @@ async function publishJekyll(): Promise<void> {
   color: var(--usx-color-on-surface-muted);
   text-transform: uppercase;
   letter-spacing: var(--usx-letter-spacing-wide);
-}
-
-.wf-workflow-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-sm);
-}
-
-.wf-workflow-card {
-  padding: var(--usx-spacing-lg);
-  background: var(--usx-color-surface);
-  border-radius: var(--usx-radius-lg);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-}
-
-.wf-jekyll-card {
-  gap: var(--usx-spacing-md);
-  display: flex;
-  flex-direction: column;
 }
 
 .wf-form-grid {
@@ -457,6 +350,12 @@ async function publishJekyll(): Promise<void> {
   padding: var(--usx-spacing-sm);
   font-size: var(--usx-font-size-sm);
   font-family: var(--usx-font-family-sans);
+  outline: none;
+  box-shadow: none;
+}
+
+.wf-input:focus {
+  border-color: var(--usx-color-primary);
 }
 
 .wf-output {
@@ -482,6 +381,12 @@ async function publishJekyll(): Promise<void> {
   font-size: var(--usx-font-size-sm);
 }
 
+.wf-checkbox-row input[type="checkbox"] {
+  accent-color: var(--usx-color-primary);
+  min-height: 0;
+  width: auto;
+}
+
 .wf-output-title {
   margin: 0 0 var(--usx-spacing-xs) 0;
   font-size: var(--usx-font-size-sm);
@@ -499,130 +404,10 @@ async function publishJekyll(): Promise<void> {
   overflow-x: auto;
 }
 
-.wf-workflow-card-header {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-sm);
-  margin-bottom: var(--usx-spacing-xs);
-}
-
-.wf-workflow-name {
-  font-weight: var(--usx-font-weight-semibold);
-  flex: 1;
-  font-size: var(--usx-font-size-base);
-}
-
-.wf-workflow-desc {
-  margin: 0 0 var(--usx-spacing-sm) 0;
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-base);
-}
-
-.wf-workflow-steps {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  flex-wrap: wrap;
-  margin-bottom: var(--usx-spacing-sm);
-  font-size: var(--usx-font-size-sm);
-}
-
-.wf-workflow-steps-label {
-  color: var(--usx-color-on-surface-muted);
-}
-
-.wf-step-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  padding: var(--usx-badge-padding-vertical) var(--usx-badge-padding-horizontal);
-  background: var(--usx-color-surface-variant);
-  border-radius: var(--usx-radius-sm);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  font-family: var(--usx-font-family-mono);
-  font-size: var(--usx-font-size-sm);
-}
-
 .wf-workflow-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.wf-workflow-id {
-  font-family: var(--usx-font-family-mono);
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
-}
-
-.wf-run-history {
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-sm);
-}
-
-.wf-run-card {
-  padding: var(--usx-spacing-lg);
-  background: var(--usx-color-surface);
-  border-radius: var(--usx-radius-md);
-  border-left: calc(var(--usx-border-width) + var(--usx-border-width-thick))
-    solid var(--usx-color-primary);
-}
-
-.wf-run-card-header {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-sm);
-  margin-bottom: var(--usx-spacing-xs);
-  font-size: var(--usx-font-size-base);
-}
-
-.wf-run-wf-name {
-  flex: 1;
-  font-weight: var(--usx-font-weight-medium);
-}
-
-.wf-run-id {
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
-}
-
-.wf-run-timing {
-  display: flex;
-  gap: var(--usx-spacing-lg);
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
-  margin-bottom: var(--usx-spacing-sm);
-  font-family: var(--usx-font-family-mono);
-}
-
-.wf-run-steps {
-  font-size: var(--usx-font-size-sm);
-}
-
-.wf-run-steps-label {
-  color: var(--usx-color-on-surface-muted);
-  display: block;
-  margin-bottom: var(--usx-spacing-xs);
-}
-
-.wf-run-step-row {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-xs) 0;
-}
-
-.wf-step-error {
-  color: var(--usx-color-danger);
-  font-style: italic;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.wf-monospace {
-  font-family: var(--usx-font-family-mono);
 }
 
 .wf-muted {
@@ -632,45 +417,12 @@ async function publishJekyll(): Promise<void> {
 .wf-empty-small {
   padding: var(--usx-spacing-md);
   color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-base);
+  font-size: var(--usx-font-size-sm);
   text-align: center;
   font-style: italic;
 }
 
-.wf-create-form {
-  padding: var(--usx-spacing-md);
-  background: var(--usx-color-surface);
-  border-radius: var(--usx-radius-md);
-}
-
-.wf-create-summary {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  font-size: var(--usx-font-size-base);
-  font-weight: var(--usx-font-weight-medium);
-  color: var(--usx-color-primary);
-}
-
-.wf-create-body {
-  margin-top: var(--usx-spacing-sm);
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-xs);
-}
-
-.wf-create-body code {
-  padding: var(--usx-spacing-xs) var(--usx-spacing-xs);
-  background: var(--usx-color-surface-variant);
-  border-radius: var(--usx-radius-sm);
-  font-size: var(--usx-font-size-sm);
-}
-
-.wf-icon--success {
-  color: var(--usx-color-success);
-}
-.wf-icon--danger {
-  color: var(--usx-color-danger);
+.wf-monospace {
+  font-family: var(--usx-font-family-mono);
 }
 </style>

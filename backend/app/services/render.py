@@ -63,7 +63,7 @@ def _render_health(data: dict[str, Any]) -> list[str]:
         or (data.get("summary") or {}).get("health_pct")
     )
     if health_pct is not None:
-        emoji = "🟢" if float(health_pct) >= 95 else "🟡" if float(health_pct) >= 75 else "🔴"
+        emoji = "�" if float(health_pct) >= 95 else "😐" if float(health_pct) >= 75 else "😞"
         parts.append(f"**Health:** {health_pct}% {emoji}")
 
     untested = data.get("untested") or (data.get("summary") or {}).get("untested")

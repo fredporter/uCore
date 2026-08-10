@@ -26,8 +26,8 @@
         <!-- Left/Main panel: the active tab content -->
         <div v-if="wf.activeTab !== 'editor'" class="workflow-panel">
           <MissionControlPanel v-if="wf.activeTab === 'mission-control'" />
-          <BinderPanel v-else-if="wf.activeTab === 'binder'" />
           <TasksPanel v-else-if="wf.activeTab === 'tasks'" />
+          <AutomationPanel v-else-if="wf.activeTab === 'automation'" />
           <PublishPanel v-else-if="wf.activeTab === 'publish'" />
         </div>
 
@@ -70,23 +70,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Right/Editor column: sidecar for non-editor tabs -->
-        <div
-          v-if="wf.activeTab !== 'editor' && wf.editorOpen && activeEditorItem"
-          class="workflow-editor"
-        >
-          <EditorPanel
-            :content="editorContent"
-            :title="editorTitle"
-            :read-only="editorReadOnly"
-            :edit-mode="wf.editorMode"
-            @update:content="onEditorContentUpdate"
-            @update:edit-mode="onEditorModeUpdate"
-            @save="onEditorSave"
-            @close="wf.closeEditor()"
-          />
-        </div>
       </div>
     </div>
   </div>
@@ -118,8 +101,8 @@ import MissionControlPanel from "./panels/MissionControlPanel.vue";
 const MissionsPanel = defineAsyncComponent(
   () => import("./panels/MissionsPanel.vue"),
 );
-const BinderPanel = defineAsyncComponent(
-  () => import("./panels/BinderPanel.vue"),
+const AutomationPanel = defineAsyncComponent(
+  () => import("./panels/AutomationPanel.vue"),
 );
 const TasksPanel = defineAsyncComponent(
   () => import("./panels/TasksPanel.vue"),
@@ -185,9 +168,13 @@ watch(
 
 watch(
   () => wf.activeTab,
-  (tab) => {
+  (tab, prev) => {
     if (tab === "editor") {
       wf.ensureDefaultEditorFile();
+    }
+    // Close any lingering editor when leaving the Tasks tab
+    if (prev === "tasks" && tab !== "tasks") {
+      wf.closeEditor();
     }
     const current = String(route.query.tab || "");
     if (current === tab) return;

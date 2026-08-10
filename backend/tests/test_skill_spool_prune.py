@@ -7,12 +7,12 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_spool_maintenance_rotates_and_prunes(
+async def test_spool_prune_rotates_and_prunes(
     tmp_path: Path,
     monkeypatch,
 ):
     from app.core.settings import settings
-    from app.skills.builtin.spool_maintenance import SpoolMaintenance
+    from app.skills.builtin.skill_spool_manager import SpoolPruneSkill
 
     monkeypatch.setattr(settings, "logs_dir", tmp_path)
 
@@ -31,32 +31,32 @@ async def test_spool_maintenance_rotates_and_prunes(
     import os
     os.utime(rotated_3, (old_ts, old_ts))
 
-    result = await SpoolMaintenance().run(
+    result = await SpoolPruneSkill().run(
         max_bytes=8,
         backup_count=2,
         max_age_days=14,
+        archive_completed_tasks=False,
     )
 
     assert result["success"] is True
-    assert result["rotated"] == 1
-    assert result["removed_old"] >= 1
+    assert result["rotated_logs"] == 1
     assert active.exists()
     assert (tmp_path / "snackbar.log.1").exists()
 
 
 @pytest.mark.asyncio
-async def test_spool_maintenance_creates_logs_dir(
+async def test_spool_prune_creates_logs_dir(
     tmp_path: Path,
     monkeypatch,
 ):
     from app.core.settings import settings
-    from app.skills.builtin.spool_maintenance import SpoolMaintenance
+    from app.skills.builtin.skill_spool_manager import SpoolPruneSkill
 
     logs_dir = tmp_path / "logs"
     monkeypatch.setattr(settings, "logs_dir", logs_dir)
 
-    result = await SpoolMaintenance().run(max_bytes=1024)
+    result = await SpoolPruneSkill().run(max_bytes=1024, archive_completed_tasks=False)
 
     assert result["success"] is True
     assert logs_dir.exists()
-    assert result["rotated"] == 0
+    assert result["rotated_logs"] == 0

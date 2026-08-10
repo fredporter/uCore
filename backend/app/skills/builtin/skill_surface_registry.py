@@ -521,9 +521,10 @@ class SurfaceRegistrySkill(BaseSkill):
         if not ROUTER_FILE.exists():
             return []
         content = ROUTER_FILE.read_text()
-        # Match: component: () => import('../surfaces/NAME/NameSurface.vue')
+        # Match: component: () => import("../surfaces/NAME/NameSurface.vue")
+        # Supports both single and double quotes
         matches = re.findall(
-            r"import\('\.\./surfaces/([a-z][a-z0-9-]*)/",
+            r"""import\(['"]\.\./surfaces/([a-z][a-z0-9-]*)/""",
             content,
         )
         return sorted(set(matches))

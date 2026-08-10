@@ -330,7 +330,7 @@ class UnifiedMenuDelegate(NSObject):
 
         # ── Services Health ─────────────────────────────────────
         down = [s for s in self._services if s.get("status") != "up"]
-        srv_icon = "⚠️" if down else "✅"
+        srv_icon = "😞" if down else "😊"
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
             f"{srv_icon} Services Health", None, "",
         )
@@ -357,9 +357,9 @@ class UnifiedMenuDelegate(NSObject):
                 status = svc.get("status", "unknown")
                 port = svc.get("port", "")
                 dot = {
-                    "up": "🟢",
-                    "degraded": "🟡",
-                    "down": "🔴",
+                    "up": "�",
+                    "degraded": "😐",
+                    "down": "😞",
                 }.get(status, "⚪")
                 label = f"{dot} {name}"
                 if port:

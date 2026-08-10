@@ -232,17 +232,26 @@ def _list_repos(scope: str = "code", exclude_system: bool = False) -> list[dict]
     return repos
 
 
-def _list_repo_files(repo_name: str, limit: int = 250) -> list[dict]:
+def _list_repo_files(
+    repo_name: str,
+    limit: int = 250,
+    include_hidden: bool = False,
+    include_all_extensions: bool = False,
+) -> list[dict]:
     repo_path = _repo_path(repo_name)
 
     files: list[dict] = []
     for path in repo_path.rglob("*"):
         if any(part in IGNORED_DIRS for part in path.parts):
             continue
-        if not path.is_file() or path.suffix.lower() not in ALLOWED_EXTENSIONS:
+        rel_path = path.relative_to(repo_path)
+        if not include_hidden and any(part.startswith(".") for part in rel_path.parts):
+            continue
+        if not path.is_file():
+            continue
+        if not include_all_extensions and path.suffix.lower() not in ALLOWED_EXTENSIONS:
             continue
 
-        rel_path = path.relative_to(repo_path)
         stat = path.stat()
         files.append({
             "id": len(files) + 1,
@@ -705,11 +714,32 @@ async def handle_list_repos(request: web.Request) -> web.Response:
 
 async def handle_list_repo_files(request: web.Request) -> web.Response:
     repo_name = request.match_info["repo_name"]
+    include_hidden = _to_bool(request.query.get("include_hidden"), default=False)
+    include_all_extensions = _to_bool(
+        request.query.get("include_all_extensions"),
+        default=False,
+    )
     try:
-        files = _list_repo_files(repo_name)
+        limit = int(request.query.get("limit", "250"))
+    except ValueError:
+        return web.json_response({"error": "Invalid query param: limit"}, status=400)
+    limit = max(1, min(limit, 20000))
+    try:
+        files = _list_repo_files(
+            repo_name,
+            limit=limit,
+            include_hidden=include_hidden,
+            include_all_extensions=include_all_extensions,
+        )
     except FileNotFoundError:
         return web.json_response({"error": f"Repository not found: {repo_name}"}, status=404)
-    return web.json_response({"repo": repo_name, "files": files})
+    return web.json_response({
+        "repo": repo_name,
+        "files": files,
+        "limit": limit,
+        "include_hidden": include_hidden,
+        "include_all_extensions": include_all_extensions,
+    })
 
 
 async def handle_get_repo_file_preview(request: web.Request) -> web.Response:

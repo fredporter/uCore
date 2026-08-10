@@ -1,8 +1,11 @@
 <template>
   <div class="editor-panel">
     <!-- Document header: prose title + frontmatter table (full-width).
-         Hidden in Preview (Prose view) — the rendered document takes over. -->
-    <div v-if="viewMode !== 'preview'" class="editor-panel__doc-header">
+         Hidden when hideHeader is true or in Preview (Prose view). -->
+    <div
+      v-if="!hideHeader && viewMode !== 'preview'"
+      class="editor-panel__doc-header"
+    >
       <div class="editor-panel__doc-titlebar">
         <h1 class="editor-panel__doc-title">{{ docTitle }}</h1>
         <button
@@ -133,6 +136,10 @@ interface Props {
   title?: string;
   readOnly?: boolean;
   editMode?: "prose" | "code";
+  /** Hide the title + frontmatter doc header (e.g. compact slide-in panel). */
+  hideHeader?: boolean;
+  /** Force single-pane edit-only view — no split/prose toggle. */
+  singlePane?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -140,6 +147,8 @@ const props = withDefaults(defineProps<Props>(), {
   title: "Untitled",
   readOnly: false,
   editMode: "prose",
+  hideHeader: false,
+  singlePane: false,
 });
 
 const emit = defineEmits<{
@@ -147,6 +156,8 @@ const emit = defineEmits<{
   "update:editMode": [value: "prose" | "code"];
   save: [value: string];
   close: [];
+  /** Fired when the split button is clicked in singlePane mode. */
+  openSplit: [];
 }>();
 
 const shell = useShellStore();
@@ -154,7 +165,9 @@ const shell = useShellStore();
 // ─── State ───────────────────────────────────────────────────────────
 const localContent = ref(props.content);
 const localEditMode = ref<"prose" | "code">(props.editMode);
-const viewMode = ref<"edit" | "preview" | "split">("split");
+const viewMode = ref<"edit" | "preview" | "split">(
+  props.singlePane ? "edit" : "split",
+);
 const researchOpen = ref(false);
 
 const currentFilename = computed(() => props.title || "Untitled.md");
@@ -169,6 +182,16 @@ const docTitle = computed(() => {
 });
 
 function onViewModeChange(mode: "edit" | "preview" | "split") {
+  if (props.singlePane) {
+    // Allow edit ↔ preview toggle (single-pane code/prose).
+    // Split opens the full Editor tab — emit openSplit instead.
+    if (mode === "split") {
+      emit("openSplit");
+      return;
+    }
+    viewMode.value = mode; // "edit" or "preview"
+    return;
+  }
   viewMode.value = mode;
 }
 

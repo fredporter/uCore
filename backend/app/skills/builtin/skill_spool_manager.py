@@ -49,13 +49,15 @@ from __future__ import annotations
 import gzip
 import json
 import logging
+import re
 import shutil
 import subprocess
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
 from app.skills.base import BaseSkill, SkillMeta, SkillParam
 
 log = logging.getLogger("ucore.skills.spool_manager")
@@ -66,6 +68,14 @@ SPOOL_DIR = Path("~/.ucore/logs").expanduser()
 BACKUP_DIR = Path("~/.ucore/backups").expanduser()
 NUGGET_DIR = Path("~/.ucore/nuggets").expanduser()
 PLATES_ROOT = Path(__file__).resolve().parents[4] / "plates"  # uCore/plates/
+
+# ─── Log rotation constants (merged from spool_maintenance) ──────────
+
+ROTATED_SUFFIX_RE = re.compile(r"^(?P<name>.+\.log)\.(?P<index>\d+)$")
+DEFAULT_MAX_BYTES = 2 * 1024 * 1024
+DEFAULT_BACKUP_COUNT = 5
+DEFAULT_MAX_AGE_DAYS = 14
+PROJECT_ROOT = settings.udos_root / "uCore"
 
 
 # ─── Helpers ───────────────────────────────────────────────
@@ -1013,7 +1023,12 @@ class SpoolListSkill(BaseSkill):
 # ─── Skill: spool_prune ────────────────────────────────────
 
 class SpoolPruneSkill(BaseSkill):
-    """Prune old backups and SPOOL records by age.
+    """Prune old backups and SPOOL records by age, rotate logs, and archive tasks.
+
+    This skill consolidates three maintenance operations:
+    1. Prune old SPOOL records and backups (by age)
+    2. Rotate log files that exceed max_bytes (keep backup_count rotations)
+    3. Archive completed tasks from .tasker to .tasker.archived
 
     Automatically removes SPOOL records and backups older than
     max_age_days. This prevents indefinite accumulation while
@@ -1023,7 +1038,7 @@ class SpoolPruneSkill(BaseSkill):
     meta = SkillMeta(
         id="spool_prune",
         name="SPOOL Prune",
-        description="Prune old backups and SPOOL records by age",
+        description="Prune old SPOOL records/backups, rotate logs, archive completed tasks",
         category="maintenance",
         params=[
             SkillParam(
@@ -1039,6 +1054,30 @@ class SpoolPruneSkill(BaseSkill):
                 default="",
             ),
             SkillParam(
+                name="max_bytes",
+                type="number",
+                description="Rotate log files larger than this many bytes",
+                default=DEFAULT_MAX_BYTES,
+            ),
+            SkillParam(
+                name="backup_count",
+                type="number",
+                description="Number of rotated log files to keep",
+                default=DEFAULT_BACKUP_COUNT,
+            ),
+            SkillParam(
+                name="archive_completed_tasks",
+                type="boolean",
+                description="Archive completed tasks from .tasker to .tasker.archived",
+                default=True,
+            ),
+            SkillParam(
+                name="tasker_dir",
+                type="string",
+                description="Path to .tasker directory",
+                default=str(PROJECT_ROOT / ".tasker"),
+            ),
+            SkillParam(
                 name="dry_run",
                 type="boolean",
                 description="Only show what would be pruned",
@@ -1051,15 +1090,21 @@ class SpoolPruneSkill(BaseSkill):
     async def run(self, **kwargs) -> dict:
         max_age_days = kwargs.get("max_age_days", 365)
         component_type = kwargs.get("component_type", "") or None
+        max_bytes = int(kwargs.get("max_bytes", DEFAULT_MAX_BYTES))
+        backup_count = max(1, int(kwargs.get("backup_count", DEFAULT_BACKUP_COUNT)))
+        archive_completed_tasks = bool(kwargs.get("archive_completed_tasks", True))
+        tasker_dir = Path(kwargs.get("tasker_dir", PROJECT_ROOT / ".tasker")).expanduser()
         dry_run = kwargs.get("dry_run", True)
 
         cutoff = datetime.now(timezone.utc) - timedelta(days=max_age_days)
 
         pruned_spools = 0
         pruned_backups = 0
+        rotated_logs = 0
+        archived_tasks = 0
         errors: list[str] = []
 
-        # Prune SPOOL records
+        # ── 1. Prune SPOOL records ──────────────────────────────
         _ensure_dirs()
         for f in SPOOL_DIR.glob("spool_*.json.gz"):
             try:
@@ -1079,7 +1124,7 @@ class SpoolPruneSkill(BaseSkill):
             except Exception as exc:
                 errors.append(f"Error processing {f.name}: {exc}")
 
-        # Prune old backups
+        # ── 2. Prune old backups ────────────────────────────────
         for backup_dir in BACKUP_DIR.iterdir():
             if backup_dir.is_dir():
                 for f in backup_dir.iterdir():
@@ -1090,22 +1135,80 @@ class SpoolPruneSkill(BaseSkill):
                                 f.unlink()
                             pruned_backups += 1
 
+        # ── 3. Rotate log files ─────────────────────────────────
+        logs_dir = settings.logs_dir
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        for log_file in sorted(logs_dir.glob("*.log")):
+            if not log_file.is_file():
+                continue
+            if log_file.stat().st_size <= max_bytes:
+                continue
+            self._rotate_file(log_file, backup_count)
+            rotated_logs += 1
+
+        # ── 4. Archive completed tasks ──────────────────────────
+        if archive_completed_tasks and tasker_dir.exists():
+            archived_tasks = self._archive_completed_tasks(tasker_dir)
+
         return {
             "success": True,
             "message": (
-                f"Would prune {pruned_spools} SPOOL records and "
-                f"{pruned_backups} backups older than {max_age_days} days"
+                f"Would prune {pruned_spools} SPOOL records, "
+                f"{pruned_backups} backups, rotate {rotated_logs} logs, "
+                f"archive {archived_tasks} tasks"
                 if dry_run
-                else f"Pruned {pruned_spools} SPOOL records and "
-                f"{pruned_backups} backups older than {max_age_days} days"
+                else f"Pruned {pruned_spools} SPOOL records, "
+                f"{pruned_backups} backups, rotated {rotated_logs} logs, "
+                f"archived {archived_tasks} tasks"
             ),
             "dry_run": dry_run,
             "pruned": {
                 "spool_records": pruned_spools,
                 "backups": pruned_backups,
             },
+            "rotated_logs": rotated_logs,
+            "archived_tasks": archived_tasks,
             "errors": errors,
         }
+
+    def _archive_completed_tasks(self, tasker_dir: Path) -> int:
+        """Archive completed tasks from .tasker to .tasker.archived."""
+        archived_dir = tasker_dir.parent / ".tasker.archived"
+        archived_dir.mkdir(parents=True, exist_ok=True)
+        archived_count = 0
+
+        for task_file in tasker_dir.rglob("*.md"):
+            if task_file.name == "README.md":
+                continue
+            try:
+                content = task_file.read_text(encoding="utf-8")
+                if "status: done" in content or "status: completed" in content:
+                    relative = task_file.relative_to(tasker_dir)
+                    dest = archived_dir / relative
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    dest.write_text(content, encoding="utf-8")
+                    task_file.unlink(missing_ok=True)
+                    archived_count += 1
+            except Exception:
+                continue
+
+        return archived_count
+
+    def _rotate_file(self, log_file: Path, backup_count: int) -> None:
+        oldest = log_file.with_name(f"{log_file.name}.{backup_count}")
+        oldest.unlink(missing_ok=True)
+
+        for idx in range(backup_count - 1, 0, -1):
+            src = log_file.with_name(f"{log_file.name}.{idx}")
+            dst = log_file.with_name(f"{log_file.name}.{idx + 1}")
+            if src.exists():
+                src.rename(dst)
+
+        first = log_file.with_name(f"{log_file.name}.1")
+        if first.exists():
+            first.unlink(missing_ok=True)
+        log_file.rename(first)
+        log_file.touch()
 
 
 # ─── Nugget Helpers ────────────────────────────────────────

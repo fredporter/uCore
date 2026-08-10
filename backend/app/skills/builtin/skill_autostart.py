@@ -17,7 +17,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from app.skills.base import BaseSkill
+from app.skills.base import BaseSkill, SkillMeta
 
 log = logging.getLogger("skill_autostart")
 
@@ -263,15 +263,14 @@ def _get_recommendations(services: dict) -> list[str]:
 class AutoStartSkill(BaseSkill):
     """Skill for auto-start health checking and service management."""
 
-    @property
-    def meta(self):
-        return type("Meta", (), {
-            "id": "autostart_health_check",
-            "name": "Auto-Start Health Check",
-            "description": "Check and auto-start snackbar services",
-            "category": "system",
-            "timeout": 30,
-        })()
+    meta = SkillMeta(
+        id="autostart",
+        name="Auto-Start Health Check",
+        description="Check and auto-start snackbar services",
+        category="system",
+        timeout=30,
+        requires_confirmation=False,
+    )
 
     def validate(self, **kwargs) -> list[str]:
         return []

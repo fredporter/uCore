@@ -15,7 +15,7 @@ import { getEditorSurface } from "@/composables/useEditorSurface";
 export type WorkflowTab =
   | "mission-control"
   | "tasks"
-  | "binder"
+  | "automation"
   | "editor"
   | "publish";
 
@@ -149,8 +149,8 @@ export interface WorkflowStatus {
 export const WORKFLOW_TABS: { id: WorkflowTab; label: string; icon: string }[] =
   [
     { id: "mission-control", label: "Workflow", icon: "dashboard" },
-    { id: "binder", label: "Binder", icon: "folder" },
-    { id: "tasks", label: "Tasks", icon: "task" },
+    { id: "tasks", label: "Tasks", icon: "check" },
+    { id: "automation", label: "Automation", icon: "science" },
     { id: "editor", label: "Editor", icon: "diamond" },
     { id: "publish", label: "Publish", icon: "publish" },
   ];
@@ -716,11 +716,18 @@ export const useWorkflowStore = defineStore("workflow", () => {
     return data;
   }
 
-  function selectTask(task: WorkflowTask) {
+  /**
+   * Select a task for viewing/editing.
+   *
+   * When `openSideEditor` is true (default), the side-column editor opens
+   * alongside the current tab.  Set it to `false` when the caller manages
+   * its own inline editor (e.g. TasksPanel code-only view).
+   */
+  function selectTask(task: WorkflowTask, openSideEditor = true) {
     selectedFile.value = null;
     selectedTask.value = task;
-    editorOpen.value = true;
-    // Stay on the tasks tab — editor opens alongside it as a column
+    editorOpen.value = openSideEditor;
+    // Stay on the current tab — TasksPanel controls its own inline editor
   }
 
   function selectFile(file: WorkflowFile) {

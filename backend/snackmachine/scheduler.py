@@ -29,7 +29,7 @@ class MaintenanceJob:
 
 
 DEFAULT_JOBS = (
-    MaintenanceJob("daily_backup", "03:00", {"type": "full"}),
+    MaintenanceJob("backup", "03:00", {"type": "full"}),
     MaintenanceJob("vault_sync", "04:00", {"summary_only": True}),
     MaintenanceJob(
         "tasker_sync",
@@ -55,9 +55,9 @@ DEFAULT_JOBS = (
         {"capture_current": True},
     ),
     MaintenanceJob(
-        "spool_maintenance",
+        "spool_prune",
         "04:35",
-        {"max_age_days": 14},
+        {"max_age_days": 14, "archive_completed_tasks": True},
     ),
 )
 

@@ -23,7 +23,7 @@ async def test_maintenance_scheduler_runs_jobs_once_in_order(
     monkeypatch.setattr(mod, "run_skill_by_id", fake_run_skill_by_id)
 
     jobs = (
-        mod.MaintenanceJob("daily_backup", "03:00", {"type": "full"}),
+        mod.MaintenanceJob("backup", "03:00", {"type": "full"}),
         mod.MaintenanceJob("vault_sync", "04:00", {"summary_only": True}),
         mod.MaintenanceJob(
             "tasker_sync",
@@ -37,9 +37,9 @@ async def test_maintenance_scheduler_runs_jobs_once_in_order(
             {"capture_current": True},
         ),
         mod.MaintenanceJob(
-            "spool_maintenance",
+            "spool_prune",
             "04:35",
-            {"max_age_days": 14},
+            {"max_age_days": 14, "archive_completed_tasks": True},
         ),
     )
     scheduler = mod.MaintenanceScheduler(
@@ -52,21 +52,21 @@ async def test_maintenance_scheduler_runs_jobs_once_in_order(
     second = await scheduler.run_due(now=datetime(2026, 6, 21, 4, 59))
 
     assert [entry["skill_id"] for entry in first] == [
-        "daily_backup",
+        "backup",
         "vault_sync",
         "tasker_sync",
         "brain_sync",
         "clipboard_maintenance",
-        "spool_maintenance",
+        "spool_prune",
     ]
     assert second == []
     assert calls == [
-        "daily_backup",
+        "backup",
         "vault_sync",
         "tasker_sync",
         "brain_sync",
         "clipboard_maintenance",
-        "spool_maintenance",
+        "spool_prune",
     ]
 
 
@@ -84,11 +84,11 @@ def test_default_jobs_include_clipboard_maintenance():
     )
 
 
-def test_default_jobs_include_spool_maintenance():
+def test_default_jobs_include_spool_prune():
     import app.services.maintenance_scheduler as mod
 
     assert any(
-        job.skill_id == "spool_maintenance" for job in mod.DEFAULT_JOBS
+        job.skill_id == "spool_prune" for job in mod.DEFAULT_JOBS
     )
 
 

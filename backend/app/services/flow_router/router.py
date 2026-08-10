@@ -133,6 +133,127 @@ class FlowLLMRouter:
 
         return ", ".join(reasons)
 
+    def _estimate_complexity(self, task: str) -> str:
+        """Auto-detect complexity from task description."""
+        task_lower = task.lower()
+
+        complex_signals = [
+            "security", "vulnerability", "exploit", "race condition",
+            "deadlock", "concurrency", "encryption", "cryptography",
+            "refactor", "architecture", "design pattern", "distributed",
+            "performance optimization", "memory leak", "thread safety",
+            "authentication", "authorization", "zero-day",
+            "complicated", "intricate", "nuanced", "subtle bug",
+        ]
+        medium_signals = [
+            "implement", "feature", "endpoint", "api", "route",
+            "component", "module", "integration", "database",
+            "migration", "schema", "query", "test", "coverage",
+            "debug", "fix bug", "error handling", "validation",
+        ]
+
+        for signal in complex_signals:
+            if signal in task_lower:
+                return "complex"
+        for signal in medium_signals:
+            if signal in task_lower:
+                return "medium"
+
+        if len(task) > 200:
+            return "medium"
+
+        return "simple"
+
+    def _estimate_risk(self, task: str, complexity: str) -> str:
+        """Estimate risk level from task description."""
+        task_lower = task.lower()
+
+        high_risk_signals = [
+            "security", "vulnerability", "exploit", "private key",
+            "password", "token", "credential", "hack", "breach",
+            "delete", "drop database", "truncate", "production",
+            "critical infrastructure", "zero-day", "malware",
+        ]
+        for signal in high_risk_signals:
+            if signal in task_lower:
+                return "high"
+
+        if complexity == "complex":
+            return "medium"
+
+        return "low"
+
+    def _estimate_context_size(self, task: str) -> str:
+        """Estimate required context size from task."""
+        if len(task) > 10000:
+            return "large"
+        if len(task) > 2000:
+            return "medium"
+        return "small"
+
+    def _build_routing(
+        self,
+        complexity: str,
+        context_size: str,
+        risk_level: str,
+        budget_remaining: float = 100.0,
+    ) -> dict:
+        """Build routing decision considering cost, context, risk, budget."""
+        cost_table = {
+            "simple": {
+                "provider": "ollama",
+                "model": "qwen2.5-coder:3b",
+                "cost": "$0 (local)",
+                "reason": "Simple task — use local free model",
+                "tokens_per_second": "~40",
+            },
+            "medium": {
+                "provider": "openrouter",
+                "model": "deepseek/deepseek-chat",
+                "cost": "~$0.01/task (low)",
+                "reason": "Medium task — cost-effective cloud model",
+                "tokens_per_second": "~60",
+            },
+            "complex": {
+                "provider": "openrouter",
+                "model": "anthropic/claude-opus",
+                "cost": "~$0.15/task (high)",
+                "reason": "Complex task — best reasoning available",
+                "tokens_per_second": "~30",
+            },
+        }
+
+        routing = cost_table.get(complexity, cost_table["simple"])
+
+        if context_size == "large":
+            routing = {
+                "provider": "openrouter",
+                "model": "google/gemini-2.5-flash-001",
+                "cost": "~$0.005/100K tokens (cheap for large context)",
+                "reason": "Large context — use Gemini for 1M token window",
+                "tokens_per_second": "~50",
+            }
+
+        if risk_level == "high":
+            routing = {
+                "provider": "ollama",
+                "model": "qwen2.5-coder:7b",
+                "cost": "$0 (local, no data leakage)",
+                "reason": "High-risk task — keep local to prevent exposure",
+                "tokens_per_second": "~20",
+            }
+
+        if budget_remaining < 1.0:
+            routing = {
+                "provider": "ollama",
+                "model": "qwen2.5-coder:3b",
+                "cost": "$0 (local, budget constrained)",
+                "reason": "Budget exhausted — fall back to local model",
+                "tokens_per_second": "~40",
+            }
+
+        return routing
+
     async def route_task(
         self,
         task_description: str,
@@ -144,26 +265,22 @@ class FlowLLMRouter:
         max_price: Optional[float] = None,
     ) -> Dict[str, Any]:
         """Route a task to the optimal provider/model with cost analytics."""
-        time.time()
-
-        # Use the existing route_task skill's complexity estimation
-        from app.skills.builtin.route_task import RouteTask
-        route_skill = RouteTask()
+        start_time = time.time()
 
         if complexity == "auto":
-            complexity = route_skill._estimate_complexity(task_description)
+            complexity = self._estimate_complexity(task_description)
 
         if risk_level == "auto":
-            risk_level = route_skill._estimate_risk(task_description, complexity)
+            risk_level = self._estimate_risk(task_description, complexity)
 
         if context_size == "auto":
-            context_size = route_skill._estimate_context_size(task_description)
+            context_size = self._estimate_context_size(task_description)
 
         # Get provider configuration
         self.provider_router.get_provider()
 
         # Build routing decision
-        routing = route_skill._build_routing(
+        routing = self._build_routing(
             complexity,
             context_size,
             risk_level,

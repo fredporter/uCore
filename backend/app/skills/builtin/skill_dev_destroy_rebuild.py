@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from app.services.template_manager import get_template_manager
+from app.skills.base import BaseSkill, SkillMeta, SkillParam
 
 log = logging.getLogger("ucore.skills.destroy_rebuild")
 
@@ -67,13 +68,83 @@ class RecoveryPoint:
         }
 
 
-class DestroyRebuildSkill:
+class DestroyRebuildSkill(BaseSkill):
     """DESTROY/REBUILD — Component-level Dev Mode recovery."""
+
+    meta = SkillMeta(
+        id="dev-destroy-rebuild",
+        name="Dev Destroy Rebuild",
+        description=(
+            "Safely destroy and rebuild Dev Mode components using "
+            "template snapshots with full SPOOL preservation."
+        ),
+        category="system",
+        timeout=120,
+        requires_confirmation=True,
+        params=[
+            SkillParam(
+                name="action",
+                type="string",
+                description="Action: 'destroy', 'rebuild', 'list'",
+                required=True,
+            ),
+            SkillParam(
+                name="components",
+                type="string",
+                description="Comma-separated component list (default: all)",
+                required=False,
+            ),
+            SkillParam(
+                name="backup_id",
+                type="string",
+                description="Recovery point ID for rebuild",
+                required=False,
+            ),
+            SkillParam(
+                name="template_id",
+                type="string",
+                description="Template ID for rebuild",
+                required=False,
+            ),
+            SkillParam(
+                name="dry_run",
+                type="boolean",
+                description="Preview without executing",
+                required=False,
+                default=False,
+            ),
+        ],
+    )
 
     def __init__(self):
         self._template_mgr = get_template_manager()
         self._recovery: list[RecoveryPoint] = []
         self._load_recovery_points()
+
+    async def run(self, **kwargs) -> dict[str, Any]:
+        """Execute destroy/rebuild based on action parameter."""
+        action = kwargs.get("action", "").strip().lower()
+        if action == "list":
+            return {"recovery_points": self.list_recovery_points()}
+        if action == "destroy":
+            components = kwargs.get("components")
+            if components:
+                components = [c.strip() for c in components.split(",")]
+            return self.destroy(
+                components=components,
+                template_id=kwargs.get("template_id"),
+                dry_run=kwargs.get("dry_run", False),
+            )
+        if action == "rebuild":
+            components = kwargs.get("components")
+            if components:
+                components = [c.strip() for c in components.split(",")]
+            return self.rebuild(
+                backup_id=kwargs.get("backup_id"),
+                template_id=kwargs.get("template_id"),
+                components=components,
+            )
+        return {"error": f"Unknown action: {action}. Use 'destroy', 'rebuild', or 'list'."}
 
     # ── DESTROY ──────────────────────────────────────────────
 

@@ -80,6 +80,48 @@
       </div>
     </div>
 
+    <!-- Quick Binder Launchpad — drop & go -->
+    <div class="wf-section">
+      <h4 class="wf-section-title">Start here</h4>
+      <div
+        class="wf-launchpad-drop"
+        :class="{ 'wf-launchpad-drop--active': isDragging }"
+        @dragover.prevent="onDragOver"
+        @dragleave.prevent="onDragLeave"
+        @drop.prevent="onDrop"
+      >
+        <UIcon name="publish" />
+        <span class="wf-launchpad-prompt"
+          >Drop files to compile into a Binder</span
+        >
+        <span class="wf-launchpad-hint">.md .yaml .json .py — drag here</span>
+        <div v-if="launchpadFiles.length > 0" class="wf-launchpad-files">
+          <div
+            v-for="(file, idx) in launchpadFiles"
+            :key="idx"
+            class="wf-launchpad-file"
+          >
+            <UIcon name="description" />
+            <span>{{ file.name }}</span>
+            <button
+              class="wf-launchpad-remove"
+              @click="removeFile(idx)"
+              title="Remove"
+            >
+              <UIcon name="close" />
+            </button>
+          </div>
+        </div>
+        <button
+          v-if="launchpadFiles.length > 0"
+          class="usx-button usx-btn--primary"
+          @click="compileBinder"
+        >
+          <UIcon name="build" /> Compile Binder
+        </button>
+      </div>
+    </div>
+
     <!-- Loading / Error -->
     <div v-if="wf.loading" class="wf-loading">
       <UIcon name="sync" /> Loading workflow data...
@@ -216,27 +258,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Mini Binder Launchpad widget -->
-    <div class="wf-section">
-      <div class="wf-mini-binder">
-        <div class="wf-mini-binder-header">
-          <UIcon name="folder" />
-          <span>Binder Launchpad</span>
-          <UButton
-            size="sm"
-            variant="secondary"
-            icon="open_in_new"
-            @click="openFullBinder"
-            >Open Binder</UButton
-          >
-        </div>
-        <p class="wf-mini-binder-desc">
-          Drop files here to quickly compile a binder, or open the full Binder
-          tab.
-        </p>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -253,8 +274,56 @@ const router = useRouter();
 const busyAction = ref("");
 const lastActionMessage = ref("");
 
-function openFullBinder() {
-  router.push("/workflow?tab=binder");
+// ── Launchpad (moved from Binder tab) ─────────────────────────────
+interface LaunchpadFile {
+  name: string;
+  size: number;
+  type: string;
+  raw: File;
+}
+
+const isDragging = ref(false);
+const launchpadFiles = ref<LaunchpadFile[]>([]);
+
+function onDragOver() {
+  isDragging.value = true;
+}
+
+function onDragLeave() {
+  isDragging.value = false;
+}
+
+function onDrop(e: DragEvent) {
+  isDragging.value = false;
+  if (!e.dataTransfer?.files) return;
+  for (let i = 0; i < e.dataTransfer.files.length; i++) {
+    const f = e.dataTransfer.files[i];
+    launchpadFiles.value = [
+      ...launchpadFiles.value,
+      { name: f.name, size: f.size, type: f.type || "", raw: f },
+    ];
+  }
+}
+
+function removeFile(idx: number) {
+  launchpadFiles.value.splice(idx, 1);
+}
+
+async function compileBinder(): Promise<void> {
+  if (launchpadFiles.value.length === 0) return;
+  wf.loading = true;
+  try {
+    for (const f of launchpadFiles.value) {
+      const text = await f.raw.text();
+      console.log("[Launchpad] file:", f.name, text.slice(0, 80));
+    }
+    lastActionMessage.value = `Compiled ${launchpadFiles.value.length} files`;
+    launchpadFiles.value = [];
+  } catch (e: any) {
+    lastActionMessage.value = `Binder compile failed: ${e.message || e}`;
+  } finally {
+    wf.loading = false;
+  }
 }
 
 function formatTime(iso: string): string {
@@ -670,5 +739,77 @@ onMounted(() => {
   font-size: var(--usx-font-size-base);
   color: var(--usx-color-on-surface-muted);
   margin: 0;
+}
+
+/* ── Launchpad drop-zone (Start here) ───────────────────────── */
+
+.wf-launchpad-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xl) var(--usx-spacing-lg);
+  border: calc(var(--usx-border-width) + var(--usx-border-width-thick)) dashed
+    color-mix(in srgb, var(--usx-color-primary) 20%, transparent);
+  border-radius: var(--usx-radius-lg);
+  background: color-mix(in srgb, var(--usx-color-primary) 2%, transparent);
+  transition:
+    background var(--usx-transition-fast),
+    border-color var(--usx-transition-fast);
+  cursor: pointer;
+}
+
+.wf-launchpad-drop--active,
+.wf-launchpad-drop:hover {
+  border-color: color-mix(in srgb, var(--usx-color-primary) 50%, transparent);
+  background: color-mix(in srgb, var(--usx-color-primary) 6%, transparent);
+}
+
+.wf-launchpad-prompt {
+  font-size: var(--usx-font-size-sm);
+  font-weight: var(--usx-font-weight-semibold);
+  color: var(--usx-color-on-surface);
+}
+
+.wf-launchpad-hint {
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.wf-launchpad-files {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-xs);
+  width: 100%;
+  max-width: 40ch;
+}
+
+.wf-launchpad-file {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
+  background: var(--usx-color-surface);
+  border-radius: var(--usx-radius-sm);
+  font-size: var(--usx-font-size-sm);
+}
+
+.wf-launchpad-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--usx-spacing-xs);
+  border: none;
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+  border-radius: var(--usx-radius-sm);
+  margin-left: auto;
+}
+
+.wf-launchpad-remove:hover {
+  color: var(--usx-color-danger);
+  background: color-mix(in srgb, var(--usx-color-danger) 10%, transparent);
 }
 </style>

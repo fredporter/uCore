@@ -1,263 +1,211 @@
 <template>
-  <div class="wf-panel">
-    <div class="surface__panel">
-      <h3 class="surface__panel-title">Tasks</h3>
-      <p class="surface__panel-description">
-        Tasker-compatible tasks-md workspace with Notion-style list and kanban
-        cards.
-      </p>
-      <div class="wf-view-switch">
-        <button
-          class="wf-view-btn"
-          :class="{ 'wf-view-btn--active': viewMode === 'list' }"
-          @click="viewMode = 'list'"
+  <div
+    class="wf-panel"
+    :class="{ 'wf-panel--editor-open': showCodeEditor && activeCodeTask }"
+  >
+    <!-- ── Task list / kanban (always visible, shrinks when editor slides in) ── -->
+    <div class="wf-panel__main">
+      <!-- Compact toolbar row -->
+      <div class="wf-toolbar">
+        <div class="wf-toolbar__toggles">
+          <button
+            class="wf-toolbar__btn"
+            :class="{ 'wf-toolbar__btn--active': viewMode === 'list' }"
+            title="List view"
+            @click="viewMode = 'list'"
+          >
+            <UIcon name="table_rows" />
+          </button>
+          <button
+            class="wf-toolbar__btn"
+            :class="{ 'wf-toolbar__btn--active': viewMode === 'kanban' }"
+            title="Kanban view"
+            @click="viewMode = 'kanban'"
+          >
+            <UIcon name="view_kanban" />
+          </button>
+        </div>
+        <span class="wf-toolbar__count">{{ wf.activeTasks.length }} open</span>
+        <span
+          v-if="wf.flowLogTasks.length"
+          class="wf-toolbar__count wf-toolbar__count--done"
         >
-          <UIcon name="table_rows" />
-          List
-        </button>
-        <button
-          class="wf-view-btn"
-          :class="{ 'wf-view-btn--active': viewMode === 'kanban' }"
-          @click="viewMode = 'kanban'"
-        >
-          <UIcon name="view_kanban" />
-          Kanban
-        </button>
-        <span class="wf-engine-chip">Markdown-aligned task cards</span>
+          {{ wf.flowLogTasks.length }} done
+        </span>
       </div>
-    </div>
 
-    <div v-if="wf.loading" class="wf-loading">
-      <UIcon name="sync" /> Loading tasks...
-    </div>
-
-    <div v-if="dragError" class="wf-error">
-      <UIcon name="error" /> {{ dragError }}
-    </div>
-
-    <div v-if="viewMode === 'list'" class="task-list">
-      <div class="task-list__head">
-        <span>Task</span>
-        <span>Status</span>
-        <span>Priority</span>
-        <span>Board</span>
-        <span>Tags</span>
+      <div v-if="wf.loading" class="wf-loading">
+        <UIcon name="sync" /> Loading tasks...
       </div>
-      <div
-        v-for="task in orderedTasks"
-        :key="task.id"
-        class="task-list__row"
-        :class="{ 'task-list__row--selected': wf.selectedTask?.id === task.id }"
-        @click="wf.selectTask(task)"
-      >
-        <div class="task-list__task-cell">
-          <div class="task-list__task-title">{{ task.title }}</div>
-          <div class="task-list__task-md">{{ toTaskMarkdown(task) }}</div>
-        </div>
-        <UBadge type="info" size="sm">{{ formatStatus(task.status) }}</UBadge>
-        <UBadge :type="priorityBadgeType(task.priority)" size="sm">{{
-          task.priority
-        }}</UBadge>
-        <span class="task-list__meta">{{ task.board || "general" }}</span>
-        <span class="task-list__meta">{{
-          task.tags.join(", ") || "none"
-        }}</span>
+
+      <div v-if="dragError" class="wf-error">
+        <UIcon name="error" /> {{ dragError }}
       </div>
-    </div>
 
-    <div v-else class="kanban-board">
-      <div v-if="selectedTask" class="surface__panel wf-task-detail">
-        <div class="wf-task-detail__header">
-          <div>
-            <h4 class="wf-task-detail__title">{{ selectedTask.title }}</h4>
-            <p class="wf-task-detail__meta">
-              {{ selectedTask.workflowType || "user" }} ·
-              {{ selectedTask.binder || "Sandbox" }} ·
-              {{ selectedTask.workspace || "User Vault" }}
-            </p>
-          </div>
-          <div class="wf-task-detail__badges">
-            <UBadge type="info" size="sm">{{
-              formatStatus(selectedTask.status)
-            }}</UBadge>
-            <UBadge :type="priorityBadgeType(selectedTask.priority)" size="sm">
-              {{ selectedTask.priority }}
-            </UBadge>
-          </div>
-        </div>
-
-        <label class="wf-task-detail__field">
-          <span class="wf-task-detail__label">Summary</span>
-          <textarea
-            :value="selectedTask.summary || selectedTask.description || ''"
-            class="wf-input wf-textarea"
-            rows="3"
-            placeholder="Short task summary"
-            @input="
-              onSummaryChange(
-                selectedTask.id,
-                ($event.target as HTMLTextAreaElement).value,
-              )
-            "
-          />
-        </label>
-
-        <label class="wf-task-detail__field">
-          <span class="wf-task-detail__label">Notes</span>
-          <textarea
-            :value="selectedTask.notes || ''"
-            class="wf-input wf-textarea"
-            rows="4"
-            placeholder="Notes linked to this task"
-            @input="
-              onNotesChange(
-                selectedTask.id,
-                ($event.target as HTMLTextAreaElement).value,
-              )
-            "
-          />
-        </label>
-
-        <div class="wf-task-detail__steps">
-          <div class="wf-task-detail__label-row">
-            <span class="wf-task-detail__label">Steps</span>
-            <span class="wf-task-detail__hint"
-              >Click to advance, double-click to rename</span
-            >
-          </div>
-          <div class="wf-step-rail">
-            <button
-              v-for="step in selectedTask.steps || []"
-              :key="step.id"
-              class="wf-step-chip"
-              :class="`wf-step-chip--${step.status}`"
-              @click.stop="wf.cycleTaskStep(selectedTask.id, step.id)"
-              @dblclick.stop.prevent="
-                renameStep(selectedTask.id, step.id, step.title)
-              "
-            >
-              <UIcon
-                :name="
-                  step.status === 'completed'
-                    ? 'check_circle'
-                    : step.status === 'in-progress'
-                      ? 'play_circle'
-                      : step.status === 'blocked'
-                        ? 'block'
-                        : 'radio_button_unchecked'
-                "
-              />
-              <span>{{ step.title }}</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="wf-task-detail__assets">
-          <span class="wf-task-detail__label">Assets</span>
-          <div class="wf-asset-rail">
-            <UBadge
-              v-if="(selectedTask.assetPaths || []).length === 0"
-              type="info"
-              size="sm"
-            >
-              No linked assets
-            </UBadge>
-            <UBadge
-              v-for="asset in selectedTask.assetPaths || []"
-              :key="asset"
-              type="info"
-              size="sm"
-            >
-              {{ asset }}
-            </UBadge>
-          </div>
-        </div>
-      </div>
-      <div
-        v-for="status in statuses"
-        :key="status"
-        class="kanban-column"
-        @dragover.prevent
-        @drop="handleDrop(status)"
-      >
+      <div v-if="viewMode === 'list'" class="task-list">
         <div
-          class="kanban-column-header"
-          :class="`kanban-column-header--${status}`"
+          v-for="task in orderedTasks"
+          :key="task.id"
+          class="task-list__row"
+          :class="{
+            'task-list__row--selected': wf.selectedTask?.id === task.id,
+          }"
+          @click="openTaskEditor(task)"
         >
-          <span>{{ formatStatus(status as string) }}</span>
-          <UBadge type="info" size="sm" circle>{{
-            wf.tasksByStatus[status]?.length || 0
-          }}</UBadge>
-        </div>
-        <div class="kanban-cards">
-          <div
-            v-if="(wf.tasksByStatus[status] || []).length === 0"
-            class="kanban-empty"
-          >
-            No tasks
-          </div>
-          <div
-            v-for="task in wf.tasksByStatus[status] || []"
-            :key="task.id"
-            class="kanban-card"
-            :class="{
-              'kanban-card--selected': wf.selectedTask?.id === task.id,
-            }"
-            draggable="true"
-            @dragstart="handleDragStart(task.id, task.status)"
-            @click="wf.selectTask(task)"
-          >
-            <div class="kanban-card-top">
-              <div class="kanban-card-title">{{ task.title }}</div>
-              <UBadge :type="priorityBadgeType(task.priority)">{{
-                task.priority
-              }}</UBadge>
-            </div>
-            <p class="kanban-card-desc">{{ truncate(task.description, 80) }}</p>
-            <div class="kanban-card-meta">
+          <div class="task-list__main">
+            <div class="task-list__task-title">{{ task.title }}</div>
+            <div class="task-list__pills">
+              <span class="task-pill" :class="`task-pill--${task.status}`">{{
+                formatStatus(task.status)
+              }}</span>
               <span
-                v-if="task.tags.length === 0"
-                class="kanban-tag kanban-tag--muted"
-                >No tags</span
+                class="task-pill"
+                :class="`task-pill--priority-${task.priority}`"
               >
-              <UBadge v-for="tag in task.tags" :key="tag" type="info" pill>{{
-                tag
-              }}</UBadge>
-            </div>
-            <div class="kanban-card-board">
-              <UIcon name="view_kanban" />
-              {{ task.board }}
+                {{ task.priority }}
+              </span>
+              <span class="task-pill task-pill--board">{{
+                task.board || "general"
+              }}</span>
+              <span
+                v-for="tag in task.tags"
+                :key="tag"
+                class="task-pill task-pill--tag"
+              >
+                {{ tag }}
+              </span>
             </div>
           </div>
+          <button
+            class="task-list__editor-btn"
+            title="Open in Editor tab (split view)"
+            @click.stop="openInEditorTab(task)"
+          >
+            <UIcon name="view_sidebar" />
+          </button>
+        </div>
+      </div>
+
+      <div v-else class="kanban-board">
+        <div
+          v-for="status in statuses"
+          :key="status"
+          class="kanban-column"
+          @dragover.prevent
+          @drop="handleDrop(status)"
+        >
+          <div
+            class="kanban-column-header"
+            :class="`kanban-column-header--${status}`"
+          >
+            <span class="kanban-column-header__label">
+              <UIcon :name="columnIcon(status)" />
+              {{ formatStatus(status as string) }}
+            </span>
+            <UBadge type="info" size="sm" circle>{{
+              wf.tasksByStatus[status]?.length || 0
+            }}</UBadge>
+          </div>
+          <div class="kanban-cards">
+            <div
+              v-if="(wf.tasksByStatus[status] || []).length === 0"
+              class="kanban-empty"
+            >
+              No tasks
+            </div>
+            <div
+              v-for="task in wf.tasksByStatus[status] || []"
+              :key="task.id"
+              class="kanban-card"
+              :class="{
+                'kanban-card--selected': wf.selectedTask?.id === task.id,
+              }"
+              draggable="true"
+              @dragstart="handleDragStart(task.id, task.status)"
+              @click="openTaskEditor(task)"
+            >
+              <div class="kanban-card-top">
+                <div class="kanban-card-title">{{ task.title }}</div>
+                <UBadge :type="priorityBadgeType(task.priority)">{{
+                  task.priority
+                }}</UBadge>
+              </div>
+              <div class="kanban-card-pills">
+                <span class="task-pill" :class="`task-pill--${task.status}`">
+                  {{ formatStatus(task.status) }}
+                </span>
+                <span class="task-pill task-pill--board">{{ task.board }}</span>
+                <span
+                  v-for="tag in task.tags"
+                  :key="tag"
+                  class="task-pill task-pill--tag"
+                >
+                  {{ tag }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="wf.flowLogTasks.length > 0" class="surface__panel wf-flowlog">
+        <h4 class="surface__panel-title">Flowlog</h4>
+        <p class="surface__panel-description">
+          Completed tasks move here automatically so active work stays
+          uncluttered.
+        </p>
+        <div class="wf-flowlog-list">
+          <button
+            v-for="task in wf.flowLogTasks"
+            :key="task.id"
+            class="wf-flowlog-item"
+            @click="openTaskEditor(task)"
+          >
+            <div class="wf-flowlog-item__title">{{ task.title }}</div>
+            <div class="wf-flowlog-item__meta">
+              <span>{{ task.binder || "Sandbox" }}</span>
+              <span>{{
+                task.completedAt
+                  ? new Date(task.completedAt).toLocaleString()
+                  : "completed"
+              }}</span>
+            </div>
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="wf.flowLogTasks.length > 0" class="surface__panel wf-flowlog">
-      <h4 class="surface__panel-title">Flowlog</h4>
-      <p class="surface__panel-description">
-        Completed tasks move here automatically so active work stays
-        uncluttered.
-      </p>
-      <div class="wf-flowlog-list">
-        <button
-          v-for="task in wf.flowLogTasks"
-          :key="task.id"
-          class="wf-flowlog-item"
-          @click="wf.selectTask(task)"
-        >
-          <div class="wf-flowlog-item__title">{{ task.title }}</div>
-          <div class="wf-flowlog-item__meta">
-            <span>{{ task.binder || "Sandbox" }}</span>
-            <span>{{
-              task.completedAt
-                ? new Date(task.completedAt).toLocaleString()
-                : "completed"
-            }}</span>
-          </div>
-        </button>
+    <!-- ── Slide-in code editor panel (from right) ── -->
+    <Transition name="wf-slide">
+      <div v-if="showCodeEditor && activeCodeTask" class="wf-code-editor-slide">
+        <div class="wf-code-editor__toolbar">
+          <button class="wf-editor-back-btn" @click="closeCodeEditor">
+            <UIcon name="arrow_back" />
+          </button>
+          <span class="wf-code-editor__title">{{ activeCodeTask.title }}</span>
+          <button
+            class="wf-editor-open-tab-btn"
+            title="Open in Editor tab (side-by-side)"
+            @click="openInEditorTab(activeCodeTask)"
+          >
+            <UIcon name="view_sidebar" />
+          </button>
+        </div>
+        <div class="wf-code-editor__body">
+          <EditorPanel
+            :content="activeCodeTask.description || ''"
+            :title="activeCodeTask.title"
+            :read-only="false"
+            edit-mode="code"
+            :hide-header="true"
+            :single-pane="true"
+            @update:content="onCodeEditorUpdate"
+            @open-split="openInEditorTab(activeCodeTask!)"
+            @close="closeCodeEditor"
+          />
+        </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -265,7 +213,8 @@
 import { computed, ref } from "vue";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 import UBadge from "../../../skills/atoms/UBadge.vue";
-import { useWorkflowStore } from "../../../stores/workflow";
+import { EditorPanel } from "../../../skills";
+import { useWorkflowStore, type WorkflowTask } from "../../../stores/workflow";
 import { toTaskMarkdownLine } from "../../../utils/taskMarkdown";
 
 const wf = useWorkflowStore();
@@ -274,6 +223,10 @@ const statuses = ["todo", "in-progress", "review", "blocked"];
 const dragTaskId = ref<string | null>(null);
 const dragFromStatus = ref<string | null>(null);
 const dragError = ref<string | null>(null);
+
+// ── Inline code editor state ──────────────────────────────────────
+const showCodeEditor = ref(false);
+const activeCodeTask = ref<WorkflowTask | null>(null);
 
 const statusRank: Record<string, number> = {
   blocked: 0,
@@ -292,10 +245,6 @@ const orderedTasks = computed(() => {
   });
 });
 
-const selectedTask = computed(
-  () => wf.selectedTask || orderedTasks.value[0] || wf.flowLogTasks[0] || null,
-);
-
 const STATUS_LABELS: Record<string, string> = {
   todo: "To Do",
   "in-progress": "In Progress",
@@ -308,6 +257,17 @@ function formatStatus(status: string): string {
   return STATUS_LABELS[status] || status;
 }
 
+const COLUMN_ICONS: Record<string, string> = {
+  todo: "radio_button_unchecked",
+  "in-progress": "play_circle",
+  review: "rate_review",
+  blocked: "block",
+};
+
+function columnIcon(status: string): string {
+  return COLUMN_ICONS[status] || "circle";
+}
+
 function truncate(text: string, maxLength: number): string {
   if (!text) return "";
   if (text.length <= maxLength) return text;
@@ -318,22 +278,6 @@ function priorityBadgeType(priority: string): "error" | "warning" | "info" {
   if (priority === "high") return "error";
   if (priority === "medium") return "warning";
   return "info";
-}
-
-function onSummaryChange(taskId: string, summary: string) {
-  wf.updateTaskSummary(taskId, summary);
-}
-
-function onNotesChange(taskId: string, notes: string) {
-  wf.updateTaskNotes(taskId, notes);
-}
-
-function renameStep(taskId: string, stepId: string, currentTitle: string) {
-  const next = window.prompt("Rename step", currentTitle);
-  if (next === null) return;
-  const title = next.trim();
-  if (!title) return;
-  wf.updateTaskStep(taskId, stepId, { title });
 }
 
 function toTaskMarkdown(task: {
@@ -349,6 +293,38 @@ function toTaskMarkdown(task: {
 function handleDragStart(taskId: string, status: string) {
   dragTaskId.value = taskId;
   dragFromStatus.value = status;
+}
+
+// ── Inline code editor actions ──────────────────────────────────
+
+/** Open the selected task in the inline code editor (single panel). */
+function openTaskEditor(task: WorkflowTask) {
+  activeCodeTask.value = task;
+  wf.selectTask(task, false); // select without opening side-column editor
+  showCodeEditor.value = true;
+}
+
+/** Close the inline code editor and return to task list. */
+function closeCodeEditor() {
+  showCodeEditor.value = false;
+  activeCodeTask.value = null;
+  wf.closeEditor();
+}
+
+/** Open the task in the full Editor tab (split view, hides task list). */
+function openInEditorTab(task: WorkflowTask) {
+  wf.selectTask(task, true); // select and open side-column editor
+  showCodeEditor.value = false;
+  activeCodeTask.value = null;
+  wf.setTab("editor");
+}
+
+/** Update task description from inline code editor. */
+function onCodeEditorUpdate(value: string) {
+  if (activeCodeTask.value) {
+    activeCodeTask.value.description = value;
+  }
+  wf.updateEditorContent(value);
 }
 
 async function handleDrop(targetStatus: string) {
@@ -380,10 +356,87 @@ async function handleDrop(targetStatus: string) {
 </script>
 
 <style scoped>
+/* ── Panel layout ───────────────────────────────────────────── */
+
 .wf-panel {
   display: flex;
+  flex-direction: row;
+  gap: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.wf-panel__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
-  gap: var(--usx-spacing-lg);
+  gap: var(--usx-spacing-md);
+  overflow-y: auto;
+}
+
+/* ── Slide-in code editor (from right) ──────────────────────── */
+
+.wf-panel--editor-open .wf-panel__main {
+  flex: 0 0 55%;
+}
+
+.wf-code-editor-slide {
+  flex: 1;
+  min-width: 320px;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  border-left: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-background);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.wf-code-editor__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-surface);
+  flex-shrink: 0;
+}
+
+.wf-code-editor__title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--usx-font-size-sm);
+  font-weight: var(--usx-font-weight-semibold);
+  color: var(--usx-color-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wf-code-editor__body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Slide transition ───────────────────────────────────────── */
+
+.wf-slide-enter-active,
+.wf-slide-leave-active {
+  transition:
+    width 0.25s ease,
+    opacity 0.2s ease;
+}
+
+.wf-slide-enter-from,
+.wf-slide-leave-to {
+  width: 0 !important;
+  min-width: 0;
+  opacity: 0;
 }
 
 .wf-loading {
@@ -407,127 +460,67 @@ async function handleDrop(targetStatus: string) {
   font-size: var(--usx-font-size-sm);
 }
 
-.wf-view-switch {
-  margin-top: var(--usx-spacing-sm);
+/* ── Compact toolbar ────────────────────────────────────────── */
+
+.wf-toolbar {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-sm);
-  flex-wrap: wrap;
+  padding: var(--usx-spacing-xs) 0;
 }
 
-.wf-task-detail {
+.wf-toolbar__toggles {
   display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-md);
+  gap: 2px;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+  overflow: hidden;
 }
 
-.wf-task-detail__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--usx-spacing-md);
-  flex-wrap: wrap;
-}
-
-.wf-task-detail__title {
-  margin: 0;
-  font-size: var(--usx-font-size-lg);
-  font-weight: var(--usx-font-weight-semibold);
-}
-
-.wf-task-detail__meta {
-  margin: var(--usx-spacing-xs) 0 0;
+.wf-toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--usx-touch-min) * 0.7);
+  height: calc(var(--usx-touch-min) * 0.7);
+  border: none;
+  background: transparent;
   color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-sm);
+  cursor: pointer;
+  padding: 0;
+  min-height: 0;
+  border-radius: 0;
 }
 
-.wf-task-detail__badges {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  flex-wrap: wrap;
-}
-
-.wf-task-detail__field,
-.wf-task-detail__steps,
-.wf-task-detail__assets {
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-xs);
-}
-
-.wf-task-detail__label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--usx-spacing-sm);
-  flex-wrap: wrap;
-}
-
-.wf-task-detail__label {
-  font-size: var(--usx-font-size-sm);
-  font-weight: var(--usx-font-weight-semibold);
+.wf-toolbar__btn:hover {
+  background: color-mix(in srgb, var(--usx-color-primary) 6%, transparent);
   color: var(--usx-color-on-surface);
 }
 
-.wf-task-detail__hint {
+.wf-toolbar__btn--active {
+  background: var(--usx-color-primary);
+  color: var(--usx-color-on-primary, #fff);
+}
+
+.wf-toolbar__btn--active:hover {
+  background: var(--usx-color-primary-hover, var(--usx-color-primary));
+}
+
+.wf-toolbar__count {
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
+  white-space: nowrap;
 }
 
-.wf-textarea {
-  width: 100%;
-  min-height: calc(var(--usx-touch-min) * 1.2);
-  resize: vertical;
+.wf-toolbar__count--done {
+  color: var(--usx-color-success);
 }
 
-.wf-step-rail,
-.wf-asset-rail,
 .wf-flowlog-list {
   display: flex;
   gap: var(--usx-spacing-xs);
   flex-wrap: wrap;
-}
-
-.wf-step-chip,
-.wf-flowlog-item {
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  background: var(--usx-color-surface);
-  color: var(--usx-color-on-surface);
-}
-
-.wf-step-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  cursor: pointer;
-}
-
-.wf-step-chip--completed {
-  border-color: var(--usx-color-success);
-  background: color-mix(in srgb, var(--usx-color-success) 10%, transparent);
-}
-
-.wf-step-chip--in-progress {
-  border-color: var(--usx-color-primary);
-  background: color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
-}
-
-.wf-step-chip--blocked {
-  border-color: var(--usx-color-danger);
-  background: color-mix(in srgb, var(--usx-color-danger) 8%, transparent);
-}
-
-.wf-step-chip--todo {
-  opacity: 0.85;
-}
-
-.wf-flowlog {
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-sm);
 }
 
 .wf-flowlog-item {
@@ -553,36 +546,6 @@ async function handleDrop(targetStatus: string) {
   font-size: var(--usx-font-size-xs);
 }
 
-.wf-view-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-sm);
-  background: var(--usx-color-surface);
-  color: var(--usx-color-on-surface-muted);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  font-size: var(--usx-font-size-sm);
-  cursor: pointer;
-}
-
-.wf-view-btn--active {
-  color: var(--usx-color-primary);
-  border-color: var(--usx-color-primary);
-  background: color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
-}
-
-.wf-engine-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border-radius: var(--usx-radius-full);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  background: var(--usx-color-surface-variant);
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-sm);
-}
-
 .task-list {
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-lg);
@@ -590,25 +553,24 @@ async function handleDrop(targetStatus: string) {
   overflow: hidden;
 }
 
-.task-list__head,
+/* 2‑column task list on wide screens */
+@media (min-width: 1100px) {
+  .task-list {
+    column-count: 2;
+    column-gap: 0;
+    column-rule: var(--usx-border-width) solid var(--usx-color-border);
+  }
+
+  .task-list__row {
+    break-inside: avoid;
+  }
+}
+
 .task-list__row {
-  display: grid;
-  grid-template-columns:
-    minmax(20ch, 4fr) minmax(10ch, 1.2fr) minmax(8ch, 1fr)
-    minmax(10ch, 1.2fr) minmax(14ch, 2fr);
-  gap: var(--usx-spacing-sm);
+  display: flex;
   align-items: center;
+  gap: var(--usx-spacing-sm);
   padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-}
-
-.task-list__head {
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-sm);
-  background: var(--usx-color-surface-variant);
-}
-
-.task-list__row {
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
   cursor: pointer;
 }
@@ -625,7 +587,8 @@ async function handleDrop(targetStatus: string) {
   background: color-mix(in srgb, var(--usx-color-primary) 10%, transparent);
 }
 
-.task-list__task-cell {
+.task-list__main {
+  flex: 1;
   min-width: 0;
 }
 
@@ -638,39 +601,97 @@ async function handleDrop(targetStatus: string) {
   text-overflow: ellipsis;
 }
 
-.task-list__task-md {
+/* ── Pills row (under task name) ────────────────────────────── */
+
+.task-list__pills,
+.kanban-card-pills {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  flex-wrap: wrap;
   margin-top: var(--usx-spacing-xs);
-  font-family: var(--usx-font-family-mono);
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.task-list__meta {
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-sm);
+.task-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--usx-spacing-xs);
+  border-radius: var(--usx-radius-sm);
+  font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-medium);
+  line-height: 1.4;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  border: var(--usx-border-width) solid transparent;
+}
+
+/* Status colours */
+.task-pill--todo {
+  color: var(--usx-color-on-surface-muted);
+  background: var(--usx-color-surface-variant);
+}
+
+.task-pill--in-progress {
+  color: var(--usx-color-primary);
+  background: color-mix(in srgb, var(--usx-color-primary) 10%, transparent);
+  border-color: color-mix(in srgb, var(--usx-color-primary) 25%, transparent);
+}
+
+.task-pill--review {
+  color: var(--usx-color-warning);
+  background: color-mix(in srgb, var(--usx-color-warning) 10%, transparent);
+  border-color: color-mix(in srgb, var(--usx-color-warning) 25%, transparent);
+}
+
+.task-pill--blocked {
+  color: var(--usx-color-danger);
+  background: color-mix(in srgb, var(--usx-color-danger) 8%, transparent);
+  border-color: color-mix(in srgb, var(--usx-color-danger) 20%, transparent);
+}
+
+.task-pill--completed {
+  color: var(--usx-color-success);
+  background: color-mix(in srgb, var(--usx-color-success) 10%, transparent);
+  border-color: color-mix(in srgb, var(--usx-color-success) 25%, transparent);
+}
+
+/* Priority colours */
+.task-pill--priority-high {
+  color: var(--usx-color-danger);
+  background: color-mix(in srgb, var(--usx-color-danger) 6%, transparent);
+}
+
+.task-pill--priority-medium {
+  color: var(--usx-color-warning);
+  background: color-mix(in srgb, var(--usx-color-warning) 6%, transparent);
+}
+
+.task-pill--priority-low {
+  color: var(--usx-color-on-surface-muted);
+  background: var(--usx-color-surface-variant);
+}
+
+/* Neutral pills */
+.task-pill--board {
+  color: var(--usx-color-on-surface-muted);
+  background: var(--usx-color-surface-variant);
+}
+
+.task-pill--tag {
+  color: var(--usx-color-info);
+  background: color-mix(in srgb, var(--usx-color-info) 8%, transparent);
+  border-color: color-mix(in srgb, var(--usx-color-info) 18%, transparent);
 }
 
 .kanban-board {
-  --kanban-column-min: calc(var(--usx-touch-min) * 4.5);
+  --kanban-col-min: calc(var(--usx-touch-min) * 5.5);
   display: grid;
   grid-template-columns: repeat(
     auto-fit,
-    minmax(min(100%, var(--kanban-column-min)), 1fr)
+    minmax(min(100%, var(--kanban-col-min)), 1fr)
   );
-  gap: var(--usx-spacing-lg);
+  gap: var(--usx-spacing-md);
   align-items: start;
   min-width: 0;
-}
-
-.wf-flowlog {
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-lg);
 }
 
 .kanban-column {
@@ -684,17 +705,23 @@ async function handleDrop(targetStatus: string) {
 }
 
 .kanban-column-header {
-  padding: var(--usx-spacing-lg);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--usx-spacing-sm);
   font-weight: var(--usx-font-weight-semibold);
-  font-size: var(--usx-font-size-base);
+  font-size: var(--usx-font-size-sm);
   border-top-style: solid;
   border-top-width: calc(
     var(--usx-border-width) + var(--usx-border-width-thick)
   );
+}
+
+.kanban-column-header__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
 }
 
 .kanban-column-header--completed {
@@ -715,10 +742,10 @@ async function handleDrop(targetStatus: string) {
 
 .kanban-cards {
   flex: 1;
-  padding: var(--usx-spacing-sm) var(--usx-spacing-lg) var(--usx-spacing-lg);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md) var(--usx-spacing-md);
   display: flex;
   flex-direction: column;
-  gap: var(--usx-spacing-md);
+  gap: var(--usx-spacing-sm);
   min-width: 0;
 }
 
@@ -731,7 +758,7 @@ async function handleDrop(targetStatus: string) {
 }
 
 .kanban-card {
-  padding: var(--usx-spacing-lg);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
   background: var(--usx-color-background);
   border-radius: var(--usx-radius-md);
   border: var(--usx-border-width) solid transparent;
@@ -770,52 +797,51 @@ async function handleDrop(targetStatus: string) {
   overflow-wrap: anywhere;
 }
 
-.kanban-card-desc {
-  margin: 0 0 var(--usx-spacing-md) 0;
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
-  line-height: var(--usx-line-height-tight);
-  overflow-wrap: anywhere;
+@media (max-width: 1100px) {
+  .task-list__row {
+    padding: var(--usx-spacing-sm) var(--usx-spacing-sm);
+  }
 }
 
-.kanban-card-meta {
-  display: flex;
-  gap: var(--usx-spacing-xs);
-  flex-wrap: wrap;
-  font-size: var(--usx-font-size-sm);
-  margin-bottom: var(--usx-spacing-sm);
-}
+/* ── Editor buttons ─────────────────────────────────────────── */
 
-.kanban-tag {
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border-radius: var(--usx-radius-sm);
-  background: var(--usx-color-surface-variant);
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-sm);
-}
-
-.kanban-tag--muted {
-  font-style: italic;
-}
-
-.kanban-card-board {
-  display: flex;
+.wf-editor-back-btn {
+  display: inline-flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
-  min-width: 0;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
   font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
-  overflow-wrap: anywhere;
+  cursor: pointer;
 }
 
-@media (max-width: 1100px) {
-  .task-list__head,
-  .task-list__row {
-    grid-template-columns: minmax(16ch, 1fr);
-  }
+.wf-editor-back-btn:hover {
+  background: color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
+}
 
-  .task-list__head span:not(:first-child) {
-    display: none;
-  }
+.wf-editor-open-tab-btn,
+.task-list__editor-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--usx-touch-min) * 0.75);
+  height: calc(var(--usx-touch-min) * 0.75);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+  padding: 0;
+  min-height: 0;
+}
+
+.wf-editor-open-tab-btn:hover,
+.task-list__editor-btn:hover {
+  color: var(--usx-color-primary);
+  border-color: var(--usx-color-primary);
+  background: color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
 }
 </style>

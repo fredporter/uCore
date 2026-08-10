@@ -1,5 +1,15 @@
 """route_task — Intelligently route and optionally execute tasks with AI.
 
+.. deprecated::
+    This skill is superseded by :class:`FlowLLMRouter`
+    (``app.services.flow_router.router``) which provides the same
+    complexity estimation, cost-based routing, and agent dispatch
+    with additional analytics and history tracking.
+
+    New code should use ``FlowLLMRouter`` directly.  This skill
+    remains registered for backward compatibility with existing
+    API consumers and delegates to ``FlowLLMRouter`` internally.
+
 Operationalizes the cost strategy:
   simple  → Ollama (free, local)
   medium  → OpenRouter/o3-mini (mid-range, ~$0.01/task)
@@ -245,85 +255,35 @@ class RouteTask(BaseSkill):
         if explicit_routing is not None:
             return explicit_routing
 
-        # Auto-detect
-        if complexity == "auto":
-            complexity = self._estimate_complexity(task)
-        if not context_size:
-            context_size = self._estimate_context_size(task)
-        if risk_level not in ("low", "medium", "high"):
-            risk_level = self._estimate_risk(task, complexity)
+        # ── Delegate to FlowLLMRouter for complexity-aware routing ────
+        from app.services.flow_router.router import FlowLLMRouter
 
-        # Validate
-        valid_complexity = ["simple", "medium", "complex"]
-        valid_risk = ["low", "medium", "high"]
-        valid_context = ["small", "medium", "large"]
-        if complexity not in valid_complexity:
-            complexity = "simple"
-        if risk_level not in valid_risk:
-            risk_level = "low"
-        if context_size not in valid_context:
-            context_size = "small"
+        router = FlowLLMRouter()
 
-        # Record detected/normalized complexity for observability/tests
-        detected_complexity = complexity
+        # Resolve context_size / risk_level for auto-detect
+        ctx = context_size if context_size else "auto"
+        risk = risk_level if risk_level in ("low", "medium", "high") else "auto"
 
-        # Check budget (if execute requested)
-        budget_remaining = 100.0
-        try:
-            from app.services.budget_manager import BudgetManager
-            budget_mgr = BudgetManager()
-            status = budget_mgr.get_status()
-            budget_remaining = status.get(
-                "monthly", {},
-            ).get("remaining", 100.0)
-        except Exception:
-            pass
-
-        # Generate routing
-        routing = self._build_routing(
-            complexity,
-            context_size,
-            risk_level,
-            budget_remaining=budget_remaining,
+        result = await router.route_task(
+            task_description=task,
+            complexity=complexity,
+            context_size=ctx,
+            risk_level=risk,
         )
 
-        result = {
-            "success": True,
-            "task": task[:100] + ("..." if len(task) > 100 else ""),
-            "analysis": {
-                "complexity": complexity,
-                "detected_complexity": detected_complexity,
-                "context_size": context_size,
-                "risk_level": risk_level,
-                "task_length": len(task),
-            },
-            "routing": routing,
-            "execution": {
-                "mode": "execute" if execute else "advice-only",
-                "budget_remaining": budget_remaining,
-            },
-        }
-
-        # Strategy breakdown for multi-tier routing (used by tests)
-        def _build_strategy(detected: str) -> dict:
-            if detected == "simple":
-                tiers = {"simple": 0.8, "medium": 0.15, "complex": 0.05}
-            elif detected == "medium":
-                tiers = {"simple": 0.2, "medium": 0.7, "complex": 0.1}
-            else:
-                tiers = {"simple": 0.1, "medium": 0.2, "complex": 0.7}
-            return {
-                "tier_allocations": tiers,
-                "notes": f"Strategy for {detected} tasks",
-            }
-
-        result["strategy"] = _build_strategy(detected_complexity)
+        # Inject backward-compatible fields
+        result.setdefault("execution", {})["mode"] = (
+            "execute" if execute else "advice-only"
+        )
+        result["execution"]["budget_remaining"] = result.get("analytics", {}).get(
+            "total_requests", 100.0
+        )
 
         # Execute if requested
         if execute:
+            routing = result.get("routing", {})
             result["execution"]["response"] = await self._execute_task(
-                task,
-                routing,
+                task, routing
             )
 
         return result
