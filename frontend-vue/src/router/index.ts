@@ -138,8 +138,43 @@ export const router = createRouter({
   routes,
 });
 
+const DYNAMIC_IMPORT_RELOAD_KEY = "ucore.router.dynamic-import-reload";
+
+router.onError((error, to) => {
+  const message = String((error as any)?.message || "");
+  const isDynamicImportFailure =
+    /Failed to fetch dynamically imported module/i.test(message) ||
+    /Outdated Optimize Dep/i.test(message) ||
+    /Importing a module script failed/i.test(message) ||
+    /Loading chunk [\d]+ failed/i.test(message);
+
+  if (!isDynamicImportFailure || typeof window === "undefined") {
+    return;
+  }
+
+  const target =
+    to?.fullPath ||
+    `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const lastReloadTarget = window.sessionStorage.getItem(
+    DYNAMIC_IMPORT_RELOAD_KEY,
+  );
+
+  // Prevent infinite reload loops on persistent failures.
+  if (lastReloadTarget === target) {
+    window.sessionStorage.removeItem(DYNAMIC_IMPORT_RELOAD_KEY);
+    return;
+  }
+
+  window.sessionStorage.setItem(DYNAMIC_IMPORT_RELOAD_KEY, target);
+  window.location.assign(target);
+});
+
 // Update document title
 router.afterEach((to) => {
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem(DYNAMIC_IMPORT_RELOAD_KEY);
+  }
+
   const title = to.meta.title as string | undefined;
   document.title = title ? `${title} — uCore` : "uCore";
 });

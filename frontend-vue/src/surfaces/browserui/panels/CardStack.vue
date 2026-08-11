@@ -100,4 +100,80 @@ function scoreClass(s: number | undefined): string {
   if (s >= 2) return "card-stack__score--mid"
   return "card-stack__score--low"
 }
+function scoreClass(s: number | undefined): string {
+  if (s === undefined) return "card-stack__score--none"
+  if (s >= 4) return "card-stack__score--high"
+  if (s >= 2) return "card-stack__score--mid"
+  return "card-stack__score--low"
+}
+</script>
+
+<style scoped>
+.card-stack { margin-bottom: var(--usx-spacing-lg); }
+.card-stack__header {
+  display: flex; align-items: center; gap: var(--usx-spacing-md);
+  margin-bottom: var(--usx-spacing-sm); flex-wrap: wrap;
+}
+.card-stack__header h3 { margin: 0; font-size: var(--usx-font-size-lg); }
+.card-stack__selected-count {
+  font-size: var(--usx-font-size-xs); color: var(--usx-color-primary);
+  background: color-mix(in srgb, var(--usx-color-primary) 15%, transparent);
+  padding: 2px var(--usx-spacing-sm); border-radius: var(--usx-radius-sm);
+  font-weight: 600;
+}
+.card-stack__filters { display: flex; gap: var(--usx-spacing-xs); align-items: center; flex-wrap: wrap; }
+.card-stack__filter-chip {
+  font-size: var(--usx-font-size-xs); padding: 2px var(--usx-spacing-sm);
+  border-radius: var(--usx-radius-sm); border: 1px solid var(--usx-color-border);
+  background: var(--usx-color-surface); cursor: pointer;
+}
+.card-stack__filter-chip--active { background: var(--usx-color-primary); color: var(--usx-color-on-primary); }
+.card-stack__sort { font-size: var(--usx-font-size-xs); padding: 2px var(--usx-spacing-sm); border-radius: var(--usx-radius-sm); border: 1px solid var(--usx-color-border); }
+.card-stack__empty { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-lg); color: var(--usx-color-on-surface-muted); }
+.card-stack__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--usx-spacing-md); }
+.card-stack__card {
+  padding: var(--usx-spacing-md); border: 1px solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md); cursor: pointer;
+  background: var(--usx-color-surface);
+  transition: border-color var(--usx-transition-fast), box-shadow var(--usx-transition-fast);
+}
+.card-stack__card:hover {
+  border-color: var(--usx-color-primary);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--usx-color-primary) 15%, transparent);
+}
+.card-stack__card--active { border-color: var(--usx-color-primary); background: color-mix(in srgb, var(--usx-color-primary) 6%, transparent); }
+.card-stack__card-top { display: flex; align-items: center; gap: var(--usx-spacing-sm); margin-bottom: var(--usx-spacing-xs); }
+.card-stack__check { width: 16px; height: 16px; accent-color: var(--usx-color-primary); cursor: pointer; flex-shrink: 0; }
+.card-stack__score {
+  font-size: var(--usx-font-size-xs); font-weight: 700; min-width: 28px;
+  text-align: center; padding: 2px 6px; border-radius: var(--usx-radius-sm);
+}
+.card-stack__score--high { background: var(--usx-color-success); color: var(--usx-color-on-success); }
+.card-stack__score--mid { background: var(--usx-color-warning); color: var(--usx-color-on-warning); }
+.card-stack__score--low { background: var(--usx-color-danger); color: var(--usx-color-on-danger); }
+.card-stack__score--none { background: var(--usx-color-surface-variant); color: var(--usx-color-on-surface-muted); }
+.card-stack__title { font-weight: 600; font-size: var(--usx-font-size-base); overflow: hidden; text-overflow: ellipsis; }
+.card-stack__desc {
+  font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted);
+  margin-bottom: var(--usx-spacing-sm); display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.card-stack__tags { display: flex; gap: var(--usx-spacing-xs); flex-wrap: wrap; margin-bottom: var(--usx-spacing-sm); }
+.card-stack__tag {
+  font-size: var(--usx-font-size-xs); padding: 1px var(--usx-spacing-xs);
+  border-radius: var(--usx-radius-sm); background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface-muted);
+}
+.card-stack__actions { display: flex; gap: var(--usx-spacing-xs); }
+.uxs-btn {
+  display: inline-flex; align-items: center; gap: var(--usx-spacing-xs);
+  border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-sm);
+  padding: 4px var(--usx-spacing-sm); cursor: pointer;
+  background: var(--usx-color-surface); font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface); white-space: nowrap;
+}
+.uxs-btn:hover { background: var(--usx-color-surface-hover); }
+.uxs-btn--sm { font-size: var(--usx-font-size-xs); padding: 3px var(--usx-spacing-sm); }
+</style>
+
 </script>
