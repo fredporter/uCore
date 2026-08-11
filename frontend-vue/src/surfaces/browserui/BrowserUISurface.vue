@@ -417,6 +417,13 @@ function loadSession() {
   try {
     const raw = localStorage.getItem("browserui-session")
     if (raw) {
+      const data = JSON.parse(raw)
+      researchJobs.value = data.researchJobs || []
+      searchQuery.value = data.searchQuery || ""
+    }
+  } catch { /* ignore */ }
+}
+
 function toggleBatch(id: string, event: Event) {
   const checked = (event.target as HTMLInputElement).checked
   if (checked) batchSelected.value = [...batchSelected.value, id]
