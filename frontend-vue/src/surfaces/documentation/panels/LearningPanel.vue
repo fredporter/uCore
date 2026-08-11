@@ -49,7 +49,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import UIcon from "../../../skills/atoms/UIcon.vue";
-import { SNACKBAR_BASE } from "../../../api/base";
 
 interface Course {
   title?: string;
@@ -78,7 +77,7 @@ function relevanceClass(relevance: number): string {
 async function loadCourses() {
   loading.value = true;
   try {
-    const res = await fetch(`${SNACKBAR_BASE}/api/docs/courses`);
+    const res = await fetch(`/api/docs/courses`);
     if (res.ok) {
       const data = await res.json();
       courses.value = data.courses || data || [];

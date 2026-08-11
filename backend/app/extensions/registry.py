@@ -37,6 +37,12 @@ DISCOVERY_PATHS: list[Path] = [
 ]
 """Default search locations for extension manifests."""
 
+# Known external package paths for split-repo dev mode
+_EXTERNAL_REPO_PATHS: dict[str, str] = {
+    "uflow": "UCORE_UFLOW_PATH",
+    "uknowledge": "UCORE_UKNOWLEDGE_PATH",
+}
+
 
 def _env_discovery_paths() -> list[Path]:
     """Read additional manifest discovery roots from environment.
@@ -53,6 +59,26 @@ def _env_discovery_paths() -> list[Path]:
         if value:
             paths.append(Path(value).expanduser())
     return paths
+
+
+def _add_external_path(ext_id: str) -> None:
+    """Add a known external package repo to sys.path for import.
+
+    Uses env var if set, otherwise defaults to ~/Code/{ext_id}.
+    Only adds the path if it exists on disk.
+    """
+    default = str(Path.home() / "Code" / ext_id.title() if ext_id == "uflow" else Path.home() / "Code" / ext_id)
+    # Normalise: uflow -> ~/Code/uFlow, uknowledge -> ~/Code/uKnowledge
+    repo_name_map = {"uflow": "uFlow", "uknowledge": "uKnowledge"}
+    repo_dir = repo_name_map.get(ext_id, ext_id)
+    default = str(Path.home() / "Code" / repo_dir)
+
+    env_key = _EXTERNAL_REPO_PATHS.get(ext_id, "")
+    hint = os.environ.get(env_key, default) if env_key else default
+    path = Path(hint).expanduser()
+    if path.exists():
+        sys.path.insert(0, str(path))
+        log.debug("External path added for %s: %s", ext_id, path)
 
 
 class ExtensionRegistry:
@@ -112,7 +138,7 @@ class ExtensionRegistry:
                 "optional": True,
                 "api_prefix": "/api/tools",
             },
-            # Workflow — declared here, implementation moving to uFlow
+            # Workflow — declared here, routes owned by uFlow
             {
                 "id": "uflow",
                 "name": "Workflow Engine",
@@ -120,9 +146,10 @@ class ExtensionRegistry:
                 "description": "Workflow definitions, runs, logs, task orchestration",
                 "optional": False,
                 "api_prefix": "/api/workflows",
-                "route_registrar": "app.extensions.adapters.workflow_adapter.register_routes",
+                "entrypoint": "uflow.setup",
+                "route_registrar": "uflow.routes.register_routes",
             },
-            # Knowledge — declared here, implementation moving to uKnowledge
+            # Knowledge — declared here, routes owned by uKnowledge
             {
                 "id": "uknowledge",
                 "name": "Knowledge Bridge",
@@ -130,7 +157,8 @@ class ExtensionRegistry:
                 "description": "AppFlowy bridge, semantic search, knowledge layer, vault indexing",
                 "optional": False,
                 "api_prefix": "/api/knowledge",
-                "route_registrar": "app.extensions.adapters.knowledge_adapter.register_routes",
+                "entrypoint": "uknowledge.setup",
+                "route_registrar": "uknowledge.routes.register_routes",
             },
         ]
         for raw in builtins:
@@ -238,7 +266,11 @@ class ExtensionRegistry:
         return results
 
     def register_routes(self, app: Any) -> None:
-        """Call route_registrar for every extension that has one."""
+        """Call route_registrar for every extension that has one.
+
+        On ImportError for external packages (uflow, uknowledge), adds the
+        local repo path to sys.path and retries before failing.
+        """
         for ext_id, manifest in self._manifests.items():
             if manifest.route_registrar is None:
                 continue
@@ -253,20 +285,34 @@ class ExtensionRegistry:
                     "Routes registered for extension: %s", ext_id,
                 )
             except ImportError:
-                self._loaded[ext_id] = False
-                self._errors[ext_id] = "Route registrar import failed"
-                if manifest.optional:
-                    log.debug(
-                        "Extension %s route registrar not available "
-                        "(optional, skipping): %s",
-                        ext_id, manifest.route_registrar,
-                    )
-                else:
-                    log.exception(
-                        "Required extension %s route registrar failed",
+                # Path-discovery fallback for external split-repo packages
+                _add_external_path(ext_id)
+                try:
+                    mod_path, func_name = manifest.route_registrar.rsplit(".", 1)
+                    mod = importlib.import_module(mod_path)
+                    register_fn = getattr(mod, func_name)
+                    register_fn(app)
+                    self._loaded[ext_id] = True
+                    self._errors.pop(ext_id, None)
+                    log.info(
+                        "Routes registered for extension %s (path-discovered)",
                         ext_id,
                     )
-                    raise
+                except ImportError:
+                    self._loaded[ext_id] = False
+                    self._errors[ext_id] = "Route registrar import failed"
+                    if manifest.optional:
+                        log.debug(
+                            "Extension %s route registrar not available "
+                            "(optional, skipping): %s",
+                            ext_id, manifest.route_registrar,
+                        )
+                    else:
+                        log.exception(
+                            "Required extension %s route registrar failed",
+                            ext_id,
+                        )
+                        raise
             except Exception:
                 self._loaded[ext_id] = False
                 self._errors[ext_id] = "Route registration failed"

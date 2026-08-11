@@ -10,8 +10,7 @@
           <div
             class="developer-gateway__meter"
             :class="{
-              'developer-gateway__meter--active':
-                starting || refreshing || status.active,
+              'developer-gateway__meter--active': status.active,
             }"
           >
             <span class="developer-gateway__meter-bar" />
@@ -19,27 +18,11 @@
 
           <div class="developer-gateway__actions">
             <button
-              class="developer-gateway__btn"
-              :disabled="starting || refreshing || autoStarting"
-              @click="refreshStatus(false)"
-            >
-              {{ refreshing ? "Checking..." : "Refresh" }}
-            </button>
-            <button
-              v-if="hasUdevRepo && !status.active && autoStartFailed"
               class="developer-gateway__btn developer-gateway__btn--primary"
-              :disabled="starting || autoStarting"
-              @click="ensureDeveloperRunning"
-            >
-              {{ starting || autoStarting ? "Starting..." : "Retry Start" }}
-            </button>
-            <button
-              v-else-if="hasUdevRepo"
-              class="developer-gateway__btn developer-gateway__btn--primary"
-              :disabled="autoOpening"
+              :disabled="!hasUdevRepo"
               @click="openDeveloper"
             >
-              {{ autoOpening ? "Opening..." : "Open Developer" }}
+              Open Repo Browser
             </button>
           </div>
         </section>
@@ -52,160 +35,46 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { SNACKBAR_BASE } from "@/api/base";
 
-const DEV_SURFACE_URL = "http://localhost:5176";
-
-const starting = ref(false);
-const refreshing = ref(false);
 const hasUdevRepo = ref(false);
-const autoOpening = ref(false);
-const hasAutoOpened = ref(false);
-const autoStarting = ref(false);
-const autoStartFailed = ref(false);
 const status = reactive({
   active: false,
-  message: "Checking developer server...",
+  message: "Checking repositories...",
 });
 
 const splashTitle = computed(() => {
-  if (starting.value || autoStarting.value) return "Starting Developer Surface";
-  if (refreshing.value) return "Checking Dev Mode";
   if (status.active) return "Developer Surface Ready";
-  if (autoStartFailed.value) return "Dev Mode Start Failed";
-  return "Starting Dev Mode";
+  if (hasUdevRepo.value) return "Repositories Found";
+  return "Repo Browser";
 });
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function checkDeveloperStatus(): Promise<boolean> {
-  const res = await fetch(`${SNACKBAR_BASE}/api/developer/status`, {
-    signal: AbortSignal.timeout(3000),
-  });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-  const data = await res.json();
-  return Boolean(data?.active);
-}
-
-function autoAdvanceIfReady() {
-  if (!status.active || hasAutoOpened.value) return;
-  hasAutoOpened.value = true;
-  autoOpening.value = true;
-  setTimeout(() => {
-    openDeveloper();
-  }, 700);
-}
 
 async function refreshRepoAvailability() {
   try {
-    const res = await fetch(`${SNACKBAR_BASE}/api/developer/repos?scope=all`, {
+    const res = await fetch(`${SNACKBAR_BASE}/api/developer/repos`, {
       signal: AbortSignal.timeout(4000),
     });
-    if (!res.ok) {
+    if (res.ok) {
+      const payload = await res.json();
+      const repos = Array.isArray(payload?.repos) ? payload.repos : [];
+      hasUdevRepo.value = repos.length > 0;
+      status.message = repos.length > 0
+        ? `${repos.length} repos found.`
+        : "No repositories found under ~/Code/.";
+    } else {
       hasUdevRepo.value = false;
-      return;
+      status.message = "Repo API unavailable.";
     }
-    const payload = await res.json();
-    const repos = Array.isArray(payload?.repos) ? payload.repos : [];
-    hasUdevRepo.value = repos.some(
-      (repo: any) => String(repo?.name || "").toLowerCase() === "udev",
-    );
   } catch {
     hasUdevRepo.value = false;
-  }
-}
-
-async function refreshStatus(allowAutoStart = true) {
-  refreshing.value = true;
-  try {
-    await refreshRepoAvailability();
-    status.active = await checkDeveloperStatus();
-    if (!hasUdevRepo.value) {
-      status.message = "uDev repository not found under ~/Code.";
-      return;
-    }
-    status.message = status.active
-      ? "Developer server is reachable on localhost:5176."
-      : allowAutoStart
-        ? "Starting developer server..."
-        : "Developer server is not running yet.";
-
-    if (!status.active && allowAutoStart) {
-      await ensureDeveloperRunning();
-      return;
-    }
-
-    autoAdvanceIfReady();
-  } catch (error: any) {
-    status.active = false;
-    status.message =
-      error?.message || "Unable to reach developer status endpoint.";
-  } finally {
-    refreshing.value = false;
-  }
-}
-
-async function ensureDeveloperRunning() {
-  if (starting.value || autoStarting.value) return;
-  autoStarting.value = true;
-  autoStartFailed.value = false;
-  hasAutoOpened.value = false;
-  status.message = "Starting developer server...";
-  try {
-    const started = await startDeveloperServer();
-    if (!started) {
-      autoStartFailed.value = true;
-      status.message =
-        "Unable to auto-start developer server. Use Retry Start.";
-    }
-  } finally {
-    autoStarting.value = false;
-  }
-}
-
-async function startDeveloperServer() {
-  starting.value = true;
-  hasAutoOpened.value = false;
-  try {
-    const res = await fetch(`${SNACKBAR_BASE}/api/developer/start`, {
-      method: "POST",
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-
-    // Wait for Vite to become reachable and then auto-open.
-    for (let i = 0; i < 10; i++) {
-      await sleep(700);
-      try {
-        status.active = await checkDeveloperStatus();
-      } catch {
-        status.active = false;
-      }
-      if (status.active) {
-        status.message = "Developer server is reachable on localhost:5176.";
-        autoAdvanceIfReady();
-        return true;
-      }
-    }
-    return false;
-  } catch (error: any) {
-    status.message = error?.message || "Failed to start developer server.";
-    return false;
-  } finally {
-    starting.value = false;
+    status.message = "Repo API unavailable.";
   }
 }
 
 function openDeveloper() {
-  window.location.href = DEV_SURFACE_URL;
+  window.open('/snackbar?tab=repos', '_top');
 }
 
 onMounted(() => {
-  void refreshStatus(true);
+  void refreshRepoAvailability();
 });
 </script>
 

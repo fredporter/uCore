@@ -11,6 +11,8 @@ export type TabOrientation = 'horizontal' | 'vertical'
 
 export const useShellStore = defineStore('shell', () => {
   const sidebarOpen = ref(false)
+  const developerSidebarOpen = ref(false)
+  const developerSurfaceTab = ref<'code' | 'repository' | 'editor'>('code')
   const chatMode = ref<ChatMode>('closed')
   const lastSurface = ref<string>('/')
   const tabOrientation = ref<TabOrientation>('horizontal')
@@ -21,6 +23,19 @@ export const useShellStore = defineStore('shell', () => {
 
   function setSidebarOpen(open: boolean) {
     sidebarOpen.value = open
+  }
+
+  function toggleDeveloperSidebar() {
+    if (developerSurfaceTab.value === 'code') return
+    developerSidebarOpen.value = !developerSidebarOpen.value
+  }
+
+  function setDeveloperSidebarOpen(open: boolean) {
+    developerSidebarOpen.value = open
+  }
+
+  function setDeveloperSurfaceTab(tab: 'code' | 'repository' | 'editor') {
+    developerSurfaceTab.value = tab
   }
 
   function setChatMode(mode: ChatMode) {
@@ -45,11 +60,16 @@ export const useShellStore = defineStore('shell', () => {
 
   return {
     sidebarOpen,
+    developerSidebarOpen,
+    developerSurfaceTab,
     chatMode,
     lastSurface,
     tabOrientation,
     toggleSidebar,
     setSidebarOpen,
+    toggleDeveloperSidebar,
+    setDeveloperSidebarOpen,
+    setDeveloperSurfaceTab,
     setChatMode,
     toggleChat,
     setLastSurface,

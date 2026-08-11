@@ -1,8 +1,81 @@
-# Sprint Plan — 2026-07-08: Hardening, Repair, and USX npm Finalization
+# Sprint A — Merge uDev Developer Surface into uCore
 
-**Status:** Sprint 2 Complete ✅
-**Parent:** Main
-**Version:** 4.0.5
+**Status:** Active
+**Started:** 2026-08-10
+**Scope:** Migrate uDev developer-surface into uCore Snackbar + Workflow
+
+---
+
+## Current State
+
+### uDev Developer Surface (port 5176, 3 tabs)
+| Tab | What | uCore Equivalent |
+|---|---|---|
+| Code (repos) | Repo cards list | `/api/developer/repos` backend exists, no UI |
+| Repository | File tree + diff viewer for selected repo | backend exists, no UI |
+| Editor | Full-screen CodeMirror editor | Workflow Editor tab + skills/EditorPanel |
+
+### uDev Components
+- `ActiveMission.vue` → belongs in Workflow MissionControl
+- `AgentStatusCard.vue` → already in SnackbarAgentsPanel
+- `BottomBar.vue` → generic, not needed
+- `CostDashboard.vue` → already in SnackbarBudgetPanel
+- `LiveFeedStream.vue` → already in SnackbarFeedsPanel
+- `QuickActions.vue` → belongs in SnackbarDashboardPanel
+- `StatusBadges.vue` → already in SnackbarDashboardPanel
+
+### uCore Already Has
+- **Snackbar**: Dashboard, Services, Agents, Feeds, Skills, Snacks, Extensions, Models, Budget, Logs, MCP
+- **Workflow**: Mission Control, Tasks, Editor, Automation, Publish
+- **Backend**: `/api/developer/repos/*` — 12 routes for repo CRUD, diff, commit, stage
+
+---
+
+## Tasks
+
+### Wave 1: Repos Tab in SnackbarSurface
+
+- [ ] **A1.1** Create `SnackbarReposPanel.vue` in uCore Snackbar panels
+  - List repos from `GET /api/developer/repos`
+  - Show repo name, branch, dirty flag
+  - Click to open repo file tree
+- [ ] **A1.2** Wire into SnackbarSurface as a new "Repos" tab
+  - Add `{ id: "repos", label: "Repos", icon: "folder" }` to SNACKBAR_OPS_TABS
+- [ ] **A1.3** Create file-tree drilldown within Repos panel
+  - Call `GET /api/developer/repos/{repo}/files`
+  - Show collapsible directory tree
+  - Click file to open in Workflow Editor
+
+### Wave 2: Consolidate Editor
+
+- [ ] **A2.1** Verify uCore's existing EditorPanel (skills/molecules/editor/) handles repo files
+  - Check it accepts file content, path, and save callback
+  - Wire save to `PUT /api/developer/repos/{repo}/file-preview`
+- [ ] **A2.2** Add "Open in Editor" action from Repos panel → Workflow Editor tab
+- [ ] **A2.3** Add diff viewer to file-tree: click shows diff via `GET /api/developer/repos/{repo}/diff`
+- [ ] **A2.4** Add commit UI: stage files → write message → `POST /api/developer/repos/{repo}/commit`
+
+### Wave 3: Migrate Remaining Components
+
+- [ ] **A3.1** Move ActiveMission into uCore Workflow MissionControl panel
+- [ ] **A3.2** Move QuickActions into uCore Snackbar Dashboard panel
+- [ ] **A3.3** Verify CostDashboard is covered by SnackbarBudgetPanel
+- [ ] **A3.4** Verify LiveFeedStream is covered by SnackbarFeedsPanel
+- [ ] **A3.5** Verify AgentStatusCard is covered by SnackbarAgentsPanel
+
+### Wave 4: Deprecate uDev
+
+- [ ] **A4.1** Update uCore DeveloperGatewaySurface to open Snackbar Repos tab instead of port 5176
+- [ ] **A4.2** Remove uDev developer-surface start/stop logic from uCore
+- [ ] **A4.3** Archive uDev/developer-surface directory
+- [ ] **A4.4** Update uDev DEVELOPER_SURFACE.md docs
+
+### Exit Criteria
+1. Snackbar surface has a "Repos" tab with repo listing + file tree
+2. Files open in Workflow Editor tab from Repos
+3. Diff viewer and commit UI functional
+4. DeveloperGatewaySurface opens in-core tabs, no port 5176 dependency
+5. uDev developer-surface is deprecated
 
 ---
 

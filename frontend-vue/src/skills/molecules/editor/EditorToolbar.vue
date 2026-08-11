@@ -1,205 +1,196 @@
+/**
+ * @component EditorToolbar
+ * @description File tab bar + action buttons for the unified code editor.
+ * Matches the uCore .wf-toolbar pattern.
+ */
 <template>
-  <div
-    class="editor-toolbar"
-    :class="{
-      'editor-toolbar--bare': bare,
-      'editor-toolbar--right': right,
-    }"
-  >
-    <!-- Edit / Preview / Split mode tabs (icon-only) -->
-    <div class="editor-toolbar__mode-tabs">
+  <div class="editor-toolbar">
+    <div class="editor-toolbar__tabs">
       <button
-        class="editor-toolbar__btn"
-        :class="{ 'editor-toolbar__btn--active': viewMode === 'edit' }"
-        title="Edit"
-        @click="emit('update:viewMode', 'edit')"
+        v-for="tab in tabs"
+        :key="tab.id"
+        class="editor-toolbar__tab"
+        :class="{ 'editor-toolbar__tab--active': tab.id === activeTabId, 'editor-toolbar__tab--dirty': tab.dirty }"
+        :title="tab.path"
+        @click="$emit('select-tab', tab.id)"
       >
-        <UIcon name="edit" />
+        <UIcon :name="tabIcon(tab.filename)" class="editor-toolbar__tab-icon" />
+        <span class="editor-toolbar__tab-name">{{ tab.filename }}</span>
+        <span v-if="tab.dirty" class="editor-toolbar__tab-dot" />
+        <button class="editor-toolbar__tab-close" @click.stop="$emit('close-tab', tab.id)">
+          <UIcon name="close" :size="12" />
+        </button>
       </button>
-      <button
-        class="editor-toolbar__btn"
-        :class="{ 'editor-toolbar__btn--active': viewMode === 'preview' }"
-        title="Preview"
-        @click="emit('update:viewMode', 'preview')"
-      >
-        <UIcon name="visibility" />
-      </button>
-      <button
-        class="editor-toolbar__btn"
-        :class="{ 'editor-toolbar__btn--active': viewMode === 'split' }"
-        title="Split (editor + preview)"
-        @click="emit('update:viewMode', 'split')"
-      >
-        <UIcon name="vertical_split" />
+      <button v-if="showAddTab" class="editor-toolbar__add" @click="$emit('add-tab')">
+        <UIcon name="add" />
       </button>
     </div>
 
-    <button
-      v-if="!readOnly"
-      class="editor-toolbar__btn editor-toolbar__btn--save"
-      title="Save (Ctrl+S)"
-      @click="emit('save')"
-    >
-      <UIcon name="save" />
-    </button>
-
-    <button
-      class="editor-toolbar__btn"
-      :class="{ 'editor-toolbar__btn--active': researchOpen }"
-      title="Research panel"
-      @click="emit('toggle-research')"
-    >
-      <UIcon name="science" />
-    </button>
-
-    <button
-      class="editor-toolbar__btn"
-      :class="{ 'editor-toolbar__btn--active': editMode === 'code' }"
-      :title="
-        editMode === 'prose' ? 'Switch to code view' : 'Switch to prose view'
-      "
-      @click="emit('toggle-edit-mode')"
-    >
-      <UIcon :name="editMode === 'prose' ? 'notes' : 'code'" />
-    </button>
-
-    <button
-      class="editor-toolbar__btn"
-      title="Close editor"
-      @click="emit('close')"
-    >
-      <UIcon name="close" />
-    </button>
+    <div class="editor-toolbar__actions">
+      <button v-if="showDiff" class="editor-toolbar__btn"
+        :class="{ 'editor-toolbar__btn--active': diffActive }" @click="$emit('toggle-diff')">
+        <UIcon name="difference" /><span>Diff</span>
+      </button>
+      <button v-if="showCells" class="editor-toolbar__btn"
+        :class="{ 'editor-toolbar__btn--active': cellsActive }" @click="$emit('toggle-cells')">
+        <UIcon name="view_column" /><span>Cells</span>
+      </button>
+      <button v-if="showPreview" class="editor-toolbar__btn"
+        :class="{ 'editor-toolbar__btn--active': previewActive }" @click="$emit('toggle-preview')">
+        <UIcon name="visibility" /><span>Preview</span>
+      </button>
+      <button v-if="showCloseSecondary" class="editor-toolbar__btn" @click="$emit('close-secondary')">
+        <UIcon name="close_fullscreen" />
+      </button>
+      <UButton size="sm" variant="secondary" :disabled="!dirty || readOnly" @click="$emit('save')">
+        Save
+      </UButton>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-/**
- * @component EditorToolbar
- * @description Compact, icon-only view-research-close control row for the
- * editor panel: Edit/Preview/Split view modes, save, research, prose/code edit
- * mode, and close. Rendered on the Prose panel, or right-aligned inside the
- * editor toolbar in editor-only view. The Files sidebar toggle lives in the
- * global toolbar, not here.
- * @category skills/molecules
- * @props {string} viewMode - 'edit' | 'preview' | 'split'
- * @props {boolean} researchOpen - Research panel visibility
- * @props {string} editMode - 'prose' | 'code'
- * @props {boolean} readOnly - Hide save when read-only
- * @props {boolean} bare - Drop left margin/separator (sits alone in a bar)
- * @props {boolean} right - Push to the right edge of the parent toolbar
- * @emits update:viewMode, toggle-research, toggle-edit-mode, save, close
- */
 import UIcon from "../../atoms/UIcon.vue";
+import UButton from "../../atoms/UButton.vue";
 
-interface Props {
-  viewMode: "edit" | "preview" | "split";
-  researchOpen: boolean;
-  editMode: "prose" | "code";
-  readOnly?: boolean;
-  bare?: boolean;
-  right?: boolean;
+export interface EditorTab {
+  id: string;
+  filename: string;
+  path: string;
+  dirty: boolean;
+  language?: string;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+interface Props {
+  tabs?: EditorTab[];
+  activeTabId?: string;
+  dirty?: boolean;
+  readOnly?: boolean;
+  diffActive?: boolean;
+  cellsActive?: boolean;
+  previewActive?: boolean;
+  showDiff?: boolean;
+  showCells?: boolean;
+  showPreview?: boolean;
+  showCloseSecondary?: boolean;
+  showAddTab?: boolean;
+}
+
+withDefaults(defineProps<Props>(), {
+  tabs: () => [],
+  activeTabId: "",
+  dirty: false,
   readOnly: false,
-  bare: false,
-  right: false,
+  diffActive: false,
+  cellsActive: false,
+  previewActive: false,
+  showDiff: true,
+  showCells: true,
+  showPreview: false,
+  showCloseSecondary: false,
+  showAddTab: false,
 });
 
-const emit = defineEmits<{
-  "update:viewMode": [value: "edit" | "preview" | "split"];
-  "toggle-research": [];
-  "toggle-edit-mode": [];
+defineEmits<{
+  "select-tab": [id: string];
+  "close-tab": [id: string];
+  "add-tab": [];
+  "toggle-diff": [];
+  "toggle-cells": [];
+  "toggle-preview": [];
+  "close-secondary": [];
   save: [];
-  close: [];
 }>();
+
+function tabIcon(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase();
+  const map: Record<string, string> = {
+    ts:"code", tsx:"code", js:"code", jsx:"code", py:"code",
+    html:"html", css:"css", scss:"palette", json:"data_object",
+    yaml:"list", yml:"list", md:"article", mdx:"article",
+  };
+  return map[ext ?? ""] || "description";
+}
 </script>
 
 <style scoped>
 .editor-toolbar {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--usx-spacing-2);
-  margin-left: var(--usx-spacing-sm);
-  padding-left: var(--usx-spacing-sm);
-  border-left: 1px solid var(--usx-color-border);
-  flex-shrink: 0;
-}
-
-/* Sits alone in a bar (no preceding controls) — drop the left separator */
-.editor-toolbar--bare {
-  margin-left: 0;
-  padding-left: 0;
-  border-left: none;
-}
-
-/* Right-aligned inside the editor toolbar (editor-only view) */
-.editor-toolbar--right {
-  margin-left: auto;
-}
-
-.editor-toolbar__btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2rem;
-  min-height: 0;
-  height: 2rem;
-  padding: 0 var(--usx-spacing-xs);
-  border: none;
-  border-radius: var(--usx-radius-sm);
-  background: transparent;
-  color: var(--usx-color-on-surface-muted);
-  cursor: pointer;
-  font-size: var(--usx-font-size-sm);
-  font-weight: var(--usx-font-weight-medium);
-  transition:
-    background var(--usx-transition-fast),
-    color var(--usx-transition-fast);
-}
-
-.editor-toolbar__btn .u-icon,
-.editor-toolbar__btn .material-symbols-outlined {
-  font-size: 18px;
-  line-height: 1;
-  font-variation-settings:
-    "FILL" 0,
-    "wght" 400,
-    "GRAD" 0,
-    "opsz" 20;
-}
-
-.editor-toolbar__btn:hover {
-  background: var(--usx-color-surface-hover);
-  color: var(--usx-color-on-surface);
-}
-
-.editor-toolbar__btn--active {
+  display: flex; align-items: center; gap: var(--usx-spacing-sm);
+  padding: 0 var(--usx-spacing-xs); min-height: 36px; flex-shrink: 0;
   background: var(--usx-color-surface);
-  color: var(--usx-color-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  overflow: hidden;
 }
-
-.editor-toolbar__btn--save {
-  color: var(--usx-color-primary);
+.editor-toolbar__tabs {
+  display: flex; align-items: stretch; flex: 1; min-width: 0;
+  overflow-x: auto; gap: 0; padding: var(--usx-spacing-xs) 0;
 }
-
-.editor-toolbar__btn--save:hover {
+.editor-toolbar__tab {
+  display: flex; align-items: center; gap: 4px;
+  padding: 2px 8px 2px 10px;
+  border: var(--usx-border-width) solid transparent;
+  background: transparent; color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm); cursor: pointer;
+  white-space: nowrap; min-height: 0;
+  border-radius: var(--usx-radius-sm) var(--usx-radius-sm) 0 0;
+  transition: background var(--usx-transition-fast), color var(--usx-transition-fast);
+}
+.editor-toolbar__tab:hover {
+  background: var(--usx-color-surface-variant);
   color: var(--usx-color-on-surface);
 }
-
-/* Mode tabs: subtle segmented grouping. Uses an inset ring (no real border or
-   padding) so the wrapper adds ZERO height — the toolbar stays 2rem tall and
-   matches the editor toolbar height when side by side. */
-.editor-toolbar__mode-tabs {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  border-radius: var(--usx-radius-md);
-  box-shadow: inset 0 0 0 1px var(--usx-color-border);
+.editor-toolbar__tab--active {
+  background: var(--usx-color-background); color: var(--usx-color-on-surface);
+  border-color: var(--usx-color-border); border-bottom-color: transparent;
+}
+.editor-toolbar__tab--dirty .editor-toolbar__tab-name { font-style: italic; }
+.editor-toolbar__tab-icon { flex-shrink: 0; }
+.editor-toolbar__tab-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.editor-toolbar__tab-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--usx-color-warning); flex-shrink: 0;
+}
+.editor-toolbar__tab-close {
+  display: flex; align-items: center; justify-content: center;
+  padding: 1px; border: none; background: transparent;
+  color: var(--usx-color-on-surface-muted); cursor: pointer;
+  border-radius: var(--usx-radius-sm); min-height: 0; opacity: 0;
+  transition: opacity var(--usx-transition-fast);
+}
+.editor-toolbar__tab:hover .editor-toolbar__tab-close,
+.editor-toolbar__tab--active .editor-toolbar__tab-close { opacity: 1; }
+.editor-toolbar__tab-close:hover {
+  color: var(--usx-color-danger);
+  background: color-mix(in srgb, var(--usx-color-danger) 15%, transparent);
+}
+.editor-toolbar__add {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border: none; background: transparent;
+  color: var(--usx-color-on-surface-muted); cursor: pointer;
+  border-radius: var(--usx-radius-sm); flex-shrink: 0; min-height: 0;
+  margin-top: var(--usx-spacing-xs);
+}
+.editor-toolbar__add:hover {
+  color: var(--usx-color-primary); background: var(--usx-color-surface-variant);
+}
+.editor-toolbar__actions {
+  display: flex; align-items: center; gap: var(--usx-spacing-xs); flex-shrink: 0;
+}
+.editor-toolbar__btn {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-xs); cursor: pointer; min-height: 0;
+  transition: border-color var(--usx-transition-fast), color var(--usx-transition-fast);
+}
+.editor-toolbar__btn:hover {
+  border-color: var(--usx-color-primary); color: var(--usx-color-on-surface);
+}
+.editor-toolbar__btn--active {
+  border-color: var(--usx-color-primary); color: var(--usx-color-primary);
+  background: color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
 }
 </style>

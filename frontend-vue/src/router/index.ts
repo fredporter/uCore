@@ -50,7 +50,7 @@ const routes: RouteRecordRaw[] = [
     path: "/developer/:pathMatch(.*)*",
     name: "developer",
     component: () =>
-      import("../surfaces/developer/DeveloperGatewaySurface.vue"),
+      import("../surfaces/developer/DeveloperSurface.vue"),
     meta: { title: "Developer", icon: "code" },
   },
   {

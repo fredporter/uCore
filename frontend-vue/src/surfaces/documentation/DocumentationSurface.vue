@@ -33,6 +33,18 @@
             </UBadge>
           </div>
           <div class="doc-health-item">
+            <span class="doc-health-label">Courses API</span>
+            <UBadge :type="statusType(apiStatus.courses)">
+              {{ statusText(apiStatus.courses) }}
+            </UBadge>
+          </div>
+          <div class="doc-health-item">
+            <span class="doc-health-label">Notebooks API</span>
+            <UBadge :type="statusType(apiStatus.notebooks)">
+              {{ statusText(apiStatus.notebooks) }}
+            </UBadge>
+          </div>
+          <div class="doc-health-item">
             <span class="doc-health-label">Export API</span>
             <UBadge :type="statusType(apiStatus.export)">
               {{ statusText(apiStatus.export) }}
@@ -152,6 +164,65 @@
           <LearningPanel />
         </div>
 
+        <!-- Repo Docs Tab -->
+        <div v-else-if="activeTab === 'repo-docs'">
+          <div v-if="repoDocsLoading" class="doc-loading">
+            <UIcon name="sync" /> Loading repo documentation...
+          </div>
+          <div v-else-if="repoDocs.length > 0">
+            <div class="doc-section" v-for="repo in repoDocs" :key="repo.repo">
+              <h4 class="doc-section-title">
+                <UIcon name="code" />
+                {{ repo.repo }} — {{ repo.count }} docs
+              </h4>
+              <div class="doc-repo-list">
+                <div
+                  v-for="doc in repo.docs"
+                  :key="doc.path"
+                  class="doc-repo-row"
+                >
+                  <UIcon name="description" />
+                  <span class="doc-repo-name">{{ doc.name }}</span>
+                  <code class="doc-mono">{{ doc.path }}</code>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="doc-empty">
+            No repo documentation found. Ensure uCore, uFlow, uCode, and uKnowledge
+            repos exist under ~/Code/.
+          </div>
+        </div>
+
+        <!-- Notebooks Tab -->
+        <div v-else-if="activeTab === 'notebooks'">
+          <div v-if="notebooksLoading" class="doc-loading">
+            <UIcon name="sync" /> Loading notebooks...
+          </div>
+          <div v-else-if="notebooks.length > 0">
+            <div class="doc-knowledge-grid">
+              <div
+                v-for="nb in notebooks"
+                :key="nb.path"
+                class="doc-knowledge-card"
+              >
+                <div class="doc-knowledge-card-icon">
+                  <UIcon name="code" />
+                </div>
+                <div class="doc-knowledge-card-content">
+                  <h5 class="doc-knowledge-card-title">{{ nb.stem }}</h5>
+                  <code class="doc-mono">{{ nb.path }}</code>
+                  <span class="doc-nb-size">{{ formatSize(nb.size) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="doc-empty">
+            No Jupyter notebooks found. Run automation engine to generate notebooks
+            in ~/Code/uDev/global-knowledge/.
+          </div>
+        </div>
+
         <!-- Publishing Tab -->
         <div v-else-if="activeTab === 'publish'">
           <div class="doc-stats">
@@ -243,6 +314,8 @@ const TABS = [
   { id: "guide", label: "Guide & Docs", icon: "menu_book" },
   { id: "knowledge", label: "Knowledge", icon: "auto_stories" },
   { id: "learning", label: "Learning", icon: "school" },
+  { id: "repo-docs", label: "Repo Docs", icon: "code" },
+  { id: "notebooks", label: "Notebooks", icon: "note" },
   { id: "publish", label: "Publishing", icon: "publish" },
   { id: "api", label: "API Reference", icon: "code" },
 ];
@@ -264,10 +337,31 @@ interface Section {
   name: string;
   path: string;
 }
+interface RepoDocItem {
+  name: string;
+  path: string;
+  size: number;
+}
+interface RepoDocGroup {
+  repo: string;
+  root: string;
+  docs: RepoDocItem[];
+  count: number;
+}
+interface NotebookItem {
+  name: string;
+  stem: string;
+  path: string;
+  full_path: string;
+  size: number;
+  mtime: number;
+}
 
 const loading = ref(true);
 const knowledgeLoading = ref(true);
 const apiLoading = ref(true);
+const repoDocsLoading = ref(true);
+const notebooksLoading = ref(true);
 const exportRunning = ref(false);
 const exportResult = ref<Record<string, any> | null>(null);
 const viewingSite = ref<string | null>(null);
@@ -277,6 +371,8 @@ const lastExportAt = ref<string | null>(null);
 const docSites = ref<DocSite[]>([]);
 const apiEndpoints = ref<Endpoint[]>([]);
 const knowledgeSections = ref<Section[]>([]);
+const repoDocs = ref<RepoDocGroup[]>([]);
+const notebooks = ref<NotebookItem[]>([]);
 
 type ApiStatus = "pending" | "ok" | "error";
 
@@ -284,11 +380,15 @@ const apiStatus = ref<{
   root: ApiStatus;
   sites: ApiStatus;
   knowledge: ApiStatus;
+  courses: ApiStatus;
+  notebooks: ApiStatus;
   export: ApiStatus;
 }>({
   root: "pending",
   sites: "pending",
   knowledge: "pending",
+  courses: "pending",
+  notebooks: "pending",
   export: "pending",
 });
 
@@ -374,6 +474,59 @@ async function probeExportEndpoint() {
   }
 }
 
+async function fetchRepoDocs() {
+  repoDocsLoading.value = true;
+  try {
+    const res = await fetch(`/api/docs/repo-docs`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      repoDocs.value = data.repos || [];
+    }
+  } catch {
+    repoDocs.value = [];
+  }
+  repoDocsLoading.value = false;
+}
+
+async function fetchNotebooks() {
+  notebooksLoading.value = true;
+  try {
+    const res = await fetch(`/api/docs/notebooks`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      notebooks.value = data.notebooks || [];
+      apiStatus.value.notebooks = "ok";
+    } else {
+      apiStatus.value.notebooks = "error";
+    }
+  } catch {
+    apiStatus.value.notebooks = "error";
+    notebooks.value = [];
+  }
+  notebooksLoading.value = false;
+}
+
+async function probeCoursesEndpoint() {
+  try {
+    const res = await fetch(`/api/docs/courses`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    apiStatus.value.courses = res.ok ? "ok" : "error";
+  } catch {
+    apiStatus.value.courses = "error";
+  }
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 async function runExport() {
   exportRunning.value = true;
   exportResult.value = null;
@@ -414,6 +567,9 @@ onMounted(() => {
   fetchKnowledgeSections();
   fetchEndpoints();
   probeExportEndpoint();
+  probeCoursesEndpoint();
+  fetchRepoDocs();
+  fetchNotebooks();
 });
 </script>
 
@@ -786,5 +942,37 @@ onMounted(() => {
   font-size: var(--usx-font-size-sm);
   color: var(--usx-color-on-surface-muted);
   flex: 1;
+}
+
+/* ─── Repo Docs ────────────────────────────────────────────────── */
+.doc-repo-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-xs);
+  margin-top: var(--usx-spacing-xs);
+}
+
+.doc-repo-row {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
+  border-radius: var(--usx-radius-sm);
+  font-size: var(--usx-font-size-sm);
+}
+
+.doc-repo-row:hover {
+  background: var(--usx-color-surface-variant);
+}
+
+.doc-repo-name {
+  font-weight: var(--usx-font-weight-medium);
+  flex: 1;
+}
+
+/* ─── Notebook ─────────────────────────────────────────────────── */
+.doc-nb-size {
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
 }
 </style>

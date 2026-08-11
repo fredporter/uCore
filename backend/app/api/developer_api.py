@@ -121,11 +121,19 @@ def _has_code_markers(repo_path: Path) -> bool:
 
 
 def _classify_repo(repo_path: Path) -> str:
+    """Classify a repo as core, extension, project, or vault_or_docs."""
     policy = _policy()
     name = repo_path.name.lower()
-    if name in policy["system_repos"]:
-        return "system"
 
+    # Core: system repos + required extensions
+    if name in policy["system_repos"] or name in policy.get("core_repos", []):
+        return "core"
+
+    # Extensions: udos-* plugins
+    if name in policy.get("extension_repos", []) or name.startswith("udos-"):
+        return "extension"
+
+    # Vault/doc libraries
     for root in _vault_non_code_roots():
         if _is_within_path(repo_path, root):
             return "vault_or_docs"
@@ -133,11 +141,11 @@ def _classify_repo(repo_path: Path) -> str:
     if _looks_like_doc_library(repo_path):
         return "vault_or_docs"
 
+    # Projects: has code markers, not core or extension
     if _has_code_markers(repo_path):
-        return "code"
+        return "project"
 
-    # Fall back to configurable default for uncertain repositories.
-    return policy.get("fallback_kind", "code")
+    return policy.get("fallback_kind", "project")
 
 
 def _to_bool(value: str | None, default: bool = False) -> bool:
@@ -204,13 +212,13 @@ def _list_repos(scope: str = "code", exclude_system: bool = False) -> list[dict]
             continue
 
         kind = _classify_repo(child)
-        if exclude_system and kind == "system":
+        if exclude_system and kind in ("core", "system"):
             continue
         if scope == "code" and kind == "vault_or_docs":
             continue
         if scope == "vault" and kind != "vault_or_docs":
             continue
-        if scope == "system" and kind != "system":
+        if scope == "system" and kind not in ("core", "system"):
             continue
 
         branch = _git_output(child, "rev-parse", "--abbrev-ref", "HEAD") or "unknown"

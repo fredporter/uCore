@@ -1,0 +1,50 @@
+# uDev Automation Engine Configuration
+# ======================================
+
+# Root of the global-knowledge library
+knowledge_root: "~/Code/uDev/global-knowledge"
+
+# Repository root for git operations
+repo_root: "~/Code/uDev"
+
+# BrowserUI endpoint for web scraping references
+browserui_endpoint: "http://localhost:8000"
+
+# OpenRouter API key (free tier — no paid models)
+openrouter_api_key: ""
+
+# Git settings
+git:
+  branch: "automation/updates"  # PR branch for automated changes
+  base_branch: "main"
+  author_name: "uDev Automation"
+  author_email: "automation@udev.local"
+
+# Scanning
+scanning:
+  # File patterns to include
+  include_patterns:
+    - "*.md"
+  # Directories to exclude
+  exclude_dirs:
+    - ".git"
+    - "node_modules"
+    - "__pycache__"
+
+# Scraping
+scraping:
+  timeout_seconds: 30
+  max_retries: 3
+  backoff_factor: 2.0  # exponential backoff multiplier
+  respect_robots_txt: true
+  max_references_per_article: 5
+
+# Notebook generation
+notebook:
+  kernel: "python3"
+  output_suffix: "-demo"
+
+# Deduplication
+dedup:
+  hash_algorithm: "sha256"
+  cache_file: ".automation-cache.json"

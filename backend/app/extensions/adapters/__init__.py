@@ -1,6 +1,6 @@
-"""Extension adapters — hard-cut bridges to external repos.
+"""Extension adapters — bridges to external runtimes.
 
-Each adapter imports the implementation from an external package
-(e.g. 'uflow', 'uknowledge', and runtime registrars). If an external
-provider is unavailable for a required capability, adapters fail fast.
+The registry now imports external packages (uflow, uknowledge) directly.
+This module retains only runtime adapters (ucode_runtime for Ceefax/BBCSDL)
+that have not yet been fully externalised.
 """

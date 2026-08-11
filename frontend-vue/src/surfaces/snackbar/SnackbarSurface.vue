@@ -29,6 +29,10 @@
       <div v-else-if="activeTab === 'feeds'" class="server-tab-shell">
         <SnackbarFeedsPanel />
       </div>
+      <!-- Repos (code repository browser) -->
+      <div v-else-if="activeTab === 'repos'" class="server-tab-shell">
+        <SnackbarReposPanel />
+      </div>
       <!-- Skills (on-demand) -->
       <div v-else-if="activeTab === 'skills'" class="server-tab-shell">
         <SnackbarSkillsPanel />
@@ -74,6 +78,9 @@ const SnackbarAgentsPanel = defineAsyncComponent(
 );
 const SnackbarFeedsPanel = defineAsyncComponent(
   () => import("./panels/SnackbarFeedsPanel.vue"),
+);
+const SnackbarReposPanel = defineAsyncComponent(
+  () => import("./panels/SnackbarReposPanel.vue"),
 );
 const SnackbarSkillsPanel = defineAsyncComponent(
   () => import("./panels/SnackbarSkillsPanel.vue"),

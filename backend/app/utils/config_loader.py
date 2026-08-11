@@ -133,7 +133,16 @@ def load_service_registry() -> tuple[list[dict[str, Any]], dict[str, Any]]:
 # ─── Developer Repo Policy ───────────────────────────────────────────────
 
 _DEFAULT_SYSTEM_REPO_NAMES: set[str] = {
-    "ucore", "ucode", "userver", "uconnect", "uvector",
+    "ucore", "uflow", "uknowledge", "ucode", "ucode2", "uvector",
+}
+
+_DEFAULT_CORE_REPO_NAMES: set[str] = {
+    "udev",
+}
+
+_DEFAULT_EXTENSION_REPO_NAMES: set[str] = {
+    "udos-budget", "udos-identity", "udos-google",
+    "udos-dreamscape", "udos-publishing", "udos-agents", "udos-vaults",
 }
 
 _DEFAULT_VAULT_DOC_NAME_HINTS: set[str] = {
@@ -219,6 +228,12 @@ def load_developer_repo_policy() -> dict[str, Any]:
         "system_repos": set(
             data.get("system_repos", list(_DEFAULT_SYSTEM_REPO_NAMES)),
         ),
+        "core_repos": set(
+            data.get("core_repos", list(_DEFAULT_CORE_REPO_NAMES)),
+        ),
+        "extension_repos": set(
+            data.get("extension_repos", list(_DEFAULT_EXTENSION_REPO_NAMES)),
+        ),
         "vault_doc_name_hints": set(
             data.get("vault_doc_name_hints", list(_DEFAULT_VAULT_DOC_NAME_HINTS)),
         ),
@@ -287,6 +302,8 @@ def _build_default_policy() -> dict[str, Any]:
         "code_root": _DEFAULT_CODE_ROOT,
         "vault_non_code_roots": _DEFAULT_VAULT_NON_CODE_ROOTS,
         "system_repos": _DEFAULT_SYSTEM_REPO_NAMES,
+        "core_repos": _DEFAULT_CORE_REPO_NAMES,
+        "extension_repos": _DEFAULT_EXTENSION_REPO_NAMES,
         "vault_doc_name_hints": _DEFAULT_VAULT_DOC_NAME_HINTS,
         "code_marker_files": _DEFAULT_CODE_MARKER_FILES,
         "code_marker_dirs": _DEFAULT_CODE_MARKER_DIRS,
@@ -298,7 +315,7 @@ def _build_default_policy() -> dict[str, Any]:
         "default_scope": "code",
         "scopes_allowed": ["code", "all", "vault", "system"],
         "exclude_system_default": False,
-        "fallback_kind": "code",
+        "fallback_kind": "project",
         "include_kind_metadata": True,
     }
 

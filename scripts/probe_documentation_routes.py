@@ -13,6 +13,9 @@ ENDPOINTS: list[tuple[str, str]] = [
     ("GET", "/api/docs/sites"),
     ("GET", "/api/docs/global-knowledge"),
     ("GET", "/api/docs/export"),
+    ("GET", "/api/docs/courses"),
+    ("GET", "/api/docs/notebooks"),
+    ("GET", "/api/docs/repo-docs"),
 ]
 
 

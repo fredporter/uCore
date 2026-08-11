@@ -4,7 +4,7 @@
       :chat-mode="shell.chatMode"
       :sidebar-open="shell.sidebarOpen"
       @toggle-chat="shell.toggleChat"
-      @toggle-sidebar="shell.toggleSidebar"
+      @toggle-sidebar="handleGlobalSidebarToggle"
     />
     <div
       class="app-body"
@@ -47,7 +47,7 @@
 import { useShellStore } from "../stores/shell";
 import { useSettingsStore } from "../stores/settings";
 import { useWorkflowStore } from "../stores/workflow";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import GlobalToolbar from "../skills/organisms/GlobalToolbar.vue";
 import FilepickerSidebar from "../skills/molecules/FilepickerSidebar.vue";
 import FloatingChat from "../surfaces/assistui/FloatingChat.vue";
@@ -59,9 +59,18 @@ import type { FileEntry } from "../types/filepicker";
 const shell = useShellStore();
 const workflow = useWorkflowStore();
 const router = useRouter();
+const route = useRoute();
 
 // Initialize settings store to apply persisted theme (dark mode default)
 useSettingsStore();
+
+function handleGlobalSidebarToggle() {
+  if (route.path === "/developer") {
+    shell.toggleDeveloperSidebar();
+    return;
+  }
+  shell.toggleSidebar();
+}
 
 async function handleFileSelect(file: FileEntry) {
   let content = file.preview || "";

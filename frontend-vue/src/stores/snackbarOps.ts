@@ -12,6 +12,7 @@ export type SnackbarOpsTab =
   | "services"
   | "agents"
   | "feeds"
+  | "repos"
   | "skills"
   | "snacks"
   | "extensions";
@@ -123,6 +124,7 @@ export const SNACKBAR_OPS_TABS: {
   { id: "services", label: "Services", icon: "dns" },
   { id: "agents", label: "Agents", icon: "group" },
   { id: "feeds", label: "Feeds", icon: "rss_feed" },
+  { id: "repos", label: "Repos", icon: "folder" },
   { id: "skills", label: "Skills", icon: "extension" },
   { id: "snacks", label: "Snacks", icon: "storefront" },
   { id: "extensions", label: "Extensions", icon: "extension" },

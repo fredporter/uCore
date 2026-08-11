@@ -21,11 +21,27 @@ policy:
   exclude_system_default: false
 
 system_repos:
+  # Core platform repos (required at runtime)
   - ucore
+  - uflow
+  - uknowledge
   - ucode
-  - userver
-  - uconnect
+  - ucode2
   - uvector
+
+core_repos:
+  # Additional core repos beyond system_repos
+  - udev
+
+extension_repos:
+  # Extension plugins (udos-* repos automatically included)
+  - udos-budget
+  - udos-identity
+  - udos-google
+  - udos-dreamscape
+  - udos-publishing
+  - udos-agents
+  - udos-vaults
 
 vault_doc_name_hints:
   - global-knowledge

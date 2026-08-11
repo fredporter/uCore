@@ -18,13 +18,13 @@ from aiohttp import web
 
 log = logging.getLogger("ucore.api.automation")
 
-# uDev automation engine location (layered repo)
+# Automation engine location (now in uCore services)
 UDEV_DIR = Path(
-    os.environ.get("UDEV_DIR", str(Path.home() / "Code" / "uDev")),
+    os.environ.get("UDEV_DIR", str(Path(__file__).resolve().parent.parent)),
 )
-ENGINE_DIR = UDEV_DIR / "automation"
+ENGINE_DIR = UDEV_DIR / "services" / "automation"
 ENGINE_SCRIPT = ENGINE_DIR / "engine.py"
-KNOWLEDGE_ROOT = UDEV_DIR / "global-knowledge"
+KNOWLEDGE_ROOT = Path.home() / "Code" / "uDev" / "global-knowledge"
 
 
 def _engine_exists() -> bool:

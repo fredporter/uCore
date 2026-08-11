@@ -4,8 +4,9 @@
     <div class="global-toolbar__left">
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
-        @click="emit('toggle-sidebar')"
-        title="Finder"
+        :disabled="sidebarDisabled"
+        @click="handleSidebarToggle"
+        :title="sidebarTitle"
       >
         <UIcon name="menu" class="global-toolbar__icon" />
       </button>
@@ -119,6 +120,26 @@ const shell = useShellStore();
 const settings = useSettingsStore();
 
 const isDark = computed(() => settings.themeMode === "dark");
+const sidebarDisabled = computed(
+  () => route.path === "/developer" && shell.developerSurfaceTab === "code",
+);
+const sidebarTitle = computed(() => {
+  if (route.path === "/developer") {
+    if (sidebarDisabled.value) {
+      return "Repository sidebar unavailable on Code tab";
+    }
+    return shell.developerSidebarOpen ? "Hide repo sidebar" : "Show repo sidebar";
+  }
+  return "Finder";
+});
+
+function handleSidebarToggle() {
+  if (route.path === "/developer") {
+    shell.toggleDeveloperSidebar();
+    return;
+  }
+  emit("toggle-sidebar");
+}
 
 function toggleTheme() {
   settings.setThemeMode(isDark.value ? "light" : "dark");
