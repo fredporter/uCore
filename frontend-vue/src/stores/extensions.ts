@@ -128,7 +128,7 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
     id: "documentation",
     name: "Documentation",
     kind: "surface",
-    required: false,
+    required: true,
     icon: "menu_book",
     route: "/documentation",
     activation_required: false,
@@ -245,6 +245,7 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
 // ─── Store ───────────────────────────────────────────────────────
 
 export const useExtensionStore = defineStore("extensions", () => {
+  const localEnabled = ref<Record<string, boolean>>({});
   const entries = ref<Map<string, ExtensionEntry>>(new Map());
 
   // Initialise all known manifests as "unknown"
@@ -254,6 +255,16 @@ export const useExtensionStore = defineStore("extensions", () => {
       status: manifest.required ? "running" : "unknown",
     });
   }
+
+  function applyLocalEnabledOverrides() {
+    for (const [id, enabled] of Object.entries(localEnabled.value || {})) {
+      const entry = entries.value.get(id);
+      if (!entry || entry.manifest.required) continue;
+      entry.status = enabled ? "running" : "installed";
+    }
+  }
+
+  applyLocalEnabledOverrides();
 
   // ─── Computed ───────────────────────────────────────────────
 
@@ -353,6 +364,13 @@ export const useExtensionStore = defineStore("extensions", () => {
 
       // Sync status back into known entries
       for (const ext of runtimeCatalogue.value) {
+        if (typeof ext?.id === "string") {
+          localEnabled.value = {
+            ...localEnabled.value,
+            [ext.id]: Boolean(ext.enabled),
+          };
+        }
+
         const existing = entries.value.get(ext.id);
         if (existing) {
           if (ext.status === "running" || ext.enabled) {
@@ -365,13 +383,21 @@ export const useExtensionStore = defineStore("extensions", () => {
           if (ext.version) existing.manifest.version = ext.version;
         }
       }
+
+      applyLocalEnabledOverrides();
     } catch {
       // Backend unreachable — stick with built-in status
+      applyLocalEnabledOverrides();
     }
   }
 
   async function toggleExtension(id: string, enabled: boolean) {
     loading.value = { ...loading.value, [id]: "toggling" };
+
+    localEnabled.value = {
+      ...localEnabled.value,
+      [id]: enabled,
+    };
 
     // Optimistic update — set local status immediately
     const existing = entries.value.get(id);
@@ -444,6 +470,7 @@ export const useExtensionStore = defineStore("extensions", () => {
   }
 
   return {
+    localEnabled,
     entries,
     all,
     running,
@@ -464,4 +491,9 @@ export const useExtensionStore = defineStore("extensions", () => {
     installExtension,
     repairExtension,
   };
+}, {
+  persist: {
+    key: "ucore.extensions",
+    paths: ["localEnabled"],
+  },
 });

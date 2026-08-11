@@ -26,11 +26,11 @@
       <div v-for="card in sortedCards" :key="card.id"
         class="card-stack__card"
         :class="{ 'card-stack__card--active': activeId === card.id }"
-        @click="$emit('select', card)">
+        @click.self="$emit('select', card)">
         <div class="card-stack__card-top">
           <input type="checkbox" class="card-stack__check"
             :checked="selectedIds.includes(card.id)"
-            @click.stop @change="toggleSelect(card.id, $event)"
+            @change="toggleSelect(card.id, $event)"
           />
           <span class="card-stack__score" :class="scoreClass(card.score)">{{ card.score ?? '-' }}</span>
           <span class="card-stack__title">{{ card.title }}</span>

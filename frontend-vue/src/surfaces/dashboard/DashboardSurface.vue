@@ -113,7 +113,7 @@ const SURFACE_CARD_DATA: Record<
     title: "Workflow",
     description: "Missions, Tasks & Binder",
     icon: "flag",
-    route: "/workflow",
+    route: "/workflow?tab=mission-control",
     color: "var(--usx-color-primary)",
   },
   ucode: {
@@ -266,6 +266,15 @@ function navigate(route: string) {
     window.open(route, "_blank");
     return;
   }
+
+  // Normalize workflow navigation so UIHub cards always open the intended tab.
+  if (route.startsWith("/workflow")) {
+    const url = new URL(route, window.location.origin);
+    const tab = (url.searchParams.get("tab") || "mission-control").trim();
+    router.push({ path: "/workflow", query: { tab } });
+    return;
+  }
+
   router.push(route);
 }
 </script>
