@@ -416,12 +416,13 @@ function saveSession() {
 function loadSession() {
   try {
     const raw = localStorage.getItem("browserui-session")
-    if (raw) {
-      const data = JSON.parse(raw)
-      researchJobs.value = data.researchJobs || []
-      searchQuery.value = data.searchQuery || ""
-    }
-  } catch { /* ignore */ }
+    if (!raw) return
+    const data = JSON.parse(raw)
+    researchJobs.value = data.researchJobs || []
+    searchQuery.value = data.searchQuery || ""
+  } catch {
+    // ignore malformed session data
+  }
 }
 
 function toggleBatch(id: string, event: Event) {
@@ -431,29 +432,20 @@ function toggleBatch(id: string, event: Event) {
 }
 
 function scoreColor(s: number | undefined): string {
-  if (s === undefined) return ''
-  if (s >= 4) return 'browserui-score--high'
-  if (s >= 2) return 'browserui-score--mid'
-  return 'browserui-score--low'
+  if (s === undefined) return ""
+  if (s >= 4) return "browserui-score--high"
+  if (s >= 2) return "browserui-score--mid"
+  return "browserui-score--low"
 }
 
 
-      const data = JSON.parse(raw)
-      researchJobs.value = data.researchJobs || []
-      searchQuery.value = data.searchQuery || ""
-    }
-  } catch { /* ignore */ }
 watch(researchJobs, () => saveSession(), { deep: true })
-
-
-}
 
 onMounted(() => {
   loadSession()
   fetchBookmarks()
   detectKnowledgeGaps()
 })
-
 
 
 
