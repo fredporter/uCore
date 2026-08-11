@@ -28,15 +28,17 @@
       <div class="surface__content">
         <div v-if="activeTab==='code'" class="dev-repo-grid">
           <div class="dev-lane-bar">
-            <button :class="{active:devLane==='core'}" @click="devLane='core'">Core</button>
+            <button :class="{active:devLane==='core'}" @click="devLane='core'">Code</button>
             <button :class="{active:devLane==='extension'}" @click="devLane='extension'">Extensions</button>
             <button :class="{active:devLane==='project'}" @click="devLane='project'">Projects</button>
           </div>
           <div v-if="loadingRepos" class="dev-loading"><UIcon name="sync" /> Loading...</div>
-          <div v-for="repo in filteredRepos" :key="repo.name" class="dev-repo-card" @click="openRepoFromCard(repo)">
-            <div class="dev-repo-card__header"><UIcon name="folder" /><span>{{ repo.name }}</span><UBadge :type="repo.status === 'clean' ? 'success' : 'warning'" size="sm">{{ repo.status }}</UBadge></div>
-            <div class="dev-repo-card__body"><span>{{ repo.branch }}</span><span v-if="repo.changes">{{ repo.changes }} changes</span><span class="dev-kind-badge">{{ repo.kind }}</span></div>
-            <div class="dev-repo-card__footer"><code>{{ repo.path }}</code></div>
+          <div v-else class="dev-repo-grid__cards">
+            <div v-for="repo in filteredRepos" :key="repo.name" class="dev-repo-card" @click="openRepoFromCard(repo)">
+              <div class="dev-repo-card__header"><UIcon name="folder" /><span>{{ repo.name }}</span><UBadge :type="repo.status === 'clean' ? 'success' : 'warning'" size="sm">{{ repo.status }}</UBadge></div>
+              <div class="dev-repo-card__body"><span>{{ repo.branch }}</span><span v-if="repo.changes">{{ repo.changes }} changes</span><span class="dev-kind-badge">{{ repo.kind }}</span></div>
+              <div class="dev-repo-card__footer"><code>{{ repo.path }}</code></div>
+            </div>
           </div>
         </div>
         <div v-else-if="activeTab==='repository'">
@@ -86,26 +88,19 @@ const loadingFiles = ref(false);
 const loadingFile = ref(false);
 const showSidebar = computed(() => shell.developerSidebarOpen && activeTab.value !== "code");
 const sidebarRepo = ref("");
-const devLane = ref<"core" | "extension" | "project">("project");
+const devLane = ref<"core" | "extension" | "project">("extension");
 const expandedDirs = ref<Set<string>>(new Set());
 
-const laneKinds: Record<"core" | "extension" | "project", string[]> = {
-  core: ["core", "system"],
-  extension: ["extension"],
-  project: ["project", "code"],
-};
-
-function normalizeKind(kind?: string) {
-  const value = (kind || "").toLowerCase();
-  if (!value) return "project";
-  if (value === "system") return "core";
-  if (value === "code") return "project";
-  return value;
+function getLaneForRepo(repo: Repo): "core" | "extension" | "project" {
+  const name = (repo.name || "").trim().toLowerCase();
+  if (name === "fredporter") return "project";
+  if (["ucore", "sonicscrewdriver", "snackmachine", "ucode", "uflow", "uknowledge", "uvector"].includes(name)) return "core";
+  if (["dreamscape", "google"].some((suffix) => name.endsWith(suffix))) return "extension";
+  return "extension";
 }
 
 const filteredRepos = computed(() => {
-  const kinds = laneKinds[devLane.value];
-  return repos.value.filter((repo) => kinds.includes(normalizeKind(repo.kind)));
+  return repos.value.filter((repo) => getLaneForRepo(repo) === devLane.value);
 });
 
 const visibleTree = computed(() => {
@@ -151,8 +146,8 @@ async function fetchRepos() {
 
 async function openRepoFromCard(repo: Repo) {
   shell.setDeveloperSidebarOpen(true);
+  await openSidebarRepo(repo.name);
   activeTab.value = "repository";
-  openSidebarRepo(repo.name);
 }
 
 function closeSidebar() {
@@ -177,7 +172,9 @@ async function openSidebarRepo(name: string) {
   const names = fileTree.value.map(f => f.name);
   const prefs = ["README.md", "readme.md", "docs/README.md"];
   const def = prefs.find(p => names.includes(p)) || names[0];
-  if (def) selectFile(def);
+  if (def) {
+    await selectFile(def);
+  }
 }
 
 async function selectFile(path: string) {
@@ -217,7 +214,7 @@ watch(
 watch(repos, (items) => {
   if (!items.length) return;
   const fallbackLane = (["core", "extension", "project"] as const).find((lane) =>
-    items.some((repo) => laneKinds[lane].includes(normalizeKind(repo.kind))),
+    items.some((repo) => getLaneForRepo(repo) === lane),
   );
   if (fallbackLane && !filteredRepos.value.length) {
     devLane.value = fallbackLane;
@@ -246,7 +243,8 @@ onMounted(() => {
 .dev-file-icon { flex-shrink: 0; color: var(--usx-color-on-surface-muted); }
 .dev-file-name { flex: 1; font-weight: var(--usx-font-weight-medium); }
 .dev-file-path { font-family: var(--usx-font-family-mono); font-size: var(--usx-font-size-xs); color: var(--usx-color-on-surface-muted); max-width: 20ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dev-repo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(28ch, 1fr)); gap: var(--usx-spacing-sm); }
+.dev-repo-grid { display: flex; flex-direction: column; gap: var(--usx-spacing-sm); }
+.dev-repo-grid__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(28ch, 1fr)); gap: var(--usx-spacing-sm); }
 .dev-repo-card { border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); background: var(--usx-color-surface); cursor: pointer; overflow: hidden; }
 .dev-repo-card:hover { border-color: var(--usx-color-primary); }
 .dev-repo-card__header { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-sm) var(--usx-spacing-md); border-bottom: var(--usx-border-width) solid var(--usx-color-border); }
@@ -254,8 +252,8 @@ onMounted(() => {
 .dev-repo-card__footer { padding: var(--usx-spacing-xs) var(--usx-spacing-md); background: var(--usx-color-surface-variant); font-size: var(--usx-font-size-xs); }
 .dev-repo-card__footer code { font-family: var(--usx-font-family-mono); color: var(--usx-color-on-surface-muted); }
 .dev-kind-badge { display: inline-block; padding: 1px var(--usx-spacing-xs); background: var(--usx-color-surface-variant); border-radius: var(--usx-radius-sm); font-size: var(--usx-font-size-xs); color: var(--usx-color-on-surface-muted); text-transform: capitalize; }
-.dev-lane-bar { display: flex; gap: var(--usx-spacing-xs); margin-bottom: var(--usx-spacing-md); }
-.dev-lane-bar button { padding: var(--usx-spacing-xs) var(--usx-spacing-md); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-surface); color: var(--usx-color-on-surface); cursor: pointer; font-size: var(--usx-font-size-sm); }
+.dev-lane-bar { display: flex; justify-content: center; gap: var(--usx-spacing-xs); margin-bottom: var(--usx-spacing-md); align-items: center; flex-wrap: wrap; }
+.dev-lane-bar button { align-self: center; flex-shrink: 0; white-space: nowrap; padding: var(--usx-spacing-xs) var(--usx-spacing-md); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-surface); color: var(--usx-color-on-surface); cursor: pointer; font-size: var(--usx-font-size-sm); height: auto; min-height: auto; }
 .dev-lane-bar button.active { background: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
 .dev-loading, .dev-empty { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-xl); color: var(--usx-color-on-surface-muted); justify-content: center; font-size: var(--usx-font-size-sm); }
 </style>
