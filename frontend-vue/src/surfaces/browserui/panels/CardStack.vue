@@ -100,12 +100,6 @@ function scoreClass(s: number | undefined): string {
   if (s >= 2) return "card-stack__score--mid"
   return "card-stack__score--low"
 }
-function scoreClass(s: number | undefined): string {
-  if (s === undefined) return "card-stack__score--none"
-  if (s >= 4) return "card-stack__score--high"
-  if (s >= 2) return "card-stack__score--mid"
-  return "card-stack__score--low"
-}
 </script>
 
 <style scoped>
@@ -175,5 +169,3 @@ function scoreClass(s: number | undefined): string {
 .uxs-btn:hover { background: var(--usx-color-surface-hover); }
 .uxs-btn--sm { font-size: var(--usx-font-size-xs); padding: 3px var(--usx-spacing-sm); }
 </style>
-
-</script>

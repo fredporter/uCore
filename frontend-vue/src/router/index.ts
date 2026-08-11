@@ -9,12 +9,14 @@ import {
   createWebHistory,
   type RouteRecordRaw,
 } from "vue-router";
+import DashboardSurface from "../surfaces/dashboard/DashboardSurface.vue";
+import WorkflowSurface from "../surfaces/workflow/WorkflowSurface.vue";
 
 const routes: RouteRecordRaw[] = [
   {
     path: "/",
     name: "dashboard",
-    component: () => import("../surfaces/dashboard/DashboardSurface.vue"),
+    component: DashboardSurface,
     meta: { title: "Mission Control", icon: "home" },
   },
   {
@@ -56,7 +58,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/workflow/:pathMatch(.*)*",
     name: "workflow",
-    component: () => import("../surfaces/workflow/WorkflowSurface.vue"),
+    component: WorkflowSurface,
     meta: { title: "Workflow", icon: "workflow" },
   },
   {
@@ -139,6 +141,17 @@ export const router = createRouter({
 });
 
 const DYNAMIC_IMPORT_RELOAD_KEY = "ucore.router.dynamic-import-reload";
+const RUNTIME_WARNING_KEY = "ucore.runtime.warning";
+
+function publishRuntimeWarning(message: string) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(RUNTIME_WARNING_KEY, message);
+  window.dispatchEvent(
+    new CustomEvent("ucore:runtime-warning", {
+      detail: { message },
+    }),
+  );
+}
 
 router.onError((error, to) => {
   const message = String((error as any)?.message || "");
@@ -162,6 +175,9 @@ router.onError((error, to) => {
   // Prevent infinite reload loops on persistent failures.
   if (lastReloadTarget === target) {
     window.sessionStorage.removeItem(DYNAMIC_IMPORT_RELOAD_KEY);
+    publishRuntimeWarning(
+      "A surface failed to load due to stale dev dependencies. Restart with 'pnpm -C frontend-vue run dev:clean -- --host 127.0.0.1 --port 4173'.",
+    );
     return;
   }
 

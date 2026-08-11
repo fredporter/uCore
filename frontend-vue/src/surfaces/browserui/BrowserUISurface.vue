@@ -9,32 +9,62 @@
           <UIcon :name="tab.icon" />{{ tab.label }}
         </button>
       </div>
-      <div v-if="activeTab === 'cards'" class="browserui-body">
-        <div class="browserui-canvas">
+            <div v-if="activeTab === 'cards'" class="browserui-body">
+        <div class="browserui-toolbar">
           <div class="browserui-search">
             <UInput v-model="searchQuery" placeholder="Search topics..." icon="search" />
-            <button v-if="batchSelected.length" class="uxs-btn uxs-btn--primary"
-              @click="batchResearch">Research {{ batchSelected.length }} Selected</button>
           </div>
-          <CardStack v-for="stack in filteredStacks" :key="stack.id"
-            :title="stack.title" :cards="stack.items"
-            :activeId="selectedCard?.id" :tagFilter="true"
-            @select="selectCard" @research="handleResearchCard" @enhance="enhanceCard"
-          />
+          <div class="browserui-pills">
+            <button v-for="tag in allTags" :key="tag" class="browserui-pill"
+              :class="{ 'browserui-pill--active': activeTag === tag }"
+              @click="activeTag = activeTag === tag ? '' : tag">{{ tag }}</button>
+          </div>
+          <div class="browserui-actions">
+            <button class="uxs-btn uxs-btn--primary" @click="activeTag = ''; batchSelected = []">
+              <UIcon name="refresh" /> Reset
+            </button>
+            <button v-if="batchSelected.length" class="uxs-btn uxs-btn--primary"
+              @click="batchResearch">Research {{ batchSelected.length }}</button>
+          </div>
+        </div>
+        <div class="browserui-kanban">
+          <div v-for="stack in filteredStacks" :key="stack.id" class="browserui-column">
+            <div class="browserui-column__header">
+              <UIcon :name="stack.icon" /><h3>{{ stack.title }}</h3>
+              <span class="browserui-column__count">{{ stack.items.length }}</span>
+            </div>
+            <div class="browserui-column__cards">
+              <div v-for="card in stack.items" :key="card.id"
+                class="browserui-card"
+                :class="{ 'browserui-card--active': selectedCard?.id === card.id, 'browserui-card--selected': batchSelected.includes(card.id) }"
+                @click.self="selectCard(card)">
+                <div class="browserui-card__top">
+                  <input type="checkbox" :checked="batchSelected.includes(card.id)"
+                    @change="toggleBatch(card.id, $event)" class="browserui-card__check" />
+                  <span class="browserui-card__score" v-if="card.score !== undefined"
+                    :class="scoreColor(card.score)">{{ card.score }}</span>
+                  <span class="browserui-card__title">{{ card.title }}</span>
+                </div>
+                <div class="browserui-card__desc">{{ card.description }}</div>
+                <div class="browserui-card__tags">
+                  <span v-for="t in card.tags" :key="t" class="browserui-card__tag">{{ t }}</span>
+                </div>
+                <div class="browserui-card__actions">
+                  <button class="uxs-btn uxs-btn--sm" @click.stop="handleResearchCard(card)">Research</button>
+                  <button class="uxs-btn uxs-btn--sm" @click.stop="enhanceCard(card)">Enhance</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div v-if="selectedCard" class="browserui-editor">
-          <PreviewTab v-if="editorMode === 'preview'"
-            :content="editorContent" :meta="editorMeta"
-            @edit="editorMode = 'edit'" @chatui="sendToChatUI"
-          />
-          <EditTab v-else
-            :content="editorContent" :title="selectedCard?.title"
+          <PreviewTab v-if="editorMode === 'preview'" :content="editorContent" :meta="editorMeta"
+            @edit="editorMode = 'edit'" @chatui="sendToChatUI" />
+          <EditTab v-else :content="editorContent" :title="selectedCard?.title"
             :tags="selectedCard?.tags" :binder="selectedCard?.binder"
-            @preview="editorMode = 'preview'" @save="saveToBinder"
-          />
+            @preview="editorMode = 'preview'" @save="saveToBinder" />
           <button class="browserui-editor-close" @click="selectedCard = null; editorMode = 'preview'">
-            <UIcon name="close" />
-          </button>
+            <UIcon name="close" /></button>
         </div>
       </div>
       <ResearchDashboard v-if="activeTab === 'dashboard'"
@@ -186,6 +216,7 @@ const editorMeta = ref<{ source?: string; score?: number; tags?: string[]; title
 const researchJobs = ref<any[]>([])
 const researchGaps = ref<any[]>([])
 const batchSelected = ref<string[]>([])
+const activeTag = ref("")
 const chat = useChatStore()
 
 const TABS = [
@@ -386,6 +417,20 @@ function loadSession() {
   try {
     const raw = localStorage.getItem("browserui-session")
     if (raw) {
+function toggleBatch(id: string, event: Event) {
+  const checked = (event.target as HTMLInputElement).checked
+  if (checked) batchSelected.value = [...batchSelected.value, id]
+  else batchSelected.value = batchSelected.value.filter(i => i !== id)
+}
+
+function scoreColor(s: number | undefined): string {
+  if (s === undefined) return ''
+  if (s >= 4) return 'browserui-score--high'
+  if (s >= 2) return 'browserui-score--mid'
+  return 'browserui-score--low'
+}
+
+
       const data = JSON.parse(raw)
       researchJobs.value = data.researchJobs || []
       searchQuery.value = data.searchQuery || ""
@@ -406,10 +451,21 @@ onMounted(() => {
 
 
 
+const allTags = computed(() => {
+  const tags = new Set<string>()
+  for (const s of stacks.value) for (const item of s.items) for (const t of item.tags) tags.add(t)
+  return [...tags].sort()
+})
+
+
 const filteredStacks = computed(() => {
-  if (!searchQuery.value) return stacks.value;
-  const q = searchQuery.value.toLowerCase();
-  return stacks.value
+  let result = stacks.value
+  if (activeTag.value) {
+    result = result.map(s => ({ ...s, items: s.items.filter(i => i.tags.includes(activeTag.value)) })).filter(s => s.items.length)
+  }
+  if (!searchQuery.value) return result
+  const q = searchQuery.value.toLowerCase()
+  return result
     .map((stack) => ({
       ...stack,
       items: stack.items.filter(
@@ -473,18 +529,53 @@ const filteredStacks = computed(() => {
   overflow: hidden;
 }
 
-/* ─── Search bar ─────────────────────────────────────────────── */
-.browserui-search {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-md);
-  padding: 0 0 var(--usx-spacing-md);
+/* ─── Toolbar: centered search + pills + actions ───────────── */
+.browserui-toolbar {
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--usx-spacing-md); padding: var(--usx-spacing-md);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  flex-shrink: 0; background: var(--usx-color-surface);
+}
+.browserui-search { width: 100%; max-width: 480px; }
+.browserui-pills {
+  display: flex; gap: var(--usx-spacing-xs); flex-wrap: wrap;
+  justify-content: center; max-width: 600px;
+}
+.browserui-pill {
+  font-size: var(--usx-font-size-xs); padding: 4px var(--usx-spacing-md);
+  border-radius: var(--usx-radius-full); border: 1px solid var(--usx-color-border);
+  background: var(--usx-color-surface); cursor: pointer;
+  color: var(--usx-color-on-surface-muted); white-space: nowrap;
+  transition: all var(--usx-transition-fast);
+}
+.browserui-pill:hover { border-color: var(--usx-color-primary); color: var(--usx-color-primary); }
+.browserui-pill--active { background: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
+.browserui-actions { display: flex; gap: var(--usx-spacing-sm); }
+
+/* ─── Kanban columns ─────────────────────────────────────────── */
+.browserui-kanban {
+  display: flex; gap: var(--usx-spacing-md); flex: 1; min-height: 0;
+  overflow-x: auto; overflow-y: hidden; padding: var(--usx-spacing-md);
+}
+.browserui-column {
+  flex: 0 0 300px; display: flex; flex-direction: column; min-height: 0;
+  background: var(--usx-color-surface-variant); border-radius: var(--usx-radius-lg);
+  overflow: hidden;
+}
+.browserui-column__header {
+  display: flex; align-items: center; gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
   flex-shrink: 0;
 }
-
-.browserui-search :deep(.u-input) {
-  flex: 1;
-  max-width: 60ch;
+.browserui-column__header h3 { margin: 0; font-size: var(--usx-font-size-sm); font-weight: 600; flex: 1; }
+.browserui-column__count {
+  font-size: var(--usx-font-size-xs); background: var(--usx-color-surface);
+  padding: 1px 8px; border-radius: var(--usx-radius-full); font-weight: 600;
+}
+.browserui-column__cards {
+  flex: 1; overflow-y: auto; padding: var(--usx-spacing-sm);
+  display: flex; flex-direction: column; gap: var(--usx-spacing-sm);
 }
 
 /* ─── Editor close button ───────────────────────────────────── */
@@ -597,92 +688,28 @@ const filteredStacks = computed(() => {
   flex: 1;
 }
 
-/* ─── Cards ──────────────────────────────────────────────────── */
-.browserui-cards {
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-xs);
-  min-width: 0;
-}
-
+/* ─── Cards in kanban columns ──────────────────────────────── */
 .browserui-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  padding: var(--usx-spacing-sm); border: 1px solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md); cursor: pointer;
   background: var(--usx-color-surface);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  color: inherit;
-  min-width: 0;
-  cursor: pointer;
-  text-align: left;
-  transition:
-    border-color var(--usx-transition-fast),
-    background var(--usx-transition-fast);
+  transition: border-color var(--usx-transition-fast), box-shadow var(--usx-transition-fast);
 }
+.browserui-card:hover { border-color: var(--usx-color-primary); box-shadow: 0 1px 4px color-mix(in srgb, var(--usx-color-primary) 15%, transparent); }
+.browserui-card--active { border-color: var(--usx-color-primary); background: color-mix(in srgb, var(--usx-color-primary) 5%, transparent); }
+.browserui-card--selected { border-color: var(--usx-color-success); background: color-mix(in srgb, var(--usx-color-success) 5%, transparent); }
+.browserui-card__top { display: flex; align-items: center; gap: var(--usx-spacing-xs); margin-bottom: var(--usx-spacing-xs); }
+.browserui-card__check { width: 14px; height: 14px; accent-color: var(--usx-color-primary); cursor: pointer; flex-shrink: 0; }
+.browserui-card__score { font-size: 10px; font-weight: 700; min-width: 22px; text-align: center; padding: 1px 4px; border-radius: var(--usx-radius-sm); }
+.browserui-score--high { background: var(--usx-color-success); color: var(--usx-color-on-success); }
+.browserui-score--mid { background: var(--usx-color-warning); color: var(--usx-color-on-warning); }
+.browserui-score--low { background: var(--usx-color-danger); color: var(--usx-color-on-danger); }
+.browserui-card__title { font-weight: 600; font-size: var(--usx-font-size-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.browserui-card__desc { font-size: var(--usx-font-size-xs); color: var(--usx-color-on-surface-muted); margin-bottom: var(--usx-spacing-xs); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.browserui-card__tags { display: flex; gap: 2px; flex-wrap: wrap; margin-bottom: var(--usx-spacing-xs); }
+.browserui-card__tag { font-size: 10px; padding: 1px 6px; border-radius: var(--usx-radius-full); background: var(--usx-color-surface-variant); color: var(--usx-color-on-surface-muted); }
+.browserui-card__actions { display: flex; gap: var(--usx-spacing-xs); }
 
-.browserui-card:hover {
-  border-color: var(--usx-color-primary);
-}
-
-.browserui-card--active {
-  border-color: var(--usx-color-primary);
-  background: color-mix(in srgb, var(--usx-color-primary) 6%, transparent);
-}
-
-.browserui-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--usx-spacing-xs);
-}
-
-.browserui-card-action-icon {
-  flex-shrink: 0;
-  font-size: 16px;
-  color: var(--usx-color-on-surface-muted);
-  opacity: 0;
-  transition: opacity 150ms ease;
-}
-
-.browserui-card:hover .browserui-card-action-icon {
-  opacity: 1;
-  color: var(--usx-color-primary);
-}
-
-.browserui-card-title {
-  font-size: var(--usx-font-size-sm);
-  font-weight: var(--usx-font-weight-semibold);
-  overflow-wrap: anywhere;
-}
-
-.browserui-card-desc {
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
-  line-height: var(--usx-line-height-normal);
-  overflow-wrap: anywhere;
-}
-
-.browserui-card-tags {
-  display: flex;
-  gap: var(--usx-spacing-xs);
-  flex-wrap: wrap;
-  padding-top: var(--usx-spacing-xs);
-}
-
-.browserui-tag {
-  display: inline-flex;
-  align-items: center;
-  font-size: var(--usx-font-size-sm);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  background: var(--usx-color-surface-variant);
-  border-radius: var(--usx-radius-full);
-  color: var(--usx-color-primary);
-  font-weight: var(--usx-font-weight-medium);
-  line-height: var(--usx-line-height-none);
-  white-space: nowrap;
-}
 
 /* ─── Right: Editor slide-in ─────────────────────────────────── */
 .editor-slide-enter-active,

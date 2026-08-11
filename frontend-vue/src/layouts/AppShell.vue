@@ -6,6 +6,17 @@
       @toggle-chat="shell.toggleChat"
       @toggle-sidebar="handleGlobalSidebarToggle"
     />
+    <div v-if="runtimeWarning" class="app-runtime-warning" role="status">
+      <div class="app-runtime-warning__message">{{ runtimeWarning }}</div>
+      <div class="app-runtime-warning__actions">
+        <button class="app-runtime-warning__btn" @click="reloadPage">
+          Reload
+        </button>
+        <button class="app-runtime-warning__btn" @click="dismissRuntimeWarning">
+          Dismiss
+        </button>
+      </div>
+    </div>
     <div
       class="app-body"
       :class="{
@@ -44,6 +55,7 @@
  * Replaces RootLayout + SurfaceShellContext from React.
  * @category layouts
  */
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { useShellStore } from "../stores/shell";
 import { useSettingsStore } from "../stores/settings";
 import { useWorkflowStore } from "../stores/workflow";
@@ -60,9 +72,45 @@ const shell = useShellStore();
 const workflow = useWorkflowStore();
 const router = useRouter();
 const route = useRoute();
+const runtimeWarning = ref("");
+const RUNTIME_WARNING_KEY = "ucore.runtime.warning";
 
 // Initialize settings store to apply persisted theme (dark mode default)
 useSettingsStore();
+
+function syncRuntimeWarningFromSession() {
+  if (typeof window === "undefined") return;
+  runtimeWarning.value = window.sessionStorage.getItem(RUNTIME_WARNING_KEY) || "";
+}
+
+function onRuntimeWarningEvent(event: Event) {
+  const detail = (event as CustomEvent<{ message?: string }>).detail;
+  runtimeWarning.value = String(detail?.message || "").trim();
+}
+
+function dismissRuntimeWarning() {
+  runtimeWarning.value = "";
+  if (typeof window !== "undefined") {
+    window.sessionStorage.removeItem(RUNTIME_WARNING_KEY);
+  }
+}
+
+function reloadPage() {
+  window.location.reload();
+}
+
+onMounted(() => {
+  syncRuntimeWarningFromSession();
+  if (typeof window !== "undefined") {
+    window.addEventListener("ucore:runtime-warning", onRuntimeWarningEvent as EventListener);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (typeof window !== "undefined") {
+    window.removeEventListener("ucore:runtime-warning", onRuntimeWarningEvent as EventListener);
+  }
+});
 
 function handleGlobalSidebarToggle() {
   if (route.path === "/developer") {
@@ -171,6 +219,42 @@ async function handleNewFile(binderId: string) {
   flex: 1;
   overflow: hidden;
   min-height: 0;
+}
+
+.app-runtime-warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--usx-spacing-md);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  background: color-mix(in srgb, var(--usx-color-warning) 16%, transparent);
+  border-top: var(--usx-border-width) solid var(--usx-color-warning);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-warning);
+}
+
+.app-runtime-warning__message {
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface);
+}
+
+.app-runtime-warning__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+}
+
+.app-runtime-warning__btn {
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
+  font-size: var(--usx-font-size-xs);
+  cursor: pointer;
+}
+
+.app-runtime-warning__btn:hover {
+  border-color: var(--usx-color-warning);
 }
 
 .app-sidebar {

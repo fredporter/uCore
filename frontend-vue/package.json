@@ -6,6 +6,7 @@
   "description": "uDosConnect UI Hub — Vue 3 Skills-First rewrite of the Developer Surface",
   "scripts": {
     "dev": "vite",
+    "dev:clean": "vite --force",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
