@@ -418,6 +418,39 @@ const filteredStacks = computed(() => {
   overflow: hidden;
 }
 
+/* ─── Tab bar ────────────────────────────────────────────────── */
+.browserui-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  flex-shrink: 0;
+  background: var(--usx-color-surface);
+}
+
+.browserui-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm);
+  cursor: pointer;
+  transition: color var(--usx-transition-fast), border-color var(--usx-transition-fast);
+}
+
+.browserui-tab:hover {
+  color: var(--usx-color-on-surface);
+}
+
+.browserui-tab--active {
+  color: var(--usx-color-primary);
+  border-bottom-color: var(--usx-color-primary);
+  font-weight: var(--usx-font-weight-semibold);
+}
+
 /* ─── Body: two-panel layout ─────────────────────────────────── */
 .browserui-body {
   display: flex;
@@ -428,12 +461,69 @@ const filteredStacks = computed(() => {
 
 /* ─── Search bar ─────────────────────────────────────────────── */
 .browserui-search {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-md);
   padding: 0 0 var(--usx-spacing-md);
   flex-shrink: 0;
 }
 
 .browserui-search :deep(.u-input) {
-  max-width: 40ch;
+  flex: 1;
+  max-width: 60ch;
+}
+
+/* ─── Editor close button ───────────────────────────────────── */
+.browserui-editor-close {
+  position: absolute;
+  top: var(--usx-spacing-sm);
+  right: var(--usx-spacing-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: var(--usx-radius-sm);
+  color: var(--usx-color-on-surface-muted);
+  z-index: 1;
+}
+
+.browserui-editor-close:hover {
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface);
+}
+
+/* ─── Shared button styles used in shell ────────────────────── */
+.uxs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  border: 1px solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  padding: 4px var(--usx-spacing-sm);
+  cursor: pointer;
+  background: var(--usx-color-surface);
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface);
+  white-space: nowrap;
+  transition: background var(--usx-transition-fast);
+}
+
+.uxs-btn:hover {
+  background: var(--usx-color-surface-hover);
+}
+
+.uxs-btn--primary {
+  background: var(--usx-color-primary);
+  color: var(--usx-color-on-primary);
+  border-color: var(--usx-color-primary);
+}
+
+.uxs-btn--primary:hover {
+  background: color-mix(in srgb, var(--usx-color-primary) 85%, black);
 }
 
 /* ─── Canvas ─────────────────────────────────────────────────── */
