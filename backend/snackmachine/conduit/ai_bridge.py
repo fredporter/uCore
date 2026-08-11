@@ -45,8 +45,8 @@ class LibraryAIBridge:
         limit: int = 10,
     ) -> dict[str, Any]:
         """Search the library index with optional agent boosting."""
-        from snackmachine.conduit.library_index import search as fts_search
         from snackmachine.conduit.library_index import get_stats
+        from snackmachine.conduit.library_index import search as fts_search
 
         fts_results = fts_search(query, limit=limit * 2)
 

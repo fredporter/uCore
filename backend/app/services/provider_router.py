@@ -110,6 +110,7 @@ class ProviderRouter:
         self._counter = 0
         self._total_latency_ms: float = 0.0
         self._last_latency_ms: float | None = None
+        self._init_providers()
         try:
             import litellm  # noqa: F401
             self._litellm_available = True
@@ -120,6 +121,53 @@ class ProviderRouter:
     def _load_config(self) -> None:
         """Load provider configuration. Override in tests via monkeypatch."""
         pass
+
+    def _init_providers(self) -> None:
+        """Register default providers including OpenRouter free tier."""
+        if self.providers:
+            return
+        self.providers["ollama"] = ProviderConfig(
+            name="ollama", type="ollama",
+            base_url=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),
+            default_model="qwen2.5-coder:3b", priority=1,
+            models=["qwen2.5-coder:3b", "qwen2.5-coder:7b-instruct-q4_K_M",
+                    "llama3.2", "mistral"],
+        )
+        or_key = os.environ.get("OPENROUTER_API_KEY", "")
+        self.providers["openrouter"] = ProviderConfig(
+            name="openrouter", type="openrouter",
+            base_url="https://openrouter.ai/api/v1",
+            default_model="cognitivecomputations/dolphin-mixtral-8x7b",
+            priority=2, api_key=or_key,
+            models=[
+                # Free tier (no cost)
+                "cognitivecomputations/dolphin-mixtral-8x7b",
+                "microsoft/phi-3-medium-128k-instruct",
+                # Ultra-cheap
+                "deepseek/deepseek-chat",
+                "mistralai/mistral-7b-instruct",
+                # Budget
+                "anthropic/claude-3.5-haiku",
+                "google/gemini-2.0-flash-001",
+                # Mid-range
+                "anthropic/claude-sonnet-4-20250514",
+                "openai/gpt-4o",
+                # Premium
+                "anthropic/claude-opus-4-20250514",
+                "openai/gpt-4.5-preview",
+            ],
+        )
+        self.providers["openrouter-free"] = ProviderConfig(
+            name="openrouter-free", type="openrouter",
+            base_url="https://openrouter.ai/api/v1",
+            default_model="cognitivecomputations/dolphin-mixtral-8x7b",
+            priority=3, api_key=or_key,
+            models=[
+                "cognitivecomputations/dolphin-mixtral-8x7b",
+                "microsoft/phi-3-medium-128k-instruct",
+            ],
+        )
+
 
     # ── Provider Registry ─────────────────────────────────────────
 
@@ -172,16 +220,37 @@ class ProviderRouter:
         ]
 
     def list_models(self) -> list[dict[str, Any]]:
-        """List models from configured providers."""
+        """List models from configured providers with cost tier annotations."""
+        cost_tiers = {
+            "cognitivecomputations/dolphin-mixtral-8x7b": "free",
+            "microsoft/phi-3-medium-128k-instruct": "free",
+            "qwen2.5-coder:3b": "free",
+            "qwen2.5-coder:7b-instruct-q4_K_M": "free",
+            "llama3.2": "free",
+            "mistral": "free",
+            "deepseek/deepseek-chat": "ultra-cheap",
+            "mistralai/mistral-7b-instruct": "ultra-cheap",
+            "anthropic/claude-3.5-haiku": "budget",
+            "google/gemini-2.0-flash-001": "budget",
+            "anthropic/claude-sonnet-4-20250514": "mid-range",
+            "openai/gpt-4o": "mid-range",
+            "anthropic/claude-opus-4-20250514": "premium",
+            "openai/gpt-4.5-preview": "premium",
+        }
         models: list[dict[str, Any]] = []
         for prov in self.providers.values():
             if prov.models:
                 for m in prov.models:
-                    models.append({"id": m, "provider": prov.name})
+                    entry: dict[str, Any] = {
+                        "id": m, "provider": prov.name,
+                        "cost": cost_tiers.get(m, "unknown"),
+                    }
+                    models.append(entry)
             elif prov.default_model:
                 models.append({
                     "id": prov.default_model,
                     "provider": prov.name,
+                    "cost": cost_tiers.get(prov.default_model, "unknown"),
                 })
         if models:
             return models
@@ -468,8 +537,10 @@ class ProviderRouter:
                 }
 
     def _default_model(self, provider: str | None = None) -> str:
+        if provider == "openrouter-free":
+            return "cognitivecomputations/dolphin-mixtral-8x7b"
         if provider == "openrouter":
-            return "openrouter/qwen/qwen2.5-coder-32b-instruct"
+            return "cognitivecomputations/dolphin-mixtral-8x7b"
         return "ollama/qwen2.5-coder:3b"
 
 

@@ -1,33 +1,22 @@
 <template>
   <div class="surface">
     <div class="surface__content assistui-shell">
-      <!-- Mode toggle: Chat / Workflow -->
+      <!-- Mode toggle: Chat / Plan / Act / Workflow -->
       <div class="assistui-mode-toggle">
         <button
+          v-for="mode in ASSISTUI_MODES"
+          :key="mode.id"
           class="assistui-mode-btn"
-          :class="{ 'assistui-mode-btn--active': chat.promptMode === 'chat' }"
-          @click="chat.setPromptMode('chat')"
+          :class="{ 'assistui-mode-btn--active': chat.promptMode === mode.id }"
+          @click="switchMode(mode.id); if (mode.id === 'workflow') wf.fetchAll()"
         >
-          <UIcon name="chat" />
-          <span>Chat</span>
-        </button>
-        <button
-          class="assistui-mode-btn"
-          :class="{
-            'assistui-mode-btn--active': chat.promptMode === 'workflow',
-          }"
-          @click="
-            chat.setPromptMode('workflow');
-            wf.fetchAll();
-          "
-        >
-          <UIcon name="account_tree" />
-          <span>Workflow</span>
+          <UIcon :name="mode.icon" />
+          <span>{{ mode.label }}</span>
         </button>
       </div>
 
-      <!-- Chat Mode -->
-      <template v-if="chat.promptMode === 'chat'">
+      <!-- Chat / Plan / Act Modes (all use chat body) -->
+      <template v-if="chat.promptMode === 'chat' || chat.promptMode === 'plan' || chat.promptMode === 'act'">
         <!-- Top Bar: Model picker + Status + Actions -->
         <div class="surface__topbar">
           <div class="assistui-controls-row">
@@ -75,6 +64,13 @@
               />
               <span class="assistui-status-text">
                 {{ statusText }}
+              </span>
+              <span
+                v-if="chat.promptMode !== 'chat'"
+                class="assistui-mode-badge"
+                :class="`assistui-mode-badge--${chat.promptMode}`"
+              >
+                {{ chat.promptMode === 'plan' ? 'Research' : chat.promptMode === 'act' ? 'Action' : 'Workflow' }}
               </span>
               <span class="assistui-status-sep" />
               <button class="usx-button" @click="chat.newConversation()">
@@ -140,6 +136,44 @@
             <span class="assistui-loading-dot" />
           </div>
         </div>
+          <!-- Plan Steps Card (shown in plan mode when plan_steps present) -->
+          <div
+            v-if="chat.promptMode === 'plan' && chat.planSteps.length > 0"
+            class="assistui-plan-card"
+          >
+            <div class="assistui-plan-card__header">
+              <UIcon name="checklist" />
+              <span>Plan Steps</span>
+            </div>
+            <div
+              v-for="(step, i) in chat.planSteps"
+              :key="i"
+              class="assistui-plan-step"
+              :class="{ 'assistui-plan-step--done': step.done }"
+            >
+              <UIcon :name="step.done ? 'check_box' : 'check_box_outline_blank'" />
+              <span class="assistui-plan-step__text">{{ step.description }}</span>
+              <span v-if="step.tool" class="assistui-plan-step__tool">
+                <UIcon name="build" />
+                {{ step.tool }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Act Mode Confirmation Gate -->
+          <div
+            v-if="chat.promptMode === 'act' && actConfirmVisible"
+            class="assistui-act-confirm"
+          >
+            <UIcon name="warning" />
+            <span>Act mode will execute tools. Confirm to proceed?</span>
+            <div class="assistui-act-confirm__actions">
+              <button class="usx-button" @click="actConfirmVisible = false">Cancel</button>
+              <button class="usx-button usx-button--primary" @click="confirmAct()">Confirm</button>
+            </div>
+          </div>
+
+
 
         <!-- Chat Input -->
         <div class="surface__footer">
@@ -279,12 +313,13 @@
 import { ref, computed, onMounted } from "vue";
 import { useWorkflowStore } from "../../stores/workflow";
 import UIcon from "../../skills/atoms/UIcon.vue";
-import { useChatStore } from "../../stores/chat";
+import { useChatStore, ASSISTUI_MODES } from "../../stores/chat";
 
 const chat = useChatStore();
 const wf = useWorkflowStore();
 
 const modelPickerOpen = ref(false);
+const actConfirmVisible = ref(false);
 const messagesEl = ref<HTMLElement | null>(null);
 const inputRef = ref<HTMLTextAreaElement | null>(null);
 
@@ -347,6 +382,17 @@ const handleInputKeydown = (e: KeyboardEvent) => {
     chat.sendMessage();
   }
 };
+
+const switchMode = (mode: string) => {
+  chat.setPromptMode(mode as 'chat' | 'plan' | 'act' | 'workflow');
+};
+const confirmAct = () => {
+  actConfirmVisible.value = false;
+  chat.sendMessage();
+};
+
+
+
 
 onMounted(() => {
   fetch("http://localhost:8484/api/health")
@@ -957,4 +1003,122 @@ onMounted(() => {
   cursor: pointer;
   font-size: var(--usx-font-size-base);
 }
+/* ── Plan Card ─────────────────────────────────────────────────── */
+
+.assistui-plan-card {
+  margin: var(--usx-spacing-md) 0;
+  padding: var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-primary);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface-variant);
+}
+
+.assistui-plan-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  font-weight: 600;
+  color: var(--usx-color-primary);
+  margin-bottom: var(--usx-spacing-sm);
+  font-size: var(--usx-font-size-base);
+}
+
+.assistui-plan-step {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xs) 0;
+  color: var(--usx-color-on-surface);
+  font-size: var(--usx-font-size-sm);
+}
+
+.assistui-plan-step--done {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.assistui-plan-step__text {
+  flex: 1;
+}
+
+.assistui-plan-step__tool {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+  background: var(--usx-color-surface);
+  padding: 2px var(--usx-spacing-sm);
+  border-radius: var(--usx-radius-sm);
+}
+
+/* ── Mode Badge ────────────────────────────────────────────────── */
+
+.assistui-mode-badge {
+  font-size: var(--usx-font-size-xs);
+  padding: 2px var(--usx-spacing-sm);
+  border-radius: var(--usx-radius-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.assistui-mode-badge--plan {
+  background: var(--usx-color-primary);
+  color: var(--usx-color-on-primary);
+}
+
+.assistui-mode-badge--act {
+  background: var(--usx-color-warning);
+  color: var(--usx-color-on-warning);
+}
+
+/* ── Act Confirmation Gate ─────────────────────────────────────── */
+
+.assistui-act-confirm {
+  margin: var(--usx-spacing-md) 0;
+  padding: var(--usx-spacing-md);
+  border: 2px solid var(--usx-color-warning);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  text-align: center;
+  color: var(--usx-color-on-surface);
+  font-size: var(--usx-font-size-sm);
+}
+
+.assistui-act-confirm__actions {
+  display: flex;
+  gap: var(--usx-spacing-md);
+}
+
+.usx-button--primary {
+  background: var(--usx-color-primary);
+  color: var(--usx-color-on-primary);
+}
+
+/* ── Model cost badge ──────────────────────────────────────────── */
+
+.assistui-model-cost {
+  font-size: var(--usx-font-size-xs);
+  padding: 1px var(--usx-spacing-xs);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-success);
+  color: var(--usx-color-on-success);
+  margin-left: auto;
+}
+
+.assistui-model-cost--mid-range {
+  background: var(--usx-color-warning);
+  color: var(--usx-color-on-warning);
+}
+
+.assistui-model-cost--premium {
+  background: var(--usx-color-danger);
+  color: var(--usx-color-on-danger);
+}
+
 </style>

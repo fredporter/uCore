@@ -1,18 +1,37 @@
-# Devlog MCP — Generated: 2026-08-04T04:51:17Z
+# Devlog MCP — Updated: 2026-08-11
 
-version: "1.0.0"
-generated_by: "Copilot-Poolside-Laguana-M1"
-hours: 24
-completed_tasks: 2
+version: "1.1.0"
+generated_by: "Cline-uCore"
+hours: 30
+completed_tasks: 18
 spool_entries: 500
 
 ## Completed Tasks
 
-- file: .tasker.archived/learning/completed-summarize-this-week-learning-seed-summarize-this-week-learning.md
-  archived: True
+- task: openrouter.001-014 — OpenRouter/Free Ask/Plan/Act Pipeline
+  status: complete
+  files:
+    - backend/app/api/chat.py
+    - backend/app/api/routes.py
+    - backend/app/services/provider_router.py
+    - backend/app/services/chat_context.py
+    - backend/tests/test_api_chat.py
+    - frontend-vue/src/stores/chat.ts
+    - frontend-vue/src/surfaces/assistui/AssistUISurface.vue
+    - docs/FEATURE_SPEC_OPENROUTER_ASK_PLAN_ACT.md
+    - .tasker/sprints/sprint-plan-openrouter-ask-plan-act.md
+    - fieldnotes.md
+    - devlog.mcp.yaml
+    - pyproject.toml
+    - package.json
 
-- file: .tasker.archived/sandbox/completed-publish-sandbox-draft-seed-publish-sandbox-draft.md
-  archived: True
+- task: openrouter.015-018 — Act Mode Tools (scrape_web, save_to_vault, confirmation gate)
+  status: complete
+  files:
+    - backend/app/api/chat.py
+
+- task: openrouter.019-021 — Tests, docs, version bump
+  status: complete
 
 ## Spool Activity
 

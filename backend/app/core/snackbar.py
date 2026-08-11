@@ -4,9 +4,9 @@ import argparse
 import asyncio
 import json
 import platform as plat_module
+import socket
 import sys
 import time
-import socket
 import urllib.request
 from contextlib import suppress
 from pathlib import Path

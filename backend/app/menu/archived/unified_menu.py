@@ -49,7 +49,6 @@ try:
 except Exception:
     NSEvent = NSEventMaskKeyDown = None
 from PyObjCTools import AppHelper
-from snackmachine.registry import get_registry
 
 # Import snack registry and plugins
 from app.menu.backend_manager import ensure_backend_running
@@ -60,6 +59,7 @@ from app.menu.snacks.clipboard_snack import register as register_clipboard
 from app.menu.snacks.ollama_snack import register as register_ollama
 from app.menu.snacks.surface_snack import register as register_surface
 from app.menu.snacks.system_snack import register as register_system
+from snackmachine.registry import get_registry
 
 # ─── Config ───────────────────────────────────────────────────────────
 

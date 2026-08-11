@@ -12,8 +12,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from aiohttp import web
 import yaml
+from aiohttp import web
 
 from app.api.vault_api import VAULT_LAYERS
 from app.core.settings import settings

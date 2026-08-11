@@ -14,7 +14,7 @@ from typing import Any
 
 from aiohttp import web
 
-from app.services.render import render_markdown, render_html
+from app.services.render import render_html, render_markdown
 
 log = logging.getLogger("ucore.render")
 

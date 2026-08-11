@@ -22,7 +22,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from .manifest import ExtensionManifest, ExtensionKind
+from .manifest import ExtensionKind, ExtensionManifest
 
 log = logging.getLogger("ucore.extensions.registry")
 

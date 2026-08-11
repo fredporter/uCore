@@ -28,8 +28,8 @@ from typing import Any
 import yaml
 
 from app.core.settings import settings
-from app.services.wisdom_paths import writable_wisdom_path
 from app.services.spool_writer import write_spool
+from app.services.wisdom_paths import writable_wisdom_path
 from app.skills.base import BaseSkill, SkillMeta, SkillParam
 
 log = logging.getLogger("ucore.mcp.tasker_ingest")

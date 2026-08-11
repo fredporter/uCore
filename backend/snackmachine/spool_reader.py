@@ -8,14 +8,13 @@ Spec: docs/SPOOL_SPEC.md
 """
 from __future__ import annotations
 
+import os
 import re
+import socket
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
-import os
-import socket
 
 
 def _get_identity() -> dict[str, str]:

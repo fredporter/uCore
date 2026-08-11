@@ -14,13 +14,17 @@ log = logging.getLogger("ucore")
 
 def register_routes(app: web.Application) -> None:
     """Register all non-core API routes and surface extensions."""
+    # ── Extension-driven route registration ─────────────────────────
+    # Wave A hard-cut: workflow and knowledge routing are extension-owned.
+    from app.extensions.registry import registry
+
     from .agents import handle_agents_stats, handle_list_agents
     from .budget_api import (
         handle_budget_reload,
         handle_budget_status,
         handle_budget_usage,
     )
-    from .chat import handle_chat, handle_chat_prompts, handle_models
+    from .chat import handle_chat, handle_chat_modes, handle_chat_prompts, handle_models
     from .config_api import handle_get_config
     from .containers import register_container_routes
     from .developer_api import (
@@ -44,8 +48,8 @@ def register_routes(app: web.Application) -> None:
     from .docker import handle_docker_ps
     from .exec import handle_exec
     from .extensions_api import (
-        handle_capability_preflight,
         handle_capabilities_readiness,
+        handle_capability_preflight,
         handle_extensions_status,
     )
     from .flow_router import (
@@ -130,9 +134,6 @@ def register_routes(app: web.Application) -> None:
         handle_get_variables,
         handle_update_user_variables,
     )
-    # ── Extension-driven route registration ─────────────────────────
-    # Wave A hard-cut: workflow and knowledge routing are extension-owned.
-    from app.extensions.registry import registry
 
     discovered = registry.discover()
     if discovered:
@@ -264,12 +265,13 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/exec", handle_exec)
     app.router.add_get("/api/docker/ps", handle_docker_ps)
     app.router.add_post("/api/chat", handle_chat)
+    app.router.add_get("/api/chat/modes", handle_chat_modes)
     app.router.add_get("/api/chat/prompts", handle_chat_prompts)
     app.router.add_get("/api/models", handle_models)
     app.router.add_post("/api/skills/{skill_id}/run", handle_run_skill)
     app.router.add_post("/api/skills/run", handle_run_named_skill)
     # Health and skill state endpoints
-    from .skills import handle_health, handle_skill_state, handle_skill_source
+    from .skills import handle_health, handle_skill_source, handle_skill_state
     app.router.add_get("/api/skills/state", handle_skill_state)
     app.router.add_get("/api/skills/health", handle_health)
     app.router.add_get("/api/skills/{skill_id}/source", handle_skill_source)
@@ -299,22 +301,55 @@ def register_routes(app: web.Application) -> None:
         log.debug("Services API routes not available: %s", e)
 
     # ── Render / SSE (Layered Output) ──────────────────────────────
-    from .render_api import handle_render, handle_stream, handle_publish_event, handle_extension_announce
+    from .render_api import (
+        handle_extension_announce,
+        handle_publish_event,
+        handle_render,
+        handle_stream,
+    )
     app.router.add_post("/api/render", handle_render)
     app.router.add_get("/api/render/stream", handle_stream)
     app.router.add_post("/api/render/event", handle_publish_event)
     app.router.add_post("/api/extensions/announce", handle_extension_announce)
 
     # ── Editor surface (Markdown scrape/summarize/binder) ───────────
-    from .editor_api import handle_scrape_web, handle_summarize, handle_save_to_binder
+    from .editor_api import handle_save_to_binder, handle_scrape_web, handle_summarize
     app.router.add_post("/api/editor/scrape-web", handle_scrape_web)
     app.router.add_post("/api/editor/summarize", handle_summarize)
     app.router.add_post("/api/editor/save-to-binder", handle_save_to_binder)
+    # ── Research Queue (BrowserUI) ──────────────────────────────
+    from .research_api import (
+        handle_research_enhance,
+        handle_research_list,
+        handle_research_process,
+        handle_research_start,
+        handle_research_status,
+    )
+    app.router.add_post("/api/research/start", handle_research_start)
+    app.router.add_get("/api/research/status", handle_research_status)
+    app.router.add_get("/api/research/list", handle_research_list)
+    app.router.add_post("/api/research/process", handle_research_process)
+    app.router.add_post("/api/research/enhance", handle_research_enhance)
+
+    # ── Binder API (BrowserUI) ──────────────────────────────────
+    from .binder_api import (
+        handle_binder_add,
+        handle_binder_list,
+        handle_binder_score,
+        handle_binder_update,
+    )
+    app.router.add_get("/api/binder/list", handle_binder_list)
+    app.router.add_post("/api/binder/add", handle_binder_add)
+    app.router.add_patch("/api/binder/update", handle_binder_update)
+    app.router.add_patch("/api/binder/score", handle_binder_score)
+
+
 
     # ── Autonomy Engine ────────────────────────────────────────────
     try:
         import json
         from pathlib import Path
+
         from aiohttp import web
 
         STATE_FILE = Path.home() / ".ucore" / "logs" / "autonomy_state.json"

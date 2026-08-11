@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from aiohttp import web, ClientSession, ClientTimeout
+from aiohttp import ClientSession, ClientTimeout, web
 
 log = logging.getLogger("ucore.editor")
 

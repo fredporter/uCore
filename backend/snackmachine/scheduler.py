@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import os
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-import logging
-import os
-
 from app.core.settings import settings
-
 from snackmachine.registry import get_registry as _get_registry
 
 log = logging.getLogger("snackmachine.scheduler")

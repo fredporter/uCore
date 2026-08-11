@@ -16,8 +16,6 @@ import logging
 import sqlite3
 from typing import Any, Optional
 
-from snackmachine.registry import SnackPlugin, SnackSpec, register_snack
-
 from app.knowledge.appflowy import (
     _find_database,
     get_document,
@@ -25,6 +23,7 @@ from app.knowledge.appflowy import (
     list_documents,
     semantic_search,
 )
+from snackmachine.registry import SnackPlugin, SnackSpec, register_snack
 
 log = logging.getLogger("appflowy-editor-snack")
 

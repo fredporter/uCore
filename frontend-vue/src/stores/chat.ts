@@ -26,6 +26,7 @@ export interface ModelOption {
   id: string
   provider: string
   name: string
+  cost?: string
 }
 
 export interface PromptCard {
@@ -33,6 +34,19 @@ export interface PromptCard {
   icon: string
   label: string
   context?: string
+}
+
+export interface PlanStep {
+  description: string
+  tool: string | null
+  done: boolean
+}
+
+export interface BudgetStatus {
+  ok: boolean
+  daily_remaining: number | null
+  warning: string | null
+  circuit_breaker?: boolean
 }
 
 import { SNACKBAR_API } from '@/api/base'
@@ -69,16 +83,20 @@ export const useChatStore = defineStore('chat', () => {
   const input = ref('')
   const loading = ref(false)
   const snackbarStatus = ref<'checking' | 'online' | 'offline'>('checking')
-  const promptMode = ref<'chat' | 'workflow'>('chat')
+  const promptMode = ref<'chat' | 'plan' | 'act' | 'workflow'>('chat')
   const prompts = ref<PromptCard[]>(DEFAULT_PROMPTS)
   const models = ref<ModelOption[]>([
-    { id: 'llama3.2', provider: 'ollama', name: 'Llama 3.2' },
-    { id: 'mistral', provider: 'ollama', name: 'Mistral' },
-    { id: 'gpt-4o', provider: 'openrouter', name: 'GPT-4o' },
+    { id: 'llama3.2', provider: 'ollama', name: 'Llama 3.2', cost: 'free' },
+    { id: 'mistral', provider: 'ollama', name: 'Mistral', cost: 'free' },
+    { id: 'dolphin-mixtral-8x7b', provider: 'openrouter-free', name: 'Dolphin Mixtral 8x7B', cost: 'free' },
+    { id: 'phi-3-medium-128k-instruct', provider: 'openrouter-free', name: 'Phi-3 Medium 128K', cost: 'free' },
+    { id: 'gpt-4o', provider: 'openrouter', name: 'GPT-4o', cost: 'mid-range' },
   ])
   const selectedModel = ref('llama3.2')
   const conversations = ref<Conversation[]>(loadConversations())
   const activeConversation = ref<string | null>(null)
+  const budgetStatus = ref<BudgetStatus>({ ok: true, daily_remaining: null, warning: null })
+  const planSteps = ref<PlanStep[]>([])
 
   // Computed
   const hasMessages = computed(() => messages.value.length > 1)
@@ -173,6 +191,18 @@ export const useChatStore = defineStore('chat', () => {
           const data = await res.json()
           const msg = messages.value.find(m => m.id === assistantId)
           if (msg) msg.content = data.response || data.message || 'No response received.'
+          // Handle plan steps
+          if (data.plan_steps && Array.isArray(data.plan_steps)) {
+            planSteps.value = data.plan_steps
+          }
+          // Handle budget info
+          if (data.budget) {
+            budgetStatus.value = {
+              ok: data.budget.ok ?? true,
+              daily_remaining: budgetStatus.value.daily_remaining,
+              warning: data.budget.warning || null,
+            }
+          }
         } else {
           throw new Error(`API returned ${res.status}`)
         }
@@ -187,7 +217,7 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  function setPromptMode(mode: 'chat' | 'workflow') {
+  function setPromptMode(mode: 'chat' | 'plan' | 'act' | 'workflow') {
     promptMode.value = mode
     fetchPrompts()
   }
@@ -287,6 +317,23 @@ export const useChatStore = defineStore('chat', () => {
     } catch { /* keep defaults */ }
   }
 
+  async function fetchBudgetStatus() {
+    try {
+      const res = await fetch(`${SNACKBAR_API}/api/chat/modes`, { signal: AbortSignal.timeout(3000) })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.budget) {
+          budgetStatus.value = {
+            ok: data.budget.ok ?? true,
+            daily_remaining: data.budget.daily_remaining,
+            warning: data.budget.warning || null,
+            circuit_breaker: data.budget.circuit_breaker,
+          }
+        }
+      }
+    } catch { /* keep defaults */ }
+  }
+
   return {
     // State
     messages,
@@ -299,6 +346,8 @@ export const useChatStore = defineStore('chat', () => {
     selectedModel,
     conversations,
     activeConversation,
+    budgetStatus,
+    planSteps,
     // Computed
     hasMessages,
     currentModelName,
@@ -314,6 +363,7 @@ export const useChatStore = defineStore('chat', () => {
     checkStatus,
     fetchPrompts,
     fetchModels,
+    fetchBudgetStatus,
     welcomeMessage,
   }
 })
@@ -330,5 +380,7 @@ const DEFAULT_PROMPTS: PromptCard[] = [
 
 export const ASSISTUI_MODES: { id: string; icon: string; label: string; desc: string }[] = [
   { id: 'chat', icon: 'chat', label: 'Chat', desc: 'Talk with your assistant — ask questions, get help' },
+  { id: 'plan', icon: 'psychology', label: 'Plan', desc: 'Research & plan using vaults, repos, and AI' },
+  { id: 'act', icon: 'play_arrow', label: 'Act', desc: 'Execute safe vault operations (scrape, save)' },
   { id: 'workflow', icon: 'account_tree', label: 'Workflow', desc: 'Tasks, missions, planning, and binder' },
 ]

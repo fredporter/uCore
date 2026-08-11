@@ -14,7 +14,7 @@ Design principles:
 
 from __future__ import annotations
 
-from .manifest import ExtensionManifest, ExtensionKind
+from .manifest import ExtensionKind, ExtensionManifest
 from .registry import ExtensionRegistry, registry
 
 __all__ = [

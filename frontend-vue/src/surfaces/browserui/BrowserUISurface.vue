@@ -1,176 +1,51 @@
 <template>
   <div class="surface">
     <div class="surface__content browserui-shell">
-      <div class="browserui-body">
-        <!-- Center: Research cards canvas -->
+      <div class="browserui-tabs">
+        <button v-for="tab in TABS" :key="tab.id"
+          class="browserui-tab"
+          :class="{ 'browserui-tab--active': activeTab === tab.id }"
+          @click="switchTab(tab.id)">
+          <UIcon :name="tab.icon" />{{ tab.label }}
+        </button>
+      </div>
+      <div v-if="activeTab === 'cards'" class="browserui-body">
         <div class="browserui-canvas">
           <div class="browserui-search">
-            <UInput
-              v-model="searchQuery"
-              placeholder="Search topics..."
-              icon="search"
-            />
+            <UInput v-model="searchQuery" placeholder="Search topics..." icon="search" />
+            <button v-if="batchSelected.length" class="uxs-btn uxs-btn--primary"
+              @click="batchResearch">Research {{ batchSelected.length }} Selected</button>
           </div>
-
-          <div v-if="filteredStacks.length === 0" class="browserui-empty">
-            <UIcon name="search" class="browserui-empty-icon" />
-            <p>No topics found</p>
-            <p class="browserui-empty-hint">
-              Try a different search or add bookmarks to your vault.
-            </p>
-          </div>
-          <div
-            v-for="stack in filteredStacks"
-            :key="stack.id"
-            class="browserui-stack"
-          >
-            <div class="browserui-stack-header">
-              <UIcon :name="stack.icon" class="browserui-stack-icon" />
-              <h3>{{ stack.title }}</h3>
-              <UBadge type="info" circle>{{ stack.items.length }}</UBadge>
-            </div>
-            <div class="browserui-cards">
-              <div
-                v-for="item in stack.items"
-                :key="item.id"
-                class="browserui-card"
-                :class="{
-                  'browserui-card--active': activeCard?.id === item.id,
-                }"
-                @click="selectCard(item)"
-              >
-                <div class="browserui-card-header">
-                  <div class="browserui-card-title">{{ item.title }}</div>
-                  <UIcon
-                    name="diamond"
-                    class="browserui-card-action-icon"
-                    title="Research this topic"
-                  />
-                </div>
-                <div class="browserui-card-desc">{{ item.description }}</div>
-                <div class="browserui-card-tags">
-                  <span
-                    v-for="tag in item.tags"
-                    :key="tag"
-                    class="browserui-tag"
-                    >{{ tag }}</span
-                  >
-                </div>
-              </div>
-            </div>
-          </div>
+          <CardStack v-for="stack in filteredStacks" :key="stack.id"
+            :title="stack.title" :cards="stack.items"
+            :activeId="selectedCard?.id" :tagFilter="true"
+            @select="selectCard" @research="handleResearchCard" @enhance="enhanceCard"
+          />
         </div>
-
-        <!-- Right: Editor panel — slides in when a card is active -->
-        <transition name="editor-slide">
-          <div v-if="activeCard" class="browserui-editor">
-            <div class="browserui-doc">
-              <div class="browserui-doc-header">
-                <div>
-                  <h3 class="browserui-doc-title">{{ activeCard.title }}</h3>
-                  <a
-                    :href="activeCard.url"
-                    target="_blank"
-                    rel="noopener"
-                    class="browserui-doc-source"
-                  >
-                    <UIcon name="open_in_new" />
-                    {{ sourceLabel(activeCard.url) }}
-                  </a>
-                </div>
-                <div class="browserui-doc-header-actions">
-                  <button
-                    class="browserui-doc-close"
-                    title="Close editor"
-                    @click="activeCard = null"
-                  >
-                    <UIcon name="close" />
-                  </button>
-                </div>
-              </div>
-
-              <div class="browserui-doc-actions">
-                <UButton
-                  variant="secondary"
-                  size="sm"
-                  icon="open_in_new"
-                  @click="openResearchUrl(activeCard.url)"
-                >
-                  Research
-                </UButton>
-                <UButton
-                  variant="secondary"
-                  size="sm"
-                  icon="download"
-                  :disabled="expandingId === activeCard.id"
-                  @click="expandCard(activeCard)"
-                >
-                  {{ expandingId === activeCard.id ? "Fetching..." : "Expand" }}
-                </UButton>
-                <UButton
-                  variant="secondary"
-                  size="sm"
-                  icon="summarize"
-                  @click="summariseCard(activeCard)"
-                >
-                  Summarise
-                </UButton>
-              </div>
-
-              <div
-                v-if="expandingId === activeCard.id"
-                class="browserui-doc-loading"
-              >
-                <UIcon name="sync" />
-                <span
-                  >Fetching content from
-                  {{ sourceLabel(activeCard.url) }}…</span
-                >
-              </div>
-
-              <div class="browserui-doc-content">
-                <div class="browserui-doc-frontmatter">
-                  <div class="browserui-doc-fm-row">
-                    <span class="browserui-doc-fm-key">source</span>
-                    <a :href="activeCard.url" target="_blank" rel="noopener">{{
-                      activeCard.url
-                    }}</a>
-                  </div>
-                  <div class="browserui-doc-fm-row">
-                    <span class="browserui-doc-fm-key">tags</span>
-                    <span>{{ (activeCard.tags || []).join(", ") }}</span>
-                  </div>
-                  <div class="browserui-doc-fm-row">
-                    <span class="browserui-doc-fm-key">status</span>
-                    <UBadge type="warning" size="sm">draft</UBadge>
-                  </div>
-                </div>
-                <div class="browserui-doc-body">
-                  <h4>{{ activeCard.title }}</h4>
-                  <blockquote v-if="researchContent[activeCard.id]">
-                    {{ researchContent[activeCard.id] }}
-                  </blockquote>
-                  <p v-else>{{ activeCard.description }}</p>
-                </div>
-              </div>
-
-              <div class="browserui-doc-footer">
-                <UButton
-                  variant="primary"
-                  size="sm"
-                  icon="diamond"
-                  @click="saveToEditor(activeCard)"
-                >
-                  Open in Markdown Editor
-                </UButton>
-              </div>
-            </div>
-          </div>
-        </transition>
+        <div v-if="selectedCard" class="browserui-editor">
+          <PreviewTab v-if="editorMode === 'preview'"
+            :content="editorContent" :meta="editorMeta"
+            @edit="editorMode = 'edit'" @chatui="sendToChatUI"
+          />
+          <EditTab v-else
+            :content="editorContent" :title="selectedCard?.title"
+            :tags="selectedCard?.tags" :binder="selectedCard?.binder"
+            @preview="editorMode = 'preview'" @save="saveToBinder"
+          />
+          <button class="browserui-editor-close" @click="selectedCard = null; editorMode = 'preview'">
+            <UIcon name="close" />
+          </button>
+        </div>
       </div>
+      <ResearchDashboard v-if="activeTab === 'dashboard'"
+        :jobs="researchJobs" :gaps="researchGaps"
+        @approve="approveJob" @startResearch="startResearchJob"
+        @fillGap="fillResearchGap"
+      />
     </div>
   </div>
 </template>
+
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
@@ -179,8 +54,14 @@ import UInput from "../../skills/atoms/UInput.vue";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import UBadge from "../../skills/atoms/UBadge.vue";
 import UButton from "../../skills/atoms/UButton.vue";
+import CardStack from "./panels/CardStack.vue"
+import PreviewTab from "./panels/PreviewTab.vue"
+import EditTab from "./panels/EditTab.vue"
+import ResearchDashboard from "./panels/ResearchDashboard.vue"
+import { useChatStore } from "../../stores/chat"
+
 import { useWorkflowStore } from "../../stores/workflow";
-import { buildResearchDocument, fetchScrape } from "../../utils/webScraper";
+import { startResearch, listResearchJobs, getResearchStatus, fetchScrape, addBinder } from "./ApiBridge"
 
 const API_BASE = import.meta.env.VITE_SNACKBAR_URL || "http://localhost:8484";
 const searchQuery = ref("");
@@ -191,9 +72,11 @@ const wf = useWorkflowStore();
 interface StackItem {
   id: string;
   title: string;
-  url: string;
+  url?: string;
   description: string;
   tags: string[];
+  score?: number;
+  binder?: string;
 }
 
 const stacks = ref<
@@ -295,19 +178,34 @@ const DEFAULT_STACKS = [
 ];
 
 const activeCard = ref<StackItem | null>(null);
+const activeTab = ref<"cards" | "dashboard">("cards")
+const selectedCard = ref<StackItem | null>(null)
+const editorMode = ref<"preview" | "edit">("preview")
+const editorContent = ref("")
+const editorMeta = ref<{ source?: string; score?: number; tags?: string[]; title?: string }>({})
+const researchJobs = ref<any[]>([])
+const researchGaps = ref<any[]>([])
+const batchSelected = ref<string[]>([])
+const chat = useChatStore()
+
+const TABS = [
+  { id: "cards", label: "Cards", icon: "dashboard" },
+  { id: "dashboard", label: "Research", icon: "science" },
+]
+
 const researchContent = ref<Record<string, string>>({});
 const expandingId = ref<string | null>(null);
 
-function selectCard(item: StackItem) {
-  activeCard.value = item;
-}
-
 function sourceLabel(url: string): string {
   try {
-    return new URL(url).hostname.replace(/^www\./, "");
+    return new URL(url ?? "").hostname.replace(/^www\./, "");
   } catch {
-    return url;
+    return url ?? "";
   }
+}
+
+function switchTab(tab: string) {
+  activeTab.value = tab as "cards" | "dashboard"
 }
 
 function openResearchUrl(url: string) {
@@ -317,7 +215,7 @@ function openResearchUrl(url: string) {
 async function expandCard(item: StackItem) {
   expandingId.value = item.id;
   try {
-    const scraped = await fetchScrape(item.url);
+    const scraped = await fetchScrape(item.url ?? "");
     researchContent.value = {
       ...researchContent.value,
       [item.id]: scraped?.text || scraped?.description || item.description,
@@ -350,7 +248,10 @@ function saveToEditor(item: StackItem) {
         text: researchContent.value[item.id],
       }
     : null;
-  const { filename, content } = buildResearchDocument(item, scraped);
+  const { filename, content } = {
+    filename: (item.title || "untitled").toLowerCase().replace(/[^a-z0-9\s-]/g,"").trim().replace(/\s+/g,"-").slice(0,60)+".md",
+    content: "---\ntitle: \""+(item.title||"")+"\"\nsource: \""+(item.url||"")+"\"\ndate: \""+new Date().toISOString().slice(0,10)+"\"\n---\n\n# "+(item.title||"")+"\n\n"+(scraped?.text || item.description)
+  };
   wf.selectFile({
     id: `research-${item.id}`,
     path: `/research/${filename}`,
@@ -393,10 +294,103 @@ async function fetchBookmarks() {
   stacks.value = DEFAULT_STACKS;
   loading.value = false;
 }
+// ── New panel methods ───────────────────────────────────
+
+function selectCard(item: StackItem) {
+  selectedCard.value = item
+  editorContent.value = researchContent.value[item.id] || item.description
+  editorMeta.value = { source: item.url, tags: item.tags, title: item.title }
+}
+
+async function handleResearchCard(card: any) {
+  try {
+    const r = await startResearch(card.url ?? "", card.tags[0]?.replace("#", "") || "research", card.tags, "full")
+    researchJobs.value.unshift({ id: (r as any).job_id || "0", url: card.url ?? "", binder: "research", state: "pending", progress: 0 })
+  } catch (e) { /* offline */ }
+}
+
+
+async function enhanceCard(item: StackItem) {
+  try {
+    const scraped = await fetchScrape(item.url ?? "")
+    if (scraped) {
+      researchContent.value = { ...researchContent.value, [item.id]: scraped.text || scraped.description }
+      editorContent.value = scraped.text || scraped.description
+      editorMeta.value = { source: item.url, tags: item.tags, title: scraped.title || item.title }
+    }
+  } catch (e) { /* offline */ }
+}
+
+function sendToChatUI() {
+  chat.sendMessage(`Research this topic and provide a structured plan:\n\nTitle: ${editorMeta.value.title}\nSource: ${editorMeta.value.source}\n\nContent:\n${editorContent.value.substring(0, 2000)}`)
+}
+
+async function saveToBinder(save: { title: string; content: string; tags: string[] }) {
+  try {
+    await addBinder(save.title, save.content, save.tags)
+  } catch (e) { /* offline */ }
+  selectedCard.value = null
+  editorMode.value = "preview"
+}
+
+async function startResearchJob(params: { url: string; binder: string; tags: string[] }) {
+  try {
+    const r = await startResearch(params.url, params.binder, params.tags, "full")
+    researchJobs.value.unshift({ id: r.job_id, url: params.url, binder: params.binder, state: "pending", progress: 0 })
+  } catch (e) { /* offline */ }
+}
+
+async function approveJob(job: any) {
+  try {
+    const status = await getResearchStatus(job.id)
+    const idx = researchJobs.value.findIndex(j => j.id === job.id)
+    if (idx >= 0) researchJobs.value[idx] = { ...researchJobs.value[idx], ...status }
+  } catch (e) { /* offline */ }
+}
+
+function fillResearchGap(gap: any) {
+  const url = gap.url || gap.topic
+  startResearchJob({ url, binder: "research", tags: gap.tags || [] })
+}
+
+async function batchResearch() {
+  const allItems = stacks.value.flatMap(s => s.items)
+  const selected = allItems.filter(i => batchSelected.value.includes(i.id))
+  for (const item of selected) {
+    try {
+      const r = await startResearch(item.url ?? "", item.tags[0]?.replace("#", "") || "research", item.tags, "summarise")
+      researchJobs.value.unshift({ id: (r as any).job_id, url: item.url ?? "", binder: "research", state: "pending", progress: 0 })
+    } catch { /* skip */ }
+  }
+  batchSelected.value = []
+}
+
+async function detectKnowledgeGaps() {
+  // Simple gap detection: check for vaults without README or SUMMARY
+  try {
+    const res = await fetch(`${API_BASE}/api/binder/list`, { signal: AbortSignal.timeout(3000) })
+    if (res.ok) {
+      const data = await res.json()
+      const binders = data.binders || []
+      const gaps: any[] = []
+      for (const b of binders) {
+        if (!b.description || b.sources?.length === 0) {
+          gaps.push({ topic: b.name, reason: "No sources or description — needs research" })
+        }
+      }
+      researchGaps.value = gaps
+    }
+  } catch { /* offline */ }
+}
 
 onMounted(() => {
-  fetchBookmarks();
-});
+  fetchBookmarks()
+  detectKnowledgeGaps()
+})
+
+
+
+
 
 const filteredStacks = computed(() => {
   if (!searchQuery.value) return stacks.value;

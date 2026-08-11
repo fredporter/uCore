@@ -12,6 +12,7 @@ import logging
 
 from aiohttp import web
 
+from ..services.budget_manager import BudgetManager
 from ..services.provider_router import ProviderRouter
 
 log = logging.getLogger("ucore.chat")
@@ -142,6 +143,48 @@ _CHAT_TOOLS: list[dict] = [
                     },
                 },
                 "required": ["title"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "scrape_web",
+            "description": "Fetch and extract article content from a web URL. Use when the user asks to research a URL, fetch content from the web, or gather information from a website.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "The URL to scrape (must start with http:// or https://)",
+                    }
+                },
+                "required": ["url"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "save_to_vault",
+            "description": "Save content to the user's personal vault (~/Vault/). Use when the user asks to save research, notes, summaries, or any content to their vault.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "Document title (used as filename)",
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Content to save (markdown format)",
+                    },
+                    "folder": {
+                        "type": "string",
+                        "description": "Optional subfolder within ~/Vault/ (e.g. 'research', 'notes')",
+                    },
+                },
+                "required": ["title", "content"],
             },
         },
     },
@@ -330,6 +373,62 @@ async def _execute_tool(tool_name: str, arguments: dict) -> str:
             "file": str(task_file),
         })
 
+    if tool_name == "scrape_web":
+        url = arguments.get("url", "").strip()
+        if not url or not url.startswith(("http://", "https://")):
+            return json.dumps({"error": "Valid URL starting with http:// or https:// is required"})
+        try:
+            import aiohttp
+            timeout = aiohttp.ClientTimeout(total=15)
+            headers = {
+                "User-Agent": "Mozilla/5.0 (compatible; uCore-Scraper/1.0)",
+                "Accept": "text/html,application/xhtml+xml",
+            }
+            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
+                async with session.get(url) as resp:
+                    if not resp.ok:
+                        return json.dumps({"error": f"HTTP {resp.status}", "url": url})
+                    html = await resp.text(errors="replace")
+            title = _html_title(html, url)
+            description = _html_desc(html)
+            text = _html_body_text(html)
+            return json.dumps({
+                "url": url, "title": title,
+                "description": description,
+                "text": text[:6000], "text_length": len(text),
+            })
+        except Exception as e:
+            return json.dumps({"error": str(e), "url": url})
+
+
+    if tool_name == "save_to_vault":
+        from pathlib import Path
+        title = arguments.get("title", "").strip()
+        content = arguments.get("content", "").strip()
+        folder = arguments.get("folder", "").strip()
+        if not title or not content:
+            return json.dumps({"error": "title and content are required"})
+        vault_dir = Path.home() / "Vault"
+        if folder:
+            vault_dir = vault_dir / folder
+        vault_dir.mkdir(parents=True, exist_ok=True)
+        # Sanitize filename
+        safe_name = "".join(c for c in title if c.isalnum() or c in " _-").strip()[:80]
+        safe_name = safe_name.replace(" ", "-")
+        if not safe_name:
+            safe_name = "untitled"
+        file_path = vault_dir / f"{safe_name}.md"
+        timestamp = __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M")
+        full_content = f"# {title}\\n\\nsaved: {timestamp}\\n\\n{content}\\n"
+        file_path.write_text(full_content, encoding="utf-8")
+        return json.dumps({
+            "saved": True,
+            "title": title,
+            "file": str(file_path),
+            "vault_path": f"~/{file_path.relative_to(Path.home())}",
+            "size": len(full_content),
+        })
+
     return json.dumps({"error": f"Unknown tool: {tool_name}"})
 
 
@@ -358,15 +457,211 @@ _UCORE_WORKFLOW_SYSTEM = (
     "Be action-oriented — suggest concrete next steps."
 )
 
+_UCORE_ASK_PLAN_SYSTEM = (
+    "You are a research and planning assistant for uCore, the local-first "
+    "knowledge operating system. Your role is to RESEARCH and PLAN — never "
+    "execute actions or modify files. "
+    "\n\n"
+    "## Your Capabilities\n"
+    "- Research: Analyze vault documents, code repositories, and knowledge bases.\n"
+    "- Plan: Produce structured, actionable plans with clear steps.\n"
+    "- Synthesize: Combine information from multiple sources into coherent summaries.\n"
+    "- Cite: Always reference your sources (vault paths, repo files, skill names).\n"
+    "\n"
+    "## Available Knowledge Sources\n"
+    "### Document Vaults\n"
+    "- ~/Vault/    — User personal vault (documents, notes, binders, journals)\n"
+    "- ~/Shared/   — Team shared workspaces\n"
+    "- ~/Public/   — Public reference, templates, global knowledge\n"
+    "\n"
+    "### Code Repositories\n"
+    "- ~/Code/uCore/ — Core system (backend, frontend, MCP, skills, snacks)\n"
+    "- ~/Code/uCode/ — Grid runtime, uCode BASIC, terminal, teletext\n"
+    "- ~/Code/*/     — Extension and project repos\n"
+    "\n"
+    "### Available Skills & Tools\n"
+    "- knowledge_search: Search vaults and knowledge base\n"
+    "- vault_topology: List vault types and their status\n"
+    "- workflow_tasks: List current tasks with status and priority\n"
+    "- list_skills: List all available uCore skills\n"
+    "- system_health: Check health of uCore services\n"
+    "\n"
+    "## Output Format (Plan Mode)\n"
+    "When producing a plan, use this structure:\n"
+    "```plan\n"
+    "## Summary\\nBrief overview of the plan\\n\\n"
+    "## Steps\\n"
+    "- [ ] Step 1: Description (tool: tool_name)\\n"
+    "- [ ] Step 2: Description (tool: tool_name)\\n"
+    "## Sources\\n"
+    "- Vault: ~/Vault/path/to/doc.md\\n"
+    "- Repo: ~/Code/uCore/backend/app/...\\n"
+    "## Notes\\nAdditional context or caveats\\n"
+    "```\n"
+    "\n"
+    "## Rules\n"
+    "1. NEVER execute actions or modify files.\n"
+    "2. Always cite your sources with full paths.\n"
+    "3. If you need more information, ask the user.\n"
+    "4. Be specific and actionable in your plans.\n"
+    "5. Stay within the user vault and knowledge scope."
+)
+
+_UCORE_ACT_SYSTEM = (
+    "You are an action-oriented assistant for uCore. You can RESEARCH and "
+    "EXECUTE safe operations within the user vault. "
+    "\n\n"
+    "## Your Capabilities\n"
+    "- Research: Search vaults, repos, and knowledge bases.\n"
+    "- Scrape: Fetch and extract content from web URLs.\n"
+    "- Summarize: Create concise summaries of documents or scraped content.\n"
+    "- Save to Vault: Write research results, summaries, and documents to ~/Vault/.\n"
+    "- Plan: Create structured plans before acting.\n"
+    "\n"
+    "## Safety Rules\n"
+    "1. Only write within ~/Vault/ (personal vault).\n"
+    "2. Never modify code repositories unless explicitly instructed.\n"
+    "3. Always confirm with the user before executing any action.\n"
+    "4. Report what you did and where you saved results.\n"
+    "5. All web scraping is read-only.\n"
+    "\n"
+    "## Available Tools\n"
+    "Use the function calling interface to:\n"
+    "- knowledge_search(query): Search vaults for documents\n"
+    "- vault_topology(): List all vault types\n"
+    "- list_skills(): List available skills\n"
+    "- workflow_tasks(scope): List user tasks\n"
+    "- system_health(): Check service health"
+)
+
+
 
 # ─── Handlers ────────────────────────────────────────────────────────
 
-async def handle_chat(request: web.Request) -> web.Response:
-    """POST /api/chat — chat with tool calling.
 
-    Body: { "message": "...", "mode": "chat|workflow", "model": "...", ... }
-    The LLM can call uCore tools (knowledge_search, vault_topology, etc.)
-    and get real results back. Max 3 tool-call rounds per request.
+def _html_title(html: str, url: str) -> str:
+    """Extract title from HTML using simple string operations."""
+    # Try og:title meta tag
+    for line in html.split(">"):
+        if "og:title" in line and "content=" in line:
+            start = line.find("content=") + 9
+            end_char = line[start - 1:start] if start > 0 else ""
+            end = line.find(end_char, start) if end_char else -1
+            if end > start:
+                return line[start:end].strip()
+            return line[start:].split("<")[0].strip()
+    # Fallback to <title> tag
+    lower = html.lower()
+    ti = lower.find("<title")
+    if ti >= 0:
+        end_tag = lower.find(">", ti)
+        close = lower.find("</title>", end_tag)
+        if end_tag >= 0 and close > end_tag:
+            return html[end_tag + 1:close].strip()
+    return url
+
+def _html_desc(html: str) -> str:
+    """Extract meta description from HTML using simple string operations."""
+    for line in html.split(">"):
+        if "og:description" in line and "content=" in line:
+            start = line.find("content=") + 9
+            end_char = line[start - 1:start] if start > 0 else ""
+            end = line.find(end_char, start) if end_char else -1
+            if end > start:
+                return line[start:end].strip()
+            return line[start:].split("<")[0].strip()
+    # Try name="description"
+    for line in html.split(">"):
+        if "name=" in line and "description" in line and "content=" in line:
+            start = line.find("content=") + 9
+            end_char = line[start - 1:start] if start > 0 else ""
+            end = line.find(end_char, start) if end_char else -1
+            if end > start:
+                return line[start:end].strip()
+            return line[start:].split("<")[0].strip()
+    return ""
+
+def _html_body_text(html: str) -> str:
+    """Extract readable text from HTML body using simple string operations."""
+    # Remove script/style/nav/header/footer/aside sections
+    import re
+    raw = re.sub(r"<(script|style|nav|header|footer|aside)[^>]*>.*?</(script|style|nav|header|footer|aside)>",
+                 " ", html, flags=re.I | re.S)
+    # Strip all tags
+    text = re.sub(r"<[^>]+>", " ", raw)
+    # Collapse whitespace
+    text = re.sub(r"\s+", " ", text).strip()
+    return text[:6000]
+
+def _select_system_prompt(mode: str) -> str:
+    """Select the appropriate system prompt based on chat mode."""
+    if mode == "plan":
+        return _UCORE_ASK_PLAN_SYSTEM
+    if mode == "act":
+        return _UCORE_ACT_SYSTEM
+    if mode == "workflow":
+        return _UCORE_WORKFLOW_SYSTEM
+    return _UCORE_CHAT_SYSTEM
+
+
+def _check_budget_for_mode(mode: str) -> tuple:
+    """Check if budget allows this mode. Returns (allowed, reason)."""
+    if mode not in ("plan", "act"):
+        return True, ""
+    try:
+        bm = BudgetManager.get()
+        est_cost = 0.001 if mode == "plan" else 0.01
+        allowed = bm.can_spend("docgen", estimated_cost=est_cost)
+        if not allowed:
+            reason = "Daily budget exhausted. Switching to Ollama (free)."
+            return False, reason
+        return True, ""
+    except Exception:
+        return True, ""
+
+
+def _parse_plan_steps(response_text: str) -> list[dict] | None:
+    """Parse structured plan steps from LLM output.
+    Looks for ```plan code blocks or markdown checklists."""
+    import re
+    steps = []
+    plan_match = re.search(r"```plan\n(.*?)```", response_text, re.DOTALL)
+    if plan_match:
+        plan_text = plan_match.group(1)
+        for line in plan_text.split("\n"):
+            line = line.strip()
+            if line.startswith("- [ ]") or line.startswith("- [x]"):
+                step_text = line[5:].strip()
+                tool_match = re.search(r"\(tool:\s*(\w+)\)", step_text)
+                tool = tool_match.group(1) if tool_match else None
+                if tool_match:
+                    step_text = re.sub(r"\s*\(tool:\s*\w+\)", "", step_text).strip()
+                steps.append({
+                    "description": step_text, "tool": tool,
+                    "done": line.startswith("- [x]"),
+                })
+    if not steps:
+        for line in response_text.split("\n"):
+            line = line.strip()
+            if line.startswith("- [ ]") or line.startswith("- [x]"):
+                steps.append({
+                    "description": line[5:].strip(),
+                    "tool": None,
+                    "done": line.startswith("- [x]"),
+                })
+    return steps if steps else None
+
+
+
+async def handle_chat(request: web.Request) -> web.Response:
+    """POST /api/chat — chat completion with mode-aware routing.
+
+    Body: { "message": "...", "mode": "chat|plan|act|workflow", "model": "..." }
+    Modes:
+      chat     — Quick chat, Ollama local default
+      plan     — Research and planning, OpenRouter free tier, no execution
+      act      — Research + execute safe vault operations (scrape, save)
+      workflow — Task-focused chat with system context
     """
     try:
         body = await request.json()
@@ -391,10 +686,51 @@ async def handle_chat(request: web.Request) -> web.Response:
 
     try:
         router = get_router()
-        system_prompt = (
-            _UCORE_WORKFLOW_SYSTEM if mode == "workflow"
-            else _UCORE_CHAT_SYSTEM
-        )
+
+        # Budget check for plan/act modes
+        budget_ok = True
+        budget_warning = None
+        if mode in ("plan", "act"):
+            budget_ok, budget_warning = _check_budget_for_mode(mode)
+
+        # Plan mode: direct response, no tool loop
+        if mode == "plan":
+            system_prompt = _UCORE_ASK_PLAN_SYSTEM
+            if not budget_ok and not model:
+                model = "ollama/qwen2.5-coder:3b"
+            if not model:
+                model = "cognitivecomputations/dolphin-mixtral-8x7b"
+            try:
+                plan_messages: list[dict] = [
+                    {"role": "system", "content": system_prompt},
+                ]
+                plan_messages.extend(history)
+                plan_messages.append({"role": "user", "content": message})
+                plan_response = await router.chat(
+                    messages=plan_messages, model=model,
+                    temperature=0.3,
+                )
+                response_text = plan_response.get("content", "")
+                plan_steps = _parse_plan_steps(response_text)
+                return web.json_response({
+                    "response": response_text,
+                    "mode": mode,
+                    "model": plan_response.get("model", model),
+                    "usage": plan_response.get("usage", {}),
+                    "plan_steps": plan_steps,
+                    "budget": {
+                        "ok": budget_ok,
+                        "warning": budget_warning,
+                    },
+                })
+            except Exception as e:
+                log.error("Plan mode error: %s", e, exc_info=True)
+                return web.json_response({
+                    "error": str(e),
+                    "message": "Plan request failed. Is OpenRouter API key configured?",
+                }, status=500)
+
+        system_prompt = _select_system_prompt(mode)
         chat_messages: list[dict] = [
             {"role": "system", "content": system_prompt},
         ]
@@ -498,6 +834,57 @@ async def handle_chat_prompts(request: web.Request) -> web.Response:
         "mode": mode,
         "prompts": default_prompts,
         "count": len(default_prompts),
+    })
+
+
+async def handle_chat_modes(request: web.Request) -> web.Response:
+    """GET /api/chat/modes — return available chat modes and budget status."""
+    budget_status = {"ok": True, "daily_remaining": None, "warning": None}
+    try:
+        bm = BudgetManager.get()
+        status = bm.get_status()
+        budget_status["daily_remaining"] = status.get("daily_remaining", 0)
+        budget_status["ok"] = (
+            budget_status["daily_remaining"] is not None
+            and budget_status["daily_remaining"] > 0.001
+        )
+        budget_status["circuit_breaker"] = status.get("circuit_breaker", False)
+    except Exception:
+        pass
+
+    return web.json_response({
+        "modes": [
+            {
+                "id": "chat",
+                "label": "Chat",
+                "icon": "chat",
+                "description": "Quick chat with your assistant. Uses local Ollama by default.",
+                "cost": "free",
+                "available": True,
+            },
+            {
+                "id": "plan",
+                "label": "Plan",
+                "icon": "psychology",
+                "description": "Research and plan using vaults, repos, and OpenRouter free models.",
+                "cost": "free",
+                "available": True,
+                "models": [
+                    "cognitivecomputations/dolphin-mixtral-8x7b",
+                    "microsoft/phi-3-medium-128k-instruct",
+                ],
+            },
+            {
+                "id": "act",
+                "label": "Act",
+                "icon": "play_arrow",
+                "description": "Execute safe vault operations (scrape, summarize, save to vault).",
+                "cost": "budget",
+                "available": budget_status["ok"],
+                "budget_required": True,
+            },
+        ],
+        "budget": budget_status,
     })
 
 

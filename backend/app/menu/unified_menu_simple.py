@@ -33,7 +33,11 @@ try:
 except Exception:
     NSEvent = NSEventMaskKeyDown = None
 from PyObjCTools import AppHelper
-from snackmachine.registry import get_registry
+
+from app.clipboard.clipboard_buffer import (
+    add_clipboard_item,
+    copy_text_to_clipboard,
+)
 
 # Import modular components
 from app.menu.api_helpers import (
@@ -43,10 +47,6 @@ from app.menu.api_helpers import (
     is_ucore_alive,
     is_uihub_alive,
     open_url,
-)
-from app.clipboard.clipboard_buffer import (
-    add_clipboard_item,
-    copy_text_to_clipboard,
 )
 
 # Import snack registry and plugins
@@ -59,6 +59,7 @@ from app.menu.launchd_integration import (
 from app.menu.lockfile import acquire_lock, release_lock
 from app.menu.snacks.clipboard_snack import register as register_clipboard
 from app.menu.status_icon import _make_status_icon, update_status_icon
+from snackmachine.registry import get_registry
 
 # ─── Config ───────────────────────────────────────────────────────────
 UCORE_URL = "http://127.0.0.1:8484"

@@ -278,19 +278,20 @@ async def handle_publish_notebook(request: web.Request) -> web.Response:
 
 async def _publish_via_handler(payload: dict) -> web.Response:
     """Call the Jekyll publish logic directly with a synthetic payload."""
+    from datetime import UTC, datetime
+    from pathlib import Path as P
+
     from app.api.user_workflow import (
+        DEFAULT_USER_BINDER,
+        VAULT_LAYERS,
+        _jekyll_filename,
+        _jekyll_target_dir,
+        _render_import_document,
+        _safe_binder_name,
         _safe_jekyll_collection,
         _safe_slug,
-        _safe_binder_name,
         _vault_layer_by_id,
-        _jekyll_target_dir,
-        _jekyll_filename,
-        _render_import_document,
-        VAULT_LAYERS,
-        DEFAULT_USER_BINDER,
     )
-    from datetime import datetime, UTC
-    from pathlib import Path as P
 
     content = str(payload.get("content") or "")
     title = str(payload.get("title") or "Untitled").strip() or "Untitled"

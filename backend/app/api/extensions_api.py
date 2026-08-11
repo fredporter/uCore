@@ -16,7 +16,6 @@ from app.extensions.registry import registry
 from app.secret.store import get_store
 from app.tools.registry import check_tool
 
-
 _DEFAULT_CAPABILITY_REQ_FILE = (
     Path(__file__).resolve().parents[3] / "config" / "capability_requirements.json"
 )

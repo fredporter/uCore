@@ -10,9 +10,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Optional
 
-from snackmachine.registry import SnackPlugin, SnackSpec, register_snack
-
 from app.skills.shared_utils import update_menu_delegate
+from snackmachine.registry import SnackPlugin, SnackSpec, register_snack
 
 log = logging.getLogger("system-snack")
 

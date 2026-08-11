@@ -7,7 +7,6 @@ from typing import Any
 
 import yaml
 
-
 STATUS_ALIASES: dict[str, str] = {
     "todo": "todo",
     "to-do": "todo",

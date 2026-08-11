@@ -5,7 +5,6 @@ from __future__ import annotations
 import enum
 from dataclasses import dataclass, field
 
-
 ALLOWED_MANIFEST_FIELDS = {
     "id",
     "name",
