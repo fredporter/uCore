@@ -520,12 +520,14 @@ const filteredStacks = computed(() => {
   font-weight: var(--usx-font-weight-semibold);
 }
 
-/* ─── Body: two-panel layout ─────────────────────────────────── */
+/* ─── Body: vertical stack (toolbar → kanban) ───────────────── */
 .browserui-body {
   display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  position: relative;
 }
 
 /* ─── Toolbar: centered search + pills + actions ───────────── */
@@ -726,15 +728,14 @@ const filteredStacks = computed(() => {
 }
 
 .browserui-editor {
-  width: 420px;
-  min-width: 320px;
-  max-width: 50vw;
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 420px; max-width: 50vw;
   border-left: var(--usx-border-width) solid var(--usx-color-border);
   background: var(--usx-color-surface);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  flex-shrink: 0;
+  display: flex; flex-direction: column;
+  box-shadow: -4px 0 16px rgba(0,0,0,0.08);
+  z-index: 10; overflow-y: auto;
+}
 }
 
 .browserui-doc {
