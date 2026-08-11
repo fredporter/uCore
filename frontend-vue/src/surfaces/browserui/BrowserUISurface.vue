@@ -81,7 +81,7 @@ interface StackItem {
 
 const stacks = ref<
   Array<{ id: string; title: string; icon: string; items: StackItem[] }>
->([]);
+>(DEFAULT_STACKS);
 
 const DEFAULT_STACKS = [
   {

@@ -20,6 +20,25 @@
       Browse, toggle, install and repair extensions detected under ~/Code/.
     </p>
 
+    <div v-if="alwaysActiveSurfaces.length > 0" class="snackbar-plugins__core">
+      <div class="snackbar-plugins__core-head">
+        <span class="material-symbols-outlined">verified</span>
+        <span>Always Active</span>
+      </div>
+      <p class="snackbar-plugins__core-note">
+        Required surfaces are managed by uCore and stay on across sessions.
+      </p>
+      <div class="snackbar-plugins__core-list">
+        <span
+          v-for="surface in alwaysActiveSurfaces"
+          :key="surface.id"
+          class="snackbar-plugins__core-pill"
+        >
+          {{ surface.name }}
+        </span>
+      </div>
+    </div>
+
     <!-- Action message toast -->
     <div v-if="extStore.actionMessage" class="snackbar-plugins__toast">
       {{ extStore.actionMessage }}
@@ -129,6 +148,16 @@ import { useExtensionStore } from "../../../stores/extensions";
 
 const extStore = useExtensionStore();
 const refreshing = ref(false);
+
+const alwaysActiveSurfaces = computed(() =>
+  extStore.all
+    .filter(
+      (entry) =>
+        entry.manifest.required &&
+        (entry.manifest.kind === "core" || entry.manifest.kind === "surface"),
+    )
+    .map((entry) => ({ id: entry.manifest.id, name: entry.manifest.name })),
+);
 
 // Merge known manifest entries with runtime catalogue from backend
 const catalogueItems = computed(() => {
@@ -241,6 +270,52 @@ onMounted(() => {
 .snackbar-plugins__muted {
   font-size: var(--usx-font-size-sm);
   color: var(--usx-color-on-surface-muted);
+}
+
+.snackbar-plugins__core {
+  margin-top: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface-variant);
+}
+
+.snackbar-plugins__core-head {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  font-size: var(--usx-font-size-sm);
+  font-weight: var(--usx-font-weight-semibold);
+  color: var(--usx-color-on-surface);
+}
+
+.snackbar-plugins__core-head .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--usx-color-success);
+}
+
+.snackbar-plugins__core-note {
+  margin: var(--usx-spacing-xs) 0 0;
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.snackbar-plugins__core-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-xs);
+  margin-top: var(--usx-spacing-sm);
+}
+
+.snackbar-plugins__core-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  border-radius: var(--usx-radius-full);
+  background: color-mix(in srgb, var(--usx-color-success) 12%, transparent);
+  color: var(--usx-color-success);
+  font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-medium);
 }
 
 /* Toast */
