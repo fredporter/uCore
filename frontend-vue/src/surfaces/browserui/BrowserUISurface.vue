@@ -48,7 +48,7 @@
 
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import UInput from "../../skills/atoms/UInput.vue";
 import UIcon from "../../skills/atoms/UIcon.vue";
@@ -366,24 +366,38 @@ async function batchResearch() {
 }
 
 async function detectKnowledgeGaps() {
-  // Simple gap detection: check for vaults without README or SUMMARY
   try {
-    const res = await fetch(`${API_BASE}/api/binder/list`, { signal: AbortSignal.timeout(3000) })
+    const res = await fetch(`${API_BASE}/api/research/vault-scan`, { signal: AbortSignal.timeout(5000) })
     if (res.ok) {
       const data = await res.json()
-      const binders = data.binders || []
-      const gaps: any[] = []
-      for (const b of binders) {
-        if (!b.description || b.sources?.length === 0) {
-          gaps.push({ topic: b.name, reason: "No sources or description — needs research" })
-        }
-      }
-      researchGaps.value = gaps
+      researchGaps.value = data.gaps || []
     }
   } catch { /* offline */ }
 }
 
+// Session persistence
+function saveSession() {
+  localStorage.setItem("browserui-session", JSON.stringify({
+    researchJobs: researchJobs.value.slice(0, 20),
+    searchQuery: searchQuery.value,
+  }))
+}
+function loadSession() {
+  try {
+    const raw = localStorage.getItem("browserui-session")
+    if (raw) {
+      const data = JSON.parse(raw)
+      researchJobs.value = data.researchJobs || []
+      searchQuery.value = data.searchQuery || ""
+    }
+  } catch { /* ignore */ }
+watch(researchJobs, () => saveSession(), { deep: true })
+
+
+}
+
 onMounted(() => {
+  loadSession()
   fetchBookmarks()
   detectKnowledgeGaps()
 })

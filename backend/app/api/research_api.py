@@ -112,3 +112,116 @@ async def handle_research_enhance(request: web.Request) -> web.Response:
         })
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
+
+
+async def handle_research_stream(request: web.Request) -> web.StreamResponse:
+    """GET /api/research/stream/{job_id} — SSE streaming for job progress."""
+    job_id = request.match_info.get("job_id", "").strip()
+    if not job_id:
+        return web.json_response({"error": "job_id required"}, status=400)
+    q = get_queue()
+    resp = web.StreamResponse(
+        status=200, reason="OK",
+        headers={
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
+    )
+    await resp.prepare(request)
+    import asyncio, json
+    last_state = None
+    for _ in range(60):  # max 60 seconds
+        status = await q.status(job_id)
+        if status is None:
+            await resp.write(b"data: {\"error\":\"not found\"}\n\n")
+            break
+        if status["state"] != last_state:
+            await resp.write(f"data: {json.dumps(status)}\n\n".encode())
+            last_state = status["state"]
+        if status["state"] in ("completed", "failed"):
+            break
+        await asyncio.sleep(1)
+    return resp
+
+
+async def handle_binder_search(request: web.Request) -> web.Response:
+    """GET /api/binder/search?q=... — cross-binder full-text search."""
+    query = request.query.get("q", "").strip().lower()
+    if not query:
+        return web.json_response({"results": [], "count": 0})
+    from pathlib import Path
+    vault = Path.home() / "Vault"
+    results = []
+    if vault.exists():
+        for md in vault.rglob("*.md"):
+            try:
+                text = md.read_text(encoding="utf-8", errors="ignore").lower()
+                if query in text:
+                    rel = str(md.relative_to(vault))
+                    binder = rel.split("/")[0] if "/" in rel else "root"
+                    results.append({
+                        "path": f"~/Vault/{rel}",
+                        "binder": binder,
+                        "title": md.stem.replace("-", " ").title(),
+                        "snippet": text[max(0, text.find(query)-40):text.find(query)+len(query)+80],
+                    })
+            except Exception:
+                continue
+    results = results[:20]
+    return web.json_response({"results": results, "count": len(results)})
+
+
+async def handle_vault_scan(request: web.Request) -> web.Response:
+    """GET /api/research/vault-scan — scan binders for gaps and freshness."""
+    from pathlib import Path
+    from datetime import UTC, datetime, timedelta
+    import json
+    vault = Path.home() / "Vault"
+    gaps = []
+    now = datetime.now(UTC)
+    if vault.exists():
+        for d in sorted(vault.iterdir()):
+            if not d.is_dir():
+                continue
+            bj = d / "binder.json"
+            meta = {}
+            if bj.exists():
+                try:
+                    meta = json.loads(bj.read_text())
+                except Exception:
+                    pass
+            score = meta.get("score", 0)
+            sources = meta.get("sources", [])
+            updated = meta.get("updated", "")
+            # Low quality
+            if score < 2:
+                gaps.append({
+                    "topic": d.name,
+                    "reason": f"Low quality score ({score}/5) — needs research",
+                    "priority": "high" if score == 0 else "medium",
+                })
+            # No sources
+            elif not sources:
+                gaps.append({
+                    "topic": d.name,
+                    "reason": "No sources — needs initial research",
+                    "priority": "high",
+                })
+            # Stale (older than 30 days)
+            elif updated:
+                try:
+                    dt = datetime.fromisoformat(updated.replace("Z", "+00:00"))
+                    age = (now - dt).days
+                    if age > 30:
+                        gaps.append({
+                            "topic": d.name,
+                            "reason": f"Stale ({age} days old) — consider re-research",
+                            "priority": "low",
+                        })
+                except Exception:
+                    pass
+    gaps.sort(key=lambda g: {"high": 0, "medium": 1, "low": 2}[g["priority"]])
+    return web.json_response({"gaps": gaps, "count": len(gaps)})
+
+

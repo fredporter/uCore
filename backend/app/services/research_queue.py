@@ -191,6 +191,13 @@ class ResearchQueue:
             else:
                 cp.write_text(f"# Citations\n\n{cit}")
             result = json.dumps({"file": str(fp), "title": title, "binder": job.binder})
+            # Auto-score: token count + source quality → 0-5
+            auto_score = min(5, round((len(summary) / 500) + (1 if description else 0), 1))
+            self._conn.execute(
+                "UPDATE jobs SET result=json_set(COALESCE(result,'{}'),'$.score',?) WHERE id=?",
+                (auto_score, job.id),
+            )
+            self._conn.commit()
             await self.update_state(job.id, "completed", progress=100, result=result)
         except Exception as e:
             await self.update_state(job.id, "failed", error=f"Save error: {e}")

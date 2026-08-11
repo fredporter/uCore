@@ -850,6 +850,20 @@
       },
       {
         "method": "POST",
+        "path": "/api/binder/add",
+        "handler": "handle_binder_add",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "GET",
+        "path": "/api/binder/list",
+        "handler": "handle_binder_list",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "POST",
         "path": "/api/budget/reload",
         "handler": "handle_budget_reload",
         "health": "working",
@@ -873,6 +887,13 @@
         "method": "POST",
         "path": "/api/chat",
         "handler": "handle_chat",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "GET",
+        "path": "/api/chat/modes",
+        "handler": "handle_chat_modes",
         "health": "working",
         "issues": []
       },
@@ -1209,6 +1230,41 @@
         "method": "GET",
         "path": "/api/render/stream",
         "handler": "handle_stream",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "POST",
+        "path": "/api/research/enhance",
+        "handler": "handle_research_enhance",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "GET",
+        "path": "/api/research/list",
+        "handler": "handle_research_list",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "POST",
+        "path": "/api/research/process",
+        "handler": "handle_research_process",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "POST",
+        "path": "/api/research/start",
+        "handler": "handle_research_start",
+        "health": "working",
+        "issues": []
+      },
+      {
+        "method": "GET",
+        "path": "/api/research/status",
+        "handler": "handle_research_status",
         "health": "working",
         "issues": []
       },
@@ -1615,8 +1671,8 @@
     ]
   },
   "health": {
-    "total_items": 161,
-    "working": 161,
+    "total_items": 169,
+    "working": 169,
     "untested": 0,
     "broken": 0,
     "orphaned": 0,

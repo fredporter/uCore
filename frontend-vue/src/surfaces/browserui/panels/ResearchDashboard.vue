@@ -6,7 +6,7 @@
     <div class="rdash__section">
       <h3>Research Queue</h3>
       <div v-if="jobs.length === 0" class="rdash__empty">No active research jobs</div>
-      <div v-for="j in jobs" :key="j.id" class="rdash__job">
+      <div v-for="j in jobs" :key="j.id" class="rdash__job" @click="selectedJob = selectedJob?.id === j.id ? null : j">
         <div class="rdash__job-top">
           <span class="rdash__job-url">{{ j.url }}</span>
           <span class="rdash__job-state" :class="`rdash__job-state--${j.state}`">{{ j.state }}</span>
@@ -16,10 +16,14 @@
         </div>
         <div class="rdash__job-meta">
           <span>Binder: {{ j.binder }}</span>
+          <span v-if="j.result?.score" class="rdash__job-score">Score: {{ j.result.score }}/5</span>
           <span v-if="j.error" class="rdash__job-error">{{ j.error }}</span>
         </div>
-        <div v-if="j.state === 'completed'" class="rdash__job-actions">
-          <button class="uxs-btn" @click="$emit('approve', j)">Approve &amp; Commit</button>
+        <!-- Expanded detail -->
+        <div v-if="selectedJob?.id === j.id && j.state === 'completed'" class="rdash__job-detail">
+          <div v-if="j.result?.file"><strong>Saved:</strong> {{ j.result.file }}</div>
+          <div v-if="j.result?.score"><strong>Quality:</strong> {{ j.result.score }}/5</div>
+          <button class="uxs-btn uxs-btn--sm" @click.stop="$emit('approve', j)">Approve</button>
         </div>
       </div>
     </div>
@@ -35,10 +39,15 @@
     </div>
 
     <div class="rdash__section" v-if="gaps.length > 0">
-      <h3>Research Gaps</h3>
+      <h3>Research Gaps <span class="rdash__badge">{{ gaps.length }}</span></h3>
+      <div class="rdash__gap-actions">
+        <button class="uxs-btn uxs-btn--sm" @click="gaps.forEach(g => $emit('fillGap', g))">Research All</button>
+      </div>
       <div v-for="g in gaps" :key="g.topic" class="rdash__gap">
         <UIcon name="warning" class="rdash__gap-icon" />
+        <span class="rdash__gap-priority" :class="`rdash__gap-priority--${g.priority}`">{{ g.priority }}</span>
         <span>{{ g.topic }}</span>
+        <span class="rdash__gap-reason">{{ g.reason }}</span>
         <button class="uxs-btn uxs-btn--sm" @click="$emit('fillGap', g)">Research</button>
       </div>
     </div>
@@ -49,8 +58,8 @@
 import { ref } from "vue"
 import UIcon from "../../../skills/atoms/UIcon.vue"
 
-export interface ResearchJob { id: string; url: string; binder: string; state: string; progress: number; error?: string }
-export interface ResearchGap { topic: string; reason: string }
+export interface ResearchJob { id: string; url: string; binder: string; state: string; progress: number; error?: string; result?: { file?: string; score?: number } }
+export interface ResearchGap { topic: string; reason: string; priority?: string }
 
 defineProps<{ jobs: ResearchJob[]; gaps: ResearchGap[] }>()
 const emit = defineEmits<{ approve: [job: ResearchJob]; startResearch: [params: { url: string; binder: string; tags: string[] }]; fillGap: [gap: ResearchGap] }>()
@@ -58,6 +67,7 @@ const emit = defineEmits<{ approve: [job: ResearchJob]; startResearch: [params: 
 const newUrl = ref("")
 const newBinder = ref("")
 const newTags = ref("")
+const selectedJob = ref<any>(null)
 
 function submitRequest() {
   if (!newUrl.value) return
@@ -97,4 +107,15 @@ function submitRequest() {
 .uxs-btn--primary { background: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
 .uxs-btn--sm { font-size: var(--usx-font-size-xs); }
 .uxs-btn:disabled { opacity: 0.5; cursor: default; }
+.rdash__job-detail { margin-top: var(--usx-spacing-sm); padding: var(--usx-spacing-sm); background: var(--usx-color-surface-variant); border-radius: var(--usx-radius-sm); font-size: var(--usx-font-size-xs); }
+.rdash__job-score { color: var(--usx-color-success); font-weight: 600; }
+.rdash__badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--usx-radius-full); background: var(--usx-color-primary); color: var(--usx-color-on-primary); font-size: var(--usx-font-size-xs); font-weight: 600; }
+.rdash__gap-actions { margin-bottom: var(--usx-spacing-sm); }
+.rdash__gap-priority { font-size: var(--usx-font-size-xs); padding: 1px 6px; border-radius: var(--usx-radius-sm); text-transform: uppercase; font-weight: 600; }
+.rdash__gap-priority--high { background: var(--usx-color-danger); color: var(--usx-color-on-danger); }
+.rdash__gap-priority--medium { background: var(--usx-color-warning); color: var(--usx-color-on-warning); }
+.rdash__gap-priority--low { background: var(--usx-color-surface-variant); color: var(--usx-color-on-surface-muted); }
+.rdash__gap-reason { font-size: var(--usx-font-size-xs); color: var(--usx-color-on-surface-muted); flex: 1; }
+.rdash__job { cursor: pointer; }
+
 </style>
