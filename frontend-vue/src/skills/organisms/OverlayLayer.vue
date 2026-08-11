@@ -36,12 +36,14 @@ import { useExtensionStore } from "../../stores/extensions";
 import { useShellStore } from "../../stores/shell";
 import { useDevModeStore } from "../../stores/devMode";
 import { useWorkflowStore } from "../../stores/workflow";
+import { useChatStore } from "../../stores/chat";
 import { SNACKBAR_BASE } from "../../api/base";
 
 const { toast } = useToast();
 const { events } = useFeed();
 const shell = useShellStore();
 const extStore = useExtensionStore();
+const assistChat = useChatStore();
 
 // ─── uDev dev-server probe ──────────────────────────────────────
 // Keep the Developer surface card / Dashboard "hidden" hint in sync with
@@ -107,42 +109,26 @@ interface Msg {
   role: "user" | "assistant";
   content: string;
 }
-const chatMessages = ref<Msg[]>([]);
+const chatMessages = computed<Msg[]>(() =>
+  assistChat.messages.map((m) => ({ role: m.role, content: m.content })),
+);
 const devMessages = ref<Msg[]>([]);
-const chatLoading = ref(false);
+const chatLoading = computed(() => assistChat.loading || devLoading.value);
+const devLoading = ref(false);
 
-async function sendChat(text: string) {
-  chatMessages.value.push({ role: "user", content: text });
-  chatLoading.value = true;
-  try {
-    const res = await fetch(`${SNACKBAR_BASE}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: text,
-        history: chatMessages.value.slice(-10),
-      }),
-      signal: AbortSignal.timeout(30000),
-    });
-    const data = await res.json();
-    chatMessages.value.push({
-      role: "assistant",
-      content: data.response || data.message || "…",
-    });
-  } catch {
-    chatMessages.value.push({
-      role: "assistant",
-      content: "Backend unavailable.",
-    });
-    toast("Chat backend unreachable", "warning");
-  } finally {
-    chatLoading.value = false;
+async function sendChat(text: string, mode: "chat" | "plan" | "act" | "workflow") {
+  assistChat.setPromptMode(mode);
+  await assistChat.sendMessage(text);
+
+  const last = assistChat.messages.at(-1);
+  if (last?.role === "assistant" && /AI is offline/i.test(last.content)) {
+    toast("AssistUI backend unreachable", "warning");
   }
 }
 
 async function sendDev(text: string) {
   devMessages.value.push({ role: "user", content: text });
-  chatLoading.value = true;
+  devLoading.value = true;
   try {
     const res = await fetch(`${SNACKBAR_BASE}/api/developer/chat`, {
       method: "POST",
@@ -166,7 +152,7 @@ async function sendDev(text: string) {
     });
     toast("Dev chat backend unreachable", "warning");
   } finally {
-    chatLoading.value = false;
+    devLoading.value = false;
   }
 }
 

@@ -222,25 +222,36 @@ async function handleNewFile(binderId: string) {
 }
 
 .app-runtime-warning {
+  position: fixed;
+  top: calc(var(--usx-toolbar-height) + var(--usx-spacing-md));
+  right: var(--usx-spacing-md);
+  z-index: var(--usx-z-notification);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: column;
   gap: var(--usx-spacing-md);
   padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  max-width: min(64ch, calc(100vw - (var(--usx-spacing-md) * 2)));
+  width: max-content;
+  border: var(--usx-border-width) solid var(--usx-color-warning);
+  border-radius: var(--usx-radius-md);
+  box-shadow: 0 var(--usx-spacing-xs) var(--usx-spacing-lg) color-mix(in srgb, var(--usx-color-on-surface) 18%, transparent);
   background: color-mix(in srgb, var(--usx-color-warning) 16%, transparent);
-  border-top: var(--usx-border-width) solid var(--usx-color-warning);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-warning);
 }
 
 .app-runtime-warning__message {
   font-size: var(--usx-font-size-sm);
   color: var(--usx-color-on-surface);
+  line-height: var(--usx-line-height-normal);
+  max-width: 56ch;
 }
 
 .app-runtime-warning__actions {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
+  align-self: flex-end;
 }
 
 .app-runtime-warning__btn {
@@ -255,6 +266,21 @@ async function handleNewFile(binderId: string) {
 
 .app-runtime-warning__btn:hover {
   border-color: var(--usx-color-warning);
+}
+
+@media (max-width: 768px) {
+  .app-runtime-warning {
+    left: var(--usx-spacing-sm);
+    right: var(--usx-spacing-sm);
+    top: calc(var(--usx-toolbar-height) + var(--usx-spacing-sm));
+    width: auto;
+    max-width: none;
+  }
+
+  .app-runtime-warning__actions {
+    align-self: stretch;
+    justify-content: flex-end;
+  }
 }
 
 .app-sidebar {

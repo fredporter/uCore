@@ -60,6 +60,20 @@
       </button>
     </div>
 
+    <div v-if="activeLane === 'chat'" class="chat-panel__mode-toggle" role="tablist" aria-label="Assistant mode">
+      <button
+        v-for="mode in CHAT_MODES"
+        :key="mode.id"
+        class="chat-panel__mode-btn"
+        :class="{ 'chat-panel__mode-btn--active': activeChatMode === mode.id }"
+        role="tab"
+        :aria-selected="activeChatMode === mode.id ? 'true' : 'false'"
+        @click="activeChatMode = mode.id"
+      >
+        {{ mode.label }}
+      </button>
+    </div>
+
     <!-- ── Context strip ──────────────────────────────────────── -->
     <div
       v-if="contextLabel && contextLabel.trim().toLowerCase() !== 'developer'"
@@ -227,7 +241,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  "send-chat": [message: string];
+  "send-chat": [message: string, mode: "chat" | "plan" | "act" | "workflow"];
   "send-dev": [message: string];
   "toggle-dev-mode": [];
   close: [];
@@ -239,9 +253,17 @@ const ws = useWorkspaceStore();
 const { toast } = useToast();
 
 const activeLane = ref<"chat" | "dev">("chat");
+const activeChatMode = ref<"chat" | "plan" | "act" | "workflow">("chat");
 const inputText = ref("");
 const messagesEl = ref<HTMLDivElement | null>(null);
 const inputEl = ref<HTMLInputElement | null>(null);
+
+const CHAT_MODES = [
+  { id: "chat", label: "Chat" },
+  { id: "plan", label: "Research" },
+  { id: "act", label: "Act" },
+  { id: "workflow", label: "Workflow" },
+] as const;
 
 const activeMessages = computed(() =>
   activeLane.value === "dev" ? props.devMessages : props.chatMessages,
@@ -287,7 +309,7 @@ function sendMessage() {
   if (activeLane.value === "dev") {
     emit("send-dev", text);
   } else {
-    emit("send-chat", text);
+    emit("send-chat", text, activeChatMode.value);
   }
   inputText.value = "";
 }
@@ -364,6 +386,34 @@ async function copyText(content: string) {
   background-color: var(--usx-color-surface-variant);
   flex-shrink: 0;
   gap: var(--usx-spacing-xs);
+}
+
+.chat-panel__mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  margin-left: auto;
+  margin-right: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xs);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-full);
+  background: var(--usx-color-surface-variant);
+}
+
+.chat-panel__mode-btn {
+  border: none;
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  border-radius: var(--usx-radius-full);
+  padding: 0 var(--usx-spacing-sm);
+  height: var(--usx-touch-target-compact);
+  font-size: var(--usx-font-size-xs);
+  cursor: pointer;
+}
+
+.chat-panel__mode-btn--active {
+  background: var(--usx-color-primary);
+  color: var(--usx-color-on-primary);
 }
 
 .chat-panel__lane-toggle-wrap {
