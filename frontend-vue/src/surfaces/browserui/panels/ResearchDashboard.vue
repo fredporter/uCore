@@ -53,7 +53,7 @@ export interface ResearchJob { id: string; url: string; binder: string; state: s
 export interface ResearchGap { topic: string; reason: string }
 
 defineProps<{ jobs: ResearchJob[]; gaps: ResearchGap[] }>()
-defineEmits<{ approve: [job: ResearchJob]; startResearch: [params: { url: string; binder: string; tags: string[] }]; fillGap: [gap: ResearchGap] }>()
+const emit = defineEmits<{ approve: [job: ResearchJob]; startResearch: [params: { url: string; binder: string; tags: string[] }]; fillGap: [gap: ResearchGap] }>()
 
 const newUrl = ref("")
 const newBinder = ref("")
@@ -66,7 +66,6 @@ function submitRequest() {
   newUrl.value = ""
 }
 
-const emit = defineEmits<{ approve: [job: ResearchJob]; startResearch: [params: { url: string; binder: string; tags: string[] }]; fillGap: [gap: ResearchGap] }>()
 </script>
 
 <style scoped>
