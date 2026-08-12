@@ -810,15 +810,9 @@ async function copyText(content: string) {
   }
 
   .chat-panel__model-btn {
-    padding: 0 var(--usx-spacing-xs);
-  }
-
-  .chat-panel__model-label {
-    display: none;
-  }
-
-  .chat-panel__model-chevron {
-    display: none;
+    padding: 0 var(--usx-spacing-sm);
+    flex: 1;
+    justify-content: flex-start;
   }
 
   .chat-panel__msg {
