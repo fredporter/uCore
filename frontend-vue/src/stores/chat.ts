@@ -110,7 +110,7 @@ export const useChatStore = defineStore('chat', () => {
     return {
       id: 'welcome',
       role: 'assistant',
-      content: `# Hi friend\n\nI'm your personal assistant — I can help with your vault, tasks, planning, and knowledge.\n\nWhat would you like to do today?`,
+      content: `I'm your personal assistant — I can help with your vault, tasks, planning, and knowledge.\n\nWhat would you like to do today?`,
       timestamp: new Date(),
     }
   }

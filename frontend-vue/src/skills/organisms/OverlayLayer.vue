@@ -159,9 +159,7 @@ function handlePromptClick(card: PromptCard) {
 }
 
 const chatMessages = computed<Msg[]>(() =>
-  assistChat.messages
-    .filter((m) => m.id !== "welcome")
-    .map((m) => ({ role: m.role, content: m.content })),
+  assistChat.messages.map((m) => ({ role: m.role, content: m.content })),
 );
 
 const showWelcome = computed(() =>

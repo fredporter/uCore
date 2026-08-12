@@ -62,10 +62,6 @@
           :class="`chat-panel__msg--${msg.role}`"
         >
           <div class="chat-panel__msg-row">
-            <UIcon
-              :name="msg.role === 'user' ? 'person' : activeLane === 'dev' ? 'terminal' : 'auto_awesome'"
-              class="chat-panel__msg-icon"
-            />
             <div class="chat-panel__msg-body" v-html="renderMsgContent(msg.content)" />
           </div>
           <div v-if="msg.role === 'assistant'" class="chat-panel__msg-actions">
@@ -614,7 +610,7 @@ async function copyText(content: string) {
 /* Message bubbles — single container */
 .chat-panel__msg {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: var(--usx-spacing-xs);
   max-width: 88%;
   padding: var(--usx-spacing-sm) var(--usx-spacing-md);
@@ -630,7 +626,6 @@ async function copyText(content: string) {
 
 .chat-panel__msg--user {
   align-self: flex-end;
-  flex-direction: row-reverse;
   background-color: var(--usx-color-primary);
   color: #fff;
   border-bottom-right-radius: var(--usx-radius-sm);
@@ -644,16 +639,15 @@ async function copyText(content: string) {
   border-bottom-left-radius: var(--usx-radius-sm);
 }
 
-.chat-panel__msg-icon {
-  font-size: var(--usx-font-size-lg);
-  opacity: 0.7;
-  flex-shrink: 0;
-  margin-top: 2px;
+.chat-panel__msg-row {
+  display: flex;
+  width: 100%;
 }
 
 .chat-panel__msg-body {
   flex: 1;
   min-width: 0;
+  width: 100%;
   word-wrap: break-word;
 }
 
@@ -931,6 +925,41 @@ async function copyText(content: string) {
   .chat-panel__dot {
     animation: none;
     opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .chat-panel__header {
+    padding: var(--usx-spacing-xs);
+  }
+
+  .chat-panel__header-side {
+    min-width: 32px;
+  }
+
+  .chat-panel__lane-label {
+    display: none;
+  }
+
+  .chat-panel__composer-row {
+    gap: var(--usx-spacing-xs);
+    padding: var(--usx-spacing-xs) 0;
+  }
+
+  .chat-panel__model-btn {
+    padding: 0 var(--usx-spacing-xs);
+  }
+
+  .chat-panel__model-label {
+    display: none;
+  }
+
+  .chat-panel__model-chevron {
+    display: none;
+  }
+
+  .chat-panel__msg {
+    max-width: 94%;
   }
 }
 </style>
