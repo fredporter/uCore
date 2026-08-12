@@ -200,7 +200,7 @@
   gap: var(--usx-spacing-xs);
 }
 
-/* Lane toggle — ghost icon, no box */
+/* Lane toggle — ghost icon, no box (USX topbar pattern) */
 .usx-chat-lane-toggle {
   display: flex;
   align-items: center;
@@ -224,7 +224,7 @@
   color: var(--usx-color-primary);
 }
 
-/* Close button — top-right corner */
+/* Close button — top-right corner (USX topbar pattern) */
 .usx-chat-overlay-close {
   display: flex;
   align-items: center;
@@ -232,17 +232,16 @@
   width: 44px;
   height: 44px;
   border: none;
-  border-radius: var(--usx-radius-full);
-  background: var(--usx-color-surface);
-  color: var(--usx-color-on-surface);
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
   cursor: pointer;
   font-size: var(--usx-font-size-xl);
   line-height: var(--usx-line-height-none);
-  transition: background var(--usx-transition-fast);
+  transition: color var(--usx-transition-fast);
 }
 
 .usx-chat-overlay-close:hover {
-  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface);
 }
 
 /* Above / below slots */

@@ -599,7 +599,7 @@ async function copyText(content: string) {
   display: flex;
   align-items: flex-end;
   gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-sm) 0;
+  padding: var(--usx-spacing-xs) 0 0;
 }
 
 .chat-panel__input {
@@ -615,10 +615,10 @@ async function copyText(content: string) {
   color: var(--usx-color-on-surface);
   font-size: var(--usx-font-size-base);
   font-family: var(--usx-font-family-sans);
-  line-height: var(--usx-line-height-normal);
+  line-height: var(--usx-line-height-tight);
   outline: none;
   resize: none;
-  min-height: var(--usx-control-size-md);
+  min-height: 0;
   max-height: 160px;
 }
 
