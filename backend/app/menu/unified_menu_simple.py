@@ -512,6 +512,19 @@ class UnifiedMenuDelegate(NSObject):
         item.setSubmenu_(clipboard_submenu)
         self._menu.addItem_(item)
 
+        # ── Vue Server ──────────────────────────────────────────
+        frontend_dot = "💎" if self._uihub_connected else "😢"
+        frontend_label = (
+            f"{frontend_dot} Vue Server: Running"
+            if self._uihub_connected
+            else f"{frontend_dot} Vue Server: Stopped"
+        )
+        item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            frontend_label, None, "",
+        )
+        item.setEnabled_(False)
+        self._menu.addItem_(item)
+
         extensions = _installed_extensions()
         if extensions:
             self._menu.addItem_(NSMenuItem.separatorItem())
