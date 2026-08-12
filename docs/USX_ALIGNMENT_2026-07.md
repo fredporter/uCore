@@ -3,6 +3,12 @@
 **Status:** Active
 **Last updated:** 2026-07-08
 
+## Canonical Baseline Spec (2026-08)
+
+For any request to review surface compliance or build a new USX surface,
+use `docs/USX_SURFACE_BASELINE_SPEC.md` as the primary reference,
+then validate against package token files and `packages/usx-tokens/usx-standard.css`.
+
 ## Summary
 
 The USX token system has been extracted from `uCore/frontend-vue/src/styles/` into a **shared npm package**: `@udos/usx-tokens` v3.1.0.

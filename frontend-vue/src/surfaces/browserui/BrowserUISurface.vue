@@ -1,56 +1,37 @@
 <template>
   <div class="surface">
     <div class="surface__content browserui-shell">
-      <div class="browserui-tabs">
-        <button
-          v-for="tab in TABS"
-          :key="tab.id"
-          class="browserui-tab"
-          :class="{ 'browserui-tab--active': activeTab === tab.id }"
-          @click="switchTab(tab.id)"
-        >
-          <UIcon :name="tab.icon" />{{ tab.label }}
-        </button>
-      </div>
+      <SurfaceTabNav
+        :tabs="TABS"
+        :model-value="activeTab"
+        orientation="horizontal"
+        @update:model-value="switchTab"
+      />
 
       <div v-if="activeTab === 'cards'" class="browserui-body">
         <section class="browserui-canvas">
-          <div class="browserui-toolbar">
-            <div class="browserui-toolbar__row browserui-toolbar__row--primary">
-              <div class="browserui-search">
-                <UInput v-model="searchQuery" placeholder="Search titles, tags, topics..." icon="search" />
+          <div class="browserui-toolbar" :class="`browserui-toolbar--group-${groupBy}`">
+            <div class="surface__panel browserui-panel">
+              <div class="browserui-panel__header">
+                <h3 class="surface__panel-title">Browser</h3>
+                <div class="browserui-panel__badges">
+                  <UBadge type="info" size="sm">Cards Explorer</UBadge>
+                  <UBadge type="warning" size="sm">Seed Memory Fallback</UBadge>
+                </div>
               </div>
-
-              <div class="browserui-toolbar__controls">
-                <label class="browserui-select-wrap">
-                  <span>Sort</span>
-                  <select v-model="sortKey" class="browserui-select">
-                    <option value="relevance">Relevance</option>
-                    <option value="score">Score</option>
-                    <option value="title">Title</option>
-                  </select>
-                </label>
-
-                <label class="browserui-select-wrap">
-                  <span>Group</span>
-                  <select v-model="groupBy" class="browserui-select">
-                    <option value="stack">Stack</option>
-                    <option value="topic">Topic</option>
-                    <option value="score">Score</option>
-                    <option value="custom">Custom Group</option>
-                  </select>
-                </label>
-
-                <label class="browserui-select-wrap">
-                  <span>Layout</span>
-                  <select v-model="density" class="browserui-select">
-                    <option value="stacked">Stacked</option>
-                    <option value="comfortable">Comfortable</option>
-                  </select>
-                </label>
-
+              <p class="surface__panel-description">
+                Search, group, and enrich cards with mission-control style controls.
+              </p>
+              <div class="browserui-actions-row">
                 <button class="uxs-btn" @click="resetControls">
                   <UIcon name="refresh" /> Reset
+                </button>
+                <button
+                  v-if="hasActiveFilters"
+                  class="uxs-btn"
+                  @click="resetControls"
+                >
+                  <UIcon name="filter_alt_off" /> Clear filters
                 </button>
                 <button
                   v-if="batchSelected.length"
@@ -62,38 +43,127 @@
               </div>
             </div>
 
-            <div class="browserui-toolbar__row browserui-toolbar__row--secondary">
-              <div class="browserui-pillrail" aria-label="topic tags">
-                <button
-                  v-for="tag in allTags"
-                  :key="tag"
-                  class="browserui-pill"
-                  :class="{ 'browserui-pill--active': selectedTags.includes(tag) }"
-                  @click="toggleTagFilter(tag)"
-                >
-                  {{ tag }}
-                </button>
+            <div class="browserui-stats">
+              <div class="browserui-stat">
+                <span class="browserui-stat__value">{{ filteredSortedCards.length }}</span>
+                <span class="browserui-stat__label">Visible Cards</span>
               </div>
+              <div class="browserui-stat">
+                <span class="browserui-stat__value browserui-stat__value--info">{{ displayedGroups.length }}</span>
+                <span class="browserui-stat__label">Columns</span>
+              </div>
+              <div class="browserui-stat">
+                <span class="browserui-stat__value browserui-stat__value--warning">{{ selectedTags.length }}</span>
+                <span class="browserui-stat__label">Topic Filters</span>
+              </div>
+              <div class="browserui-stat">
+                <span class="browserui-stat__value browserui-stat__value--success">{{ batchSelected.length }}</span>
+                <span class="browserui-stat__label">Selected</span>
+              </div>
+            </div>
 
-              <div class="browserui-batch-tools">
-                <div class="browserui-mini-input-wrap">
-                  <UInput v-model="newTag" placeholder="Add topic tag" icon="sell" />
+            <div class="browserui-section">
+              <h4 class="browserui-section__title">Search Controls</h4>
+              <div class="browserui-toolbar__row browserui-toolbar__row--primary">
+                <div class="browserui-search">
+                  <UInput v-model="searchQuery" placeholder="Search titles, tags, topics..." icon="search" />
                 </div>
-                <button class="uxs-btn" @click="addTagToSelection">
-                  <UIcon name="add" /> Tag {{ batchSelected.length || "topic" }}
-                </button>
 
-                <div class="browserui-mini-input-wrap">
-                  <UInput v-model="newGroup" placeholder="Add group" icon="folder" />
+                <div class="browserui-toolbar__controls">
+                  <div class="browserui-combo">
+                    <span class="browserui-combo__prefix">Sort</span>
+                    <select v-model="sortKey" class="browserui-select browserui-select--combo">
+                      <option value="relevance">Relevance</option>
+                      <option value="score">Score</option>
+                      <option value="title">Title</option>
+                    </select>
+                  </div>
+
+                  <div class="browserui-combo">
+                    <span class="browserui-combo__prefix">Group</span>
+                    <select v-model="groupBy" class="browserui-select browserui-select--combo">
+                      <option value="stack">Stack</option>
+                      <option value="topic">Topic</option>
+                      <option value="score">Score</option>
+                      <option value="custom">Custom Group</option>
+                    </select>
+                  </div>
+
+                  <div class="browserui-combo">
+                    <span class="browserui-combo__prefix">Layout</span>
+                    <select v-model="density" class="browserui-select browserui-select--combo">
+                      <option value="stacked">Stacked</option>
+                      <option value="comfortable">Comfortable</option>
+                    </select>
+                  </div>
                 </div>
-                <button class="uxs-btn" @click="addGroupToSelection">
-                  <UIcon name="add" /> Group {{ batchSelected.length || "topic" }}
-                </button>
+              </div>
+            </div>
+
+            <div class="browserui-section">
+              <h4 class="browserui-section__title">Topics and Grouping</h4>
+              <div class="browserui-toolbar__row browserui-toolbar__row--secondary">
+                <div class="browserui-pillrail" aria-label="topic tags">
+                  <button
+                    v-for="tag in allTags"
+                    :key="tag"
+                    class="browserui-pill"
+                    :class="{ 'browserui-pill--active': selectedTags.includes(tag) }"
+                    @click="toggleTagFilter(tag)"
+                  >
+                    {{ tag }}
+                  </button>
+                </div>
+
+                <div class="browserui-resultsbar">
+                  <span class="browserui-resultsbar__text">
+                    {{ filteredSortedCards.length }} cards in {{ displayedGroups.length }} columns
+                  </span>
+                </div>
+
+                <div class="browserui-batch-tools">
+                  <div class="browserui-quickadd">
+                    <div class="browserui-mini-input-wrap">
+                      <UInput v-model="newTag" placeholder="Tag topic" icon="sell" />
+                    </div>
+                    <button
+                      class="uxs-btn uxs-btn--icon"
+                      title="Add topic tag"
+                      aria-label="Add topic tag"
+                      @click="addTagToSelection"
+                    >
+                      <UIcon name="add" />
+                    </button>
+                  </div>
+
+                  <div class="browserui-quickadd">
+                    <div class="browserui-mini-input-wrap">
+                      <UInput v-model="newGroup" placeholder="Group topic" icon="folder" />
+                    </div>
+                    <button
+                      class="uxs-btn uxs-btn--icon"
+                      title="Add topic group"
+                      aria-label="Add topic group"
+                      @click="addGroupToSelection"
+                    >
+                      <UIcon name="add" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="browserui-kanban">
+          <div v-if="displayedGroups.length === 0" class="browserui-empty">
+            <UIcon name="filter_alt_off" />
+            <h3>No cards match the current filters</h3>
+            <p>Try clearing filters or adjusting search/group settings.</p>
+            <button class="uxs-btn" @click="resetControls">
+              <UIcon name="refresh" /> Reset filters
+            </button>
+          </div>
+
+          <div v-else class="browserui-kanban">
             <article v-for="column in displayedGroups" :key="column.id" class="browserui-column">
               <header class="browserui-column__header">
                 <div class="browserui-column__title">
@@ -207,6 +277,8 @@ import { computed, onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import UInput from "../../skills/atoms/UInput.vue"
 import UIcon from "../../skills/atoms/UIcon.vue"
+import UBadge from "../../skills/atoms/UBadge.vue"
+import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue"
 import PreviewTab from "./panels/PreviewTab.vue"
 import EditTab from "./panels/EditTab.vue"
 import ResearchDashboard from "./panels/ResearchDashboard.vue"
@@ -243,6 +315,27 @@ interface DisplayGroup {
   title: string
   icon: string
   items: DisplayCard[]
+}
+
+interface SeedTask {
+  id?: string
+  title?: string
+  description?: string
+  body?: string
+  mission?: string
+  task?: string
+  binder?: string
+  board?: string
+  status?: string
+  tags?: string[]
+}
+
+interface VaultLayer {
+  id: string
+  label: string
+  description?: string
+  path?: string
+  permissions?: string
 }
 
 const API_BASE = import.meta.env.VITE_SNACKBAR_URL || "http://localhost:8484"
@@ -412,6 +505,12 @@ const allTags = computed(() => {
   return [...tags].sort((a, b) => a.localeCompare(b))
 })
 
+function pruneSelectedTags() {
+  if (selectedTags.value.length === 0) return
+  const available = new Set(allTags.value)
+  selectedTags.value = selectedTags.value.filter((tag) => available.has(tag))
+}
+
 function relevanceScore(card: DisplayCard, q: string): number {
   if (!q) return card.score ?? 0
   let score = 0
@@ -427,7 +526,7 @@ const filteredSortedCards = computed(() => {
   const activeTagFilters = selectedTags.value
 
   const filtered = flattenCards().filter((card) => {
-    const matchesTag = activeTagFilters.length === 0 || activeTagFilters.every((tag) => card.tags.includes(tag))
+    const matchesTag = activeTagFilters.length === 0 || activeTagFilters.some((tag) => card.tags.includes(tag))
     const matchesQuery =
       !q ||
       card.title.toLowerCase().includes(q) ||
@@ -484,6 +583,15 @@ const displayedGroups = computed<DisplayGroup[]>(() => {
   }
 
   return [...map.values()].sort((a, b) => b.items.length - a.items.length || a.title.localeCompare(b.title))
+})
+
+const hasActiveFilters = computed(() => {
+  return (
+    searchQuery.value.trim().length > 0 ||
+    selectedTags.value.length > 0 ||
+    sortKey.value !== "relevance" ||
+    groupBy.value !== "stack"
+  )
 })
 
 function toggleBatch(id: string, event: Event) {
@@ -565,7 +673,9 @@ function resetControls() {
 }
 
 function switchTab(tab: string) {
-  activeTab.value = tab as "cards" | "dashboard"
+  if (tab === "cards" || tab === "dashboard") {
+    activeTab.value = tab
+  }
 }
 
 function applySessionMeta() {
@@ -584,7 +694,105 @@ function applySessionMeta() {
   }))
 }
 
+async function fetchSeedMemoryStacks(): Promise<Stack[]> {
+  try {
+    const [tasksRes, vaultRes] = await Promise.all([
+      fetch(`${API_BASE}/api/workflow/tasks?scope=user`, {
+        signal: AbortSignal.timeout(5000),
+      }),
+      fetch(`${API_BASE}/api/vault/topology`, {
+        signal: AbortSignal.timeout(5000),
+      }),
+    ])
+
+    const stacksOut: Stack[] = []
+
+    if (tasksRes.ok) {
+      const tasksData = await tasksRes.json()
+      const tasks: SeedTask[] = Array.isArray(tasksData?.tasks)
+        ? tasksData.tasks
+        : []
+
+      if (tasks.length > 0) {
+        const items: StackItem[] = tasks.slice(0, 16).map((task, i) => {
+          const title =
+            String(task.title || task.task || task.mission || "Seed Task").trim() ||
+            "Seed Task"
+          const description =
+            String(task.description || task.body || task.mission || "User workflow seed task").trim() ||
+            "User workflow seed task"
+          const seedTags = [
+            ...new Set(
+              [
+                ...(Array.isArray(task.tags) ? task.tags : []),
+                "#seed",
+                "#workflow",
+                task.status ? normalizeTag(String(task.status)) : "",
+                task.board ? normalizeTag(String(task.board)) : "",
+              ].filter(Boolean).map((t) => normalizeTag(String(t))),
+            ),
+          ]
+
+          const groups = [task.mission, task.binder, task.board]
+            .map((g) => normalizeGroup(String(g || "")))
+            .filter(Boolean)
+
+          return {
+            id: String(task.id || `seed-task-${i}`),
+            title,
+            description,
+            tags: seedTags,
+            groups,
+          }
+        })
+
+        stacksOut.push({
+          id: "seed-workflow",
+          title: "Seed Workflow",
+          icon: "task_alt",
+          items,
+        })
+      }
+    }
+
+    if (vaultRes.ok) {
+      const vaultData = await vaultRes.json()
+      const layers: VaultLayer[] = Array.isArray(vaultData?.layers)
+        ? vaultData.layers
+        : []
+
+      if (layers.length > 0) {
+        const items: StackItem[] = layers.map((layer, i) => ({
+          id: `seed-vault-${layer.id || i}`,
+          title: layer.label || layer.id || "Vault Layer",
+          description:
+            `${layer.description || "Vault layer"}${layer.path ? ` — ${layer.path}` : ""}`,
+          tags: [
+            "#seed",
+            "#vault",
+            normalizeTag(layer.permissions || "read"),
+          ].filter(Boolean),
+          groups: [normalizeGroup(layer.id || "vault")],
+        }))
+
+        stacksOut.push({
+          id: "seed-vault",
+          title: "Vault Structure",
+          icon: "folder_managed",
+          items,
+        })
+      }
+    }
+
+    return stacksOut
+  } catch {
+    return []
+  }
+}
+
 async function fetchBookmarks() {
+  const seedStacks = await fetchSeedMemoryStacks()
+
   try {
     const res = await fetch(`${API_BASE}/api/knowledge?type=bookmark`, {
       signal: AbortSignal.timeout(5000),
@@ -601,8 +809,20 @@ async function fetchBookmarks() {
         groups: [],
       }))
       if (items.length) {
-        stacks.value = [{ id: "bookmarks", title: "Bookmarks", icon: "bookmark", items }]
+        const fallbackStacks = seedStacks.length
+          ? seedStacks
+          : DEFAULT_STACKS.map((stack) => ({
+              ...stack,
+              items: stack.items.map((item) => ({ ...item, groups: item.groups || [] })),
+            }))
+
+        // If backend bookmarks are sparse, keep sample stacks so grouping/layout stays rich.
+        stacks.value =
+          items.length < 6
+            ? [{ id: "bookmarks", title: "Bookmarks", icon: "bookmark", items }, ...fallbackStacks]
+            : [{ id: "bookmarks", title: "Bookmarks", icon: "bookmark", items }]
         applySessionMeta()
+        pruneSelectedTags()
         return
       }
     }
@@ -610,11 +830,14 @@ async function fetchBookmarks() {
     // backend offline
   }
 
-  stacks.value = DEFAULT_STACKS.map((stack) => ({
-    ...stack,
-    items: stack.items.map((item) => ({ ...item, groups: item.groups || [] })),
-  }))
+  stacks.value = (seedStacks.length
+    ? seedStacks
+    : DEFAULT_STACKS.map((stack) => ({
+        ...stack,
+        items: stack.items.map((item) => ({ ...item, groups: item.groups || [] })),
+      })))
   applySessionMeta()
+  pruneSelectedTags()
 }
 
 async function handleResearchCard(card: DisplayCard | StackItem) {
@@ -809,44 +1032,27 @@ onMounted(async () => {
 .browserui-shell {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  min-height: 0;
   padding: 0;
   overflow: hidden;
-}
 
-.browserui-tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
-  flex-shrink: 0;
-  background: var(--usx-color-surface);
-}
-
-.browserui-tab {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-  background: transparent;
-  border: none;
-  border-bottom: var(--usx-border-width-thick) solid transparent;
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-sm);
-  cursor: pointer;
-  transition: color var(--usx-transition-fast), border-color var(--usx-transition-fast);
-}
-
-.browserui-tab:hover {
-  color: var(--usx-color-on-surface);
-}
-
-.browserui-tab--active {
-  color: var(--usx-color-primary);
-  border-bottom-color: var(--usx-color-primary);
-  font-weight: var(--usx-font-weight-semibold);
+  --browserui-toolbar-text-size: var(--usx-font-size-sm);
+  --browserui-toolbar-label-size: var(--usx-font-size-xs);
+  --browserui-toolbar-prefix-size: var(--browserui-toolbar-text-size);
+  --browserui-toolbar-control-height: var(--usx-control-size-sm);
+  --browserui-toolbar-prefix-width: calc(var(--usx-touch-target-comfortable) * 1.45);
+  --browserui-toolbar-combo-width: calc(var(--usx-touch-target-comfortable) * 3.15);
+  --browserui-toolbar-pill-height: calc(var(--usx-control-size-sm) - var(--usx-spacing-xs));
+  --browserui-toolbar-row-gap: var(--usx-spacing-sm);
+  --browserui-toolbar-inline-gap: var(--usx-spacing-sm);
+  --browserui-toolbar-panel-padding: var(--usx-spacing-sm);
+  --browserui-toolbar-search-max-width: calc(var(--usx-touch-target-comfortable) * 7);
 }
 
 .browserui-body {
   display: flex;
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -856,79 +1062,287 @@ onMounted(async () => {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: var(--usx-spacing-md);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md) var(--usx-spacing-md);
 }
 
 .browserui-toolbar {
+  display: grid;
+  gap: var(--usx-spacing-md);
   position: relative;
-  background: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--usx-color-surface) 96%, transparent),
-    color-mix(in srgb, var(--usx-color-surface) 86%, transparent)
-  );
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  padding: var(--usx-spacing-sm);
-  margin-bottom: var(--usx-spacing-md);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: var(--usx-spacing-sm);
 }
 
 .browserui-toolbar__row {
-  display: flex;
-  align-items: center;
+  display: grid;
+  align-items: stretch;
   gap: var(--usx-spacing-sm);
   min-width: 0;
 }
 
+.browserui-toolbar__row--primary {
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+}
+
 .browserui-toolbar__row--secondary {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.browserui-toolbar__row--secondary {
+  margin-top: 0;
+}
+
+.browserui-panel {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--usx-color-primary) 3%, transparent) 0%,
+    transparent 20%
+  );
+}
+
+.browserui-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--usx-spacing-md);
+  flex-wrap: wrap;
+}
+
+.browserui-panel__badges {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+}
+
+.browserui-actions-row {
+  display: flex;
+  gap: var(--usx-spacing-sm);
+  flex-wrap: wrap;
   margin-top: var(--usx-spacing-sm);
 }
 
+.browserui-stats {
+  --browserui-stat-column-min: calc(var(--usx-touch-min) * 3.75);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--browserui-stat-column-min)), 1fr));
+  gap: var(--usx-spacing-md);
+  min-width: 0;
+}
+
+.browserui-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-lg);
+  background: var(--usx-color-surface);
+  border-radius: var(--usx-radius-lg);
+  min-width: 12ch;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+}
+
+.browserui-stat__value {
+  font-size: var(--usx-font-size-2xl);
+  font-weight: var(--usx-font-weight-bold);
+  line-height: var(--usx-line-height-tight);
+  color: var(--usx-color-on-surface);
+}
+
+.browserui-stat__label {
+  font-size: var(--usx-font-size-base);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.browserui-stat__value--success {
+  color: var(--usx-color-success);
+}
+
+.browserui-stat__value--info {
+  color: var(--usx-color-primary);
+}
+
+.browserui-stat__value--warning {
+  color: var(--usx-color-warning);
+}
+
+.browserui-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-md);
+  background: var(--usx-color-surface);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-lg);
+  box-shadow: 0 var(--usx-border-width-thick) 0
+    color-mix(in srgb, var(--usx-color-border) 35%, transparent);
+}
+
+.browserui-section__title {
+  margin: 0;
+  font-size: var(--usx-font-size-sm);
+  font-weight: var(--usx-font-weight-semibold);
+  color: var(--usx-color-on-surface-muted);
+  text-transform: none;
+  letter-spacing: normal;
+  padding-bottom: var(--usx-spacing-xs);
+  border-bottom: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-border) 70%, transparent);
+}
+
 .browserui-search {
-  flex: 1;
+  width: min(100%, var(--browserui-toolbar-search-max-width));
   min-width: 0;
 }
 
 .browserui-toolbar__controls {
   display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-sm);
   flex-wrap: wrap;
+  align-items: center;
+  gap: var(--browserui-toolbar-inline-gap);
+  justify-content: flex-start;
+  min-width: 0;
 }
 
-.browserui-select-wrap {
-  display: flex;
+.browserui-field {
+  display: grid;
+  grid-auto-flow: column;
   align-items: center;
-  gap: var(--usx-spacing-xs);
+  gap: var(--browserui-toolbar-inline-gap);
   color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-xs);
+  font-size: var(--browserui-toolbar-text-size);
+  font-family: var(--usx-font-family-sans);
+  font-weight: var(--usx-font-weight-medium);
+  white-space: nowrap;
+}
+
+.browserui-field__label {
+  font-size: var(--browserui-toolbar-label-size);
+  color: var(--usx-color-on-surface-muted);
+  line-height: var(--usx-line-height-tight);
+}
+
+.browserui-combo {
+  display: inline-flex;
+  align-items: stretch;
+  flex: 0 0 var(--browserui-toolbar-combo-width);
+  width: var(--browserui-toolbar-combo-width);
+  height: var(--browserui-toolbar-control-height);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: color-mix(in srgb, var(--usx-color-surface) 92%, var(--usx-color-surface-variant));
+  overflow: hidden;
+}
+
+.browserui-combo__prefix {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 0 var(--browserui-toolbar-prefix-width);
+  min-width: var(--browserui-toolbar-prefix-width);
+  max-width: var(--browserui-toolbar-prefix-width);
+  width: var(--browserui-toolbar-prefix-width);
+  height: 100%;
+  padding: 0 var(--usx-spacing-sm);
+  font-size: var(--browserui-toolbar-prefix-size);
+  font-family: var(--usx-font-family-sans);
+  font-weight: var(--usx-font-weight-medium);
+  line-height: var(--usx-line-height-tight);
+  color: var(--usx-color-on-surface-muted);
+  background: color-mix(in srgb, var(--usx-color-surface-variant) 72%, var(--usx-color-surface));
+  border-right: var(--usx-border-width) solid var(--usx-color-border);
+  white-space: nowrap;
 }
 
 .browserui-select {
+  appearance: none;
+  -webkit-appearance: none;
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-sm);
-  background: var(--usx-color-surface);
+  background:
+    linear-gradient(45deg, transparent 50%, var(--usx-color-on-surface-muted) 50%) calc(100% - var(--usx-spacing-sm)) calc(50% - 1px) / 6px 6px no-repeat,
+    linear-gradient(135deg, var(--usx-color-on-surface-muted) 50%, transparent 50%) calc(100% - var(--usx-spacing-xs)) calc(50% - 1px) / 6px 6px no-repeat,
+    color-mix(in srgb, var(--usx-color-surface) 92%, var(--usx-color-surface-variant));
   color: var(--usx-color-on-surface);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  font-size: var(--usx-font-size-xs);
+  min-height: var(--browserui-toolbar-control-height);
+  min-width: calc(var(--usx-touch-target-comfortable) * 1.6);
+  padding: 0 var(--usx-spacing-xl) 0 var(--usx-spacing-sm);
+  font-size: var(--browserui-toolbar-text-size);
+  font-family: var(--usx-font-family-sans);
+  font-weight: var(--usx-font-weight-medium);
+  line-height: var(--usx-line-height-tight);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--usx-color-surface) 85%, transparent);
+}
+
+.browserui-select--combo {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  font-size: var(--browserui-toolbar-prefix-size);
+  line-height: var(--usx-line-height-tight);
+  background:
+    linear-gradient(45deg, transparent 50%, var(--usx-color-on-surface-muted) 50%) calc(100% - var(--usx-spacing-sm)) calc(50% - 1px) / 6px 6px no-repeat,
+    linear-gradient(135deg, var(--usx-color-on-surface-muted) 50%, transparent 50%) calc(100% - var(--usx-spacing-xs)) calc(50% - 1px) / 6px 6px no-repeat,
+    transparent;
+}
+
+.browserui-toolbar :deep(.u-input__field) {
+  min-height: var(--browserui-toolbar-control-height);
+  font-size: var(--browserui-toolbar-text-size);
+}
+
+.browserui-select:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--usx-color-primary) 56%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--usx-color-primary) 22%, transparent);
+}
+
+.browserui-combo:focus-within {
+  border-color: color-mix(in srgb, var(--usx-color-primary) 56%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--usx-color-primary) 22%, transparent);
 }
 
 .browserui-pillrail {
   display: flex;
-  gap: var(--usx-spacing-xs);
+  align-items: center;
+  gap: var(--browserui-toolbar-inline-gap);
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-xs) 0;
   min-width: 0;
-  flex: 1;
+}
+
+.browserui-resultsbar {
+  display: flex;
+  align-items: center;
+  gap: var(--browserui-toolbar-inline-gap);
+  justify-content: center;
+  min-height: var(--usx-touch-target-compact);
+}
+
+.browserui-resultsbar__text {
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--browserui-toolbar-label-size);
+  font-family: var(--usx-font-family-sans);
+  white-space: nowrap;
 }
 
 .browserui-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: var(--usx-border-width) solid var(--usx-color-border);
   background: var(--usx-color-surface);
   color: var(--usx-color-on-surface-muted);
   border-radius: var(--usx-radius-full);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  font-size: var(--usx-font-size-xs);
+  min-height: var(--browserui-toolbar-pill-height);
+  padding: 0 var(--usx-spacing-sm);
+  font-size: var(--browserui-toolbar-text-size);
+  line-height: var(--usx-line-height-tight);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -940,49 +1354,101 @@ onMounted(async () => {
 }
 
 .browserui-batch-tools {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
-  gap: var(--usx-spacing-xs);
-  flex-wrap: wrap;
+  gap: var(--browserui-toolbar-inline-gap);
+  min-width: 0;
+}
+
+.browserui-quickadd {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--browserui-toolbar-inline-gap);
+  min-width: 0;
 }
 
 .browserui-mini-input-wrap {
-  min-width: var(--usx-touch-target-comfortable);
-  max-width: calc(var(--usx-touch-target-comfortable) * 2.5);
+  min-width: 0;
+  width: 100%;
+}
+
+.browserui-mini-input-wrap :deep(.u-input__field) {
+  width: 100%;
 }
 
 .browserui-kanban {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 26ch), 1fr));
-  gap: var(--usx-spacing-md);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: var(--usx-spacing-lg);
   align-items: start;
+}
+
+.browserui-empty {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-xl);
+  border: var(--usx-border-width) dashed var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: color-mix(in srgb, var(--usx-color-surface) 96%, var(--usx-color-background));
+}
+
+.browserui-empty :deep(.material-symbols-outlined) {
+  font-size: var(--usx-font-size-xl);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.browserui-empty h3 {
+  margin: 0;
+  font-size: var(--usx-font-size-base);
+  color: var(--usx-color-on-surface);
+}
+
+.browserui-empty p {
+  margin: 0;
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
 }
 
 .browserui-column {
   border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
+  border-radius: var(--usx-radius-lg);
   background: color-mix(in srgb, var(--usx-color-surface) 95%, var(--usx-color-background));
-  padding: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-md);
   min-height: var(--usx-touch-target-comfortable);
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-md);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--usx-color-border) 60%, transparent);
 }
 
 .browserui-column__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--usx-spacing-sm);
+  margin-bottom: var(--usx-spacing-xs);
+  padding: 0 0 var(--usx-spacing-xs);
+  border-bottom: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-border) 75%, transparent);
 }
 
 .browserui-column__title {
   display: flex;
   align-items: center;
-  gap: var(--usx-spacing-xs);
+  gap: var(--usx-spacing-sm);
   min-width: 0;
+}
+
+.browserui-column__title :deep(.material-symbols-outlined) {
+  font-size: var(--usx-font-size-base);
+  color: var(--usx-color-primary);
 }
 
 .browserui-column__title h3 {
   margin: 0;
-  font-size: var(--usx-font-size-sm);
+  font-size: var(--usx-font-size-base);
   font-weight: var(--usx-font-weight-semibold);
   color: var(--usx-color-on-surface);
   overflow: hidden;
@@ -991,43 +1457,52 @@ onMounted(async () => {
 }
 
 .browserui-column__count {
-  color: var(--usx-color-on-surface-muted);
+  color: var(--usx-color-on-surface);
   font-size: var(--usx-font-size-xs);
   font-family: var(--usx-font-family-mono);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-full);
+  min-width: var(--usx-touch-target-compact);
+  min-height: var(--usx-touch-target-compact);
+  padding: 0 var(--usx-spacing-xs);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--usx-color-surface-variant) 65%, var(--usx-color-surface));
 }
 
 .browserui-column__cards {
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .browserui-column__cards--stacked {
-  gap: var(--usx-spacing-xs);
-}
-
-.browserui-column__cards--stacked .browserui-card + .browserui-card {
-  margin-top: calc(var(--usx-spacing-xs) * -1);
+  gap: var(--usx-spacing-sm);
 }
 
 .browserui-column__cards--comfortable {
-  gap: var(--usx-spacing-sm);
+  gap: var(--usx-spacing-md);
 }
 
 .browserui-card {
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-md);
   background: var(--usx-color-surface);
-  padding: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-md);
   display: flex;
   flex-direction: column;
-  gap: var(--usx-spacing-xs);
+  gap: var(--usx-spacing-sm);
   cursor: pointer;
-  transition: border-color var(--usx-transition-fast), transform var(--usx-transition-fast);
+  min-height: calc(var(--usx-touch-target-comfortable) * 2.4);
+  transition: border-color var(--usx-transition-fast), transform var(--usx-transition-fast), box-shadow var(--usx-transition-fast);
 }
 
 .browserui-card:hover {
   border-color: var(--usx-color-primary);
   transform: translateY(calc(var(--usx-spacing-xs) * -0.2));
+  box-shadow: 0 var(--usx-border-width-thick) var(--usx-spacing-sm)
+    color-mix(in srgb, var(--usx-color-primary) 18%, transparent);
 }
 
 .browserui-card--active {
@@ -1041,7 +1516,7 @@ onMounted(async () => {
 
 .browserui-card__top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--usx-spacing-xs);
 }
 
@@ -1050,17 +1525,23 @@ onMounted(async () => {
 }
 
 .browserui-card__title {
+  flex: 1;
   font-size: var(--usx-font-size-sm);
   font-weight: var(--usx-font-weight-semibold);
   color: var(--usx-color-on-surface);
+  line-height: var(--usx-line-height-tight);
   overflow-wrap: anywhere;
 }
 
 .browserui-card__desc {
   margin: 0;
   color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-xs);
+  font-size: var(--usx-font-size-sm);
   line-height: var(--usx-line-height-normal);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .browserui-card__score {
@@ -1087,8 +1568,9 @@ onMounted(async () => {
 
 .browserui-card__tags {
   display: flex;
-  gap: var(--usx-spacing-xs);
+  gap: var(--usx-spacing-xs) var(--usx-spacing-sm);
   flex-wrap: wrap;
+  margin-top: var(--usx-spacing-xs);
 }
 
 .browserui-card__tag {
@@ -1107,17 +1589,34 @@ onMounted(async () => {
 .browserui-card__actions {
   display: flex;
   gap: var(--usx-spacing-xs);
+  margin-top: auto;
+  padding-top: var(--usx-spacing-xs);
+}
+
+@media (max-width: 1400px) {
+  .browserui-toolbar__row--primary,
+  .browserui-toolbar__row--secondary {
+    grid-template-columns: 1fr;
+  }
+
+  .browserui-toolbar__controls,
+  .browserui-batch-tools,
+  .browserui-resultsbar {
+    width: 100%;
+  }
 }
 
 .uxs-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--usx-spacing-xs);
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-sm);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  min-height: var(--usx-touch-target-compact);
+  padding: 0 var(--usx-spacing-sm);
   cursor: pointer;
-  background: var(--usx-color-surface);
+  background: color-mix(in srgb, var(--usx-color-surface) 94%, var(--usx-color-surface-variant));
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface);
   white-space: nowrap;
@@ -1134,7 +1633,14 @@ onMounted(async () => {
 }
 
 .uxs-btn--sm {
-  padding: 0 var(--usx-spacing-sm);
+  min-height: calc(var(--usx-touch-target-compact) - var(--usx-spacing-xs));
+  padding: 0 var(--usx-spacing-xs);
+}
+
+.uxs-btn--icon {
+  width: var(--usx-touch-target-compact);
+  min-width: var(--usx-touch-target-compact);
+  padding: 0;
 }
 
 .browserui-editor {
@@ -1150,6 +1656,12 @@ onMounted(async () => {
   box-shadow: 0 0 var(--usx-spacing-lg) color-mix(in srgb, var(--usx-color-on-surface) 18%, transparent);
   z-index: 10;
   overflow-y: auto;
+}
+
+@media (min-width: 1600px) {
+  .browserui-kanban {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .browserui-editor-close {
@@ -1180,13 +1692,45 @@ onMounted(async () => {
   }
 
   .browserui-toolbar__row {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .browserui-resultsbar {
+    justify-self: start;
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .browserui-toolbar__controls,
   .browserui-batch-tools {
-    justify-content: flex-start;
+    grid-auto-flow: row;
+    grid-auto-columns: 1fr;
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .browserui-field {
+    grid-template-columns: auto 1fr;
+  }
+
+  .browserui-combo {
+    width: 100%;
+  }
+
+  .browserui-select--combo {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .browserui-select,
+  .browserui-mini-input-wrap {
+    width: 100%;
+    max-width: none;
+  }
+
+  .browserui-batch-tools {
+    grid-template-columns: 1fr;
   }
 
   .browserui-editor {

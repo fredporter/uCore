@@ -76,14 +76,14 @@ function redo() {
 </script>
 
 <style scoped>
-.edit-tab { display: flex; flex-direction: column; height: 100%; padding: var(--usx-spacing-md); }
-.edit-tab__toolbar { display: flex; align-items: center; gap: var(--usx-spacing-sm); margin-bottom: var(--usx-spacing-sm); }
+.edit-tab { display: flex; flex-direction: column; height: 100%; padding: var(--usx-spacing-sm); }
+.edit-tab__toolbar { display: flex; align-items: center; gap: var(--usx-spacing-xs); margin-bottom: var(--usx-spacing-xs); }
 .edit-tab__binder { font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); margin-right: auto; }
-.edit-tab__frontmatter { display: flex; gap: var(--usx-spacing-sm); margin-bottom: var(--usx-spacing-sm); }
-.edit-tab__fm-input { flex: 1; padding: 4px var(--usx-spacing-sm); border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-sm); font-size: var(--usx-font-size-sm); }
-.edit-tab__editor { flex: 1; min-height: 200px; padding: var(--usx-spacing-md); border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-md); font-family: monospace; font-size: var(--usx-font-size-sm); resize: vertical; }
-.edit-tab__footer { display: flex; gap: var(--usx-spacing-sm); margin-top: var(--usx-spacing-sm); }
-.uxs-btn { border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-sm); padding: 4px var(--usx-spacing-sm); cursor: pointer; background: var(--usx-color-surface); font-size: var(--usx-font-size-xs); }
+.edit-tab__frontmatter { display: flex; gap: var(--usx-spacing-xs); margin-bottom: var(--usx-spacing-xs); }
+.edit-tab__fm-input { flex: 1; min-height: var(--usx-touch-target-compact); padding: 0 var(--usx-spacing-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); font-size: var(--usx-font-size-sm); background: var(--usx-color-surface-variant); }
+.edit-tab__editor { flex: 1; min-height: calc(var(--usx-touch-target-comfortable) * 4); padding: var(--usx-spacing-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); font-family: var(--usx-font-family-mono); font-size: var(--usx-font-size-sm); resize: vertical; background: var(--usx-color-surface); }
+.edit-tab__footer { display: flex; gap: var(--usx-spacing-xs); margin-top: var(--usx-spacing-xs); }
+.uxs-btn { border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); min-height: var(--usx-touch-target-compact); padding: 0 var(--usx-spacing-sm); cursor: pointer; background: var(--usx-color-surface); font-size: var(--usx-font-size-xs); }
 .uxs-btn:hover { background: var(--usx-color-surface-hover); }
 .uxs-btn:disabled { opacity: 0.5; cursor: default; }
 .uxs-btn--primary { background: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }

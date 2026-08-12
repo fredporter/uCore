@@ -21,11 +21,11 @@ All frontend components **MUST** use USX CSS custom properties. Never hardcode r
 | `--usx-color-info` | Info/neutral status |
 
 ### Spacing (`var(--usx-spacing-*)`)
-`xs`(4px) `sm`(8px) `md`(12px) `lg`(16px) `xl`(24px) `2xl`(32px)
+`xs`(4px) `sm`(8px) `md`(16px) `lg`(24px) `xl`(32px) `2xl`(48px)
 
 ### Typography (`var(--usx-font-*)`)
 **Sizes:** `xs` `sm` `base` `lg` `xl` `2xl` `3xl`
-**Weights:** `--usx-font-weight-bold`(700) `--usx-font-weight-semibold`(600) `--usx-font-weight-medium`(500) `--usx-font-weight-regular`(400)
+**Weights:** `--usx-font-weight-bold`(700) `--usx-font-weight-semibold`(600) `--usx-font-weight-medium`(500) `--usx-font-weight-normal`(400)
 **Families:** `--usx-font-family-sans` `--usx-font-family-mono`
 
 ### Border Radius (`var(--usx-radius-*)`)
@@ -43,3 +43,8 @@ All frontend components **MUST** use USX CSS custom properties. Never hardcode r
 - Tokens: `frontend-vue/src/styles/tokens/tokens-{color,typography,spacing,touch,components}.css`
 - Standard CSS: `frontend-vue/src/styles/usx-standard.css`
 - Backend skill: `backend/app/skills/builtin/usx_standard.py`
+- Canonical baseline spec for reviews/new builds: `docs/USX_SURFACE_BASELINE_SPEC.md`
+
+### Required Review/Build Behavior
+- For prompts such as "review a surface for USX compliance", compare against `docs/USX_SURFACE_BASELINE_SPEC.md` first, then token files.
+- For prompts such as "build a new surface in the USX standard style", scaffold from `docs/USX_SURFACE_BASELINE_SPEC.md` and only use `var(--usx-*)` tokens.

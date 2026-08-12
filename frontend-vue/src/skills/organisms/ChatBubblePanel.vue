@@ -373,6 +373,7 @@ async function copyText(content: string) {
   flex-direction: column;
   height: 100%;
   background-color: var(--usx-color-surface);
+  border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-md);
   overflow: hidden;
 }
@@ -382,38 +383,41 @@ async function copyText(content: string) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xs);
   background-color: var(--usx-color-surface-variant);
   flex-shrink: 0;
   gap: var(--usx-spacing-xs);
 }
 
 .chat-panel__mode-toggle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: var(--usx-spacing-xs);
-  margin-left: auto;
-  margin-right: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-xs);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-full);
-  background: var(--usx-color-surface-variant);
+  gap: 0;
+  padding: 0 var(--usx-spacing-xs);
+  min-height: calc(var(--usx-touch-target-compact) + var(--usx-spacing-xs));
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  background: color-mix(in srgb, var(--usx-color-surface) 94%, var(--usx-color-surface-variant));
+  overflow-x: auto;
 }
 
 .chat-panel__mode-btn {
   border: none;
   background: transparent;
   color: var(--usx-color-on-surface-muted);
-  border-radius: var(--usx-radius-full);
+  border-bottom: var(--usx-border-width-thick) solid transparent;
+  border-radius: 0;
   padding: 0 var(--usx-spacing-sm);
   height: var(--usx-touch-target-compact);
   font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-medium);
   cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--usx-transition-fast), border-color var(--usx-transition-fast);
 }
 
 .chat-panel__mode-btn--active {
-  background: var(--usx-color-primary);
-  color: var(--usx-color-on-primary);
+  color: var(--usx-color-primary);
+  border-bottom-color: var(--usx-color-primary);
 }
 
 .chat-panel__lane-toggle-wrap {
@@ -463,9 +467,9 @@ async function copyText(content: string) {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  width: calc(var(--usx-spacing-2xl) + var(--usx-spacing-sm));
-  min-width: calc(var(--usx-spacing-2xl) + var(--usx-spacing-sm));
-  height: calc(var(--usx-spacing-xl) + var(--usx-spacing-xs));
+  width: calc(var(--usx-spacing-xl) + var(--usx-spacing-lg));
+  min-width: calc(var(--usx-spacing-xl) + var(--usx-spacing-lg));
+  height: calc(var(--usx-spacing-lg) + var(--usx-spacing-xs));
   border-radius: var(--usx-radius-full);
   border: var(--usx-border-width) solid var(--usx-color-border);
   background: color-mix(
@@ -484,8 +488,8 @@ async function copyText(content: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--usx-spacing-lg);
-  height: var(--usx-spacing-lg);
+  width: var(--usx-spacing-md);
+  height: var(--usx-spacing-md);
   border-radius: var(--usx-radius-full);
   background: var(--usx-color-surface);
   box-shadow: 0 1px 2px
@@ -505,7 +509,7 @@ async function copyText(content: string) {
 }
 
 .chat-panel__lane-toggle--dev .chat-panel__lane-toggle-thumb {
-  transform: translateX(calc(var(--usx-spacing-lg) - var(--usx-spacing-xs)));
+  transform: translateX(calc(var(--usx-spacing-lg) - var(--usx-spacing-sm)));
   background: var(--usx-color-primary);
   box-shadow: 0 1px 3px
     color-mix(in srgb, var(--usx-color-primary) 35%, transparent);
@@ -515,16 +519,21 @@ async function copyText(content: string) {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px var(--usx-spacing-sm);
-  border: none;
+  gap: var(--usx-spacing-xs);
+  min-height: var(--usx-touch-target-compact);
+  padding: 0 var(--usx-spacing-sm);
+  border: var(--usx-border-width) solid transparent;
   border-radius: var(--usx-radius-full);
-  background: var(--usx-color-surface);
+  background: color-mix(in srgb, var(--usx-color-surface) 86%, var(--usx-color-surface-variant));
   cursor: pointer;
   font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-medium);
   font-family: var(--usx-font-family-sans);
   color: var(--usx-color-on-surface-muted);
-  transition: all 150ms ease;
+  transition:
+    color var(--usx-transition-fast),
+    background-color var(--usx-transition-fast),
+    border-color var(--usx-transition-fast);
 }
 
 .chat-panel__dev-toggle--on {
@@ -538,9 +547,9 @@ async function copyText(content: string) {
 }
 
 .chat-panel__dev-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  width: var(--usx-spacing-xs);
+  height: var(--usx-spacing-xs);
+  border-radius: var(--usx-radius-full);
   background-color: var(--usx-color-border);
   flex-shrink: 0;
 }
@@ -553,8 +562,8 @@ async function copyText(content: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: var(--usx-touch-target-compact);
+  height: var(--usx-touch-target-compact);
   border: none;
   background: transparent;
   cursor: pointer;
@@ -572,7 +581,8 @@ async function copyText(content: string) {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
-  padding: 4px var(--usx-spacing-md);
+  padding: 0 var(--usx-spacing-sm);
+  min-height: calc(var(--usx-touch-target-compact) - var(--usx-spacing-xs));
   background-color: color-mix(in srgb, var(--usx-color-info) 6%, transparent);
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
@@ -580,7 +590,7 @@ async function copyText(content: string) {
 }
 
 .chat-panel__context .material-symbols-outlined {
-  font-size: 14px;
+  font-size: var(--usx-font-size-sm);
   color: var(--usx-color-info);
 }
 
@@ -594,8 +604,9 @@ async function copyText(content: string) {
 .chat-panel__context-badge {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 1px var(--usx-spacing-xs);
+  gap: var(--usx-spacing-xs);
+  padding: 0 var(--usx-spacing-xs);
+  min-height: calc(var(--usx-touch-target-compact) - var(--usx-spacing-sm));
   background-color: color-mix(
     in srgb,
     var(--usx-color-primary) 12%,
@@ -604,7 +615,7 @@ async function copyText(content: string) {
   border: none;
   border-radius: var(--usx-radius-full);
   color: var(--usx-color-primary);
-  font-size: 10px;
+  font-size: var(--usx-font-size-xs);
   cursor: default;
   flex-shrink: 0;
 }
@@ -662,8 +673,9 @@ async function copyText(content: string) {
 .chat-panel__shortcut {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  gap: var(--usx-spacing-xs);
+  min-height: var(--usx-touch-target-compact);
+  padding: 0 var(--usx-spacing-sm);
   border: none;
   border-radius: var(--usx-radius-sm);
   background: var(--usx-color-surface-variant);
@@ -729,7 +741,7 @@ async function copyText(content: string) {
 
 .chat-panel__msg--user .chat-panel__msg-text {
   background-color: var(--usx-color-primary);
-  color: white;
+  color: var(--usx-color-on-primary);
   border-radius: var(--usx-radius-md) var(--usx-radius-sm) var(--usx-radius-md)
     var(--usx-radius-md);
 }
@@ -755,14 +767,14 @@ async function copyText(content: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: var(--usx-touch-target-compact);
+  height: var(--usx-touch-target-compact);
   border: none;
   background: transparent;
   cursor: pointer;
   border-radius: var(--usx-radius-sm);
   color: var(--usx-color-on-surface-muted);
-  font-size: 13px;
+  font-size: var(--usx-font-size-sm);
 }
 
 .chat-panel__msg-action:hover {
@@ -778,8 +790,8 @@ async function copyText(content: string) {
 }
 
 .chat-panel__dot {
-  width: 7px;
-  height: 7px;
+  width: var(--usx-spacing-xs);
+  height: var(--usx-spacing-xs);
   border-radius: 50%;
   background-color: var(--usx-color-on-surface-muted);
   animation: bounce 1.4s infinite;
@@ -808,37 +820,26 @@ async function copyText(content: string) {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
-  margin: var(--usx-spacing-xs);
-  padding: 0 var(--usx-spacing-xs) 0 var(--usx-spacing-sm);
-  min-height: calc(var(--usx-spacing-xl) + var(--usx-spacing-sm));
-  background-color: var(--usx-color-surface-variant);
-  border: var(--usx-border-width) solid transparent;
-  border-radius: var(--usx-radius-md);
+  margin: 0;
+  padding: var(--usx-spacing-xs);
+  min-height: calc(var(--usx-touch-target-compact) + var(--usx-spacing-sm));
+  background-color: var(--usx-color-surface);
+  border-top: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: 0;
   flex-shrink: 0;
-  transition:
-    border-color var(--usx-transition-fast),
-    background-color var(--usx-transition-fast),
-    box-shadow var(--usx-transition-fast);
 }
 
 .chat-panel__input-row:focus-within {
-  border-color: color-mix(in srgb, var(--usx-color-primary) 48%, transparent);
-  background-color: color-mix(
-    in srgb,
-    var(--usx-color-primary) 6%,
-    var(--usx-color-surface-variant)
-  );
-  box-shadow: 0 0 0 1px
-    color-mix(in srgb, var(--usx-color-primary) 24%, transparent);
+  background-color: color-mix(in srgb, var(--usx-color-surface) 90%, var(--usx-color-surface-variant));
 }
 
 .chat-panel__input {
   flex: 1;
-  height: calc(var(--usx-spacing-xl) + var(--usx-spacing-xs));
-  padding: 0;
-  border: none;
-  border-radius: 0;
-  background-color: transparent;
+  min-height: var(--usx-touch-target-compact);
+  padding: 0 var(--usx-spacing-sm);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background-color: var(--usx-color-surface-variant);
   color: var(--usx-color-on-surface);
   font-size: var(--usx-font-size-sm);
   font-family: var(--usx-font-family-sans);
@@ -847,7 +848,7 @@ async function copyText(content: string) {
 }
 
 .chat-panel__input:focus {
-  box-shadow: none;
+  border-color: color-mix(in srgb, var(--usx-color-primary) 48%, transparent);
 }
 .chat-panel__input::placeholder {
   color: var(--usx-color-on-surface-muted);
@@ -856,12 +857,12 @@ async function copyText(content: string) {
 .chat-panel__send {
   display: grid;
   place-items: center;
-  width: calc(var(--usx-spacing-lg) + var(--usx-spacing-lg));
-  height: calc(var(--usx-spacing-lg) + var(--usx-spacing-lg));
-  border: none;
-  background: transparent;
+  width: var(--usx-touch-target-compact);
+  height: var(--usx-touch-target-compact);
+  border: var(--usx-border-width) solid transparent;
+  background: color-mix(in srgb, var(--usx-color-primary) 10%, transparent);
   color: var(--usx-color-primary);
-  border-radius: var(--usx-radius-full);
+  border-radius: var(--usx-radius-md);
   padding: 0;
   cursor: pointer;
   transition:
@@ -872,6 +873,7 @@ async function copyText(content: string) {
 }
 
 .chat-panel__send--dev {
+  background: color-mix(in srgb, var(--usx-color-warning) 12%, transparent);
   color: var(--usx-color-warning);
 }
 
@@ -880,7 +882,7 @@ async function copyText(content: string) {
   line-height: 1;
 }
 .chat-panel__send:hover:not(:disabled) {
-  background-color: color-mix(in srgb, currentColor 12%, transparent);
+  background-color: color-mix(in srgb, currentColor 20%, transparent);
   transform: translateY(-1px);
 }
 

@@ -9,11 +9,13 @@ Layer 6: Surface registration validation
 Layer 7: Theme compatibility check
 
 Token source of truth:
-  frontend-vue/src/styles/tokens/tokens-{color,typography,spacing,touch,components}.css
+    packages/usx-tokens/tokens/tokens-{color,typography,spacing,touch,components}.css
 Theme overrides:
-  frontend-vue/src/styles/themes/{base,dark,teletext,c64,high-contrast}.css
+    packages/usx-tokens/themes/{dark,teletext,c64,high-contrast}.css
 Canonical class library:
-  frontend-vue/src/styles/usx-standard.css
+    packages/usx-tokens/usx-standard.css
+Canonical surface baseline:
+    docs/USX_SURFACE_BASELINE_SPEC.md
 
 === EXTENDED UI SYSTEM (v3.1) ===
 
@@ -62,12 +64,12 @@ from app.skills.base import BaseSkill, SkillMeta, SkillParam
 
 log = logging.getLogger("ucore.skills.usx_standard")
 
-FRONTEND_DIR = (
-    Path(__file__).parent.parent.parent.parent.parent / "frontend-vue" / "src"
-)
-TOKENS_DIR = FRONTEND_DIR / "styles" / "tokens"
-THEMES_DIR = FRONTEND_DIR / "styles" / "themes"
-STANDARD_CSS = FRONTEND_DIR / "styles" / "usx-standard.css"
+REPO_ROOT = Path(__file__).parent.parent.parent.parent.parent
+FRONTEND_DIR = REPO_ROOT / "frontend-vue" / "src"
+TOKENS_DIR = REPO_ROOT / "packages" / "usx-tokens" / "tokens"
+THEMES_DIR = REPO_ROOT / "packages" / "usx-tokens" / "themes"
+STANDARD_CSS = REPO_ROOT / "packages" / "usx-tokens" / "usx-standard.css"
+BASELINE_SPEC = REPO_ROOT / "docs" / "USX_SURFACE_BASELINE_SPEC.md"
 SURFACES_DIR = FRONTEND_DIR / "surfaces"
 SKILLS_DIR = FRONTEND_DIR / "skills"
 EXCLUDES = {"node_modules", ".git", "__pycache__", "dist"}
