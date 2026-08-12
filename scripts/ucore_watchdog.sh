@@ -29,6 +29,20 @@ check_hivemind() {
     curl -s --max-time 2 "http://127.0.0.1:8490/health" > /dev/null 2>&1
 }
 
+check_vite() {
+    curl -s --max-time 3 "http://127.0.0.1:5175" > /dev/null 2>&1
+}
+
+restart_vite() {
+    log "Restarting Vite frontend..."
+    lsof -tiTCP:5175 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true
+    sleep 1
+    cd "$UCORE_ROOT/frontend-vue"
+    nohup pnpm dev >> "$LOG_DIR/vite.log" 2>&1 &
+    date +%s > /tmp/ucore-vite-last-restart
+    log "Vite restarted"
+}
+
 launchd_menu_pid() {
     launchctl print "gui/$(id -u)/com.udos.ucore-menu" 2>/dev/null \
         | awk '/pid = / {print $3; exit}'
@@ -219,6 +233,17 @@ main() {
     if check_backend; then
         log "Triggering autonomy health action"
         run_autonomy_health_action
+    fi
+
+    # ── Vite frontend health ──────────────────────────────────
+    if ! check_vite; then
+        log "Vite frontend health failed; restarting..."
+        restart_vite
+        if check_vite; then
+            log "Vite frontend recovered"
+        else
+            log "Vite frontend still unhealthy after restart"
+        fi
     fi
 }
 

@@ -49,9 +49,10 @@ def _is_frontend_alive() -> bool:
     try:
         import urllib.request
 
-        req = urllib.request.Request(UI_HUB_URL, method="HEAD")
-        with urllib.request.urlopen(req, timeout=2) as resp:
-            return resp.status < 500
+        req = urllib.request.Request(UI_HUB_URL, method="GET")
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            body = resp.read(1024).decode("utf-8", errors="ignore")
+            return resp.status < 500 and "<!DOCTYPE html>" in body
     except Exception:
         return False
 
