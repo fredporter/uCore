@@ -173,3 +173,78 @@ A surface fails compliance if any of the following occur:
 - packages/usx-tokens/tokens/tokens-touch.css
 - packages/usx-tokens/tokens/tokens-components.css
 - packages/usx-tokens/usx-standard.css
+
+## PicoCSS Retirement (2026-08-12)
+
+All `--pico-*` compatibility mappings have been removed from:
+- `packages/usx-tokens/tokens/tokens-color.css`
+- `packages/usx-tokens/themes/dark.css`
+- `frontend-vue/src/styles/themes/dark.css`
+
+No surface Vue/TS code references `--pico-*` variables. USX tokens are the single source of truth.
+
+## Formal USX Surface Anatomy
+
+Every USX surface follows this anatomy:
+
+```
+.surface
+  .surface__content (flex column, overflow-y: auto)
+    [optional] .surface__panel header block
+      .surface__panel-title (h3, base size, semibold)
+      .surface__panel-description (muted, sm size)
+    [optional] stats grid (4-column auto-fit, centered values)
+    [optional] section blocks (.surface__panel with section title)
+    main content area (flex: 1, min-height: 0)
+```
+
+### Panel Header Pattern
+
+```html
+<section class="surface__panel">
+  <div class="[prefix]-header__row">
+    <h3 class="surface__panel-title">Title</h3>
+    <span class="[prefix]-header__badge">Context Badge</span>
+  </div>
+  <p class="surface__panel-description">Description</p>
+</section>
+```
+
+### Stats Grid Pattern
+
+```html
+<div class="[prefix]-stats">
+  <div class="[prefix]-stat">
+    <span class="[prefix]-stat__value">42</span>
+    <span class="[prefix]-stat__label">Label</span>
+  </div>
+</div>
+```
+
+CSS: `display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--usx-spacing-md);`
+
+### Section Block Pattern
+
+```html
+<div class="browserui-section">
+  <h4 class="browserui-section__title">SECTION NAME</h4>
+  <!-- content -->
+</div>
+```
+
+CSS uses `border-radius: var(--usx-radius-lg)`, subtle shadow, tokenized padding.
+
+### Spacing Defaults
+
+- Surface content padding: `var(--usx-spacing-lg)` (24px) minimum
+- Section gap: `var(--usx-spacing-md)` (16px)
+- Panel padding: `var(--usx-spacing-md)` (16px)
+- Card padding: `var(--usx-spacing-md)` to `var(--usx-spacing-lg)`
+
+### Typography Hierarchy
+
+- Hero heading: `var(--usx-font-size-3xl)` (2rem), `var(--usx-font-weight-bold)`
+- Section title: `var(--usx-font-size-xl)` (1.25rem)
+- Panel title: `var(--usx-font-size-base)` (1rem), semibold
+- Body text: `var(--usx-font-size-sm)` (0.875rem)
+- Muted/secondary: `var(--usx-color-on-surface-muted)`

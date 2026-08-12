@@ -28,12 +28,4 @@
 
   /* ===== PRIMARY (slightly brighter for dark) ===== */
   --usx-color-primary: #4d94ff;
-
-  /* ===== PICO CSS Overrides ===== */
-  --pico-color: var(--usx-color-on-surface);
-  --pico-muted-color: var(--usx-color-on-surface-muted);
-  --pico-background-color: var(--usx-color-background);
-  --pico-card-background-color: var(--usx-color-surface);
-  --pico-muted-background-color: var(--usx-color-surface-variant);
-  --pico-border-color: var(--usx-color-border);
 }

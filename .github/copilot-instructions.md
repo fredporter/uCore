@@ -32,12 +32,12 @@ All frontend components **MUST** use USX CSS custom properties. Never hardcode r
 `sm` `md` `lg` `full` — **NOT** `--usx-border-radius-*`
 
 ### ❌ FORBIDDEN
-- `--pico-*` variables (use `--usx-color-*` instead)
 - Raw hex: `#f85149` → `var(--usx-color-danger)`
 - Raw px/rem: `16px` → `var(--usx-spacing-lg)`
 - Hardcoded font-weight: `font-weight: 600` → `var(--usx-font-weight-semibold)`
 - Inline `style="..."` with hardcoded colors
 - Emojis as UI icons → use `<UIcon name="..." />` Material Symbols
+- Any `--pico-*` or Tailwind utility classes in component CSS
 
 ### Source of Truth
 - Tokens: `frontend-vue/src/styles/tokens/tokens-{color,typography,spacing,touch,components}.css`
