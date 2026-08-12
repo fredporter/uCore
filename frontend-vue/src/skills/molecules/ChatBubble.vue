@@ -1,7 +1,8 @@
 <template>
   <div class="usx-chat-bubble-container">
-    <!-- Floating chat button -->
+    <!-- Floating chat button (hidden while overlay is open) -->
     <button
+      v-if="chatMode !== 'floating'"
       class="usx-chat-bubble"
       :aria-label="chatMode === 'closed' ? 'Open assistant' : 'Close assistant'"
       :title="chatMode === 'closed' ? 'Open assistant (Cmd+J)' : 'Close assistant (Esc)'"
@@ -16,10 +17,13 @@
     <!-- Overlay + centered stack -->
     <transition name="usx-chat-overlay">
       <div v-if="chatMode === 'floating'" class="usx-chat-overlay" @click.self="closeChat">
-        <!-- Close button — top-right -->
-        <button class="usx-chat-overlay-close" @click="closeChat" title="Close (Esc)">
-          <UIcon name="close" />
-        </button>
+        <!-- Top-right actions: lane toggle + close -->
+        <div class="usx-chat-overlay-actions">
+          <slot name="actions" />
+          <button class="usx-chat-overlay-close" @click="closeChat" title="Close (Esc)">
+            <UIcon name="close" />
+          </button>
+        </div>
         <div class="usx-chat-overlay-stack">
           <!-- Above: welcome -->
           <div class="usx-chat-above">

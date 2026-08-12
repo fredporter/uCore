@@ -4,6 +4,18 @@
   <PopupOverlay />
   <StoriesOverlay />
   <ChatBubble v-if="!hideChatBubble">
+    <template #actions>
+      <button
+        v-if="extStore.isRunning('udev')"
+        class="usx-chat-lane-toggle"
+        :class="{ 'usx-chat-lane-toggle--dev': activeLane === 'dev' }"
+        :title="activeLane === 'dev' ? 'Switch to Vault lane' : 'Switch to Code lane'"
+        :aria-label="activeLane === 'dev' ? 'Switch to Vault lane' : 'Switch to Code lane'"
+        @click="toggleLane"
+      >
+        <UIcon :name="activeLane === 'dev' ? 'folder_open' : 'code'" />
+      </button>
+    </template>
     <template #above>
       <div v-if="showWelcome" class="chat-above-center">
         <div class="chat-above-icon">
@@ -21,9 +33,11 @@
       :dev-mode-on="devModeOn"
       :context-label="contextLabel"
       :current-task="currentTaskTitle"
+      :active-lane="activeLane"
       @send-chat="sendChat"
       @send-dev="sendDev"
       @toggle-dev-mode="toggleDevMode"
+      @update:active-lane="activeLane = $event"
     />
 
     <template #below>
@@ -138,6 +152,12 @@ watch(
 interface Msg {
   role: "user" | "assistant";
   content: string;
+}
+
+const activeLane = ref<"chat" | "dev">("chat");
+
+function toggleLane() {
+  activeLane.value = activeLane.value === "chat" ? "dev" : "chat";
 }
 
 interface PromptCard {

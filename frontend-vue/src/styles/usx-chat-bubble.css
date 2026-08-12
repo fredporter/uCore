@@ -189,12 +189,43 @@
   margin-top: 0;
 }
 
-/* Close button — top-right corner */
-.usx-chat-overlay-close {
+/* Top-right actions: lane toggle + close */
+.usx-chat-overlay-actions {
   position: absolute;
   top: var(--usx-spacing-md);
   right: var(--usx-spacing-md);
   z-index: calc(var(--usx-zindex-chat-panel) + 1);
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+}
+
+/* Lane toggle — ghost icon, no box */
+.usx-chat-lane-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+  font-size: var(--usx-font-size-xl);
+  line-height: var(--usx-line-height-none);
+  transition: color var(--usx-transition-fast);
+}
+
+.usx-chat-lane-toggle:hover {
+  color: var(--usx-color-on-surface);
+}
+
+.usx-chat-lane-toggle--dev {
+  color: var(--usx-color-primary);
+}
+
+/* Close button — top-right corner */
+.usx-chat-overlay-close {
   display: flex;
   align-items: center;
   justify-content: center;

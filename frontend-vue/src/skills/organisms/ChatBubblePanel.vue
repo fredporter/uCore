@@ -1,19 +1,8 @@
 <template>
   <div class="chat-panel">
-    <!-- ── Header (single lane toggle icon, right-aligned) ───── -->
+    <!-- ── Header (lane toggle moved to overlay top-right) ────── -->
     <div class="chat-panel__header">
       <div class="chat-panel__header-spacer" />
-
-      <button
-        v-if="devAvailable"
-        class="chat-panel__lane-icon-toggle"
-        :class="{ 'chat-panel__lane-icon-toggle--dev': activeLane === 'dev' }"
-        :title="activeLane === 'dev' ? 'Switch to Vault lane' : 'Switch to Code lane'"
-        :aria-label="activeLane === 'dev' ? 'Switch to Vault lane' : 'Switch to Code lane'"
-        @click="toggleLane"
-      >
-        <UIcon :name="activeLane === 'dev' ? 'folder_open' : 'code'" />
-      </button>
     </div>
 
     <!-- ── Body ──────────────────────────────────────────────── -->
@@ -153,6 +142,7 @@ const props = withDefaults(
     devModeOn?: boolean;
     contextLabel?: string;
     currentTask?: string;
+    activeLane?: "chat" | "dev";
   }>(),
   {
     chatMessages: () => [],
@@ -162,6 +152,7 @@ const props = withDefaults(
     devModeOn: false,
     contextLabel: "",
     currentTask: "",
+    activeLane: "chat",
   },
 );
 
@@ -169,6 +160,7 @@ const emit = defineEmits<{
   "send-chat": [message: string, mode: "chat" | "plan" | "act" | "workflow"];
   "send-dev": [message: string];
   "toggle-dev-mode": [];
+  "update:activeLane": [lane: "chat" | "dev"];
   close: [];
 }>();
 
@@ -178,7 +170,10 @@ const editorSurface = getEditorSurface();
 const ws = useWorkspaceStore();
 const { toast } = useToast();
 
-const activeLane = ref<"chat" | "dev">("chat");
+const activeLane = computed<"chat" | "dev">({
+  get: () => props.activeLane,
+  set: (v: "chat" | "dev") => emit("update:activeLane", v),
+});
 const activeChatMode = ref<"chat" | "plan" | "act" | "workflow">("chat");
 const messagesEl = ref<HTMLDivElement | null>(null);
 const inputEl = ref<HTMLTextAreaElement | null>(null);
@@ -612,7 +607,7 @@ async function copyText(content: string) {
   min-width: 0;
   box-sizing: border-box;
   margin: 0;
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
   border: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-border) 50%, transparent);
   border-radius: var(--usx-radius-lg);
   background: color-mix(in srgb, var(--usx-color-surface) 60%, transparent);
@@ -623,7 +618,7 @@ async function copyText(content: string) {
   line-height: var(--usx-line-height-normal);
   outline: none;
   resize: none;
-  min-height: calc(var(--usx-touch-min-sm) + var(--usx-spacing-xs));
+  min-height: var(--usx-control-size-md);
   max-height: 160px;
 }
 
