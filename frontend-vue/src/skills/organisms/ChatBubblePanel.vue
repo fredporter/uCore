@@ -52,7 +52,7 @@
               ? 'Dev command or question… (/ for shortcuts)'
               : inputPlaceholder
           "
-          rows="1"
+          rows="2"
           @keydown.enter.exact.prevent="sendMessage"
           @keydown.shift.enter.prevent="inputText += '\n'"
           @input="autoResize"
@@ -795,8 +795,18 @@ async function copyText(content: string) {
   }
 
   .chat-panel__composer-row {
+    flex-wrap: wrap;
     gap: var(--usx-spacing-xs);
     padding: var(--usx-spacing-xs) 0;
+  }
+
+  .chat-panel__input {
+    flex-basis: 100%;
+  }
+
+  .chat-panel__composer-actions {
+    flex-basis: 100%;
+    justify-content: space-between;
   }
 
   .chat-panel__model-btn {
