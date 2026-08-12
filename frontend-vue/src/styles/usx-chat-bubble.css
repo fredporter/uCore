@@ -337,10 +337,7 @@
   }
 
   .chat-below-prompts {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--usx-spacing-xs);
-    width: 100%;
+    display: none;
   }
 
   .chat-below-pill {

@@ -168,10 +168,17 @@ const inputRef = ref<HTMLTextAreaElement | null>(null);
 const systemPrompt = ref("You are a helpful assistant.");
 const ctx = ref({ vault: true, tasks: true, surface: true });
 
+const timeGreeting = computed(() => {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+});
+
 const welcomeTitle = computed(() => {
   if (chat.promptMode === "plan") return "What should we research?";
   if (chat.promptMode === "act") return "Ready to act";
-  return "Good evening";
+  return timeGreeting.value;
 });
 
 const inputPlaceholder = computed(() => {

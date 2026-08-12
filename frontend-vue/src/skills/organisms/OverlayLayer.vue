@@ -168,12 +168,19 @@ const showWelcome = computed(() =>
   chatMessages.value.length <= 1 && !assistChat.input.trim(),
 );
 
+const timeGreeting = computed(() => {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+});
+
 const overlayWelcomeTitle = computed(() => {
   switch (assistChat.promptMode) {
     case "plan": return "What should we research?";
     case "act": return "Ready to act";
     case "workflow": return "What workflow should we plan?";
-    default: return "Hi, friend";
+    default: return timeGreeting.value;
   }
 });
 const devMessages = ref<Msg[]>([]);

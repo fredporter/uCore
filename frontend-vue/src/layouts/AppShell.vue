@@ -36,14 +36,9 @@
         <router-view />
       </main>
     </div>
-    <!-- Floating Chat -->
-    <FloatingChat
-      v-if="shell.chatMode === 'floating'"
-      @close="shell.setChatMode('closed')"
-    />
     <!-- Snackbar Host -->
     <SnackbarHost />
-    <!-- Overlay Layer: toasts, alerts, popups, stories -->
+    <!-- Overlay Layer: chat bubble, toasts, alerts, popups, stories -->
     <OverlayLayer />
   </div>
 </template>
@@ -51,7 +46,7 @@
 <script setup lang="ts">
 /**
  * @component AppShell
- * @description Root layout — toolbar + sidebar + router-view + floating chat + snackbar.
+ * @description Root layout — toolbar + sidebar + router-view + snackbar + overlay.
  * Replaces RootLayout + SurfaceShellContext from React.
  * @category layouts
  */
@@ -62,7 +57,6 @@ import { useWorkflowStore } from "../stores/workflow";
 import { useRouter, useRoute } from "vue-router";
 import GlobalToolbar from "../skills/organisms/GlobalToolbar.vue";
 import FilepickerSidebar from "../skills/molecules/FilepickerSidebar.vue";
-import FloatingChat from "../surfaces/assistui/FloatingChat.vue";
 import SnackbarHost from "../skills/molecules/SnackbarHost.vue";
 import OverlayLayer from "../skills/organisms/OverlayLayer.vue";
 import { ucoreApi } from "../api/client";
