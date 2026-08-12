@@ -2,7 +2,7 @@
   <div class="server-dashboard" v-if="!srv.loading">
     <div class="server-dashboard-header">
       <div>
-        <h2 class="usx-no-margin">Server Operations</h2>
+        <h2 class="usx-no-margin">Snackbar Server Operations</h2>
         <p class="usx-mt-xs server-muted-text">
           {{ srv.services.length }} services · {{ srv.upCount }} online
         </p>

@@ -124,8 +124,8 @@ const SURFACE_CARD_DATA: Record<
     color: "var(--usx-color-success)",
   },
   snackbar: {
-    title: "Snackbar",
-    description: "Backend Ops, Services, Snacks & Logs",
+    title: "Snackbar Server",
+    description: "Server Ops, Services, Snacks & Logs",
     icon: "storefront",
     route: "/snackbar",
     color: "var(--usx-color-warning)",

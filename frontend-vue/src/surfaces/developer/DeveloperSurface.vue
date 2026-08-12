@@ -58,6 +58,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import UBadge from "../../skills/atoms/UBadge.vue";
@@ -66,6 +67,8 @@ import UCodeEditor from "../../skills/molecules/editor/UCodeEditor.vue";
 import ProseCodeReader from "../../skills/molecules/editor/ProseCodeReader.vue";
 
 const shell = useShellStore();
+const route = useRoute();
+const router = useRouter();
 const activeTab = ref<"code" | "repository" | "editor">("code");
 const DEV_TABS = [
   { id: "code", label: "Code", icon: "folder" },
@@ -189,6 +192,9 @@ async function saveFile() {
 }
 
 watch(activeTab, (tab) => {
+  if (route.query.tab !== tab) {
+    router.replace({ query: { ...route.query, tab } });
+  }
   shell.setDeveloperSurfaceTab(tab);
   if (tab === "code") {
     closeSidebar();
@@ -221,11 +227,25 @@ watch(repos, (items) => {
   }
 });
 onMounted(() => {
+  const routeTab = (route.query.tab as string) || "";
+  if (["code", "repository", "editor"].includes(routeTab)) {
+    activeTab.value = routeTab as "code" | "repository" | "editor";
+  }
   shell.setSidebarOpen(false);
   shell.setDeveloperSidebarOpen(false);
   shell.setDeveloperSurfaceTab(activeTab.value);
   fetchRepos();
 });
+
+watch(
+  () => route.query.tab,
+  (tab) => {
+    const t = (tab as string) || "";
+    if (["code", "repository", "editor"].includes(t) && activeTab.value !== t) {
+      activeTab.value = t as "code" | "repository" | "editor";
+    }
+  },
+);
 </script>
 
 <style scoped>

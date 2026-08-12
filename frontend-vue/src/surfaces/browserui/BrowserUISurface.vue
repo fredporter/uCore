@@ -1381,7 +1381,7 @@ onMounted(async () => {
 .browserui-kanban {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
-  gap: var(--usx-spacing-lg);
+  gap: var(--usx-spacing-xl);
   align-items: start;
 }
 
@@ -1417,20 +1417,20 @@ onMounted(async () => {
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-lg);
   background: color-mix(in srgb, var(--usx-color-surface) 95%, var(--usx-color-background));
-  padding: var(--usx-spacing-md);
+  padding: var(--usx-spacing-lg);
   min-height: var(--usx-touch-target-comfortable);
   display: flex;
   flex-direction: column;
-  gap: var(--usx-spacing-md);
+  gap: var(--usx-spacing-lg);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--usx-color-border) 60%, transparent);
 }
 
 .browserui-column__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: var(--usx-spacing-xs);
-  padding: 0 0 var(--usx-spacing-xs);
+  margin-bottom: var(--usx-spacing-sm);
+  padding: 0 0 var(--usx-spacing-sm);
   border-bottom: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-border) 75%, transparent);
 }
 
@@ -1442,18 +1442,19 @@ onMounted(async () => {
 }
 
 .browserui-column__title :deep(.material-symbols-outlined) {
-  font-size: var(--usx-font-size-base);
+  font-size: var(--usx-font-size-lg);
   color: var(--usx-color-primary);
 }
 
 .browserui-column__title h3 {
   margin: 0;
-  font-size: var(--usx-font-size-base);
+  font-size: var(--usx-font-size-xl);
   font-weight: var(--usx-font-weight-semibold);
   color: var(--usx-color-on-surface);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: var(--usx-line-height-tight);
+  letter-spacing: var(--usx-letter-spacing-tight);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .browserui-column__count {
@@ -1473,16 +1474,22 @@ onMounted(async () => {
 
 .browserui-column__cards {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
   min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--usx-spacing-xs);
+  scroll-snap-type: x proximity;
 }
 
 .browserui-column__cards--stacked {
-  gap: var(--usx-spacing-sm);
+  gap: var(--usx-spacing-md);
 }
 
 .browserui-column__cards--comfortable {
-  gap: var(--usx-spacing-md);
+  gap: var(--usx-spacing-lg);
 }
 
 .browserui-card {
@@ -1494,8 +1501,11 @@ onMounted(async () => {
   flex-direction: column;
   gap: var(--usx-spacing-sm);
   cursor: pointer;
+  flex: 0 0 min(100%, 24rem);
+  width: min(100%, 24rem);
   min-height: calc(var(--usx-touch-target-comfortable) * 2.4);
   transition: border-color var(--usx-transition-fast), transform var(--usx-transition-fast), box-shadow var(--usx-transition-fast);
+  scroll-snap-align: start;
 }
 
 .browserui-card:hover {
@@ -1731,6 +1741,15 @@ onMounted(async () => {
 
   .browserui-batch-tools {
     grid-template-columns: 1fr;
+  }
+
+  .browserui-column__cards {
+    scroll-snap-type: none;
+  }
+
+  .browserui-card {
+    flex-basis: min(100%, 20rem);
+    width: min(100%, 20rem);
   }
 
   .browserui-editor {

@@ -70,7 +70,7 @@ async function refreshRepoAvailability() {
 }
 
 function openDeveloper() {
-  window.open('/snackbar?tab=repos', '_top');
+  window.open('/developer?tab=repository', '_top');
 }
 
 onMounted(() => {
