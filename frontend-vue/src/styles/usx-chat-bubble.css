@@ -198,20 +198,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: var(--usx-radius-full);
-  background: color-mix(in srgb, var(--usx-color-surface) 30%, transparent);
-  backdrop-filter: blur(8px);
+  background: var(--usx-color-surface);
   color: var(--usx-color-on-surface);
   cursor: pointer;
-  font-size: var(--usx-font-size-lg);
+  font-size: var(--usx-font-size-xl);
+  line-height: var(--usx-line-height-none);
   transition: background var(--usx-transition-fast);
 }
 
 .usx-chat-overlay-close:hover {
-  background: color-mix(in srgb, var(--usx-color-surface) 60%, transparent);
+  background: var(--usx-color-surface-variant);
 }
 
 /* Above / below slots */

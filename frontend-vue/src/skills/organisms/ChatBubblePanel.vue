@@ -1,53 +1,19 @@
 <template>
   <div class="chat-panel">
-    <!-- ── Header (compact, centered lane toggle) ──────────────── -->
+    <!-- ── Header (single lane toggle icon, right-aligned) ───── -->
     <div class="chat-panel__header">
-      <!-- Left: dev toggle -->
-      <div class="chat-panel__header-side">
-        <button
-          v-if="devAvailable"
-          class="chat-panel__dev-toggle"
-          :class="{ 'chat-panel__dev-toggle--on': devModeOn }"
-          :title="
-            devModeOn
-              ? 'Dev Mode ON — click to disable'
-              : 'Dev Mode OFF — click to enable'
-          "
-          @click="emit('toggle-dev-mode')"
-        >
-          <span class="chat-panel__dev-dot" />
-          Dev
-        </button>
-      </div>
+      <div class="chat-panel__header-spacer" />
 
-      <!-- Center: Vault / Code lane toggle -->
-      <div class="chat-panel__lane-toggle-wrap">
-        <span
-          class="chat-panel__lane-label"
-          :class="{ 'chat-panel__lane-label--active': activeLane === 'chat' }"
-        >Vault</span>
-        <button
-          class="chat-panel__lane-toggle"
-          :class="{ 'chat-panel__lane-toggle--dev': activeLane === 'dev' }"
-          :aria-checked="activeLane === 'dev' ? 'true' : 'false'"
-          aria-label="Toggle Vault/Code lane"
-          role="switch"
-          :disabled="!devAvailable"
-          :title="devAvailable ? 'Toggle between Vault and Code lanes' : 'Code lane unavailable in this context'"
-          @click="toggleLane"
-        >
-          <span class="chat-panel__lane-toggle-track">
-            <span class="chat-panel__lane-toggle-thumb" />
-          </span>
-        </button>
-        <span
-          class="chat-panel__lane-label"
-          :class="{ 'chat-panel__lane-label--active': activeLane === 'dev' }"
-        >Code</span>
-      </div>
-
-      <!-- Right: empty (close moved to overlay top-right) -->
-      <div class="chat-panel__header-side chat-panel__header-side--right" />
+      <button
+        v-if="devAvailable"
+        class="chat-panel__lane-icon-toggle"
+        :class="{ 'chat-panel__lane-icon-toggle--dev': activeLane === 'dev' }"
+        :title="activeLane === 'dev' ? 'Switch to Vault lane' : 'Switch to Code lane'"
+        :aria-label="activeLane === 'dev' ? 'Switch to Vault lane' : 'Switch to Code lane'"
+        @click="toggleLane"
+      >
+        <UIcon :name="activeLane === 'dev' ? 'folder_open' : 'code'" />
+      </button>
     </div>
 
     <!-- ── Body ──────────────────────────────────────────────── -->
@@ -352,11 +318,11 @@ async function copyText(content: string) {
   overflow: hidden;
 }
 
-/* ─── Header (compact, centered lane toggle) ──────────────────── */
+/* ─── Header (single lane toggle icon, right-aligned) ─────────── */
 .chat-panel__header {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
   background: transparent;
   flex-shrink: 0;
@@ -364,14 +330,38 @@ async function copyText(content: string) {
   position: relative;
 }
 
-.chat-panel__header-side {
-  display: flex;
-  align-items: center;
-  min-width: 48px;
+.chat-panel__header-spacer {
+  flex: 1;
 }
 
-.chat-panel__header-side--right {
-  justify-content: flex-end;
+.chat-panel__lane-icon-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+  font-size: var(--usx-font-size-base);
+  line-height: var(--usx-line-height-none);
+  transition:
+    color var(--usx-transition-fast),
+    border-color var(--usx-transition-fast),
+    background var(--usx-transition-fast);
+}
+
+.chat-panel__lane-icon-toggle:hover {
+  border-color: var(--usx-color-primary);
+  color: var(--usx-color-on-surface);
+}
+
+.chat-panel__lane-icon-toggle--dev {
+  background: color-mix(in srgb, var(--usx-color-primary) 14%, transparent);
+  border-color: var(--usx-color-primary);
+  color: var(--usx-color-primary);
 }
 
 .chat-panel__mode-toggle {
@@ -403,145 +393,6 @@ async function copyText(content: string) {
   background: color-mix(in srgb, var(--usx-color-primary) 14%, transparent);
   border-color: var(--usx-color-primary);
   color: var(--usx-color-primary);
-}
-
-.chat-panel__lane-toggle-wrap {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--usx-spacing-sm);
-  white-space: nowrap;
-  flex-shrink: 0;
-  padding: 2px var(--usx-spacing-sm);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-full);
-}
-
-.chat-panel__lane-label {
-  font-size: var(--usx-font-size-xs);
-  color: var(--usx-color-on-surface-muted);
-  line-height: var(--usx-line-height-none);
-  white-space: nowrap;
-  padding: 0 2px;
-}
-
-.chat-panel__lane-label--active {
-  color: var(--usx-color-on-surface);
-  font-weight: var(--usx-font-weight-medium);
-}
-
-.chat-panel__lane-static {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  font-size: var(--usx-font-size-xs);
-  color: var(--usx-color-on-surface);
-}
-
-.chat-panel__lane-toggle {
-  border: none;
-  background: transparent;
-  padding: 0;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  min-height: 0;
-}
-
-.chat-panel__lane-toggle:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.chat-panel__lane-toggle-track {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  width: calc(var(--usx-spacing-xl) + var(--usx-spacing-lg));
-  min-width: calc(var(--usx-spacing-xl) + var(--usx-spacing-lg));
-  height: calc(var(--usx-spacing-lg) + var(--usx-spacing-xs));
-  border-radius: var(--usx-radius-full);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  background: color-mix(
-    in srgb,
-    var(--usx-color-on-surface-muted) 16%,
-    var(--usx-color-surface)
-  );
-  padding: 0 var(--usx-spacing-xs);
-  transition:
-    background var(--usx-transition-fast),
-    border-color var(--usx-transition-fast),
-    box-shadow var(--usx-transition-fast);
-}
-
-.chat-panel__lane-toggle-thumb {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--usx-spacing-md);
-  height: var(--usx-spacing-md);
-  border-radius: var(--usx-radius-full);
-  background: var(--usx-color-surface);
-  box-shadow: var(--usx-shadow-sm);
-  transform: translateX(0);
-  transition:
-    transform var(--usx-transition-fast),
-    background var(--usx-transition-fast),
-    box-shadow var(--usx-transition-fast);
-}
-
-.chat-panel__lane-toggle--dev .chat-panel__lane-toggle-track {
-  background: color-mix(in srgb, var(--usx-color-primary) 28%, transparent);
-  border-color: color-mix(in srgb, var(--usx-color-primary) 70%, transparent);
-  box-shadow: 0 0 0 1px
-    color-mix(in srgb, var(--usx-color-primary) 24%, transparent);
-}
-
-.chat-panel__lane-toggle--dev .chat-panel__lane-toggle-thumb {
-  transform: translateX(calc(var(--usx-spacing-lg) - var(--usx-spacing-sm)));
-  background: var(--usx-color-primary);
-  box-shadow: var(--usx-shadow-sm);
-}
-
-.chat-panel__dev-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  min-height: var(--usx-touch-min);
-  padding: 0 var(--usx-spacing-sm);
-  border: var(--usx-border-width) solid transparent;
-  border-radius: var(--usx-radius-full);
-  background: color-mix(in srgb, var(--usx-color-surface) 86%, var(--usx-color-surface-variant));
-  cursor: pointer;
-  font-size: var(--usx-font-size-xs);
-  font-weight: var(--usx-font-weight-medium);
-  font-family: var(--usx-font-family-sans);
-  color: var(--usx-color-on-surface-muted);
-  transition:
-    color var(--usx-transition-fast),
-    background-color var(--usx-transition-fast),
-    border-color var(--usx-transition-fast);
-}
-
-.chat-panel__dev-toggle--on {
-  background-color: color-mix(
-    in srgb,
-    var(--usx-color-warning) 12%,
-    transparent
-  );
-  border-color: var(--usx-color-warning);
-  color: var(--usx-color-warning);
-}
-
-.chat-panel__dev-dot {
-  width: var(--usx-spacing-xs);
-  height: var(--usx-spacing-xs);
-  border-radius: var(--usx-radius-full);
-  background-color: var(--usx-color-border);
-  flex-shrink: 0;
-}
-
-.chat-panel__dev-toggle--on .chat-panel__dev-dot {
-  background-color: var(--usx-color-warning);
 }
 
 /* ─── Footer row: context + mode tabs ────────────────────────── */
@@ -946,14 +797,6 @@ async function copyText(content: string) {
 @media (max-width: 640px) {
   .chat-panel__header {
     padding: var(--usx-spacing-xs);
-  }
-
-  .chat-panel__header-side {
-    min-width: 32px;
-  }
-
-  .chat-panel__lane-label {
-    display: none;
   }
 
   .chat-panel__composer-row {
