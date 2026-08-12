@@ -25,7 +25,14 @@
           </template>
         </div>
       </aside>
-      <div class="surface__content">
+      <div class="surface__content dev-content">
+        <section class="surface__panel dev-header">
+          <div class="dev-header__row">
+            <h3 class="surface__panel-title">Developer</h3>
+            <span class="dev-header__badge">Code Browser</span>
+          </div>
+          <p class="surface__panel-description">Browse repositories, view files, and edit code.</p>
+        </section>
         <div v-if="activeTab==='code'" class="dev-repo-grid">
           <div class="dev-lane-bar">
             <button :class="{active:devLane==='core'}" @click="devLane='core'">Code</button>
@@ -271,9 +278,15 @@ watch(
 .dev-repo-card__body { padding: var(--usx-spacing-sm) var(--usx-spacing-md); font-size: var(--usx-font-size-sm); }
 .dev-repo-card__footer { padding: var(--usx-spacing-xs) var(--usx-spacing-md); background: var(--usx-color-surface-variant); font-size: var(--usx-font-size-xs); }
 .dev-repo-card__footer code { font-family: var(--usx-font-family-mono); color: var(--usx-color-on-surface-muted); }
+
+.dev-content { padding: var(--usx-spacing-lg); display: grid; gap: var(--usx-spacing-md); }
+.dev-header { background: linear-gradient(180deg, color-mix(in srgb, var(--usx-color-primary) 4%, transparent) 0%, transparent 78%); }
+.dev-header__row { display: flex; align-items: center; justify-content: space-between; gap: var(--usx-spacing-sm); flex-wrap: wrap; }
+.dev-header__badge { display: inline-flex; align-items: center; min-height: calc(var(--usx-touch-min) - var(--usx-spacing-sm)); padding: 0 var(--usx-spacing-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-full); font-size: var(--usx-font-size-xs); color: var(--usx-color-on-surface-muted); background: color-mix(in srgb, var(--usx-color-surface-variant) 75%, var(--usx-color-surface)); }
 .dev-kind-badge { display: inline-block; padding: 1px var(--usx-spacing-xs); background: var(--usx-color-surface-variant); border-radius: var(--usx-radius-sm); font-size: var(--usx-font-size-xs); color: var(--usx-color-on-surface-muted); text-transform: capitalize; }
 .dev-lane-bar { display: flex; justify-content: center; gap: var(--usx-spacing-xs); margin-bottom: var(--usx-spacing-md); align-items: center; flex-wrap: wrap; }
-.dev-lane-bar button { align-self: center; flex-shrink: 0; white-space: nowrap; padding: var(--usx-spacing-xs) var(--usx-spacing-md); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-surface); color: var(--usx-color-on-surface); cursor: pointer; font-size: var(--usx-font-size-sm); height: auto; min-height: auto; }
-.dev-lane-bar button.active { background: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
+.dev-lane-bar button { display: inline-flex; align-items: center; padding: 0 var(--usx-spacing-md); height: var(--usx-control-size-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-full); background-color: color-mix(in srgb, var(--usx-color-surface) 94%, var(--usx-color-surface-variant)); color: var(--usx-color-on-surface); cursor: pointer; font-size: var(--usx-font-size-xs); font-weight: var(--usx-font-weight-medium); line-height: var(--usx-line-height-none); white-space: nowrap; transition: all var(--usx-transition-fast); }
+.dev-lane-bar button:hover { background-color: var(--usx-color-surface-variant); border-color: var(--usx-color-primary); }
+.dev-lane-bar button.active { background-color: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
 .dev-loading, .dev-empty { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-xl); color: var(--usx-color-on-surface-muted); justify-content: center; font-size: var(--usx-font-size-sm); }
 </style>

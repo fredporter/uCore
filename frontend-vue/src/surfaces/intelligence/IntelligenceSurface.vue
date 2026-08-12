@@ -241,7 +241,7 @@ onMounted(() => {
 .assistui-msg-bubble { padding: var(--usx-spacing-sm) var(--usx-spacing-md); border-radius: var(--usx-radius-md); font-size: var(--usx-font-size-sm); line-height: var(--usx-line-height-normal); }
 .assistui-msg--user .assistui-msg-bubble { background: var(--usx-color-primary); color: var(--usx-color-on-primary); }
 .assistui-msg--assistant .assistui-msg-bubble { background: var(--usx-color-surface-variant); color: var(--usx-color-on-surface); }
-.assistui-input { flex: 1; min-height: var(--usx-control-size-md); border: none; background: transparent; color: var(--usx-color-on-surface); font-size: var(--usx-font-size-sm); font-family: var(--usx-font-family-sans); padding: 0 var(--usx-spacing-sm); resize: none; outline: none; box-shadow: none; line-height: var(--usx-line-height-tight); }
+.assistui-input { flex: 1; min-height: var(--usx-control-size-md); border: none; background: transparent; color: var(--usx-color-on-surface); font-size: var(--usx-font-size-sm); font-family: var(--usx-font-family-sans); padding: 0 var(--usx-spacing-md); resize: none; outline: none; box-shadow: none; line-height: var(--usx-line-height-tight); }
 .assistui-submit-btn { display: flex; align-items: center; justify-content: center; width: var(--usx-control-size-md); height: var(--usx-control-size-md); border: none; border-radius: var(--usx-radius-full); background: var(--usx-color-primary); color: var(--usx-color-on-primary); cursor: pointer; flex-shrink: 0; }
 .assistui-submit-btn:disabled { opacity: 0.4; cursor: default; }
 .assistui-loading { display: flex; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-sm); }
