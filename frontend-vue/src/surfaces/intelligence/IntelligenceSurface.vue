@@ -214,7 +214,7 @@ onMounted(() => {
 .assistui-mode-btn--active { background-color: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
 .assistui-chat-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
 .assistui-chat-body--engaged { padding: var(--usx-spacing-md); }
-.assistui-welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--usx-spacing-lg); padding: calc(var(--usx-spacing-2xl) * 2) var(--usx-spacing-lg) var(--usx-spacing-2xl); }
+.assistui-welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--usx-spacing-lg); padding: var(--usx-spacing-2xl) var(--usx-spacing-lg); }
 .assistui-welcome-icon { color: var(--usx-color-primary); font-size: var(--usx-font-size-3xl); margin-bottom: var(--usx-spacing-xs); }
 .assistui-welcome-title { font-size: var(--usx-font-size-3xl); font-weight: var(--usx-font-weight-bold); color: var(--usx-color-on-surface); margin: 0; text-align: center; }
 .assistui-composer--welcome { width: 100%; max-width: var(--usx-prose-width); }
@@ -241,7 +241,7 @@ onMounted(() => {
 .assistui-msg-bubble { padding: var(--usx-spacing-sm) var(--usx-spacing-md); border-radius: var(--usx-radius-md); font-size: var(--usx-font-size-sm); line-height: var(--usx-line-height-normal); }
 .assistui-msg--user .assistui-msg-bubble { background: var(--usx-color-primary); color: var(--usx-color-on-primary); }
 .assistui-msg--assistant .assistui-msg-bubble { background: var(--usx-color-surface-variant); color: var(--usx-color-on-surface); }
-.assistui-input { flex: 1; min-height: var(--usx-control-size-md); border: none; background: transparent; color: var(--usx-color-on-surface); font-size: var(--usx-font-size-sm); font-family: var(--usx-font-family-sans); padding: 0 var(--usx-spacing-md); resize: none; outline: none; box-shadow: none; line-height: var(--usx-line-height-tight); }
+.assistui-input { flex: 1; min-height: var(--usx-control-size-md); border: none; background: transparent; color: var(--usx-color-on-surface); font-size: var(--usx-font-size-sm); font-family: var(--usx-font-family-sans); padding: var(--usx-spacing-sm) var(--usx-spacing-md); resize: none; outline: none; box-shadow: none; line-height: var(--usx-line-height-tight); }
 .assistui-submit-btn { display: flex; align-items: center; justify-content: center; width: var(--usx-control-size-md); height: var(--usx-control-size-md); border: none; border-radius: var(--usx-radius-full); background: var(--usx-color-primary); color: var(--usx-color-on-primary); cursor: pointer; flex-shrink: 0; }
 .assistui-submit-btn:disabled { opacity: 0.4; cursor: default; }
 .assistui-loading { display: flex; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-sm); }

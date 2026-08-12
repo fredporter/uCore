@@ -929,7 +929,7 @@ async function copyText(content: string) {
   height: calc(var(--usx-touch-min-sm) - var(--usx-border-width-thick)) !important;
   min-height: 0 !important;
   margin: 0 !important;
-  padding: 0 var(--usx-spacing-md) !important;
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md) !important;
   border: var(--usx-border-width) solid transparent;
   border-radius: var(--usx-radius-md);
   background-color: transparent;
