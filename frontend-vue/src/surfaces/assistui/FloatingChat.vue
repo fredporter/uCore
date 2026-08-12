@@ -26,7 +26,7 @@
             </UButton>
           </div>
         </div>
-        <div class="floating-chat__body">
+        <div v-if="hasOpened" class="floating-chat__body">
           <div class="floating-chat__messages">
             <div
               v-for="msg in chat.messages"
@@ -65,7 +65,7 @@
 
     <button
       class="floating-chat__bubble"
-      @click="isOpen = !isOpen"
+      @click="toggleChat"
       :title="isOpen ? 'Close chat' : 'Open chat'"
     >
       <UIcon :name="isOpen ? 'close' : 'chat'" />
@@ -90,6 +90,14 @@ import { renderMarkdown } from "../../composables/useMarkdown";
 const chat = useChatStore();
 const route = useRoute();
 const isOpen = ref(false);
+const hasOpened = ref(false);
+
+function toggleChat() {
+  isOpen.value = !isOpen.value;
+  if (isOpen.value && !hasOpened.value) {
+    hasOpened.value = true;
+  }
+}
 
 const currentTab = computed(() => {
   const path = route.path;

@@ -649,6 +649,19 @@ async def handle_developer_status(request: web.Request) -> web.Response:
         })
 
 
+async def handle_list_repos(request: web.Request) -> web.Response:
+    """GET /api/developer/repos — list code repositories under ~/Code."""
+    scope = request.query.get("scope", "code")
+    exclude_system = _to_bool(
+        request.query.get("exclude_system"), default=False,
+    )
+    try:
+        repos = _list_repos(scope=scope, exclude_system=exclude_system)
+    except Exception as exc:
+        return web.json_response({"error": str(exc)}, status=500)
+    return web.json_response({"repos": repos, "count": len(repos)})
+
+
 async def handle_list_repo_files(request: web.Request) -> web.Response:
     repo_name = request.match_info["repo_name"]
     include_hidden = _to_bool(request.query.get("include_hidden"), default=False)
