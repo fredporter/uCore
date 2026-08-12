@@ -209,9 +209,9 @@ onMounted(() => {
 
 /* ── AssistUI chat styles ────────────────────────────────────── */
 .assistui-mode-toggle { display: flex; justify-content: center; gap: var(--usx-spacing-xs); padding: 0 0 var(--usx-spacing-sm); flex-shrink: 0; }
-.assistui-mode-btn { display: inline-flex; align-items: center; gap: var(--usx-spacing-xs); padding: 0 var(--usx-spacing-md); height: var(--usx-control-size-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-full); background: var(--usx-color-surface); color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); font-weight: var(--usx-font-weight-medium); line-height: var(--usx-line-height-none); cursor: pointer; transition: all var(--usx-transition-fast); }
-.assistui-mode-btn:hover { border-color: var(--usx-color-primary); color: var(--usx-color-on-surface); }
-.assistui-mode-btn--active { background: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
+.assistui-mode-btn { display: inline-flex; align-items: center; gap: var(--usx-spacing-xs); padding: 0 var(--usx-spacing-md); height: var(--usx-control-size-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-full); background-color: color-mix(in srgb, var(--usx-color-surface) 94%, var(--usx-color-surface-variant)); color: var(--usx-color-on-surface); font-size: var(--usx-font-size-xs); font-weight: var(--usx-font-weight-medium); line-height: var(--usx-line-height-none); cursor: pointer; white-space: nowrap; transition: all var(--usx-transition-fast); }
+.assistui-mode-btn:hover { background-color: var(--usx-color-surface-variant); border-color: var(--usx-color-primary); }
+.assistui-mode-btn--active { background-color: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
 .assistui-chat-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
 .assistui-chat-body--engaged { padding: var(--usx-spacing-md); }
 .assistui-welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--usx-spacing-lg); padding: var(--usx-spacing-2xl) var(--usx-spacing-lg); }
@@ -219,9 +219,9 @@ onMounted(() => {
 .assistui-welcome-title { font-size: var(--usx-font-size-3xl); font-weight: var(--usx-font-weight-bold); color: var(--usx-color-on-surface); margin: 0; text-align: center; }
 .assistui-composer--welcome { width: 100%; max-width: var(--usx-prose-width); }
 .assistui-composer--footer { padding: var(--usx-spacing-sm); border-top: var(--usx-border-width) solid var(--usx-color-border); background: var(--usx-color-surface); flex-shrink: 0; position: relative; }
-.assistui-composer-row { display: flex; align-items: center; gap: var(--usx-spacing-xs); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-lg); background: var(--usx-color-surface); padding: var(--usx-spacing-xs); transition: border-color var(--usx-transition-fast); }
+.assistui-composer-row { display: flex; align-items: center; gap: 0; border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-lg); background: var(--usx-color-surface); padding: 0; transition: border-color var(--usx-transition-fast); }
 .assistui-composer-row:focus-within { border-color: var(--usx-color-primary); }
-.assistui-composer-actions { display: flex; align-items: center; gap: var(--usx-spacing-xs); flex-shrink: 0; }
+.assistui-composer-actions { display: flex; align-items: center; gap: var(--usx-spacing-xs); flex-shrink: 0; padding: var(--usx-spacing-xs); }
 .assistui-model-btn { display: inline-flex; align-items: center; gap: var(--usx-spacing-xs); padding: 0 var(--usx-spacing-xs); min-height: var(--usx-control-size-md); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-full); background: var(--usx-color-surface); color: var(--usx-color-on-surface); font-size: var(--usx-font-size-xs); cursor: pointer; white-space: nowrap; }
 .assistui-model-dropdown { position: absolute; top: calc(100% + var(--usx-spacing-xs)); left: 0; background: var(--usx-color-surface); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); min-width: var(--usx-dropdown-min-width); z-index: 10; box-shadow: var(--usx-shadow-sm); display: flex; flex-direction: column; }
 .assistui-model-dropdown--up { top: auto; bottom: calc(100% + var(--usx-spacing-xs)); }
@@ -241,7 +241,7 @@ onMounted(() => {
 .assistui-msg-bubble { padding: var(--usx-spacing-sm) var(--usx-spacing-md); border-radius: var(--usx-radius-md); font-size: var(--usx-font-size-sm); line-height: var(--usx-line-height-normal); }
 .assistui-msg--user .assistui-msg-bubble { background: var(--usx-color-primary); color: var(--usx-color-on-primary); }
 .assistui-msg--assistant .assistui-msg-bubble { background: var(--usx-color-surface-variant); color: var(--usx-color-on-surface); }
-.assistui-input { flex: 1; min-height: 0; border: none; background: transparent; color: var(--usx-color-on-surface); font-size: var(--usx-font-size-sm); font-family: var(--usx-font-family-sans); padding: var(--usx-spacing-xs) var(--usx-spacing-sm); resize: none; outline: none; line-height: var(--usx-line-height-tight); }
+.assistui-input { flex: 1; min-height: var(--usx-control-size-md); border: none; background: transparent; color: var(--usx-color-on-surface); font-size: var(--usx-font-size-sm); font-family: var(--usx-font-family-sans); padding: 0 var(--usx-spacing-sm); resize: none; outline: none; box-shadow: none; line-height: var(--usx-line-height-tight); }
 .assistui-submit-btn { display: flex; align-items: center; justify-content: center; width: var(--usx-control-size-md); height: var(--usx-control-size-md); border: none; border-radius: var(--usx-radius-full); background: var(--usx-color-primary); color: var(--usx-color-on-primary); cursor: pointer; flex-shrink: 0; }
 .assistui-submit-btn:disabled { opacity: 0.4; cursor: default; }
 .assistui-loading { display: flex; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-sm); }
