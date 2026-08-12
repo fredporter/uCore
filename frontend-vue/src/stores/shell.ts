@@ -13,7 +13,7 @@ export const useShellStore = defineStore('shell', () => {
   const sidebarOpen = ref(false)
   const developerSidebarOpen = ref(false)
   const developerSurfaceTab = ref<'code' | 'repository' | 'editor'>('code')
-  const chatMode = ref<ChatMode>('closed')
+  const chatMode = ref<ChatMode>('floating')
   const lastSurface = ref<string>('/')
   const tabOrientation = ref<TabOrientation>('horizontal')
 

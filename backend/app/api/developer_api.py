@@ -559,10 +559,10 @@ def _summarize_binder_context(
 
 
 def _announce_dev(status: str) -> None:
-    """Broadcast the uDev extension online/offline state to the UI Hub.
+    """Broadcast the Developer extension online/offline state to the UI Hub.
 
-    This is what makes the Developer surface card appear (extension_online)
-    or the "Developer surface hidden" hint return (extension_offline).
+    The Developer surface is now self-hosted within uCore — the uDev repo
+    has been retired.  This announces the integrated developer capability.
     """
     try:
         from app.api.render_api import publish_event
@@ -570,9 +570,9 @@ def _announce_dev(status: str) -> None:
         publish_event(
             "extension_online" if status == "online" else "extension_offline",
             {
-                "id": "udev",
+                "id": "ucore-developer",
                 "name": "Developer",
-                "version": "0.1.0-dev",
+                "version": settings.version,
                 "status": status,
             },
         )
@@ -584,140 +584,69 @@ def _announce_dev(status: str) -> None:
 async def handle_start_developer(request: web.Request) -> web.Response:
     """Start the developer server (DevMode).
 
-    DevMode is internal dev ops - when active:
-    - Dev server (Vite) runs on port 5176
-    - Developer Surface is accessible at /developer
-    - DevMode icon appears in global toolbar
+    The Developer Surface is now self-hosted within uCore — the Vite dev
+    server on port 5175 serves it directly.  The uDev repo has been retired.
+    This endpoint returns the current status; no separate process is spawned.
     """
-    import urllib.request
-
     from app.core.logging import log
 
-    dev_url = "http://localhost:5176"
+    log.info("[DEVMODE] Developer surface is self-hosted within uCore (uDev retired)")
 
-    try:
-        # Check if already running
-        try:
-            req = urllib.request.Request(dev_url, method="HEAD")
-            with urllib.request.urlopen(req, timeout=2) as resp:
-                if resp.status < 500:
-                    _announce_dev("online")
-                    return web.json_response({
-                        "success": True,
-                        "message": "Developer server already running",
-                        "dev_mode": {"active": True}
-                    })
-        except Exception:
-            pass
-
-        # Start uDev developer-surface server.
-        udev_dir = (settings.udos_root.expanduser() / "uDev").resolve()
-        if not udev_dir.exists():
-            return web.json_response({
-                "success": False,
-                "error": "uDev directory not found under ~/Code"
-            }, status=404)
-
-        log.info("🚀 [DEVMODE] Starting uDev developer-surface server")
-
-        # Start in background
-        subprocess.Popen(
-            ["npm", "run", "dev:surface"],
-            cwd=str(udev_dir),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True
-        )
-
-        _announce_dev("online")
-        return web.json_response({
-            "success": True,
-            "message": "Developer server starting",
-            "dev_mode": {"active": True, "starting": True}
-        })
-    except Exception as e:
-        log.error(f"❌ [DEVMODE] Failed to start developer server: {e}")
-        return web.json_response({
-            "success": False,
-            "error": str(e)
-        }, status=500)
+    _announce_dev("online")
+    return web.json_response({
+        "success": True,
+        "message": "Developer surface is integrated into uCore — served by Vite on port 5175",
+        "dev_mode": {"active": True, "self_hosted": True}
+    })
 
 
 async def handle_stop_developer(request: web.Request) -> web.Response:
     """Stop the developer server (DevMode).
 
-    Logs the stop operation for audit trail.
+    The Developer Surface is self-hosted — this simply announces offline
+    state.  No external process to kill since uDev was retired.
     """
-    import subprocess
-
     from app.core.logging import log
 
-    try:
-        log.info("🛑 [DEVMODE] Stopping developer server (internal dev ops)")
+    log.info("[DEVMODE] Developer surface stop requested (self-hosted, no external process)")
 
-        # Find and kill uDev Vite process.
-        subprocess.run(
-            ["pkill", "-f", "developer-surface.*vite|vite.*5176"],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-
-        _announce_dev("offline")
-        return web.json_response({
-            "success": True,
-            "message": "Developer server stopped",
-            "dev_mode": {"active": False}
-        })
-    except Exception as e:
-        log.error(f"❌ [DEVMODE] Failed to stop developer server: {e}")
-        return web.json_response({
-            "success": False,
-            "error": str(e)
-        }, status=500)
+    _announce_dev("offline")
+    return web.json_response({
+        "success": True,
+        "message": "Developer surface status set to offline",
+        "dev_mode": {"active": False}
+    })
 
 
 async def handle_developer_status(request: web.Request) -> web.Response:
     """Get current DevMode status.
 
-    Returns whether the developer server is running and accessible.
+    The Developer Surface is self-hosted on the Vite dev server (port 5175).
+    Checks the Vite frontend rather than a separate uDev process.
     """
     import urllib.request
 
     from app.core.logging import log
 
     try:
-        req = urllib.request.Request("http://localhost:5176", method="HEAD")
+        # Check the Vite dev server that serves the Developer Surface
+        req = urllib.request.Request("http://localhost:5175", method="HEAD")
         with urllib.request.urlopen(req, timeout=2) as resp:
             active = resp.status < 500
             if active:
-                log.debug("✅ [DEVMODE] Developer server is active")
+                log.debug("[DEVMODE] Vite dev server is active on :5175")
             return web.json_response({
                 "active": active,
-                "description": "Internal dev ops - Developer Surface active",
+                "description": "Developer Surface — self-hosted in uCore (Vite :5175)",
                 "icon_visible": active
             })
     except Exception:
-        log.debug("⏸️  [DEVMODE] Developer server is inactive")
+        log.debug("[DEVMODE] Vite dev server not reachable on :5175")
         return web.json_response({
             "active": False,
-            "description": "Internal dev ops - Developer Surface inactive",
+            "description": "Developer Surface — Vite dev server not running",
             "icon_visible": False
         })
-
-
-async def handle_list_repos(request: web.Request) -> web.Response:
-    scope = request.query.get("scope", "code").strip().lower() or "code"
-    if scope not in {"code", "all", "vault", "system"}:
-        return web.json_response({"error": f"Invalid scope: {scope}"}, status=400)
-    exclude_system = _to_bool(request.query.get("exclude_system"), default=False)
-    repos = _list_repos(scope=scope, exclude_system=exclude_system)
-    return web.json_response({
-        "repos": repos,
-        "root": str(settings.udos_root),
-        "scope": scope,
-        "exclude_system": exclude_system,
-    })
 
 
 async def handle_list_repo_files(request: web.Request) -> web.Response:

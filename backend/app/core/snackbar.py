@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import importlib
 import json
+import pkgutil
 import platform as plat_module
 import socket
 import sys
@@ -475,10 +477,64 @@ async def system_repair_handler(request: web.Request) -> web.Response:
         return web.json_response({"error": str(e)}, status=500)
 
 
+# ─── Dynamic module loader ──────────────────────────────────────
+
+_MODULES_PACKAGE = "app.snackbar.modules"
+
+
+def _load_modules(app: web.Application) -> list[str]:
+    """Dynamically import and register all route modules.
+
+    Each module in ``app/snackbar/modules/`` must expose a ``register(app)``
+    callable.  Modules are loaded in alphabetical order for determinism.
+    """
+    loaded: list[str] = []
+
+    try:
+        pkg = importlib.import_module(_MODULES_PACKAGE)
+    except ImportError as exc:
+        log.warning("Snackbar modules package not found: %s", exc)
+        return loaded
+
+    for mod_info in pkgutil.iter_modules(pkg.__path__):
+        mod_name = mod_info.name
+        if mod_name.startswith("_"):
+            continue
+        full_name = f"{_MODULES_PACKAGE}.{mod_name}"
+        try:
+            module = importlib.import_module(full_name)
+            register_fn = getattr(module, "register", None)
+            if register_fn is None:
+                log.debug("Skipping %s (no register function)", full_name)
+                continue
+            register_fn(app)
+            loaded.append(mod_name)
+            log.debug("Loaded snackbar module: %s", mod_name)
+        except Exception as exc:
+            log.error("Failed to load snackbar module %s: %s", full_name, exc)
+
+    log.info("Loaded %d snackbar modules: %s", len(loaded), ", ".join(loaded))
+    return loaded
+
+
 # ─── App factory ──────────────────────────────────────────────────
 
 
 _start_time: float = time.time()
+
+
+async def health_monitor_ctx(app: web.Application):
+    """Start the HealthMonitor background check loop on app startup."""
+    from app.services.health_monitor import get_health_monitor
+
+    monitor = get_health_monitor()
+    await monitor.start()
+    log.info("Health monitor started (5s check interval)")
+    try:
+        yield
+    finally:
+        await monitor.stop()
+        log.info("Health monitor stopped")
 
 
 async def maintenance_scheduler_ctx(app: web.Application):
@@ -514,9 +570,14 @@ async def maintenance_scheduler_ctx(app: web.Application):
 
 
 def create_app() -> web.Application:
-    """Build and return a configured aiohttp application."""
+    """Build and return a configured aiohttp application.
+
+    Route modules are loaded dynamically from ``snackbar/modules/``.
+    Only routes unique to core (not covered by any module) are registered inline.
+    """
     app = web.Application(middlewares=[budget_middleware, cors_middleware])
     app.cleanup_ctx.append(maintenance_scheduler_ctx)
+    app.cleanup_ctx.append(health_monitor_ctx)
 
     # Budget manager (usage logging + enforcement scaffold)
     try:
@@ -528,35 +589,12 @@ def create_app() -> web.Application:
         app[BUDGET_MANAGER_KEY] = None
         log.warning("Budget manager unavailable: %s", e)
 
-    # Core routes (these are the canonical ones)
-    app.router.add_get("/api/health", health_handler)
-    app.router.add_get("/api/version", version_handler)
-    app.router.add_get("/api/info", info_handler)
-    app.router.add_post("/api/shutdown", shutdown_handler)
+    # ── Load all modular route handlers ────────────────────────
+    # Covers: health, version, info, shutdown, mcp/*, admin/migrate,
+    # popcorn, health/status, health/logs, diagnostics, skills
+    _load_modules(app)
 
-    # MCP / AI routes
-    app.router.add_post("/api/mcp/query", mcp_query_handler)
-    app.router.add_get("/api/mcp/status", mcp_status_handler)
-    app.router.add_get("/api/mcp/providers", mcp_providers_handler)
-    app.router.add_post("/api/mcp/chat", mcp_chat_handler)
-
-    # Database / Admin routes
-    app.router.add_get("/api/admin/migrate", migrate_admin_handler)
-
-    # Popcorn orchestration routes (macOS only)
-    app.router.add_get("/api/surfaces/popcorn/status", popcorn_status_handler)
-    app.router.add_post("/api/surfaces/popcorn/{action}", popcorn_action_handler)
-
-    # Health monitoring routes
-    app.router.add_get("/api/health/status", health_status_handler)
-    app.router.add_get("/api/health/logs", health_logs_handler)
-
-    # Diagnostics and self-healing routes
-    app.router.add_get("/api/diagnostics", diagnostics_handler)
-    app.router.add_get("/api/diagnostics/ports", ports_handler)
-    app.router.add_post("/api/skills/{skill_name}", execute_skill_handler)
-
-    # Unified health and repair endpoints
+    # ── Routes unique to core (not covered by any module) ──────
     app.router.add_get("/api/health/full", full_health_handler)
     app.router.add_post("/api/system/repair", system_repair_handler)
 

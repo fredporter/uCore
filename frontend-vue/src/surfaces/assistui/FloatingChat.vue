@@ -3,7 +3,10 @@
     <Transition name="chat-panel">
       <div v-if="isOpen" class="floating-chat__panel">
         <div class="floating-chat__header">
-          <span class="floating-chat__title">AI Assistant</span>
+          <div class="floating-chat__title-row">
+            <span class="floating-chat__title">AI Assistant</span>
+            <span class="floating-chat__location"><UIcon name="location_on" /> {{ currentTab }}</span>
+          </div>
           <div class="floating-chat__header-actions">
             <UButton
               variant="ghost"
@@ -73,19 +76,32 @@
 <script setup lang="ts">
 /**
  * @component FloatingChat
- * @description Intercom-style floating chat bubble for embedding on other surfaces.
- * Ported from FloatingChatWrapper (React).
+ * @description Flat chat panel matching AssistUI style. Location pin shows current tab.
  * @category surfaces
  * @usage <FloatingChat @close="handleClose" />
  */
-import { ref } from "vue";
+import { ref, computed } from "vue";
+import { useRoute } from "vue-router";
 import UButton from "../../skills/atoms/UButton.vue";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import { useChatStore } from "../../stores/chat";
 import { renderMarkdown } from "../../composables/useMarkdown";
 
 const chat = useChatStore();
+const route = useRoute();
 const isOpen = ref(false);
+
+const currentTab = computed(() => {
+  const path = route.path;
+  if (path.startsWith("/intelligence")) return "Intelligence";
+  if (path.startsWith("/developer")) return "Developer";
+  if (path.startsWith("/workflow")) return "Workflow";
+  if (path.startsWith("/snackbar")) return "Snackbar";
+  if (path.startsWith("/system")) return "System";
+  if (path.startsWith("/ucode")) return "uCode";
+  if (path.startsWith("/documentation")) return "Docs";
+  return "uCore";
+});
 
 function handleKeyDown(e: KeyboardEvent) {
   if (e.key === "Enter" && !e.shiftKey) {
@@ -109,8 +125,6 @@ function handleKeyDown(e: KeyboardEvent) {
   background: var(--usx-color-background);
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-lg);
-  box-shadow: 0 8px 32px
-    color-mix(in srgb, var(--usx-color-on-surface) 15%, transparent);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -121,10 +135,30 @@ function handleKeyDown(e: KeyboardEvent) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--usx-spacing-md);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
   font-weight: var(--usx-font-weight-semibold);
-  font-size: var(--usx-font-size-base);
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface);
+  background: var(--usx-color-surface);
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  gap: var(--usx-spacing-sm);
+}
+
+.floating-chat__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+}
+
+.floating-chat__location {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+  background: var(--usx-color-surface-variant);
+  padding: 1px var(--usx-spacing-sm);
+  border-radius: var(--usx-radius-sm);
 }
 
 .floating-chat__header-actions {
@@ -137,6 +171,7 @@ function handleKeyDown(e: KeyboardEvent) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--usx-color-background);
 }
 
 .floating-chat__messages {
@@ -151,8 +186,7 @@ function handleKeyDown(e: KeyboardEvent) {
 .floating-chat__message--user .floating-chat__message-body {
   background: var(--usx-color-primary);
   color: var(--usx-color-on-primary);
-  border-radius: var(--usx-radius-lg) var(--usx-radius-md) var(--usx-radius-sm)
-    var(--usx-radius-lg);
+  border-radius: var(--usx-radius-lg) var(--usx-radius-md) var(--usx-radius-sm) var(--usx-radius-lg);
   padding: var(--usx-spacing-sm) var(--usx-spacing-md);
   font-size: var(--usx-font-size-base);
   margin-left: auto;
@@ -179,43 +213,35 @@ function handleKeyDown(e: KeyboardEvent) {
   animation: bounce var(--usx-motion-duration-pulse) infinite ease-in-out both;
 }
 
-.floating-chat__loading span:nth-child(1) {
-  animation-delay: calc(var(--usx-motion-delay-lg) * -1);
-}
-.floating-chat__loading span:nth-child(2) {
-  animation-delay: calc(var(--usx-motion-delay-sm) * -1);
-}
+.floating-chat__loading span:nth-child(1) { animation-delay: calc(var(--usx-motion-delay-lg) * -1); }
+.floating-chat__loading span:nth-child(2) { animation-delay: calc(var(--usx-motion-delay-sm) * -1); }
 
 @keyframes bounce {
-  0%,
-  80%,
-  100% {
-    transform: scale(0);
-  }
-  40% {
-    transform: scale(1);
-  }
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
 }
 
 .floating-chat__input {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-md);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
   border-top: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-surface);
 }
 
 .floating-chat__input textarea {
   flex: 1;
-  background: var(--usx-color-surface);
+  background: var(--usx-color-background);
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-md);
   padding: var(--usx-spacing-sm) var(--usx-spacing-md);
   color: var(--usx-color-on-surface);
-  font-size: var(--usx-font-size-base);
+  font-size: var(--usx-font-size-sm);
   font-family: var(--usx-font-family-sans);
   resize: none;
   outline: none;
+  line-height: 1.3;
 }
 
 .floating-chat__input textarea:focus {
@@ -229,35 +255,26 @@ function handleKeyDown(e: KeyboardEvent) {
   width: var(--usx-touch-min);
   height: var(--usx-touch-min);
   border-radius: 50%;
-  border: none;
+  border: var(--usx-border-width) solid var(--usx-color-border);
   background: var(--usx-color-primary);
   color: var(--usx-color-on-primary);
   cursor: pointer;
   font-size: var(--usx-font-size-xl);
-  transition:
-    transform var(--usx-transition-fast),
-    background var(--usx-transition-fast);
   margin-left: auto;
-  box-shadow: 0 4px 12px
-    color-mix(in srgb, var(--usx-color-primary) 40%, transparent);
 }
 
 .floating-chat__bubble:hover {
-  transform: scale(1.08);
   background: var(--usx-color-primary-hover);
 }
 
-/* Panel transition */
+/* Panel transition — instant, no fade */
 .chat-panel-enter-active,
 .chat-panel-leave-active {
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+  transition: transform 0.15s ease;
 }
 
 .chat-panel-enter-from,
 .chat-panel-leave-to {
-  opacity: 0;
-  transform: translateY(var(--usx-spacing-lg)) scale(0.95);
+  transform: translateY(var(--usx-spacing-sm)) scale(0.97);
 }
 </style>

@@ -151,7 +151,7 @@ def _get_capabilities_hud() -> dict:
     except Exception:
         running = set()
 
-    caps["udev"] = "online" if "udev" in running else "offline"
+    caps["developer"] = "online" if "ucore-developer" in running else "offline"
     caps["ollama"] = "online" if "ollama" in running else "offline"
     caps["hivemind"] = "online" if "hivemind" in running else "offline"
     return caps

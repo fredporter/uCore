@@ -53,6 +53,29 @@ async def info_handler(request: web.Request) -> web.Response:
 
 
 async def shutdown_handler(request: web.Request) -> web.Response:
+    """POST /api/shutdown — graceful shutdown.
+
+    Protected: only accepts POST with a valid JSON body containing a
+    confirmation token to prevent accidental shutdown from misrouted GETs.
+    """
+    if request.method != "POST":
+        return web.json_response(
+            {"error": "Use POST /api/shutdown with {\"confirm\": true}"},
+            status=405,
+        )
+    try:
+        body = await request.json()
+        if not body.get("confirm"):
+            return web.json_response(
+                {"error": "Send {\"confirm\": true} to confirm shutdown"},
+                status=400,
+            )
+    except Exception:
+        return web.json_response(
+            {"error": "Send {\"confirm\": true} to confirm shutdown"},
+            status=400,
+        )
+    log.warning("Shutdown requested via API — stopping server")
     asyncio.get_event_loop().stop()
     return web.json_response({"status": "shutting down"})
 

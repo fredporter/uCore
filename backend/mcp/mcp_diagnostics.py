@@ -2,7 +2,8 @@
 
 Source of truth:
   - Workspace config: .vscode/mcp.json
-  - Bridge binary: ../uDev/mcp-bridge/build/index.js
+  - Bridge binary: discovered from multiple candidate paths (uDev retired,
+    bridge may live in uCore itself or a sibling repo)
 """
 from __future__ import annotations
 
@@ -86,7 +87,18 @@ def health() -> dict[str, Any]:
         if isinstance(cfg, dict) and cfg.get("type") == "http"
     ]
 
-    bridge_bin = repo_root.parent / "uDev" / "mcp-bridge" / "build" / "index.js"
+    # Discover bridge binary — uDev has been retired, check multiple candidates.
+    candidates = [
+        repo_root / "bmcp" / "mcp-bridge" / "build" / "index.js",
+        repo_root.parent / "uDev" / "mcp-bridge" / "build" / "index.js",
+    ]
+    bridge_bin = None
+    for cand in candidates:
+        if cand.exists():
+            bridge_bin = cand
+            break
+    if bridge_bin is None:
+        bridge_bin = candidates[0]  # report the first candidate for diagnostics
 
     checks = {
         "mcp_config_exists": mcp_path.exists(),

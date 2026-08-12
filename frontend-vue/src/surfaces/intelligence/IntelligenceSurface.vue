@@ -17,7 +17,7 @@
           <button v-for="mode in ASSISTUI_MODES" :key="mode.id" class="assistui-mode-btn"
             :class="{ 'assistui-mode-btn--active': chat.promptMode === mode.id }"
             @click="switchMode(mode.id); if (mode.id === 'workflow') wf.fetchAll()">
-            <UIcon :name="mode.icon" /><span>{{ mode.label }}</span>
+            <span>{{ mode.label }}</span>
           </button>
         </div>
 
@@ -144,11 +144,11 @@ import CombinedHistoryPanel from "./panels/CombinedHistoryPanel.vue";
 
 const INTEL_TABS = [
   { id: "chat", label: "Chat", icon: "chat" },
-  { id: "intel", label: "Intelligence", icon: "tune" },
-  { id: "models", label: "Models", icon: "smart_toy" },
-  { id: "agents", label: "Agents", icon: "group" },
-  { id: "budget", label: "Budget", icon: "account_balance" },
-  { id: "history", label: "History", icon: "history" },
+  { id: "intel", label: "Intelligence", icon: "chat" },
+  { id: "models", label: "Models", icon: "chat" },
+  { id: "agents", label: "Agents", icon: "chat" },
+  { id: "budget", label: "Budget", icon: "chat" },
+  { id: "history", label: "History", icon: "chat" },
 ];
 
 const shell = useShellStore();
@@ -209,7 +209,7 @@ onMounted(() => {
 
 /* ── AssistUI chat styles ────────────────────────────────────── */
 .assistui-mode-toggle { display: flex; justify-content: center; gap: var(--usx-spacing-xs); padding: 0 0 var(--usx-spacing-sm); flex-shrink: 0; }
-.assistui-mode-btn { display: inline-flex; align-items: center; gap: var(--usx-spacing-xs); padding: 0 var(--usx-spacing-md); height: var(--usx-control-size-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); background-color: color-mix(in srgb, var(--usx-color-surface) 94%, var(--usx-color-surface-variant)); color: var(--usx-color-on-surface); font-size: var(--usx-font-size-xs); font-weight: var(--usx-font-weight-medium); line-height: var(--usx-line-height-none); cursor: pointer; white-space: nowrap; transition: all var(--usx-transition-fast); }
+.assistui-mode-btn { display: inline-flex !important; align-items: center; padding: 2px var(--usx-spacing-md) !important; border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-surface); color: var(--usx-color-on-surface); font-size: var(--usx-font-size-sm); font-weight: var(--usx-font-weight-medium); cursor: pointer; white-space: nowrap; height: auto !important; min-height: auto !important; max-height: 28px !important; line-height: 1.2 !important; margin-bottom: 0 !important; transition: all var(--usx-transition-fast); }
 .assistui-mode-btn:hover { background-color: var(--usx-color-surface-variant); border-color: var(--usx-color-primary); }
 .assistui-mode-btn--active { background-color: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
 .assistui-chat-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }

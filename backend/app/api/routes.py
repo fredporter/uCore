@@ -284,13 +284,10 @@ def register_routes(app: web.Application) -> None:
     except ImportError as e:
         log.debug("Executables API routes not available: %s", e)
 
-    # ── Automation (uDev knowledge pipeline) ─────────────────────
-    try:
-        from .automation_api import register_automation_routes
-        register_automation_routes(app)
-        log.debug("Automation API routes registered")
-    except ImportError as e:
-        log.debug("Automation API routes not available: %s", e)
+    # ── Automation (uDev knowledge pipeline — ARCHIVED) ──────────
+    # The automation engine was archived to tests_archived_stale/ when
+    # uDev was retired.  Automation routes are no longer available.
+    log.debug("Automation API routes archived (uDev retired)")
 
     # ── Unified Services (Services + Tools + MCP) ─────────────────
     try:

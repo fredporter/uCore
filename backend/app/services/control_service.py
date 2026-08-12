@@ -94,35 +94,16 @@ def _is_port_open(host: str, port: int, timeout: float = 0.4) -> bool:
 
 async def _start_hivemind_server() -> tuple[bool, str]:
     """Start Hivemind server on port 8490 if not already running."""
+    from app.mcp.hivemind_launcher import start_hivemind
+
     if _is_port_open("localhost", 8490):
         return True, "Hivemind already listening on port 8490"
 
-    cmd = [sys.executable, "-m", "app.mcp.hivemind_server", "--port", "8490"]
-
-    def _spawn() -> bool:
-        try:
-            subprocess.Popen(
-                cmd,
-                cwd=str(_backend_root()),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-            )
-            return True
-        except Exception:
-            return False
-
-    spawned = await asyncio.to_thread(_spawn)
-    if not spawned:
-        return False, "Failed to spawn Hivemind process"
-
-    # Give the process a short boot window.
-    for _ in range(12):
-        await asyncio.sleep(0.5)
-        if _is_port_open("localhost", 8490):
-            return True, "Started Hivemind on port 8490"
-
-    return False, "Spawned Hivemind but port 8490 is still closed"
+    try:
+        start_hivemind()
+        return True, "Started Hivemind on port 8490"
+    except Exception as exc:
+        return False, f"Failed to start Hivemind: {exc}"
 
 
 # ---------------------------------------------------------------------------

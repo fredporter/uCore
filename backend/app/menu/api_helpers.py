@@ -153,18 +153,18 @@ def is_uihub_alive() -> bool:
 
 
 def is_dev_alive() -> bool:
-    """Check if the uDev developer surface server (Dev Mode) is running.
+    """Check if the Developer Surface (Vite dev server) is running.
 
-    The developer surface runs on port 5176. Returns True when the server
-    is responding.
+    The Developer Surface is self-hosted within uCore on port 5175.
+    Returns True when the Vite server is responding.
 
     Returns:
-        True if the developer server is responding, False otherwise
+        True if the Vite dev server is responding, False otherwise
     """
     try:
         import urllib.request
 
-        req = urllib.request.Request("http://localhost:5176", method="HEAD")
+        req = urllib.request.Request("http://localhost:5175", method="HEAD")
         with urllib.request.urlopen(req, timeout=2) as resp:
             return resp.status < 500
     except Exception:

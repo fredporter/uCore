@@ -137,7 +137,7 @@ _DEFAULT_SYSTEM_REPO_NAMES: set[str] = {
 }
 
 _DEFAULT_CORE_REPO_NAMES: set[str] = {
-    "udev",
+    "ucore-developer",
 }
 
 _DEFAULT_EXTENSION_REPO_NAMES: set[str] = {

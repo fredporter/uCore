@@ -125,8 +125,21 @@ def _list_courses() -> list[dict[str, Any]]:
 
 
 def _list_notebooks() -> list[dict[str, Any]]:
-    """Discover .ipynb notebooks from uDev automation global-knowledge."""
-    knowledge_root = Path.home() / "Code" / "uDev" / "global-knowledge"
+    """Discover .ipynb notebooks from knowledge directories.
+
+    Searches multiple candidate paths since uDev has been retired.
+    """
+    candidates = [
+        Path.home() / "Code" / "uDev" / "global-knowledge",
+        Path.home() / "Code" / "uDocs" / "notebooks",
+    ]
+    knowledge_root = None
+    for cand in candidates:
+        if cand.exists() and cand.is_dir():
+            knowledge_root = cand
+            break
+    if knowledge_root is None:
+        return []
     if not knowledge_root.exists() or not knowledge_root.is_dir():
         return []
 
@@ -245,7 +258,7 @@ async def handle_docs_root(_request: web.Request) -> web.Response:
         {
             "method": "GET",
             "path": "/api/docs/notebooks",
-            "description": "List Jupyter notebooks from uDev automation",
+            "description": "List Jupyter notebooks from knowledge directories",
         },
         {
             "method": "GET",
@@ -337,7 +350,7 @@ async def handle_docs_courses(_request: web.Request) -> web.Response:
 
 
 async def handle_docs_notebooks(_request: web.Request) -> web.Response:
-    """GET /api/docs/notebooks - list Jupyter notebooks from uDev automation."""
+    """GET /api/docs/notebooks - list Jupyter notebooks from knowledge directories."""
     notebooks = _list_notebooks()
     return web.json_response({
         "notebooks": notebooks,

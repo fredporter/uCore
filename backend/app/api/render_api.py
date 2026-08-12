@@ -133,7 +133,7 @@ def publish_event(event_type: str, data: dict[str, Any]) -> None:
 async def handle_extension_announce(request: web.Request) -> web.Response:
     """POST /api/extensions/announce — extension publishes its online/offline status.
 
-    Body: { "id": "udev", "name": "Developer", "status": "online"|"offline", "version"?: "1.0" }
+    Body: { "id": "ucore-developer", "name": "Developer", "status": "online"|"offline", "version"?: "4.0" }
     Broadcasts extension_online or extension_offline SSE event to all subscribers.
     """
     try:

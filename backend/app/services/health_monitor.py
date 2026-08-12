@@ -105,13 +105,16 @@ class HealthMonitor:
                 await self._record_check(name, "error", str(e))
 
     async def _check_backend(self) -> tuple[str, str]:
-        """Check if backend is responsive"""
+        """Check if backend is responsive."""
         try:
-            # Try HTTP health endpoint
+            from app.core.settings import settings
+            port = settings.port
             import urllib.request
-            response = urllib.request.urlopen("http://localhost:8484/api/health", timeout=2)
+            response = urllib.request.urlopen(
+                f"http://localhost:{port}/api/health", timeout=2
+            )
             if response.status == 200:
-                return "ok", "Backend responding normally"
+                return "ok", f"Backend responding normally on port {port}"
             else:
                 return "degraded", f"Backend returned status {response.status}"
         except urllib.error.URLError as e:
@@ -252,16 +255,58 @@ class HealthMonitor:
             return f"recover_{component}_failed", str(e)
 
     async def _recover_backend(self) -> str:
-        """Attempt to recover backend"""
-        log.info("Attempting backend recovery...")
-        # Could restart backend, but for now just report
-        return "backend_recovery_attempted"
+        """Attempt to recover backend via control recover endpoint."""
+        log.info("Attempting backend recovery via /api/control/recover...")
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                "http://127.0.0.1:8484/api/control/recover",
+                method="POST",
+                data=b'{"lane":"ecosystem"}',
+                headers={"Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                if resp.status < 400:
+                    return "backend_recovery_triggered_via_control"
+                return f"backend_recovery_failed_status_{resp.status}"
+        except urllib.error.URLError:
+            # Backend is completely down — try restart via launchd
+            log.info("Backend unreachable; attempting launchd kickstart...")
+            import subprocess
+            try:
+                subprocess.run(
+                    ["launchctl", "kickstart", "gui/$(id -u)/com.udos.ucore-server"],
+                    capture_output=True, timeout=5,
+                )
+                return "backend_launchd_kickstart_attempted"
+            except Exception as e:
+                return f"backend_launchd_kickstart_failed: {e}"
+        except Exception as e:
+            return f"backend_recovery_error: {e}"
 
     async def _recover_database(self) -> str:
-        """Attempt to recover database"""
+        """Attempt to recover database connectivity."""
         log.info("Attempting database recovery...")
-        # Could defrag, reindex, etc.
-        return "database_recovery_attempted"
+        try:
+            db_path = Path("~/.ucore/ucore.db").expanduser()
+            if not db_path.exists():
+                # Try to recreate from migration
+                try:
+                    from app.core.database import migrate_db
+                    result = migrate_db()
+                    return f"database_recreated_v{result.get('version', '?')}"
+                except Exception as e:
+                    return f"database_recreate_failed: {e}"
+            # Check and repair file permissions
+            if not os.access(db_path, os.R_OK | os.W_OK):
+                try:
+                    os.chmod(db_path, 0o644)
+                    return "database_permissions_fixed"
+                except Exception as e:
+                    return f"database_permission_fix_failed: {e}"
+            return "database_accessible_no_action_needed"
+        except Exception as e:
+            return f"database_recovery_error: {e}"
 
     async def _recover_popcorn(self) -> str:
         """Attempt to recover Popcorn"""
