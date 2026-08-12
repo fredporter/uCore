@@ -309,14 +309,14 @@ class HealthMonitor:
             return f"database_recovery_error: {e}"
 
     async def _recover_popcorn(self) -> str:
-        """Attempt to recover Popcorn"""
+        """Attempt to recover Popcorn via perform_action restart-menu."""
         log.info("Attempting Popcorn recovery...")
         try:
-            from app.services.popcorn_manager import restart_popcorn
-            if restart_popcorn():
-                return "popcorn_restarted"
-            else:
-                return "popcorn_restart_failed"
+            from app.services.popcorn_manager import perform_action
+            result = perform_action("restart-menu")
+            if result.get("success"):
+                return "popcorn_restarted_via_menu"
+            return f"popcorn_restart_returned: {result.get('message', 'unknown')}"
         except Exception as e:
             return f"popcorn_recovery_error: {e}"
 

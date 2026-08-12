@@ -2,7 +2,7 @@
 
 This module manages the uCore macOS menu bar (popcorn) tray icon.
 It provides status checks and lifecycle actions for the menu process,
-backend server, and frontend dev server.
+backend server, and Vue frontend server.
 
 All launchd operations delegate to launchd_manager.py (single source of truth).
 """
@@ -129,9 +129,9 @@ def perform_action(action: str) -> dict:
         - start-backend: Start the backend server
         - stop-backend: Stop the backend server
         - restart-backend: Restart the backend server
-        - start-frontend: Start the frontend dev server
-        - stop-frontend: Stop the frontend dev server
-        - restart-frontend: Restart the frontend dev server
+        - start-frontend: Start the Vue frontend server
+        - stop-frontend: Stop the Vue frontend server
+        - restart-frontend: Restart the Vue frontend server
         - status: Get current status (same as get_popcorn_status)
         - install: Install launchd agents for auto-start
         - uninstall: Remove launchd agents

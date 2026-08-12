@@ -67,26 +67,21 @@ def get_health_summary() -> dict:
         "skill_state_summary": state,
         "dev_mode": {
             "active": dev_mode_active,
-            "description": "Internal dev ops - Developer Surface active",
-            "icon_visible": dev_mode_active,  # Shows in global toolbar when active
+            "description": "Vue frontend server status",
+            "icon_visible": dev_mode_active,
         },
     }
 
 
 def _check_dev_mode_status() -> bool:
-    """Check if DevMode (internal dev ops) is active.
-    
-    DevMode is active when:
-    - Dev server (Vite) is running on port 5174
-    - Developer Surface is accessible at /developer
-    
-    Returns True if dev server is responding, False otherwise.
+    """Check if the Vue dev server is running on port 5175.
+
+    Returns True if the Vite frontend is responding, False otherwise.
     """
     import urllib.request
 
     try:
-        # Check if Vite dev server is running
-        req = urllib.request.Request("http://localhost:5174/developer", method="HEAD")
+        req = urllib.request.Request("http://localhost:5175", method="HEAD")
         with urllib.request.urlopen(req, timeout=2) as resp:
             return resp.status < 500
     except Exception:
