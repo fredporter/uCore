@@ -16,6 +16,7 @@ export const useShellStore = defineStore('shell', () => {
   const chatMode = ref<ChatMode>('floating')
   const lastSurface = ref<string>('/')
   const tabOrientation = ref<TabOrientation>('horizontal')
+  const intelTab = ref<string>('chat')
 
   function toggleSidebar() {
     sidebarOpen.value = !sidebarOpen.value
@@ -50,6 +51,10 @@ export const useShellStore = defineStore('shell', () => {
     lastSurface.value = route
   }
 
+  function setIntelTab(tab: string) {
+    intelTab.value = tab
+  }
+
   function toggleTabOrientation() {
     tabOrientation.value = tabOrientation.value === 'horizontal' ? 'vertical' : 'horizontal'
   }
@@ -65,6 +70,7 @@ export const useShellStore = defineStore('shell', () => {
     chatMode,
     lastSurface,
     tabOrientation,
+    intelTab,
     toggleSidebar,
     setSidebarOpen,
     toggleDeveloperSidebar,
@@ -73,6 +79,7 @@ export const useShellStore = defineStore('shell', () => {
     setChatMode,
     toggleChat,
     setLastSurface,
+    setIntelTab,
     toggleTabOrientation,
     setTabOrientation,
   }

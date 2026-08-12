@@ -9,7 +9,7 @@
         <div class="chat-above-icon">
           <UIcon name="auto_awesome" />
         </div>
-        <h2 class="chat-above-title">Hi, friend</h2>
+        <h2 class="chat-above-title">{{ overlayWelcomeTitle }}</h2>
       </div>
     </template>
 
@@ -106,8 +106,10 @@ const devModeOn = computed(
 );
 const toggleDevMode = () => devMode.toggle();
 
-// ─── Hide chat bubble on Intelligence surface (full chat already shown) ──
-const hideChatBubble = computed(() => route.path.includes("/intelligence"));
+// ─── Hide chat bubble only on the Intelligence "chat" tab ────────
+const hideChatBubble = computed(
+  () => route.path.includes("/intelligence") && shell.intelTab === "chat",
+);
 
 // ─── Context strip ───────────────────────────────────────────────
 const contextLabel = computed(() => {
@@ -165,6 +167,15 @@ const chatMessages = computed<Msg[]>(() =>
 const showWelcome = computed(() =>
   chatMessages.value.length <= 1 && !assistChat.input.trim(),
 );
+
+const overlayWelcomeTitle = computed(() => {
+  switch (assistChat.promptMode) {
+    case "plan": return "What should we research?";
+    case "act": return "Ready to act";
+    case "workflow": return "What workflow should we plan?";
+    default: return "Hi, friend";
+  }
+});
 const devMessages = ref<Msg[]>([]);
 const chatLoading = computed(() => assistChat.loading || devLoading.value);
 const devLoading = ref(false);

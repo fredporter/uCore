@@ -95,7 +95,7 @@
           :placeholder="
             activeLane === 'dev'
               ? 'Dev command or question… (/ for shortcuts)'
-              : 'Type your message here…'
+              : inputPlaceholder
           "
           rows="1"
           @keydown.enter.exact.prevent="sendMessage"
@@ -159,7 +159,7 @@
           :class="{ 'chat-panel__mode-btn--active': activeChatMode === mode.id }"
           role="tab"
           :aria-selected="activeChatMode === mode.id ? 'true' : 'false'"
-          @click="activeChatMode = mode.id"
+          @click="setMode(mode.id)"
         >
           {{ mode.label }}
         </button>
@@ -223,6 +223,21 @@ const inputText = computed({
   get: () => chatStore.input,
   set: (v: string) => { chatStore.input = v; },
 });
+
+// ─── Dynamic composer placeholder (matches Intelligence surface) ──
+const inputPlaceholder = computed(() => {
+  switch (activeChatMode.value) {
+    case "plan": return "What should we research?";
+    case "act": return "What should we do?";
+    case "workflow": return "What workflow should we plan?";
+    default: return "What would you like to do today?";
+  }
+});
+
+function setMode(id: "chat" | "plan" | "act" | "workflow") {
+  activeChatMode.value = id;
+  chatStore.setPromptMode(id);
+}
 
 // ─── Model selector ──────────────────────────────────────────
 const availableModels = computed(() => chatStore.models);
@@ -615,7 +630,7 @@ async function copyText(content: string) {
   max-width: 88%;
   padding: var(--usx-spacing-sm) var(--usx-spacing-md);
   border-radius: var(--usx-radius-md);
-  font-size: var(--usx-font-size-sm);
+  font-size: var(--usx-font-size-base);
   line-height: var(--usx-line-height-normal);
   animation: msgIn var(--usx-motion-duration-base) ease;
 }
