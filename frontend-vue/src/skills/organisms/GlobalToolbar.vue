@@ -50,9 +50,9 @@
           'global-toolbar__tab--active': route.path.includes('/intelligence'),
         }"
         @click="navigate('/intelligence')"
-        title="Intelligence"
+        title="Chat"
       >
-        <UIcon name="lightbulb" class="global-toolbar__icon" />
+        <UIcon name="chat" class="global-toolbar__icon" />
       </button>
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
@@ -63,16 +63,6 @@
         title="GridCore"
       >
         <UIcon name="grid_on" class="global-toolbar__icon" />
-      </button>
-      <button
-        class="global-toolbar__tab global-toolbar__tab--nav"
-        :class="{
-          'global-toolbar__tab--active': route.path.includes('/assistui'),
-        }"
-        @click="navigate('/assistui')"
-        title="Chat"
-      >
-        <UIcon name="chat" class="global-toolbar__icon" />
       </button>
     </div>
 
