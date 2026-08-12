@@ -930,9 +930,9 @@ async function copyText(content: string) {
   min-height: 0 !important;
   margin: 0 !important;
   padding: 0 var(--usx-spacing-sm) !important;
-  border: var(--usx-border-width) solid var(--usx-color-border);
+  border: var(--usx-border-width) solid transparent;
   border-radius: var(--usx-radius-md);
-  background-color: var(--usx-color-surface-variant);
+  background-color: transparent;
   color: var(--usx-color-on-surface);
   font-size: var(--usx-font-size-sm);
   font-family: var(--usx-font-family-sans);
