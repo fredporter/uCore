@@ -303,7 +303,11 @@ class UnifiedMenuDelegate(NSObject):
 
     def _rebuild_menu(self):
         """Rebuild the menu - CONSOLIDATED to essential items only."""
-        self._menu.removeAllItems()
+        # Create a fresh NSMenu each rebuild — reusing self._menu with
+        # NSMenuItem.separatorItem() singletons causes "already in another menu".
+        new_menu = NSMenu.alloc().init()
+        self._status_item.setMenu_(new_menu)
+        self._menu = new_menu
 
         # ── Header ──────────────────────────────────────────────
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
@@ -571,7 +575,6 @@ class UnifiedMenuDelegate(NSObject):
             "↻ Restart Vue", "restartFrontend:", "v",
         )
         item.setTarget_(self)
-        self._menu.addItem_(item)
         self._menu.addItem_(item)
 
         self._menu.addItem_(NSMenuItem.separatorItem())

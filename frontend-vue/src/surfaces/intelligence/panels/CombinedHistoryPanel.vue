@@ -160,6 +160,36 @@
       </div>
     </CollapsibleSection>
 
+    <!-- Health Events -->
+    <CollapsibleSection
+      title="Health Events"
+      :count="healthEventCount"
+      icon="monitor_heart"
+    >
+      <div v-if="healthEvents.length === 0" class="ch-muted ch-empty">
+        No health events recorded.
+      </div>
+      <div v-else class="ch-list">
+        <div
+          v-for="event in healthEvents"
+          :key="event.timestamp + event.component"
+          class="ch-item"
+        >
+          <div class="ch-item-head">
+            <UBadge
+              :type="event.severity === 'error' ? 'error' : event.severity === 'warning' ? 'warning' : 'info'"
+              size="sm"
+            >
+              {{ event.component }}
+            </UBadge>
+            <span class="ch-item-title">{{ event.message }}</span>
+            <span v-if="event.recovery_action" class="ch-muted">→ {{ event.recovery_action }}</span>
+            <span class="ch-muted ch-timestamp">{{ formatDate(event.timestamp) }}</span>
+          </div>
+        </div>
+      </div>
+    </CollapsibleSection>
+
     <!-- Service Logs -->
     <CollapsibleSection
       title="Service Logs"
@@ -250,6 +280,8 @@ const tasks = ref<TaskEntry[]>([]);
 const taskTotal = ref(0);
 const feedItems = ref<FeedEntry[]>([]);
 const feedCount = ref(0);
+const healthEvents = ref<any[]>([]);
+const healthEventCount = ref(0);
 const snapshotLoading = ref(false);
 
 // Service logs from snackbarOpsStore
@@ -324,7 +356,7 @@ async function loadActions() {
       ...a,
       created_at: a.created_at || a.timestamp || "",
     }));
-    actionCount.value = data?.total || actions.value.length;
+    actionCount.value = data?.count || actions.value.length;
   } catch {
     // endpoint may not be available
   }
@@ -336,7 +368,7 @@ async function loadSpool() {
     if (!res.ok) return;
     const data = await res.json();
     spoolEntries.value = data?.entries || data?.events || [];
-    spoolTotal.value = data?.total || spoolEntries.value.length;
+    spoolTotal.value = data?.count || spoolEntries.value.length;
   } catch {
     // endpoint may not be available
   }
@@ -353,7 +385,7 @@ async function loadTasks() {
       status: t.status || "todo",
       board: t.board || "",
     }));
-    taskTotal.value = data?.total || tasks.value.length;
+    taskTotal.value = data?.count || tasks.value.length;
   } catch {
     // endpoint may not be available
   }
@@ -365,7 +397,7 @@ async function loadFeed() {
     if (!res.ok) return;
     const data = await res.json();
     feedItems.value = data?.items || data?.activities || [];
-    feedCount.value = data?.total || feedItems.value.length;
+    feedCount.value = data?.count || feedItems.value.length;
   } catch {
     // endpoint may not be available
   }
@@ -383,12 +415,26 @@ async function takeSnapshot() {
   }
 }
 
+async function loadHealthEvents() {
+  try {
+    const res = await fetch("/api/health/status");
+    if (!res.ok) return;
+    const data = await res.json();
+    healthEvents.value = data?.last_events || [];
+    healthEventCount.value = data?.events_count || healthEvents.value.length;
+  } catch {
+    // endpoint may not be available
+  }
+}
+
 function refreshAll() {
   loadChatHistory();
   loadActions();
   loadSpool();
   loadTasks();
   loadFeed();
+  loadHealthEvents();
+  srv.fetchLogs();
 }
 
 onMounted(refreshAll);
