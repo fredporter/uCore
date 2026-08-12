@@ -86,13 +86,13 @@
       </template>
 
       <!-- ═══ Intelligence tab ═══ -->
-      <template v-else>
+      <template v-else-if="activeTab === 'intel'">
         <section class="surface__panel intel-header">
           <div class="intel-header__row">
             <h3 class="surface__panel-title">Intelligence</h3>
-            <span class="intel-header__badge">Settings & History</span>
+            <span class="intel-header__badge">Settings &amp; History</span>
           </div>
-          <p class="surface__panel-description">Configure chat models, agents, budget, and review history.</p>
+          <p class="surface__panel-description">System prompt, context sources, and unified history.</p>
         </section>
 
         <div class="intel-panel">
@@ -110,12 +110,19 @@
           </div>
           <button class="intel-save-btn" @click="savePrompt">Save Chat Settings</button>
         </div>
-
-        <SnackbarModelsPanel />
-        <SnackbarAgentsPanel />
-        <SnackbarBudgetPanel />
-        <CombinedHistoryPanel />
       </template>
+
+      <!-- ═══ Models tab ═══ -->
+      <SnackbarModelsPanel v-else-if="activeTab === 'models'" />
+
+      <!-- ═══ Agents tab ═══ -->
+      <SnackbarAgentsPanel v-else-if="activeTab === 'agents'" />
+
+      <!-- ═══ Budget tab ═══ -->
+      <SnackbarBudgetPanel v-else-if="activeTab === 'budget'" />
+
+      <!-- ═══ History tab ═══ -->
+      <CombinedHistoryPanel v-else-if="activeTab === 'history'" />
 
     </div>
   </div>
@@ -137,6 +144,10 @@ import CombinedHistoryPanel from "./panels/CombinedHistoryPanel.vue";
 const INTEL_TABS = [
   { id: "chat", label: "Chat", icon: "chat" },
   { id: "intel", label: "Intelligence", icon: "tune" },
+  { id: "models", label: "Models", icon: "smart_toy" },
+  { id: "agents", label: "Agents", icon: "group" },
+  { id: "budget", label: "Budget", icon: "account_balance" },
+  { id: "history", label: "History", icon: "history" },
 ];
 
 const shell = useShellStore();
