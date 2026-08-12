@@ -40,7 +40,7 @@
       </div>
     </div>
 
-    <!-- ── Composer (Nuxt-style): textarea + model + send ─────── -->
+    <!-- ── Composer: input + send row, model switcher below ───── -->
     <div class="chat-panel__composer">
       <div class="chat-panel__composer-row">
         <textarea
@@ -57,27 +57,28 @@
           @keydown.shift.enter.prevent="inputText += '\n'"
           @input="autoResize"
         />
-        <div class="chat-panel__composer-actions">
-          <button
-            v-if="activeLane === 'chat'"
-            class="chat-panel__model-btn"
-            @click="modelPickerOpen = !modelPickerOpen"
-            :title="currentModelLabel"
-          >
-            <UIcon name="smart_toy" />
-            <span class="chat-panel__model-label">{{ currentModelLabel }}</span>
-            <UIcon name="expand_more" class="chat-panel__model-chevron" />
-          </button>
-          <button
-            class="chat-panel__send"
-            :class="{ 'chat-panel__send--dev': activeLane === 'dev' }"
-            :disabled="!inputText.trim() || loading"
-            title="Send (Enter)"
-            @click="sendMessage"
-          >
-            <UIcon name="send" />
-          </button>
-        </div>
+        <button
+          class="chat-panel__send"
+          :class="{ 'chat-panel__send--dev': activeLane === 'dev' }"
+          :disabled="!inputText.trim() || loading"
+          title="Send (Enter)"
+          @click="sendMessage"
+        >
+          <UIcon name="send" />
+        </button>
+      </div>
+
+      <div class="chat-panel__composer-actions">
+        <button
+          v-if="activeLane === 'chat'"
+          class="chat-panel__model-btn"
+          @click="modelPickerOpen = !modelPickerOpen"
+          :title="currentModelLabel"
+        >
+          <UIcon name="smart_toy" />
+          <span class="chat-panel__model-label">{{ currentModelLabel }}</span>
+          <UIcon name="expand_more" class="chat-panel__model-chevron" />
+        </button>
       </div>
 
       <!-- Model picker dropdown -->
@@ -630,12 +631,13 @@ async function copyText(content: string) {
   color: var(--usx-color-on-surface-muted);
 }
 
-/* Composer actions row */
+/* Composer actions row (below input) */
 .chat-panel__composer-actions {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
   flex-shrink: 0;
+  margin-top: var(--usx-spacing-xs);
 }
 
 /* Model selector pill */
@@ -795,24 +797,8 @@ async function copyText(content: string) {
   }
 
   .chat-panel__composer-row {
-    flex-wrap: wrap;
     gap: var(--usx-spacing-xs);
     padding: var(--usx-spacing-xs) 0;
-  }
-
-  .chat-panel__input {
-    flex-basis: 100%;
-  }
-
-  .chat-panel__composer-actions {
-    flex-basis: 100%;
-    justify-content: space-between;
-  }
-
-  .chat-panel__model-btn {
-    padding: 0 var(--usx-spacing-sm);
-    flex: 1;
-    justify-content: flex-start;
   }
 
   .chat-panel__msg {
