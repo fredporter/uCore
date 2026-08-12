@@ -66,17 +66,23 @@ class HealthMonitor:
         self.check_interval = 5.0  # seconds
 
     async def start(self):
-        """Start the health monitor"""
+        """Start the health monitor as a background task."""
         log.info("Health monitor starting...")
         self.running = True
-
-        # Start background check loop
-        await self._run_checks()
+        self._task = asyncio.create_task(self._run_checks())
+        log.info("Health monitor background task created")
 
     async def stop(self):
-        """Stop the health monitor"""
+        """Stop the health monitor."""
         log.info("Health monitor stopping...")
         self.running = False
+        if hasattr(self, '_task') and self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+            log.info("Health monitor stopped")
 
     async def _run_checks(self):
         """Run health checks in loop"""
@@ -99,13 +105,14 @@ class HealthMonitor:
 
         for name, check_fn in checks:
             try:
-                status, message = await check_fn()
+                # Run blocking checks in thread pool to avoid blocking event loop
+                status, message = await asyncio.to_thread(check_fn)
                 await self._record_check(name, status, message)
             except Exception as e:
                 await self._record_check(name, "error", str(e))
 
-    async def _check_backend(self) -> tuple[str, str]:
-        """Check if backend is responsive."""
+    def _check_backend(self) -> tuple[str, str]:
+        """Check if backend is responsive (runs in thread pool)."""
         try:
             from app.core.settings import settings
             port = settings.port
@@ -122,8 +129,8 @@ class HealthMonitor:
         except Exception as e:
             return "error", f"Backend check failed: {e}"
 
-    async def _check_database(self) -> tuple[str, str]:
-        """Check database connectivity"""
+    def _check_database(self) -> tuple[str, str]:
+        """Check database connectivity (runs in thread pool)."""
         try:
             # Simple query to test DB
             db_path = Path("~/.ucore/ucore.db").expanduser()
@@ -138,8 +145,8 @@ class HealthMonitor:
         except Exception as e:
             return "error", f"Database check failed: {e}"
 
-    async def _check_imports(self) -> tuple[str, str]:
-        """Check critical imports"""
+    def _check_imports(self) -> tuple[str, str]:
+        """Check critical imports (runs in thread pool)."""
         imports = [
             ("aiohttp", "aiohttp"),
             ("PyObjC", "objc"),
@@ -158,8 +165,8 @@ class HealthMonitor:
         else:
             return "ok", "All critical imports available"
 
-    async def _check_popcorn(self) -> tuple[str, str]:
-        """Check Popcorn status (macOS only)"""
+    def _check_popcorn(self) -> tuple[str, str]:
+        """Check Popcorn status (runs in thread pool, macOS only)."""
         import platform
         if platform.system() != "Darwin":
             return "ok", "Popcorn not applicable (not macOS)"
