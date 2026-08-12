@@ -508,18 +508,17 @@ class UnifiedMenuDelegate(NSObject):
         item.setSubmenu_(clipboard_submenu)
         self._menu.addItem_(item)
 
-        # ── Developer (Dev Mode) ─────────────────────────────────
-        # Single toggle item — Dev Server status shown inline; click to start/stop.
-        dev_dot = "💎" if self._dev_connected else "🔹"
-        dev_label = (
-            f"{dev_dot} Dev Server: Running"
-            if self._dev_connected
-            else f"{dev_dot} Dev Server: Stopped"
+        # ── Vue Server (UI Hub) ─────────────────────────────────
+        frontend_dot = "💎" if self._uihub_connected else "🔹"
+        frontend_label = (
+            f"{frontend_dot} Vue Server: Running"
+            if self._uihub_connected
+            else f"{frontend_dot} Vue Server: Stopped"
         )
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            dev_label, "toggleDevMode:", "",
+            frontend_label, None, "",
         )
-        item.setTarget_(self)
+        item.setEnabled_(False)
         self._menu.addItem_(item)
 
         extensions = _installed_extensions()
@@ -569,15 +568,10 @@ class UnifiedMenuDelegate(NSObject):
         self._menu.addItem_(item)
 
         item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "↻ Restart Frontend", "restartFrontend:", "f",
+            "↻ Restart Vue", "restartFrontend:", "v",
         )
         item.setTarget_(self)
         self._menu.addItem_(item)
-
-        item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-            "↻ Restart Menu", "restartMenu:", "m",
-        )
-        item.setTarget_(self)
         self._menu.addItem_(item)
 
         self._menu.addItem_(NSMenuItem.separatorItem())
