@@ -29,12 +29,12 @@
   --usx-chat-bubble-badge-radius: var(--usx-radius-full);
 
   /* Chat Bubble Panel */
-  --usx-chat-panel-width: 384px;
-  --usx-chat-panel-height: 600px;
-  --usx-chat-panel-radius: var(--usx-radius-lg);
-  --usx-chat-panel-bg: var(--usx-color-surface);
-  --usx-chat-panel-shadow: 0 16px 64px rgba(0, 0, 0, 0.3);
-  --usx-chat-panel-border: var(--usx-border-width) solid var(--usx-color-border);
+  --usx-chat-panel-width: 540px;
+  --usx-chat-panel-height: auto;
+  --usx-chat-panel-radius: 0;
+  --usx-chat-panel-bg: transparent;
+  --usx-chat-panel-shadow: none;
+  --usx-chat-panel-border: none;
 
   /* Chat Bubble Overlay */
   --usx-chat-overlay-bg: rgba(0, 0, 0, 0.5);
@@ -154,63 +154,10 @@
 /* ─────────────────────────────────────────────────────────────── */
 
 .usx-chat-panel {
-  position: fixed;
-  bottom: calc(
-    var(--usx-spacing-lg) + var(--usx-chat-bubble-button-size) +
-      var(--usx-spacing-md)
-  );
-  right: var(--usx-spacing-lg);
-  z-index: var(--usx-zindex-chat-panel);
-
   width: var(--usx-chat-panel-width);
-  height: var(--usx-chat-panel-height);
-  max-height: calc(100vh - 120px);
-
-  background-color: var(--usx-chat-panel-bg);
-  border: var(--usx-chat-panel-border);
-  border-radius: var(--usx-chat-panel-radius);
-  box-shadow: var(--usx-chat-panel-shadow);
-
-  display: flex;
-  flex-direction: column;
-
-  animation: usx-chat-panel-slide-up var(--usx-chat-animation-duration)
-    var(--usx-chat-animation-easing);
-}
-
-@keyframes usx-chat-panel-slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Closed state */
-.usx-chat-panel--closed {
-  animation: usx-chat-panel-slide-down var(--usx-chat-animation-duration)
-    var(--usx-chat-animation-easing);
-}
-
-@keyframes usx-chat-panel-slide-down {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .usx-chat-panel,
-  .usx-chat-panel--closed {
-    animation: none;
-  }
+  max-height: 60vh;
+  overflow-y: auto;
+  flex-shrink: 1;
 }
 
 /* ─────────────────────────────────────────────────────────────── */
@@ -224,39 +171,130 @@
   right: 0;
   bottom: 0;
   z-index: var(--usx-zindex-chat-overlay);
-
   background-color: var(--usx-chat-overlay-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: usx-chat-overlay-fade-in var(--usx-chat-animation-duration) var(--usx-chat-animation-easing);
+}
 
-  animation: usx-chat-overlay-fade-in var(--usx-chat-animation-duration)
-    var(--usx-chat-animation-easing);
+.usx-chat-overlay-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--usx-spacing-md);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 60px 0 var(--usx-spacing-lg);
+  margin-top: 0;
+}
+
+/* Close button — top-right corner */
+.usx-chat-overlay-close {
+  position: absolute;
+  top: var(--usx-spacing-md);
+  right: var(--usx-spacing-md);
+  z-index: calc(var(--usx-zindex-chat-panel) + 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: var(--usx-radius-full);
+  background: color-mix(in srgb, var(--usx-color-surface) 30%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--usx-color-on-surface);
+  cursor: pointer;
+  font-size: var(--usx-font-size-lg);
+  transition: background var(--usx-transition-fast);
+}
+
+.usx-chat-overlay-close:hover {
+  background: color-mix(in srgb, var(--usx-color-surface) 60%, transparent);
+}
+
+/* Above / below slots */
+.usx-chat-above,
+.usx-chat-below {
+  flex-shrink: 0;
+}
+
+/* ─── Above: welcome icon + title ──────────────────────────── */
+.chat-above-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+}
+
+.chat-above-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: var(--usx-radius-full);
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
+  color: var(--usx-color-primary);
+  font-size: 40px;
+}
+
+.chat-above-title {
+  font-size: var(--usx-font-size-2xl);
+  font-weight: var(--usx-font-weight-bold);
+  color: var(--usx-color-on-surface);
+  margin: 0;
+}
+
+/* ─── Below: prompt pills ───────────────────────────────────── */
+.chat-below-prompts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--usx-spacing-sm);
+  max-width: var(--usx-chat-panel-width);
+}
+
+.chat-below-pill {
+  border: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-border) 60%, transparent);
+  border-radius: var(--usx-radius-full);
+  background: color-mix(in srgb, var(--usx-color-surface) 60%, transparent);
+  backdrop-filter: blur(12px);
+  color: var(--usx-color-on-surface);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  font-size: var(--usx-font-size-base);
+  font-weight: var(--usx-font-weight-medium);
+  font-family: var(--usx-font-family-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  text-align: center;
+  transition: border-color var(--usx-transition-fast), background var(--usx-transition-fast), transform var(--usx-transition-fast);
+}
+
+.chat-below-pill:hover {
+  border-color: var(--usx-color-primary);
+  background: color-mix(in srgb, var(--usx-color-primary) 14%, transparent);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .chat-below-prompts {
+    display: none;
+  }
 }
 
 @keyframes usx-chat-overlay-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.usx-chat-overlay--closed {
-  animation: usx-chat-overlay-fade-out var(--usx-chat-animation-duration)
-    var(--usx-chat-animation-easing);
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes usx-chat-overlay-fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .usx-chat-overlay,
-  .usx-chat-overlay--closed {
+  .usx-chat-overlay {
     animation: none;
   }
 }

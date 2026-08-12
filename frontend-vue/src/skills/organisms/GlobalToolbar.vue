@@ -42,7 +42,7 @@
         @click="navigate('/intelligence')"
         title="Chat"
       >
-        <UIcon name="chat" class="global-toolbar__icon" />
+        <UIcon name="forum" class="global-toolbar__icon" />
       </button>
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"

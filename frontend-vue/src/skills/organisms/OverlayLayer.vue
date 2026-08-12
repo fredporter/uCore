@@ -4,6 +4,15 @@
   <PopupOverlay />
   <StoriesOverlay />
   <ChatBubble v-if="!hideChatBubble">
+    <template #above>
+      <div v-if="showWelcome" class="chat-above-center">
+        <div class="chat-above-icon">
+          <UIcon name="auto_awesome" />
+        </div>
+        <h2 class="chat-above-title">Hi, friend</h2>
+      </div>
+    </template>
+
     <ChatBubblePanel
       :chat-messages="chatMessages"
       :dev-messages="devMessages"
@@ -16,6 +25,19 @@
       @send-dev="sendDev"
       @toggle-dev-mode="toggleDevMode"
     />
+
+    <template #below>
+      <div v-if="showWelcome" class="chat-below-prompts">
+        <button
+          v-for="card in chatPromptCards"
+          :key="card.label"
+          class="chat-below-pill"
+          @click="handlePromptClick(card)"
+        >
+          {{ card.label }}
+        </button>
+      </div>
+    </template>
   </ChatBubble>
   <DevHudPanel v-if="devMode.mode === 'on'" />
 </template>
@@ -30,6 +52,7 @@ import StoriesOverlay from "./StoriesOverlay.vue";
 import ChatBubble from "../molecules/ChatBubble.vue";
 import ChatBubblePanel from "./ChatBubblePanel.vue";
 import DevHudPanel from "./DevHudPanel.vue";
+import UIcon from "../atoms/UIcon.vue";
 import { useToast } from "../../composables/useToast";
 import { useFeed } from "../../composables/useFeed";
 import { useOverlay } from "../../composables/useOverlay";
@@ -114,8 +137,35 @@ interface Msg {
   role: "user" | "assistant";
   content: string;
 }
+
+interface PromptCard {
+  label: string;
+  prompt: string;
+  mode?: "chat" | "plan" | "act" | "workflow";
+}
+
+const chatPromptCards: PromptCard[] = [
+  { label: "Research a topic", prompt: "Research and summarize ", mode: "plan" },
+  { label: "Draft content", prompt: "Write a draft about ", mode: "chat" },
+  { label: "Explain a concept", prompt: "Explain ", mode: "chat" },
+  { label: "Plan a workflow", prompt: "Plan a workflow for ", mode: "workflow" },
+  { label: "Summarize a doc", prompt: "Summarize the following: ", mode: "act" },
+  { label: "Quick brainstorm", prompt: "Brainstorm ideas for ", mode: "chat" },
+];
+
+function handlePromptClick(card: PromptCard) {
+  if (card.mode) assistChat.setPromptMode(card.mode);
+  assistChat.input = card.prompt;
+}
+
 const chatMessages = computed<Msg[]>(() =>
-  assistChat.messages.map((m) => ({ role: m.role, content: m.content })),
+  assistChat.messages
+    .filter((m) => m.id !== "welcome")
+    .map((m) => ({ role: m.role, content: m.content })),
+);
+
+const showWelcome = computed(() =>
+  chatMessages.value.length <= 1 && !assistChat.input.trim(),
 );
 const devMessages = ref<Msg[]>([]);
 const chatLoading = computed(() => assistChat.loading || devLoading.value);

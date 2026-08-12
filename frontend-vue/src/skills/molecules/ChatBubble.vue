@@ -4,33 +4,36 @@
     <button
       class="usx-chat-bubble"
       :aria-label="chatMode === 'closed' ? 'Open assistant' : 'Close assistant'"
-      :title="
-        chatMode === 'closed'
-          ? 'Open assistant (Cmd+J)'
-          : 'Close assistant (Esc)'
-      "
+      :title="chatMode === 'closed' ? 'Open assistant (Cmd+J)' : 'Close assistant (Esc)'"
       @click="toggleChat"
     >
       <UIcon name="chat" />
       <span v-if="unreadCount > 0" class="usx-chat-bubble-badge">
-        {{ unreadCount > 99 ? "99+" : unreadCount }}
+        {{ unreadCount > 99 ? '99+' : unreadCount }}
       </span>
     </button>
 
-    <!-- Chat overlay (focus dimmer) -->
+    <!-- Overlay + centered stack -->
     <transition name="usx-chat-overlay">
-      <div
-        v-if="chatMode === 'floating'"
-        class="usx-chat-overlay"
-        @click="closeChat"
-        aria-hidden="true"
-      />
-    </transition>
-
-    <!-- Chat panel (modal/drawer) -->
-    <transition name="usx-chat-panel">
-      <div v-if="chatMode === 'floating'" class="usx-chat-panel">
-        <slot />
+      <div v-if="chatMode === 'floating'" class="usx-chat-overlay" @click.self="closeChat">
+        <!-- Close button — top-right -->
+        <button class="usx-chat-overlay-close" @click="closeChat" title="Close (Esc)">
+          <UIcon name="close" />
+        </button>
+        <div class="usx-chat-overlay-stack">
+          <!-- Above: welcome -->
+          <div class="usx-chat-above">
+            <slot name="above" />
+          </div>
+          <!-- Center: panel -->
+          <div class="usx-chat-panel">
+            <slot />
+          </div>
+          <!-- Below: prompts -->
+          <div class="usx-chat-below">
+            <slot name="below" />
+          </div>
+        </div>
       </div>
     </transition>
   </div>
