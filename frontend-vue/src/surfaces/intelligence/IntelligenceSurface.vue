@@ -214,7 +214,7 @@ onMounted(() => {
 .assistui-mode-btn--active { background-color: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
 .assistui-chat-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
 .assistui-chat-body--engaged { padding: var(--usx-spacing-md); }
-.assistui-welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--usx-spacing-lg); padding: var(--usx-spacing-2xl) var(--usx-spacing-lg); }
+.assistui-welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--usx-spacing-lg); padding: calc(var(--usx-spacing-2xl) * 2) var(--usx-spacing-lg) var(--usx-spacing-2xl); }
 .assistui-welcome-icon { color: var(--usx-color-primary); font-size: var(--usx-font-size-3xl); margin-bottom: var(--usx-spacing-xs); }
 .assistui-welcome-title { font-size: var(--usx-font-size-3xl); font-weight: var(--usx-font-weight-bold); color: var(--usx-color-on-surface); margin: 0; text-align: center; }
 .assistui-composer--welcome { width: 100%; max-width: var(--usx-prose-width); }
