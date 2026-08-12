@@ -11,7 +11,17 @@
       :orientation="shell.tabOrientation"
       @toggle-orientation="shell.toggleTabOrientation()"
     />
-    <div class="surface__content">
+    <div class="surface__content intel-content">
+      <section class="surface__panel intel-header">
+        <div class="intel-header__row">
+          <h3 class="surface__panel-title">Intelligence</h3>
+          <span class="intel-header__badge">AI & Chat Config</span>
+        </div>
+        <p class="surface__panel-description">
+          Configure chat models, agents, budget limits, and review history.
+        </p>
+      </section>
+
       <!-- Chat Settings -->
       <div v-if="activeTab === 'chat'" class="intel-panel">
         <h3 class="surface__panel-title">Chat Settings</h3>
@@ -73,6 +83,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useShellStore } from "../../stores/shell";
+import { useSnackbarOpsStore } from "../../stores/snackbarOps";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import SnackbarModelsPanel from "../snackbar/panels/SnackbarModelsPanel.vue";
 import SnackbarAgentsPanel from "../snackbar/panels/SnackbarAgentsPanel.vue";
@@ -88,6 +99,7 @@ const INTEL_TABS = [
 ];
 
 const shell = useShellStore();
+const srv = useSnackbarOpsStore();
 const activeTab = ref("chat");
 
 const systemPrompt = ref("You are a helpful assistant.");
@@ -103,6 +115,7 @@ function savePrompt() {
 }
 
 onMounted(() => {
+  srv.fetchAll();
   const saved = localStorage.getItem("ucore-chat-prompt");
   if (saved) systemPrompt.value = saved;
   try {
@@ -113,9 +126,42 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.intel-content {
+  display: grid;
+  gap: var(--usx-spacing-md);
+  padding: var(--usx-spacing-lg);
+}
+
+.intel-header {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--usx-color-primary) 4%, transparent) 0%,
+    transparent 78%
+  );
+}
+
+.intel-header__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--usx-spacing-sm);
+  flex-wrap: wrap;
+}
+
+.intel-header__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: calc(var(--usx-touch-min) - var(--usx-spacing-sm));
+  padding: 0 var(--usx-spacing-sm);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-full);
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+  background: color-mix(in srgb, var(--usx-color-surface-variant) 75%, var(--usx-color-surface));
+}
+
 .intel-panel {
-  max-width: 720px;
-  padding: var(--usx-spacing-xl);
+  max-width: var(--usx-prose-width);
 }
 
 .intel-muted {
@@ -138,14 +184,14 @@ onMounted(() => {
 .intel-textarea {
   width: 100%;
   padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-  border: 1px solid var(--usx-color-border);
+  border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-md);
   background-color: var(--usx-color-surface);
   color: var(--usx-color-on-surface);
   font-size: var(--usx-font-size-sm);
   font-family: var(--usx-font-family-sans);
   resize: vertical;
-  line-height: 1.5;
+  line-height: var(--usx-line-height-normal);
 }
 
 .intel-checkbox-row {
@@ -158,28 +204,53 @@ onMounted(() => {
 }
 
 .intel-save-btn {
-  padding: var(--usx-spacing-sm) var(--usx-spacing-xl);
+  min-height: var(--usx-touch-min);
+  padding: 0 var(--usx-spacing-xl);
   background-color: var(--usx-color-primary);
-  color: white;
-  border: none;
+  color: var(--usx-color-on-primary);
+  border: var(--usx-border-width) solid var(--usx-color-primary);
   border-radius: var(--usx-radius-md);
   cursor: pointer;
   font-size: var(--usx-font-size-sm);
   font-family: var(--usx-font-family-sans);
 }
 
-.intel-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--usx-spacing-md);
-  padding: var(--usx-spacing-2xl);
-  color: var(--usx-color-on-surface-muted);
-  text-align: center;
+/* Shared USX layer for Snackbar panels inside Intelligence */
+.intel-content :deep(.surface__panel) {
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: color-mix(in srgb, var(--usx-color-surface) 96%, var(--usx-color-background));
+  padding: var(--usx-spacing-md);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--usx-color-border) 40%, transparent);
 }
 
-.intel-empty .material-symbols-outlined {
-  font-size: 40px;
-  opacity: 0.4;
+.intel-content :deep(.surface__panel-title) {
+  margin: 0;
+  font-size: var(--usx-font-size-base);
+  font-weight: var(--usx-font-weight-semibold);
+  color: var(--usx-color-on-surface);
+}
+
+.intel-content :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  overflow: hidden;
+  background: var(--usx-color-surface);
+}
+
+.intel-content :deep(th),
+.intel-content :deep(td) {
+  padding: var(--usx-spacing-sm);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  font-size: var(--usx-font-size-sm);
+  text-align: left;
+}
+
+.intel-content :deep(th) {
+  color: var(--usx-color-on-surface-muted);
+  background: color-mix(in srgb, var(--usx-color-surface-variant) 78%, var(--usx-color-surface));
+  font-weight: var(--usx-font-weight-medium);
 }
 </style>

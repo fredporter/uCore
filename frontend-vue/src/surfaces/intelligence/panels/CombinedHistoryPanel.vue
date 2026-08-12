@@ -396,8 +396,7 @@ onMounted(refreshAll);
 
 <style scoped>
 .ch-panel {
-  max-width: 900px;
-  padding: var(--usx-spacing-xl);
+  max-width: var(--usx-prose-width);
 }
 
 .ch-muted {
@@ -417,7 +416,7 @@ onMounted(refreshAll);
 
 .ch-item {
   padding: var(--usx-spacing-sm) 0;
-  border-bottom: 1px solid var(--usx-color-border);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
 }
 
 .ch-item:last-child {
@@ -436,14 +435,14 @@ onMounted(refreshAll);
   font-weight: var(--usx-font-weight-medium);
   color: var(--usx-color-on-surface);
   flex: 1;
-  min-width: 120px;
+  min-width: var(--usx-grid-min-col-width);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .ch-message-trunc {
-  max-width: 300px;
+  max-width: calc(var(--usx-grid-min-col-width) + var(--usx-spacing-xl));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

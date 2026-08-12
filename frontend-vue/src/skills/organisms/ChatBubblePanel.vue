@@ -2,25 +2,25 @@
   <div class="chat-panel">
     <!-- ── Header ─────────────────────────────────────────────── -->
     <div class="chat-panel__header">
-      <!-- Lane toggle: Chat / Dev -->
+      <!-- Lane toggle: Vault / Code -->
       <div class="chat-panel__lane-toggle-wrap">
         <span
           class="chat-panel__lane-label"
           :class="{ 'chat-panel__lane-label--active': activeLane === 'chat' }"
         >
-          Chat
+          Vault
         </span>
         <button
           class="chat-panel__lane-toggle"
           :class="{ 'chat-panel__lane-toggle--dev': activeLane === 'dev' }"
           :aria-checked="activeLane === 'dev' ? 'true' : 'false'"
-          aria-label="Toggle Chat/Dev lane"
+          aria-label="Toggle Vault/Code lane"
           role="switch"
           :disabled="!devAvailable"
           :title="
             devAvailable
-              ? 'Toggle between Chat and Dev lanes'
-              : 'Dev lane unavailable in this context'
+              ? 'Toggle between Vault and Code lanes'
+              : 'Code lane unavailable in this context'
           "
           @click="toggleLane"
         >
@@ -32,7 +32,7 @@
           class="chat-panel__lane-label"
           :class="{ 'chat-panel__lane-label--active': activeLane === 'dev' }"
         >
-          Developer
+          Code
         </span>
       </div>
 
@@ -60,72 +60,34 @@
       </button>
     </div>
 
-    <div v-if="activeLane === 'chat'" class="chat-panel__mode-toggle" role="tablist" aria-label="Assistant mode">
-      <button
-        v-for="mode in CHAT_MODES"
-        :key="mode.id"
-        class="chat-panel__mode-btn"
-        :class="{ 'chat-panel__mode-btn--active': activeChatMode === mode.id }"
-        role="tab"
-        :aria-selected="activeChatMode === mode.id ? 'true' : 'false'"
-        @click="activeChatMode = mode.id"
-      >
-        {{ mode.label }}
-      </button>
-    </div>
-
-    <!-- ── Context strip ──────────────────────────────────────── -->
-    <div
-      v-if="contextLabel && contextLabel.trim().toLowerCase() !== 'developer'"
-      class="chat-panel__context"
-    >
-      <span class="material-symbols-outlined">location_on</span>
-      <span class="chat-panel__context-text">{{ contextLabel }}</span>
-      <span
-        v-if="activeLane === 'dev' && currentTask"
-        class="chat-panel__context-badge"
-        title="Task context active"
-      >
-        <span class="material-symbols-outlined">assignment</span>
-        {{ currentTask }}
-      </span>
-    </div>
-
-    <!-- ── Messages ───────────────────────────────────────────── -->
-    <div ref="messagesEl" class="chat-panel__messages">
-      <!-- Empty state -->
-      <div v-if="activeMessages.length === 0" class="chat-panel__empty">
-        <span class="material-symbols-outlined chat-panel__empty-icon">
-          {{ activeLane === "dev" ? "terminal" : "auto_awesome" }}
+    <!-- ── Body: welcome or messages ──────────────────────────── -->
+    <div class="chat-panel__body">
+      <!-- Welcome (hidden once chat engaged) -->
+      <div v-if="activeMessages.length === 0" class="chat-panel__welcome">
+        <span class="chat-panel__welcome-icon">
+          <span class="material-symbols-outlined">{{ activeLane === "dev" ? "terminal" : "auto_awesome" }}</span>
         </span>
-        <p class="chat-panel__empty-title">
-          {{
-            activeLane === "dev"
-              ? "Developer Assistant"
-              : "Start a conversation"
-          }}
+        <h2 class="chat-panel__welcome-title">
+          {{ activeLane === "dev" ? "Code Assistant" : "Hi, friend" }}
+        </h2>
+        <p class="chat-panel__welcome-hint">
+          {{ activeLane === "dev" ? "Ask about code, run skills, manage repos." : "What would you like to explore today?" }}
         </p>
-        <p class="chat-panel__empty-hint">
-          {{
-            activeLane === "dev"
-              ? "Ask about code, run skills, manage repos. Context-aware."
-              : "Ask anything. Outputs can go directly into your documents."
-          }}
-        </p>
-        <!-- Dev lane shortcuts -->
-        <div v-if="activeLane === 'dev'" class="chat-panel__shortcuts">
+
+        <div class="chat-panel__prompts">
           <button
-            v-for="sc in DEV_SHORTCUTS"
-            :key="sc.label"
-            class="chat-panel__shortcut"
-            @click="insertShortcut(sc.prompt)"
+            v-for="card in activePromptCards"
+            :key="card.label"
+            class="chat-panel__prompt-card"
+            @click="onPromptCard(card)"
           >
-            <span class="material-symbols-outlined">{{ sc.icon }}</span>
-            {{ sc.label }}
+            {{ card.label }}
           </button>
         </div>
       </div>
 
+      <!-- Messages -->
+      <div v-else ref="messagesEl" class="chat-panel__messages">
       <!-- Message list -->
       <article
         v-for="(msg, i) in activeMessages"
@@ -176,6 +138,32 @@
         <span class="chat-panel__dot" />
         <span class="chat-panel__dot" />
         <span class="chat-panel__dot" />
+      </div>
+    </div>
+    </div>
+
+    <!-- ── Footer row: context + mode tabs ────────────────────── -->
+    <div class="chat-panel__footer-row">
+      <span
+        v-if="contextLabel && contextLabel.trim().toLowerCase() !== 'code'"
+        class="chat-panel__context"
+      >
+        <span class="material-symbols-outlined">location_on</span>
+        <span class="chat-panel__context-text">{{ contextLabel }}</span>
+      </span>
+
+      <div v-if="activeLane === 'chat'" class="chat-panel__mode-toggle" role="tablist" aria-label="Assistant mode">
+        <button
+          v-for="mode in CHAT_MODES"
+          :key="mode.id"
+          class="chat-panel__mode-btn"
+          :class="{ 'chat-panel__mode-btn--active': activeChatMode === mode.id }"
+          role="tab"
+          :aria-selected="activeChatMode === mode.id ? 'true' : 'false'"
+          @click="activeChatMode = mode.id"
+        >
+          {{ mode.label }}
+        </button>
       </div>
     </div>
 
@@ -265,32 +253,111 @@ const CHAT_MODES = [
   { id: "workflow", label: "Workflow" },
 ] as const;
 
-const activeMessages = computed(() =>
-  activeLane.value === "dev" ? props.devMessages : props.chatMessages,
-);
+interface PromptCard {
+  label: string;
+  icon: string;
+  hint: string;
+  prompt: string;
+  mode?: "chat" | "plan" | "act" | "workflow";
+}
 
-const DEV_SHORTCUTS = [
+const CHAT_PROMPTS: PromptCard[] = [
+  {
+    label: "Research a topic",
+    icon: "travel_explore",
+    hint: "Deep-dive with sources",
+    prompt: "Research and summarize ",
+    mode: "plan",
+  },
+  {
+    label: "Draft content",
+    icon: "edit_note",
+    hint: "Write prose or docs",
+    prompt: "Write a draft about ",
+    mode: "chat",
+  },
+  {
+    label: "Explain a concept",
+    icon: "lightbulb",
+    hint: "Simple breakdown",
+    prompt: "Explain ",
+    mode: "chat",
+  },
+  {
+    label: "Plan a workflow",
+    icon: "account_tree",
+    hint: "Step-by-step pipeline",
+    prompt: "Plan a workflow for ",
+    mode: "workflow",
+  },
+  {
+    label: "Summarize a doc",
+    icon: "summarize",
+    hint: "Condense to key points",
+    prompt: "Summarize the following: ",
+    mode: "act",
+  },
+  {
+    label: "Quick brainstorm",
+    icon: "psychology",
+    hint: "Generate ideas fast",
+    prompt: "Brainstorm ideas for ",
+    mode: "chat",
+  },
+];
+
+const DEV_PROMPTS: PromptCard[] = [
   {
     label: "Audit ecosystem",
     icon: "analytics",
+    hint: "Check health & services",
     prompt: "Run ecosystem audit and show me a summary",
   },
   {
     label: "Explain this file",
     icon: "description",
+    hint: "Current open file",
     prompt: "Explain the current file I have open",
   },
   {
     label: "Suggest next task",
     icon: "assignment",
+    hint: "Smart task picking",
     prompt: "Based on my current context, what should I work on next?",
   },
   {
     label: "Check build",
     icon: "build",
+    hint: "Lint and type errors",
     prompt: "Check if there are any build errors in the current project",
   },
+  {
+    label: "Refactor code",
+    icon: "auto_fix",
+    hint: "Clean up current file",
+    prompt: "Refactor the current file for readability",
+  },
+  {
+    label: "Run a skill",
+    icon: "extension",
+    hint: "Trigger a named skill",
+    prompt: "Run the skill: ",
+  },
 ];
+
+const activePromptCards = computed<PromptCard[]>(() =>
+  activeLane.value === "dev" ? DEV_PROMPTS : CHAT_PROMPTS,
+);
+
+const activeMessages = computed(() =>
+  activeLane.value === "dev" ? props.devMessages : props.chatMessages,
+);
+
+function onPromptCard(card: PromptCard) {
+  if (card.mode) activeChatMode.value = card.mode;
+  inputText.value = card.prompt;
+  nextTick(() => inputEl.value?.focus());
+}
 
 // Auto-scroll on new messages
 watch(
@@ -312,11 +379,6 @@ function sendMessage() {
     emit("send-chat", text, activeChatMode.value);
   }
   inputText.value = "";
-}
-
-function insertShortcut(prompt: string) {
-  inputText.value = prompt;
-  nextTick(() => inputEl.value?.focus());
 }
 
 function onInputChange() {
@@ -383,7 +445,7 @@ async function copyText(content: string) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-sm);
   background-color: var(--usx-color-surface-variant);
   flex-shrink: 0;
   gap: var(--usx-spacing-xs);
@@ -392,32 +454,32 @@ async function copyText(content: string) {
 .chat-panel__mode-toggle {
   display: flex;
   align-items: center;
-  gap: 0;
-  padding: 0 var(--usx-spacing-xs);
-  min-height: calc(var(--usx-touch-target-compact) + var(--usx-spacing-xs));
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
-  background: color-mix(in srgb, var(--usx-color-surface) 94%, var(--usx-color-surface-variant));
-  overflow-x: auto;
+  gap: var(--usx-spacing-xs);
+  flex-shrink: 0;
 }
 
 .chat-panel__mode-btn {
-  border: none;
-  background: transparent;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-surface);
   color: var(--usx-color-on-surface-muted);
-  border-bottom: var(--usx-border-width-thick) solid transparent;
-  border-radius: 0;
+  border-radius: var(--usx-radius-full);
   padding: 0 var(--usx-spacing-sm);
-  height: var(--usx-touch-target-compact);
+  min-height: var(--usx-control-size-sm);
   font-size: var(--usx-font-size-xs);
   font-weight: var(--usx-font-weight-medium);
   cursor: pointer;
   white-space: nowrap;
-  transition: color var(--usx-transition-fast), border-color var(--usx-transition-fast);
+  line-height: var(--usx-line-height-tight);
+  transition:
+    color var(--usx-transition-fast),
+    border-color var(--usx-transition-fast),
+    background var(--usx-transition-fast);
 }
 
 .chat-panel__mode-btn--active {
+  background: color-mix(in srgb, var(--usx-color-primary) 14%, transparent);
+  border-color: var(--usx-color-primary);
   color: var(--usx-color-primary);
-  border-bottom-color: var(--usx-color-primary);
 }
 
 .chat-panel__lane-toggle-wrap {
@@ -431,7 +493,7 @@ async function copyText(content: string) {
 .chat-panel__lane-label {
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
-  line-height: 1;
+  line-height: var(--usx-line-height-none);
   white-space: nowrap;
 }
 
@@ -492,8 +554,7 @@ async function copyText(content: string) {
   height: var(--usx-spacing-md);
   border-radius: var(--usx-radius-full);
   background: var(--usx-color-surface);
-  box-shadow: 0 1px 2px
-    color-mix(in srgb, var(--usx-color-background) 55%, transparent);
+  box-shadow: var(--usx-shadow-sm);
   transform: translateX(0);
   transition:
     transform var(--usx-transition-fast),
@@ -511,8 +572,7 @@ async function copyText(content: string) {
 .chat-panel__lane-toggle--dev .chat-panel__lane-toggle-thumb {
   transform: translateX(calc(var(--usx-spacing-lg) - var(--usx-spacing-sm)));
   background: var(--usx-color-primary);
-  box-shadow: 0 1px 3px
-    color-mix(in srgb, var(--usx-color-primary) 35%, transparent);
+  box-shadow: var(--usx-shadow-sm);
 }
 
 .chat-panel__dev-toggle {
@@ -520,7 +580,7 @@ async function copyText(content: string) {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
-  min-height: var(--usx-touch-target-compact);
+  min-height: var(--usx-touch-min);
   padding: 0 var(--usx-spacing-sm);
   border: var(--usx-border-width) solid transparent;
   border-radius: var(--usx-radius-full);
@@ -562,8 +622,8 @@ async function copyText(content: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--usx-touch-target-compact);
-  height: var(--usx-touch-target-compact);
+  width: var(--usx-touch-min);
+  height: var(--usx-touch-min);
   border: none;
   background: transparent;
   cursor: pointer;
@@ -576,14 +636,27 @@ async function copyText(content: string) {
   color: var(--usx-color-on-surface);
 }
 
-/* ─── Context strip ───────────────────────────────────────────── */
-.chat-panel__context {
+/* ─── Footer row: context + mode tabs ────────────────────────── */
+.chat-panel__footer-row {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  flex-shrink: 0;
+  min-height: var(--usx-touch-min);
+}
+
+/* ─── Context (inline pill) ───────────────────────────────────── */
+.chat-panel__context {
+  display: inline-flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
   padding: 0 var(--usx-spacing-sm);
-  min-height: calc(var(--usx-touch-target-compact) - var(--usx-spacing-xs));
-  background-color: color-mix(in srgb, var(--usx-color-info) 6%, transparent);
+  min-height: var(--usx-control-size-sm);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-full);
+  background: var(--usx-color-surface);
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
   flex-shrink: 0;
@@ -606,7 +679,7 @@ async function copyText(content: string) {
   align-items: center;
   gap: var(--usx-spacing-xs);
   padding: 0 var(--usx-spacing-xs);
-  min-height: calc(var(--usx-touch-target-compact) - var(--usx-spacing-sm));
+  min-height: calc(var(--usx-touch-min) - var(--usx-spacing-sm));
   background-color: color-mix(
     in srgb,
     var(--usx-color-primary) 12%,
@@ -620,6 +693,90 @@ async function copyText(content: string) {
   flex-shrink: 0;
 }
 
+/* ─── Body ────────────────────────────────────────────────────── */
+.chat-panel__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ─── Welcome zone ─────────────────────────────────────────────── */
+.chat-panel__welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xl) var(--usx-spacing-lg);
+  padding-bottom: var(--usx-spacing-2xl);
+}
+
+.chat-panel__welcome-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--usx-touch-min) + var(--usx-spacing-lg));
+  height: calc(var(--usx-touch-min) + var(--usx-spacing-lg));
+  border-radius: var(--usx-radius-full);
+  background: color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
+  color: var(--usx-color-primary);
+  margin-bottom: var(--usx-spacing-sm);
+}
+
+.chat-panel__welcome-icon .material-symbols-outlined {
+  font-size: calc(var(--usx-font-size-2xl) + var(--usx-font-size-xs));
+}
+
+.chat-panel__welcome-title {
+  font-size: var(--usx-font-size-2xl);
+  font-weight: var(--usx-font-weight-bold);
+  color: var(--usx-color-on-surface);
+  margin: 0;
+  text-align: center;
+}
+
+.chat-panel__welcome-hint {
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
+  line-height: var(--usx-line-height-normal);
+  margin: 0 0 var(--usx-spacing-md);
+  text-align: center;
+  max-width: 28ch;
+}
+
+/* ─── Prompt cards (suggestion pills) ─────────────────────────── */
+.chat-panel__prompts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--usx-spacing-xs);
+  max-width: 32rem;
+}
+
+.chat-panel__prompt-card {
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-full);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
+  padding: 0 var(--usx-spacing-md);
+  min-height: var(--usx-control-size-sm);
+  font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-medium);
+  font-family: var(--usx-font-family-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color var(--usx-transition-fast),
+    background var(--usx-transition-fast),
+    transform var(--usx-transition-fast);
+}
+
+.chat-panel__prompt-card:hover {
+  border-color: var(--usx-color-primary);
+  background: color-mix(in srgb, var(--usx-color-primary) 6%, var(--usx-color-surface));
+  transform: translateY(calc(var(--usx-border-width) * -1));
+}
+
 /* ─── Messages ────────────────────────────────────────────────── */
 .chat-panel__messages {
   flex: 1;
@@ -630,85 +787,19 @@ async function copyText(content: string) {
   gap: var(--usx-spacing-sm);
 }
 
-.chat-panel__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-lg);
-}
-
-.chat-panel__empty-icon {
-  font-size: 36px;
-  color: var(--usx-color-on-surface-muted);
-  opacity: 0.4;
-}
-
-.chat-panel__empty-title {
-  font-size: var(--usx-font-size-sm);
-  font-weight: var(--usx-font-weight-semibold);
-  color: var(--usx-color-on-surface);
-  margin: 0;
-}
-
-.chat-panel__empty-hint {
-  font-size: var(--usx-font-size-xs);
-  color: var(--usx-color-on-surface-muted);
-  line-height: 1.4;
-  margin: 0;
-}
-
-/* Dev shortcuts grid */
-.chat-panel__shortcuts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--usx-spacing-xs);
-  margin-top: var(--usx-spacing-sm);
-  width: 100%;
-}
-
-.chat-panel__shortcut {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  min-height: var(--usx-touch-target-compact);
-  padding: 0 var(--usx-spacing-sm);
-  border: none;
-  border-radius: var(--usx-radius-sm);
-  background: var(--usx-color-surface-variant);
-  cursor: pointer;
-  font-size: var(--usx-font-size-xs);
-  font-family: var(--usx-font-family-sans);
-  color: var(--usx-color-on-surface-muted);
-  text-align: left;
-  transition: all 120ms ease;
-}
-
-.chat-panel__shortcut:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--usx-color-warning) 8%,
-    transparent
-  );
-  color: var(--usx-color-warning);
-}
-
 /* Message bubbles */
 .chat-panel__msg {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--usx-spacing-sm);
-  animation: msgIn 200ms ease;
+  animation: msgIn var(--usx-motion-duration-base) ease;
 }
 
 @keyframes msgIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(calc(var(--usx-spacing-xs) * 1.5));
   }
 }
 
@@ -724,14 +815,14 @@ async function copyText(content: string) {
   padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
   border-radius: var(--usx-radius-md);
   font-size: var(--usx-font-size-sm);
-  line-height: 1.5;
+  line-height: var(--usx-line-height-normal);
   word-wrap: break-word;
 }
 
 .chat-panel__msg-icon {
-  font-size: 14px;
+  font-size: var(--usx-font-size-sm);
   opacity: 0.75;
-  margin-top: 1px;
+  margin-top: var(--usx-spacing-1);
 }
 
 .chat-panel__msg-content {
@@ -754,9 +845,9 @@ async function copyText(content: string) {
 
 .chat-panel__msg-actions {
   display: flex;
-  gap: 2px;
+  gap: var(--usx-spacing-1);
   opacity: 0;
-  transition: opacity 120ms ease;
+  transition: opacity var(--usx-transition-fast);
 }
 
 .chat-panel__msg:hover .chat-panel__msg-actions {
@@ -767,8 +858,8 @@ async function copyText(content: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--usx-touch-target-compact);
-  height: var(--usx-touch-target-compact);
+  width: var(--usx-touch-min);
+  height: var(--usx-touch-min);
   border: none;
   background: transparent;
   cursor: pointer;
@@ -792,15 +883,15 @@ async function copyText(content: string) {
 .chat-panel__dot {
   width: var(--usx-spacing-xs);
   height: var(--usx-spacing-xs);
-  border-radius: 50%;
+  border-radius: var(--usx-radius-full);
   background-color: var(--usx-color-on-surface-muted);
-  animation: bounce 1.4s infinite;
+  animation: bounce var(--usx-motion-duration-pulse) infinite;
 }
 .chat-panel__dot:nth-child(2) {
-  animation-delay: 0.2s;
+  animation-delay: var(--usx-motion-delay-sm);
 }
 .chat-panel__dot:nth-child(3) {
-  animation-delay: 0.4s;
+  animation-delay: var(--usx-motion-delay-md);
 }
 @keyframes bounce {
   0%,
@@ -811,7 +902,7 @@ async function copyText(content: string) {
   }
   40% {
     opacity: 1;
-    transform: translateY(-6px);
+    transform: translateY(calc(var(--usx-spacing-xs) * -1.5));
   }
 }
 
@@ -821,11 +912,9 @@ async function copyText(content: string) {
   align-items: center;
   gap: var(--usx-spacing-xs);
   margin: 0;
-  padding: var(--usx-spacing-xs);
-  min-height: calc(var(--usx-touch-target-compact) + var(--usx-spacing-sm));
+  padding: var(--usx-spacing-sm) var(--usx-spacing-sm);
   background-color: var(--usx-color-surface);
   border-top: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: 0;
   flex-shrink: 0;
 }
 
@@ -835,15 +924,19 @@ async function copyText(content: string) {
 
 .chat-panel__input {
   flex: 1;
-  min-height: var(--usx-touch-target-compact);
-  padding: 0 var(--usx-spacing-sm);
+  min-width: 0;
+  box-sizing: border-box;
+  height: calc(var(--usx-touch-min-sm) - var(--usx-border-width-thick)) !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 var(--usx-spacing-sm) !important;
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-md);
   background-color: var(--usx-color-surface-variant);
   color: var(--usx-color-on-surface);
   font-size: var(--usx-font-size-sm);
   font-family: var(--usx-font-family-sans);
-  line-height: 1.35;
+  line-height: var(--usx-line-height-tight);
   outline: none;
 }
 
@@ -855,21 +948,25 @@ async function copyText(content: string) {
 }
 
 .chat-panel__send {
-  display: grid;
-  place-items: center;
-  width: var(--usx-touch-target-compact);
-  height: var(--usx-touch-target-compact);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: calc(var(--usx-touch-min-sm) - var(--usx-border-width-thick)) !important;
+  height: calc(var(--usx-touch-min-sm) - var(--usx-border-width-thick)) !important;
+  min-height: 0 !important;
+  margin: 0 !important;
   border: var(--usx-border-width) solid transparent;
   background: color-mix(in srgb, var(--usx-color-primary) 10%, transparent);
   color: var(--usx-color-primary);
   border-radius: var(--usx-radius-md);
   padding: 0;
   cursor: pointer;
+  flex-shrink: 0;
   transition:
     color var(--usx-transition-fast),
     background-color var(--usx-transition-fast),
     transform var(--usx-transition-fast);
-  flex-shrink: 0;
 }
 
 .chat-panel__send--dev {
@@ -879,11 +976,11 @@ async function copyText(content: string) {
 
 .chat-panel__send .material-symbols-outlined {
   font-size: var(--usx-font-size-lg);
-  line-height: 1;
+  line-height: var(--usx-line-height-none);
 }
 .chat-panel__send:hover:not(:disabled) {
   background-color: color-mix(in srgb, currentColor 20%, transparent);
-  transform: translateY(-1px);
+  transform: translateY(calc(var(--usx-border-width) * -1));
 }
 
 .chat-panel__send:active:not(:disabled) {
@@ -897,7 +994,7 @@ async function copyText(content: string) {
 
 /* Scrollbar */
 .chat-panel__messages::-webkit-scrollbar {
-  width: 4px;
+  width: var(--usx-spacing-xs);
 }
 .chat-panel__messages::-webkit-scrollbar-thumb {
   background-color: var(--usx-color-border);
