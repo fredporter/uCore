@@ -462,7 +462,7 @@ async function copyText(content: string) {
   border: var(--usx-border-width) solid var(--usx-color-border);
   background: var(--usx-color-surface);
   color: var(--usx-color-on-surface-muted);
-  border-radius: var(--usx-radius-full);
+  border-radius: var(--usx-radius-md);
   padding: 0 var(--usx-spacing-sm);
   min-height: var(--usx-control-size-sm);
   font-size: var(--usx-font-size-xs);
