@@ -24,6 +24,7 @@
         <template v-if="chat.promptMode !== 'workflow'">
           <div class="assistui-chat-body" :class="{ 'assistui-chat-body--engaged': chat.messages.length > 1 }">
             <div v-if="chat.messages.length <= 1" class="assistui-welcome">
+              <span class="assistui-welcome-icon"><UIcon name="auto_awesome" /></span>
               <h1 class="assistui-welcome-title">{{ welcomeTitle }}</h1>
               <div class="assistui-composer assistui-composer--welcome">
                 <div class="assistui-composer-row">
@@ -208,12 +209,13 @@ onMounted(() => {
 
 /* ── AssistUI chat styles ────────────────────────────────────── */
 .assistui-mode-toggle { display: flex; justify-content: center; gap: var(--usx-spacing-xs); padding: 0 0 var(--usx-spacing-sm); flex-shrink: 0; }
-.assistui-mode-btn { display: inline-flex; align-items: center; gap: var(--usx-spacing-xs); padding: 0 var(--usx-spacing-md); min-height: var(--usx-control-size-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-full); background: var(--usx-color-surface); color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); font-weight: var(--usx-font-weight-medium); cursor: pointer; transition: all var(--usx-transition-fast); }
+.assistui-mode-btn { display: inline-flex; align-items: center; gap: var(--usx-spacing-xs); padding: 0 var(--usx-spacing-md); height: var(--usx-control-size-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-full); background: var(--usx-color-surface); color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); font-weight: var(--usx-font-weight-medium); line-height: var(--usx-line-height-none); cursor: pointer; transition: all var(--usx-transition-fast); }
 .assistui-mode-btn:hover { border-color: var(--usx-color-primary); color: var(--usx-color-on-surface); }
 .assistui-mode-btn--active { background: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
 .assistui-chat-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
 .assistui-chat-body--engaged { padding: var(--usx-spacing-md); }
 .assistui-welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--usx-spacing-lg); padding: var(--usx-spacing-2xl) var(--usx-spacing-lg); }
+.assistui-welcome-icon { color: var(--usx-color-primary); font-size: var(--usx-font-size-3xl); margin-bottom: var(--usx-spacing-xs); }
 .assistui-welcome-title { font-size: var(--usx-font-size-3xl); font-weight: var(--usx-font-weight-bold); color: var(--usx-color-on-surface); margin: 0; text-align: center; }
 .assistui-composer--welcome { width: 100%; max-width: var(--usx-prose-width); }
 .assistui-composer--footer { padding: var(--usx-spacing-sm); border-top: var(--usx-border-width) solid var(--usx-color-border); background: var(--usx-color-surface); flex-shrink: 0; position: relative; }

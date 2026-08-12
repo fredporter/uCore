@@ -3,7 +3,7 @@
   <AlertOverlay />
   <PopupOverlay />
   <StoriesOverlay />
-  <ChatBubble>
+  <ChatBubble v-if="!hideChatBubble">
     <ChatBubblePanel
       :chat-messages="chatMessages"
       :dev-messages="devMessages"
@@ -22,6 +22,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { useRoute } from "vue-router";
 import ToastOverlay from "../molecules/ToastOverlay.vue";
 import AlertOverlay from "./AlertOverlay.vue";
 import PopupOverlay from "./PopupOverlay.vue";
@@ -42,6 +43,7 @@ import { SNACKBAR_BASE } from "../../api/base";
 const { toast } = useToast();
 const { events } = useFeed();
 const shell = useShellStore();
+const route = useRoute();
 const extStore = useExtensionStore();
 const assistChat = useChatStore();
 
@@ -80,6 +82,9 @@ const devModeOn = computed(
   () => devMode.mode === "on" || devMode.mode === "minimal",
 );
 const toggleDevMode = () => devMode.toggle();
+
+// ─── Hide chat bubble on Intelligence surface (full chat already shown) ──
+const hideChatBubble = computed(() => route.path.includes("/intelligence"));
 
 // ─── Context strip ───────────────────────────────────────────────
 const contextLabel = computed(() => {
