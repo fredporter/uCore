@@ -37,22 +37,22 @@
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
         :class="{
-          'global-toolbar__tab--active': route.path.includes('/browserui'),
-        }"
-        @click="navigate('/browserui')"
-        title="Research"
-      >
-        <UIcon name="visibility" class="global-toolbar__icon" />
-      </button>
-      <button
-        class="global-toolbar__tab global-toolbar__tab--nav"
-        :class="{
           'global-toolbar__tab--active': route.path.includes('/intelligence'),
         }"
         @click="navigate('/intelligence')"
         title="Chat"
       >
         <UIcon name="chat" class="global-toolbar__icon" />
+      </button>
+      <button
+        class="global-toolbar__tab global-toolbar__tab--nav"
+        :class="{
+          'global-toolbar__tab--active': route.path.includes('/browserui'),
+        }"
+        @click="navigate('/browserui')"
+        title="Research"
+      >
+        <UIcon name="visibility" class="global-toolbar__icon" />
       </button>
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
