@@ -60,13 +60,13 @@ flowchart TB
 
 ### Wave 1 — docs_mirror sync engine (pull only)
 
-- [ ] **D1.1** Add `backend/app/services/docs_mirror.py` with `sync_from_repos()`
-  - Scan `REPO_DOC_ROOTS` (already defined in `documentation_api.py`) plus `udos-*` repos
+- [x] **D1.1** Add `backend/app/services/docs_mirror.py` with `sync_from_repos()`
+  - Scan core repos (`uCore`, `uFlow`, `uKnowledge`, `uCode`, `uVector`) plus discovered `udos-*` repos
   - Copy markdown into `~/.ucore/docs-mirror/<repo>/...`
   - Write a `_mirror.json` index: `{source_repo, source_path, mirrored_path, synced_at, git_sha}`
-- [ ] **D1.2** Add `POST /api/docs/mirror/sync` and `GET /api/docs/mirror/status`
-- [ ] **D1.3** Register the sync in the maintenance scheduler (periodic pull)
-- [ ] **D1.4** Verify: no user-vault path (`~/Vault`, `~/Shared`, `~/Public`) is ever scanned by the mirror
+- [x] **D1.2** Add `POST /api/docs/mirror/sync` and `GET /api/docs/mirror/status`
+- [x] **D1.3** Register the sync in the maintenance scheduler (periodic pull, 04:10 daily)
+- [x] **D1.4** Verify: no user-vault path (`~/Vault`, `~/Shared`, `~/Public`) is ever scanned by the mirror (guarded by `_ensure_allowed` + test)
 
 ### Wave 2 — provenance + two-way sync (Dev Mode gate)
 
