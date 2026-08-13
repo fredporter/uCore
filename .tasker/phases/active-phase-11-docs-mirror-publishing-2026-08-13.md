@@ -70,10 +70,10 @@ flowchart TB
 
 ### Wave 2 — provenance + two-way sync (Dev Mode gate)
 
-- [ ] **D2.1** Tag every mirrored file with frontmatter provenance (`source_repo`, `source_path`, `git_sha`)
-- [ ] **D2.2** Add `POST /api/docs/mirror/push` — writes a mirrored doc back to its source repo via the repo file API; reject unless Dev Mode is active
-- [ ] **D2.3** Enforce lane gate server-side: User lane gets 403 on any push/reorg mutation
-- [ ] **D2.4** Add `GET /api/docs/mirror/diff/{repo}/{path}` to show repo-vs-mirror drift
+- [x] **D2.1** Tag every mirrored file with provenance (`source_repo`, `source_path`, `git_sha`) — kept in `_mirror.json` index so mirrored files stay verbatim (clean diffs)
+- [x] **D2.2** Add `POST /api/docs/mirror/push` — writes a mirrored doc back to its source repo; reject unless Dev Mode is active
+- [x] **D2.3** Enforce lane gate server-side: User lane (Dev Mode off) gets 403 on any push mutation
+- [x] **D2.4** Add `GET /api/docs/mirror/diff/{repo}/{path}` to show repo-vs-mirror drift
 
 ### Wave 3 — Surface lane separation
 
