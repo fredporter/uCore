@@ -218,8 +218,7 @@
             </div>
           </div>
           <div v-else class="doc-empty">
-            No Jupyter notebooks found. Run automation engine to generate notebooks
-            in ~/Code/uDev/global-knowledge/.
+            No Jupyter notebooks found in global-knowledge or Vault.
           </div>
         </div>
 
@@ -306,6 +305,7 @@ import UIcon from "../../skills/atoms/UIcon.vue";
 import UBadge from "../../skills/atoms/UBadge.vue";
 import UButton from "../../skills/atoms/UButton.vue";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
+import LearningPanel from "./panels/LearningPanel.vue";
 
 const shell = useShellStore();
 const activeTab = ref("guide");

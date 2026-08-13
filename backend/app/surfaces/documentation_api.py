@@ -64,12 +64,12 @@ def _list_knowledge_sections() -> list[dict[str, Any]]:
 
     sections: list[dict[str, Any]] = []
     for child in sorted(GLOBAL_KNOWLEDGE_ROOT.iterdir(), key=lambda p: p.name.lower()):
-        if child.name.startswith("."):
+        if child.name.startswith(".") or child.name.startswith("_"):
             continue
-        if child.is_dir() or child.is_file():
+        if child.is_dir():
             sections.append({
                 "id": child.name,
-                "name": child.stem.replace("-", " ").replace("_", " ").title(),
+                "name": child.name.replace("-", " ").replace("_", " ").title(),
                 "path": str(child),
             })
     return sections
@@ -130,8 +130,9 @@ def _list_notebooks() -> list[dict[str, Any]]:
     Searches multiple candidate paths since uDev has been retired.
     """
     candidates = [
-        Path.home() / "Code" / "uDev" / "global-knowledge",
-        Path.home() / "Code" / "uDocs" / "notebooks",
+        Path.home() / "Public" / "global-knowledge",
+        Path.home() / "Vault",
+        Path.home() / "Code" / "uCore" / "notebooks",
     ]
     knowledge_root = None
     for cand in candidates:
