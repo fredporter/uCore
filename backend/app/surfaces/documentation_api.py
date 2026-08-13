@@ -1,6 +1,7 @@
 """Documentation Surface API routes for doc site discovery, browsing, and export."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from pathlib import Path
@@ -368,6 +369,21 @@ async def handle_docs_repo_docs(_request: web.Request) -> web.Response:
     })
 
 
+async def handle_docs_mirror_sync(_request: web.Request) -> web.Response:
+    """POST /api/docs/mirror/sync - pull component docs into the mirror."""
+    from app.services.docs_mirror import sync_from_repos
+
+    result = await asyncio.to_thread(sync_from_repos)
+    return web.json_response(result)
+
+
+async def handle_docs_mirror_status(_request: web.Request) -> web.Response:
+    """GET /api/docs/mirror/status - return the mirror index status."""
+    from app.services.docs_mirror import mirror_status
+
+    return web.json_response(mirror_status())
+
+
 def register_documentation_routes(app: web.Application) -> None:
     """Register Documentation surface API routes."""
     app.router.add_get("/api/docs", handle_docs_root)
@@ -384,4 +400,6 @@ def register_documentation_routes(app: web.Application) -> None:
     app.router.add_get("/api/docs/courses", handle_docs_courses)
     app.router.add_get("/api/docs/notebooks", handle_docs_notebooks)
     app.router.add_get("/api/docs/repo-docs", handle_docs_repo_docs)
+    app.router.add_post("/api/docs/mirror/sync", handle_docs_mirror_sync)
+    app.router.add_get("/api/docs/mirror/status", handle_docs_mirror_status)
     log.debug("Documentation API routes registered")

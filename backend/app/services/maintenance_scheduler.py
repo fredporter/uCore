@@ -29,6 +29,7 @@ DEFAULT_JOBS = (
             "board": "inbox",
         },
     ),
+    MaintenanceJob("docs_mirror_sync", "04:10", {}),
     MaintenanceJob(
         "brain_sync",
         "04:15",
