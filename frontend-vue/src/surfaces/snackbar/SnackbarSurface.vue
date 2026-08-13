@@ -51,6 +51,14 @@
       <div v-else-if="activeTab === 'extensions'" class="server-tab-shell">
         <SnackbarExtensionsPanel />
       </div>
+      <!-- Logs -->
+      <div v-else-if="activeTab === 'logs'" class="server-tab-shell">
+        <SnackbarLogsPanel />
+      </div>
+      <!-- MCP Servers -->
+      <div v-else-if="activeTab === 'mcp'" class="server-tab-shell">
+        <SnackbarMCPServersPanel />
+      </div>
       <div v-else class="server-tab-shell">
         <SnackbarDashboardPanel />
       </div>
@@ -93,6 +101,12 @@ const SnackbarSnacksPanel = defineAsyncComponent(
 );
 const SnackbarExtensionsPanel = defineAsyncComponent(
   () => import("./panels/SnackbarExtensionsPanel.vue"),
+);
+const SnackbarLogsPanel = defineAsyncComponent(
+  () => import("./panels/SnackbarLogsPanel.vue"),
+);
+const SnackbarMCPServersPanel = defineAsyncComponent(
+  () => import("./panels/SnackbarMCPServersPanel.vue"),
 );
 import {
   useSnackbarOpsStore,

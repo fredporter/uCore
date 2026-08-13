@@ -9,7 +9,7 @@ Purpose: keep core infrastructure simple and robust while enabling focused plugi
 ### 1.1 Repo topology (validated)
 
 1. Host shell and extension registry are in `uCore`.
-2. Developer lane UI/runtime tooling are in `uDev` (`developer-surface`, `mcp-bridge`).
+2. Developer lane UI lives in uCore (`/developer` repo browser) with ops panels folded into Snackbar + Intelligence; runtime tooling is in `uDev/mcp-bridge`.
 3. Runtime foundations are in `uCode` (GridCore/uCode profile model).
 4. External plugin repos exist and register via manifest discovery:
    - `udos-budget`
@@ -31,8 +31,8 @@ Purpose: keep core infrastructure simple and robust while enabling focused plugi
 ### 1.2 Stability snapshot
 
 1. `uCore` main is clean except active planning edits.
-2. `uDev/developer-surface` was failing build due stale imports and tab/store drift; fixed in this round.
-3. Developer Surface now builds and serves on `http://127.0.0.1:5176` with strict port binding.
+2. The Developer Surface is the in-core repo browser (Code/Repository/Editor) at `/developer`.
+3. Operational panels (Agents/Models/Skills/Services/Feeds/Snacks/Extensions/Logs/MCP) are folded into Snackbar + Intelligence.
 4. `udos-identity` is currently minimal (profile/session routes only), ready for expansion waves.
 
 ### 1.3 Source-of-truth constraints
@@ -55,9 +55,9 @@ Purpose: keep core infrastructure simple and robust while enabling focused plugi
 
 ### 2.2 Existing repos needing updates
 
-1. `uDev/developer-surface`
-   - Keep build green and dev startup deterministic.
-   - Add panels/widgets only for capabilities that pass preflight.
+1. uCore Developer Surface (`/developer`)
+   - Keep the Code/Repository/Editor repo browser stable.
+   - Add capability cards only for capabilities that pass preflight.
 2. `uDev/mcp-bridge`
    - Add bridge tools for new plugin APIs after routes are stable.
 3. `udos-identity`
@@ -87,7 +87,7 @@ Repo-scaffold rule:
 ### 3.0 Surface Placement Policy
 
 1. Keep end-user shell UI surfaces primarily in `uCore`.
-2. Keep Developer Lane UI in `uDev`.
+2. Keep Developer Lane UI in uCore (`/developer` repo browser + Snackbar/Intelligence panels).
 3. Keep feature/business logic ownership in plugins/extensions (`udos-*`, `uFlow`, `uKnowledge`, `uCode`).
 4. Keep legacy route redirects in uCore where useful, but avoid duplicate standalone surfaces when a canonical host surface already exists.
 
@@ -280,10 +280,10 @@ Exit criteria:
 2. Add preflight endpoints and failure-repair hints.
 3. Update extension registry migration matrix docs.
 
-### uDev/developer-surface
+### uCore Developer Surface
 
-1. Keep `Control`, `Flow`, `Repos`, `MCP`, `Chat` stable first.
-2. Add cards for WordPress/Google/Dreamscape preflight states.
+1. Keep the `/developer` repo browser and Snackbar/Intelligence panels stable first.
+2. Add cards for WordPress/Google/Dreamscape preflight states to Snackbar Dashboard.
 3. Add action buttons only when routes are implemented.
 
 ### udos-identity

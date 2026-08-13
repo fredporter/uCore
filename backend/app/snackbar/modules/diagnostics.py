@@ -33,17 +33,6 @@ async def ports_handler(request: web.Request) -> web.Response:
         return web.json_response({"error": str(e)}, status=500)
 
 
-async def skills_handler(request: web.Request) -> web.Response:
-    """GET /api/skills — list available skills."""
-    try:
-        from app.skills.self_heal import list_skills
-
-        skills = list_skills()
-        return web.json_response({"skills": skills})
-    except Exception as e:
-        return web.json_response({"error": str(e)}, status=500)
-
-
 async def execute_skill_handler(request: web.Request) -> web.Response:
     """POST /api/skills/{skill_name} — execute a skill."""
     try:
@@ -79,7 +68,6 @@ async def execute_skill_handler(request: web.Request) -> web.Response:
 def register(app: web.Application) -> None:
     app.router.add_get("/api/diagnostics", diagnostics_handler)
     app.router.add_get("/api/diagnostics/ports", ports_handler)
-    app.router.add_get("/api/skills", skills_handler)
     app.router.add_post(
         "/api/skills/{skill_name}", execute_skill_handler,
     )

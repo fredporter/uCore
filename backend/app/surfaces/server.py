@@ -194,45 +194,37 @@ def register_server_routes(app: web.Application, store: ServerStore) -> None:  #
 
     # ── Models (Ollama proxy) ─────────────────────────────────
     async def handle_models(_request: web.Request) -> web.Response:
-        models = []
-        error = None
+        models: list[dict] = []
+        error: str | None = None
         try:
-            from app.api.handlers import (  # noqa: PLC0415
-                handle_ollama_models_available,
-            )
-            models = handle_ollama_models_available
-        except ImportError:
-            pass
-        if not models or callable(models):
-            try:
-                async with ClientSession(
-                    timeout=aiohttp.ClientTimeout(total=5)
-                ) as session:
-                    async with session.get(
-                        "http://localhost:11434/api/tags"
-                    ) as resp:
-                        if resp.status == 200:
-                            data = await resp.json()
-                            raw = data.get("models") or []
-                            total = max(len(raw), 1)
-                            models = [
-                                {
-                                    "id": m.get("name", ""),
-                                    "name": m.get("name", ""),
-                                    "pct": round(
-                                        ((len(raw) - i) / total) * 100
-                                    ),
-                                    "calls": 0,
-                                }
-                                for i, m in enumerate(raw[:10])
-                            ]
-                        else:
-                            error = f"Ollama returned {resp.status}"
-            except Exception as exc:
-                error = str(exc)
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=5)
+            ) as session:
+                async with session.get(
+                    "http://localhost:11434/api/tags"
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        raw = data.get("models") or []
+                        total = max(len(raw), 1)
+                        models = [
+                            {
+                                "id": m.get("name", ""),
+                                "name": m.get("name", ""),
+                                "pct": round(
+                                    ((len(raw) - i) / total) * 100
+                                ),
+                                "calls": 0,
+                            }
+                            for i, m in enumerate(raw[:10])
+                        ]
+                    else:
+                        error = f"Ollama returned {resp.status}"
+        except Exception as exc:
+            error = str(exc)
         return web.json_response({
-            "models": models if isinstance(models, list) else [],
-            "count": len(models) if isinstance(models, list) else 0,
+            "models": models,
+            "count": len(models),
             "error": error,
         })
 
@@ -242,7 +234,9 @@ def register_server_routes(app: web.Application, store: ServerStore) -> None:  #
             from app.api.agents import handle_list_agents
             resp = await handle_list_agents(_request)
             data = json.loads(resp.body) if hasattr(resp, "body") else {}
-            agents = data.get("agents", [])
+            agents = [
+                a for a in data.get("agents", []) if a.get("kind") == "agent"
+            ]
             mapped = [
                 {
                     "id": a.get("id", "unknown"),

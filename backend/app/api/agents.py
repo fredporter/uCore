@@ -42,6 +42,7 @@ def _load_config_agents() -> list[dict]:
                 "model": agent.get("model", ""),
                 "description": agent.get("description", ""),
                 "config": True,
+                "kind": "agent",
             })
         return result
     except Exception:
@@ -61,6 +62,7 @@ def _skill_to_agent(skill: dict) -> dict:
         "costPerTask": 0.0,
         "avgLatencyMs": 0,
         "successRate": 1.0,
+        "kind": "skill",
     }
 
 
@@ -79,6 +81,7 @@ def _tool_to_agent(tool: dict) -> dict:
         "costPerTask": 0.0,
         "avgLatencyMs": 0,
         "successRate": 1.0,
+        "kind": "tool",
     }
 
 

@@ -16,11 +16,11 @@ Owner: uCore/uDev platform
 - Workflow surface uses EditorPanel in:
   - surfaces/workflow/WorkflowSurface.vue
 
-### uDev developer-surface
+### uCore Developer surface
 
-- No rich document/code editor currently in main panels.
-- Chat input uses plain textarea in:
-  - uDev/developer-surface/src/panels/DevChatPanel.vue
+- Repo browser (Code/Repository/Editor) uses CodeMirror-based editors:
+  - surfaces/developer/DeveloperSurface.vue (UCodeEditor, ProseCodeReader)
+- Chat input lives in the Intelligence surface, not the Developer surface.
 
 ### AppFlowy coupling still visible
 

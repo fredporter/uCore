@@ -134,6 +134,11 @@ import { useChatStore } from "../../stores/chat";
 import { renderMarkdown } from "../../composables/useMarkdown";
 import UIcon from "../atoms/UIcon.vue";
 
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
 const props = withDefaults(
   defineProps<{
     chatMessages?: Message[];
