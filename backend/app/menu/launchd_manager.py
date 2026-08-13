@@ -213,7 +213,10 @@ def get_frontend_plist_content() -> str:
 
   <true/>
   <key>KeepAlive</key>
-  <true/>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
   <key>StandardOutPath</key>
   <string>{os.path.expanduser('~/.ucore/logs/ucore-frontend-stdout.log')}</string>
   <key>StandardErrorPath</key>

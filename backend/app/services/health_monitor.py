@@ -132,14 +132,15 @@ class HealthMonitor:
     def _check_database(self) -> tuple[str, str]:
         """Check database connectivity (runs in thread pool)."""
         try:
-            # Simple query to test DB
-            db_path = Path("~/.ucore/ucore.db").expanduser()
-            if not db_path.exists():
-                return "error", "Database file not found"
+            indices_dir = Path("~/.ucore/indices").expanduser()
+            db_files = (
+                list(indices_dir.glob("*.db")) if indices_dir.exists() else []
+            )
+            if not db_files:
+                return "error", "No database files in ~/.ucore/indices"
 
-            # Check file is readable
-            if os.access(db_path, os.R_OK):
-                return "ok", "Database accessible"
+            if os.access(db_files[0], os.R_OK):
+                return "ok", f"Database accessible ({len(db_files)} db file(s))"
             else:
                 return "error", "Database not readable"
         except Exception as e:
@@ -175,11 +176,12 @@ class HealthMonitor:
             from app.services.popcorn_manager import get_popcorn_status
             status = get_popcorn_status()
 
-            if status["installed"]:
-                if status["running"]:
-                    return "ok", f"Popcorn running (PID {status['pid']})"
+            menu = status.get("menu", {})
+            if menu.get("installed"):
+                if menu.get("running"):
+                    return "ok", "Popcorn (menu) running"
                 else:
-                    return "degraded", "Popcorn installed but not running"
+                    return "degraded", "Popcorn installed but menu not running"
             else:
                 return "degraded", "Popcorn not installed"
         except Exception as e:

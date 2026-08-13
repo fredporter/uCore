@@ -18,17 +18,27 @@ def _get_manager(request: web.Request):
 
 async def handle_budget_status(request: web.Request) -> web.Response:
     manager = _get_manager(request)
-    usage = manager.get_monthly_usage()
-    policy = manager.policy
+    status = manager.get_status()
+    monthly = status.get("monthly", {})
+    daily = status.get("daily", {})
+    session = status.get("session", {})
     return web.json_response(
         {
-            "usage": usage,
-            "policy": {
-                "monthly_usd_limit": policy.monthly_usd_limit,
-                "default_estimated_cost": policy.default_estimated_cost,
-                "guarded_endpoints": policy.guarded_endpoints,
-                "per_model_limits": policy.per_model_limits,
+            "usage": {
+                "total_cost": monthly.get("spend", 0.0),
+                "daily_cost": daily.get("spend", 0.0),
+                "session_cost": session.get("spend", 0.0),
             },
+            "policy": {
+                "monthly_usd_limit": monthly.get("budget", 50.0),
+                "daily_budget_usd": daily.get("budget", 0.0),
+                "session_budget_usd": session.get("budget", 0.0),
+            },
+            "status": status,
+            "remaining": monthly.get("remaining", 0.0),
+            "used": monthly.get("spend", 0.0),
+            "limit": monthly.get("budget", 50.0),
+            "over_limit": bool(status.get("circuit_breaker_open", False)),
         },
     )
 
@@ -40,7 +50,7 @@ async def handle_budget_usage(request: web.Request) -> web.Response:
         limit = int(raw_limit)
     except ValueError:
         limit = 100
-    rows = manager.list_usage(limit=limit)
+    rows = manager.get_spend_report(limit=limit)
     return web.json_response({"entries": rows, "count": len(rows)})
 
 
@@ -51,10 +61,10 @@ async def handle_budget_reload(request: web.Request) -> web.Response:
         {
             "status": "reloaded",
             "policy": {
-                "monthly_usd_limit": policy.monthly_usd_limit,
-                "default_estimated_cost": policy.default_estimated_cost,
-                "guarded_endpoints": policy.guarded_endpoints,
-                "per_model_limits": policy.per_model_limits,
+                "monthly_usd_limit": policy.get("monthly_budget_usd", 50.0),
+                "daily_budget_usd": policy.get("daily_budget_usd", 0.0),
+                "session_budget_usd": policy.get("session_budget_usd", 0.0),
+                "per_agent": policy.get("per_agent", {}),
             },
         },
     )

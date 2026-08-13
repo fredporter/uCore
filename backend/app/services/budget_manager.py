@@ -179,6 +179,11 @@ class BudgetManager:
         )
         self._conn.commit()
 
+    def reload_policy(self) -> dict[str, Any]:
+        """Reload budget config from disk and return the new policy."""
+        self._config = self._load_config()
+        return dict(self._config)
+
     def get_status(self) -> dict[str, Any]:
         """Get current budget status."""
         session_spend = self._get_period_spend("session")
