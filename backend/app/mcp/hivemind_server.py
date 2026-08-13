@@ -24,12 +24,37 @@ from app.mcp.llm_router import LLMRouter
 from app.mcp.roundtable_integration import get_roundtable
 from app.secret.store import get_store
 from app.services.agent_specialization import SpecializedAgentRegistry
-from app.services.cost_manager import get_cost_manager
+from app.services.budget_manager import BudgetManager
+from app.services.model_pricing import summarize_tiers
 
 log = logging.getLogger("ucore.mcp.hivemind")
 
 
 # ─── Hivemind Server ───────────────────────────────────────
+
+
+def _cost_status_payload() -> dict:
+    """Build the budget/cost status payload from BudgetManager + model tiers."""
+    status = BudgetManager.get().get_status()
+
+    def _window(key: str) -> dict:
+        return {
+            "used": status[key]["spend"],
+            "limit": status[key]["budget"],
+            "remaining": status[key]["remaining"],
+        }
+
+    return {
+        "daily": _window("daily"),
+        "weekly": {"used": 0.0, "limit": 0.0, "remaining": 0.0},
+        "monthly": _window("monthly"),
+        "session": status["session"],
+        "circuit_breaker_open": status["circuit_breaker_open"],
+        "free_tier_only": status["free_tier_only"],
+        "per_agent": status["per_agent"],
+        "models": summarize_tiers(),
+        "top_models": [],
+    }
 
 
 class HivemindServer:
@@ -96,7 +121,6 @@ class HivemindServer:
     async def handle_health(self, request: web.Request) -> web.Response:
         """GET /health — Health check."""
         rt = get_roundtable()
-        cm = get_cost_manager()
         return web.json_response({
             "status": "ok",
             "service": "hivemind",
@@ -104,15 +128,14 @@ class HivemindServer:
             "agents": len(self.registry.agents),
             "active_proposals": len(self.consensus.list_active()),
             "roundtable": rt.summary(),
-            "cost": cm.summary(),
+            "cost": _cost_status_payload(),
         })
 
     async def handle_cost_status(
         self, request: web.Request
     ) -> web.Response:
         """GET /api/hivemind/llm/cost — Cost management status."""
-        cm = get_cost_manager()
-        return web.json_response(cm.summary())
+        return web.json_response(_cost_status_payload())
 
     async def handle_list_agents(self, request: web.Request) -> web.Response:
         """GET /api/hivemind/agents — List all agents."""

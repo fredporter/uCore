@@ -55,7 +55,7 @@
         "name": "Brain Sync",
         "skill_id": "brain_sync",
         "category": "assist",
-        "description": "Synthesize recent project changes, spool activity, and vault changes into private wisdom. Also provides tasker/devlog bridge actions (sync, read, write, archive, purge",
+        "description": "Synthesize recent project changes, spool activity, and  vault changes into private wisdom. Also provides  tasker/devlog bridge actions (sync, read, write, archive, purge",
         "params": [
           {
             "name": "action",
@@ -87,6 +87,18 @@
         "params": [],
         "timeout": 30,
         "requires_confirmation": true,
+        "health": "working",
+        "issues": []
+      },
+      {
+        "file": "backend/app/skills/builtin/docs_mirror_sync.py",
+        "name": "Docs Mirror Sync",
+        "skill_id": "docs_mirror_sync",
+        "category": "maintenance",
+        "description": "Pull uDos component docs from in-repo docs/ directories  into the readable docs mirror.",
+        "params": [],
+        "timeout": 180,
+        "requires_confirmation": false,
         "health": "working",
         "issues": []
       },
@@ -450,7 +462,7 @@
         "issues": []
       },
       {
-        "file": "backend/app/skills/builtin/skill_spool_manager.py",
+        "file": "backend/app/skills/builtin/skill_nuggets_and_spool.py",
         "name": "SPOOL Archive",
         "skill_id": "spool_archive",
         "category": "maintenance",
@@ -715,31 +727,17 @@
         "issues": []
       },
       {
-        "name": "cost_manager",
-        "file": "backend/app/services/cost_manager.py",
-        "endpoints": [
-          "daily",
-          "monthly",
-          "weekly"
-        ],
-        "variables": {},
+        "name": "model_pricing",
+        "file": "backend/app/services/model_pricing.py",
+        "endpoints": [],
+        "variables": {
+          "MODEL_COST_PER_1K": "per-1000-token pricing table"
+        },
         "commands": [
-          "agent_spend",
-          "budget_remaining",
           "cheapest_model",
           "cost_tiers",
-          "daily_budget",
-          "get_cost_manager",
-          "is_within_budget",
-          "monthly_budget",
-          "record_task",
-          "reset_agent",
-          "reset_all",
-          "reset_cost_manager",
-          "summary",
-          "to_dict",
-          "top_spenders",
-          "weekly_budget"
+          "estimate_cost",
+          "summarize_tiers"
         ],
         "health": "working",
         "issues": []
@@ -1692,8 +1690,8 @@
     ]
   },
   "health": {
-    "total_items": 172,
-    "working": 172,
+    "total_items": 173,
+    "working": 173,
     "untested": 0,
     "broken": 0,
     "orphaned": 0,

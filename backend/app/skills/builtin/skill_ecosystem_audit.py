@@ -446,7 +446,7 @@ class EcosystemAuditSkill(BaseSkill):
             "feed_consumer": BACKEND_DIR / "services" / "feed_consumer.py",
             "hivemind_server": BACKEND_DIR / "mcp" / "hivemind_server.py",
             "llm_router": BACKEND_DIR / "mcp" / "llm_router.py",
-            "cost_manager": BACKEND_DIR / "services" / "cost_manager.py",
+            "model_pricing": BACKEND_DIR / "services" / "model_pricing.py",
             "template_manager": BACKEND_DIR / "services" / "template_manager.py",
             "tasker_ingest": BACKEND_DIR / "mcp" / "tasker_ingest.py",
         }

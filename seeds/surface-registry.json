@@ -168,9 +168,9 @@
       "protocols": ["REST"],
       "endpoints": ["/api/control/status"]
     },
-    "cost_manager": {
-      "service": "Cost Manager",
-      "file": "backend/app/services/cost_manager.py",
+    "model_pricing": {
+      "service": "Model Pricing",
+      "file": "backend/app/services/model_pricing.py",
       "protocols": ["internal"],
       "endpoints": []
     },

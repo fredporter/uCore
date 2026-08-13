@@ -412,48 +412,6 @@ async def ports_handler(request: web.Request) -> web.Response:
         return web.json_response({"error": str(e)}, status=500)
 
 
-async def skills_handler(request: web.Request) -> web.Response:
-    """GET /api/skills — list available skills"""
-    try:
-        from app.skills.self_heal import list_skills
-        skills = list_skills()
-        return web.json_response({"skills": skills})
-    except Exception as e:
-        return web.json_response({"error": str(e)}, status=500)
-
-
-async def execute_skill_handler(request: web.Request) -> web.Response:
-    """POST /api/skills/{skill_name} — execute a skill"""
-    try:
-        skill_name = request.match_info.get("skill_name", "").lower()
-
-        # Parse optional arguments
-        kwargs = {}
-        if request.can_read_body:
-            try:
-                body = await request.json()
-                kwargs = body.get("params", {})
-            except Exception:
-                pass
-
-        from app.skills.self_heal import execute_skill
-        result = await execute_skill(skill_name, **kwargs)
-
-        status_code = 200 if result.success else 400
-        return web.json_response(
-            {
-                "skill": result.skill,
-                "success": result.success,
-                "message": result.message,
-                "details": result.details,
-                "timestamp": result.timestamp,
-            },
-            status=status_code,
-        )
-    except Exception as e:
-        return web.json_response({"error": str(e)}, status=500)
-
-
 # ─── Unified Health & Repair ─────────────────────────────────────
 
 

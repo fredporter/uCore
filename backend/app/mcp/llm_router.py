@@ -106,7 +106,8 @@ class LLMRouter:
     def _load_config(self, config_path: str):
         """Load backend configuration from a YAML/JSON file.
 
-        Also wires CostManager budgets from router.budgets config.
+        Loads backend configuration from a YAML/JSON file. Budgets are read
+        from budget.yaml by BudgetManager, so no separate wiring is needed.
         """
         import yaml
 
@@ -117,14 +118,6 @@ class LLMRouter:
                 config = json.load(f)
 
         router_config = config.get("router", {})
-
-        # Wire budgets into CostManager
-        budgets = router_config.get("budgets", {})
-        if budgets:
-            from app.services.cost_manager import get_cost_manager
-            cm = get_cost_manager()
-            if "daily" in budgets:
-                cm.daily_budget = float(budgets["daily"])
 
         backends_config = router_config.get("backends", {})
 

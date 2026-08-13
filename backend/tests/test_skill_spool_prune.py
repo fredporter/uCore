@@ -12,7 +12,7 @@ async def test_spool_prune_rotates_and_prunes(
     monkeypatch,
 ):
     from app.core.settings import settings
-    from app.skills.builtin.skill_spool_manager import SpoolPruneSkill
+    from app.skills.builtin.skill_nuggets_and_spool import SpoolPruneSkill
 
     monkeypatch.setattr(settings, "logs_dir", tmp_path)
 
@@ -50,7 +50,7 @@ async def test_spool_prune_creates_logs_dir(
     monkeypatch,
 ):
     from app.core.settings import settings
-    from app.skills.builtin.skill_spool_manager import SpoolPruneSkill
+    from app.skills.builtin.skill_nuggets_and_spool import SpoolPruneSkill
 
     logs_dir = tmp_path / "logs"
     monkeypatch.setattr(settings, "logs_dir", logs_dir)
