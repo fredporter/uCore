@@ -37,7 +37,7 @@ DEFAULT_JOBS = (
             "hours": 24,
             "limit": 20,
             "include_spool": True,
-            "include_appflowy": True,
+            "include_vault_activity": True,
         },
     ),
     MaintenanceJob(

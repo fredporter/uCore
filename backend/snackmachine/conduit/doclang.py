@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 
-# Stub: AppFlowy sync not required for conduit
+# Stub: no external sync required for conduit
 def scan_vault(vault_dir=None):
     return []
 

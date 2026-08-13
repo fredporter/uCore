@@ -93,20 +93,14 @@ def test_default_jobs_include_spool_prune():
 
 
 @pytest.mark.asyncio
-async def test_vault_sync_skips_without_config(tmp_path: Path, monkeypatch):
+async def test_vault_sync_dry_run_reports_vault_roots():
     import app.skills.builtin.vault_sync as mod
 
-    script = tmp_path / "appflowy_vault_sync.py"
-    script.write_text("print('ok')\n", encoding="utf-8")
-    monkeypatch.setattr(mod, "SCRIPT_PATH", script)
-    monkeypatch.setattr(mod, "PROJECT_ROOT", tmp_path)
-
-    missing_config = tmp_path / "missing.yaml"
     result = await mod.VaultSync().run(
-        config=str(missing_config),
+        dry_run=True,
         summary_only=True,
     )
 
     assert result["success"] is True
-    assert result["status"] == "skipped"
-    assert "config not found" in result["reason"]
+    assert result["status"] == "dry-run"
+    assert result["sources"]

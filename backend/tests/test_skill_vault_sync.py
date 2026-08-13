@@ -1,35 +1,40 @@
 """Tests for the VaultSync skill."""
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 
 @pytest.mark.asyncio
-async def test_vault_sync_no_config(tmp_path: Path, monkeypatch):
-    """Should skip gracefully when config doesn't exist."""
+async def test_vault_sync_dry_run_reports_roots():
+    """Dry run should report vault roots without rebuilding the index."""
     from app.skills.builtin.vault_sync import VaultSync
 
-    fake_config = tmp_path / "nonexistent-config.yaml"
-
-    skill = VaultSync()
-    result = await skill.run(config=str(fake_config))
+    result = await VaultSync().run(dry_run=True)
     assert result["success"] is True
-    assert result.get("status") == "skipped"
-    assert "config not found" in result.get("reason", "")
+    assert result["status"] == "dry-run"
+    assert result["sources"]
 
 
 @pytest.mark.asyncio
-async def test_vault_sync_no_script(tmp_path: Path, monkeypatch):
-    """Should error when script doesn't exist."""
-    from app.skills.builtin.vault_sync import VaultSync
+async def test_vault_sync_build_index(monkeypatch):
+    """Should rebuild the library index and summarize per-source counts."""
+    from app.skills.builtin import vault_sync as mod
 
-    # Point to a non-existent script
-    fake_script = tmp_path / "nonexistent_script.py"
-    monkeypatch.setattr("app.skills.builtin.vault_sync.SCRIPT_PATH", fake_script)
+    monkeypatch.setattr(
+        mod.library_index,
+        "build_index",
+        lambda: {
+            "status": "completed",
+            "total_indexed": 7,
+            "sources": [
+                {"source": "user", "files": 5, "status": "ok"},
+                {"source": "shared", "files": 2, "status": "ok"},
+            ],
+        },
+    )
 
-    skill = VaultSync()
-    result = await skill.run(config=str(tmp_path / "config.yaml"))
-    assert result["success"] is False
-    assert "not found" in result.get("error", "")
+    result = await mod.VaultSync().run(summary_only=True)
+    assert result["success"] is True
+    assert result["status"] == "ok"
+    assert result["total_indexed"] == 7
+    assert result["sources"][0]["files"] == 5

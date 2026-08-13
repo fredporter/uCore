@@ -6,13 +6,11 @@
         <div class="wf-panel-badges">
           <UBadge type="info" size="sm">User Workflow</UBadge>
           <UBadge
-            :type="
-              wf.workflowStatus?.appflowy?.available ? 'success' : 'warning'
-            "
+            :type="wf.workflowStatus?.vault?.ready ? 'success' : 'warning'"
             size="sm"
           >
-            Vault Mirror
-            {{ wf.workflowStatus?.appflowy?.available ? "Ready" : "Optional" }}
+            Vault
+            {{ wf.workflowStatus?.vault?.ready ? "Ready" : "Setup needed" }}
           </UBadge>
         </div>
       </div>

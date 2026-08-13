@@ -78,7 +78,7 @@ Archive or deprecate in-place:
 
 ### 1. Migration Checklist
 
-- Add canonical uDocs destinations for Snackbar system docs, clipboard buffer docs, and AppFlowy local-first docs.
+- Add canonical uDocs destinations for Snackbar system docs and clipboard buffer docs.
 - Normalize active docs using DocLang-friendly structure: explicit headings, tables, API lists, and stable identifiers.
 - Create README pointers in active repos back to uDocs canonical sections.
 
@@ -92,12 +92,12 @@ Archive or deprecate in-place:
 
 - `brain_sync` refreshes private wisdom from recent project changes.
 - `attach_context` injects both `CONTEXT.md` and private wisdom.
-- Next iteration should synthesize spool events, recent docs, and AppFlowy local activity into more durable lessons.
+- Next iteration should synthesize spool events, recent docs, and vault activity into more durable lessons.
 
 ### 4. UI View Wiring
 
 - Map backend orchestration features to concrete UI destinations in `frontend/src/SystemPage.tsx`, `frontend/src/UIHubManager*.tsx`, and `frontend/src/surfaces/system/`.
-- Add explicit system-page targets for clipboard buffer, knowledge/local AppFlowy tools, and orchestration status.
+- Add explicit system-page targets for clipboard buffer, vault/knowledge tools, and orchestration status.
 - Keep page/view wiring aligned to backend route groups so API, tray, and UI surfaces converge.
 
 ## Definition of Done for Consolidation

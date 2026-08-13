@@ -131,15 +131,6 @@ export interface WorkflowStatus {
     ready: boolean;
     missing_layers: string[];
   };
-  appflowy?: {
-    status: string;
-    mode: string;
-    enabled_by_default: boolean;
-    available: boolean;
-    database_count: number;
-    workspace_count: number;
-    errors: string[];
-  };
   maintenance?: {
     scheduler_status: string;
     next_run: string;

@@ -12,7 +12,7 @@ log = logging.getLogger("ucore.api.mcp_handlers.knowledge")
 
 async def handle_knowledge_search(arguments: dict, request_id: Any) -> web.Response:
     """Handle knowledge_search tool."""
-    from app.knowledge.appflowy import semantic_search
+    from app.knowledge.vault import semantic_search
 
     query = str(arguments.get("query", "")).strip()
     if not query:
@@ -44,7 +44,7 @@ async def handle_knowledge_search(arguments: dict, request_id: Any) -> web.Respo
 
 async def handle_knowledge_list_workspaces(arguments: dict, request_id: Any) -> web.Response:
     """Handle knowledge_list_workspaces tool."""
-    from app.knowledge.appflowy import list_workspaces
+    from app.knowledge.vault import list_workspaces
 
     ws = list_workspaces()
     return web.json_response({
@@ -58,7 +58,7 @@ async def handle_knowledge_list_workspaces(arguments: dict, request_id: Any) -> 
 
 async def handle_knowledge_list_documents(arguments: dict, request_id: Any) -> web.Response:
     """Handle knowledge_list_documents tool."""
-    from app.knowledge.appflowy import list_documents
+    from app.knowledge.vault import list_documents
 
     workspace_id = arguments.get("workspace_id")
     docs = list_documents(str(workspace_id) if workspace_id else None)

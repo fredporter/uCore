@@ -94,7 +94,7 @@ scheduler:
   jobs:
     - skill_id: backup
       time: "03:00"
-    - skill_id: appflowy-sync
+    - skill_id: vault_sync
       time: "*/2 * * * *"  # every 2 hours
 
 spool:

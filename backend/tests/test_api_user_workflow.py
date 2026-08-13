@@ -1,4 +1,4 @@
-"""API tests for user workflow endpoints and optional AppFlowy fallback."""
+"""API tests for user workflow endpoints and vault status."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -32,35 +32,26 @@ class UserWorkflowApiTest(AioHTTPTestCase):
         )
         return app
 
-    async def test_status_degraded_when_appflowy_discovery_fails(self):
+    async def test_status_reports_vault_layers_and_no_appflowy(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
             tasker_dir = root / ".tasker"
             tasker_dir.mkdir(parents=True, exist_ok=True)
 
-            with (
-                patch.object(
-                    mod,
-                    "default_tasker_dir",
-                    return_value=tasker_dir,
-                ),
-                patch.object(
-                    mod,
-                    "discover_databases",
-                    side_effect=RuntimeError("db unavailable"),
-                ),
-                patch.object(mod, "list_workspaces", return_value=[]),
+            with patch.object(
+                mod,
+                "default_tasker_dir",
+                return_value=tasker_dir,
             ):
                 resp = await self.client.get("/api/user/workflow/status")
 
             assert resp.status == 200
             payload = await resp.json()
             assert payload["source_of_truth"] == "markdown"
-            assert payload["appflowy"]["available"] is False
-            assert payload["appflowy"]["status"] == "degraded"
-            assert payload["appflowy"]["errors"]
+            assert "appflowy" not in payload
+            assert payload["vault"]["layers"]
 
-    async def test_archive_succeeds_when_appflowy_discovery_fails(self):
+    async def test_archive_snapshots_tasker_without_appflowy(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
             logs_dir = root / "logs"
@@ -83,12 +74,6 @@ class UserWorkflowApiTest(AioHTTPTestCase):
                     "default_tasker_dir",
                     return_value=tasker_dir,
                 ),
-                patch.object(
-                    mod,
-                    "discover_databases",
-                    side_effect=RuntimeError("db unavailable"),
-                ),
-                patch.object(mod, "list_workspaces", return_value=[]),
             ):
                 resp = await self.client.post(
                     "/api/user/workflow/archive",
@@ -99,9 +84,9 @@ class UserWorkflowApiTest(AioHTTPTestCase):
             payload = await resp.json()
             archive = payload["archive"]
             assert archive["tasker"]["copied_files"] >= 1
-            assert archive["appflowy_sidecar"]["errors"]
+            assert "appflowy_sidecar" not in archive
 
-    async def test_reset_succeeds_and_seeds_when_appflowy_is_degraded(self):
+    async def test_reset_succeeds_and_seeds_without_appflowy(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
             logs_dir = root / "logs"
@@ -125,12 +110,6 @@ class UserWorkflowApiTest(AioHTTPTestCase):
                     "default_tasker_dir",
                     return_value=tasker_dir,
                 ),
-                patch.object(
-                    mod,
-                    "discover_databases",
-                    side_effect=RuntimeError("db unavailable"),
-                ),
-                patch.object(mod, "list_workspaces", return_value=[]),
                 patch(
                     "app.services.workflow_manager.WorkflowManager",
                     return_value=_StubManager(),
@@ -145,7 +124,7 @@ class UserWorkflowApiTest(AioHTTPTestCase):
             payload = await resp.json()
             assert payload["seed"]["tasks"]["created_count"] == 4
             assert payload["seed"]["workflows"]["created_count"] == 2
-            assert payload["cleared"]["appflowy_sidecar"]["errors"]
+            assert "appflowy_sidecar" not in payload["cleared"]
 
             seeded_files = payload["seed"]["tasks"]["created"]
             assert len(seeded_files) == 4

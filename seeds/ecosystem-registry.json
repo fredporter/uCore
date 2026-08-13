@@ -55,12 +55,12 @@
         "name": "Brain Sync",
         "skill_id": "brain_sync",
         "category": "assist",
-        "description": "Synthesize recent project changes, spool activity, and  AppFlowy events into private wisdom. Also provides  tasker/devlog bridge actions (sync, read, write, archive, purge",
+        "description": "Synthesize recent project changes, spool activity, and vault changes into private wisdom. Also provides tasker/devlog bridge actions (sync, read, write, archive, purge",
         "params": [
           {
             "name": "action",
             "type": "string",
-            "description": "Include AppFlowy activity summary in private wisdom"
+            "description": "Include vault activity summary in private wisdom"
           },
           {
             "name": "include_test_failures",

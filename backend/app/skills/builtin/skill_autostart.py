@@ -88,25 +88,14 @@ def is_server_installed() -> bool:
     return os.path.exists(plist_path)
 
 
-def is_appflowy_data_available() -> bool:
-    """Check if AppFlowy data directory exists (self-hosted)."""
-    try:
-        from app.af_manager.config import get_appflowy_data_dir, load_config
-        from app.secret.store import SecretStore
-
-        # Check secret store first (preferred)
-        store = SecretStore()
-        store.load()
-        data_dir = store.get("appflowy_data_dir")
-
-        if not data_dir:
-            # Fallback to config file
-            config = load_config()
-            data_dir = get_appflowy_data_dir(config)
-
-        return Path(data_dir).expanduser().exists()
-    except Exception:
-        return False
+def vault_layers_available() -> dict[str, bool]:
+    """Check which vault layers exist on disk."""
+    home = Path.home()
+    return {
+        "user": (home / "Vault").is_dir(),
+        "shared": (home / "Shared").is_dir(),
+        "public": (home / "Public").is_dir(),
+    }
 
 
 def start_backend() -> bool:
@@ -180,10 +169,8 @@ def check_and_start_services() -> dict[str, Any]:
     results["server_plist"]["installed"] = is_server_installed()
     results["menu_plist"]["installed"] = is_menu_installed()
 
-    # Check AppFlowy integration
-    results["appflowy"] = {
-        "data_available": is_appflowy_data_available(),
-    }
+    # Check vault layers
+    results["vaults"] = vault_layers_available()
 
     return results
 
@@ -247,12 +234,13 @@ def _get_recommendations(services: dict) -> list[str]:
     if not menu_ok:
         recs.append("Menu failed to start - check logs")
 
-    # AppFlowy recommendations
-    appflowy = services.get("appflowy", {})
-    if not appflowy.get("data_available", False):
+    # Vault layer recommendations
+    vaults = services.get("vaults", {})
+    missing = [name for name, exists in vaults.items() if not exists]
+    if missing:
         recs.append(
-            "AppFlowy data not found - ensure AppFlowy is installed and "
-            "sync_config.yaml points to correct data_dir"
+            "Create missing vault directories: "
+            + ", ".join(f"~/{name.title()}" for name in missing)
         )
 
     return recs

@@ -1,7 +1,7 @@
-"""Local-first AppFlowy SQLite integration helpers.
+"""Safe local SQLite helpers for uDos (no external apps).
 
-This module intentionally avoids cloud dependencies and operates only on local
-SQLite databases discovered on disk.
+Discovers uDos-managed SQLite databases on disk and provides
+read/write-guarded query helpers.
 """
 from __future__ import annotations
 
@@ -18,7 +18,9 @@ from typing import Any
 SPOOL_PATH = Path(
     os.getenv("UCORE_SNACKS_REPLIES", "~/.local/share/snackmachine/replies.jsonl"),
 ).expanduser()
-BACKUP_DIR = Path(os.getenv("UCORE_APPFLOWY_BACKUPS", "~/.ucore/backups/appflowy")).expanduser()
+BACKUP_DIR = Path(os.getenv("UCORE_DB_BACKUPS", "~/.ucore/backups/db")).expanduser()
+
+UCORE_DIR = Path.home() / ".ucore"
 
 
 def _utc_now() -> str:
@@ -37,7 +39,6 @@ def _spool_lock_file():
             yield
             fcntl.flock(f.fileno(), fcntl.LOCK_UN)
         except Exception:
-            # Best-effort fallback if fcntl is unavailable.
             yield
 
 
@@ -49,39 +50,25 @@ def spool_event(event: dict[str, Any]) -> None:
 
 
 def discover_databases() -> dict[str, str]:
-    """Discover known local AppFlowy sqlite locations.
+    """Discover uDos-managed local SQLite databases on disk.
 
-    Supports both explicit local-first path and desktop app support paths.
+    ``database`` is an alias for the unified library index so existing
+    callers that pass ``db="database"`` keep working.
     """
     found: dict[str, str] = {}
 
-    # Local-first path mentioned in integration checklist.
-    candidate_db = Path.home() / "AppFlowy/data/database.sqlite"
-    candidate_chat = Path.home() / "AppFlowy/data/chat.sqlite"
-    if candidate_db.exists():
-        found["database"] = str(candidate_db)
-    if candidate_chat.exists():
-        found["chat"] = str(candidate_chat)
+    library_db = UCORE_DIR / "indices" / "library.db"
+    if library_db.exists():
+        found["library"] = str(library_db)
+        found["database"] = str(library_db)
 
-    # Desktop AppFlowy flutter path fallback.
-    base = Path.home() / "Library/Application Support/com.appflowy.appflowy.flutter"
-    cloud_dir = base / "data_beta.appflowy.cloud"
-    local_dir = base / "data"
+    budget_db = UCORE_DIR / "indices" / "budget.db"
+    if budget_db.exists():
+        found["budget"] = str(budget_db)
 
-    if cloud_dir.exists():
-        for sub in sorted(cloud_dir.iterdir()):
-            db = sub / "flowy-database.db"
-            if db.exists() and "database" not in found:
-                found["database"] = str(db)
-            vec = sub / "vector.db"
-            if vec.exists() and "vector" not in found:
-                found["vector"] = str(vec)
-
-    if local_dir.exists():
-        for sub in sorted(local_dir.iterdir()):
-            db = sub / "flowy-database.db"
-            if db.exists() and "database" not in found:
-                found["database"] = str(db)
+    knowledge_db = UCORE_DIR / "knowledge" / "shared.db"
+    if knowledge_db.exists():
+        found["knowledge"] = str(knowledge_db)
 
     return found
 
@@ -119,7 +106,12 @@ def _backup_db(db_path: str) -> str:
     return str(dst)
 
 
-def run_query(db_path: str, sql: str, params: list[Any] | None = None, write: bool = False) -> dict[str, Any]:
+def run_query(
+    db_path: str,
+    sql: str,
+    params: list[Any] | None = None,
+    write: bool = False,
+) -> dict[str, Any]:
     params = params or []
 
     if write:
@@ -143,7 +135,7 @@ def run_query(db_path: str, sql: str, params: list[Any] | None = None, write: bo
 
     spool_event(
         {
-            "type": "appflowy_sqlite_query",
+            "type": "sqlite_query",
             "status": "success",
             "db_path": db_path,
             "write": write,
@@ -154,48 +146,3 @@ def run_query(db_path: str, sql: str, params: list[Any] | None = None, write: bo
         },
     )
     return result
-
-
-def export_to_vault(vault_dir: str = "~/vault/@appflowy", limit_per_table: int = 2000) -> dict[str, Any]:
-    dbs = discover_databases()
-    out_base = Path(vault_dir).expanduser()
-    out_base.mkdir(parents=True, exist_ok=True)
-
-    exported: list[dict[str, Any]] = []
-
-    for key, db_path in dbs.items():
-        db_out = out_base / key
-        db_out.mkdir(parents=True, exist_ok=True)
-
-        try:
-            tables = list_tables(db_path)
-        except Exception as exc:
-            exported.append({"database": key, "error": str(exc)})
-            continue
-
-        with _connect(db_path) as conn:
-            for table in tables:
-                rows = conn.execute(f'SELECT * FROM "{table}" LIMIT ?', (limit_per_table,)).fetchall()
-                out_file = db_out / f"{table}.jsonl"
-                with out_file.open("w", encoding="utf-8") as f:
-                    for row in rows:
-                        f.write(json.dumps(dict(row), ensure_ascii=True) + "\n")
-                exported.append(
-                    {
-                        "database": key,
-                        "table": table,
-                        "rows": len(rows),
-                        "file": str(out_file),
-                    },
-                )
-
-    spool_event(
-        {
-            "type": "appflowy_export",
-            "status": "success",
-            "vault_dir": str(out_base),
-            "count": len(exported),
-        },
-    )
-
-    return {"vault_dir": str(out_base), "exports": exported, "count": len(exported)}

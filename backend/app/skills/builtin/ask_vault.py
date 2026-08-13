@@ -1,7 +1,7 @@
-"""ask_vault — Query AppFlowy knowledge base via the knowledge bridge.
+"""ask_vault — Query the filesystem vaults via the knowledge bridge.
 
-This skill allows users/agents to query AppFlowy workspaces, documents,
-and semantic search results through the uCore knowledge API.
+This skill allows users/agents to query vault layers (user/shared/public),
+documents, and search results through the uCore knowledge API.
 
 Usage:
   POST /api/skills/ask_vault/run
@@ -9,7 +9,7 @@ Usage:
 """
 from __future__ import annotations
 
-from app.knowledge.appflowy import (
+from app.knowledge.vault import (
     get_document_content,
     list_documents,
     list_workspaces,
@@ -22,7 +22,7 @@ class AskVault(BaseSkill):
     meta = SkillMeta(
         id="ask_vault",
         name="Ask Vault",
-        description="Query AppFlowy knowledge base — search documents, list workspaces, retrieve content",
+        description="Query the filesystem vaults — search documents, list workspaces, retrieve content",
         category="knowledge",
         timeout=30,
         params=[
@@ -36,7 +36,7 @@ class AskVault(BaseSkill):
                 name="workspace_id",
                 type="string",
                 required=False,
-                description="AppFlowy workspace ID (optional)",
+                description="Vault layer ID (user, shared, public) or registered workspace (optional)",
             ),
             SkillParam(
                 name="limit",
@@ -106,5 +106,5 @@ class AskVault(BaseSkill):
                 {"content": r.get("content", "")[:200], "source": r.get("source", "?")}
                 for r in results
             ],
-            "note": "Results are text-based matches from AppFlowy vector metadata. For full vector search, install an embedding model.",
+            "note": "Results are text matches from the vault library index.",
         }

@@ -14,14 +14,12 @@
 | **SystemSnack** | `system_snack.py` | ✅ Working | Health checks, service mgmt. Hardcoded paths to user's machine. |
 | **SurfaceSnack** | `surface_snack.py` | ✅ Working | Surface navigation, auto-starts backend. Hardcoded paths. |
 | **ClipboardSnack** | `clipboard_snack.py` | ✅ Working | Delegates to ObjC menu delegate. Requires macOS. |
-| **AppFlowySyncSnack** | `appflowy_sync_snack.py` | ✅ Working | Vault→AppFlowy sync via af_manager. Depends on AppFlowy DB. |
 | **OllamaSnack** | `ollama_snack.py` | ⚠️ Untested | Ollama model management. Needs Ollama running. |
 
 ### API Snacks (`backend/app/snacks/`)
 
 | Snack | File | Status | Notes |
 |-------|------|--------|-------|
-| **AppFlowyEditorSnack** | `appflowy_editor_snack.py` | ✅ Fixed | Was corrupted (overlapping writes). Reconstructed from docstring + imports. |
 | **DevModeSnack** | `dev_mode_snack.py` | ✅ Working | Dev server start/stop. Hardcoded paths. |
 | **MissionOpsSnack** | `mission_ops_snack.py` | ✅ Working | Mission queue via API. Depends on backend running. |
 | **SpoolMonitorSnack** | `spool_monitor_snack.py` | ✅ Working | Spool error monitoring with macOS notifications. |
@@ -102,11 +100,10 @@
 ## Issues Found & Fixed
 
 ### Fixed
-1. **`appflowy_editor_snack.py`** — File was corrupted with overlapping partial writes (invalid syntax). Reconstructed from docstring, imports, and snack plugin pattern. Uses `af_manager.sync` for vault imports instead of non-existent `appflowy_import`.
+1. **`tasker_bridge.py`** — Restored backward-compat exports and stable markdown rendering.
 
 ### Pre-existing Issues (not fixed)
-1. **`appflowy_editor_snack.py`** — `_sync_from_vault` uses `load_config()` without args; may need a config path. Lazy import of `af_manager` is fine.
-2. **`system_snack.py`** — Hardcoded paths (`/Users/fredbook/Code/uCore/backend`). Not portable.
+1. **`system_snack.py`** — Hardcoded paths (`/Users/fredbook/Code/uCore/backend`). Not portable.
 3. **`dev_mode_snack.py`** — Hardcoded paths. `pkill -f vite` is aggressive.
 4. **`surface_snack.py`** — Hardcoded paths. Auto-starts backend with hardcoded cwd.
 5. **`lint_fix.py` vs `skill_lint_fix.py`** — Two files with similar names; likely duplicates.
@@ -132,4 +129,4 @@
 2. **Consolidate `lint_fix.py` and `skill_lint_fix.py`** — they appear to be duplicates.
 3. **Remove hardcoded paths** from system_snack, dev_mode_snack, surface_snack — use env vars or config.
 4. **Add scheduled skills** or remove the empty `scheduled/` directory.
-5. **Run ruff on all skills** to catch any other syntax errors like the one in appflowy_editor_snack.
+5. **Run ruff on all skills** to catch any other syntax errors.

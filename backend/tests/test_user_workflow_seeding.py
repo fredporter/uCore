@@ -17,15 +17,3 @@ def test_seed_user_tasks_emits_canonical_markdown(tmp_path: Path):
         assert "task:" in text
         assert "binder:" in text
         assert "tags:" in text
-
-
-def test_discover_appflowy_databases_safe_is_non_fatal(monkeypatch):
-    def _boom():
-        raise RuntimeError("db unavailable")
-
-    monkeypatch.setattr(mod, "discover_databases", _boom)
-    dbs, errors = mod._discover_appflowy_databases_safe()
-
-    assert dbs == {}
-    assert errors
-    assert "database_discovery_failed" in errors[0]

@@ -200,7 +200,7 @@ def export_rows_to_tasker(
     body_fields: list[str] | None = None,
     status_field: str = "status",
     id_field: str = "id",
-    source: str = "appflowy",
+    source: str = "local-db",
     dry_run: bool = False,
 ) -> dict[str, Any]:
     body_fields = body_fields or ["description", "notes", "content"]

@@ -7,7 +7,7 @@
 **Status:** Active
 **Component:** uCore backend + brain_sync
 **Purpose:** A unified, searchable log of all uCore ecosystem activity — skill executions,
-system events, AppFlowy operations, clipboard events — exposed as a spool feed for
+system events, vault operations, clipboard events — exposed as a spool feed for
 the clipboard popover Logs tab, brain_sync synthesis, and MCP tools.
 
 ---

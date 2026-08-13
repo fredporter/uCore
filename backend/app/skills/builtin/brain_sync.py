@@ -1,7 +1,7 @@
 """brain_sync — Synthesize recent project memory into private wisdom.
 
 Builds a lightweight local "Brain" layer by reviewing recent project files,
-spool logs, and AppFlowy activity, then refreshing private wisdom with durable
+spool logs, and vault activity, then refreshing private wisdom with durable
 lessons, recent change summaries, and spool activity analysis.
 
 Also provides tasker/devlog bridge actions (sync, read, write, archive, purge)
@@ -14,7 +14,7 @@ Usage:
         "hours": 24,
         "limit": 12,
         "include_spool": true,
-        "include_appflowy": true,
+        "include_vault_activity": true,
         "include_test_failures": true,
         "tasker_dir": ".tasker",
         "devlog_file": "devlog.mcp.yaml",
@@ -61,7 +61,7 @@ class BrainSync(BaseSkill):
         name="Brain Sync",
         description=(
             "Synthesize recent project changes, spool activity, and "
-            "AppFlowy events into private wisdom. Also provides "
+            "vault changes into private wisdom. Also provides "
             "tasker/devlog bridge actions (sync, read, write, archive, purge)."
         ),
         category="assist",
@@ -96,12 +96,12 @@ class BrainSync(BaseSkill):
                 description="Include spool activity summary in private wisdom",
             ),
             SkillParam(
-                name="include_appflowy",
+                name="include_vault_activity",
                 type="boolean",
                 required=False,
                 default=True,
                 description=(
-                    "Include AppFlowy activity summary in private wisdom"
+                    "Include vault activity summary in private wisdom"
                 ),
             ),
             SkillParam(
@@ -183,7 +183,7 @@ class BrainSync(BaseSkill):
         hours = max(1, int(kwargs.get("hours", 24)))
         limit = max(1, int(kwargs.get("limit", 12)))
         include_spool = bool(kwargs.get("include_spool", True))
-        include_appflowy = bool(kwargs.get("include_appflowy", True))
+        include_vault_activity = bool(kwargs.get("include_vault_activity", True))
         include_test_failures = bool(kwargs.get("include_test_failures", True))
         include_episodic = bool(kwargs.get("include_episodic", True))
         cutoff = datetime.now(UTC) - timedelta(hours=hours)
@@ -191,9 +191,9 @@ class BrainSync(BaseSkill):
         recent_files = self._collect_recent_files(cutoff=cutoff, limit=limit)
         existing_sections = self._load_existing_sections()
         spool_summary = summarize_spool(hours=hours) if include_spool else None
-        appflowy_summary = (
-            self._get_appflowy_activity(hours=hours)
-            if include_appflowy
+        vault_activity_summary = (
+            self._get_vault_activity(hours=hours)
+            if include_vault_activity
             else None
         )
         test_failures = (
@@ -211,7 +211,7 @@ class BrainSync(BaseSkill):
             recent_files=recent_files,
             existing_sections=existing_sections,
             spool_summary=spool_summary,
-            appflowy_summary=appflowy_summary,
+            vault_activity_summary=vault_activity_summary,
             test_failures=test_failures,
             episodic_summary=episodic_summary,
             hours=hours,
@@ -226,7 +226,7 @@ class BrainSync(BaseSkill):
             "hours": hours,
             "limit": limit,
             "include_spool": include_spool,
-            "include_appflowy": include_appflowy,
+            "include_vault_activity": include_vault_activity,
             "include_test_failures": include_test_failures,
             "wisdom_path": str(wisdom_path),
             "recent_files": [
@@ -235,7 +235,7 @@ class BrainSync(BaseSkill):
             ],
             "count": len(recent_files),
             "spool_included": spool_summary is not None,
-            "appflowy_included": appflowy_summary is not None,
+            "vault_activity_included": vault_activity_summary is not None,
             "test_failures_included": bool(test_failures),
             "test_failure_count": len(test_failures),
             "episodic_included": episodic_summary is not None,
@@ -509,35 +509,26 @@ class BrainSync(BaseSkill):
                 durable.append(line.strip())
         return durable
 
-    def _get_appflowy_activity(self, *, hours: int) -> str | None:
-        """Check AppFlowy local DB for recent activity."""
-        try:
-            from app.knowledge.local_first import discover_databases, run_query
-
-            dbs = discover_databases()
-            db_path = dbs.get("database")
-            if not db_path:
-                return None
-
-            result = run_query(
-                db_path=db_path,
-                sql="SELECT name, COUNT(*) as updates FROM row_table "
-                    "WHERE updated_at >= datetime('now', ?) "
-                    "GROUP BY name ORDER BY updates DESC LIMIT 10",
-                params=[f"-{hours} hours"],
-                write=False,
-            )
-            rows = result.get("rows", [])
-            if not rows:
-                return f"No AppFlowy activity in the last {hours}h."
-            lines = [
-                f"- {row.get('name', 'unknown')}: "
-                f"{row.get('updates', 0)} updates"
-                for row in rows
-            ]
-            return "\n".join(lines)
-        except Exception:
-            return None
+    def _get_vault_activity(self, *, hours: int) -> str | None:
+        """Summarize recently modified files across the vault layers."""
+        cutoff = datetime.now(UTC) - timedelta(hours=hours)
+        cutoff_ts = cutoff.timestamp()
+        roots = [Path.home() / "Vault", Path.home() / "Shared", Path.home() / "Public"]
+        recent: list[str] = []
+        for root in roots:
+            if not root.exists():
+                continue
+            for md in root.rglob("*.md"):
+                if len(recent) >= 10:
+                    break
+                try:
+                    if md.stat().st_mtime >= cutoff_ts:
+                        recent.append(str(md))
+                except Exception:
+                    continue
+        if not recent:
+            return f"No vault changes in the last {hours}h."
+        return "\n".join(f"- {p}" for p in recent)
 
     def _collect_test_failures(
         self,
@@ -630,7 +621,7 @@ class BrainSync(BaseSkill):
         recent_files: list[Path],
         existing_sections: list[str],
         spool_summary: str | None = None,
-        appflowy_summary: str | None = None,
+        vault_activity_summary: str | None = None,
         test_failures: list[str] | None = None,
         episodic_summary: str | None = None,
         hours: int = 24,
@@ -659,7 +650,7 @@ class BrainSync(BaseSkill):
             "",
             "## Memory Architecture",
             "- Short-term: active AI/chat session context.",
-            "- Long-term: AppFlowy, vault, and canonical docs.",
+            "- Long-term: vault and canonical docs.",
             "- Episodic: private wisdom, spool logs, and recent change "
             "summaries.",
             "",
@@ -667,8 +658,8 @@ class BrainSync(BaseSkill):
             f"- Window: last {hours}h",
             "- Spool summary: "
             f"{'included' if spool_summary else 'not included'}",
-            "- AppFlowy activity: "
-            f"{'included' if appflowy_summary else 'not included'}",
+            "- Vault activity: "
+            f"{'included' if vault_activity_summary else 'not included'}",
             f"- Test failures: {len(test_failures or [])} signals",
             "- Episodic log: "
             f"{'included' if episodic_summary else 'not included'}",
@@ -684,12 +675,12 @@ class BrainSync(BaseSkill):
         if spool_summary:
             parts.extend(["", spool_summary])
 
-        if appflowy_summary:
+        if vault_activity_summary:
             parts.extend([
                 "",
-                f"## AppFlowy Activity (last {hours}h)",
+                f"## Vault Activity (last {hours}h)",
                 "",
-                appflowy_summary,
+                vault_activity_summary,
             ])
 
         if test_failures:

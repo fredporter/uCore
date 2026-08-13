@@ -1,5 +1,5 @@
-"""Knowledge bridge — AppFlowy integration for uCore."""
-from .appflowy import (
+"""Knowledge bridge — filesystem vault search for uCore."""
+from .vault import (
     get_document,
     get_document_content,
     list_documents,

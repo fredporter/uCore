@@ -220,7 +220,7 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
     required: false,
     icon: "folder_special",
     activation_required: false,
-    description: "Vault topology & AppFlowy bridge",
+    description: "Vault topology & library index",
   },
   {
     id: "udos-agents",

@@ -52,9 +52,6 @@ from PyObjCTools import AppHelper
 
 # Import snack registry and plugins
 from app.menu.backend_manager import ensure_backend_running
-from app.menu.snacks.appflowy_sync_snack import (
-    register as register_appflowy_sync,
-)
 from app.menu.snacks.clipboard_snack import register as register_clipboard
 from app.menu.snacks.ollama_snack import register as register_ollama
 from app.menu.snacks.surface_snack import register as register_surface
@@ -270,7 +267,6 @@ class UnifiedMenuDelegate(NSObject):
         self._ollama_snack = register_ollama(self)
         self._surface_snack = register_surface(self)
         self._system_snack = register_system(self)
-        self._appflowy_sync_snack = register_appflowy_sync(self)
 
         return self
 

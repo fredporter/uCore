@@ -45,7 +45,7 @@ def _title_parts(title: str) -> tuple[str, str]:
 
 
 def project_mission_task_binder(doc: dict[str, Any]) -> dict[str, Any]:
-    """Project an AppFlowy document into mission/task/binder fields.
+    """Project a vault document into mission/task/binder fields.
 
     Field precedence:
     1) metadata/properties mission/task/binder values
@@ -90,5 +90,5 @@ def project_mission_task_binder(doc: dict[str, Any]) -> dict[str, Any]:
         "binder": binder,
         "title": title,
         "updated_at": doc.get("updated_at"),
-        "source": "appflowy",
+        "source": "vault",
     }

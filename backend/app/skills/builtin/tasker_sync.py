@@ -1,4 +1,4 @@
-"""tasker_sync — Export AppFlowy/local rows into Markdown-first task files.
+"""tasker_sync — Export local SQLite rows into Markdown-first task files.
 
 Creates Tasker-style Markdown tasks under a repo-local `.tasker/` directory so
 workflow planning can live beside code and remain human-readable.
@@ -15,7 +15,7 @@ Usage:
 from __future__ import annotations
 
 from app.core.settings import settings
-from app.knowledge.local_first import discover_databases, run_query
+from app.knowledge.sqlite_utils import discover_databases, run_query
 from app.services.tasker_bridge import export_rows_to_tasker
 from app.skills.base import BaseSkill, SkillMeta, SkillParam
 
@@ -28,7 +28,7 @@ class TaskerSync(BaseSkill):
     meta = SkillMeta(
         id="tasker_sync",
         name="Tasker Sync",
-        description="Export AppFlowy/local workflow rows into Markdown task files",
+        description="Export local SQLite workflow rows into Markdown task files",
         category="workflow",
         timeout=120,
         params=[
@@ -82,7 +82,7 @@ class TaskerSync(BaseSkill):
             body_fields=body_fields,
             status_field=status_field,
             id_field=id_field,
-            source="appflowy",
+            source="local-db",
             dry_run=dry_run,
         )
         return {

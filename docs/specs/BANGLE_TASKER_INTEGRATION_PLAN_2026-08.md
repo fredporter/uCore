@@ -22,11 +22,11 @@ Owner: uCore/uDev platform
   - surfaces/developer/DeveloperSurface.vue (UCodeEditor, ProseCodeReader)
 - Chat input lives in the Intelligence surface, not the Developer surface.
 
-### AppFlowy coupling still visible
+### Vault coupling still visible
 
-- Workflow binder panel still names AppFlowy in labels/actions:
+- Workflow binder panel still names the vault layers in labels/actions:
   - surfaces/workflow/panels/BinderPanel.vue
-- Workflow store still reads task status through workflow/user APIs and has AppFlowy status model fields:
+- Workflow store still reads task status through workflow/user APIs and has vault status model fields:
   - stores/workflow.ts
 
 ## 2) Product Decision

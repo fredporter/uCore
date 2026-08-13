@@ -173,13 +173,13 @@ class MCPAPITest(AioHTTPTestCase):
             mcp_api.delete_item = old_delete
 
     async def test_mcp_call_knowledge_list_workspaces(self):
-        from app.knowledge import appflowy
+        from app.knowledge import vault
 
         def fake_list_workspaces():
             return [{"id": "ws_1", "name": "Workspace 1"}]
 
-        old_list_workspaces = appflowy.list_workspaces
-        appflowy.list_workspaces = fake_list_workspaces
+        old_list_workspaces = vault.list_workspaces
+        vault.list_workspaces = fake_list_workspaces
         try:
             resp = await self.client.post("/api/mcp/call", json={
                 "name": "knowledge_list_workspaces",
@@ -191,17 +191,17 @@ class MCPAPITest(AioHTTPTestCase):
             text = data["result"]["content"][0]["text"]
             assert "ws_1" in text
         finally:
-            appflowy.list_workspaces = old_list_workspaces
+            vault.list_workspaces = old_list_workspaces
 
     async def test_mcp_call_knowledge_list_documents(self):
-        from app.knowledge import appflowy
+        from app.knowledge import vault
 
         def fake_list_documents(workspace_id: str | None = None):
             assert workspace_id == "ws_abc"
             return [{"id": "doc_1", "title": "Doc One"}]
 
-        old_list_documents = appflowy.list_documents
-        appflowy.list_documents = fake_list_documents
+        old_list_documents = vault.list_documents
+        vault.list_documents = fake_list_documents
         try:
             resp = await self.client.post("/api/mcp/call", json={
                 "name": "knowledge_list_documents",
@@ -213,10 +213,10 @@ class MCPAPITest(AioHTTPTestCase):
             text = data["result"]["content"][0]["text"]
             assert "doc_1" in text
         finally:
-            appflowy.list_documents = old_list_documents
+            vault.list_documents = old_list_documents
 
     async def test_mcp_call_knowledge_search(self):
-        from app.knowledge import appflowy
+        from app.knowledge import vault
 
         def fake_semantic_search(
             query: str,
@@ -228,8 +228,8 @@ class MCPAPITest(AioHTTPTestCase):
             assert limit == 5
             return [{"id": "row_1", "content": "match"}]
 
-        old_semantic_search = appflowy.semantic_search
-        appflowy.semantic_search = fake_semantic_search
+        old_semantic_search = vault.semantic_search
+        vault.semantic_search = fake_semantic_search
         try:
             resp = await self.client.post("/api/mcp/call", json={
                 "name": "knowledge_search",
@@ -245,7 +245,7 @@ class MCPAPITest(AioHTTPTestCase):
             text = data["result"]["content"][0]["text"]
             assert "row_1" in text
         finally:
-            appflowy.semantic_search = old_semantic_search
+            vault.semantic_search = old_semantic_search
 
     async def test_mcp_call_knowledge_search_missing_query(self):
         resp = await self.client.post("/api/mcp/call", json={

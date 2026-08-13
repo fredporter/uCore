@@ -79,7 +79,7 @@ KNOWN_EXTERNAL: list[dict] = [
         "name": "Vault Topology",
         "kind": "plugin",
         "icon": "folder_special",
-        "description": "Vault topology & AppFlowy bridge",
+        "description": "Vault topology & library index",
         "repo": "udos-vaults",
         "manifest_path": "ucore-extension.json",
         "deps": [],

@@ -8,8 +8,7 @@ Owner: uCore / uDocs migration track
 
 Define one normalized export format that can be produced from:
 
-- AppFlowy local/cloud workspaces
-- Vault markdown files
+- Vault markdown files (user/shared/public layers)
 - Canonical engineering docs
 
 The format must stay simple enough for local-first generation while being
@@ -116,7 +115,7 @@ Every exported document must include:
 Examples:
 
 - `vault:technical/mcp/protocol.md`
-- `appflowy:workspace_123:doc_456`
+- `vault:shared/team-runbook/onboarding.md`
 - `udocs:architecture/overview.md`
 
 ### `canonical_id`
@@ -127,9 +126,9 @@ documents.
 Rules:
 
 1. Prefer the vault-relative path for markdown-canonical documents.
-2. Prefer the AppFlowy object id for AppFlowy-native documents.
-3. If both systems mirror the same document, keep one canonical id and record
-   the other ids in metadata.
+2. Prefer the repo-relative path for canonical engineering docs.
+3. If multiple layers mirror the same document, keep one canonical id and
+   record the other ids in metadata.
 
 ## Front Matter Normalization
 
@@ -267,18 +266,15 @@ Primary inputs:
 - folder-derived tags
 - wiki links in markdown body
 
-### AppFlowy
+### Vault layers
 
 Primary inputs:
 
-- workspace id
-- object id
+- vault layer (user/shared/public)
+- relative filesystem path
 - title
 - document type
-- best-effort text content
-
-AppFlowy exports may have sparse front matter and should still emit the same
-document envelope.
+- markdown content
 
 ### Canonical docs
 
@@ -306,7 +302,7 @@ The first implementation only needs to guarantee:
 This spec is the prerequisite for:
 
 - UDW-014 transform step for AI-efficient structured context
-- better AppFlowy/vault document merge rules
+- better cross-system document merge rules
 - future doc indexing and retrieval pipelines
 - wiki graph and spatial browsing features
 

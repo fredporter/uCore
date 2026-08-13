@@ -316,7 +316,7 @@ Click a task to open it in the editor.
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/api/vault/topology` | GET | List all vault types with existence status |
-| `/api/knowledge/workspaces` | GET | List AppFlowy workspaces |
+| `/api/knowledge/workspaces` | GET | List vault layers and registered workspaces |
 | `/api/knowledge/documents?workspace_id=...` | GET | List documents in a workspace |
 | `/api/knowledge/search?q=...` | GET | Semantic search across vault documents |
 | `/api/knowledge/local/databases` | GET | List local SQLite databases |

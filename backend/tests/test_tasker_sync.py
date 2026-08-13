@@ -14,7 +14,7 @@ def test_export_rows_to_tasker_writes_markdown(tmp_path: Path):
             "id": 42,
             "title": "Ship workflow bridge",
             "status": "todo",
-            "description": "Export markdown tasks from AppFlowy.",
+            "description": "Export markdown tasks from the local database.",
             "notes": "Keep it local-first.",
         },
     ]
@@ -30,7 +30,7 @@ def test_export_rows_to_tasker_writes_markdown(tmp_path: Path):
     text = output.read_text(encoding="utf-8")
     assert "# Ship workflow bridge" in text
     assert "status: todo" in text
-    assert "Export markdown tasks from AppFlowy." in text
+    assert "Export markdown tasks from the local database." in text
 
 
 def test_export_rows_to_tasker_normalizes_aliases(tmp_path: Path):

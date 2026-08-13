@@ -109,7 +109,7 @@ VS Code (Cline) → MCP Bridge → uCore (port 8484)
   │
   ├── Adaptable (moving to dedicated repos)
   │   ├── uFlow — workflow engine, runs, logs, task orchestration
-  │   └── uKnowledge — AppFlowy SQLite + vector DB bridge
+  │   └── uKnowledge — vault search, semantic search, indexing
   │
   └── Plugins (udos-* prefix)
       └── HomeNest/modules/home-ops/udos-home — starter domain plugin module
@@ -123,7 +123,7 @@ VS Code (Cline) → MCP Bridge → uCore (port 8484)
 | -------------- | ------------- | ------------------------------------------ | ------------------- |
 | **uCore**      | host/core     | Platform daemon + extension registry       | `~/Code/uCore`      |
 | **uFlow**      | workflow      | Workflow engine, runs, logs, tasks         | `~/Code/uFlow`      |
-| **uKnowledge** | knowledge     | AppFlowy bridge, semantic search, indexing | `~/Code/uKnowledge` |
+| **uKnowledge** | knowledge     | Vault search, semantic search, indexing | `~/Code/uKnowledge` |
 | **uCode**      | runtime       | Base runtime and core grid/code foundation | `~/Code/uCode`      |
 | **uCode2**     | runtime       | Advanced runtime layer (later extension)   | `~/Code/uCode2`     |
 | **HomeNest**   | plugin (udos) | Home automation + app-layer runtime        | `~/Code/HomeNest`   |
@@ -131,9 +131,9 @@ VS Code (Cline) → MCP Bridge → uCore (port 8484)
 
 ## Editor Strategy
 
-- Dedicated AppFlowy customization inside uCore is deprecated.
+- Dedicated third-party workspace sync inside uCore is deprecated.
 - Vault content should remain portable and work in standard editors such as
-  AppFlowy and Obsidian without uCore-specific lock-in.
+  Obsidian without uCore-specific lock-in.
 - Primary editing happens in the in-product Markdown editor for first-class
   document workflows.
 - Task flows should link to markdown specs/docs when deeper implementation

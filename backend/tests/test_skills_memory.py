@@ -103,7 +103,7 @@ async def test_brain_sync_includes_test_failure_signals(tmp_path: Path):
             hours=24,
             limit=10,
             include_spool=False,
-            include_appflowy=False,
+            include_vault_activity=False,
         )
     finally:
         mod.PROJECT_ROOT = old_root

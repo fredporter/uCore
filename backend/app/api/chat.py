@@ -200,7 +200,7 @@ async def _execute_tool(tool_name: str, arguments: dict) -> str:
         if not query:
             return json.dumps({"error": "query is required"})
         try:
-            from ..knowledge.appflowy import semantic_search
+            from ..knowledge.vault import semantic_search
             results = semantic_search(query, limit=5)
             return json.dumps({"query": query, "results": results, "count": len(results)})
         except ImportError:
@@ -208,7 +208,7 @@ async def _execute_tool(tool_name: str, arguments: dict) -> str:
                 "query": query,
                 "results": [],
                 "count": 0,
-                "note": "AppFlowy knowledge module not available",
+                "note": "Vault knowledge module not available",
             })
 
     if tool_name == "vault_topology":

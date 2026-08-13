@@ -41,7 +41,6 @@ USER_EXCLUDED_BOARDS = {
 USER_SOURCE_HINTS = (
     "seed-user-workflow",
     "user",
-    "appflowy",
     "vault",
 )
 

@@ -1,4 +1,4 @@
-"""DocLang Bridge — Export vault/AppFlowy/canonical docs into unified DocLang + AI context format.
+"""DocLang Bridge — Export vault/canonical docs into unified DocLang + AI context format.
 
 Follows the spec at docs/DOCLANG_BRIDGE_EXPORT_SPEC.md.
 

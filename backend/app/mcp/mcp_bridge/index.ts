@@ -135,7 +135,7 @@ const TOOLS = [
   {
     name: "ucore_search_knowledge",
     description:
-      "Search the uCore knowledge base (AppFlowy bridge) for documents matching a query.",
+      "Search the uCore vault knowledge base for documents matching a query.",
     inputSchema: {
       type: "object",
       properties: {

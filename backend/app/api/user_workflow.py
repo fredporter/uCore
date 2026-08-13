@@ -1,11 +1,10 @@
-"""User Workflow API — markdown-first status and optional AppFlowy health."""
+"""User Workflow API — markdown-first status for the filesystem vaults."""
 from __future__ import annotations
 
 import json
 import logging
 import os
 import re
-import sqlite3
 import subprocess
 import tarfile
 from datetime import UTC, datetime
@@ -17,8 +16,6 @@ from aiohttp import web
 
 from app.api.vault_api import VAULT_LAYERS
 from app.core.settings import settings
-from app.knowledge.appflowy import list_workspaces
-from app.knowledge.local_first import discover_databases
 from app.services.markdown_import_pipeline import convert_content_to_markdown
 from app.services.tasker_bridge import (
     normalize_priority,
@@ -32,14 +29,6 @@ from app.services.workflow_status import default_tasker_dir, scan_tasker_boards
 log = logging.getLogger("ucore.api.user_workflow")
 
 DEFAULT_USER_BINDER = "Sandbox"
-
-
-def _discover_appflowy_databases_safe() -> tuple[dict[str, str], list[str]]:
-    try:
-        return discover_databases(), []
-    except Exception as exc:
-        log.warning("AppFlowy database discovery failed: %s", exc)
-        return {}, [f"database_discovery_failed: {exc}"]
 
 
 def _vault_status() -> dict[str, Any]:
@@ -64,31 +53,6 @@ def _vault_status() -> dict[str, Any]:
         "ready": len(missing) == 0,
         "missing_layers": missing,
         "layers": layers,
-    }
-
-
-def _appflowy_status() -> dict[str, Any]:
-    databases, errors = _discover_appflowy_databases_safe()
-    workspaces: list[dict[str, Any]] = []
-
-    try:
-        workspaces = list_workspaces()
-    except Exception as exc:
-        log.warning("AppFlowy workspace list failed: %s", exc)
-        errors.append(f"workspace_list_failed: {exc}")
-
-    available = bool(databases) and not errors
-    status = "ok" if available else "degraded"
-
-    return {
-        "status": status,
-        "mode": "optional-mirror",
-        "enabled_by_default": True,
-        "available": available,
-        "database_count": len(databases),
-        "workspace_count": len(workspaces),
-        "databases": sorted(databases.keys()),
-        "errors": errors,
     }
 
 
@@ -254,65 +218,6 @@ def _archive_data_dir_tar(out_dir: Path) -> dict[str, Any]:
     return result
 
 
-def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
-    row = conn.execute(
-        (
-            "SELECT name FROM sqlite_master "
-            "WHERE type='table' AND name = ? LIMIT 1"
-        ),
-        (table,),
-    ).fetchone()
-    return bool(row)
-
-
-def _export_appflowy_sidecar_tables(out_dir: Path) -> dict[str, Any]:
-    exports: list[dict[str, Any]] = []
-    dbs, errors = _discover_appflowy_databases_safe()
-    sidecar_dir = out_dir / "appflowy-sidecar"
-    sidecar_dir.mkdir(parents=True, exist_ok=True)
-
-    for key, db_path in dbs.items():
-        db_result: dict[str, Any] = {
-            "database": key,
-            "path": db_path,
-            "exported": [],
-            "errors": [],
-        }
-        try:
-            conn = sqlite3.connect(db_path)
-            conn.row_factory = sqlite3.Row
-            for table in ("ucore_vault_index", "ucore_vault_index_fts"):
-                if not _table_exists(conn, table):
-                    continue
-                rows = conn.execute(f'SELECT * FROM "{table}"').fetchall()
-                out_file = sidecar_dir / f"{key}-{table}.jsonl"
-                with out_file.open("w", encoding="utf-8") as f:
-                    for row in rows:
-                        line = json.dumps(
-                            dict(row),
-                            ensure_ascii=True,
-                        )
-                        f.write(line + "\n")
-                db_result["exported"].append(
-                    {
-                        "table": table,
-                        "rows": len(rows),
-                        "file": str(out_file),
-                    },
-                )
-            conn.close()
-        except Exception as exc:
-            db_result["errors"].append(str(exc))
-
-        exports.append(db_result)
-
-    return {
-        "count": len(exports),
-        "exports": exports,
-        "errors": errors,
-    }
-
-
 def _create_archive_snapshot(reason: str = "manual") -> dict[str, Any]:
     stamp = _utc_stamp()
     base = _archive_base_dir()
@@ -323,7 +228,6 @@ def _create_archive_snapshot(reason: str = "manual") -> dict[str, Any]:
     tasker_snapshot = _copy_tasker_snapshot(tasker_dir, archive_dir)
     workflows_snapshot = _copy_workflow_db(archive_dir)
     data_snapshot = _archive_data_dir_tar(archive_dir)
-    appflowy_sidecar = _export_appflowy_sidecar_tables(archive_dir)
 
     manifest = {
         "created_at": datetime.now(UTC).isoformat(),
@@ -332,7 +236,6 @@ def _create_archive_snapshot(reason: str = "manual") -> dict[str, Any]:
         "tasker": tasker_snapshot,
         "workflows_db": workflows_snapshot,
         "data_dir_tar": data_snapshot,
-        "appflowy_sidecar": appflowy_sidecar,
     }
     manifest_path = archive_dir / "manifest.json"
     manifest_path.write_text(
@@ -374,35 +277,6 @@ def _clear_workflow_db() -> dict[str, Any]:
         "path": str(db_path),
         "existed": existed,
         "removed": existed,
-    }
-
-
-def _clear_appflowy_sidecar_tables() -> dict[str, Any]:
-    dbs, errors = _discover_appflowy_databases_safe()
-    cleared: list[dict[str, Any]] = []
-
-    for key, db_path in dbs.items():
-        result: dict[str, Any] = {
-            "database": key,
-            "path": db_path,
-            "dropped": [],
-            "errors": [],
-        }
-        try:
-            conn = sqlite3.connect(db_path)
-            for table in ("ucore_vault_index_fts", "ucore_vault_index"):
-                conn.execute(f'DROP TABLE IF EXISTS "{table}"')
-                result["dropped"].append(table)
-            conn.commit()
-            conn.close()
-        except Exception as exc:
-            result["errors"].append(str(exc))
-        cleared.append(result)
-
-    return {
-        "count": len(cleared),
-        "results": cleared,
-        "errors": errors,
     }
 
 
@@ -622,7 +496,6 @@ def _reset_and_seed_user_workflow(reason: str) -> dict[str, Any]:
 
     cleared_tasker = _clear_tasker_files(tasker_dir)
     cleared_workflows = _clear_workflow_db()
-    cleared_sidecar = _clear_appflowy_sidecar_tables()
 
     seeded_tasks = _seed_user_tasks(tasker_dir)
     seeded_vault_docs = _seed_user_vault_docs()
@@ -633,7 +506,6 @@ def _reset_and_seed_user_workflow(reason: str) -> dict[str, Any]:
         "cleared": {
             "tasker": cleared_tasker,
             "workflows_db": cleared_workflows,
-            "appflowy_sidecar": cleared_sidecar,
         },
         "seed": {
             "tasks": seeded_tasks,
@@ -654,18 +526,12 @@ async def handle_user_workflow_status(request: web.Request) -> web.Response:
     }
 
     vault = _vault_status()
-    appflowy = _appflowy_status()
 
     next_actions: list[str] = []
     if not vault["ready"]:
         next_actions.append(
             "Create missing vault directories and run initial "
             "Vault sync dry-run.",
-        )
-    if not appflowy["available"]:
-        next_actions.append(
-            "Run AppFlowy diagnostics and continue in "
-            "Markdown-first mode.",
         )
     if not next_actions:
         next_actions.append(
@@ -680,7 +546,6 @@ async def handle_user_workflow_status(request: web.Request) -> web.Response:
             "source_of_truth": "markdown",
             "tasker": tasker_payload,
             "vault": vault,
-            "appflowy": appflowy,
             "next_actions": next_actions,
         },
     )

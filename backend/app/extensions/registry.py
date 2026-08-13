@@ -155,7 +155,7 @@ class ExtensionRegistry:
                 "id": "uknowledge",
                 "name": "Knowledge Bridge",
                 "kind": ExtensionKind.KNOWLEDGE,
-                "description": "AppFlowy bridge, semantic search, knowledge layer, vault indexing",
+                "description": "Vault search, semantic search, knowledge layer, vault indexing",
                 "optional": False,
                 "api_prefix": "/api/knowledge",
                 "entrypoint": "uknowledge.setup",
