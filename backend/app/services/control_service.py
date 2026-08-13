@@ -239,7 +239,7 @@ async def check_slate() -> dict:
 
 async def get_cost_status() -> dict:
     """Get budget/cost status."""
-    data = await _http_get("http://localhost:8484/api/hivemind/llm/cost", timeout=1.0)
+    data = await _http_get("http://localhost:8490/api/hivemind/llm/cost", timeout=1.0)
     if data:
         daily = data.get("daily", {})
         return {
@@ -372,7 +372,7 @@ async def get_ollama_status() -> dict:
 
 async def get_cost_summary() -> dict:
     """Get cost summary (daily, weekly, monthly, top models)."""
-    data = await _http_get("http://localhost:8484/api/hivemind/llm/cost", timeout=1.0)
+    data = await _http_get("http://localhost:8490/api/hivemind/llm/cost", timeout=1.0)
     if data:
         return {
             "daily": data.get("daily", {}),
