@@ -384,6 +384,42 @@ async def handle_docs_mirror_status(_request: web.Request) -> web.Response:
     return web.json_response(mirror_status())
 
 
+async def handle_docs_mirror_push(request: web.Request) -> web.Response:
+    """POST /api/docs/mirror/push - write a mirrored doc back to its repo."""
+    from app.services.docs_mirror import push_to_repo
+
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    repo = str(body.get("repo", "")).strip()
+    path = str(body.get("path", "")).strip()
+    content = body.get("content")
+    if not repo or not path or not isinstance(content, str):
+        return web.json_response(
+            {"error": "repo, path, and content are required"},
+            status=400,
+        )
+
+    result = await asyncio.to_thread(push_to_repo, repo, path, content)
+    if result.get("success"):
+        return web.json_response(result)
+    if "Dev Mode" in str(result.get("error", "")):
+        return web.json_response(result, status=403)
+    return web.json_response(result, status=400)
+
+
+async def handle_docs_mirror_diff(request: web.Request) -> web.Response:
+    """GET /api/docs/mirror/diff/{repo}/{path} - repo-vs-mirror drift."""
+    from app.services.docs_mirror import diff_entry
+
+    repo = request.match_info.get("repo", "")
+    path = request.match_info.get("path", "")
+    result = await asyncio.to_thread(diff_entry, repo, path)
+    return web.json_response(result)
+
+
 def register_documentation_routes(app: web.Application) -> None:
     """Register Documentation surface API routes."""
     app.router.add_get("/api/docs", handle_docs_root)
@@ -402,4 +438,9 @@ def register_documentation_routes(app: web.Application) -> None:
     app.router.add_get("/api/docs/repo-docs", handle_docs_repo_docs)
     app.router.add_post("/api/docs/mirror/sync", handle_docs_mirror_sync)
     app.router.add_get("/api/docs/mirror/status", handle_docs_mirror_status)
+    app.router.add_post("/api/docs/mirror/push", handle_docs_mirror_push)
+    app.router.add_get(
+        "/api/docs/mirror/diff/{repo}/{path:.+}",
+        handle_docs_mirror_diff,
+    )
     log.debug("Documentation API routes registered")

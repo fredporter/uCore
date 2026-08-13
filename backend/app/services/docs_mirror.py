@@ -207,3 +207,146 @@ def mirror_status(mirror_root: Path | None = None) -> dict[str, Any]:
         "total_files": index.get("total_files", 0),
         "sources": index.get("sources", []),
     }
+
+
+def _load_index(mirror_root: Path | None = None) -> dict[str, Any]:
+    root = mirror_root or MIRROR_ROOT
+    index_file = root / "_mirror.json"
+    if not index_file.exists():
+        return {"entries": [], "sources": [], "total_files": 0}
+    try:
+        return json.loads(index_file.read_text(encoding="utf-8"))
+    except Exception:
+        return {"entries": [], "sources": [], "total_files": 0}
+
+
+def get_entry(
+    repo: str,
+    path: str,
+    mirror_root: Path | None = None,
+) -> dict[str, Any] | None:
+    """Return the provenance entry for a source repo + path."""
+    index = _load_index(mirror_root)
+    for entry in index.get("entries", []):
+        if entry.get("source_repo") == repo and entry.get("source_path") == path:
+            return entry
+    return None
+
+
+def _resolve_roots(roots: dict[str, Path] | None) -> dict[str, Path]:
+    return dict(roots) if roots is not None else {
+        **CORE_DOC_ROOTS,
+        **discover_extension_doc_roots(),
+    }
+
+
+def is_dev_mode_active() -> bool:
+    """True when the Dev Lane is active (mode != off)."""
+    from app.services.dev_layer import DevMode, get_dev_layer
+
+    return get_dev_layer().mode != DevMode.OFF
+
+
+def push_to_repo(
+    repo: str,
+    path: str,
+    content: str,
+    *,
+    require_dev_mode: bool = True,
+    mirror_root: Path | None = None,
+    roots: dict[str, Path] | None = None,
+) -> dict[str, Any]:
+    """Write a mirrored doc back to its source repo (Dev Mode only)."""
+    if require_dev_mode and not is_dev_mode_active():
+        return {
+            "success": False,
+            "error": "Dev Mode required for doc write-back",
+        }
+
+    entry = get_entry(repo, path, mirror_root)
+    if entry is None:
+        return {
+            "success": False,
+            "error": f"No mirror entry for {repo}/{path}",
+        }
+
+    docs_root = _resolve_roots(roots).get(repo)
+    if docs_root is None or not docs_root.is_dir():
+        return {"success": False, "error": f"Source repo not found: {repo}"}
+
+    source_path = entry["source_path"]
+    target = (docs_root / source_path).resolve()
+    try:
+        target.relative_to(docs_root.resolve())
+    except ValueError:
+        return {
+            "success": False,
+            "error": "Refusing to write outside the repo docs root",
+        }
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(content, encoding="utf-8")
+
+    log.info("Docs mirror push-back: %s/%s", repo, source_path)
+    return {
+        "success": True,
+        "repo": repo,
+        "path": source_path,
+        "written": str(target),
+    }
+
+
+def diff_entry(
+    repo: str,
+    path: str,
+    mirror_root: Path | None = None,
+    roots: dict[str, Path] | None = None,
+) -> dict[str, Any]:
+    """Report drift between the mirrored copy and the source repo."""
+    import difflib
+
+    root = mirror_root or MIRROR_ROOT
+    entry = get_entry(repo, path, mirror_root)
+    if entry is None:
+        return {
+            "repo": repo,
+            "path": path,
+            "status": "missing",
+            "has_diff": False,
+            "diff": "",
+        }
+
+    mirror_file = root / entry["mirrored_path"]
+    mirror_text = (
+        mirror_file.read_text(encoding="utf-8", errors="replace")
+        if mirror_file.exists()
+        else ""
+    )
+
+    docs_root = _resolve_roots(roots).get(repo)
+    source_text = ""
+    source_status = "missing"
+    if docs_root and docs_root.is_dir():
+        src = docs_root / entry["source_path"]
+        if src.exists():
+            source_text = src.read_text(encoding="utf-8", errors="replace")
+            source_status = "ok"
+
+    has_diff = mirror_text != source_text
+    diff = "".join(
+        difflib.unified_diff(
+            source_text.splitlines(keepends=True),
+            mirror_text.splitlines(keepends=True),
+            fromfile=f"{repo}/{path} (source)",
+            tofile=f"{repo}/{path} (mirror)",
+        )
+    )
+
+    return {
+        "repo": repo,
+        "path": path,
+        "source_status": source_status,
+        "mirrored": mirror_file.exists(),
+        "has_diff": has_diff,
+        "diff": diff,
+    }

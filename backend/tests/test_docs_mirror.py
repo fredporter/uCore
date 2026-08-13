@@ -47,3 +47,55 @@ def test_mirror_status_empty(tmp_path: Path):
     status = mod.mirror_status(mirror_root=tmp_path / "nope")
     assert status["status"] == "empty"
     assert status["total_files"] == 0
+
+
+def _setup_repo(tmp_path: Path):
+    repo = tmp_path / "Code" / "uCore" / "docs"
+    repo.mkdir(parents=True)
+    (repo / "guide.md").write_text("# Old\n", encoding="utf-8")
+    mirror = tmp_path / "mirror"
+    mod.sync_from_repos(roots={"uCore": repo}, mirror_root=mirror)
+    return repo, mirror
+
+
+def test_push_to_repo_requires_dev_mode(tmp_path, monkeypatch):
+    repo, mirror = _setup_repo(tmp_path)
+
+    monkeypatch.setattr(mod, "is_dev_mode_active", lambda: False)
+    result = mod.push_to_repo(
+        "uCore", "guide.md", "# New\n",
+        mirror_root=mirror, roots={"uCore": repo},
+    )
+
+    assert result["success"] is False
+    assert "Dev Mode" in result["error"]
+    assert (repo / "guide.md").read_text(encoding="utf-8") == "# Old\n"
+
+
+def test_push_to_repo_writes_back_in_dev_mode(tmp_path, monkeypatch):
+    repo, mirror = _setup_repo(tmp_path)
+
+    monkeypatch.setattr(mod, "is_dev_mode_active", lambda: True)
+    result = mod.push_to_repo(
+        "uCore", "guide.md", "# New\n",
+        mirror_root=mirror, roots={"uCore": repo},
+    )
+
+    assert result["success"] is True
+    assert (repo / "guide.md").read_text(encoding="utf-8") == "# New\n"
+
+
+def test_diff_entry_detects_drift(tmp_path):
+    repo, mirror = _setup_repo(tmp_path)
+
+    no_drift = mod.diff_entry(
+        "uCore", "guide.md", mirror_root=mirror, roots={"uCore": repo},
+    )
+    assert no_drift["has_diff"] is False
+
+    (mirror / "uCore" / "guide.md").write_text("# Changed\n", encoding="utf-8")
+    drift = mod.diff_entry(
+        "uCore", "guide.md", mirror_root=mirror, roots={"uCore": repo},
+    )
+    assert drift["has_diff"] is True
+    assert drift["source_status"] == "ok"
