@@ -1,7 +1,7 @@
 # uCore Dev Status Ledger
 
 Status: Active
-Last updated: 2026-07-31
+Last updated: 2026-08-13
 
 ## Purpose
 
@@ -25,22 +25,25 @@ Active planning tasks, checklists, and sprint execution must live under `.tasker
 
 Current active execution program:
 
-1. `.tasker/phases/active-phase-10-ecosystem-hardening-2026-07-31.md`
+1. `.tasker/phases/active-phase-11-docs-mirror-publishing-2026-08-13.md`
 
 This phase controls:
 
-1. core stability gates,
-2. dead-code and legacy-setting cleanup,
-3. identity/story/publishing expansion,
-4. Google and Dreamscape plugin waves,
-5. autonomous dev round sequencing and evidence.
+1. uDos component docs mirroring (Dev Lane — in-repo `docs/` as source of truth),
+2. user published-vault separation (User Lane — never merged with component docs),
+3. two-way sync in Dev Mode,
+4. docs-site build and publish to `docs.udo.guide`.
+
+## Completed Phase
+
+- Phase 10 — Ecosystem Hardening and Autonomous Rounds (all gates checked).
 
 ## Documentation Alignment
 
 Primary planning specs for this phase:
 
-1. `docs/specs/ECOSYSTEM_EXTENDED_DEV_FLOW_2026-07-31.md`
-2. `docs/specs/AUTONOMOUS_DEV_ROUNDS_RUNBOOK.md`
+1. `.tasker/phases/active-phase-11-docs-mirror-publishing-2026-08-13.md`
+2. `docs/DEVELOPER_SURFACE.md` (lane separation rules)
 
 ## Governance
 
