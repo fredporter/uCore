@@ -44,7 +44,7 @@ def start_hivemind() -> None:
     If the port is occupied but unhealthy, skips auto-start.
     Spawned as a child process with atexit cleanup.
     """
-    backend_root = Path(__file__).resolve().parents[1]
+    backend_root = Path(__file__).resolve().parents[2]
     agents_config = backend_root / "config" / "agents.yaml"
     llm_config = backend_root / "config" / "llm_router.yaml"
     host = os.environ.get("UCORE_HIVEMIND_HOST", "127.0.0.1")

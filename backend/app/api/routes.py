@@ -316,15 +316,14 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/editor/save-to-binder", handle_save_to_binder)
     # ── Research Queue (BrowserUI) ──────────────────────────────
     from .research_api import (
-        handle_binder_search, handle_research_enhance,
-        handle_research_list, handle_research_process,
-        handle_research_start, handle_research_status,
-        handle_research_stream, handle_vault_scan,
+        handle_binder_search,
         handle_research_enhance,
         handle_research_list,
         handle_research_process,
         handle_research_start,
         handle_research_status,
+        handle_research_stream,
+        handle_vault_scan,
     )
     app.router.add_post("/api/research/start", handle_research_start)
     app.router.add_get("/api/research/status", handle_research_status)

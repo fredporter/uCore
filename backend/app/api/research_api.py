@@ -129,7 +129,8 @@ async def handle_research_stream(request: web.Request) -> web.StreamResponse:
         },
     )
     await resp.prepare(request)
-    import asyncio, json
+    import asyncio
+    import json
     last_state = None
     for _ in range(60):  # max 60 seconds
         status = await q.status(job_id)
@@ -174,9 +175,9 @@ async def handle_binder_search(request: web.Request) -> web.Response:
 
 async def handle_vault_scan(request: web.Request) -> web.Response:
     """GET /api/research/vault-scan — scan binders for gaps and freshness."""
-    from pathlib import Path
-    from datetime import UTC, datetime, timedelta
     import json
+    from datetime import UTC, datetime, timedelta
+    from pathlib import Path
     vault = Path.home() / "Vault"
     gaps = []
     now = datetime.now(UTC)
