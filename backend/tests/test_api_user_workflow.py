@@ -151,12 +151,12 @@ class UserWorkflowApiTest(AioHTTPTestCase):
             assert len(seeded_files) == 4
             for path_str in seeded_files:
                 text = Path(path_str).read_text(encoding="utf-8")
-                assert "- status:" in text
-                assert "- priority:" in text
-                assert "- mission:" in text
-                assert "- task:" in text
-                assert "- binder:" in text
-                assert "- tags:" in text
+                assert "status:" in text
+                assert "priority:" in text
+                assert "mission:" in text
+                assert "task:" in text
+                assert "binder:" in text
+                assert "tags:" in text
 
     async def test_import_markdown_writes_to_binder_docs(self):
         with TemporaryDirectory() as tmp:

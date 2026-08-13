@@ -233,6 +233,16 @@ class RouteTask(BaseSkill):
 
         return routing
 
+    def _budget_remaining(self) -> float:
+        """Return remaining monthly budget as a float (best effort)."""
+        try:
+            from app.services.budget_manager import BudgetManager
+            status = BudgetManager.get().get_status()
+            monthly = status.get("monthly", {})
+            return float(monthly.get("remaining", 100.0))
+        except Exception:
+            return 100.0
+
     async def run(self, **kwargs) -> dict:
         task = kwargs.get("task", "").strip()
         complexity = kwargs.get("complexity", "auto").strip().lower()
@@ -240,6 +250,9 @@ class RouteTask(BaseSkill):
         risk_level = kwargs.get("risk_level", "low").strip().lower()
         execute = kwargs.get("execute", False)
         target_agent = kwargs.get("target_agent", "auto").strip().lower()
+
+        if complexity not in ("simple", "medium", "complex", "auto"):
+            complexity = "auto"
 
         if not task:
             return {
@@ -271,18 +284,37 @@ class RouteTask(BaseSkill):
             risk_level=risk,
         )
 
-        # Inject backward-compatible fields
-        result.setdefault("execution", {})["mode"] = (
-            "execute" if execute else "advice-only"
-        )
-        result["execution"]["budget_remaining"] = result.get("analytics", {}).get(
-            "total_requests", 100.0
-        )
+        # Backward-compatible enrichment for legacy consumers.
+        analysis = result.setdefault("analysis", {})
+        analysis["detected_complexity"] = analysis.get("complexity", "simple")
+        result["strategy"] = {
+            "tier_allocations": {
+                "simple": {
+                    "provider": "ollama",
+                    "model": "qwen2.5-coder:3b",
+                    "cost": "$0 (local)",
+                },
+                "medium": {
+                    "provider": "openrouter",
+                    "model": "deepseek/deepseek-chat",
+                    "cost": "~$0.01/task",
+                },
+                "complex": {
+                    "provider": "openrouter",
+                    "model": "anthropic/claude-opus",
+                    "cost": "~$0.15/task",
+                },
+            },
+        }
+
+        execution = result.setdefault("execution", {})
+        execution["mode"] = "execute" if execute else "advice-only"
+        execution["budget_remaining"] = self._budget_remaining()
 
         # Execute if requested
         if execute:
             routing = result.get("routing", {})
-            result["execution"]["response"] = await self._execute_task(
+            execution["response"] = await self._execute_task(
                 task, routing
             )
 

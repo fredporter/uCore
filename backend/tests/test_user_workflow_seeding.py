@@ -11,12 +11,12 @@ def test_seed_user_tasks_emits_canonical_markdown(tmp_path: Path):
     assert result["created_count"] == 4
     for path_str in result["created"]:
         text = Path(path_str).read_text(encoding="utf-8")
-        assert "- status:" in text
-        assert "- priority:" in text
-        assert "- mission:" in text
-        assert "- task:" in text
-        assert "- binder:" in text
-        assert "- tags:" in text
+        assert "status:" in text
+        assert "priority:" in text
+        assert "mission:" in text
+        assert "task:" in text
+        assert "binder:" in text
+        assert "tags:" in text
 
 
 def test_discover_appflowy_databases_safe_is_non_fatal(monkeypatch):

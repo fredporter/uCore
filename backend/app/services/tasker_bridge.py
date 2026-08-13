@@ -42,10 +42,11 @@ def normalize_status(value: str) -> str:
 
 
 def normalize_priority(value: str) -> str:
-    key = str(value or "").strip().lower()
+    raw = str(value or "").strip()
+    key = raw.lower()
     if not key:
         return "medium"
-    return PRIORITY_ALIASES.get(key, key)
+    return PRIORITY_ALIASES.get(key, raw)
 
 
 def normalize_tags(value: Any) -> list[str]:
@@ -128,7 +129,7 @@ def render_task_markdown(
     if binder:
         frontmatter["binder"] = binder
     if tags:
-        frontmatter["tags"] = tags
+        frontmatter["tags"] = ", ".join(tags)
     if metadata.get("due"):
         frontmatter["due"] = metadata.get("due")
 

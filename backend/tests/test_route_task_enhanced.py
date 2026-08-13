@@ -71,10 +71,10 @@ class RouteTaskSkillTest(unittest.TestCase):
     def test_run_includes_budget_remaining(self, mock_budget_class):
         """Test budget remaining is included in result."""
         mock_budget = mock.Mock()
-        mock_budget.get_monthly_usage.return_value = {
-            "remaining_budget": 12.50,
+        mock_budget.get_status.return_value = {
+            "monthly": {"remaining": 12.50, "budget": 50.0, "spend": 37.5},
         }
-        mock_budget_class.return_value = mock_budget
+        mock_budget_class.get.return_value = mock_budget
 
         async def _run():
             return await self.skill.run(task="test task")

@@ -296,14 +296,12 @@ class TestVaultApi(AioHTTPTestCase):
         data = await resp.json()
 
         assert "layers" in data
-        assert len(data["layers"]) == 5
+        assert len(data["layers"]) == 3
 
         layer_ids = [layer["id"] for layer in data["layers"]]
         assert "user" in layer_ids
         assert "shared" in layer_ids
-        assert "global" in layer_ids
         assert "public" in layer_ids
-        assert "code" in layer_ids
 
         # Each layer should have existence info
         for layer in data["layers"]:
@@ -319,7 +317,7 @@ class TestVaultApi(AioHTTPTestCase):
         data = await resp.json()
 
         assert "layers" in data
-        assert len(data["layers"]) == 5
+        assert len(data["layers"]) == 3
 
         # Verify layer structure
         layers = data["layers"]

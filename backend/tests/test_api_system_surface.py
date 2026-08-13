@@ -23,12 +23,12 @@ class SystemSurfaceAPITest(AioHTTPTestCase):
         assert "S100" in ids
         assert "S600" in ids
 
-    async def test_list_tools(self):
-        resp = await self.client.get("/api/system/tools")
+    async def test_list_services(self):
+        resp = await self.client.get("/api/system/services")
         assert resp.status == 200
         data = await resp.json()
-        assert "tools" in data
-        assert isinstance(data["tools"], list)
+        assert "services" in data
+        assert isinstance(data["services"], list)
 
     async def test_get_settings(self):
         resp = await self.client.get("/api/system/settings")

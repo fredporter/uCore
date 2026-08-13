@@ -517,11 +517,13 @@ def build_index(
     vault_paths: dict[str, Path] | None = None,
 ) -> dict[str, Any]:
     """Build the unified library index from all vault sources."""
-    paths = dict(vault_paths or VAULT_PATHS)
-    # Include user-registered additional workspaces (vaults/folders).
-    for ws in list_workspaces():
-        if ws.get("source"):
-            paths[ws["source"]] = Path(ws["path"])
+    paths = dict(vault_paths) if vault_paths is not None else dict(VAULT_PATHS)
+    # Include user-registered additional workspaces (vaults/folders)
+    # only for the default full build — not when a caller scopes paths.
+    if vault_paths is None:
+        for ws in list_workspaces():
+            if ws.get("source"):
+                paths[ws["source"]] = Path(ws["path"])
     target_sources = sources or list(paths.keys())
 
     INDEX_DIR.mkdir(parents=True, exist_ok=True)
