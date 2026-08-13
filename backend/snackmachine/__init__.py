@@ -1,4 +1,4 @@
-"""SnackMachine — modular snack registry, scheduler, spool, and MCP knowledge conduit.
+"""SnackMachine — modular snack registry, scheduler, and spool.
 
 Version: 1.0.0
 """

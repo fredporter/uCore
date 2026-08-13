@@ -106,16 +106,24 @@ async def handle_save_to_binder(request: web.Request) -> web.Response:
         return web.json_response({"error": "'content' field required"}, status=400)
 
     try:
-        from app.knowledge.knowledge_layer import KnowledgeLayer
-        layer = KnowledgeLayer()
-        doc_id = await layer.save_document(
+        import re
+
+        from app.services import library_index
+
+        safe_name = re.sub(r"[^a-zA-Z0-9._ -]+", "-", title).strip() or "document"
+        result = library_index.create_workspace_file(
+            source="user",
             title=title,
+            filename=safe_name,
+            binder=body.get("project") or "",
             content=content,
-            tags=body.get("tags", []),
-            project=body.get("project"),
-            source="bangle-editor",
         )
-        return web.json_response({"ok": True, "id": doc_id})
+        return web.json_response({
+            "ok": True,
+            "id": result.get("path"),
+            "path": result.get("path"),
+            "source": "user",
+        })
     except Exception as e:
         log.warning("Save to Binder error: %s", e)
         return web.json_response({"ok": False, "error": str(e)}, status=500)

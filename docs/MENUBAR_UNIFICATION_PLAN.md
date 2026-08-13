@@ -157,7 +157,7 @@ Merge action handlers from both files:
 
 ### Files to Keep
 
-1. **`backend/app/menu/snack_registry.py`** - Core registry (keep)
+1. **`backend/snackmachine/registry.py`** - Core registry (keep)
 2. **`backend/app/menu/snacks/*.py`** - Plugin modules (keep)
 
 ---
