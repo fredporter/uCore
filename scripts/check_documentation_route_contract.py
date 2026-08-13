@@ -3,9 +3,16 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 from collections.abc import Iterable
 
 from aiohttp import web
+
+_BACKEND = Path(__file__).resolve().parents[1] / "backend"
+if _BACKEND.exists() and str(_BACKEND) not in sys.path:
+    sys.path.insert(0, str(_BACKEND))
 
 from app.surfaces.documentation_api import register_documentation_routes
 

@@ -7,6 +7,10 @@ registered method/path pairs match the currently expected knowledge API surface.
 
 from __future__ import annotations
 
+import os
+import sys
+from pathlib import Path
+
 from collections.abc import Iterable
 
 from aiohttp import web
@@ -51,6 +55,14 @@ def _iter_routes(app: web.Application) -> Iterable[tuple[str, str]]:
 
 
 def main() -> int:
+	_hint = os.environ.get(
+		"UCORE_UKNOWLEDGE_PATH",
+		str(Path.home() / "Code" / "uKnowledge"),
+	)
+	_uk = Path(_hint)
+	if _uk.exists() and str(_uk) not in sys.path:
+		sys.path.insert(0, str(_uk))
+
 	try:
 		from uknowledge.routes import register_routes
 	except Exception as exc:

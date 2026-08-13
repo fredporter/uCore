@@ -331,9 +331,9 @@ Click a task to open it in the editor.
 
 | Gap | Status |
 |-----|--------|
-| Chat LLM cannot actually call APIs | System prompt lists them; tool-calling plumbing needed |
-| Workflow tasks don't sync from `.tasker/` to vault | Tasks are hardcoded samples; `.tasker/` sync is next phase |
-| Binder file creation from chat | Not implemented — LLM tells you what to do, can't do it yet |
+| Chat tool-calling (Act mode) | ✅ Implemented — `scrape_web` + `save_to_vault` chat tools (see `FEATURE_SPEC_OPENROUTER_ASK_PLAN_ACT.md`) |
+| Workflow tasks sync from `.tasker/` to vault | Partial — `tasker_sync` skill exports rows; full two-way sync pending |
+| Binder file creation (`binder.json`, `CITATIONS.md`) | ✅ Implemented via BrowserUI research queue |
 | Mission progress auto-update | Not implemented |
 
 ## 9. Lane Separation — Boundary Rules
