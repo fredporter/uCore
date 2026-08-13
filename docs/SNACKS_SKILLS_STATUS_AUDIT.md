@@ -18,11 +18,9 @@
 
 ### API Snacks (`backend/app/snacks/`)
 
-| Snack | File | Status | Notes |
-|-------|------|--------|-------|
-| **DevModeSnack** | `dev_mode_snack.py` | ✅ Working | Dev server start/stop. Hardcoded paths. |
-| **MissionOpsSnack** | `mission_ops_snack.py` | ✅ Working | Mission queue via API. Depends on backend running. |
-| **SpoolMonitorSnack** | `spool_monitor_snack.py` | ✅ Working | Spool error monitoring with macOS notifications. |
+Removed (2026-08-13): `dev_mode_snack.py`, `mission_ops_snack.py`,
+`spool_monitor_snack.py` — dead modules with no importers; their behaviour is
+covered by the Developer surface, the snack queue API, and SnackShack.
 
 ### Snack Template
 
@@ -104,10 +102,8 @@
 
 ### Pre-existing Issues (not fixed)
 1. **`system_snack.py`** — Hardcoded paths (`/Users/fredbook/Code/uCore/backend`). Not portable.
-3. **`dev_mode_snack.py`** — Hardcoded paths. `pkill -f vite` is aggressive.
-4. **`surface_snack.py`** — Hardcoded paths. Auto-starts backend with hardcoded cwd.
-5. **`lint_fix.py` vs `skill_lint_fix.py`** — Two files with similar names; likely duplicates.
-6. **Many skills untested** — 28 of 42 builtin skills are marked ⚠️ Untested. They parse cleanly but have never been executed in this audit.
+2. **`surface_snack.py`** — Hardcoded paths. Auto-starts backend with hardcoded cwd.
+3. **Many skills untested** — many builtin skills are marked ⚠️ Untested. They parse cleanly but have never been executed in this audit.
 
 ---
 
@@ -116,7 +112,7 @@
 | Doc | Alignment Status | Notes |
 |-----|-----------------|-------|
 | `docs/SNACKS_SYSTEM_SPEC.md` | ✅ Aligned | Snack registry, BaseSnack, and menu snacks match spec. |
-| `docs/SPOOL_SPEC.md` | ✅ Aligned | SpoolMonitorSnack uses `spool_reader`. |
+| `docs/SPOOL_SPEC.md` | ✅ Aligned | SnackShack uses `spool_reader`. |
 | `docs/DEVMODE_CODE_ANALYSIS_SKILLS.md` | ✅ Aligned | duplicate-detector, dead-code-archiver, modularisation-planner all exist. |
 | `docs/MCP_SETUP.md` | ✅ Aligned | MCP skills (file_edit_enhancer, tasker_devlog_bridge) match. |
 | `docs/OPTIMIZED_WORKFLOW.md` | ⚠️ Partial | TOON/Flow-LLM skills exist but not as builtin skills. |
@@ -127,6 +123,6 @@
 
 1. **Run the 28 untested skills** through a smoke test to confirm they import and execute without errors.
 2. **Consolidate `lint_fix.py` and `skill_lint_fix.py`** — they appear to be duplicates.
-3. **Remove hardcoded paths** from system_snack, dev_mode_snack, surface_snack — use env vars or config.
+3. **Remove hardcoded paths** from system_snack and surface_snack — use env vars or config.
 4. **Add scheduled skills** or remove the empty `scheduled/` directory.
 5. **Run ruff on all skills** to catch any other syntax errors.
