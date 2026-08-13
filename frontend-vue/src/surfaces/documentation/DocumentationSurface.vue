@@ -105,6 +105,38 @@
           <div v-else class="doc-empty">
             No doc sites found in ~/Public/doc-sites/.
           </div>
+
+          <!-- Component Docs (mirror of in-repo docs/) -->
+          <div class="doc-section doc-section--spaced">
+            <h4 class="doc-section-title">Component Docs</h4>
+            <div v-if="repoDocsLoading" class="doc-loading">
+              <UIcon name="sync" /> Loading component docs...
+            </div>
+            <div v-else-if="repoDocs.length > 0">
+              <div class="doc-section" v-for="repo in repoDocs" :key="repo.repo">
+                <h4 class="doc-repo-title">
+                  <UIcon name="code" />
+                  {{ repo.repo }} — {{ repo.count }} docs
+                </h4>
+                <div class="doc-repo-list">
+                  <div
+                    v-for="doc in repo.docs"
+                    :key="doc.path"
+                    class="doc-repo-row"
+                    role="button"
+                    tabindex="0"
+                    @click="openDoc('mirror', `${repo.repo}/${doc.path}`, doc.name)"
+                    @keydown.enter="openDoc('mirror', `${repo.repo}/${doc.path}`, doc.name)"
+                  >
+                    <UIcon name="description" />
+                    <span class="doc-repo-name">{{ doc.name }}</span>
+                    <code class="doc-mono">{{ doc.path }}</code>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="doc-empty">No component docs found.</div>
+          </div>
         </div>
 
         <!-- Knowledge Tab -->
@@ -118,6 +150,10 @@
                 v-for="section in knowledgeSections"
                 :key="section.id"
                 class="doc-knowledge-card"
+                role="button"
+                tabindex="0"
+                @click="openDoc('knowledge', section.id, section.name)"
+                @keydown.enter="openDoc('knowledge', section.id, section.name)"
               >
                 <div class="doc-knowledge-card-icon">
                   <UIcon name="book_2" />
@@ -125,33 +161,7 @@
                 <div class="doc-knowledge-card-content">
                   <h4 class="doc-knowledge-card-title">{{ section.name }}</h4>
                 </div>
-                <UButton
-                  size="sm"
-                  variant="secondary"
-                  icon="open_in_new"
-                  @click="viewingKnowledge = section.id"
-                  >Browse</UButton
-                >
               </div>
-            </div>
-            <div v-if="viewingKnowledge" class="doc-viewer">
-              <div class="doc-viewer-bar">
-                <span class="doc-viewer-label"
-                  >Knowledge — {{ viewingKnowledge }}</span
-                >
-                <UButton
-                  size="sm"
-                  variant="secondary"
-                  icon="close"
-                  @click="viewingKnowledge = null"
-                  >Close</UButton
-                >
-              </div>
-              <iframe
-                :src="`/api/docs/global-knowledge/${viewingKnowledge}/`"
-                :title="viewingKnowledge"
-                class="doc-frame doc-frame--tall"
-              />
             </div>
           </div>
           <div v-else class="doc-empty">
@@ -161,37 +171,7 @@
 
         <!-- Learning Tab -->
         <div v-else-if="activeTab === 'learning'">
-          <LearningPanel />
-        </div>
-
-        <!-- Repo Docs Tab -->
-        <div v-else-if="activeTab === 'repo-docs'">
-          <div v-if="repoDocsLoading" class="doc-loading">
-            <UIcon name="sync" /> Loading repo documentation...
-          </div>
-          <div v-else-if="repoDocs.length > 0">
-            <div class="doc-section" v-for="repo in repoDocs" :key="repo.repo">
-              <h4 class="doc-section-title">
-                <UIcon name="code" />
-                {{ repo.repo }} — {{ repo.count }} docs
-              </h4>
-              <div class="doc-repo-list">
-                <div
-                  v-for="doc in repo.docs"
-                  :key="doc.path"
-                  class="doc-repo-row"
-                >
-                  <UIcon name="description" />
-                  <span class="doc-repo-name">{{ doc.name }}</span>
-                  <code class="doc-mono">{{ doc.path }}</code>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-else class="doc-empty">
-            No repo documentation found. Ensure uCore, uFlow, uCode, and uKnowledge
-            repos exist under ~/Code/.
-          </div>
+          <LearningPanel @open="onLearningOpen" />
         </div>
 
         <!-- Notebooks Tab -->
@@ -295,6 +275,48 @@
         </div>
       </div>
     </div>
+
+    <transition name="doc-sidepanel">
+      <aside v-if="viewingDoc" class="doc-sidepanel">
+        <div class="doc-sidepanel__bar">
+          <span class="doc-sidepanel__title">{{ viewingDoc.title }}</span>
+          <button
+            class="doc-sidepanel__close"
+            title="Close"
+            @click="viewingDoc = null"
+          >
+            <UIcon name="close" />
+          </button>
+        </div>
+        <div class="doc-sidepanel__body">
+          <div v-if="docLoading" class="doc-loading">
+            <UIcon name="sync" /> Loading...
+          </div>
+          <div v-else-if="viewingDoc.listing" class="doc-sidepanel__listing">
+            <div
+              v-for="item in viewingDoc.listing"
+              :key="item.path"
+              class="doc-sidepanel__row"
+              role="button"
+              tabindex="0"
+              @click="openDoc(viewingDoc.source, item.path, item.name)"
+              @keydown.enter="openDoc(viewingDoc.source, item.path, item.name)"
+            >
+              <UIcon :name="item.is_dir ? 'folder' : 'description'" />
+              <span class="doc-sidepanel__row-name">{{ item.name }}</span>
+            </div>
+            <div v-if="viewingDoc.listing.length === 0" class="doc-empty">
+              Empty folder.
+            </div>
+          </div>
+          <div
+            v-else
+            class="doc-sidepanel__content"
+            v-html="renderDocMarkdown(viewingDoc.content)"
+          />
+        </div>
+      </aside>
+    </transition>
   </div>
 </template>
 
@@ -314,7 +336,6 @@ const TABS = [
   { id: "guide", label: "Guide & Docs", icon: "menu_book" },
   { id: "knowledge", label: "Knowledge", icon: "auto_stories" },
   { id: "learning", label: "Learning", icon: "school" },
-  { id: "repo-docs", label: "Repo Docs", icon: "code" },
   { id: "notebooks", label: "Notebooks", icon: "note" },
   { id: "publish", label: "Publishing", icon: "publish" },
   { id: "api", label: "API Reference", icon: "code" },
@@ -365,7 +386,14 @@ const notebooksLoading = ref(true);
 const exportRunning = ref(false);
 const exportResult = ref<Record<string, any> | null>(null);
 const viewingSite = ref<string | null>(null);
-const viewingKnowledge = ref<string | null>(null);
+const viewingDoc = ref<{
+  title: string;
+  content: string;
+  source: string;
+  path: string;
+  listing?: { name: string; path: string; is_dir: boolean }[];
+} | null>(null);
+const docLoading = ref(false);
 const lastExportAt = ref<string | null>(null);
 
 const docSites = ref<DocSite[]>([]);
@@ -525,6 +553,52 @@ function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function renderDocMarkdown(content: string): string {
+  return content
+    .replace(/^# (.+)$/gm, "<h2>$1</h2>")
+    .replace(/^## (.+)$/gm, "<h3>$1</h3>")
+    .replace(/^### (.+)$/gm, "<h4>$1</h4>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`(.+?)`/g, "<code>$1</code>")
+    .replace(/\n/g, "<br>");
+}
+
+async function openDoc(source: string, path: string, title: string) {
+  viewingDoc.value = { title, content: "", source, path };
+  docLoading.value = true;
+  try {
+    const res = await fetch(
+      `/api/docs/content?source=${encodeURIComponent(source)}&path=${encodeURIComponent(path)}`,
+      { signal: AbortSignal.timeout(8000) },
+    );
+    if (res.ok) {
+      const data = await res.json();
+      viewingDoc.value = {
+        title: data.title || title,
+        content: data.content || "",
+        source,
+        path,
+        listing: data.listing,
+      };
+    } else {
+      viewingDoc.value = { title, content: "Unable to load document.", source, path };
+    }
+  } catch {
+    viewingDoc.value = { title, content: "Unable to load document.", source, path };
+  } finally {
+    docLoading.value = false;
+  }
+}
+
+function onLearningOpen(course: {
+  name: string;
+  path: string;
+  source?: string;
+  title?: string;
+}) {
+  openDoc(course.source || "learning", course.path, course.title || course.name);
 }
 
 async function runExport() {
@@ -802,6 +876,8 @@ onMounted(() => {
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-md);
   min-width: 0;
+  min-height: var(--usx-touch-min);
+  cursor: pointer;
   transition:
     border-color var(--usx-transition-fast),
     transform var(--usx-transition-fast);
@@ -945,6 +1021,20 @@ onMounted(() => {
 }
 
 /* ─── Repo Docs ────────────────────────────────────────────────── */
+.doc-section--spaced {
+  margin-top: var(--usx-spacing-xl);
+}
+
+.doc-repo-title {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  font-size: var(--usx-font-size-base);
+  font-weight: var(--usx-font-weight-semibold);
+  color: var(--usx-color-on-surface);
+  margin: var(--usx-spacing-md) 0 var(--usx-spacing-xs);
+}
+
 .doc-repo-list {
   display: flex;
   flex-direction: column;
@@ -959,6 +1049,8 @@ onMounted(() => {
   padding: var(--usx-spacing-xs) var(--usx-spacing-md);
   border-radius: var(--usx-radius-sm);
   font-size: var(--usx-font-size-sm);
+  cursor: pointer;
+  min-height: var(--usx-touch-min);
 }
 
 .doc-repo-row:hover {
@@ -974,5 +1066,102 @@ onMounted(() => {
 .doc-nb-size {
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
+}
+
+/* ─── Side Panel Viewer ─────────────────────────────────────────── */
+.doc-sidepanel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(480px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--usx-color-surface);
+  border-left: var(--usx-border-width) solid var(--usx-color-border);
+  box-shadow: var(--usx-shadow-lg);
+  z-index: 1000;
+}
+
+.doc-sidepanel__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-md);
+  padding: var(--usx-spacing-md) var(--usx-spacing-lg);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+}
+
+.doc-sidepanel__title {
+  flex: 1;
+  font-size: var(--usx-font-size-base);
+  font-weight: var(--usx-font-weight-semibold);
+  color: var(--usx-color-on-surface);
+}
+
+.doc-sidepanel__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--usx-touch-min);
+  height: var(--usx-touch-min);
+  border: none;
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+  border-radius: var(--usx-radius-full);
+}
+
+.doc-sidepanel__close:hover {
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface);
+}
+
+.doc-sidepanel__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--usx-spacing-md) var(--usx-spacing-lg);
+}
+
+.doc-sidepanel__content {
+  font-size: var(--usx-font-size-base);
+  line-height: var(--usx-line-height-relaxed);
+  color: var(--usx-color-on-surface);
+  overflow-wrap: break-word;
+}
+
+.doc-sidepanel__listing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-xs);
+}
+
+.doc-sidepanel__row {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border-radius: var(--usx-radius-sm);
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface);
+  cursor: pointer;
+  min-height: var(--usx-touch-min);
+}
+
+.doc-sidepanel__row:hover {
+  background: var(--usx-color-surface-variant);
+}
+
+.doc-sidepanel__row-name {
+  flex: 1;
+}
+
+.doc-sidepanel-enter-active,
+.doc-sidepanel-leave-active {
+  transition: transform var(--usx-transition-slow);
+}
+
+.doc-sidepanel-enter-from,
+.doc-sidepanel-leave-to {
+  transform: translateX(100%);
 }
 </style>

@@ -92,35 +92,49 @@ def _extract_frontmatter(markdown: str) -> dict[str, Any]:
 
 
 def _list_courses() -> list[dict[str, Any]]:
-    """Scan ~/Public/learning/ for markdown files with course frontmatter."""
-    if not LEARNING_ROOT.exists() or not LEARNING_ROOT.is_dir():
-        return []
+    """Scan learning, vault, and archived docs for course/guide markdown."""
+    roots: dict[str, Path] = {
+        "learning": LEARNING_ROOT,
+        "vault": Path.home() / "Vault",
+        "archive": Path.home() / "Code" / "uCore" / "docs" / "archive",
+    }
 
     courses: list[dict[str, Any]] = []
-    for md_file in sorted(LEARNING_ROOT.rglob("*.md"), key=lambda p: p.name.lower()):
-        if md_file.name.startswith("."):
+    for source, root in roots.items():
+        if not root.exists() or not root.is_dir():
             continue
-        try:
-            text = md_file.read_text(encoding="utf-8")
-        except Exception:
-            continue
+        for md_file in sorted(
+            root.rglob("*.md"),
+            key=lambda p: p.name.lower(),
+        ):
+            if md_file.name.startswith("."):
+                continue
+            if any(part in (".git", "node_modules") for part in md_file.parts):
+                continue
+            try:
+                text = md_file.read_text(encoding="utf-8")
+            except Exception:
+                continue
 
-        fm = _extract_frontmatter(text)
-        rel_path = str(md_file.relative_to(LEARNING_ROOT))
-
-        course: dict[str, Any] = {
-            "name": md_file.stem.replace("-", " ").replace("_", " ").title(),
-            "path": rel_path,
-            "level": fm.get("level", "basic"),
-            "relevance": int(fm.get("relevance", 50)),
-        }
-        if fm.get("title"):
-            course["title"] = fm["title"]
-        if fm.get("category"):
-            course["category"] = fm["category"]
-        if fm.get("description"):
-            course["description"] = fm["description"]
-        courses.append(course)
+            fm = _extract_frontmatter(text)
+            course: dict[str, Any] = {
+                "name": (
+                    md_file.stem.replace("-", " ")
+                    .replace("_", " ")
+                    .title()
+                ),
+                "path": str(md_file.relative_to(root)),
+                "source": source,
+                "level": fm.get("level", "basic"),
+                "relevance": int(fm.get("relevance", 50)),
+            }
+            if fm.get("title"):
+                course["title"] = fm["title"]
+            if fm.get("category"):
+                course["category"] = fm["category"]
+            if fm.get("description"):
+                course["description"] = fm["description"]
+            courses.append(course)
 
     return courses
 
@@ -420,6 +434,81 @@ async def handle_docs_mirror_diff(request: web.Request) -> web.Response:
     return web.json_response(result)
 
 
+_CONTENT_ROOTS: dict[str, Path] = {
+    "learning": LEARNING_ROOT,
+    "vault": Path.home() / "Vault",
+    "knowledge": GLOBAL_KNOWLEDGE_ROOT,
+    "archive": Path.home() / "Code" / "uCore" / "docs" / "archive",
+    "mirror": Path.home() / ".ucore" / "docs-mirror",
+}
+
+
+def _read_doc_content(source: str, path: str) -> dict[str, Any]:
+    """Read markdown content from a doc source for the side-panel viewer."""
+    root = _CONTENT_ROOTS.get(source)
+    if root is None:
+        return {"error": f"Unknown source: {source}", "status": "not_found"}
+
+    rel = path.strip().lstrip("/")
+    if not rel or ".." in rel.split("/"):
+        return {"error": "Invalid path", "status": "bad_path"}
+
+    target = (root / rel).resolve()
+    try:
+        target.relative_to(root.resolve())
+    except ValueError:
+        return {"error": "Path outside source root", "status": "bad_path"}
+
+    if not target.exists():
+        return {"error": "Not found", "status": "not_found"}
+
+    if target.is_dir():
+        for name in ("README.md", "index.md"):
+            candidate = target / name
+            if candidate.is_file():
+                return _doc_payload(candidate, source, rel)
+        entries: list[dict[str, Any]] = []
+        for p in sorted(target.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower())):
+            if p.name.startswith("."):
+                continue
+            child_rel = f"{rel.rstrip('/')}/{p.name}" if rel else p.name
+            entries.append(
+                {
+                    "name": p.name,
+                    "path": child_rel,
+                    "is_dir": p.is_dir(),
+                }
+            )
+        return {
+            "content": "",
+            "title": target.name.replace("-", " ").replace("_", " ").title(),
+            "path": rel,
+            "source": source,
+            "is_dir": True,
+            "listing": entries,
+        }
+
+    return _doc_payload(target, source, rel)
+
+
+def _doc_payload(file_path: Path, source: str, rel: str) -> dict[str, Any]:
+    return {
+        "content": file_path.read_text(encoding="utf-8", errors="replace"),
+        "title": file_path.stem.replace("-", " ").replace("_", " ").title(),
+        "path": rel,
+        "source": source,
+        "is_dir": False,
+    }
+
+
+async def handle_docs_content(request: web.Request) -> web.Response:
+    """GET /api/docs/content?source=...&path=... - markdown for the viewer."""
+    source = request.query.get("source", "learning")
+    path = request.query.get("path", "")
+    result = await asyncio.to_thread(_read_doc_content, source, path)
+    return web.json_response(result)
+
+
 def register_documentation_routes(app: web.Application) -> None:
     """Register Documentation surface API routes."""
     app.router.add_get("/api/docs", handle_docs_root)
@@ -443,4 +532,5 @@ def register_documentation_routes(app: web.Application) -> None:
         "/api/docs/mirror/diff/{repo}/{path:.+}",
         handle_docs_mirror_diff,
     )
+    app.router.add_get("/api/docs/content", handle_docs_content)
     log.debug("Documentation API routes registered")

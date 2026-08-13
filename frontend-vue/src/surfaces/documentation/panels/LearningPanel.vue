@@ -17,7 +17,15 @@
     </div>
 
     <div v-else class="learning-grid">
-      <div v-for="course in courses" :key="course.path" class="learning-card">
+      <div
+        v-for="course in courses"
+        :key="course.path"
+        class="learning-card"
+        role="button"
+        tabindex="0"
+        @click="emit('open', course)"
+        @keydown.enter="emit('open', course)"
+      >
         <div class="learning-card__icon">
           <UIcon :name="levelIcon(course.level)" />
         </div>
@@ -54,10 +62,13 @@ interface Course {
   title?: string;
   name: string;
   path: string;
+  source?: string;
   level: string;
   relevance: number;
   category?: string;
 }
+
+const emit = defineEmits<{ (e: "open", course: Course): void }>();
 
 const courses = ref<Course[]>([]);
 const loading = ref(true);
@@ -120,6 +131,18 @@ onMounted(loadCourses);
   background: var(--usx-color-surface);
   border-radius: var(--usx-radius-md);
   border: var(--usx-border-width) solid var(--usx-color-border);
+  cursor: pointer;
+  min-height: var(--usx-touch-min);
+  align-items: flex-start;
+  transition:
+    border-color var(--usx-transition-fast),
+    transform var(--usx-transition-fast);
+}
+
+.learning-card:hover,
+.learning-card:focus-visible {
+  border-color: var(--usx-color-primary);
+  transform: translateY(calc(var(--usx-spacing-2) * -1));
 }
 
 .learning-card__icon {

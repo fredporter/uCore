@@ -77,10 +77,10 @@ flowchart TB
 
 ### Wave 3 — Surface lane separation
 
-- [ ] **D3.1** Documentation surface reads from the mirror (not direct repo scan) for component docs
-- [ ] **D3.2** Documentation surface "Repo Docs" tab is Dev-lane-only (hidden/read-only in User lane)
-- [ ] **D3.3** Developer surface: Dev Mode enables edit/reorganize on mirrored docs; User lane is read-only
-- [ ] **D3.4** User vaults stay on the existing Vault/Workflow surfaces — no docs-site coupling
+- [x] **D3.1** Documentation surface serves component docs from the mirror (`GET /api/docs/content?source=mirror&path=<repo>/<path>`); the old `repo-docs` tab is folded into the Guide tab as "Component Docs"
+- [x] **D3.2** Component docs are read-only in the Documentation surface: clicking opens a side-panel viewer (no inline edit); the separate "Repo Docs" tab is removed
+- [ ] **D3.3** Developer surface: Dev Mode enables edit/reorganize on mirrored docs; User lane is read-only (separate surface follow-up)
+- [x] **D3.4** User vaults stay on their own tabs/surfaces: Learning tab scans user `~/Vault` + `~/Public/learning` + `docs/archive` but never writes into the component mirror; mirror `_ensure_allowed` blocks vault paths
 
 ### Wave 4 — docs-site publish pipeline
 
