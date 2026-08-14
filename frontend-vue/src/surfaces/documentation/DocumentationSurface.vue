@@ -15,12 +15,6 @@
       <div class="documentation-content">
         <div class="doc-health-strip">
           <div class="doc-health-item">
-            <span class="doc-health-label">Docs API</span>
-            <UBadge :type="statusType(apiStatus.root)">
-              {{ statusText(apiStatus.root) }}
-            </UBadge>
-          </div>
-          <div class="doc-health-item">
             <span class="doc-health-label">Sites API</span>
             <UBadge :type="statusType(apiStatus.sites)">
               {{ statusText(apiStatus.sites) }}
@@ -36,12 +30,6 @@
             <span class="doc-health-label">Courses API</span>
             <UBadge :type="statusType(apiStatus.courses)">
               {{ statusText(apiStatus.courses) }}
-            </UBadge>
-          </div>
-          <div class="doc-health-item">
-            <span class="doc-health-label">Notebooks API</span>
-            <UBadge :type="statusType(apiStatus.notebooks)">
-              {{ statusText(apiStatus.notebooks) }}
             </UBadge>
           </div>
           <div class="doc-health-item">
@@ -174,65 +162,8 @@
           <LearningPanel @open="onLearningOpen" />
         </div>
 
-        <!-- Notebooks Tab -->
-        <div v-else-if="activeTab === 'notebooks'">
-          <div v-if="notebooksLoading" class="doc-loading">
-            <UIcon name="sync" /> Loading notebooks...
-          </div>
-          <div v-else-if="notebooks.length > 0">
-            <div class="doc-knowledge-grid">
-              <div
-                v-for="nb in notebooks"
-                :key="nb.path"
-                class="doc-knowledge-card"
-              >
-                <div class="doc-knowledge-card-icon">
-                  <UIcon name="code" />
-                </div>
-                <div class="doc-knowledge-card-content">
-                  <h5 class="doc-knowledge-card-title">{{ nb.stem }}</h5>
-                  <code class="doc-mono">{{ nb.path }}</code>
-                  <span class="doc-nb-size">{{ formatSize(nb.size) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-else class="doc-empty">
-            No Jupyter notebooks found in global-knowledge or Vault.
-          </div>
-        </div>
-
         <!-- Publishing Tab -->
         <div v-else-if="activeTab === 'publish'">
-          <div class="doc-stats">
-            <div class="doc-stat">
-              <span class="doc-stat-value">{{ docSites.length }}</span>
-              <span class="doc-stat-label">Sites</span>
-            </div>
-            <div class="doc-stat">
-              <span class="doc-stat-value doc-stat-value--info">{{
-                docSites.filter((s) => s.built).length
-              }}</span>
-              <span class="doc-stat-label">Built</span>
-            </div>
-          </div>
-          <div v-if="docSites.length > 0" class="doc-section">
-            <h4 class="doc-section-title">Site Status</h4>
-            <div class="doc-publish-list">
-              <div
-                v-for="site in docSites"
-                :key="site.id"
-                class="doc-publish-row"
-              >
-                <UIcon name="folder" />
-                <span class="doc-publish-name">{{ site.name }}</span>
-                <UBadge :type="site.built ? 'success' : 'warning'" size="sm">
-                  {{ site.built ? "built" : "needs build" }}
-                </UBadge>
-                <code class="doc-mono">{{ site.path }}</code>
-              </div>
-            </div>
-          </div>
           <div class="doc-section">
             <h4 class="doc-section-title">Export Vault</h4>
             <UButton
@@ -252,24 +183,6 @@
               <span>{{
                 exportResult.error ? exportResult.error : exportResult.message
               }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- API Tab -->
-        <div v-else-if="activeTab === 'api'">
-          <div v-if="apiLoading" class="doc-loading">
-            <UIcon name="sync" /> Loading endpoints...
-          </div>
-          <div v-else class="doc-api-list">
-            <div v-for="ep in apiEndpoints" :key="ep.path" class="doc-api-row">
-              <UBadge
-                :type="ep.method === 'GET' ? 'success' : 'warning'"
-                size="sm"
-                >{{ ep.method }}</UBadge
-              >
-              <code>{{ ep.path }}</code>
-              <span class="doc-api-desc">{{ ep.description }}</span>
             </div>
           </div>
         </div>
@@ -336,9 +249,7 @@ const TABS = [
   { id: "guide", label: "Guide & Docs", icon: "menu_book" },
   { id: "knowledge", label: "Knowledge", icon: "auto_stories" },
   { id: "learning", label: "Learning", icon: "school" },
-  { id: "notebooks", label: "Notebooks", icon: "note" },
   { id: "publish", label: "Publishing", icon: "publish" },
-  { id: "api", label: "API Reference", icon: "code" },
 ];
 
 interface DocSite {
@@ -347,11 +258,6 @@ interface DocSite {
   path: string;
   description?: string;
   built: boolean;
-}
-interface Endpoint {
-  method: string;
-  path: string;
-  description: string;
 }
 interface Section {
   id: string;
@@ -369,20 +275,10 @@ interface RepoDocGroup {
   docs: RepoDocItem[];
   count: number;
 }
-interface NotebookItem {
-  name: string;
-  stem: string;
-  path: string;
-  full_path: string;
-  size: number;
-  mtime: number;
-}
 
 const loading = ref(true);
 const knowledgeLoading = ref(true);
-const apiLoading = ref(true);
 const repoDocsLoading = ref(true);
-const notebooksLoading = ref(true);
 const exportRunning = ref(false);
 const exportResult = ref<Record<string, any> | null>(null);
 const viewingSite = ref<string | null>(null);
@@ -397,36 +293,22 @@ const docLoading = ref(false);
 const lastExportAt = ref<string | null>(null);
 
 const docSites = ref<DocSite[]>([]);
-const apiEndpoints = ref<Endpoint[]>([]);
 const knowledgeSections = ref<Section[]>([]);
 const repoDocs = ref<RepoDocGroup[]>([]);
-const notebooks = ref<NotebookItem[]>([]);
 
 type ApiStatus = "pending" | "ok" | "error";
 
 const apiStatus = ref<{
-  root: ApiStatus;
   sites: ApiStatus;
   knowledge: ApiStatus;
   courses: ApiStatus;
-  notebooks: ApiStatus;
   export: ApiStatus;
 }>({
-  root: "pending",
   sites: "pending",
   knowledge: "pending",
   courses: "pending",
-  notebooks: "pending",
   export: "pending",
 });
-
-const DEFAULT_ENDPOINTS: Endpoint[] = [
-  { method: "GET", path: "/api/status", description: "Server status" },
-  { method: "GET", path: "/api/knowledge", description: "List knowledge" },
-  { method: "POST", path: "/api/chat", description: "Chat" },
-  { method: "GET", path: "/api/chat/stream", description: "Chat SSE" },
-  { method: "GET", path: "/health", description: "Health check" },
-];
 
 async function fetchDocSites() {
   loading.value = true;
@@ -466,31 +348,6 @@ async function fetchKnowledgeSections() {
   knowledgeLoading.value = false;
 }
 
-async function fetchEndpoints() {
-  apiLoading.value = true;
-  try {
-    const res = await fetch(`/api/docs`, { signal: AbortSignal.timeout(3000) });
-    if (res.ok) {
-      const data = await res.json();
-      const eps = data.endpoints || data.routes || [];
-      if (eps.length > 0) {
-        apiEndpoints.value = eps.map((e: any) => ({
-          method: e.method || "GET",
-          path: e.path || e.route || "/",
-          description: e.description || e.doc || "",
-        }));
-      }
-      apiStatus.value.root = "ok";
-    } else {
-      apiStatus.value.root = "error";
-    }
-  } catch {
-    apiStatus.value.root = "error";
-    apiEndpoints.value = DEFAULT_ENDPOINTS;
-  }
-  apiLoading.value = false;
-}
-
 async function probeExportEndpoint() {
   try {
     const res = await fetch(`/api/docs/export`, {
@@ -518,26 +375,6 @@ async function fetchRepoDocs() {
   repoDocsLoading.value = false;
 }
 
-async function fetchNotebooks() {
-  notebooksLoading.value = true;
-  try {
-    const res = await fetch(`/api/docs/notebooks`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      notebooks.value = data.notebooks || [];
-      apiStatus.value.notebooks = "ok";
-    } else {
-      apiStatus.value.notebooks = "error";
-    }
-  } catch {
-    apiStatus.value.notebooks = "error";
-    notebooks.value = [];
-  }
-  notebooksLoading.value = false;
-}
-
 async function probeCoursesEndpoint() {
   try {
     const res = await fetch(`/api/docs/courses`, {
@@ -547,12 +384,6 @@ async function probeCoursesEndpoint() {
   } catch {
     apiStatus.value.courses = "error";
   }
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function renderDocMarkdown(content: string): string {
@@ -639,11 +470,9 @@ function statusText(status: ApiStatus): string {
 onMounted(() => {
   fetchDocSites();
   fetchKnowledgeSections();
-  fetchEndpoints();
   probeExportEndpoint();
   probeCoursesEndpoint();
   fetchRepoDocs();
-  fetchNotebooks();
 });
 </script>
 
@@ -737,51 +566,6 @@ onMounted(() => {
   color: var(--usx-color-on-surface-muted);
   text-transform: uppercase;
   letter-spacing: var(--usx-letter-spacing-wide);
-}
-
-/* ─── Stats ────────────────────────────────────────────────────── */
-.doc-stats {
-  --doc-column-min: calc(var(--usx-touch-min) * 3.75);
-  display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(min(100%, var(--doc-column-min)), 1fr)
-  );
-  gap: var(--usx-spacing-md);
-  min-width: 0;
-}
-
-.doc-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-lg);
-  background: var(--usx-color-surface);
-  border-radius: var(--usx-radius-lg);
-  min-width: 12ch;
-  border: var(--usx-border-width) solid var(--usx-color-border);
-}
-
-.doc-stat-value {
-  font-size: var(--usx-font-size-2xl);
-  font-weight: var(--usx-font-weight-bold);
-  line-height: var(--usx-line-height-tight);
-}
-
-.doc-stat-label {
-  font-size: var(--usx-font-size-base);
-  color: var(--usx-color-on-surface-muted);
-}
-
-.doc-stat-value--info {
-  color: var(--usx-color-primary);
-}
-.doc-stat-value--success {
-  color: var(--usx-color-success);
-}
-.doc-stat-value--warning {
-  color: var(--usx-color-warning);
 }
 
 /* ─── Doc site hero cards ──────────────────────────────────────── */
@@ -950,28 +734,6 @@ onMounted(() => {
 }
 
 /* ─── Publishing ────────────────────────────────────────────────── */
-.doc-publish-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-sm);
-}
-
-.doc-publish-row {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-  background: var(--usx-color-surface);
-  border-radius: var(--usx-radius-sm);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  font-size: var(--usx-font-size-sm);
-}
-
-.doc-publish-name {
-  font-weight: var(--usx-font-weight-medium);
-  flex: 1;
-}
-
 .doc-mono {
   font-family: var(--usx-font-family-mono);
   font-size: var(--usx-font-size-sm);
@@ -988,36 +750,6 @@ onMounted(() => {
   gap: var(--usx-spacing-sm);
   margin-top: var(--usx-spacing-sm);
   font-size: var(--usx-font-size-sm);
-}
-
-/* ─── API ───────────────────────────────────────────────────────── */
-.doc-api-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-xs);
-}
-
-.doc-api-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-  border-radius: var(--usx-radius-sm);
-}
-
-.doc-api-row code {
-  font-family: var(--usx-font-family-mono);
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-primary);
-  min-width: 18ch;
-  overflow-wrap: anywhere;
-}
-
-.doc-api-desc {
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
-  flex: 1;
 }
 
 /* ─── Repo Docs ────────────────────────────────────────────────── */
@@ -1060,12 +792,6 @@ onMounted(() => {
 .doc-repo-name {
   font-weight: var(--usx-font-weight-medium);
   flex: 1;
-}
-
-/* ─── Notebook ─────────────────────────────────────────────────── */
-.doc-nb-size {
-  font-size: var(--usx-font-size-xs);
-  color: var(--usx-color-on-surface-muted);
 }
 
 /* ─── Side Panel Viewer ─────────────────────────────────────────── */
