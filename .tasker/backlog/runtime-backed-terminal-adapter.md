@@ -1,9 +1,10 @@
 # Replace Terminal Demo Shell With Runtime-Backed Adapter
 
-Status: in-progress
+Status: complete
 Priority: P1
 Area: uCode / GridCore / runtime bridge
 Created: 2026-07-18
+Closed: 2026-08-14
 
 ## Current Status
 
@@ -47,3 +48,14 @@ Replace the terminal demo shell with a runtime-backed adapter while keeping Grid
 
 - ANSI/control-sequence handling beyond the initial home/clear-line/clear-screen path.
 - Decide whether standalone `TerminalSurface` should share this adapter or be retired in favor of the uCode Terminal tab.
+
+## Close-out (2026-08-14)
+
+- **Decision:** the standalone `TerminalSurface` is retired — it no longer exists
+  as a frontend component; the uCode Terminal tab (`UCodeSurface.vue`) is the
+  canonical runtime-backed terminal and is browser-verified end-to-end.
+- Acceptance criteria met: runtime-backed (no demo buffer), typed adapter
+  contract, first target (shell/PTY) chosen and documented, GridCore stays a
+  renderer primitive, and a focused PTY integration check passes.
+- Deferred to follow-up: richer ANSI/CSI coverage (current: OSC skip, CSI home,
+  clear-screen, clear-line).

@@ -72,8 +72,10 @@ GET  /api/docs/publish/status     -> {status: ok, total_files: 168}
 
 ## Deferred / Follow-up
 
-- `docs.udo.guide` live deploy: `deploy_site()` is implemented but the site root
-  is not yet a git repo with a Pages remote (owned by `~/Code/udos-publishing`).
-  One-time config step: `git init` + remote, then "Build + Deploy" works.
+- `docs.udo.guide` live deploy: `deploy_site()` now initializes the site git
+  repo, commits, and pushes when a remote is configured
+  (`UDOS_DOCS_DEPLOY_REMOTE` env var or `.deploy-remote` file). The site dir is
+  a git repo with a committed snapshot — only the Pages remote needs to be set
+  (owned by `~/Code/udos-publishing`).
 - uFlow/uKnowledge repos missing under `~/Code` — mirror sync reports them as
   `missing`; they will be picked up automatically when the repos exist.

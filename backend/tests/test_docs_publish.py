@@ -58,12 +58,17 @@ def test_publish_status_not_built(tmp_path: Path):
     assert status["status"] == "not-built"
 
 
-def test_deploy_site_not_a_git_repo(tmp_path: Path):
+def test_deploy_site_initializes_repo_and_commits(tmp_path: Path):
     site = tmp_path / "site"
     site.mkdir()
+    (site / "index.html").write_text("<html></html>", encoding="utf-8")
+
     result = docs_publish.deploy_site(site_root=site)
-    assert result["deployed"] is False
-    assert result["reason"] == "site_root is not a git repository"
+
+    assert result["initialized"] is True
+    assert result["commit"]["ok"] is True
+    assert result["deployed"] is False  # no remote configured
+    assert (site / ".git").is_dir()
 
 
 def test_markdown_to_html_renders_basics():

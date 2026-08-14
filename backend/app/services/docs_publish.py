@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -288,6 +289,9 @@ def build_site(mirror_root: Path | None = None, site_root: Path | None = None) -
 
     (assets_dir / "style.css").write_text(_css(), encoding="utf-8")
 
+    # Keep deploy credentials out of the generated site.
+    (root / ".gitignore").write_text(".deploy-remote\n", encoding="utf-8")
+
     # Sitemap.
     sitemap_rows = ["<li><a href=\"/udos-docs/\">Home</a></li>"]
     for repo in sorted(by_repo):
@@ -323,11 +327,27 @@ def publish_status(site_root: Path | None = None) -> dict[str, Any]:
         return {"status": "error", "site_root": str(root)}
 
 
+def _remote_url(site_root: Path) -> str | None:
+    """Resolve the deploy remote from env or a .deploy-remote file."""
+    env = os.environ.get("UDOS_DOCS_DEPLOY_REMOTE")
+    if env:
+        return env.strip() or None
+    remote_file = site_root / ".deploy-remote"
+    if remote_file.exists():
+        value = remote_file.read_text(encoding="utf-8").strip()
+        return value or None
+    return None
+
+
 def deploy_site(site_root: Path | None = None) -> dict[str, Any]:
-    """Deploy the built site via git (commit + push) if it is a git repo."""
+    """Deploy the built site via git (commit + push).
+
+    Initializes a git repository if none exists, commits the generated
+    site, and pushes when a remote is configured via
+    ``UDOS_DOCS_DEPLOY_REMOTE`` or a ``.deploy-remote`` file.
+    """
     root = site_root or SITE_ROOT
-    if not (root / ".git").exists():
-        return {"deployed": False, "reason": "site_root is not a git repository"}
+    root.mkdir(parents=True, exist_ok=True)
 
     def _run(args: list[str]) -> dict[str, Any]:
         proc = subprocess.run(
@@ -344,16 +364,37 @@ def deploy_site(site_root: Path | None = None) -> dict[str, Any]:
             "ok": proc.returncode == 0,
         }
 
+    initialized = False
+    if not (root / ".git").exists():
+        initialized = _run(["init"])["ok"]
+
     add = _run(["add", "-A"])
     commit = _run(["commit", "-m", f"publish: {datetime.now(UTC).isoformat()}"])
-    if not commit["ok"] and "nothing to commit" not in commit["stdout"] + commit["stderr"]:
-        commit_ok = False
-    else:
-        commit_ok = True
+    commit_ok = commit["ok"] or "nothing to commit" in (
+        commit["stdout"] + commit["stderr"]
+    )
 
-    push = _run(["push"])
+    remote = _remote_url(root)
+    if remote:
+        origin = _run(["remote", "get-url", "origin"])
+        if origin["ok"]:
+            _run(["remote", "set-url", "origin", remote])
+        else:
+            _run(["remote", "add", "origin", remote])
+        push = _run(["push", "-u", "origin", "HEAD"])
+    else:
+        push = {
+            "cmd": "push (skipped)",
+            "exit_code": 0,
+            "stdout": "",
+            "stderr": "no deploy remote configured",
+            "ok": False,
+        }
+
     return {
-        "deployed": push["ok"],
+        "deployed": bool(push.get("ok")),
+        "initialized": initialized,
+        "remote": remote,
         "add": add,
         "commit": {**commit, "ok": commit_ok},
         "push": push,
