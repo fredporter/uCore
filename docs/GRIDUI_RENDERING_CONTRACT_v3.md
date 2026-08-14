@@ -55,16 +55,60 @@ G0Renderer (g0-renderer.ts)         ← Ceefax teletext bitmap pipeline
 
 ## Surface Layout
 
-### UCodeSurface (route: `/ucode`) — 4-tab hub
+### UCodeSurface (route: `/ucode`) — 5-tab hub
 
-| Tab | Cols | Rows | Cell | Font | Char W | Auto-fit | Notes |
-|-----|------|------|------|------|--------|----------|-------|
-| **Terminal** | 40 | 25 | auto (ceiling 100) | `pressstart2p` | cell | Yes | Square, natural |
-| **Teletext** | 40 | 25 | auto (ceiling 100) | `mode7gx3` | G0 bitmap | Yes | Pixel-crisp, G0 pipeline |
-| **Grid Editor** | 24×24 edit + 40×25 layer | auto | selectable via sidebar | — | Yes | Tools, palette, actions left; font/char sidebar right |
-| **Layer Composer** | — | — | — | — | — | Prose stub — under development |
+The uCode surface has five tabs. Each tab is a distinct workflow over the same
+`GridBuffer` data primitive.
 
-### Grid Editor Layout
+| Tab | ID | Cols × Rows | Font | Purpose |
+|-----|----|-------------|------|---------|
+| **Terminal** | `terminal` | 40 × 25 | `pressstart2p` | Runtime-backed PTY terminal — key input forwards to the uCode runtime over WS, output maps into the GridCore canvas buffer |
+| **Teletext** | `teletext` | 40 × 25 | `mode7gx3` | Ceefax/MODE 7 display — G0 block bitmaps + fillText text |
+| **Pixel** | `pixel` | `pixelW × pixelH` (variable) | `pressstart2p` / `mode7gx3` | Per-pixel character designer — draw individual glyphs/sprites with FG/BG palette + char picker |
+| **Grid** | `grid` | `layerCols × layerRows` (variable) | selectable | Layer Editor — edit a full layer as the primary surface (tools, fill/clear, palette, collapsible 40×25 layer) |
+| **Layer** | `layer` | — | — | Layer Composer — spatial/geographical linking of layers (terrain, structures, units); prose stub, under development |
+
+### How the tabs work together
+
+```mermaid
+flowchart LR
+    RUNTIME["uCode runtime (PTY / BBCSDL / Ceefax)"]
+    TERM["Terminal tab"]
+    TEL["Teletext tab"]
+    PIX["Pixel tab"]
+    GRID["Grid tab"]
+    LAYER["Layer tab"]
+    BUF["GridBuffer (GridCell[][])"]
+
+    RUNTIME -->|"WS stream"| TERM
+    RUNTIME -->|"MODE 7 output"| TEL
+    TERM --> BUF
+    TEL --> BUF
+
+    PIX -->|"designs glyphs/sprites"| GRID
+    GRID -->|"tiles glyphs into a layer"| LAYER
+    LAYER -->|"spatial composition"| TEL
+
+    BUF -->|"rendered by <gridui-canvas>"| TERM
+    BUF -->|"rendered by <gridui-canvas>"| TEL
+```
+
+1. **Terminal** and **Teletext** are *display* tabs: they render live `GridBuffer`
+   output produced by the uCode runtime (PTY for Terminal, Ceefax/MODE 7 for
+   Teletext).
+2. **Pixel** is a *character editor*: it designs individual glyphs/sprites with a
+   foreground/background palette and a font chooser (Terminal vs Teletext).
+3. **Grid** is a *layer editor*: it assembles those glyphs into a full layer grid
+   (the primary editing surface), with a collapsible reference layer.
+4. **Layer** is the *composer*: it links multiple layers spatially/geographically
+   (terrain, structures, units) — the top-level orchestration that Pixel and
+   Grid feed into and that Terminal/Teletext ultimately display.
+
+All five share the same `GridBuffer` / `GridCell` primitive and the same
+`<gridui-canvas>` Web Component renderer; the tabs differ only in how they
+produce or consume that buffer.
+
+### Grid (Layer Editor) Layout
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -115,7 +159,7 @@ The G0 renderer pre-renders MODE7GX3 glyphs at 4× on an offscreen canvas, thres
 
 The TELETEXT_BLOCKS set (defined in `gridui-canvas.ts`) determines which characters use G0 vs fillText.
 
-## Font Selector (Grid Editor Sidebar)
+## Font Selector (Grid Tab Sidebar)
 
 The right sidebar provides font/character selection. Font choice applies to both editor and layer canvases.
 
@@ -257,8 +301,8 @@ grid-core/gridui-canvas.ts          ← Canvas 2D renderer (PRIMARY)
        ├── setBuffer(buf)            ← Public API for buffer updates
        └── Supports blink, bold, mosaic modes
 
-vendor/gridui-canvas/GridUICanvasElement.ts  ← CSS Grid span renderer (ALTERNATE)
-  └── Used by standalone /terminal route (TerminalSurface.vue)
+(Removed 2026-08-14: `vendor/gridui-canvas/` — a dead duplicate of the primary
+renderer. uCode's `@udos/viewport-renderer` is the canonical renderer.)
 ```
 
 ## Grid Buffer Type (Canonical)

@@ -38,13 +38,14 @@ All GridCore variables MUST use this prefix:
 
 Initial implementation targets:
 - `frontend-vue/src/surfaces/ucode/UCodeSurface.vue`
-- `frontend-vue/src/grid-core/GridCoreUI.vue`
-- `frontend-vue/src/grid-core/MultiColumnViewer.vue`
-- `frontend-vue/src/grid-core/ProseViewer.vue`
-- `frontend-vue/src/grid-core/SlideViewer.vue`
+- `frontend-vue/src/grid-core/gridui-canvas.ts`
 - `frontend-vue/src/styles/gridcore.css`
 - `frontend-vue/src/main.ts` (contract import)
 - `frontend-vue/src/stores/gridcoreSettings.ts`
+
+> **Note (2026-08-14):** the standalone viewer components (`GridCoreUI.vue`,
+> `MultiColumnViewer.vue`, `ProseViewer.vue`, `SlideViewer.vue`) were removed —
+> uCode's `@udos/viewport-renderer` is the canonical renderer.
 
 ## 4. Variable Contract
 
@@ -163,8 +164,7 @@ Phase 2 progress:
 - scoped to uCode GridCore surface via `.gridcore-surface` class
 - added Phase 2 contract groups for GridCore borders, focus rings, palette swatches, marker geometry, sidebar character grids, and preset popover sizing
 - replaced matching hardcoded uCode internals with `--gridcore-*` variables in `frontend-vue/src/surfaces/ucode/UCodeSurface.vue`
-- extended the contract root to standalone GridCore viewer components
-- replaced Pico/raw presentation styles in `GridCoreUI.vue`, `MultiColumnViewer.vue`, `ProseViewer.vue`, and `SlideViewer.vue`
+- scoped the contract to the uCode GridCore surface chrome (standalone viewer components since removed — uCode's `@udos/viewport-renderer` is canonical)
 - left `palette.ts`, `g0-renderer.ts`, and `gridui-canvas.ts` renderer/data constants out of CSS variableization by design
 
 Phase 3:

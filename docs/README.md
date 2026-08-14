@@ -20,6 +20,15 @@
 | [CLIPBOARD_POPOVER_SURFACE.md](CLIPBOARD_POPOVER_SURFACE.md)           | Clipboard popover surface        |
 | [ADDENDUM_MAC_CLIPBOARD_BUFFER.md](ADDENDUM_MAC_CLIPBOARD_BUFFER.md)   | macOS clipboard buffer           |
 
+## Grid / uCode Architecture
+
+| Doc                                                              | Purpose                                        |
+| ---------------------------------------------------------------- | ---------------------------------------------- |
+| [UCORE_UCODE_ROLE_BOUNDARY.md](UCORE_UCODE_ROLE_BOUNDARY.md)     | uCore (host) vs uCode (runtime) ownership split |
+| [GRIDUI_RENDERING_CONTRACT_v3.md](GRIDUI_RENDERING_CONTRACT_v3.md) | Pixel-exact rendering contract + 5 surface tabs |
+| [GRID_ALGEBRA_COLUMN_SPECS.md](GRID_ALGEBRA_COLUMN_SPECS.md)     | Responsive grid column algebra                 |
+| [specs/GRIDCORE_VARIABLEIZATION_SPEC.md](specs/GRIDCORE_VARIABLEIZATION_SPEC.md) | `--gridcore-*` variable contract |
+
 ## Active Frontend / UI Specs
 
 | Doc                                                                      | Purpose                       |

@@ -257,8 +257,8 @@ grid-core/gridui-canvas.ts          ← Canvas 2D renderer (PRIMARY)
        ├── setBuffer(buf)            ← Public API for buffer updates
        └── Supports blink, bold, mosaic modes
 
-vendor/gridui-canvas/GridUICanvasElement.ts  ← CSS Grid span renderer (ALTERNATE)
-  └── Used by standalone /terminal route (TerminalSurface.vue)
+(Removed 2026-08-14: `vendor/gridui-canvas/` — a dead duplicate of the primary
+renderer. uCode's `@udos/viewport-renderer` is the canonical renderer.)
 ```
 
 ## Grid Buffer Type (Canonical)

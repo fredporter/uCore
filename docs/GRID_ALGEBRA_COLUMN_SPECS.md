@@ -80,34 +80,21 @@ columnSpecTotalWidth(spec: ColumnSpec): string
 
 ## 5. Viewer Modes & Column Behaviours
 
-### ProseViewer (`ProseViewer.vue`)
-- **Purpose:** Traditional scrolling document reading  
-- **Column behaviour:** Auto-resolves via `resolveColumns()`, sets responsive `max-width`  
-- **Single-column:** `1×40ch` centred  
-- **Multi-column:** Uses CSS `columns` property, width calculated from spec  
-- **Slide separators:** Automatically stripped  
+### Column algebra (shared primitive)
 
-### MultiColumnViewer (`MultiColumnViewer.vue`)
-- **Purpose:** Newspaper/magazine grid layout  
-- **Column behaviour:** Auto-resolves via `resolveColumns()`, uses CSS Grid with `grid-template-columns`  
-- **Each column:** Wrapped in card-style container with border and background  
-- **Column count:** 1–4 based on viewport  
+> **Note (2026-08-14):** the standalone viewer components (`ProseViewer.vue`,
+> `MultiColumnViewer.vue`, `SlideViewer.vue`, `GridCoreUI.vue`) were removed from
+> uCore — uCode's `@udos/viewport-renderer` is the canonical renderer. The column
+> algebra functions in `grid-core/algebra.ts` remain the shared
+> responsive-layout primitive.
 
-### SlideViewer (`SlideViewer.vue`)
-- **Purpose:** Marp-style presentation slides  
-- **Column behaviour:** Single slide at a time, navigation controls  
-- **Aspect ratios:** 16:9, 4:3, fill  
-- **Width:** 960px max, responsive padding  
-
-### GridCoreUI (`GridCoreUI.vue`)
-- **Purpose:** Character-grid embeddable widget  
-- **Column behaviour:** Fixed character grid (teletext/terminal style)  
-- **Cell rendering:** Pixel-perfect `canvas` via `gridui-canvas.ts`  
-- **Palette:** 8-colour foreground + background  
+- **Purpose:** Resolve responsive column count / width / gap from viewport width.
+- **Functions:** `resolveColumns()`, `resolveProseWidth()`, `columnSpecToMaxWidth()`, `columnSpecTotalWidth()`.
+- **Consumers:** `UCodeSurface.vue` grid layouts and the uCode viewport renderer.
 
 ### Web Publishing View
 - **Purpose:** Public web publishing (markdown → HTML)  
-- **Column behaviour:** Same responsive spec as ProseViewer  
+- **Column behaviour:** Same responsive spec as the column algebra  
 - **Options:** Full-width scroll, multi-column, or slide view  
 
 ---
