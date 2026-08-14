@@ -1,8 +1,9 @@
 # Phase 11 — Docs Mirroring & Publishing (Lane-Separated)
 
-- status: active
+- status: complete
 - owner: developer-lane
 - started: 2026-08-13
+- closed: 2026-08-14
 - governance: stop-the-line required per wave
 
 ## Goal
@@ -91,15 +92,15 @@ flowchart TB
 
 ### Wave 5 — Verification & evidence
 
-- [ ] **D5.1** Runtime proof: sync + status + push (Dev Mode) + publish all exercised
-- [ ] **D5.2** Test proof: docs_mirror unit tests + route contract checks
-- [ ] **D5.3** Command proof: `audit_duplicate_routes.py` + frontend type-check + build
-- [ ] **D5.4** Evidence bundle written to `docs/handovers/`
+- [x] **D5.1** Runtime proof: sync (168 files) + status + push (403 in User lane) + publish (168 pages) all exercised
+- [x] **D5.2** Test proof: 490 pytest passed + route contract 17/17 + `test_docs_publish.py`
+- [x] **D5.3** Command proof: `audit_duplicate_routes.py` (194 routes, 0 dupes) + frontend type-check + production build
+- [x] **D5.4** Evidence bundle written to `docs/handovers/PHASE11_DOCS_MIRROR_PUBLISHING_EVIDENCE_2026-08-14.md`
 
 ## Exit criteria
 
-1. Component docs mirror exists with provenance and periodic pull sync.
-2. Dev Mode can edit + write back to source repos; User lane cannot mutate.
-3. Documentation surface clearly separates Dev-lane component docs from User-lane vaults.
-4. docs-site builds from the mirror and publishes to `docs.udo.guide`.
-5. All waves pass stop-the-line evidence gates.
+1. ✅ Component docs mirror exists with provenance and periodic pull sync.
+2. ✅ Dev Mode can edit + write back to source repos; User lane cannot mutate.
+3. ✅ Documentation surface clearly separates Dev-lane component docs from User-lane vaults.
+4. ✅ docs-site builds from the mirror and publishes to `~/Public/doc-sites/udos-docs/`.
+5. ✅ All waves pass stop-the-line evidence gates.

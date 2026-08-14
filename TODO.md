@@ -23,20 +23,14 @@ Active planning tasks, checklists, and sprint execution must live under `.tasker
 
 ## Active Program (Canonical Source)
 
-Current active execution program:
+No active phase — Phase 11 completed 2026-08-14. See
+`.tasker/phases/active-phase-11-docs-mirror-publishing-2026-08-13.md` (marked
+complete) and `docs/handovers/PHASE11_DOCS_MIRROR_PUBLISHING_EVIDENCE_2026-08-14.md`.
 
-1. `.tasker/phases/active-phase-11-docs-mirror-publishing-2026-08-13.md`
-
-This phase controls:
-
-1. uDos component docs mirroring (Dev Lane — in-repo `docs/` as source of truth),
-2. user published-vault separation (User Lane — never merged with component docs),
-3. two-way sync in Dev Mode,
-4. docs-site build and publish to `docs.udo.guide`.
-
-## Completed Phase
+## Completed Phases
 
 - Phase 10 — Ecosystem Hardening and Autonomous Rounds (all gates checked).
+- Phase 11 — Docs Mirroring & Publishing (all five waves complete; evidence bundled).
 
 ## Documentation Alignment
 
