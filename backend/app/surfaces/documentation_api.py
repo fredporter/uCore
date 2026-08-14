@@ -434,6 +434,39 @@ async def handle_docs_mirror_diff(request: web.Request) -> web.Response:
     return web.json_response(result)
 
 
+async def handle_docs_publish(request: web.Request) -> web.Response:
+    """POST /api/docs/publish - build (and optionally deploy) the docs site."""
+    from app.services.docs_publish import build_site, deploy_site
+
+    try:
+        body = await request.json() if request.can_read_body else {}
+    except Exception:
+        body = {}
+    deploy = bool(body.get("deploy", False))
+
+    try:
+        build = await asyncio.to_thread(build_site)
+    except Exception as exc:
+        return web.json_response(
+            {"status": "error", "error": str(exc)},
+            status=500,
+        )
+
+    result: dict[str, Any] = {"status": "ok", "build": build, "deployed": False}
+    if deploy:
+        dep = await asyncio.to_thread(deploy_site)
+        result["deploy"] = dep
+        result["deployed"] = bool(dep.get("deployed"))
+    return web.json_response(result)
+
+
+async def handle_docs_publish_status(_request: web.Request) -> web.Response:
+    """GET /api/docs/publish/status - last docs-site publish status."""
+    from app.services.docs_publish import publish_status
+
+    return web.json_response(publish_status())
+
+
 _CONTENT_ROOTS: dict[str, Path] = {
     "learning": LEARNING_ROOT,
     "vault": Path.home() / "Vault",
@@ -533,4 +566,6 @@ def register_documentation_routes(app: web.Application) -> None:
         handle_docs_mirror_diff,
     )
     app.router.add_get("/api/docs/content", handle_docs_content)
+    app.router.add_post("/api/docs/publish", handle_docs_publish)
+    app.router.add_get("/api/docs/publish/status", handle_docs_publish_status)
     log.debug("Documentation API routes registered")

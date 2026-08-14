@@ -185,6 +185,47 @@
               }}</span>
             </div>
           </div>
+
+          <div class="doc-section doc-section--spaced">
+            <h4 class="doc-section-title">Publish Docs Site</h4>
+            <p v-if="publishStatus?.built_at" class="doc-export-msg">
+              Last built: {{ publishStatus.built_at }} ·
+              {{ publishStatus.total_files }} files
+            </p>
+            <div class="doc-actions">
+              <UButton
+                size="sm"
+                variant="primary"
+                icon="publish"
+                :disabled="publishing"
+                @click="runPublish(false)"
+              >
+                {{ publishing ? "Building..." : "Build Docs Site" }}
+              </UButton>
+              <UButton
+                size="sm"
+                variant="secondary"
+                icon="upload"
+                :disabled="publishing"
+                @click="runPublish(true)"
+              >
+                Build + Deploy
+              </UButton>
+            </div>
+            <div v-if="publishResult" class="doc-export-msg">
+              <UBadge
+                :type="publishResult.status === 'error' ? 'error' : 'success'"
+                size="sm"
+              />
+              <span>{{
+                publishResult.status === "error"
+                  ? publishResult.error || "Publish failed"
+                  : "Published " +
+                    (publishResult.build?.rendered_pages ?? 0) +
+                    " pages"
+              }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -320,6 +361,9 @@ const knowledgeLoading = ref(true);
 const repoDocsLoading = ref(true);
 const exportRunning = ref(false);
 const exportResult = ref<Record<string, any> | null>(null);
+const publishStatus = ref<Record<string, any> | null>(null);
+const publishing = ref(false);
+const publishResult = ref<Record<string, any> | null>(null);
 const viewingSite = ref<string | null>(null);
 const viewingDoc = ref<{
   title: string;
@@ -551,6 +595,44 @@ async function runExport() {
   }
 }
 
+async function fetchPublishStatus() {
+  try {
+    const res = await fetch(`/api/docs/publish/status`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.ok) {
+      publishStatus.value = await res.json();
+    }
+  } catch {
+    publishStatus.value = null;
+  }
+}
+
+async function runPublish(deploy = false) {
+  publishing.value = true;
+  publishResult.value = null;
+  try {
+    const res = await fetch(`/api/docs/publish`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deploy }),
+      signal: AbortSignal.timeout(120000),
+    });
+    const data = await res.json();
+    publishResult.value = data;
+    if (res.ok) {
+      await fetchPublishStatus();
+    }
+  } catch (e: any) {
+    publishResult.value = {
+      status: "error",
+      error: e.message || "Publish failed",
+    };
+  } finally {
+    publishing.value = false;
+  }
+}
+
 function statusType(status: ApiStatus): "success" | "warning" | "error" {
   if (status === "ok") return "success";
   if (status === "error") return "error";
@@ -570,6 +652,7 @@ onMounted(() => {
   probeExportEndpoint();
   probeCoursesEndpoint();
   fetchRepoDocs();
+  fetchPublishStatus();
 });
 </script>
 
@@ -847,6 +930,12 @@ onMounted(() => {
   gap: var(--usx-spacing-sm);
   margin-top: var(--usx-spacing-sm);
   font-size: var(--usx-font-size-sm);
+}
+
+.doc-actions {
+  display: flex;
+  gap: var(--usx-spacing-sm);
+  margin-top: var(--usx-spacing-sm);
 }
 
 /* ─── Repo Docs ────────────────────────────────────────────────── */

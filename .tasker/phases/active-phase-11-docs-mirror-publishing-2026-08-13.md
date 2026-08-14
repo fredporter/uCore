@@ -84,10 +84,10 @@ flowchart TB
 
 ### Wave 4 — docs-site publish pipeline
 
-- [ ] **D4.1** Build step: mirror → `~/Public/doc-sites/udos-docs/` (Jekyll)
-- [ ] **D4.2** `POST /api/docs/publish` triggers the build and reports status
-- [ ] **D4.3** Deployment hook for `docs.udo.guide` (git-push or upload contract, per `udos-publishing` ownership)
-- [ ] **D4.4** Route-parity + preflight for the publish endpoints
+- [x] **D4.1** Build step: mirror → `~/Public/doc-sites/udos-docs/` (self-contained static HTML site, USX-styled)
+- [x] **D4.2** `POST /api/docs/publish` (build + optional deploy) and `GET /api/docs/publish/status`
+- [x] **D4.3** Deployment hook `deploy_site()` (git commit + push when the site root is a git repo; best-effort)
+- [x] **D4.4** Route parity + preflight: contract check 17/17, `test_docs_publish.py` unit tests, live build of 168 pages verified
 
 ### Wave 5 — Verification & evidence
 

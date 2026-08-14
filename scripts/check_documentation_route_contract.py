@@ -32,6 +32,8 @@ EXPECTED: set[tuple[str, str]] = {
     ("GET", "/api/docs/mirror/status"),
     ("POST", "/api/docs/mirror/push"),
     ("GET", "/api/docs/mirror/diff/{repo}/{path}"),
+    ("POST", "/api/docs/publish"),
+    ("GET", "/api/docs/publish/status"),
 }
 
 
