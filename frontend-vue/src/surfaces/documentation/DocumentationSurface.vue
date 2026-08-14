@@ -194,6 +194,14 @@
         <div class="doc-sidepanel__bar">
           <span class="doc-sidepanel__title">{{ viewingDoc.title }}</span>
           <button
+            v-if="canEditDoc() && !editingDoc"
+            class="doc-sidepanel__edit"
+            title="Edit in Dev Mode"
+            @click="startEdit"
+          >
+            <UIcon name="edit" />
+          </button>
+          <button
             class="doc-sidepanel__close"
             title="Close"
             @click="viewingDoc = null"
@@ -222,6 +230,35 @@
               Empty folder.
             </div>
           </div>
+          <div v-else-if="editingDoc" class="doc-sidepanel__editor">
+            <textarea
+              v-model="draftContent"
+              class="doc-sidepanel__textarea"
+              spellcheck="false"
+            />
+            <div v-if="saveError" class="doc-sidepanel__error">
+              {{ saveError }}
+            </div>
+            <div class="doc-sidepanel__editor-actions">
+              <UButton
+                size="sm"
+                variant="primary"
+                icon="save"
+                :disabled="savingDoc"
+                @click="saveDoc"
+              >
+                {{ savingDoc ? "Saving..." : "Save to repo" }}
+              </UButton>
+              <UButton
+                size="sm"
+                variant="secondary"
+                icon="close"
+                :disabled="savingDoc"
+                @click="cancelEdit"
+                >Cancel</UButton
+              >
+            </div>
+          </div>
           <div
             v-else
             class="doc-sidepanel__content"
@@ -234,8 +271,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useShellStore } from "../../stores/shell";
+import { useDevModeStore } from "../../stores/devMode";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import UBadge from "../../skills/atoms/UBadge.vue";
 import UButton from "../../skills/atoms/UButton.vue";
@@ -243,6 +281,7 @@ import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import LearningPanel from "./panels/LearningPanel.vue";
 
 const shell = useShellStore();
+const devMode = useDevModeStore();
 const activeTab = ref("guide");
 
 const TABS = [
@@ -290,6 +329,11 @@ const viewingDoc = ref<{
   listing?: { name: string; path: string; is_dir: boolean }[];
 } | null>(null);
 const docLoading = ref(false);
+const editingDoc = ref(false);
+const draftContent = ref("");
+const savingDoc = ref(false);
+const saveError = ref<string | null>(null);
+const isDevMode = computed(() => devMode.showDevContent);
 const lastExportAt = ref<string | null>(null);
 
 const docSites = ref<DocSite[]>([]);
@@ -432,6 +476,58 @@ function onLearningOpen(course: {
   openDoc(course.source || "learning", course.path, course.title || course.name);
 }
 
+function canEditDoc(): boolean {
+  return (
+    isDevMode.value &&
+    viewingDoc.value?.source === "mirror" &&
+    !viewingDoc.value?.listing
+  );
+}
+
+function startEdit() {
+  if (!viewingDoc.value) return;
+  draftContent.value = viewingDoc.value.content;
+  saveError.value = null;
+  editingDoc.value = true;
+}
+
+function cancelEdit() {
+  editingDoc.value = false;
+  draftContent.value = "";
+  saveError.value = null;
+}
+
+async function saveDoc() {
+  if (!viewingDoc.value) return;
+  const [repo, ...rest] = viewingDoc.value.path.split("/");
+  const docPath = rest.join("/");
+  if (!repo || !docPath) {
+    saveError.value = "Invalid mirror path";
+    return;
+  }
+  savingDoc.value = true;
+  saveError.value = null;
+  try {
+    const res = await fetch(`/api/docs/mirror/push`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repo, path: docPath, content: draftContent.value }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      viewingDoc.value.content = draftContent.value;
+      editingDoc.value = false;
+    } else {
+      saveError.value = data.error || `Push failed (${res.status})`;
+    }
+  } catch (e: any) {
+    saveError.value = e.message || "Save failed";
+  } finally {
+    savingDoc.value = false;
+  }
+}
+
 async function runExport() {
   exportRunning.value = true;
   exportResult.value = null;
@@ -468,6 +564,7 @@ function statusText(status: ApiStatus): string {
 }
 
 onMounted(() => {
+  devMode.probe();
   fetchDocSites();
   fetchKnowledgeSections();
   probeExportEndpoint();
@@ -842,6 +939,23 @@ onMounted(() => {
   color: var(--usx-color-on-surface);
 }
 
+.doc-sidepanel__edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--usx-touch-min);
+  height: var(--usx-touch-min);
+  border: none;
+  background: transparent;
+  color: var(--usx-color-primary);
+  cursor: pointer;
+  border-radius: var(--usx-radius-full);
+}
+
+.doc-sidepanel__edit:hover {
+  background: var(--usx-color-surface-variant);
+}
+
 .doc-sidepanel__body {
   flex: 1;
   overflow-y: auto;
@@ -853,6 +967,37 @@ onMounted(() => {
   line-height: var(--usx-line-height-relaxed);
   color: var(--usx-color-on-surface);
   overflow-wrap: break-word;
+}
+
+.doc-sidepanel__editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-md);
+  height: 100%;
+}
+
+.doc-sidepanel__textarea {
+  flex: 1;
+  min-height: var(--usx-touch-min);
+  padding: var(--usx-spacing-md);
+  font-family: var(--usx-font-family-mono);
+  font-size: var(--usx-font-size-sm);
+  line-height: var(--usx-line-height-relaxed);
+  color: var(--usx-color-on-surface);
+  background: var(--usx-color-surface-variant);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  resize: vertical;
+}
+
+.doc-sidepanel__error {
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-danger);
+}
+
+.doc-sidepanel__editor-actions {
+  display: flex;
+  gap: var(--usx-spacing-sm);
 }
 
 .doc-sidepanel__listing {

@@ -79,7 +79,7 @@ flowchart TB
 
 - [x] **D3.1** Documentation surface serves component docs from the mirror (`GET /api/docs/content?source=mirror&path=<repo>/<path>`); the old `repo-docs` tab is folded into the Guide tab as "Component Docs"
 - [x] **D3.2** Component docs are read-only in the Documentation surface: clicking opens a side-panel viewer (no inline edit); the separate "Repo Docs" tab is removed
-- [ ] **D3.3** Developer surface: Dev Mode enables edit/reorganize on mirrored docs; User lane is read-only (separate surface follow-up)
+- [x] **D3.3** Developer surface: Dev Mode enables edit/write-back on mirrored docs via the Documentation side panel (Edit → `POST /api/docs/mirror/push`); User lane stays read-only (403 gate)
 - [x] **D3.4** User vaults stay on their own tabs/surfaces: Learning tab scans user `~/Vault` + `~/Public/learning` + `docs/archive` but never writes into the component mirror; mirror `_ensure_allowed` blocks vault paths
 
 ### Wave 4 — docs-site publish pipeline
