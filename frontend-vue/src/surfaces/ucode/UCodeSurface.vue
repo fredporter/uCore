@@ -46,53 +46,10 @@
       </template>
     </SurfaceTabNav>
 
-    <!-- ─── Layer Composer tab: prose stub ─── -->
-    <div v-if="activeTab === 'layer'" class="surface__body">
-      <div class="surface__canvas">
-        <div class="layer-composer-prose">
-          <h2>Layer Composer</h2>
-          <p>
-            Layer composer is the spatial and geographical linking of Layers
-            into <strong>Worlds</strong>.
-          </p>
-          <p>
-            This feature is under development. The linking system will connect
-            map layers — terrain, structures, units — into unified spatial
-            environments with geographical coordinates, adjacency rules, and
-            world-level queries.
-          </p>
-          <ul>
-            <li>
-              <a
-                href="https://github.com/uDosGo/uCore/tree/main/docs"
-                target="_blank"
-                rel="noopener"
-                >uCore docs</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://github.com/uDosGo/uCore/tree/main/docs/specs"
-                target="_blank"
-                rel="noopener"
-                >Spatial / location specs</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://github.com/uDosGo/uCore/tree/main/docs/archived"
-                target="_blank"
-                rel="noopener"
-                >Geography / map layer archives</a
-              >
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
+    <!-- ─── Layer tab: full layer surface (shared canvas) ─── -->
 
     <!-- ─── Pixel Editor tab: per-pixel character designer ─── -->
-    <div v-else-if="activeTab === 'pixel'" class="pixel-editor-layout">
+    <div v-if="activeTab === 'pixel'" class="pixel-editor-layout">
       <div class="pixel-editor-body">
         <div class="pixel-editor-main">
           <!-- Toolbar: dimensions, tools, actions, palette — inside same content div -->
@@ -560,8 +517,8 @@ const tabTitles: Record<string, string> = {
   terminal: "uCode — Terminal",
   teletext: "uCode — Teletext",
   pixel: "uCode — Pixel Editor",
-  grid: "uCode — Layer Editor",
-  layer: "uCode — Layer Composer",
+  grid: "uCode — Grid Editor",
+  layer: "uCode — Layer Surface",
 };
 
 const currentTitle = computed(
@@ -1733,40 +1690,40 @@ function onTerminalKeydown(event: KeyboardEvent) {
 function loadLayerDemo() {
   if (!activeCanvas) return;
   const cfg = tabConfigs.layer;
-  let buf = createBuffer(cfg.cols, cfg.rows);
-  buf = writeString(buf, 1, 0, "uCode GridCore -- Layer View", 7, 5, true);
-  buf = fill(buf, 0, 1, cfg.cols, cfg.rows - 2, ".", 4, 0);
-  const layers = [
-    { label: "Terrain", color: 2, y: 3, fillChar: "#" },
-    { label: "Structures", color: 3, y: 8, fillChar: "&" },
-    { label: "Units", color: 1, y: 13, fillChar: "@" },
+  const c = cfg.cols;
+  const r = cfg.rows;
+  const LAYERS = [
+    { name: "terrain", color: 2, fill: "#" },
+    { name: "details", color: 6, fill: "~" },
+    { name: "foreground", color: 3, fill: "&" },
+    { name: "lighting", color: 4, fill: "*" },
+    { name: "collision", color: 1, fill: "@" },
+    { name: "entities", color: 5, fill: "o" },
   ];
-  for (const layer of layers) {
-    buf = fill(buf, 4, layer.y, 30, 3, layer.fillChar, layer.color, 0);
-    buf = writeString(
-      buf,
-      4,
-      layer.y + 1,
-      `  ~ ${layer.label} ~  `,
-      7,
-      layer.color,
-      true,
-    );
+  let buf = createBuffer(c, r);
+  buf = writeString(buf, 1, 0, "uCode Layer Surface", 7, 4, true);
+  buf = fill(buf, 0, 1, c, r - 2, ".", 4, 0);
+  // Compose layers bottom-up as stacked bands (left side)
+  for (let i = 0; i < LAYERS.length; i++) {
+    const layer = LAYERS[i];
+    const y = 3 + i * 2;
+    if (y >= r - 1) break;
+    buf = fill(buf, 1, y, c - 18, 1, layer.fill, layer.color, 0);
+    buf = writeString(buf, 1, y, ` ${i + 1}. ${layer.name}`, 7, layer.color, true);
   }
-  buf = writeString(buf, 40, 3, "╔══════════════╗", 6, 0);
-  buf = writeString(buf, 40, 4, "║  Layer Stack ║", 6, 0);
-  buf = writeString(buf, 40, 5, "╠══════════════╣", 6, 0);
-  buf = writeString(buf, 40, 6, "║  1. Terrain  ║", 2, 0);
-  buf = writeString(buf, 40, 7, "║  2. Structs  ║", 3, 0);
-  buf = writeString(buf, 40, 8, "║  3. Units    ║", 1, 0);
-  buf = writeString(buf, 40, 9, "╚══════════════╝", 6, 0);
+  // Layer stack legend (right side)
+  const lx = c - 16;
+  buf = writeString(buf, lx, 3, "LAYER STACK", 6, 0, true);
+  for (let i = 0; i < LAYERS.length; i++) {
+    buf = writeString(buf, lx, 5 + i, `${i + 1} ${LAYERS[i].name}`, LAYERS[i].color, 0);
+  }
   buf = writeString(
     buf,
-    1,
-    cfg.rows - 3,
-    " Layers: 3  |  Active: Terrain  |  Opacity: 100%",
-    7,
     0,
+    r - 1,
+    `Layers: ${LAYERS.length}  |  World: L340  |  Opacity: 100%`,
+    7,
+    1,
   );
   activeCanvas.setBuffer(buf);
 }
