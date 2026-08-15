@@ -171,10 +171,14 @@ export class GridUICanvasElement extends HTMLElement {
     }
 
     const dpr = window.devicePixelRatio || 1;
-    const cssWidth = this._cols * this._cellSize;
-    const cssHeight = this._rows * this._cellSize;
-    const pixelWidth = Math.round(cssWidth * dpr);
-    const pixelHeight = Math.round(cssHeight * dpr);
+    // Round per-cell so the drawing extent exactly matches the canvas size
+    // (avoids a trailing gap when cellSize * dpr is fractional).
+    const cellW = Math.round(this._cellSize * dpr);
+    const cellH = Math.round(this._cellSize * dpr);
+    const pixelWidth = this._cols * cellW;
+    const pixelHeight = this._rows * cellH;
+    const cssWidth = pixelWidth / dpr;
+    const cssHeight = pixelHeight / dpr;
 
     if (
       this._canvas.width !== pixelWidth ||

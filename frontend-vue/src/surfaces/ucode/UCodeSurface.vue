@@ -669,7 +669,6 @@ function initPixelEditor() {
     font: "pressstart2p",
     cellSize: 24,
   });
-  pixelCanvas.setAttribute("gridlines", "");
   pixelCanvas.style.flexShrink = "0";
   pixelCanvas.addEventListener("cell-click", onPixelCellClick as EventListener);
   pixelCanvas.addEventListener("cell-hover", onPixelCellHover as EventListener);
