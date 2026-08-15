@@ -454,7 +454,7 @@
             role="region"
             tabindex="0"
             :aria-label="`${currentTitle} viewport`"
-            @keydown="onTerminalKeydown"
+            @keydown="onSharedKeydown"
           ></div>
         </div>
       </div>
@@ -1288,7 +1288,7 @@ function loadTabContent(tabId?: string) {
       loadTerminalRuntime();
       break;
     case "teletext":
-      loadTeletextDemo();
+      renderTeletextPage();
       break;
     case "layer":
       loadLayerDemo();
@@ -1387,99 +1387,140 @@ function onImportFile(e: Event) {
 }
 
 /* ─── Teletext Tab ────────────────────────────────────────────────── */
-function loadTeletextDemo() {
+/* ─── Teletext Tab ────────────────────────────────────────────────── */
+const teletextPage = ref(100);
+const teletextHistory: number[] = [];
+let teletextDigitBuffer = "";
+
+const TELETEXT_FASTEXT = [
+  { label: "Main", color: 1, page: 100 },
+  { label: "News", color: 2, page: 101 },
+  { label: "Index", color: 3, page: 199 },
+  { label: "Help", color: 6, page: 888 },
+];
+
+function teletextContent(page: number): string[] {
+  switch (page) {
+    case 100:
+      return [
+        "    uCODE TELETEXT READER",
+        "",
+        "  NEWS ............ 101",
+        "  INDEX ........... 199",
+        "  HELP ............ 888",
+        "",
+        "  Type 0-9 to navigate pages",
+        "  ESC or B to go back",
+      ];
+    case 101:
+      return [
+        "    NEWS HEADLINES",
+        "",
+        "  - GridCore v3 ships with",
+        "    Ceefax G0 emulation",
+        "  - Teletext reader is live",
+        "  - Layer surface added",
+        "  - Terminal prompt simplified",
+      ];
+    case 199:
+      return [
+        "    FULL PAGE INDEX",
+        "",
+        "  100  Main Index",
+        "  101  News Headlines",
+        "  888  Help and About",
+      ];
+    case 888:
+      return [
+        "    HELP AND ABOUT",
+        "",
+        "  Number keys 0-9 navigate",
+        "  ESC or B goes back",
+        "",
+        "  uCode GridCore teletext",
+        "  reader with G0 rendering",
+      ];
+    default:
+      return [
+        `    PAGE ${page} NOT FOUND`,
+        "",
+        "  Press 100 for Main Index",
+        "  Press 199 for Full Index",
+      ];
+  }
+}
+
+function renderTeletextPage() {
   if (!activeCanvas) return;
   const cfg = tabConfigs.teletext;
-  const c = cfg.cols,
-    r = cfg.rows;
+  const c = cfg.cols;
+  const r = cfg.rows;
+  const page = teletextPage.value;
   let buf = createBuffer(c, r);
+
+  // Header bar (blue background, white text)
   buf = fill(buf, 0, 0, c, 1, " ", 7, 4);
-  buf = writeString(
-    buf,
-    1,
-    0,
-    "uCode TELETEXT  ·  GridUI Canvas Engine  ·  P100",
-    7,
-    4,
-  );
-  buf = writeString(buf, c - 11, 0, "Fri  3 Jul 2026", 7, 4);
+  buf = writeString(buf, 1, 0, `uCode CEEFAX ${page}`, 7, 4, true);
+  buf = writeString(buf, c - 15, 0, new Date().toDateString().slice(0, 15), 7, 4);
+
+  // Separator
   buf = fill(buf, 0, 1, c, 1, " ", 7, 1);
-  buf = writeString(
-    buf,
-    1,
-    1,
-    "═══  NEWS  ═══  WEATHER  ═══  SPORT  ═══  SCIENCE  ═══  GRID  ═══",
-    7,
-    1,
-  );
-  buf = writeString(buf, 0, 2, "=".repeat(c), 3, 0);
-  buf = writeString(
-    buf,
-    2,
-    3,
-    "uCode GridUI v3 ships with Ceefax G0 emulation",
-    7,
-    0,
-    true,
-  );
-  buf = writeString(
-    buf,
-    2,
-    4,
-    "MODE7GX3 bitmap renderer brings authentic teletext",
-    6,
-    0,
-  );
-  buf = writeString(
-    buf,
-    2,
-    5,
-    "pixel-crisp graphics to the 24x24 cell grid",
-    6,
-    0,
-  );
-  buf = writeString(buf, 0, 7, "─".repeat(19), 3, 0);
-  buf = writeString(buf, 1, 8, "G0 BITMAP ENGINE", 7, 0);
-  buf[8][17] = { char: "│", fg: 3, bg: 0 };
-  buf = writeString(buf, 1, 9, "The new G0 renderer", 2, 0);
-  buf = writeString(buf, 1, 10, "renders MODE7GX3 chars", 2, 0);
-  buf = writeString(buf, 1, 11, "via offscreen canvas,", 2, 0);
-  buf = writeString(buf, 1, 12, "threshold to binary,", 2, 0);
-  buf = writeString(buf, 1, 13, "and NN scaling — zero", 2, 0);
-  buf = writeString(buf, 20, 8, "AUTO-FIT CONTAINERS", 7, 0);
-  buf[8][37] = { char: "│", fg: 3, bg: 0 };
-  buf = writeString(buf, 20, 9, "Both the 24x24 editor", 5, 0);
-  buf = writeString(buf, 20, 10, "and 40x25 layer view-", 5, 0);
-  buf = writeString(buf, 20, 11, "port now auto-size to", 5, 0);
-  buf = writeString(buf, 20, 12, "fill their containers.", 5, 0);
-  buf = writeString(buf, 0, 18, "=".repeat(c), 3, 0);
-  buf = writeString(
-    buf,
-    2,
-    19,
-    "Weather:  Sunny  22C  Wind: 12mph  Humidity: 45%",
-    7,
-    0,
-  );
-  buf = writeString(
-    buf,
-    2,
-    20,
-    "Sport:    Grid Editor Cup — Team Canvas leads 3-1",
-    3,
-    0,
-  );
-  buf = writeString(buf, 0, r - 2, "=".repeat(c), 3, 0);
-  buf = writeString(
-    buf,
-    1,
-    r - 1,
-    "uDosConnect  ·  uCode GridUI v3  ·  Ceefax Emulation",
-    7,
-    1,
-  );
-  buf = writeString(buf, c - 10, r - 1, "Page 100", 7, 1);
+
+  // Content area
+  const lines = teletextContent(page);
+  for (let i = 0; i < lines.length && 2 + i < r - 2; i++) {
+    buf = writeString(buf, 1, 2 + i, lines[i], 7, 0);
+  }
+
+  // FASTEXT row (coloured navigation links)
+  const seg = Math.floor(c / TELETEXT_FASTEXT.length);
+  TELETEXT_FASTEXT.forEach((ft, i) => {
+    const label = ` ${ft.label} `.padEnd(seg).slice(0, seg);
+    buf = writeString(buf, i * seg, r - 2, label, 7, ft.color);
+  });
+
+  // Status row
+  buf = writeString(buf, 0, r - 1, `P${page}`, 2, 0);
+  buf = writeString(buf, c - 10, r - 1, `P${page}`, 7, 1);
+
   activeCanvas.setBuffer(buf);
+}
+
+function teletextNavigate(page: number) {
+  if (page < 100 || page > 899) return;
+  teletextHistory.push(teletextPage.value);
+  teletextPage.value = page;
+  renderTeletextPage();
+}
+
+function teletextGoBack() {
+  const prev = teletextHistory.pop();
+  if (prev === undefined) return;
+  teletextPage.value = prev;
+  renderTeletextPage();
+}
+
+function handleTeletextKeydown(event: KeyboardEvent) {
+  if (event.key >= "0" && event.key <= "9") {
+    event.preventDefault();
+    teletextDigitBuffer += event.key;
+    if (teletextDigitBuffer.length >= 3) {
+      const page = parseInt(teletextDigitBuffer, 10);
+      teletextDigitBuffer = "";
+      teletextNavigate(page);
+    }
+  } else if (event.key === "Escape" || event.key === "b" || event.key === "B") {
+    event.preventDefault();
+    teletextGoBack();
+  }
+}
+
+function onSharedKeydown(event: KeyboardEvent) {
+  if (activeTab.value === "teletext") {
+    handleTeletextKeydown(event);
+  } else if (activeTab.value === "terminal") {
+    onTerminalKeydown(event);
+  }
 }
 
 /* ─── Terminal Tab ────────────────────────────────────────────────── */
