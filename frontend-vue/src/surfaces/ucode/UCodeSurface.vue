@@ -48,30 +48,14 @@
 
     <!-- ─── Layer tab: full layer surface (shared canvas) ─── -->
 
-    <!-- ─── Pixel Editor tab: per-pixel character designer ─── -->
+    <!-- ─── Pixel Editor tab: true sub-cell 24×24 colour bitmap editor ─── -->
     <div v-if="activeTab === 'pixel'" class="pixel-editor-layout">
       <div class="pixel-editor-body">
         <div class="pixel-editor-main">
-          <!-- Toolbar: dimensions, tools, actions, palette — inside same content div -->
+          <!-- Toolbar: tools, actions, palette — inside same content div -->
           <div class="pixel-toolbar">
             <div class="pixel-toolbar__dims">
-              <input
-                class="pixel-toolbar__input"
-                type="number"
-                v-model.number="pixelW"
-                min="4"
-                max="128"
-                @change="onPixelResize"
-              />
-              <span class="pixel-toolbar__sep">×</span>
-              <input
-                class="pixel-toolbar__input"
-                type="number"
-                v-model.number="pixelH"
-                min="4"
-                max="128"
-                @change="onPixelResize"
-              />
+              <span class="pixel-toolbar__label">24×24</span>
             </div>
             <div class="pixel-toolbar__tools">
               <button
@@ -88,6 +72,13 @@
             <div class="pixel-toolbar__actions">
               <button
                 class="pixel-toolbar__action-btn"
+                title="Fill all pixels with current colour"
+                @click="fillPixelEditor"
+              >
+                Fill
+              </button>
+              <button
+                class="pixel-toolbar__action-btn"
                 title="Clear all pixels"
                 @click="clearPixelEditor"
               >
@@ -95,10 +86,17 @@
               </button>
               <button
                 class="pixel-toolbar__action-btn"
-                title="Invert pixels"
-                @click="invertPixelEditor"
+                title="Undo"
+                @click="undoPixel"
               >
-                Invert
+                Undo
+              </button>
+              <button
+                class="pixel-toolbar__action-btn"
+                title="Redo"
+                @click="redoPixel"
+              >
+                Redo
               </button>
               <button
                 class="pixel-toolbar__action-btn"
@@ -118,7 +116,7 @@
               >
                 <UIcon name="palette" />
               </button>
-              <!-- 3×3 colour grid popover -->
+              <!-- 8-colour popover -->
               <div
                 class="pixel-colour-popover"
                 v-if="showColorPopover"
@@ -130,28 +128,14 @@
                   class="pixel-colour-popover__swatch"
                   :class="[
                     `pixel-colour-popover__swatch--${i}`,
-                    { 'fg-active': pixelFg === i, 'bg-active': pixelBg === i },
+                    { 'fg-active': pixelColor === i },
                   ]"
-                  :title="
-                    c.name +
-                    (pixelFg === i ? ' FG' : pixelBg === i ? ' BG' : '') +
-                    ' | L-click FG · R-click BG'
-                  "
-                  @click="pixelFg = i"
-                  @click.right.prevent="pixelBg = i"
+                  :title="c.name"
+                  @click="pixelColor = i"
                 >
-                  <span v-if="pixelFg === i" class="colour-marker fg">F</span>
-                  <span v-if="pixelBg === i" class="colour-marker bg">B</span>
-                </button>
-                <!-- 9th cell: transparent/empty -->
-                <button
-                  class="pixel-colour-popover__swatch pixel-colour-popover__swatch--empty"
-                  :class="{ 'bg-active': pixelBg === -1 }"
-                  title="Transparent / Empty | L-click FG · R-click BG"
-                  @click="pixelFg = -1"
-                  @click.right.prevent="pixelBg = -1"
-                >
-                  <span v-if="pixelBg === -1" class="colour-marker bg">B</span>
+                  <span v-if="pixelColor === i" class="colour-marker fg"
+                    >●</span
+                  >
                 </button>
               </div>
             </div>
@@ -160,62 +144,41 @@
             class="pixel-canvas-wrapper"
             ref="pixelCanvasRef"
             tabindex="0"
-            @keydown="onPixelKeydown"
+            @mousedown="pixelIsDragging = true"
+            @mouseup="pixelIsDragging = false"
+            @mouseleave="pixelIsDragging = false"
           >
             <span class="editor-section__label editor-section__label--overlay">
-              Pixel Editor · {{ pixelW }}×{{ pixelH }} ·
-              {{ selectedChar || "?" }} ·
-              {{ pixelFont === "mode7gx3" ? "Teletext" : "Terminal" }}
+              Pixel Editor · 24×24 · colour {{ pixelColor }}
             </span>
           </div>
         </div>
-        <!-- Sidebar: font, character library, active glyph -->
+        <!-- Sidebar: colour palette + help -->
         <aside class="editor-sidebar">
           <div class="sidebar-section">
-            <h4 class="sidebar-title">Font</h4>
-            <div class="sidebar-font-btns">
+            <h4 class="sidebar-title">Colours</h4>
+            <div class="sidebar-chars-grid">
               <button
-                class="sidebar-font-btn"
-                :class="{ active: pixelFont === 'pressstart2p' }"
-                @click="pixelFont = 'pressstart2p'"
+                v-for="(c, i) in PALETTE"
+                :key="i"
+                class="sidebar-char-chip sidebar-colour-swatch"
+                :class="{ 'fg-active': pixelColor === i }"
+                :style="{ background: c.hex }"
+                :title="c.name"
+                @click="pixelColor = i"
               >
-                Terminal
-              </button>
-              <button
-                class="sidebar-font-btn"
-                :class="{ active: pixelFont === 'mode7gx3' }"
-                @click="pixelFont = 'mode7gx3'"
-              >
-                Teletext
+                <span v-if="pixelColor === i" class="colour-marker fg">●</span>
               </button>
             </div>
           </div>
           <div class="sidebar-section">
-            <h4 class="sidebar-title">Active Glyph</h4>
-            <div class="sidebar-char-row">
-              <input
-                class="sidebar-char-input"
-                v-model="selectedChar"
-                maxlength="1"
-                placeholder="Char"
-              />
-              <span class="sidebar-char-code">{{ selectedCharCode }}</span>
-            </div>
-          </div>
-          <div class="sidebar-section sidebar-font-chars">
-            <h4 class="sidebar-title">Character Library</h4>
-            <div class="sidebar-chars-grid">
-              <button
-                v-for="ch in pixelChars"
-                :key="ch"
-                class="sidebar-char-chip"
-                :class="{ selected: selectedChar === ch }"
-                :title="`U+${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`"
-                @click="selectPixelChar(ch)"
-              >
-                {{ ch }}
-              </button>
-            </div>
+            <h4 class="sidebar-title">Tools</h4>
+            <p class="sidebar-help">
+              Pencil paints · Eraser clears a pixel · drag to draw. Fill paints
+              the whole grid with the current colour. Undo/Redo are
+              snapshot-based. Export writes the 24×24 colour-index bitmap as
+              JSON.
+            </p>
           </div>
         </aside>
       </div>
@@ -491,10 +454,14 @@ import {
 } from "../../grid-core/index";
 import { PALETTE_DARK } from "../../grid-core/palette";
 import { GRID_PRESETS } from "../../grid-core/algebra";
-import { G0Renderer } from "../../grid-core/g0-renderer";
 import type { GridBuffer, GridCell } from "../../grid-core/types";
-
-const g0r = new G0Renderer();
+import {
+  PixelEditor,
+  createPixelBuffer,
+  pixelBufferToGridBuffer,
+  gridBufferToPixelBuffer,
+  PIXEL_SIZE,
+} from "../../grid-core/pixel";
 
 const shell = useShellStore();
 const gridcoreSettings = useGridCoreSettingsStore();
@@ -572,14 +539,15 @@ const TOOLS = [
   { id: "eyedropper", label: "Eyedropper", icon: "colorize" },
 ] as const;
 
-// Pixel Editor tools
+// Pixel Editor tools (true sub-cell 24×24 colour bitmap)
 const PIXEL_TOOLS = [
   { id: "pencil", label: "Pencil", icon: "edit" },
-  { id: "erase", label: "Eraser", icon: "ink_eraser" },
   { id: "fill", label: "Flood fill", icon: "format_paint" },
+  { id: "erase", label: "Eraser", icon: "ink_eraser" },
+  { id: "eyedropper", label: "Eyedropper", icon: "colorize" },
 ] as const;
 
-const pixelTool = ref<"pencil" | "erase" | "fill">("pencil");
+const pixelTool = ref<"pencil" | "fill" | "erase" | "eyedropper">("pencil");
 const showColorPopover = ref(false);
 const showLayerColorPopover = ref(false);
 
@@ -594,13 +562,9 @@ function hideLayerColorPopover() {
   }, 200);
 }
 
-// Pixel Editor dimensions (editable by user from toolbar)
-const pixelW = ref(24);
-const pixelH = ref(24);
-
-// Pixel Editor colors (independent from Grid tab)
-const pixelFg = ref(7);
-const pixelBg = ref(0);
+// Pixel Editor — fixed 24×24 sub-cell colour bitmap (per gridcore spec)
+const pixelColor = ref(7);
+const pixelIsDragging = ref(false);
 
 const selectedFg = ref(7);
 const selectedBg = ref(0);
@@ -613,30 +577,6 @@ const selectedCharCode = computed(() =>
     ? `U+${selectedChar.value.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}`
     : "",
 );
-
-/** Characters shown in the Pixel sidebar character library — dynamic per font */
-const pixelFont = ref<"pressstart2p" | "mode7gx3">("mode7gx3");
-
-const pixelChars = computed(() => {
-  if (pixelFont.value === "pressstart2p") {
-    const chars: string[] = [];
-    for (let i = 0x21; i <= 0x7e; i++) chars.push(String.fromCharCode(i));
-    return chars;
-  }
-  // mode7gx3: ASCII + G0 blocks
-  const chars: string[] = [];
-  for (let i = 0x20; i <= 0x7e; i++) chars.push(String.fromCharCode(i));
-  chars.push("█", "▄", "▀", "▐", "▌", "░", "▒", "▓", "│", "─", "║", "═");
-  chars.push("╔", "╗", "╚", "╝", "╠", "╣", "╦", "╩", "╬");
-  return chars;
-});
-
-// Re-fill grid and update canvas font when font changes in Pixel tab
-watch(pixelFont, (font) => {
-  if (pixelCanvas) pixelCanvas.setAttribute("font", font);
-  if (activeTab.value !== "pixel") return;
-  fillPixelGridWithChar();
-});
 
 /** Characters shown in the Grid sidebar font char set */
 const fontChars = computed(() => {
@@ -652,15 +592,9 @@ const fontChars = computed(() => {
   return chars;
 });
 
-/** Set brush char (used by sidebar chips in both Pixel and Grid tabs) */
+/** Set brush char (used by the Grid tab sidebar). */
 function selectBrushChar(ch: string) {
   selectedChar.value = ch;
-}
-
-/** Pixel Editor: select character AND fill grid cells with it immediately */
-function selectPixelChar(ch: string) {
-  selectedChar.value = ch;
-  fillPixelGridWithChar();
 }
 
 /* ─── Grid Layer State ────────────────────────────────────────────── */
@@ -714,180 +648,93 @@ watch(editorFont, (font) => {
   if (layerCanvas) layerCanvas.setAttribute("font", font);
 });
 
-/* ─── Pixel Editor ─────────────────────────────────────────────────── */
-let pixelBuffer: GridBuffer = createBuffer(24, 24);
+/* ─── Pixel Editor (true sub-cell 24×24 colour bitmap) ─────────────── */
+let pixelEditor: PixelEditor | null = null;
+/** Preview buffer: each pixel as a solid-colour cell for <gridui-canvas>. */
+let pixelBuffer: GridBuffer = createBuffer(PIXEL_SIZE, PIXEL_SIZE);
 
-/** Get the current "on" character — the actual glyph being edited */
-
-/** Render the selected character's glyph as a bitmap across the pixel grid.
- *  Uses the G0 renderer to get a 12×10 binary bitmap, then nearest-neighbour
- *  scales it to fill pixelW × pixelH cells. "On" pixels show the actual character,
- *  "off" pixels show space + BG. */
-function fillPixelGridWithChar() {
-  const ch = selectedChar.value || " ";
-  const w = pixelW.value;
-  const h = pixelH.value;
-  const charCode = ch.charCodeAt(0);
-  const fg = pixelFg.value;
-  const bg = pixelBg.value;
-
-  const bitmap = g0r.getBitmap(charCode);
-  const sw = Math.max(1, Math.round(w / 12));
-  const sh = Math.max(1, Math.round(h / 10));
-
-  for (let r = 0; r < h; r++) {
-    const srcRow = Math.min(Math.floor(r / sh), 9);
-    for (let c = 0; c < w; c++) {
-      const srcCol = Math.min(Math.floor(c / sw), 11);
-      const isFg = bitmap[srcRow * 12 + srcCol] === 1;
-      if (isFg) {
-        pixelBuffer[r][c] = { char: ch, fg, bg: 0 };
-      } else {
-        pixelBuffer[r][c] = { char: " ", fg: 0, bg };
-      }
-    }
-  }
-  pixelCanvas?.setBuffer(cloneBuffer(pixelBuffer));
+function renderPixelBuffer() {
+  if (!pixelCanvas || !pixelEditor) return;
+  pixelBuffer = pixelBufferToGridBuffer(pixelEditor.buffer);
+  pixelCanvas.setBuffer(cloneBuffer(pixelBuffer));
 }
 
 function initPixelEditor() {
   if (!pixelCanvasRef.value) return;
   pixelCanvas?.remove();
-  const w = pixelW.value;
-  const h = pixelH.value;
+  pixelEditor = new PixelEditor(createPixelBuffer(0));
   pixelCanvas = createGridUICanvas({
-    cols: w,
-    rows: h,
-    font: pixelFont.value,
+    cols: PIXEL_SIZE,
+    rows: PIXEL_SIZE,
+    font: "pressstart2p",
     cellSize: 24,
   });
   pixelCanvas.setAttribute("gridlines", "");
   pixelCanvas.style.flexShrink = "0";
-  pixelCanvas.addEventListener("cell-click", onPixelClick as EventListener);
+  pixelCanvas.addEventListener("cell-click", onPixelCellClick as EventListener);
+  pixelCanvas.addEventListener("cell-hover", onPixelCellHover as EventListener);
   pixelCanvasRef.value.appendChild(pixelCanvas);
-
-  // Seed pixel buffer with selected character
-  pixelBuffer = createBuffer(w, h);
-  fillPixelGridWithChar();
+  renderPixelBuffer();
 }
 
-// When selectedChar changes in Pixel tab, show it in the grid
-watch(selectedChar, (ch) => {
-  if (activeTab.value !== "pixel") return;
-  fillPixelGridWithChar();
-});
-
-function onPixelResize() {
-  // Clamp dimensions and re-initialise
-  pixelW.value = Math.max(4, Math.min(128, pixelW.value));
-  pixelH.value = Math.max(4, Math.min(128, pixelH.value));
-  initPixelEditor();
-}
-
-/** Toggle a single pixel cell on/off. On = actual glyph char, Off = space+BG. */
-function onPixelClick(e: CustomEvent) {
-  const { col, row } = e.detail;
-  const w = pixelW.value;
-  const h = pixelH.value;
-  if (col < 0 || col >= w || row < 0 || row >= h) return;
-  const cell = pixelBuffer[row][col];
-  const isOn = cell.char !== " ";
-  const isTransparent = pixelFg.value === -1;
-
-  if (
-    pixelTool.value === "erase" ||
-    isTransparent ||
-    (pixelTool.value === "pencil" && isOn)
-  ) {
-    pixelBuffer[row][col] = {
-      char: " ",
-      fg: 0,
-      bg: pixelBg.value < 0 ? 0 : pixelBg.value,
-    };
-  } else if (pixelTool.value === "fill") {
-    floodFillPixel(col, row);
+function paintPixelAt(x: number, y: number) {
+  if (!pixelEditor) return;
+  if (pixelTool.value === "eyedropper") {
+    pixelColor.value = pixelEditor.buffer[y * PIXEL_SIZE + x] ?? 0;
+    pixelTool.value = "pencil";
+    renderPixelBuffer();
+    return;
+  }
+  if (pixelTool.value === "fill") {
+    pixelEditor.floodFill(x, y, pixelColor.value);
+  } else if (pixelTool.value === "erase") {
+    pixelEditor.erase(x, y);
   } else {
-    pixelBuffer[row][col] = {
-      char: selectedChar.value,
-      fg: pixelFg.value,
-      bg: 0,
-    };
+    pixelEditor.paint(x, y, pixelColor.value);
   }
-  pixelCanvas?.setBuffer(cloneBuffer(pixelBuffer));
+  renderPixelBuffer();
 }
 
-function floodFillPixel(startCol: number, startRow: number) {
-  const w = pixelW.value;
-  const h = pixelH.value;
-  const target = pixelBuffer[startRow]?.[startCol];
-  if (!target) return;
-  const targetIsOn = target.char !== " ";
-  const newChar = pixelTool.value === "erase" ? " " : selectedChar.value;
-  const newFg = pixelTool.value === "erase" ? 0 : pixelFg.value;
-  if (target.char === newChar && target.fg === newFg) return;
+function onPixelCellClick(e: CustomEvent) {
+  const { col, row } = e.detail || {};
+  if (typeof col === "number" && typeof row === "number")
+    paintPixelAt(col, row);
+}
 
-  const stack = [[startCol, startRow]];
-  const visited = new Set<string>();
-  while (stack.length > 0) {
-    const [c, r] = stack.pop()!;
-    const key = `${c},${r}`;
-    if (visited.has(key)) continue;
-    if (c < 0 || c >= w || r < 0 || r >= h) continue;
-    const cell = pixelBuffer[r]?.[c];
-    if (!cell) continue;
-    const cellIsOn = cell.char !== " ";
-    if (cellIsOn !== targetIsOn) continue;
-    visited.add(key);
-    if (cellIsOn) {
-      pixelBuffer[r][c] = { char: newChar, fg: newFg, bg: 0 };
-    } else {
-      pixelBuffer[r][c] = { char: " ", fg: 0, bg: pixelBg.value };
-    }
-    stack.push([c - 1, r], [c + 1, r], [c, r - 1], [c, r + 1]);
-  }
-  pixelCanvas?.setBuffer(cloneBuffer(pixelBuffer));
+function onPixelCellHover(e: CustomEvent) {
+  if (!pixelIsDragging.value) return;
+  const { col, row } = e.detail || {};
+  if (typeof col === "number" && typeof row === "number")
+    paintPixelAt(col, row);
+}
+
+function fillPixelEditor() {
+  pixelEditor?.fill(pixelColor.value);
+  renderPixelBuffer();
 }
 
 function clearPixelEditor() {
-  for (let r = 0; r < pixelH.value; r++) {
-    for (let c = 0; c < pixelW.value; c++) {
-      pixelBuffer[r][c] = { char: " ", fg: 0, bg: 0 };
-    }
-  }
-  pixelCanvas?.setBuffer(cloneBuffer(pixelBuffer));
+  pixelEditor?.clear();
+  renderPixelBuffer();
 }
 
-function invertPixelEditor() {
-  const ch = selectedChar.value;
-  for (let r = 0; r < pixelH.value; r++) {
-    for (let c = 0; c < pixelW.value; c++) {
-      const cell = pixelBuffer[r]?.[c];
-      if (!cell) continue;
-      if (cell.char !== " ") {
-        cell.char = " ";
-        cell.fg = 0;
-        cell.bg = pixelBg.value;
-      } else {
-        cell.char = ch;
-        cell.fg = pixelFg.value;
-        cell.bg = 0;
-      }
-    }
-  }
-  pixelCanvas?.setBuffer(cloneBuffer(pixelBuffer));
+function undoPixel() {
+  pixelEditor?.undo();
+  renderPixelBuffer();
+}
+
+function redoPixel() {
+  pixelEditor?.redo();
+  renderPixelBuffer();
 }
 
 function exportPixelData() {
+  if (!pixelEditor) return;
   const data = {
     format: "ucore-pixel-v1",
-    width: pixelW.value,
-    height: pixelH.value,
-    glyph: selectedChar.value || " ",
-    fg: pixelFg.value,
-    bg: pixelBg.value,
-    cells: pixelBuffer.map((row) =>
-      row.map((cell) => ({ c: cell.char, f: cell.fg, b: cell.bg })),
-    ),
+    width: PIXEL_SIZE,
+    height: PIXEL_SIZE,
+    pixels: Array.from(pixelEditor.buffer),
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {
     type: "application/json",
@@ -895,17 +742,9 @@ function exportPixelData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `pixel-${selectedChar.value || "glyph"}-${pixelW.value}x${pixelH.value}.json`;
+  a.download = `pixel-${PIXEL_SIZE}x${PIXEL_SIZE}.json`;
   a.click();
   URL.revokeObjectURL(url);
-}
-
-function onPixelKeydown(e: KeyboardEvent) {
-  if (activeTab.value !== "pixel") return;
-  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-    e.preventDefault();
-    selectedChar.value = e.key;
-  }
 }
 
 /* ─── Grid Tab (Layer Editor) ─────────────────────────────────────── */
@@ -918,8 +757,9 @@ function initGridEditor() {
     cols: LAYER_COLS,
     rows: LAYER_ROWS,
     font: editorFont.value,
-    cellSize: 100,
+    cellSize: 24,
   });
+  layerCanvas.setAttribute("gridlines", "");
   layerCanvas.style.flexShrink = "0";
   layerCanvas.addEventListener("cell-click", onLayerCellClick as EventListener);
   layerViewportRef.value.appendChild(layerCanvas);
@@ -1298,8 +1138,7 @@ function loadTabContent(tabId?: string) {
 
 function reloadGrid() {
   if (activeTab.value === "pixel") {
-    pixelBuffer = createBuffer(pixelW.value, pixelH.value);
-    pixelCanvas?.setBuffer(cloneBuffer(pixelBuffer));
+    initPixelEditor();
   } else if (activeTab.value === "grid" || activeTab.value === "layer") {
     layerBuffer = createBuffer(LAYER_COLS, LAYER_ROWS);
     renderLayerBuffer();
@@ -1371,7 +1210,8 @@ function onImportFile(e: Event) {
         }
       }
       if (isPixel) {
-        pixelCanvas?.setBuffer(cloneBuffer(pixelBuffer));
+        pixelEditor = new PixelEditor(gridBufferToPixelBuffer(pixelBuffer));
+        renderPixelBuffer();
       } else if (isGridLayer) {
         layerBuffer = cloneBuffer(layerBuffer);
         renderLayerBuffer();
@@ -1461,7 +1301,14 @@ function renderTeletextPage() {
   // Header bar (blue background, white text)
   buf = fill(buf, 0, 0, c, 1, " ", 7, 4);
   buf = writeString(buf, 1, 0, `uCode CEEFAX ${page}`, 7, 4, true);
-  buf = writeString(buf, c - 15, 0, new Date().toDateString().slice(0, 15), 7, 4);
+  buf = writeString(
+    buf,
+    c - 15,
+    0,
+    new Date().toDateString().slice(0, 15),
+    7,
+    4,
+  );
 
   // Separator
   buf = fill(buf, 0, 1, c, 1, " ", 7, 1);
@@ -1750,13 +1597,28 @@ function loadLayerDemo() {
     const y = 3 + i * 2;
     if (y >= r - 1) break;
     buf = fill(buf, 1, y, c - 18, 1, layer.fill, layer.color, 0);
-    buf = writeString(buf, 1, y, ` ${i + 1}. ${layer.name}`, 7, layer.color, true);
+    buf = writeString(
+      buf,
+      1,
+      y,
+      ` ${i + 1}. ${layer.name}`,
+      7,
+      layer.color,
+      true,
+    );
   }
   // Layer stack legend (right side)
   const lx = c - 16;
   buf = writeString(buf, lx, 3, "LAYER STACK", 6, 0, true);
   for (let i = 0; i < LAYERS.length; i++) {
-    buf = writeString(buf, lx, 5 + i, `${i + 1} ${LAYERS[i].name}`, LAYERS[i].color, 0);
+    buf = writeString(
+      buf,
+      lx,
+      5 + i,
+      `${i + 1} ${LAYERS[i].name}`,
+      LAYERS[i].color,
+      0,
+    );
   }
   buf = writeString(
     buf,
@@ -2037,7 +1899,6 @@ function clearGrid() {
 .pixel-toolbar__actions {
   display: flex;
   gap: var(--gridcore-actions-gap);
-  margin-left: auto;
 }
 .pixel-tool-btn {
   width: var(--gridcore-tool-btn-size);
@@ -2367,6 +2228,32 @@ function clearGrid() {
 .sidebar-char-chip.selected {
   border-color: var(--gridcore-color-primary);
   background: var(--gridcore-selection-bg);
+}
+
+/* Sidebar colour swatches (Pixel tab) */
+.sidebar-colour-swatch {
+  position: relative;
+}
+.sidebar-colour-swatch.fg-active {
+  box-shadow: inset 0 0 0 2px #ffffff;
+  border-color: #ffffff;
+}
+.sidebar-colour-swatch .colour-marker.fg {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 0 2px #000000;
+}
+
+/* Sidebar helper text */
+.sidebar-help {
+  margin: 0;
+  font-size: var(--gridcore-font-size-xs);
+  color: var(--gridcore-color-text-muted);
+  line-height: 1.5;
 }
 
 /* Canvas character preview */
