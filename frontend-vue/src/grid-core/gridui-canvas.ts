@@ -27,11 +27,13 @@ const terminalAtlas = new GlyphAtlas(terminalAtlasJson);
 const teletextAtlas = new GlyphAtlas(teletextAtlasJson);
 /** Teletext (MODE7GX3) — 12×16 glyphs with 2×3 mosaic support. */
 const teletextRenderer = new G0Renderer(teletextAtlas);
-/** Terminal (Press Start 2P) — 8×8 square glyphs. */
+/** Terminal (Press Start 2P) — 8×8 square glyphs, with 2×3 mosaic support so
+ *  sextant seeds render identically across views. */
 const terminalRenderer = new BitmapGlyphRenderer({
   glyphW: 8,
   glyphH: 8,
   fontFamily: '"Press Start 2P", monospace',
+  mosaic: true,
   atlas: terminalAtlas,
 });
 
@@ -390,11 +392,6 @@ export class GridUICanvasElement extends HTMLElement {
             }
           }
         }
-
-        // Mosaic mode: draw block graphic
-        if (cell.mosaic) {
-          this._drawMosaic(ctx, x, y, cellW, cellH, cell.char);
-        }
       }
     }
 
@@ -416,41 +413,6 @@ export class GridUICanvasElement extends HTMLElement {
         ctx.lineTo(gw, ly);
       }
       ctx.stroke();
-    }
-  }
-
-  /**
-   * Draw a mosaic block graphic in the given cell area.
-   * Mosaic characters use the foreground colour to fill portions of the cell.
-   */
-  private _drawMosaic(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    char: string,
-  ): void {
-    ctx.fillStyle = getColour(7, this._palette); // White foreground for mosaic
-    const hw = Math.round(w / 2);
-    const hh = Math.round(h / 2);
-
-    switch (char) {
-      case "\u2580": // Upper half block
-        ctx.fillRect(x, y, w, hh);
-        break;
-      case "\u2584": // Lower half block
-        ctx.fillRect(x, y + hh, w, hh);
-        break;
-      case "\u2588": // Full block
-        ctx.fillRect(x, y, w, h);
-        break;
-      case "\u258C": // Left half block
-        ctx.fillRect(x, y, hw, h);
-        break;
-      case "\u2590": // Right half block
-        ctx.fillRect(x + hw, y, hw, h);
-        break;
     }
   }
 

@@ -315,6 +315,20 @@
               </button>
               <button
                 class="pixel-toolbar__action-btn"
+                @click="loadSeedDemo('wordmark')"
+                title="Load uCode wordmark seed (sextant connected cells)"
+              >
+                Logo
+              </button>
+              <button
+                class="pixel-toolbar__action-btn"
+                @click="loadSeedDemo('frame')"
+                title="Load panel frame seed (sextant connected cells)"
+              >
+                Frame
+              </button>
+              <button
+                class="pixel-toolbar__action-btn"
                 @click="exportGrid"
                 title="Export as JSON"
               >
@@ -530,6 +544,10 @@ import {
   PIXEL_SIZE,
   type SymbolMap,
 } from "../../grid-core/pixel";
+import { renderSeed, placeSeed } from "../../grid-core/seeds/render-seed";
+import type { GridSeed } from "../../grid-core/seeds/grid-seed";
+import uCodeWordmarkSeed from "../../grid-core/seeds/grids/uCode-wordmark.json";
+import panelFrameSeed from "../../grid-core/seeds/grids/panel-frame.json";
 
 const shell = useShellStore();
 const gridcoreSettings = useGridCoreSettingsStore();
@@ -970,6 +988,21 @@ function loadGridEditorDemo() {
       true,
     );
   }
+}
+
+/** Load a connected-cell seed (wordmark / panel frame) into the layer buffer. */
+function loadSeedDemo(name: "wordmark" | "frame") {
+  const seed: GridSeed =
+    name === "wordmark"
+      ? (uCodeWordmarkSeed as GridSeed)
+      : (panelFrameSeed as GridSeed);
+  layerBuffer = createBuffer(LAYER_COLS, LAYER_ROWS);
+  const originCol = Math.max(0, Math.floor((LAYER_COLS - seed.cols) / 2));
+  const originRow = Math.max(1, Math.floor((LAYER_ROWS - seed.rows) / 2));
+  placeSeed(layerBuffer, seed, originCol, originRow);
+  layerCursorCol.value = 0;
+  layerCursorRow.value = 0;
+  renderLayerBuffer();
 }
 
 function destroyGridEditor() {
