@@ -2,10 +2,10 @@
 
 Committed pixel baselines for the Terminal tab and glyph inspector.
 
-| File | Content |
-|------|---------|
-| `terminal.png` | Terminal tab — welcome banner + shell `>` prompt (PressStart2P 8×8). |
-| `glyphs-terminal.png` | Glyph inspector — all printable ASCII (32–126) in the Terminal font. |
+| File                  | Content                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------- |
+| `terminal.png`        | Terminal tab — welcome banner + shell `>` prompt (PressStart2P 8×8).                  |
+| `glyphs-terminal.png` | Glyph inspector — all printable ASCII (32–126) in the Terminal font.                  |
 | `glyphs-teletext.png` | Glyph inspector — all printable ASCII (32–126) in the Teletext font (MODE7GX3 12×16). |
 
 ## Regenerating

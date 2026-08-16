@@ -1374,6 +1374,7 @@ function loadTabContent(tabId?: string) {
       break;
     case "teletext":
       renderTeletextPage();
+      if (!vaultLoaded.value) void loadVaultContent();
       break;
     case "layer":
       loadLayerDemo();
@@ -1390,6 +1391,10 @@ function reloadGrid() {
   } else if (activeTab.value === "grid" || activeTab.value === "layer") {
     layerBuffer = createBuffer(LAYER_COLS, LAYER_ROWS);
     renderLayerBuffer();
+  } else if (activeTab.value === "teletext") {
+    vaultLoaded.value = false;
+    vaultDocCache.clear();
+    void loadVaultContent();
   } else loadTabContent();
 }
 
@@ -1483,10 +1488,133 @@ let teletextClockTimer: number | null = null;
 // Ceefax fastext: four coloured links mapped to F1–F4 (red/green/yellow/blue).
 const TELETEXT_FASTEXT = [
   { label: "Index", color: 1, page: 100 },
-  { label: "News", color: 2, page: 101 },
-  { label: "Weather", color: 3, page: 400 },
+  { label: "Docs", color: 2, page: 200 },
+  { label: "Knowledge", color: 3, page: 300 },
   { label: "Help", color: 4, page: 888 },
 ];
+
+/* ─── Vault content (published Documentation + Global Knowledge) ──── */
+interface VaultDoc {
+  path: string;
+  filename: string;
+  binder: string | null;
+  tags: string[];
+  preview: string;
+  extension: string;
+}
+
+interface VaultLibrary {
+  id: string;
+  label: string;
+  /** Library index source ("public" or a registered workspace). */
+  source: string;
+  /** Folder tag used to filter within the source (null = all). */
+  tag: string | null;
+  /** Ceefax page for this library's index (200/300/400). */
+  page: number;
+  colour: number;
+  docs: VaultDoc[];
+}
+
+// Public vault libraries → Ceefax page ranges.
+// Global Knowledge is a registered workspace (source "global-knowledge");
+// Documentation + Learning live under ~/Public (source "public").
+const PUBLIC_LIBRARY_DEFS = [
+  {
+    id: "documentation",
+    label: "Documentation",
+    source: "public",
+    tag: "doc-sites",
+    page: 200,
+    colour: 2,
+  },
+  {
+    id: "knowledge",
+    label: "Global Knowledge",
+    source: "global-knowledge",
+    tag: null,
+    page: 300,
+    colour: 3,
+  },
+  {
+    id: "learning",
+    label: "Learning",
+    source: "public",
+    tag: "learning",
+    page: 400,
+    colour: 6,
+  },
+];
+
+const vaultLibraries = ref<VaultLibrary[]>([]);
+const vaultLoaded = ref(false);
+const vaultError = ref<string | null>(null);
+/** path → full file content, cached after first read. */
+const vaultDocCache = new Map<string, string>();
+
+const DOCS_PER_LIST_PAGE = 14; // fits between title (rows 3-4) and fastext
+const MAX_DOCS_PER_LIBRARY = 48; // cap to keep within the 100-page range
+const DOC_PAGE_OFFSET = 50; // content pages start at library.page + 50
+
+function docTitle(doc: VaultDoc): string {
+  const base = doc.filename.replace(/\.[^.]+$/, "");
+  const title = base.replace(/[-_]+/g, " ").trim();
+  return title || doc.filename;
+}
+
+/** Library that owns a given page number (by hundred-block). */
+function libraryForPage(page: number): VaultLibrary | undefined {
+  const base = Math.floor(page / 100) * 100;
+  return vaultLibraries.value.find((lib) => lib.page === base);
+}
+
+/** Fetch one library source's document list. */
+async function fetchVaultSource(source: string): Promise<VaultDoc[]> {
+  const res = await fetch(
+    `${UCORE_API}/api/library/search?q=*&source=${encodeURIComponent(source)}&limit=400`,
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status} (${source})`);
+  const data = await res.json();
+  const raw: unknown[] = Array.isArray(data.results) ? data.results : [];
+  return raw.map((d) => {
+    const item = d as Record<string, unknown>;
+    const tags = Array.isArray(item.tags) ? (item.tags as string[]) : [];
+    return {
+      path: String(item.path ?? ""),
+      filename: String(item.filename ?? ""),
+      binder: item.binder ? String(item.binder) : null,
+      tags,
+      preview: String(item.preview ?? ""),
+      extension: String(item.extension ?? ""),
+    };
+  });
+}
+
+/** Fetch the published vault index and group docs into libraries. */
+async function loadVaultContent(): Promise<void> {
+  try {
+    const sources = new Set(PUBLIC_LIBRARY_DEFS.map((def) => def.source));
+    const fetched = new Map<string, VaultDoc[]>();
+    await Promise.all(
+      Array.from(sources).map(async (source) => {
+        fetched.set(source, await fetchVaultSource(source));
+      }),
+    );
+    vaultLibraries.value = PUBLIC_LIBRARY_DEFS.map((def) => {
+      const all = fetched.get(def.source) ?? [];
+      const docs = (def.tag ? all.filter((d) => d.tags.includes(def.tag)) : all)
+        .filter((d) => d.extension === "md" || d.extension === "markdown")
+        .slice(0, MAX_DOCS_PER_LIBRARY);
+      return { ...def, docs };
+    });
+    vaultError.value = null;
+  } catch (e) {
+    vaultError.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    vaultLoaded.value = true;
+  }
+  renderTeletextPage();
+}
 
 /** Ceefax-style clock: `Mon 16 Aug 21:00/12`. */
 function ceefaxClock(): string {
@@ -1547,68 +1675,192 @@ interface TeletextPage {
   flash?: boolean;
 }
 
+/** Wrap prose to a fixed column width. */
+function wrapText(text: string, width: number): string[] {
+  const out: string[] = [];
+  for (const raw of text.split("\n")) {
+    const line = raw.replace(/\s+/g, " ").trim();
+    if (!line) {
+      out.push("");
+      continue;
+    }
+    let rest = line;
+    while (rest.length > width) {
+      const cut = rest.lastIndexOf(" ", width);
+      const at = cut < 1 ? width : cut;
+      out.push(rest.slice(0, at).trimEnd());
+      rest = rest.slice(at).trimStart();
+    }
+    if (rest) out.push(rest);
+  }
+  return out;
+}
+
+/** Main index — libraries from the public vault + static pages. */
+function mainIndexPage(): TeletextPage {
+  const libs = vaultLibraries.value;
+  if (!vaultLoaded.value) {
+    return {
+      title: "uCode",
+      lines: ["", "  Loading published content...", "  (vault index)"],
+    };
+  }
+  if (vaultError.value) {
+    return {
+      title: "uCode",
+      lines: [
+        "",
+        `  Vault unavailable: ${vaultError.value.slice(0, 30)}`,
+        "",
+        "  NEWS ............... 101",
+        "  HELP ............... 888",
+        "  INDEX .............. 199",
+      ],
+    };
+  }
+  const lines: string[] = [
+    "  uCODE TELETEXT READER",
+    "  Published vault content",
+    "",
+  ];
+  for (const lib of libs) {
+    const count = lib.docs.length;
+    lines.push(
+      `  ${lib.label.toUpperCase()} ${"".padEnd(Math.max(1, 18 - lib.label.length), ".")} ${lib.page}  (${count})`,
+    );
+  }
+  lines.push("");
+  lines.push("  NEWS ............... 101");
+  lines.push("  HELP ............... 888");
+  lines.push("  INDEX .............. 199");
+  lines.push("");
+  lines.push("  Type 0-9 for page number");
+  lines.push("  F1-F4 fastext shortcuts");
+  return { title: "uCode", lines };
+}
+
+/** A library's doc list (paginated). */
+function docListPage(lib: VaultLibrary, listIdx: number): TeletextPage {
+  const docs = lib.docs;
+  if (!vaultLoaded.value) {
+    return { title: lib.label, lines: ["", "  Loading published content..."] };
+  }
+  const start = listIdx * DOCS_PER_LIST_PAGE;
+  const pageDocs = docs.slice(start, start + DOCS_PER_LIST_PAGE);
+  const lines: string[] = [
+    `  ${lib.label.toUpperCase()} (${docs.length} docs)`,
+    "",
+  ];
+  if (pageDocs.length === 0) {
+    lines.push("  No documents indexed yet.");
+    lines.push("  Add files under the Public");
+    lines.push("  vault and rebuild the index.");
+  } else {
+    pageDocs.forEach((doc, i) => {
+      const readPage = lib.page + DOC_PAGE_OFFSET + start + i;
+      lines.push(
+        `  ${String(readPage).padStart(3, " ")}  ${docTitle(doc).slice(0, 29)}`,
+      );
+      lines.push(`       ${doc.preview.slice(0, 32)}`);
+    });
+  }
+  const nextStart = start + DOCS_PER_LIST_PAGE;
+  if (nextStart < docs.length) {
+    lines.push("");
+    lines.push(`  MORE ............... ${lib.page + 1 + listIdx + 1}`);
+  }
+  return { title: lib.label, lines };
+}
+
+/** A single document rendered as a Ceefax page. */
+function docContentPage(lib: VaultLibrary, docIdx: number): TeletextPage {
+  const doc = lib.docs[docIdx];
+  if (!doc) {
+    return { title: "P??", lines: ["  Document not found."] };
+  }
+  const body = vaultDocCache.get(doc.path) ?? doc.preview;
+  const wrapped = wrapText(body, 38);
+  const lines: string[] = [
+    `  ${docTitle(doc).slice(0, 36)}`,
+    `  ${doc.filename.slice(0, 36)}`,
+    "",
+  ];
+  for (const line of wrapped.slice(0, 17)) lines.push(`  ${line.slice(0, 38)}`);
+  lines.push("");
+  lines.push(`  Back: ${lib.page}  ·  ESC to go back`);
+  return { title: docTitle(doc).slice(0, 14), lines };
+}
+
+function newsPage(): TeletextPage {
+  return {
+    title: "NEWS",
+    flash: true,
+    lines: [
+      "  Teletext reader wired to the",
+      "  public vault index.",
+      "",
+      "  DOCUMENTATION ....... 200",
+      "  GLOBAL KNOWLEDGE .... 300",
+      "  LEARNING ............ 400",
+      "",
+      "  Type a 3-digit page number",
+      "  to browse published content.",
+    ],
+  };
+}
+
+function subIndexPage(): TeletextPage {
+  return {
+    title: "INDEX",
+    lines: [
+      "  100  Main Index",
+      "  101  News Headlines",
+      "  200  Documentation",
+      "  300  Global Knowledge",
+      "  400  Learning",
+      "  888  Help and About",
+    ],
+  };
+}
+
+function helpPage(): TeletextPage {
+  return {
+    title: "HELP",
+    lines: [
+      "  Number keys 0-9 navigate",
+      "  F1-F4 fastext shortcuts",
+      "  ESC or B goes back",
+      "",
+      "  uCode GridCore teletext",
+      "  reader with G0 rendering",
+      "",
+      "  Content from the public",
+      "  vault (published docs).",
+    ],
+  };
+}
+
 function teletextContent(page: number): TeletextPage {
+  const lib = libraryForPage(page);
+  if (lib) {
+    const docIdx = page - lib.page - DOC_PAGE_OFFSET;
+    if (docIdx >= 0 && docIdx < lib.docs.length) {
+      return docContentPage(lib, docIdx);
+    }
+    const listIdx = page - lib.page - 1;
+    if (listIdx >= 0) return docListPage(lib, listIdx);
+    return docListPage(lib, 0);
+  }
+
   switch (page) {
     case 100:
-      return {
-        title: "uCode",
-        lines: [
-          "    NEWS ............... 101",
-          "    WEATHER ............ 400",
-          "    INDEX .............. 199",
-          "    HELP ............... 888",
-          "",
-          "  Type 0-9 for a page number",
-          "  F1-F4 fastext shortcuts",
-          "  ESC or B to go back",
-        ],
-      };
+      return mainIndexPage();
     case 101:
-      return {
-        title: "NEWS",
-        flash: true,
-        lines: [
-          "  GridCore v3 ships with full",
-          "  Ceefax G0 emulation.",
-          "",
-          "  Double-height text support",
-          "  Sextant block graphics",
-          "  Flashing NEWFLASH banners",
-          "  Live RSS-ready page engine",
-        ],
-      };
+      return newsPage();
     case 199:
-      return {
-        title: "INDEX",
-        lines: [
-          "  100  Main Index",
-          "  101  News Headlines",
-          "  400  Weather",
-          "  888  Help and About",
-        ],
-      };
-    case 400:
-      return {
-        title: "WEATHER",
-        lines: [
-          "  Forecast for the uCode realm:",
-          "",
-          "  Dry, with scattered",
-          "  mosaic outbreaks later.",
-        ],
-      };
+      return subIndexPage();
     case 888:
-      return {
-        title: "HELP",
-        lines: [
-          "  Number keys 0-9 navigate",
-          "  F1-F4 fastext shortcuts",
-          "  ESC or B goes back",
-          "",
-          "  uCode GridCore teletext",
-          "  reader with G0 rendering",
-        ],
-      };
+      return helpPage();
     default:
       return {
         title: `P${page}`,
@@ -1670,18 +1922,43 @@ function renderTeletextPage() {
   activeCanvas.setBuffer(buf);
 }
 
-function teletextNavigate(page: number) {
+async function teletextNavigate(page: number) {
   if (page < 100 || page > 899) return;
   teletextHistory.push(teletextPage.value);
   teletextPage.value = page;
   renderTeletextPage();
+  await fetchDocContentForPage(page);
 }
 
-function teletextGoBack() {
+async function teletextGoBack() {
   const prev = teletextHistory.pop();
   if (prev === undefined) return;
   teletextPage.value = prev;
   renderTeletextPage();
+  await fetchDocContentForPage(prev);
+}
+
+/** Fetch a doc-content page's full file body (cached, once per path). */
+async function fetchDocContentForPage(page: number): Promise<void> {
+  const lib = libraryForPage(page);
+  if (!lib) return;
+  const docIdx = page - lib.page - DOC_PAGE_OFFSET;
+  if (docIdx < 0 || docIdx >= lib.docs.length) return;
+  const doc = lib.docs[docIdx];
+  if (vaultDocCache.has(doc.path)) return;
+  try {
+    const res = await fetch(
+      `${UCORE_API}/api/library/file?path=${encodeURIComponent(doc.path)}`,
+    );
+    if (!res.ok) return;
+    const data = await res.json();
+    if (typeof data.content === "string") {
+      vaultDocCache.set(doc.path, data.content);
+      if (teletextPage.value === page) renderTeletextPage();
+    }
+  } catch {
+    /* keep the preview */
+  }
 }
 
 function teletextFastext(index: number) {
@@ -1990,7 +2267,9 @@ function loadGlyphInspector() {
   let buf = createBuffer(c, rows);
   // Row 0 — header label (font name).
   const label =
-    glyphInspectorFont.value === "pressstart2p" ? "TERMINAL 8x8" : "TELETEXT 12x16";
+    glyphInspectorFont.value === "pressstart2p"
+      ? "TERMINAL 8x8"
+      : "TELETEXT 12x16";
   buf = writeString(buf, 0, 0, label, 6, 0, true);
   // Rows 1..6 — printable ASCII 32..126, 16 per row.
   let code = 32;
