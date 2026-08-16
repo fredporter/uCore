@@ -1,22 +1,29 @@
 # Terminal Golden Images
 
-Committed pixel baselines for the Terminal tab and glyph inspector.
+Committed pixel baselines for the Glyph Inspector (`/ucode` → Glyphs tab),
+captured and diffed automatically by `@playwright/test`.
 
-| File                  | Content                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------- |
-| `terminal.png`        | Terminal tab — welcome banner + shell `>` prompt (PressStart2P 8×8).                  |
-| `glyphs-terminal.png` | Glyph inspector — all printable ASCII (32–126) in the Terminal font.                  |
-| `glyphs-teletext.png` | Glyph inspector — all printable ASCII (32–126) in the Teletext font (MODE7GX3 12×16). |
+| File                  | Content                                                                                 |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| `glyphs-terminal.png` | Glyph inspector — all printable ASCII (32–126) in the Terminal font (PressStart2P 8×8). |
+| `glyphs-teletext.png` | Glyph inspector — all printable ASCII (32–126) in the Teletext font (MODE7GX3 12×16).   |
+| `terminal.png`        | (legacy) Terminal tab screenshot — kept for reference, not asserted by the harness.     |
 
-## Regenerating
+## Running the harness
 
-These are captured from the running frontend dev server (`/ucode`) at a fixed
-viewport. The authoritative pixel source is the glyph atlas
+```sh
+pnpm test:golden                      # run diffs against committed baselines
+pnpm test:golden --update-snapshots   # regenerate baselines
+pnpm exec playwright install chromium # one-time browser install
+```
+
+The harness (`e2e/golden.spec.ts`) navigates to `/ucode`, opens the Glyphs tab,
+and screenshots the visible `<gridui-canvas>` `<canvas>` element. Baselines are
+captured at a fixed viewport (1280×800, deviceScaleFactor 1) and are
+deterministic because the viewport fits the glyph grid at a uniform integer
+device-pixel scale.
+
+The authoritative pixel source is the glyph atlas
 (`src/grid-core/seeds/glyph-atlas.*.json`), verified by
-`src/grid-core/__tests__/glyph-atlas.test.ts`. The PNGs above are a rendered
-snapshot for visual regression.
-
-To regenerate, capture the `<canvas>` inside the visible `<gridui-canvas>`
-element for each view. An automated `@playwright/test` harness that captures
-and diffs these against the committed baselines is tracked as a follow-up
-(deferred until Playwright is added as a dev dependency).
+`src/grid-core/__tests__/glyph-atlas.test.ts`. The PNGs above are the rendered
+snapshot used for visual regression.
