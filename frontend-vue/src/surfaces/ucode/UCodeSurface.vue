@@ -486,6 +486,18 @@
             </button>
           </div>
         </div>
+        <div v-if="activeTab === 'layer'" class="layer-map-selector">
+          <span class="layer-map-selector__label">Map</span>
+          <button
+            v-for="m in LAYER_MAPS"
+            :key="m.id"
+            class="layer-map-selector__btn"
+            :class="{ active: layerMapName === m.id }"
+            @click="loadLayerMapByName(m.id)"
+          >
+            {{ m.label }}
+          </button>
+        </div>
         <div class="surface__canvas">
           <div
             ref="gridContainer"
@@ -548,6 +560,11 @@ import { renderSeed, placeSeed } from "../../grid-core/seeds/render-seed";
 import type { GridSeed } from "../../grid-core/seeds/grid-seed";
 import uCodeWordmarkSeed from "../../grid-core/seeds/grids/uCode-wordmark.json";
 import panelFrameSeed from "../../grid-core/seeds/grids/panel-frame.json";
+import { loadLayerMap } from "../../grid-core/seeds/load-layer-map";
+import type { LayerMap } from "../../grid-core/seeds/layer-map";
+import worldMapSeed from "../../grid-core/seeds/layers/world-map.json";
+import moonMapSeed from "../../grid-core/seeds/layers/moon.json";
+import regionMapSeed from "../../grid-core/seeds/layers/region.json";
 
 const shell = useShellStore();
 const gridcoreSettings = useGridCoreSettingsStore();
@@ -1903,60 +1920,40 @@ function onTerminalKeydown(event: KeyboardEvent) {
 }
 
 /* ─── Layer Tab ───────────────────────────────────────────────────── */
-function loadLayerDemo() {
+/* ─── Layer Map Seeds ──────────────────────────────────────────────── */
+const layerMapName = ref<"world" | "moon" | "region">("world");
+
+const LAYER_MAPS: {
+  id: "world" | "moon" | "region";
+  label: string;
+  seed: LayerMap;
+}[] = [
+  { id: "world", label: "World", seed: worldMapSeed as LayerMap },
+  { id: "moon", label: "Moon", seed: moonMapSeed as LayerMap },
+  { id: "region", label: "Region", seed: regionMapSeed as LayerMap },
+];
+
+function loadLayerMapByName(name: "world" | "moon" | "region") {
+  layerMapName.value = name;
   if (!activeCanvas) return;
-  const cfg = tabConfigs.layer;
-  const c = cfg.cols;
-  const r = cfg.rows;
-  const LAYERS = [
-    { name: "terrain", color: 2, fill: "#" },
-    { name: "details", color: 6, fill: "~" },
-    { name: "foreground", color: 3, fill: "&" },
-    { name: "lighting", color: 4, fill: "*" },
-    { name: "collision", color: 1, fill: "@" },
-    { name: "entities", color: 5, fill: "o" },
-  ];
-  let buf = createBuffer(c, r);
-  buf = writeString(buf, 1, 0, "uCode Layer Surface", 7, 4, true);
-  buf = fill(buf, 0, 1, c, r - 2, ".", 4, 0);
-  // Compose layers bottom-up as stacked bands (left side)
-  for (let i = 0; i < LAYERS.length; i++) {
-    const layer = LAYERS[i];
-    const y = 3 + i * 2;
-    if (y >= r - 1) break;
-    buf = fill(buf, 1, y, c - 18, 1, layer.fill, layer.color, 0);
-    buf = writeString(
-      buf,
-      1,
-      y,
-      ` ${i + 1}. ${layer.name}`,
-      7,
-      layer.color,
-      true,
-    );
-  }
-  // Layer stack legend (right side)
-  const lx = c - 16;
-  buf = writeString(buf, lx, 3, "LAYER STACK", 6, 0, true);
-  for (let i = 0; i < LAYERS.length; i++) {
-    buf = writeString(
-      buf,
-      lx,
-      5 + i,
-      `${i + 1} ${LAYERS[i].name}`,
-      LAYERS[i].color,
-      0,
-    );
-  }
+  const map = LAYER_MAPS.find((m) => m.id === name);
+  if (!map) return;
+  let buf = loadLayerMap(map.seed);
+  const r = map.seed.rows;
+  const c = map.seed.cols;
   buf = writeString(
     buf,
     0,
     r - 1,
-    `Layers: ${LAYERS.length}  |  World: L340  |  Opacity: 100%`,
+    `${map.seed.name} · ${c}×${r} · ${map.seed.projection}`,
     7,
     1,
   );
   activeCanvas.setBuffer(buf);
+}
+
+function loadLayerDemo() {
+  loadLayerMapByName(layerMapName.value);
 }
 
 /* ─── Common ──────────────────────────────────────────────────────── */
@@ -2031,6 +2028,35 @@ function clearGrid() {
 }
 .ucode-viewport gridui-canvas {
   flex-shrink: 0;
+}
+
+/* ─── Layer map selector ───────────────────────────────────────── */
+.layer-map-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--gridcore-space-xs);
+  padding: var(--gridcore-space-xs) var(--gridcore-space-sm);
+  flex-shrink: 0;
+  background: var(--gridcore-color-surface);
+  border-bottom: var(--gridcore-border);
+}
+.layer-map-selector__label {
+  font-size: var(--gridcore-font-size-sm);
+  color: var(--gridcore-color-text-muted);
+  margin-right: var(--gridcore-space-xs);
+}
+.layer-map-selector__btn {
+  padding: 2px 10px;
+  font-size: var(--gridcore-font-size-sm);
+  color: var(--gridcore-color-text);
+  background: var(--gridcore-color-background-alt);
+  border: var(--gridcore-border);
+  border-radius: var(--gridcore-radius-sm);
+  cursor: pointer;
+}
+.layer-map-selector__btn.active {
+  color: var(--gridcore-color-surface);
+  background: var(--gridcore-color-primary);
 }
 
 /* ─── Pixel Editor Layout ───────────────────────────────────────── */
