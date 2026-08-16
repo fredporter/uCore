@@ -573,7 +573,7 @@ import {
   PIXEL_SIZE,
   type SymbolMap,
 } from "../../grid-core/pixel";
-import { renderSeed, placeSeed } from "../../grid-core/seeds/render-seed";
+import { renderSeed, placeSeed, patternToChar } from "../../grid-core/seeds/render-seed";
 import type { GridSeed } from "../../grid-core/seeds/grid-seed";
 import uCodeWordmarkSeed from "../../grid-core/seeds/grids/uCode-wordmark.json";
 import panelFrameSeed from "../../grid-core/seeds/grids/panel-frame.json";
@@ -1568,6 +1568,24 @@ function libraryForPage(page: number): VaultLibrary | undefined {
   return vaultLibraries.value.find((lib) => lib.page === base);
 }
 
+/** Rotating subpage index (0-based) within the current page. */
+const teletextSubpage = ref(0);
+/** Tick counter for subpage auto-rotation. */
+let teletextTick = 0;
+
+const DOC_SCREEN_LINES = 15;
+
+/** Split a document's wrapped body into screens of ~15 lines. */
+function docScreens(doc: VaultDoc): string[][] {
+  const body = vaultDocCache.get(doc.path) ?? doc.preview;
+  const wrapped = wrapText(body, 38);
+  const screens: string[][] = [];
+  for (let i = 0; i < wrapped.length; i += DOC_SCREEN_LINES) {
+    screens.push(wrapped.slice(i, i + DOC_SCREEN_LINES));
+  }
+  return screens.length > 0 ? screens : [[]];
+}
+
 /** Fetch one library source's document list. */
 async function fetchVaultSource(source: string): Promise<VaultDoc[]> {
   const res = await fetch(
@@ -1668,11 +1686,60 @@ function writeMosaicRule(buf: GridBuffer, y: number, color: number): void {
   }
 }
 
+/** Write a full-width separated-graphics bar (top-row sextant blocks). */
+function writeSeparatedBar(buf: GridBuffer, y: number, color: number): void {
+  const cols = buf[0]?.length ?? 0;
+  if (y < 0 || y >= buf.length) return;
+  for (let c = 0; c < cols; c++) {
+    buf[y][c] = { char: patternToChar(3), fg: color, bg: 0, mosaic: true };
+  }
+}
+
+/** Draw a boxed double-height title using 2×3 sextant edges. */
+function writeBoxedDoubleHeightTitle(
+  buf: GridBuffer,
+  title: string,
+  colour: number,
+): void {
+  const c = buf[0]?.length ?? 0;
+  const t = title.slice(0, 18);
+  const innerW = Math.max(t.length + 2, 4); // title + left/right border
+  const x = Math.max(0, Math.floor((c - innerW) / 2));
+  const set = (row: number, col: number, pattern: number): void => {
+    if (row >= 0 && row < buf.length && col >= 0 && col < c) {
+      buf[row][col] = { char: patternToChar(pattern), fg: colour, bg: 0, mosaic: true };
+    }
+  };
+  // Top border + corners.
+  set(2, x, 23);
+  for (let i = 1; i < innerW - 1; i++) set(2, x + i, 3);
+  set(2, x + innerW - 1, 43);
+  // Left/right walls (rows 3-4).
+  set(3, x, 21);
+  set(4, x, 21);
+  set(3, x + innerW - 1, 42);
+  set(4, x + innerW - 1, 42);
+  // Bottom border + corners.
+  set(5, x, 53);
+  for (let i = 1; i < innerW - 1; i++) set(5, x + i, 48);
+  set(5, x + innerW - 1, 58);
+  // Double-height title inside (yellow).
+  for (let i = 0; i < t.length; i++) {
+    const col = x + 1 + i;
+    buf[3][col] = { char: t[i], fg: 3, bg: 0, dh: "top" };
+    buf[4][col] = { char: t[i], fg: 3, bg: 0, dh: "bottom" };
+  }
+}
+
 interface TeletextPage {
   title: string;
   lines: string[];
   /** Show a flashing NEWFLASH banner below the header. */
   flash?: boolean;
+  /** Section accent colour (palette index) for the title box + bar. */
+  colour?: number;
+  /** Number of rotating subpages (multi-screen content); 1 = single. */
+  subpages?: number;
 }
 
 /** Wrap prose to a fixed column width. */
@@ -1702,12 +1769,14 @@ function mainIndexPage(): TeletextPage {
   if (!vaultLoaded.value) {
     return {
       title: "uCode",
+      colour: 6,
       lines: ["", "  Loading published content...", "  (vault index)"],
     };
   }
   if (vaultError.value) {
     return {
       title: "uCode",
+      colour: 1,
       lines: [
         "",
         `  Vault unavailable: ${vaultError.value.slice(0, 30)}`,
@@ -1736,14 +1805,18 @@ function mainIndexPage(): TeletextPage {
   lines.push("");
   lines.push("  Type 0-9 for page number");
   lines.push("  F1-F4 fastext shortcuts");
-  return { title: "uCode", lines };
+  return { title: "uCode", colour: 6, lines };
 }
 
 /** A library's doc list (paginated). */
 function docListPage(lib: VaultLibrary, listIdx: number): TeletextPage {
   const docs = lib.docs;
   if (!vaultLoaded.value) {
-    return { title: lib.label, lines: ["", "  Loading published content..."] };
+    return {
+      title: lib.label,
+      colour: lib.colour,
+      lines: ["", "  Loading published content..."],
+    };
   }
   const start = listIdx * DOCS_PER_LIST_PAGE;
   const pageDocs = docs.slice(start, start + DOCS_PER_LIST_PAGE);
@@ -1769,32 +1842,39 @@ function docListPage(lib: VaultLibrary, listIdx: number): TeletextPage {
     lines.push("");
     lines.push(`  MORE ............... ${lib.page + 1 + listIdx + 1}`);
   }
-  return { title: lib.label, lines };
+  return { title: lib.label, colour: lib.colour, lines };
 }
 
-/** A single document rendered as a Ceefax page. */
+/** A single document rendered as a Ceefax page (rotating subpages). */
 function docContentPage(lib: VaultLibrary, docIdx: number): TeletextPage {
   const doc = lib.docs[docIdx];
   if (!doc) {
-    return { title: "P??", lines: ["  Document not found."] };
+    return { title: "P??", colour: lib.colour, lines: ["  Document not found."] };
   }
-  const body = vaultDocCache.get(doc.path) ?? doc.preview;
-  const wrapped = wrapText(body, 38);
+  const screens = docScreens(doc);
+  const total = screens.length;
+  const screen = Math.min(teletextSubpage.value, total - 1);
   const lines: string[] = [
     `  ${docTitle(doc).slice(0, 36)}`,
     `  ${doc.filename.slice(0, 36)}`,
     "",
   ];
-  for (const line of wrapped.slice(0, 17)) lines.push(`  ${line.slice(0, 38)}`);
+  for (const line of screens[screen]) lines.push(`  ${line.slice(0, 38)}`);
   lines.push("");
   lines.push(`  Back: ${lib.page}  ·  ESC to go back`);
-  return { title: docTitle(doc).slice(0, 14), lines };
+  return {
+    title: docTitle(doc).slice(0, 14),
+    colour: lib.colour,
+    lines,
+    subpages: total,
+  };
 }
 
 function newsPage(): TeletextPage {
   return {
     title: "NEWS",
     flash: true,
+    colour: 2,
     lines: [
       "  Teletext reader wired to the",
       "  public vault index.",
@@ -1812,6 +1892,7 @@ function newsPage(): TeletextPage {
 function subIndexPage(): TeletextPage {
   return {
     title: "INDEX",
+    colour: 3,
     lines: [
       "  100  Main Index",
       "  101  News Headlines",
@@ -1826,6 +1907,7 @@ function subIndexPage(): TeletextPage {
 function helpPage(): TeletextPage {
   return {
     title: "HELP",
+    colour: 4,
     lines: [
       "  Number keys 0-9 navigate",
       "  F1-F4 fastext shortcuts",
@@ -1864,6 +1946,7 @@ function teletextContent(page: number): TeletextPage {
     default:
       return {
         title: `P${page}`,
+        colour: 6,
         lines: ["  Press 100 for Main Index", "  Press 199 for Full Index"],
       };
   }
@@ -1892,12 +1975,13 @@ function renderTeletextPage() {
     for (let x = 0; x < c; x++) buf[1][x].blink = true;
   }
 
-  // Rows 3–4 — double-height title, centred, yellow.
-  const titleX = Math.max(0, Math.floor((c - content.title.length) / 2));
-  writeDoubleHeight(buf, titleX, 3, content.title, 3, 0);
+  // Row 1 — separated-graphics colour bar under the header (unless flashing).
+  if (!content.flash) {
+    writeSeparatedBar(buf, 1, content.colour ?? 6);
+  }
 
-  // Mosaic rule under the title.
-  writeMosaicRule(buf, 5, 6);
+  // Rows 2–5 — boxed double-height title (sextant edges).
+  writeBoxedDoubleHeightTitle(buf, content.title, content.colour ?? 6);
 
   // Rows 6.. — body lines.
   const lines = content.lines;
@@ -1912,11 +1996,16 @@ function renderTeletextPage() {
     buf = writeString(buf, i * seg, r - 2, label, 7, ft.color);
   });
 
-  // Row r-1 — status bar (blue): page, channel, page, clock.
+  // Row r-1 — status bar (blue): page, channel, subpage, clock.
+  const subpages = content.subpages ?? 1;
+  const subLabel =
+    subpages > 1
+      ? `${teletextSubpage.value + 1}/${subpages}`
+      : `P${page}`;
   buf = fill(buf, 0, r - 1, c, 1, " ", 7, 4);
   buf = writeString(buf, 0, r - 1, `P${page}`, 7, 4);
   buf = writeString(buf, 6, r - 1, "BBC1", 7, 4);
-  buf = writeString(buf, 12, r - 1, `P${page}`, 7, 4);
+  buf = writeString(buf, 12, r - 1, subLabel, 7, 4);
   buf = writeString(buf, c - clock.length - 1, r - 1, clock, 7, 4);
 
   activeCanvas.setBuffer(buf);
@@ -1926,6 +2015,8 @@ async function teletextNavigate(page: number) {
   if (page < 100 || page > 899) return;
   teletextHistory.push(teletextPage.value);
   teletextPage.value = page;
+  teletextSubpage.value = 0;
+  teletextTick = 0;
   renderTeletextPage();
   await fetchDocContentForPage(page);
 }
@@ -1934,6 +2025,8 @@ async function teletextGoBack() {
   const prev = teletextHistory.pop();
   if (prev === undefined) return;
   teletextPage.value = prev;
+  teletextSubpage.value = 0;
+  teletextTick = 0;
   renderTeletextPage();
   await fetchDocContentForPage(prev);
 }
@@ -1969,7 +2062,22 @@ function teletextFastext(index: number) {
 function startTeletextClock() {
   stopTeletextClock();
   teletextClockTimer = window.setInterval(() => {
-    if (activeTab.value === "teletext") renderTeletextPage();
+    if (activeTab.value !== "teletext") return;
+    teletextTick++;
+    // Auto-rotate subpages every ~4s for multi-screen docs (Ceefax-style).
+    if (teletextTick % 4 === 0) {
+      const lib = libraryForPage(teletextPage.value);
+      if (lib) {
+        const docIdx = teletextPage.value - lib.page - DOC_PAGE_OFFSET;
+        if (docIdx >= 0 && docIdx < lib.docs.length) {
+          const total = docScreens(lib.docs[docIdx]).length;
+          if (total > 1) {
+            teletextSubpage.value = (teletextSubpage.value + 1) % total;
+          }
+        }
+      }
+    }
+    renderTeletextPage();
   }, 1000);
 }
 
@@ -2004,7 +2112,29 @@ function handleTeletextKeydown(event: KeyboardEvent) {
   } else if (event.key === "Escape" || event.key === "b" || event.key === "B") {
     event.preventDefault();
     teletextGoBack();
+  } else if (event.key === "." || event.key === "n" || event.key === "N") {
+    // Next subpage (manual advance).
+    event.preventDefault();
+    teletextStepSubpage(1);
+  } else if (event.key === "," || event.key === "p" || event.key === "P") {
+    // Previous subpage.
+    event.preventDefault();
+    teletextStepSubpage(-1);
   }
+}
+
+/** Step the current page's subpage (clamped), for multi-screen docs. */
+function teletextStepSubpage(delta: number): void {
+  const lib = libraryForPage(teletextPage.value);
+  if (!lib) return;
+  const docIdx = teletextPage.value - lib.page - DOC_PAGE_OFFSET;
+  if (docIdx < 0 || docIdx >= lib.docs.length) return;
+  const total = docScreens(lib.docs[docIdx]).length;
+  if (total <= 1) return;
+  teletextSubpage.value =
+    (teletextSubpage.value + delta + total) % total;
+  teletextTick = 0;
+  renderTeletextPage();
 }
 
 function onSharedKeydown(event: KeyboardEvent) {
