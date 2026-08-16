@@ -573,7 +573,11 @@ import {
   PIXEL_SIZE,
   type SymbolMap,
 } from "../../grid-core/pixel";
-import { renderSeed, placeSeed, patternToChar } from "../../grid-core/seeds/render-seed";
+import {
+  renderSeed,
+  placeSeed,
+  patternToChar,
+} from "../../grid-core/seeds/render-seed";
 import type { GridSeed } from "../../grid-core/seeds/grid-seed";
 import uCodeWordmarkSeed from "../../grid-core/seeds/grids/uCode-wordmark.json";
 import panelFrameSeed from "../../grid-core/seeds/grids/panel-frame.json";
@@ -1707,7 +1711,12 @@ function writeBoxedDoubleHeightTitle(
   const x = Math.max(0, Math.floor((c - innerW) / 2));
   const set = (row: number, col: number, pattern: number): void => {
     if (row >= 0 && row < buf.length && col >= 0 && col < c) {
-      buf[row][col] = { char: patternToChar(pattern), fg: colour, bg: 0, mosaic: true };
+      buf[row][col] = {
+        char: patternToChar(pattern),
+        fg: colour,
+        bg: 0,
+        mosaic: true,
+      };
     }
   };
   // Top border + corners.
@@ -1849,7 +1858,11 @@ function docListPage(lib: VaultLibrary, listIdx: number): TeletextPage {
 function docContentPage(lib: VaultLibrary, docIdx: number): TeletextPage {
   const doc = lib.docs[docIdx];
   if (!doc) {
-    return { title: "P??", colour: lib.colour, lines: ["  Document not found."] };
+    return {
+      title: "P??",
+      colour: lib.colour,
+      lines: ["  Document not found."],
+    };
   }
   const screens = docScreens(doc);
   const total = screens.length;
@@ -1999,9 +2012,7 @@ function renderTeletextPage() {
   // Row r-1 — status bar (blue): page, channel, subpage, clock.
   const subpages = content.subpages ?? 1;
   const subLabel =
-    subpages > 1
-      ? `${teletextSubpage.value + 1}/${subpages}`
-      : `P${page}`;
+    subpages > 1 ? `${teletextSubpage.value + 1}/${subpages}` : `P${page}`;
   buf = fill(buf, 0, r - 1, c, 1, " ", 7, 4);
   buf = writeString(buf, 0, r - 1, `P${page}`, 7, 4);
   buf = writeString(buf, 6, r - 1, "BBC1", 7, 4);
@@ -2131,8 +2142,7 @@ function teletextStepSubpage(delta: number): void {
   if (docIdx < 0 || docIdx >= lib.docs.length) return;
   const total = docScreens(lib.docs[docIdx]).length;
   if (total <= 1) return;
-  teletextSubpage.value =
-    (teletextSubpage.value + delta + total) % total;
+  teletextSubpage.value = (teletextSubpage.value + delta + total) % total;
   teletextTick = 0;
   renderTeletextPage();
 }
