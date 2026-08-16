@@ -498,6 +498,23 @@
             {{ m.label }}
           </button>
         </div>
+        <div v-if="activeTab === 'glyphs'" class="layer-map-selector">
+          <span class="layer-map-selector__label">Font</span>
+          <button
+            class="layer-map-selector__btn"
+            :class="{ active: glyphInspectorFont === 'pressstart2p' }"
+            @click="setGlyphInspectorFont('pressstart2p')"
+          >
+            Terminal 8×8
+          </button>
+          <button
+            class="layer-map-selector__btn"
+            :class="{ active: glyphInspectorFont === 'mode7gx3' }"
+            @click="setGlyphInspectorFont('mode7gx3')"
+          >
+            Teletext 12×16
+          </button>
+        </div>
         <div class="surface__canvas">
           <div
             ref="gridContainer"
@@ -579,6 +596,7 @@ const UCODE_TABS: TabDef[] = [
   { id: "pixel", label: "Pixel", icon: "grid_on" },
   { id: "grid", label: "Grid", icon: "dashboard" },
   { id: "layer", label: "Layer", icon: "layers" },
+  { id: "glyphs", label: "Glyphs", icon: "font_download" },
 ];
 
 const activeTab = ref("terminal");
@@ -589,6 +607,7 @@ const tabTitles: Record<string, string> = {
   pixel: "uCode — Pixel Editor",
   grid: "uCode — Grid Editor",
   layer: "uCode — Layer Surface",
+  glyphs: "uCode — Glyph Inspector",
 };
 
 const currentTitle = computed(
@@ -617,6 +636,7 @@ const tabConfigs: Record<
   pixel: { cols: 24, rows: 24, font: "mode7gx3", cellSize: 24, charWidth: 24 },
   grid: { cols: 40, rows: 25, font: "mode7gx3", cellSize: 20, charWidth: 26 },
   layer: { cols: 40, rows: 25, font: "mode7gx3", cellSize: 20, charWidth: 26 },
+  glyphs: { cols: 16, rows: 7, font: "pressstart2p", cellSize: 24 },
 };
 
 /* ─── Single-Canvas Tabs ──────────────────────────────────────────── */
@@ -1358,6 +1378,9 @@ function loadTabContent(tabId?: string) {
     case "layer":
       loadLayerDemo();
       break;
+    case "glyphs":
+      loadGlyphInspector();
+      break;
   }
 }
 
@@ -1954,6 +1977,38 @@ function loadLayerMapByName(name: "world" | "moon" | "region") {
 
 function loadLayerDemo() {
   loadLayerMapByName(layerMapName.value);
+}
+
+/* ─── Glyph Inspector ─────────────────────────────────────────────── */
+const glyphInspectorFont = ref<"pressstart2p" | "mode7gx3">("pressstart2p");
+
+function loadGlyphInspector() {
+  if (!activeCanvas) return;
+  const cfg = tabConfigs.glyphs;
+  const c = cfg.cols; // 16
+  const rows = cfg.rows; // 7: 1 header + 6 glyph rows (96 cells)
+  let buf = createBuffer(c, rows);
+  // Row 0 — header label (font name).
+  const label =
+    glyphInspectorFont.value === "pressstart2p" ? "TERMINAL 8x8" : "TELETEXT 12x16";
+  buf = writeString(buf, 0, 0, label, 6, 0, true);
+  // Rows 1..6 — printable ASCII 32..126, 16 per row.
+  let code = 32;
+  for (let r = 1; r < rows && code <= 126; r++) {
+    for (let col = 0; col < c && code <= 126; col++) {
+      buf[r][col] = { char: String.fromCharCode(code), fg: 7, bg: 0 };
+      code++;
+    }
+  }
+  activeCanvas.setBuffer(buf);
+  // Re-fit so switching font re-sizes cells to the new glyph aspect.
+  activeCanvas.setAttribute("font", glyphInspectorFont.value);
+  nextTick(() => activeCanvas?.refit());
+}
+
+function setGlyphInspectorFont(font: "pressstart2p" | "mode7gx3") {
+  glyphInspectorFont.value = font;
+  loadGlyphInspector();
 }
 
 /* ─── Common ──────────────────────────────────────────────────────── */
