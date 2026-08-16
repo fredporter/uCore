@@ -149,11 +149,12 @@
             @mouseleave="pixelIsDragging = false"
           >
             <span class="editor-section__label editor-section__label--overlay">
-              Pixel Editor · 24×24 · colour {{ pixelColor }}
+              Pixel Editor · 24×24 · {{ pixelSymbol || "?" }} ·
+              {{ pixelFont === "mode7gx3" ? "Teletext" : "Terminal" }}
             </span>
           </div>
         </div>
-        <!-- Sidebar: colour palette + help -->
+        <!-- Sidebar: colours, font, symbol map, library -->
         <aside class="editor-sidebar">
           <div class="sidebar-section">
             <h4 class="sidebar-title">Colours</h4>
@@ -172,14 +173,75 @@
             </div>
           </div>
           <div class="sidebar-section">
-            <h4 class="sidebar-title">Tools</h4>
-            <p class="sidebar-help">
-              Pencil paints · Eraser clears a pixel · drag to draw. Fill paints
-              the whole grid with the current colour. Undo/Redo are
-              snapshot-based. Export writes the 24×24 colour-index bitmap as
-              JSON.
-            </p>
+            <h4 class="sidebar-title">Font</h4>
+            <div class="sidebar-font-btns">
+              <button
+                class="sidebar-font-btn"
+                :class="{ active: pixelFont === 'pressstart2p' }"
+                @click="pixelFont = 'pressstart2p'"
+              >
+                Terminal
+              </button>
+              <button
+                class="sidebar-font-btn"
+                :class="{ active: pixelFont === 'mode7gx3' }"
+                @click="pixelFont = 'mode7gx3'"
+              >
+                Teletext
+              </button>
+            </div>
           </div>
+          <div class="sidebar-section">
+            <h4 class="sidebar-title">Symbol</h4>
+            <div class="sidebar-char-row">
+              <input
+                class="sidebar-char-input"
+                v-model="pixelSymbol"
+                maxlength="1"
+              />
+              <span class="sidebar-char-code">{{ pixelSymbolCode }}</span>
+            </div>
+            <div class="sidebar-font-btns">
+              <button class="sidebar-font-btn" @click="loadGlyphFromFont">
+                Load
+              </button>
+              <button class="sidebar-font-btn" @click="saveGlyphToMap">
+                Save
+              </button>
+            </div>
+          </div>
+          <div class="sidebar-section sidebar-font-chars">
+            <h4 class="sidebar-title">Library</h4>
+            <div class="sidebar-chars-grid">
+              <button
+                v-for="ch in pixelSymbols"
+                :key="ch"
+                class="sidebar-char-chip"
+                :class="{ selected: pixelSymbol === ch }"
+                :title="`U+${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`"
+                @click="selectPixelSymbol(ch)"
+              >
+                {{ ch }}
+              </button>
+            </div>
+          </div>
+          <div class="sidebar-section">
+            <div class="sidebar-font-btns">
+              <button class="sidebar-font-btn" @click="exportSymbolLibrary">
+                Export
+              </button>
+              <button class="sidebar-font-btn" @click="triggerSymbolImport">
+                Import
+              </button>
+            </div>
+          </div>
+          <input
+            ref="symbolImportRef"
+            type="file"
+            accept=".json"
+            class="ucode-import-input"
+            @change="onSymbolImportFile"
+          />
         </aside>
       </div>
     </div>
@@ -454,13 +516,19 @@ import {
 } from "../../grid-core/index";
 import { PALETTE_DARK } from "../../grid-core/palette";
 import { GRID_PRESETS } from "../../grid-core/algebra";
+import { BitmapGlyphRenderer, G0Renderer } from "../../grid-core/g0-renderer";
 import type { GridBuffer, GridCell } from "../../grid-core/types";
 import {
   PixelEditor,
   createPixelBuffer,
-  pixelBufferToGridBuffer,
+  createSymbolMap,
+  deserializeSymbolMap,
+  glyphBitmapToPixelBuffer,
   gridBufferToPixelBuffer,
+  pixelBufferToGridBuffer,
+  serializeSymbolMap,
   PIXEL_SIZE,
+  type SymbolMap,
 } from "../../grid-core/pixel";
 
 const shell = useShellStore();
@@ -566,6 +634,110 @@ function hideLayerColorPopover() {
 const pixelColor = ref(7);
 const pixelIsDragging = ref(false);
 
+/* ─── Pixel editor — font / symbol character map ───────────────────── */
+const teletextGlyphRenderer = new G0Renderer();
+const terminalGlyphRenderer = new BitmapGlyphRenderer({
+  glyphW: 8,
+  glyphH: 8,
+  fontFamily: '"Press Start 2P", monospace',
+});
+
+/** Source font used when loading glyphs into the editor. */
+const pixelFont = ref<"pressstart2p" | "mode7gx3">("mode7gx3");
+/** Currently edited symbol (Unicode char). */
+const pixelSymbol = ref("#");
+/** The editable symbol library: codepoint → 24×24 bitmap. */
+const symbolMap = ref<SymbolMap>(createSymbolMap());
+
+const pixelSymbolCode = computed(() =>
+  pixelSymbol.value
+    ? `U+${pixelSymbol.value.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}`
+    : "",
+);
+
+/** Characters offered in the Pixel sidebar library for the active font. */
+const pixelSymbols = computed(() => {
+  if (pixelFont.value === "pressstart2p") {
+    const chars: string[] = [];
+    for (let i = 0x21; i <= 0x7e; i++) chars.push(String.fromCharCode(i));
+    return chars;
+  }
+  const chars: string[] = [];
+  for (let i = 0x20; i <= 0x7e; i++) chars.push(String.fromCharCode(i));
+  chars.push("█", "▄", "▀", "▐", "▌", "░", "▒", "▓", "│", "─", "║", "═");
+  chars.push("╔", "╗", "╚", "╝", "╠", "╣", "╦", "╩", "╬");
+  return chars;
+});
+
+function currentGlyphRenderer(): BitmapGlyphRenderer {
+  return pixelFont.value === "mode7gx3"
+    ? teletextGlyphRenderer
+    : terminalGlyphRenderer;
+}
+
+/** Load the selected symbol's glyph from the font into the 24×24 editor. */
+function loadGlyphFromFont() {
+  const renderer = currentGlyphRenderer();
+  const code = pixelSymbol.value.charCodeAt(0);
+  const bitmap = renderer.getBitmap(code);
+  pixelEditor = new PixelEditor(
+    glyphBitmapToPixelBuffer(bitmap, renderer.glyphW, renderer.glyphH, 7),
+  );
+  renderPixelBuffer();
+}
+
+/** Store the current editor bitmap under the selected symbol. */
+function saveGlyphToMap() {
+  if (!pixelEditor) return;
+  symbolMap.value.set(pixelSymbol.value.charCodeAt(0), pixelEditor.buffer);
+}
+
+/** Select a symbol: load its edited bitmap if present, else load the font glyph. */
+function selectPixelSymbol(ch: string) {
+  pixelSymbol.value = ch;
+  const stored = symbolMap.value.get(ch.charCodeAt(0));
+  if (stored) {
+    pixelEditor = new PixelEditor(stored);
+    renderPixelBuffer();
+  } else {
+    loadGlyphFromFont();
+  }
+}
+
+function exportSymbolLibrary() {
+  const data = serializeSymbolMap(symbolMap.value);
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ucode-symbol-map.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function triggerSymbolImport() {
+  symbolImportRef.value?.click();
+}
+
+function onSymbolImportFile(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      symbolMap.value = deserializeSymbolMap(
+        JSON.parse(reader.result as string),
+      );
+    } catch (err) {
+      console.error("Symbol map import failed:", err);
+    }
+  };
+  reader.readAsText(file);
+  (e.target as HTMLInputElement).value = "";
+}
+
 const selectedFg = ref(7);
 const selectedBg = ref(0);
 const selectedChar = ref("#");
@@ -639,6 +811,7 @@ let layerIsDragging = false;
 const layerViewportRef = ref<HTMLDivElement>();
 const pixelCanvasRef = ref<HTMLDivElement>();
 const importInputRef = ref<HTMLInputElement>();
+const symbolImportRef = ref<HTMLInputElement>();
 
 let layerCanvas: GridUICanvasElement | null = null;
 let pixelCanvas: GridUICanvasElement | null = null;
@@ -1054,9 +1227,11 @@ onMounted(() => {
   if (activeTab.value === "pixel") initPixelEditor();
   else if (activeTab.value === "grid") initGridEditor();
   else if (gridContainer.value) initGrid(activeTab.value);
+  startTeletextClock();
 });
 
 onUnmounted(() => {
+  stopTeletextClock();
   disconnectTerminalRuntime();
   canvasCache.forEach((el) => el.remove());
   canvasCache.clear();
@@ -1081,23 +1256,24 @@ function initGrid(tabId: string) {
       cellSize: cfg.cellSize,
     });
     if (cfg.charWidth) el.setAttribute("char-width", String(cfg.charWidth));
-    if (tabId === "teletext") el.setAttribute("fit-container", "false");
     el.style.flexShrink = "0";
     gridContainer.value.appendChild(el);
     canvasCache.set(tabId, el);
     activeCanvas = el;
     loadTabContent(tabId);
+    const canvas = el;
+    nextTick(() => canvas.refit());
   } else {
     el.setAttribute("font", cfg.font);
     if (cfg.charWidth) el.setAttribute("char-width", String(cfg.charWidth));
     else el.removeAttribute("char-width");
-    if (tabId === "teletext") el.setAttribute("fit-container", "false");
-    else el.removeAttribute("fit-container");
     el.style.display = "";
     void el.offsetHeight;
     if (!gridContainer.value.contains(el)) gridContainer.value.appendChild(el);
     activeCanvas = el;
     loadTabContent(tabId);
+    const canvas = el;
+    nextTick(() => canvas.refit());
   }
 }
 
@@ -1226,66 +1402,145 @@ function onImportFile(e: Event) {
 }
 
 /* ─── Teletext Tab ────────────────────────────────────────────────── */
-/* ─── Teletext Tab ────────────────────────────────────────────────── */
 const teletextPage = ref(100);
 const teletextHistory: number[] = [];
 let teletextDigitBuffer = "";
+let teletextClockTimer: number | null = null;
 
+// Ceefax fastext: four coloured links mapped to F1–F4 (red/green/yellow/blue).
 const TELETEXT_FASTEXT = [
-  { label: "Main", color: 1, page: 100 },
+  { label: "Index", color: 1, page: 100 },
   { label: "News", color: 2, page: 101 },
-  { label: "Index", color: 3, page: 199 },
-  { label: "Help", color: 6, page: 888 },
+  { label: "Weather", color: 3, page: 400 },
+  { label: "Help", color: 4, page: 888 },
 ];
 
-function teletextContent(page: number): string[] {
+/** Ceefax-style clock: `Mon 16 Aug 21:00/12`. */
+function ceefaxClock(): string {
+  const d = new Date();
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const dd = String(d.getDate()).padStart(2, " ");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `${days[d.getDay()]} ${dd} ${months[d.getMonth()]} ${hh}:${mm}/${ss}`;
+}
+
+/** Write a double-height string: top half in row y, bottom half in row y+1. */
+function writeDoubleHeight(
+  buf: GridBuffer,
+  x: number,
+  y: number,
+  text: string,
+  fg: number,
+  bg: number,
+): void {
+  const cols = buf[0]?.length ?? 0;
+  for (let i = 0; i < text.length && x + i < cols; i++) {
+    if (y >= 0 && y < buf.length)
+      buf[y][x + i] = { char: text[i], fg, bg, dh: "top" };
+    if (y + 1 >= 0 && y + 1 < buf.length)
+      buf[y + 1][x + i] = { char: text[i], fg, bg, dh: "bottom" };
+  }
+}
+
+/** Write a full-width horizontal rule of mosaic blocks (▀ upper-half). */
+function writeMosaicRule(buf: GridBuffer, y: number, color: number): void {
+  const cols = buf[0]?.length ?? 0;
+  if (y < 0 || y >= buf.length) return;
+  for (let c = 0; c < cols; c++) {
+    buf[y][c] = { char: "\u2580", fg: color, bg: 0, mosaic: true };
+  }
+}
+
+interface TeletextPage {
+  title: string;
+  lines: string[];
+  /** Show a flashing NEWFLASH banner below the header. */
+  flash?: boolean;
+}
+
+function teletextContent(page: number): TeletextPage {
   switch (page) {
     case 100:
-      return [
-        "    uCODE TELETEXT READER",
-        "",
-        "  NEWS ............ 101",
-        "  INDEX ........... 199",
-        "  HELP ............ 888",
-        "",
-        "  Type 0-9 to navigate pages",
-        "  ESC or B to go back",
-      ];
+      return {
+        title: "uCode",
+        lines: [
+          "    NEWS ............... 101",
+          "    WEATHER ............ 400",
+          "    INDEX .............. 199",
+          "    HELP ............... 888",
+          "",
+          "  Type 0-9 for a page number",
+          "  F1-F4 fastext shortcuts",
+          "  ESC or B to go back",
+        ],
+      };
     case 101:
-      return [
-        "    NEWS HEADLINES",
-        "",
-        "  - GridCore v3 ships with",
-        "    Ceefax G0 emulation",
-        "  - Teletext reader is live",
-        "  - Layer surface added",
-        "  - Terminal prompt simplified",
-      ];
+      return {
+        title: "NEWS",
+        flash: true,
+        lines: [
+          "  GridCore v3 ships with full",
+          "  Ceefax G0 emulation.",
+          "",
+          "  Double-height text support",
+          "  Sextant block graphics",
+          "  Flashing NEWFLASH banners",
+          "  Live RSS-ready page engine",
+        ],
+      };
     case 199:
-      return [
-        "    FULL PAGE INDEX",
-        "",
-        "  100  Main Index",
-        "  101  News Headlines",
-        "  888  Help and About",
-      ];
+      return {
+        title: "INDEX",
+        lines: [
+          "  100  Main Index",
+          "  101  News Headlines",
+          "  400  Weather",
+          "  888  Help and About",
+        ],
+      };
+    case 400:
+      return {
+        title: "WEATHER",
+        lines: [
+          "  Forecast for the uCode realm:",
+          "",
+          "  Dry, with scattered",
+          "  mosaic outbreaks later.",
+        ],
+      };
     case 888:
-      return [
-        "    HELP AND ABOUT",
-        "",
-        "  Number keys 0-9 navigate",
-        "  ESC or B goes back",
-        "",
-        "  uCode GridCore teletext",
-        "  reader with G0 rendering",
-      ];
+      return {
+        title: "HELP",
+        lines: [
+          "  Number keys 0-9 navigate",
+          "  F1-F4 fastext shortcuts",
+          "  ESC or B goes back",
+          "",
+          "  uCode GridCore teletext",
+          "  reader with G0 rendering",
+        ],
+      };
     default:
-      return [
-        `    PAGE ${page} NOT FOUND`,
-        "",
-        "  Press 100 for Main Index",
-        "  Press 199 for Full Index",
-      ];
+      return {
+        title: `P${page}`,
+        lines: ["  Press 100 for Main Index", "  Press 199 for Full Index"],
+      };
   }
 }
 
@@ -1295,39 +1550,49 @@ function renderTeletextPage() {
   const c = cfg.cols;
   const r = cfg.rows;
   const page = teletextPage.value;
+  const clock = ceefaxClock();
+
   let buf = createBuffer(c, r);
+  const content = teletextContent(page);
 
-  // Header bar (blue background, white text)
+  // Row 0 — header bar (blue background, white bold text).
   buf = fill(buf, 0, 0, c, 1, " ", 7, 4);
-  buf = writeString(buf, 1, 0, `uCode CEEFAX ${page}`, 7, 4, true);
-  buf = writeString(
-    buf,
-    c - 15,
-    0,
-    new Date().toDateString().slice(0, 15),
-    7,
-    4,
-  );
+  buf = writeString(buf, 1, 0, `P${page} CEEFAX ${page}`, 7, 4, true);
+  buf = writeString(buf, c - clock.length - 1, 0, clock, 7, 4);
 
-  // Separator
-  buf = fill(buf, 0, 1, c, 1, " ", 7, 1);
-
-  // Content area
-  const lines = teletextContent(page);
-  for (let i = 0; i < lines.length && 2 + i < r - 2; i++) {
-    buf = writeString(buf, 1, 2 + i, lines[i], 7, 0);
+  // Row 1 — flashing NEWFLASH banner (red bg, white text), or blank.
+  if (content.flash) {
+    buf = fill(buf, 0, 1, c, 1, " ", 7, 1);
+    buf = writeString(buf, 1, 1, "NEWFLASH", 7, 1, true);
+    for (let x = 0; x < c; x++) buf[1][x].blink = true;
   }
 
-  // FASTEXT row (coloured navigation links)
+  // Rows 3–4 — double-height title, centred, yellow.
+  const titleX = Math.max(0, Math.floor((c - content.title.length) / 2));
+  writeDoubleHeight(buf, titleX, 3, content.title, 3, 0);
+
+  // Mosaic rule under the title.
+  writeMosaicRule(buf, 5, 6);
+
+  // Rows 6.. — body lines.
+  const lines = content.lines;
+  for (let i = 0; i < lines.length && 6 + i < r - 2; i++) {
+    buf = writeString(buf, 1, 6 + i, lines[i], 7, 0);
+  }
+
+  // Row r-2 — fastext (coloured navigation links).
   const seg = Math.floor(c / TELETEXT_FASTEXT.length);
   TELETEXT_FASTEXT.forEach((ft, i) => {
     const label = ` ${ft.label} `.padEnd(seg).slice(0, seg);
     buf = writeString(buf, i * seg, r - 2, label, 7, ft.color);
   });
 
-  // Status row
-  buf = writeString(buf, 0, r - 1, `P${page}`, 2, 0);
-  buf = writeString(buf, c - 10, r - 1, `P${page}`, 7, 1);
+  // Row r-1 — status bar (blue): page, channel, page, clock.
+  buf = fill(buf, 0, r - 1, c, 1, " ", 7, 4);
+  buf = writeString(buf, 0, r - 1, `P${page}`, 7, 4);
+  buf = writeString(buf, 6, r - 1, "BBC1", 7, 4);
+  buf = writeString(buf, 12, r - 1, `P${page}`, 7, 4);
+  buf = writeString(buf, c - clock.length - 1, r - 1, clock, 7, 4);
 
   activeCanvas.setBuffer(buf);
 }
@@ -1346,6 +1611,25 @@ function teletextGoBack() {
   renderTeletextPage();
 }
 
+function teletextFastext(index: number) {
+  const ft = TELETEXT_FASTEXT[index];
+  if (ft) teletextNavigate(ft.page);
+}
+
+function startTeletextClock() {
+  stopTeletextClock();
+  teletextClockTimer = window.setInterval(() => {
+    if (activeTab.value === "teletext") renderTeletextPage();
+  }, 1000);
+}
+
+function stopTeletextClock() {
+  if (teletextClockTimer !== null) {
+    clearInterval(teletextClockTimer);
+    teletextClockTimer = null;
+  }
+}
+
 function handleTeletextKeydown(event: KeyboardEvent) {
   if (event.key >= "0" && event.key <= "9") {
     event.preventDefault();
@@ -1355,6 +1639,18 @@ function handleTeletextKeydown(event: KeyboardEvent) {
       teletextDigitBuffer = "";
       teletextNavigate(page);
     }
+  } else if (event.key === "F1") {
+    event.preventDefault();
+    teletextFastext(0);
+  } else if (event.key === "F2") {
+    event.preventDefault();
+    teletextFastext(1);
+  } else if (event.key === "F3") {
+    event.preventDefault();
+    teletextFastext(2);
+  } else if (event.key === "F4") {
+    event.preventDefault();
+    teletextFastext(3);
   } else if (event.key === "Escape" || event.key === "b" || event.key === "B") {
     event.preventDefault();
     teletextGoBack();
@@ -1692,11 +1988,13 @@ function clearGrid() {
 /* ─── Single-canvas viewport ────────────────────────────────────── */
 .ucode-viewport {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: auto;
-  padding: 5%;
+  padding: 2%;
 }
 .ucode-viewport gridui-canvas {
   flex-shrink: 0;
@@ -2385,10 +2683,26 @@ function clearGrid() {
   flex: 1;
 }
 .surface__body,
-.surface__canvas,
 .grid-editor-layout,
 .pixel-editor-layout {
   position: relative;
+}
+
+/* The canvas wrapper must be a flex container so the viewport (flex:1)
+   stretches to fill the available output-panel height. Without this the
+   viewport collapses to the grid's intrinsic size and the grid can never
+   grow to fit the window. */
+.surface__body,
+.surface__canvas {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.surface__canvas {
+  position: relative;
+  overflow: hidden;
 }
 .preset-popover {
   position: absolute;

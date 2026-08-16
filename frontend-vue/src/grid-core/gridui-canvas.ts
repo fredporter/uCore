@@ -16,17 +16,23 @@
  */
 
 import { BitmapGlyphRenderer, G0Renderer } from "./g0-renderer";
+import { GlyphAtlas } from "./glyph-atlas";
 import { PALETTE_DARK, getColour } from "./palette";
+import teletextAtlasJson from "./seeds/glyph-atlas.teletext.json";
+import terminalAtlasJson from "./seeds/glyph-atlas.terminal.json";
 import type { GridBuffer, GridCell } from "./types";
 
 /* ─── Glyph Renderers (singletons) ──────────────────────────────── */
-/** Teletext (MODE7GX3) — 12×10 glyphs with 2×3 mosaic support. */
-const teletextRenderer = new G0Renderer();
+const terminalAtlas = new GlyphAtlas(terminalAtlasJson);
+const teletextAtlas = new GlyphAtlas(teletextAtlasJson);
+/** Teletext (MODE7GX3) — 12×16 glyphs with 2×3 mosaic support. */
+const teletextRenderer = new G0Renderer(teletextAtlas);
 /** Terminal (Press Start 2P) — 8×8 square glyphs. */
 const terminalRenderer = new BitmapGlyphRenderer({
   glyphW: 8,
   glyphH: 8,
   fontFamily: '"Press Start 2P", monospace',
+  atlas: terminalAtlas,
 });
 
 /* ─── Template ─────────────────────────────────────────────────── */
@@ -58,6 +64,10 @@ export class GridUICanvasElement extends HTMLElement {
   private _cols: number = 40;
   private _rows: number = 25;
   private _cellSize: number = 16;
+  /** Cell width in CSS px (glyph-aligned; may differ from height). */
+  private _cellWidth: number = 16;
+  /** Cell height in CSS px (glyph-aligned; may differ from width). */
+  private _cellHeight: number = 16;
   private _font: string = "monospace";
   private _palette = PALETTE_DARK;
   private _blinkState: boolean = true;
@@ -152,33 +162,51 @@ export class GridUICanvasElement extends HTMLElement {
    * Fit the grid to the available container space.
    * Uses the configured cellSize when container is large enough,
    * shrinks cells proportionally when container is small.
-   * Always keeps the grid centered.
+   * Dynamically sizes the grid to the available output-panel space while
+   * preserving the grid's aspect ratio (cols·glyphW : rows·glyphH). The scale
+   * is a whole number of device pixels per glyph pixel so glyphs stay crisp at
+   * every DPR — the grid grows or shrinks in discrete steps as the panel
+   * resizes. The configured cell-size is used only as a fallback when the
+   * container has no measurable size yet.
    * Disable with fit-container="false" attribute.
    */
   private _fitToContainer(): void {
-    if (!this._fitToContainerEnabled || !this.parentElement) {
-      this._cellSize = this._configuredCellSize;
-    } else {
+    const renderer = this._getGlyphRenderer();
+    const dpr = window.devicePixelRatio || 1;
+
+    // Fallback scale from the configured cell size.
+    let scale = Math.max(
+      1,
+      Math.floor((this._configuredCellSize * dpr) / renderer.glyphH),
+    );
+
+    if (this._fitToContainerEnabled && this.parentElement) {
       const parent = this.parentElement;
-      const availW = parent.clientWidth;
-      const availH = parent.clientHeight;
-      const maxCellW = Math.floor(availW / this._cols);
-      const maxCellH = Math.floor(availH / this._rows);
-      // Use configured size if it fits, otherwise shrink to fit
-      this._cellSize = Math.min(this._configuredCellSize, maxCellW, maxCellH);
-      // Never go below 4px cells
-      if (this._cellSize < 4) this._cellSize = 4;
+      const cs = getComputedStyle(parent);
+      const padX =
+        (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+      const padY =
+        (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+      // Content box in device pixels (clientWidth includes padding).
+      const availW = Math.max(0, (parent.clientWidth - padX) * dpr);
+      const availH = Math.max(0, (parent.clientHeight - padY) * dpr);
+      if (availW > 0 && availH > 0) {
+        const maxScaleW = Math.floor(availW / (this._cols * renderer.glyphW));
+        const maxScaleH = Math.floor(availH / (this._rows * renderer.glyphH));
+        // Fit the grid to the panel, keeping aspect ratio (uniform scale).
+        scale = Math.max(1, Math.min(maxScaleW, maxScaleH));
+      }
     }
 
-    const dpr = window.devicePixelRatio || 1;
-    // Round per-cell so the drawing extent exactly matches the canvas size
-    // (avoids a trailing gap when cellSize * dpr is fractional).
-    const cellW = Math.round(this._cellSize * dpr);
-    const cellH = Math.round(this._cellSize * dpr);
+    // Cell dimensions are exact multiples of the glyph native size (device px).
+    const cellW = renderer.glyphW * scale;
+    const cellH = renderer.glyphH * scale;
     const pixelWidth = this._cols * cellW;
     const pixelHeight = this._rows * cellH;
-    const cssWidth = pixelWidth / dpr;
-    const cssHeight = pixelHeight / dpr;
+
+    this._cellWidth = cellW / dpr; // CSS px (for hit-testing)
+    this._cellHeight = cellH / dpr;
+    this._cellSize = this._cellWidth;
 
     if (
       this._canvas.width !== pixelWidth ||
@@ -187,10 +215,10 @@ export class GridUICanvasElement extends HTMLElement {
       this._canvas.width = pixelWidth;
       this._canvas.height = pixelHeight;
     }
-    this._canvas.style.width = `${cssWidth}px`;
-    this._canvas.style.height = `${cssHeight}px`;
-    this.style.width = `${cssWidth}px`;
-    this.style.height = `${cssHeight}px`;
+    this._canvas.style.width = `${pixelWidth / dpr}px`;
+    this._canvas.style.height = `${pixelHeight / dpr}px`;
+    this.style.width = `${pixelWidth / dpr}px`;
+    this.style.height = `${pixelHeight / dpr}px`;
   }
 
   /* ─── Blink Support ───────────────────────────────────────────── */
@@ -251,6 +279,16 @@ export class GridUICanvasElement extends HTMLElement {
   }
 
   /**
+   * Re-fit the grid to its container and re-render.
+   * Call after the element becomes visible (e.g. when its tab is activated)
+   * so the grid re-measures against the now-available panel size.
+   */
+  refit(): void {
+    this._fitToContainer();
+    this._render();
+  }
+
+  /**
    * Resolve the bitmap glyph renderer for the current font.
    * Every font renders as bitmaps — square pixels, no anti-aliasing.
    */
@@ -287,8 +325,9 @@ export class GridUICanvasElement extends HTMLElement {
     // anti-aliased seams between adjacent filled rectangles.
     ctx.imageSmoothingEnabled = false;
 
-    const cellW = Math.round(this._cellSize * dpr);
-    const cellH = Math.round(this._cellSize * dpr);
+    // Cell dimensions in device pixels (integer, glyph-aligned).
+    const cellW = Math.round(this._cellWidth * dpr);
+    const cellH = Math.round(this._cellHeight * dpr);
 
     // Clear canvas
     ctx.fillStyle = "#000000";
@@ -327,11 +366,28 @@ export class GridUICanvasElement extends HTMLElement {
         // Draw character glyph (bitmap, square pixels, centred)
         if (cell.char && cell.char !== " " && glyphRenderer) {
           const fg = getColour(cell.fg, this._palette);
-          const charCode = cell.char.charCodeAt(0);
-          glyphRenderer.render(ctx, x, y, cellW, cellH, charCode, fg);
-          if (cell.bold) {
-            // Double-stroke: shift one device pixel right.
-            glyphRenderer.render(ctx, x + dpr, y, cellW, cellH, charCode, fg);
+          // Use the full Unicode code point (supports astral glyphs such as
+          // the U+1FB00 block sextants used for mosaic graphics).
+          const charCode = cell.char.codePointAt(0) ?? cell.char.charCodeAt(0);
+          if (cell.dh === "top" || cell.dh === "bottom") {
+            // Double-height glyph: render only this cell's half, stretched
+            // vertically so a top/bottom pair forms one 2×-tall character.
+            glyphRenderer.renderHalf(
+              ctx,
+              x,
+              y,
+              cellW,
+              cellH,
+              charCode,
+              fg,
+              cell.dh,
+            );
+          } else {
+            glyphRenderer.render(ctx, x, y, cellW, cellH, charCode, fg);
+            if (cell.bold) {
+              // Double-stroke: shift one device pixel right.
+              glyphRenderer.render(ctx, x + dpr, y, cellW, cellH, charCode, fg);
+            }
           }
         }
 
@@ -407,9 +463,9 @@ export class GridUICanvasElement extends HTMLElement {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    // Cell size in CSS pixels (canvas is sized to exactly cols*cellSize × rows*cellSize)
-    const col = Math.floor(x / this._cellSize);
-    const row = Math.floor(y / this._cellSize);
+    // Cell dimensions in CSS pixels (glyph-aligned: width may differ from height)
+    const col = Math.floor(x / this._cellWidth);
+    const row = Math.floor(y / this._cellHeight);
 
     if (col >= 0 && col < this._cols && row >= 0 && row < this._rows) {
       return { col, row };
