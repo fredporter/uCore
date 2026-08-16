@@ -427,6 +427,18 @@
         "issues": []
       },
       {
+        "file": "backend/app/skills/builtin/skill_nuggets_and_spool.py",
+        "name": "SPOOL Archive",
+        "skill_id": "spool_archive",
+        "category": "maintenance",
+        "description": "",
+        "params": [],
+        "timeout": 30,
+        "requires_confirmation": false,
+        "health": "working",
+        "issues": []
+      },
+      {
         "file": "backend/app/skills/builtin/skill_roundtable_dispatch.py",
         "name": "Roundtable Dispatch",
         "skill_id": "roundtable-dispatch",
@@ -454,18 +466,6 @@
         "name": "Recover Port Conflict",
         "skill_id": "recover_port_conflict",
         "category": "system",
-        "description": "",
-        "params": [],
-        "timeout": 30,
-        "requires_confirmation": false,
-        "health": "working",
-        "issues": []
-      },
-      {
-        "file": "backend/app/skills/builtin/skill_nuggets_and_spool.py",
-        "name": "SPOOL Archive",
-        "skill_id": "spool_archive",
-        "category": "maintenance",
         "description": "",
         "params": [],
         "timeout": 30,
@@ -730,9 +730,7 @@
         "name": "model_pricing",
         "file": "backend/app/services/model_pricing.py",
         "endpoints": [],
-        "variables": {
-          "MODEL_COST_PER_1K": "per-1000-token pricing table"
-        },
+        "variables": {},
         "commands": [
           "cheapest_model",
           "cost_tiers",
