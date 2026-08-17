@@ -20,7 +20,17 @@
  *   1920px+:  4×40ch  (xxl)
  */
 
-import type { ColumnSpec, GridPreset, Viewport } from "./types";
+import type { GridBuffer, GridCell } from "@udos/gridcore/buffer/cell";
+import type { ColumnSpec, GridPreset } from "@udos/gridcore/types";
+
+/** Viewport dimensions for character-grid rendering (Grid Algebra / Prose lane). */
+export interface Viewport {
+  cols: number; // Number of character columns
+  rows: number; // Number of character rows
+  cellWidth: number; // Pixel width of each cell
+  cellHeight: number; // Pixel height of each cell
+  font: string; // Font family name
+}
 
 /* ─── Grid Presets ─────────────────────────────────────────────── */
 
@@ -272,17 +282,17 @@ export function viewportPixelSize(vp: Viewport): {
  * while preserving character content.
  */
 export function scaleBuffer(
-  buf: import("./types").GridBuffer,
+  buf: GridBuffer,
   newCols: number,
   newRows: number,
-): import("./types").GridBuffer {
+): GridBuffer {
   const oldRows = buf.length;
   const oldCols = oldRows > 0 ? buf[0].length : 0;
-  const result: import("./types").GridBuffer = [];
+  const result: GridBuffer = [];
 
   for (let r = 0; r < newRows; r++) {
     const srcRow = Math.min(Math.floor((r / newRows) * oldRows), oldRows - 1);
-    const row: import("./types").GridCell[] = [];
+    const row: GridCell[] = [];
     for (let c = 0; c < newCols; c++) {
       const srcCol = Math.min(Math.floor((c / newCols) * oldCols), oldCols - 1);
       row.push({ ...buf[srcRow][srcCol] });
@@ -296,17 +306,17 @@ export function scaleBuffer(
  * Crop a grid buffer to a sub-region.
  */
 export function crop(
-  buf: import("./types").GridBuffer,
+  buf: GridBuffer,
   col: number,
   row: number,
   width: number,
   height: number,
-): import("./types").GridBuffer {
-  const result: import("./types").GridBuffer = [];
+): GridBuffer {
+  const result: GridBuffer = [];
   for (let r = row; r < row + height && r < buf.length; r++) {
     const srcRow = buf[r];
     if (!srcRow) break;
-    const newRow: import("./types").GridCell[] = [];
+    const newRow: GridCell[] = [];
     for (let c = col; c < col + width && c < srcRow.length; c++) {
       newRow.push({ ...srcRow[c] });
     }
@@ -319,24 +329,24 @@ export function crop(
  * Centre a grid buffer within a larger viewport, padding with empty cells.
  */
 export function centre(
-  buf: import("./types").GridBuffer,
+  buf: GridBuffer,
   canvasCols: number,
   canvasRows: number,
-): import("./types").GridBuffer {
+): GridBuffer {
   const rows = buf.length;
   const cols = rows > 0 ? buf[0].length : 0;
-  const emptyCell = (): import("./types").GridCell => ({
+  const emptyCell = (): GridCell => ({
     char: " ",
     fg: 7,
     bg: 0,
   });
 
-  const result: import("./types").GridBuffer = [];
+  const result: GridBuffer = [];
   const rowOffset = Math.floor((canvasRows - rows) / 2);
   const colOffset = Math.floor((canvasCols - cols) / 2);
 
   for (let r = 0; r < canvasRows; r++) {
-    const row: import("./types").GridCell[] = [];
+    const row: GridCell[] = [];
     for (let c = 0; c < canvasCols; c++) {
       const srcR = r - rowOffset;
       const srcC = c - colOffset;

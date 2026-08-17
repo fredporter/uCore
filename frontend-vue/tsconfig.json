@@ -11,8 +11,11 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "noEmit": true,
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@udos/gridcore": ["../../uCode/packages/gridcore/src/index.ts"],
+      "@udos/gridcore/*": ["../../uCode/packages/gridcore/src/*"]
     },
     "types": ["node", "vite/client"]
   },

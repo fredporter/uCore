@@ -8,8 +8,8 @@
  * @see layer-map.ts
  */
 
+import type { GridBuffer, GridCell } from "@udos/gridcore/buffer/cell";
 import { createBuffer } from "../buffer";
-import type { GridBuffer, GridCell } from "../types";
 import type { LayerMap } from "./layer-map";
 import { patternToChar } from "./render-seed";
 

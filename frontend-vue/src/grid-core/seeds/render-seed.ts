@@ -9,8 +9,8 @@
  * @see seeds/gridcore/grids/*.json
  */
 
+import type { GridBuffer, GridCell } from "@udos/gridcore/buffer/cell";
 import { createBuffer } from "../buffer";
-import type { GridBuffer, GridCell } from "../types";
 import type { GridSeed } from "./grid-seed";
 import sextantPatternsJson from "./sextant-patterns.json";
 

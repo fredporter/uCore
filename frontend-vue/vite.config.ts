@@ -1,6 +1,6 @@
-import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
+import { defineConfig } from "vite";
 
 const PORT = parseInt(process.env.VITE_PORT || "5175", 10);
 const API_ORIGIN = process.env.VITE_API_ORIGIN || "http://localhost:8484";
@@ -18,24 +18,49 @@ export default defineConfig({
     }),
   ],
   resolve: {
-    alias: {
+    alias: [
       // Local src alias
-      "@": path.resolve(__dirname, "src"),
+      { find: "@", replacement: path.resolve(__dirname, "src") },
       // Cross-repo aliases (resolve to ~/Code/<repo>)
-      "@uCode3": path.resolve(CODE_ROOT, "uCode3"),
-      "@HomeNest": path.resolve(CODE_ROOT, "uConnect/homenest-console"),
-      "@usxd-browser": path.resolve(CODE_ROOT, "uConnect/usxd-browser"),
-      "@usx-pkg": path.resolve(CODE_ROOT, "uConnect/packages/usx"),
-      "@udos/usx-tokens": path.resolve(__dirname, "../packages/usx-tokens"),
-      "@udos/gridcore": path.resolve(
-        CODE_ROOT,
-        "uCode/packages/gridcore/src/index.ts",
-      ),
-      "@udos/viewport-renderer": path.resolve(
-        CODE_ROOT,
-        "uCode/packages/viewport-renderer/src/index.ts",
-      ),
-    },
+      { find: "@uCode3", replacement: path.resolve(CODE_ROOT, "uCode3") },
+      {
+        find: "@HomeNest",
+        replacement: path.resolve(CODE_ROOT, "uConnect/homenest-console"),
+      },
+      {
+        find: "@usxd-browser",
+        replacement: path.resolve(CODE_ROOT, "uConnect/usxd-browser"),
+      },
+      {
+        find: "@usx-pkg",
+        replacement: path.resolve(CODE_ROOT, "uConnect/packages/usx"),
+      },
+      {
+        find: "@udos/usx-tokens",
+        replacement: path.resolve(__dirname, "../packages/usx-tokens"),
+      },
+      // Subpath alias (listed first) so @udos/gridcore/<module> resolves to the
+      // canonical source as a leaf import — avoids pulling the full index/bridge
+      // into the frontend type-check.
+      {
+        find: /^@udos\/gridcore\/(.+)$/,
+        replacement: path.resolve(CODE_ROOT, "uCode/packages/gridcore/src/$1"),
+      },
+      {
+        find: "@udos/gridcore",
+        replacement: path.resolve(
+          CODE_ROOT,
+          "uCode/packages/gridcore/src/index.ts",
+        ),
+      },
+      {
+        find: "@udos/viewport-renderer",
+        replacement: path.resolve(
+          CODE_ROOT,
+          "uCode/packages/viewport-renderer/src/index.ts",
+        ),
+      },
+    ],
   },
   server: {
     port: PORT,

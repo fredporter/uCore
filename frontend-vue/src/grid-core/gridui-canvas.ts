@@ -15,14 +15,17 @@
  * - Supports setBuffer() for external buffer updates
  */
 
+import type { GridBuffer, GridCell } from "@udos/gridcore/buffer/cell";
+import {
+  PALETTE_DARK,
+  PALETTE_PIXEL_32,
+  getColour,
+} from "@udos/gridcore/palette";
 import { BitmapGlyphRenderer } from "./g0-renderer";
 import { GlyphAtlas } from "./glyph-atlas";
-import { PALETTE_DARK, PALETTE_PIXEL_32, getColour } from "./palette";
 import bedsteadAtlasJson from "./seeds/glyph-atlas.bedstead.json";
 import terminalAtlasJson from "./seeds/glyph-atlas.terminal.json";
-import type { GridBuffer, GridCell } from "./types";
 // Grid Cell Algebra — canonical source of truth is @udos/gridcore/coordinates/dot.
-// Leaf import (no deps) so the renderer and sprite/bob layers share one origin.
 import {
   DOT_PX,
   SQUARE_CELL,
@@ -30,7 +33,7 @@ import {
   cellToDotRect,
   dotToCell,
   type CellRegister,
-} from "../../../../uCode/packages/gridcore/src/coordinates/dot";
+} from "@udos/gridcore/coordinates/dot";
 
 /* ─── Glyph Renderers (singletons) ──────────────────────────────── */
 const terminalAtlas = new GlyphAtlas(terminalAtlasJson);

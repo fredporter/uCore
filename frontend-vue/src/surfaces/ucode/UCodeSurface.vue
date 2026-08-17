@@ -591,15 +591,14 @@ import {
   scroll as scrollBuffer,
   cloneBuffer,
   clear as clearBuffer,
-  scaleBuffer,
-} from "../../grid-core/index";
-import { PALETTE_DARK, PALETTE_PIXEL_32 } from "../../grid-core/palette";
-import { GRID_PRESETS } from "../../grid-core/algebra";
+} from "../../grid-core/buffer";
+import { scaleBuffer, GRID_PRESETS } from "../../grid-core/algebra";
+import { PALETTE_DARK, PALETTE_PIXEL_32 } from "@udos/gridcore/palette";
 import { BitmapGlyphRenderer } from "../../grid-core/g0-renderer";
 import { GlyphAtlas } from "../../grid-core/glyph-atlas";
 import terminalAtlasJson from "../../grid-core/seeds/glyph-atlas.terminal.json";
 import bedsteadAtlasJson from "../../grid-core/seeds/glyph-atlas.bedstead.json";
-import type { GridBuffer, GridCell } from "../../grid-core/types";
+import type { GridBuffer, GridCell } from "@udos/gridcore/buffer/cell";
 import {
   PixelEditor,
   createPixelBuffer,
@@ -612,7 +611,7 @@ import {
   serializeSymbolMap,
   measureInkBounds,
   type SymbolMap,
-} from "../../grid-core/pixel";
+} from "@udos/gridcore/pixel";
 import {
   renderSeed,
   placeSeed,
