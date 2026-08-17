@@ -1,19 +1,18 @@
 /**
  * Bitmap Glyph Renderer — pixel-crisp character generator.
  *
- * Pre-renders a source font (MODE7GX3, Press Start 2P, …) to a binary
- * glyph bitmap via an offscreen canvas, then renders that bitmap into a
- * target cell with **uniform integer scaling** (true square pixels) and
- * **centring** — no anti-aliasing, no non-uniform stretch.
+ * Renders a binary glyph bitmap into a target cell with **uniform integer
+ * scaling** (true square pixels) and **centring** — no anti-aliasing, no
+ * non-uniform stretch.
  *
  * Pipeline:
  *   font → offscreen canvas (glyphW·S × glyphH·S) → threshold → glyphW×glyphH bitmap
  *   → cache → render: NN scale → glyphW·scale × glyphH·scale, centred in cell
  *
- * Teletext (MODE7GX3) glyphs are 12×16 (the font's native advance:em aspect,
- * taller than wide). Terminal (Press Start 2P) glyphs are 8×8. Mosaic blocks
- * (2×3) are generated algorithmically for G0 codes 0x60–0x7F and common
- * Unicode block glyphs.
+ * Fonts used by GridCore: Terminal (Press Start 2P, 8×8) and Bedstead
+ * (SAA5050 teletext, 12×20). Mosaic blocks (2×3 sextants + common Unicode
+ * block glyphs) are generated algorithmically as a fallback when a font's
+ * atlas does not bake its own.
  *
  * @see docs/GRIDUI_RENDERING_CONTRACT.md
  */
@@ -206,6 +205,49 @@ export class BitmapGlyphRenderer {
   }
 
   /**
+   * Whether this renderer can produce a deterministic bitmap (mosaic or
+   * atlas) for the code point. When false, the glyph is rasterised from the
+   * font at runtime (colour path for symbols/emoji).
+   */
+  hasGlyph(charCode: number): boolean {
+    if (this._mosaic && mosaicPattern(charCode) !== null) return true;
+    if (this._atlas && this._atlas.has(charCode)) return true;
+    return false;
+  }
+
+  /**
+   * Rasterise a colour glyph (emoji/symbol) to a width×height RGBA image.
+   * Unlike {@link getBitmap}, this preserves colour so it can be quantised
+   * to the pixel-editor palette.
+   */
+  rasterizeColour(
+    charCode: number,
+    width: number,
+    height: number,
+  ): { data: Uint8ClampedArray; width: number; height: number } {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) {
+      return {
+        data: new Uint8ClampedArray(width * height * 4),
+        width,
+        height,
+      };
+    }
+    ctx.clearRect(0, 0, width, height);
+    const px = Math.round(Math.min(width, height));
+    ctx.font = `${px}px ${this._fontFamily}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(String.fromCodePoint(charCode), width / 2, height / 2);
+    const image = ctx.getImageData(0, 0, width, height);
+    return { data: image.data, width, height };
+  }
+
+  /**
    * Render a glyph into a cell on the target canvas.
    *
    * All coordinates and dimensions are in **device pixels** (already
@@ -300,6 +342,98 @@ export class BitmapGlyphRenderer {
     }
   }
 
+  /**
+   * Render a glyph stretched to fill the cell exactly (non-uniform scale).
+   * Used for square cells so tall glyphs (e.g. Bedstead 12×20) fill a square
+   * cell with no gaps. Pixel edges are integer-rounded so adjacent glyph
+   * pixels never leave seams.
+   */
+  renderStretched(
+    ctx: CanvasRenderingContext2D,
+    cellX: number,
+    cellY: number,
+    cellW: number,
+    cellH: number,
+    charCode: number,
+    fg: string,
+  ): void {
+    this._drawStretched(
+      ctx,
+      this.getBitmap(charCode),
+      cellX,
+      cellY,
+      cellW,
+      cellH,
+      fg,
+      0,
+      this._glyphH,
+    );
+  }
+
+  /** Render one half of a double-height glyph stretched to fill the cell. */
+  renderHalfStretched(
+    ctx: CanvasRenderingContext2D,
+    cellX: number,
+    cellY: number,
+    cellW: number,
+    cellH: number,
+    charCode: number,
+    fg: string,
+    half: "top" | "bottom",
+  ): void {
+    const halfRows = Math.floor(this._glyphH / 2);
+    const startRow = half === "top" ? 0 : halfRows;
+    const endRow = half === "top" ? halfRows : this._glyphH;
+    this._drawStretched(
+      ctx,
+      this.getBitmap(charCode),
+      cellX,
+      cellY,
+      cellW,
+      cellH,
+      fg,
+      startRow,
+      endRow,
+    );
+  }
+
+  private _drawStretched(
+    ctx: CanvasRenderingContext2D,
+    bitmap: G0Bitmap,
+    cellX: number,
+    cellY: number,
+    cellW: number,
+    cellH: number,
+    fg: string,
+    startRow: number,
+    endRow: number,
+  ): void {
+    const srcRows = endRow - startRow;
+    const x0 = Math.round(cellX);
+    const y0 = Math.round(cellY);
+    const xs: number[] = new Array(this._glyphW + 1);
+    for (let c = 0; c <= this._glyphW; c++) {
+      xs[c] = x0 + Math.round((c * cellW) / this._glyphW);
+    }
+    const ys: number[] = new Array(srcRows + 1);
+    for (let r = 0; r <= srcRows; r++) {
+      ys[r] = y0 + Math.round((r * cellH) / srcRows);
+    }
+    ctx.fillStyle = fg;
+    for (let row = 0; row < srcRows; row++) {
+      for (let col = 0; col < this._glyphW; col++) {
+        if (bitmap[(startRow + row) * this._glyphW + col] === 1) {
+          ctx.fillRect(
+            xs[col],
+            ys[row],
+            xs[col + 1] - xs[col],
+            ys[row + 1] - ys[row],
+          );
+        }
+      }
+    }
+  }
+
   /** Clear the glyph cache (e.g. after a font change). */
   clearCache(): void {
     this._glyphCache.clear();
@@ -310,20 +444,23 @@ export class BitmapGlyphRenderer {
   private _generateBitmap(charCode: number): G0Bitmap {
     const bitmap = new Uint8Array(this._glyphW * this._glyphH);
 
+    // Deterministic path first: fonts that bake their mosaic/box glyphs
+    // (Bedstead) get the authentic SAA5050 shapes; fonts that don't (the
+    // terminal 8×8 atlas) fall through to the algorithmic mosaic below.
+    if (this._atlas && this._atlas.has(charCode)) {
+      const atlasBitmap = this._atlas.getBitmap(charCode);
+      bitmap.set(atlasBitmap.subarray(0, this._glyphW * this._glyphH));
+      return bitmap;
+    }
+
     const pattern = this._mosaic ? mosaicPattern(charCode) : null;
     if (pattern !== null) {
       this._renderMosaicBlock(bitmap, pattern);
       return bitmap;
     }
 
-    // Deterministic path: read the glyph from the committed atlas.
-    if (this._atlas) {
-      const atlasBitmap = this._atlas.getBitmap(charCode);
-      bitmap.set(atlasBitmap.subarray(0, this._glyphW * this._glyphH));
-      return bitmap;
-    }
-
-    // Fallback: rasterise the font glyph (used only when no atlas is wired).
+    // Fallback: rasterise the font glyph for characters the atlas does not
+    // cover (symbols, icons, emoji…).
     this._renderFontGlyph(bitmap, charCode);
     return bitmap;
   }
@@ -377,7 +514,9 @@ export class BitmapGlyphRenderer {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#ffffff";
-    ctx.fillText(String.fromCharCode(charCode), cacheW / 2, cacheH / 2);
+    // fromCodePoint supports astral symbols/emoji (e.g. U+1FB00 sextants),
+    // which fromCharCode truncates to a lone surrogate.
+    ctx.fillText(String.fromCodePoint(charCode), cacheW / 2, cacheH / 2);
 
     const imageData = ctx.getImageData(0, 0, cacheW, cacheH);
     const pixels = imageData.data;
@@ -396,23 +535,5 @@ export class BitmapGlyphRenderer {
         bitmap[row * this._glyphW + col] = sumAlpha / area > 127 ? 1 : 0;
       }
     }
-  }
-}
-
-/* ─── Teletext G0 Renderer (MODE7GX3, 12×16) ────────────────────── */
-
-export class G0Renderer extends BitmapGlyphRenderer {
-  constructor(atlas?: GlyphAtlas) {
-    super({
-      glyphW: 12,
-      glyphH: 16,
-      fontFamily: '"MODE7GX3", monospace',
-      // MODE7GX3's native aspect is advance:em = 780:1000 (taller than wide).
-      // The 12×16 glyph grid reproduces those proportions: capitals occupy
-      // ~10 columns × ~11 rows, with the baseline around row 12.
-      fontScale: 1.0,
-      mosaic: true,
-      atlas,
-    });
   }
 }

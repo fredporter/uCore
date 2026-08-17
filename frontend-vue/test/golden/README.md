@@ -6,7 +6,7 @@ captured and diffed automatically by `@playwright/test`.
 | File                  | Content                                                                                 |
 | --------------------- | --------------------------------------------------------------------------------------- |
 | `glyphs-terminal.png` | Glyph inspector — all printable ASCII (32–126) in the Terminal font (PressStart2P 8×8). |
-| `glyphs-teletext.png` | Glyph inspector — all printable ASCII (32–126) in the Teletext font (MODE7GX3 12×16).   |
+| `glyphs-bedstead.png` | Glyph inspector — all printable ASCII (32–126) in the Bedstead font (SAA5050 12×20).    |
 | `terminal.png`        | (legacy) Terminal tab screenshot — kept for reference, not asserted by the harness.     |
 
 ## Running the harness

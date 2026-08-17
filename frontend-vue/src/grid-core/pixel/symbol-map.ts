@@ -1,6 +1,10 @@
+import { nearestColourIndex } from "../palette";
+import type { ColourEntry } from "../types";
 import {
   createPixelBuffer,
-  PIXEL_SIZE,
+  PIXEL_COLOURS,
+  PIXEL_HEIGHT,
+  PIXEL_WIDTH,
   setPixel,
   type PixelBuffer,
 } from "./pixel-buffer";
@@ -17,30 +21,46 @@ export function createSymbolMap(): SymbolMap {
 }
 
 /**
- * Scale a native glyph bitmap (gw×gh of 0/1 bits) up to the 24×24 pixel grid.
- * The glyph is scaled by the largest integer factor that fits and then
- * centred — consistent alignment for every loaded font glyph.
+ * Scale a native glyph bitmap (gw×gh of 0/1 bits) into the pixel cell.
+ *
+ * Retro cell renderer: the glyph's full em box (gw×gh) is scaled by the
+ * largest uniform integer factor that fits the target cell and placed at its
+ * natural origin — the glyph's designed position within the em box is
+ * preserved, and the glyph FILLS the cell (terminal 8×8→24×24 @3×, teletext
+ * 12×16→24×32 @2×). No ink cropping, no re-centring: a `#` lands exactly
+ * where the font designed it, so cells tile edge-to-edge with no gaps.
  */
 export function glyphBitmapToPixelBuffer(
   bitmap: Uint8Array,
   gw: number,
   gh: number,
   colour = 7,
+  cellW: number = PIXEL_WIDTH,
+  cellH: number = PIXEL_HEIGHT,
 ): PixelBuffer {
-  const out = createPixelBuffer(0);
+  const out = createPixelBuffer(0, cellW, cellH);
+  if (gw <= 0 || gh <= 0) return out;
+
   const scale = Math.max(
     1,
-    Math.min(Math.floor(PIXEL_SIZE / gw), Math.floor(PIXEL_SIZE / gh)),
+    Math.min(Math.floor(cellW / gw), Math.floor(cellH / gh)),
   );
-  const ox = Math.floor((PIXEL_SIZE - gw * scale) / 2);
-  const oy = Math.floor((PIXEL_SIZE - gh * scale) / 2);
+  const ox = Math.floor((cellW - gw * scale) / 2);
+  const oy = Math.floor((cellH - gh * scale) / 2);
 
   for (let y = 0; y < gh; y++) {
     for (let x = 0; x < gw; x++) {
       if (bitmap[y * gw + x] === 1) {
         for (let dy = 0; dy < scale; dy++) {
           for (let dx = 0; dx < scale; dx++) {
-            setPixel(out, ox + x * scale + dx, oy + y * scale + dy, colour);
+            setPixel(
+              out,
+              ox + x * scale + dx,
+              oy + y * scale + dy,
+              colour,
+              cellW,
+              cellH,
+            );
           }
         }
       }
@@ -75,9 +95,61 @@ export function deserializeSymbolMap(data: unknown): SymbolMap {
     const buf = createPixelBuffer(0);
     for (let i = 0; i < Math.min(value.length, buf.length); i++) {
       const n = Number(value[i]);
-      buf[i] = Number.isFinite(n) ? Math.max(0, Math.min(7, n)) : 0;
+      buf[i] = Number.isFinite(n)
+        ? Math.max(0, Math.min(PIXEL_COLOURS - 1, n))
+        : 0;
     }
     map.set(code, buf);
   }
   return map;
+}
+
+/**
+ * Convert a colour-rasterised glyph (emoji/symbol RGBA pixels) into a
+ * colour-index cell buffer. Each opaque pixel is quantised to the nearest
+ * palette colour; transparent pixels become 0. The raster is scaled by the
+ * largest uniform integer factor that fits the target cell and centred.
+ */
+export function colourGlyphToPixelBuffer(
+  rgba: { data: Uint8ClampedArray; width: number; height: number },
+  palette: ColourEntry[],
+  cellW: number = PIXEL_WIDTH,
+  cellH: number = PIXEL_HEIGHT,
+): PixelBuffer {
+  const out = createPixelBuffer(0, cellW, cellH);
+  const { data, width, height } = rgba;
+  if (width <= 0 || height <= 0) return out;
+
+  const scale = Math.max(
+    1,
+    Math.min(Math.floor(cellW / width), Math.floor(cellH / height)),
+  );
+  const ox = Math.floor((cellW - width * scale) / 2);
+  const oy = Math.floor((cellH - height * scale) / 2);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      if (data[i + 3] < 128) continue; // transparent
+      const idx = nearestColourIndex(
+        data[i],
+        data[i + 1],
+        data[i + 2],
+        palette,
+      );
+      for (let dy = 0; dy < scale; dy++) {
+        for (let dx = 0; dx < scale; dx++) {
+          setPixel(
+            out,
+            ox + x * scale + dx,
+            oy + y * scale + dy,
+            idx,
+            cellW,
+            cellH,
+          );
+        }
+      }
+    }
+  }
+  return out;
 }

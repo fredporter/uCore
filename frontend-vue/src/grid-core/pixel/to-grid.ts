@@ -2,7 +2,9 @@ import type { GridBuffer } from "../types";
 import {
   createPixelBuffer,
   getPixel,
-  PIXEL_SIZE,
+  PIXEL_COLOURS,
+  PIXEL_HEIGHT,
+  PIXEL_WIDTH,
   setPixel,
   type PixelBuffer,
 } from "./pixel-buffer";
@@ -13,13 +15,14 @@ import {
  */
 export function pixelBufferToGridBuffer(
   buffer: PixelBuffer,
-  size = PIXEL_SIZE,
+  width = PIXEL_WIDTH,
+  height = PIXEL_HEIGHT,
 ): GridBuffer {
   const grid: GridBuffer = [];
-  for (let y = 0; y < size; y++) {
+  for (let y = 0; y < height; y++) {
     const row: GridBuffer[number] = [];
-    for (let x = 0; x < size; x++) {
-      const color = getPixel(buffer, x, y);
+    for (let x = 0; x < width; x++) {
+      const color = getPixel(buffer, x, y, width, height);
       row.push({ char: " ", fg: color, bg: color });
     }
     grid.push(row);
@@ -33,15 +36,23 @@ export function pixelBufferToGridBuffer(
  */
 export function gridBufferToPixelBuffer(
   buf: GridBuffer,
-  size = PIXEL_SIZE,
+  width = PIXEL_WIDTH,
+  height = PIXEL_HEIGHT,
 ): PixelBuffer {
-  const pixels = createPixelBuffer(0);
-  for (let y = 0; y < Math.min(size, buf.length); y++) {
+  const pixels = createPixelBuffer(0, width, height);
+  for (let y = 0; y < Math.min(height, buf.length); y++) {
     const row = buf[y];
     if (!row) continue;
-    for (let x = 0; x < Math.min(size, row.length); x++) {
+    for (let x = 0; x < Math.min(width, row.length); x++) {
       const fg = row[x]?.fg ?? 0;
-      setPixel(pixels, x, y, Math.max(0, Math.min(7, fg)));
+      setPixel(
+        pixels,
+        x,
+        y,
+        Math.max(0, Math.min(PIXEL_COLOURS - 1, fg)),
+        width,
+        height,
+      );
     }
   }
   return pixels;

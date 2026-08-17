@@ -15,18 +15,24 @@
  * - Supports setBuffer() for external buffer updates
  */
 
-import { BitmapGlyphRenderer, G0Renderer } from "./g0-renderer";
+import { BitmapGlyphRenderer } from "./g0-renderer";
 import { GlyphAtlas } from "./glyph-atlas";
-import { PALETTE_DARK, getColour } from "./palette";
-import teletextAtlasJson from "./seeds/glyph-atlas.teletext.json";
+import { PALETTE_DARK, PALETTE_PIXEL_32, getColour } from "./palette";
+import bedsteadAtlasJson from "./seeds/glyph-atlas.bedstead.json";
 import terminalAtlasJson from "./seeds/glyph-atlas.terminal.json";
 import type { GridBuffer, GridCell } from "./types";
 
 /* ─── Glyph Renderers (singletons) ──────────────────────────────── */
 const terminalAtlas = new GlyphAtlas(terminalAtlasJson);
-const teletextAtlas = new GlyphAtlas(teletextAtlasJson);
-/** Teletext (MODE7GX3) — 12×16 glyphs with 2×3 mosaic support. */
-const teletextRenderer = new G0Renderer(teletextAtlas);
+const bedsteadAtlas = new GlyphAtlas(bedsteadAtlasJson);
+/** Bedstead (SAA5050) — 12×20 glyphs with 2×3 mosaic support. */
+const bedsteadRenderer = new BitmapGlyphRenderer({
+  glyphW: 12,
+  glyphH: 20,
+  fontFamily: '"Bedstead", monospace',
+  mosaic: true,
+  atlas: bedsteadAtlas,
+});
 /** Terminal (Press Start 2P) — 8×8 square glyphs, with 2×3 mosaic support so
  *  sextant seeds render identically across views. */
 const terminalRenderer = new BitmapGlyphRenderer({
@@ -85,6 +91,11 @@ export class GridUICanvasElement extends HTMLElement {
   private _charWidth: number = 0; // 0 = use cellSize
   /** Whether to draw gridlines between cells */
   private _gridlines: boolean = false;
+  /** Whether cells are square (glyph fills the square cell). Used for
+   *  16:9 teletext so the grid matches the Terminal view's width. */
+  private _squareCells: boolean = false;
+  /** Fit the grid to the container at a fractional scale (fills exactly). */
+  private _fitExact: boolean = false;
 
   /* ─── Observed Attributes ─────────────────────────────────────── */
 
@@ -97,6 +108,8 @@ export class GridUICanvasElement extends HTMLElement {
       "font",
       "palette",
       "gridlines",
+      "square-cells",
+      "fit-exact",
     ];
   }
 
@@ -153,6 +166,13 @@ export class GridUICanvasElement extends HTMLElement {
     this._charWidth = parseInt(this.getAttribute("char-width") || "0");
     const gridlinesAttr = this.getAttribute("gridlines");
     this._gridlines = gridlinesAttr !== null && gridlinesAttr !== "false";
+    this._squareCells = this.getAttribute("square-cells") !== null;
+    this._fitExact = this.getAttribute("fit-exact") !== null;
+    // Palette: "pixel" selects the 32-colour palette, otherwise MODE 7 8-colour.
+    this._palette =
+      this.getAttribute("palette") === "pixel"
+        ? PALETTE_PIXEL_32
+        : PALETTE_DARK;
 
     // Ensure buffer matches dimensions
     if (this._buffer.length === 0) {
@@ -193,16 +213,41 @@ export class GridUICanvasElement extends HTMLElement {
       const availW = Math.max(0, (parent.clientWidth - padX) * dpr);
       const availH = Math.max(0, (parent.clientHeight - padY) * dpr);
       if (availW > 0 && availH > 0) {
-        const maxScaleW = Math.floor(availW / (this._cols * renderer.glyphW));
-        const maxScaleH = Math.floor(availH / (this._rows * renderer.glyphH));
-        // Fit the grid to the panel, keeping aspect ratio (uniform scale).
-        scale = Math.max(1, Math.min(maxScaleW, maxScaleH));
+        if (this._squareCells) {
+          // Square cells: cols×rows of equal-size squares (16:9 teletext grid
+          // that matches the Terminal view's width). Scale = device px/cell.
+          scale = Math.max(
+            1,
+            Math.min(
+              Math.floor(availW / this._cols),
+              Math.floor(availH / this._rows),
+            ),
+          );
+        } else if (this._fitExact) {
+          // Fractional scale fills the panel exactly. Glyphs still render at
+          // their native aspect (uniform scale), so text stays tall and crisp
+          // enough — no horizontal stretch, no gaps.
+          const maxScaleW = availW / (this._cols * renderer.glyphW);
+          const maxScaleH = availH / (this._rows * renderer.glyphH);
+          scale = Math.max(0.25, Math.min(maxScaleW, maxScaleH));
+        } else {
+          const maxScaleW = Math.floor(availW / (this._cols * renderer.glyphW));
+          const maxScaleH = Math.floor(availH / (this._rows * renderer.glyphH));
+          // Fit the grid to the panel, keeping aspect ratio (uniform scale).
+          scale = Math.max(1, Math.min(maxScaleW, maxScaleH));
+        }
       }
     }
 
-    // Cell dimensions are exact multiples of the glyph native size (device px).
-    const cellW = renderer.glyphW * scale;
-    const cellH = renderer.glyphH * scale;
+    // Cell dimensions in whole device px. Square cells share one integer side;
+    // native cells follow the glyph aspect (fractional scales are rounded so
+    // the canvas backing store and the per-cell draw agree exactly).
+    const cellW = this._squareCells
+      ? Math.round(scale)
+      : Math.round(renderer.glyphW * scale);
+    const cellH = this._squareCells
+      ? Math.round(scale)
+      : Math.round(renderer.glyphH * scale);
     const pixelWidth = this._cols * cellW;
     const pixelHeight = this._rows * cellH;
 
@@ -295,7 +340,7 @@ export class GridUICanvasElement extends HTMLElement {
    * Every font renders as bitmaps — square pixels, no anti-aliasing.
    */
   private _getGlyphRenderer(): BitmapGlyphRenderer {
-    if (this._font === "mode7gx3") return teletextRenderer;
+    if (this._font === "bedstead") return bedsteadRenderer;
     return terminalRenderer;
   }
 
@@ -374,7 +419,7 @@ export class GridUICanvasElement extends HTMLElement {
           if (cell.dh === "top" || cell.dh === "bottom") {
             // Double-height glyph: render only this cell's half, stretched
             // vertically so a top/bottom pair forms one 2×-tall character.
-            glyphRenderer.renderHalf(
+            glyphRenderer.renderHalfStretched(
               ctx,
               x,
               y,
@@ -385,10 +430,26 @@ export class GridUICanvasElement extends HTMLElement {
               cell.dh,
             );
           } else {
-            glyphRenderer.render(ctx, x, y, cellW, cellH, charCode, fg);
+            glyphRenderer.renderStretched(
+              ctx,
+              x,
+              y,
+              cellW,
+              cellH,
+              charCode,
+              fg,
+            );
             if (cell.bold) {
               // Double-stroke: shift one device pixel right.
-              glyphRenderer.render(ctx, x + dpr, y, cellW, cellH, charCode, fg);
+              glyphRenderer.renderStretched(
+                ctx,
+                x + dpr,
+                y,
+                cellW,
+                cellH,
+                charCode,
+                fg,
+              );
             }
           }
         }
@@ -397,7 +458,7 @@ export class GridUICanvasElement extends HTMLElement {
 
     // Gridlines: draw 1px lines at cell boundaries (device-pixel crisp)
     if (this._gridlines) {
-      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.strokeStyle = "rgba(255,255,255,0.30)";
       ctx.lineWidth = 1;
       const gw = this._cols * cellW;
       const gh = this._rows * cellH;
@@ -496,6 +557,16 @@ export function createGridUICanvas(
     rows?: number;
     cellSize?: number;
     font?: string;
+    /** Draw 1px gridlines at cell boundaries (default false). */
+    gridlines?: boolean;
+    /** Colour palette: "pixel" = 32-colour, otherwise 8-colour MODE 7. */
+    palette?: string;
+    /** Render square cells (glyph fills the square cell) instead of the
+     *  glyph's native aspect — used for 16:9 teletext grids. */
+    squareCells?: boolean;
+    /** Fit to the container at a fractional scale so the grid fills it
+     *  exactly (glyphs keep their native aspect). */
+    fitExact?: boolean;
   } = {},
 ): GridUICanvasElement {
   const el = document.createElement("gridui-canvas") as GridUICanvasElement;
@@ -504,5 +575,10 @@ export function createGridUICanvas(
   if (options.cellSize !== undefined)
     el.setAttribute("cell-size", String(options.cellSize));
   if (options.font !== undefined) el.setAttribute("font", options.font);
+  if (options.gridlines) el.setAttribute("gridlines", "");
+  if (options.palette !== undefined)
+    el.setAttribute("palette", options.palette);
+  if (options.squareCells) el.setAttribute("square-cells", "");
+  if (options.fitExact) el.setAttribute("fit-exact", "");
   return el;
 }

@@ -1,28 +1,25 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>uCore — Mission Control</title>
-    
+
     <!-- ─── Pico CSS (component framework) ──────────────────────────────── -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
-    
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />
+
     <!-- ─── Fonts ──────────────────────────────────────────────────────
          All fonts (Inter, JetBrains Mono, Merriweather, Press Start 2P,
          VT323, Material Symbols) are self-hosted via npm @fontsource packages
          and imported in main.ts. Zero Google CDN dependency.
-         MODE7GX3 is served from /fonts/ for authentic Teletext rendering.
+         Bedstead (SAA5050 teletext) is baked into the glyph atlas.
          ──────────────────────────────────────────────────────────────── -->
-    <style>
-      @font-face {
-        font-family: 'MODE7GX3';
-        src: url('/fonts/MODE7GX3.TTF') format('truetype');
-        font-display: block;
-        font-weight: normal;
-        font-style: normal;
-      }
-    </style>
 
     <!-- Iconify: Icon library API for MDI and other icon sets -->
     <script src="https://code.iconify.design/iconify-icon/1.0.8/iconify-icon.min.js"></script>

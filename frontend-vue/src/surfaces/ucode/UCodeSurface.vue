@@ -55,7 +55,9 @@
           <!-- Toolbar: tools, actions, palette — inside same content div -->
           <div class="pixel-toolbar">
             <div class="pixel-toolbar__dims">
-              <span class="pixel-toolbar__label">24×24</span>
+              <span class="pixel-toolbar__label"
+                >{{ pixelCell.w }}×{{ pixelCell.h }}</span
+              >
             </div>
             <div class="pixel-toolbar__tools">
               <button
@@ -116,21 +118,19 @@
               >
                 <UIcon name="palette" />
               </button>
-              <!-- 8-colour popover -->
+              <!-- 32-colour popover -->
               <div
                 class="pixel-colour-popover"
                 v-if="showColorPopover"
                 @mousedown.prevent
               >
                 <button
-                  v-for="(c, i) in PALETTE"
+                  v-for="(c, i) in PIXEL_PALETTE"
                   :key="i"
                   class="pixel-colour-popover__swatch"
-                  :class="[
-                    `pixel-colour-popover__swatch--${i}`,
-                    { 'fg-active': pixelColor === i },
-                  ]"
-                  :title="c.name"
+                  :class="{ 'fg-active': pixelColor === i }"
+                  :style="{ background: c.hex }"
+                  :title="`${c.name} · ${i}`"
                   @click="pixelColor = i"
                 >
                   <span v-if="pixelColor === i" class="colour-marker fg"
@@ -149,8 +149,9 @@
             @mouseleave="pixelIsDragging = false"
           >
             <span class="editor-section__label editor-section__label--overlay">
-              Pixel Editor · 24×24 · {{ pixelSymbol || "?" }} ·
-              {{ pixelFont === "mode7gx3" ? "Teletext" : "Terminal" }}
+              Pixel Editor · {{ pixelCell.w }}×{{ pixelCell.h }} ·
+              {{ pixelSymbol || "?" }} · {{ pixelFontLabel }} · ink
+              {{ pixelInk?.w ?? 0 }}×{{ pixelInk?.h ?? 0 }}
             </span>
           </div>
         </div>
@@ -160,12 +161,12 @@
             <h4 class="sidebar-title">Colours</h4>
             <div class="sidebar-chars-grid">
               <button
-                v-for="(c, i) in PALETTE"
+                v-for="(c, i) in PIXEL_PALETTE"
                 :key="i"
                 class="sidebar-char-chip sidebar-colour-swatch"
                 :class="{ 'fg-active': pixelColor === i }"
                 :style="{ background: c.hex }"
-                :title="c.name"
+                :title="`${c.name} · ${i}`"
                 @click="pixelColor = i"
               >
                 <span v-if="pixelColor === i" class="colour-marker fg">●</span>
@@ -184,10 +185,10 @@
               </button>
               <button
                 class="sidebar-font-btn"
-                :class="{ active: pixelFont === 'mode7gx3' }"
-                @click="pixelFont = 'mode7gx3'"
+                :class="{ active: pixelFont === 'bedstead' }"
+                @click="pixelFont = 'bedstead'"
               >
-                Teletext
+                Bedstead
               </button>
             </div>
           </div>
@@ -212,17 +213,50 @@
           </div>
           <div class="sidebar-section sidebar-font-chars">
             <h4 class="sidebar-title">Library</h4>
-            <div class="sidebar-chars-grid">
-              <button
-                v-for="ch in pixelSymbols"
-                :key="ch"
-                class="sidebar-char-chip"
-                :class="{ selected: pixelSymbol === ch }"
-                :title="`U+${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`"
-                @click="selectPixelSymbol(ch)"
-              >
-                {{ ch }}
-              </button>
+            <div class="sidebar-chars-group">
+              <div class="sidebar-chars-caption">ASCII</div>
+              <div class="sidebar-chars-grid">
+                <button
+                  v-for="ch in pixelSymbols.ascii"
+                  :key="ch"
+                  class="sidebar-char-chip"
+                  :class="{ selected: pixelSymbol === ch }"
+                  :title="symbolCodeLabel(ch)"
+                  @click="selectPixelSymbol(ch)"
+                >
+                  {{ ch }}
+                </button>
+              </div>
+            </div>
+            <div class="sidebar-chars-group">
+              <div class="sidebar-chars-caption">Symbols &amp; Icons</div>
+              <div class="sidebar-chars-grid">
+                <button
+                  v-for="ch in pixelSymbols.icons"
+                  :key="ch"
+                  class="sidebar-char-chip"
+                  :class="{ selected: pixelSymbol === ch }"
+                  :title="symbolCodeLabel(ch)"
+                  @click="selectPixelSymbol(ch)"
+                >
+                  {{ ch }}
+                </button>
+              </div>
+            </div>
+            <div class="sidebar-chars-group">
+              <div class="sidebar-chars-caption">Emoji</div>
+              <div class="sidebar-chars-grid">
+                <button
+                  v-for="ch in pixelSymbols.emoji"
+                  :key="ch"
+                  class="sidebar-char-chip"
+                  :class="{ selected: pixelSymbol === ch }"
+                  :title="symbolCodeLabel(ch)"
+                  @click="selectPixelSymbol(ch)"
+                >
+                  {{ ch }}
+                </button>
+              </div>
             </div>
           </div>
           <div class="sidebar-section">
@@ -430,10 +464,10 @@
             </button>
             <button
               class="sidebar-font-btn"
-              :class="{ active: editorFont === 'mode7gx3' }"
-              @click="editorFont = 'mode7gx3'"
+              :class="{ active: editorFont === 'bedstead' }"
+              @click="editorFont = 'bedstead'"
             >
-              Teletext
+              Bedstead
             </button>
           </div>
         </div>
@@ -509,20 +543,22 @@
           </button>
           <button
             class="layer-map-selector__btn"
-            :class="{ active: glyphInspectorFont === 'mode7gx3' }"
-            @click="setGlyphInspectorFont('mode7gx3')"
+            :class="{ active: glyphInspectorFont === 'bedstead' }"
+            @click="setGlyphInspectorFont('bedstead')"
           >
-            Teletext 12×16
+            Bedstead 12×20
           </button>
         </div>
         <div class="surface__canvas">
           <div
             ref="gridContainer"
             class="ucode-viewport"
+            :class="{ 'ucode-viewport--terminal': activeTab === 'terminal' }"
             role="region"
             tabindex="0"
             :aria-label="`${currentTitle} viewport`"
             @keydown="onSharedKeydown"
+            @mousedown="focusGridContainer"
           ></div>
         </div>
       </div>
@@ -557,9 +593,12 @@ import {
   clear as clearBuffer,
   scaleBuffer,
 } from "../../grid-core/index";
-import { PALETTE_DARK } from "../../grid-core/palette";
+import { PALETTE_DARK, PALETTE_PIXEL_32 } from "../../grid-core/palette";
 import { GRID_PRESETS } from "../../grid-core/algebra";
-import { BitmapGlyphRenderer, G0Renderer } from "../../grid-core/g0-renderer";
+import { BitmapGlyphRenderer } from "../../grid-core/g0-renderer";
+import { GlyphAtlas } from "../../grid-core/glyph-atlas";
+import terminalAtlasJson from "../../grid-core/seeds/glyph-atlas.terminal.json";
+import bedsteadAtlasJson from "../../grid-core/seeds/glyph-atlas.bedstead.json";
 import type { GridBuffer, GridCell } from "../../grid-core/types";
 import {
   PixelEditor,
@@ -567,10 +606,11 @@ import {
   createSymbolMap,
   deserializeSymbolMap,
   glyphBitmapToPixelBuffer,
+  colourGlyphToPixelBuffer,
   gridBufferToPixelBuffer,
   pixelBufferToGridBuffer,
   serializeSymbolMap,
-  PIXEL_SIZE,
+  measureInkBounds,
   type SymbolMap,
 } from "../../grid-core/pixel";
 import {
@@ -627,19 +667,27 @@ const tabConfigs: Record<
     font: string;
     cellSize: number;
     charWidth?: number;
+    square?: boolean;
+    fitExact?: boolean;
   }
 > = {
-  terminal: { cols: 40, rows: 25, font: "pressstart2p", cellSize: 20 },
-  teletext: {
-    cols: 40,
-    rows: 25,
-    font: "mode7gx3",
+  terminal: {
+    cols: 42,
+    rows: 27,
+    font: "pressstart2p",
     cellSize: 20,
-    charWidth: 26,
+    square: true,
   },
-  pixel: { cols: 24, rows: 24, font: "mode7gx3", cellSize: 24, charWidth: 24 },
-  grid: { cols: 40, rows: 25, font: "mode7gx3", cellSize: 20, charWidth: 26 },
-  layer: { cols: 40, rows: 25, font: "mode7gx3", cellSize: 20, charWidth: 26 },
+  teletext: {
+    cols: 74,
+    rows: 25,
+    font: "bedstead",
+    cellSize: 20,
+    fitExact: true,
+  },
+  pixel: { cols: 24, rows: 24, font: "bedstead", cellSize: 24 },
+  grid: { cols: 40, rows: 25, font: "bedstead", cellSize: 20 },
+  layer: { cols: 40, rows: 25, font: "bedstead", cellSize: 20 },
   glyphs: { cols: 16, rows: 7, font: "pressstart2p", cellSize: 24 },
 };
 
@@ -651,13 +699,22 @@ let terminalSocket: WebSocket | null = null;
 let terminalCursorX = 0;
 let terminalCursorY = 0;
 
+/** Terminal content area (the PTY is 40×25); the grid adds a 1-cell black
+ *  margin all round (42×27). */
+const TERMINAL_COLS = 40;
+const TERMINAL_ROWS = 25;
+const TERMINAL_MARGIN = 1;
+let terminalBuffer: GridBuffer | null = null;
+let terminalAtLineStart = false;
+
 const UCORE_API =
   import.meta.env.VITE_UCORE_URL ||
   import.meta.env.VITE_SNACKBAR_URL ||
   "http://localhost:8484";
 
 /* ─── Shared Brush State (persists across Pixel/Grid tabs) ─────────── */
-const PALETTE = PALETTE_DARK;
+const PALETTE = PALETTE_DARK; // 8-colour MODE 7 — Grid/Layer editors
+const PIXEL_PALETTE = PALETTE_PIXEL_32; // 32-colour — Pixel Editor
 
 const TOOLS = [
   { id: "pencil", label: "Pencil", icon: "edit" },
@@ -694,69 +751,264 @@ const pixelColor = ref(7);
 const pixelIsDragging = ref(false);
 
 /* ─── Pixel editor — font / symbol character map ───────────────────── */
-const teletextGlyphRenderer = new G0Renderer();
+// Wire the committed glyph atlases (the same deterministic bitmaps used by
+// the Glyphs tab) into the Pixel Editor renderers. Without an atlas the
+// renderer falls back to runtime fillText rasterisation, which diverges from
+// the Glyphs tab and fails for the sextant/box glyphs.
+const bedsteadGlyphRenderer = new BitmapGlyphRenderer({
+  glyphW: 12,
+  glyphH: 20,
+  fontFamily: '"Bedstead", monospace',
+  mosaic: true,
+  atlas: new GlyphAtlas(bedsteadAtlasJson),
+});
 const terminalGlyphRenderer = new BitmapGlyphRenderer({
   glyphW: 8,
   glyphH: 8,
   fontFamily: '"Press Start 2P", monospace',
+  mosaic: true,
+  atlas: new GlyphAtlas(terminalAtlasJson),
 });
 
 /** Source font used when loading glyphs into the editor. */
-const pixelFont = ref<"pressstart2p" | "mode7gx3">("mode7gx3");
+const pixelFont = ref<"pressstart2p" | "bedstead">("bedstead");
+/**
+ * Cell dimensions for the active font (the glyph's true em box).
+ * Terminal 8×8 @ 3× = 24×24; Bedstead 12×20 @ 2× = 24×40.
+ */
+const pixelCell = computed<{ w: number; h: number }>(() =>
+  pixelFont.value === "bedstead" ? { w: 24, h: 40 } : { w: 24, h: 24 },
+);
+/** Human-readable label for the active font. */
+const pixelFontLabel = computed(() =>
+  pixelFont.value === "bedstead" ? "Bedstead" : "Terminal",
+);
 /** Currently edited symbol (Unicode char). */
 const pixelSymbol = ref("#");
-/** The editable symbol library: codepoint → 24×24 bitmap. */
+/** The editable symbol library: codepoint → cell-sized bitmap. */
 const symbolMap = ref<SymbolMap>(createSymbolMap());
 
-const pixelSymbolCode = computed(() =>
-  pixelSymbol.value
-    ? `U+${pixelSymbol.value.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}`
-    : "",
-);
+/** Full Unicode code point of a character (astral-safe, e.g. 😀 U+1F600). */
+function symbolCodePoint(ch: string): number | null {
+  const cp = ch.codePointAt(0);
+  return cp === undefined ? null : cp;
+}
 
-/** Characters offered in the Pixel sidebar library for the active font. */
+/** `U+XXXX` label for a character, padded for BMP but astral-safe. */
+function symbolCodeLabel(ch: string): string {
+  const cp = symbolCodePoint(ch);
+  return cp === null
+    ? ""
+    : `U+${cp.toString(16).toUpperCase().padStart(4, "0")}`;
+}
+
+const pixelSymbolCode = computed(() => symbolCodeLabel(pixelSymbol.value));
+
+/**
+ * Curated symbol / icon set — monochrome glyphs that rasterise cleanly and
+ * map 1:1 onto the 24×24 bitmap (arrows, geometry, blocks, boxes, dingbats).
+ */
+const PIXEL_SYMBOL_ICONS = [
+  "←",
+  "↑",
+  "→",
+  "↓",
+  "↔",
+  "↕",
+  "◄",
+  "▲",
+  "►",
+  "▼",
+  "●",
+  "○",
+  "◐",
+  "◑",
+  "◒",
+  "◓",
+  "◔",
+  "◕",
+  "◖",
+  "◗",
+  "■",
+  "□",
+  "▢",
+  "△",
+  "▽",
+  "◁",
+  "▷",
+  "◆",
+  "◇",
+  "▱",
+  "█",
+  "▀",
+  "▄",
+  "▌",
+  "▐",
+  "░",
+  "▒",
+  "▓",
+  "⬛",
+  "⬜",
+  "│",
+  "─",
+  "┌",
+  "┐",
+  "└",
+  "┘",
+  "├",
+  "┤",
+  "┬",
+  "┴",
+  "┼",
+  "║",
+  "═",
+  "╔",
+  "╗",
+  "╚",
+  "╝",
+  "╠",
+  "╣",
+  "╦",
+  "╩",
+  "╬",
+  "☀",
+  "☾",
+  "☁",
+  "☂",
+  "☃",
+  "★",
+  "☆",
+  "♥",
+  "♦",
+  "♣",
+  "♠",
+  "♪",
+  "♫",
+  "♯",
+  "⚑",
+  "⚔",
+  "⚙",
+  "⚡",
+  "☠",
+  "⌂",
+  "♔",
+  "♕",
+  "♖",
+  "♗",
+  "♘",
+  "♙",
+  "♚",
+  "♛",
+  "♜",
+  "♝",
+  "♞",
+  "♟",
+];
+
+/** Common emoji for the symbol map (rasterised as monochrome silhouettes). */
+const PIXEL_SYMBOL_EMOJI = [
+  "😀",
+  "😃",
+  "😄",
+  "😁",
+  "😆",
+  "😂",
+  "🙂",
+  "😉",
+  "😊",
+  "😎",
+  "😍",
+  "😭",
+  "👍",
+  "👎",
+  "👏",
+  "🙌",
+  "🔥",
+  "💀",
+  "🎉",
+  "❤️",
+  "💙",
+  "💚",
+  "💛",
+  "💜",
+  "⭐",
+  "✨",
+  "⚡",
+  "🌙",
+  "☀️",
+  "🎮",
+  "🕹️",
+  "👾",
+  "🧱",
+  "🔲",
+  "🔳",
+];
+
+/** Characters offered in the Pixel sidebar library, grouped by class. */
 const pixelSymbols = computed(() => {
-  if (pixelFont.value === "pressstart2p") {
-    const chars: string[] = [];
-    for (let i = 0x21; i <= 0x7e; i++) chars.push(String.fromCharCode(i));
-    return chars;
-  }
-  const chars: string[] = [];
-  for (let i = 0x20; i <= 0x7e; i++) chars.push(String.fromCharCode(i));
-  chars.push("█", "▄", "▀", "▐", "▌", "░", "▒", "▓", "│", "─", "║", "═");
-  chars.push("╔", "╗", "╚", "╝", "╠", "╣", "╦", "╩", "╬");
-  return chars;
+  const ascii: string[] = [];
+  const start = pixelFont.value === "pressstart2p" ? 0x21 : 0x20;
+  for (let i = start; i <= 0x7e; i++) ascii.push(String.fromCharCode(i));
+  return { ascii, icons: PIXEL_SYMBOL_ICONS, emoji: PIXEL_SYMBOL_EMOJI };
 });
 
 function currentGlyphRenderer(): BitmapGlyphRenderer {
-  return pixelFont.value === "mode7gx3"
-    ? teletextGlyphRenderer
+  return pixelFont.value === "bedstead"
+    ? bedsteadGlyphRenderer
     : terminalGlyphRenderer;
 }
 
-/** Load the selected symbol's glyph from the font into the 24×24 editor. */
+/** Load the selected symbol's glyph from the font into the editor. */
 function loadGlyphFromFont() {
   const renderer = currentGlyphRenderer();
-  const code = pixelSymbol.value.charCodeAt(0);
-  const bitmap = renderer.getBitmap(code);
-  pixelEditor = new PixelEditor(
-    glyphBitmapToPixelBuffer(bitmap, renderer.glyphW, renderer.glyphH, 7),
-  );
+  const code = symbolCodePoint(pixelSymbol.value);
+  if (code === null) return;
+  const { w, h } = pixelCell.value;
+  if (renderer.hasGlyph(code)) {
+    // Deterministic atlas / mosaic glyph → binary bitmap, white ink, fills
+    // the cell (8×8→24×24 @3×, 12×16→24×32 @2×) with no side bearings.
+    const bitmap = renderer.getBitmap(code);
+    pixelEditor = new PixelEditor(
+      glyphBitmapToPixelBuffer(
+        bitmap,
+        renderer.glyphW,
+        renderer.glyphH,
+        7,
+        w,
+        h,
+      ),
+      w,
+      h,
+    );
+  } else {
+    // Colour glyph (emoji/symbol): rasterise at the cell size and quantise
+    // to the 32-colour palette, preserving the emoji's own colours.
+    const rgba = renderer.rasterizeColour(code, w, h);
+    pixelEditor = new PixelEditor(
+      colourGlyphToPixelBuffer(rgba, PIXEL_PALETTE, w, h),
+      w,
+      h,
+    );
+  }
   renderPixelBuffer();
 }
 
 /** Store the current editor bitmap under the selected symbol. */
 function saveGlyphToMap() {
   if (!pixelEditor) return;
-  symbolMap.value.set(pixelSymbol.value.charCodeAt(0), pixelEditor.buffer);
+  const code = symbolCodePoint(pixelSymbol.value);
+  if (code === null) return;
+  symbolMap.value.set(code, pixelEditor.buffer);
 }
 
 /** Select a symbol: load its edited bitmap if present, else load the font glyph. */
 function selectPixelSymbol(ch: string) {
   pixelSymbol.value = ch;
-  const stored = symbolMap.value.get(ch.charCodeAt(0));
+  const code = symbolCodePoint(ch);
+  const stored = code === null ? undefined : symbolMap.value.get(code);
+  const { w, h } = pixelCell.value;
   if (stored) {
-    pixelEditor = new PixelEditor(stored);
+    pixelEditor = new PixelEditor(stored, w, h);
     renderPixelBuffer();
   } else {
     loadGlyphFromFont();
@@ -800,7 +1052,7 @@ function onSymbolImportFile(e: Event) {
 const selectedFg = ref(7);
 const selectedBg = ref(0);
 const selectedChar = ref("#");
-const editorFont = ref<"pressstart2p" | "mode7gx3">("mode7gx3");
+const editorFont = ref<"pressstart2p" | "bedstead">("bedstead");
 const currentTool = ref<"pencil" | "fill" | "erase" | "eyedropper">("pencil");
 
 const selectedCharCode = computed(() =>
@@ -811,7 +1063,7 @@ const selectedCharCode = computed(() =>
 
 /** Characters shown in the Grid sidebar font char set */
 const fontChars = computed(() => {
-  if (editorFont.value === "mode7gx3") {
+  if (editorFont.value === "bedstead") {
     const chars: string[] = [];
     for (let i = 0x20; i <= 0x7e; i++) chars.push(String.fromCharCode(i));
     chars.push("█", "▄", "▀", "▐", "▌", "░", "▒", "▓", "│", "─", "║", "═");
@@ -880,38 +1132,56 @@ watch(editorFont, (font) => {
   if (layerCanvas) layerCanvas.setAttribute("font", font);
 });
 
-/* ─── Pixel Editor (true sub-cell 24×24 colour bitmap) ─────────────── */
+// Reload the current symbol's glyph when the Pixel Editor font changes so
+// the canvas always reflects the selected font's atlas bitmaps.
+watch(pixelFont, () => {
+  if (activeTab.value === "pixel") loadGlyphFromFont();
+});
+
+/* ─── Pixel Editor (true sub-cell colour bitmap) ─────────────────── */
 let pixelEditor: PixelEditor | null = null;
 /** Preview buffer: each pixel as a solid-colour cell for <gridui-canvas>. */
-let pixelBuffer: GridBuffer = createBuffer(PIXEL_SIZE, PIXEL_SIZE);
+let pixelBuffer: GridBuffer = createBuffer(24, 24);
+/** Ink bounding box of the current glyph (variable-width readout). */
+const pixelInk = ref<{ w: number; h: number } | null>(null);
 
 function renderPixelBuffer() {
   if (!pixelCanvas || !pixelEditor) return;
-  pixelBuffer = pixelBufferToGridBuffer(pixelEditor.buffer);
+  const { w, h } = pixelCell.value;
+  pixelBuffer = pixelBufferToGridBuffer(pixelEditor.buffer, w, h);
   pixelCanvas.setBuffer(cloneBuffer(pixelBuffer));
+  const b = measureInkBounds(pixelEditor.buffer, w, h);
+  pixelInk.value = b
+    ? { w: b.maxX - b.minX + 1, h: b.maxY - b.minY + 1 }
+    : null;
 }
 
 function initPixelEditor() {
   if (!pixelCanvasRef.value) return;
   pixelCanvas?.remove();
-  pixelEditor = new PixelEditor(createPixelBuffer(0));
+  const { w, h } = pixelCell.value;
+  pixelEditor = new PixelEditor(createPixelBuffer(0, w, h), w, h);
   pixelCanvas = createGridUICanvas({
-    cols: PIXEL_SIZE,
-    rows: PIXEL_SIZE,
+    cols: w,
+    rows: h,
     font: "pressstart2p",
     cellSize: 24,
+    gridlines: true,
+    palette: "pixel",
   });
   pixelCanvas.style.flexShrink = "0";
   pixelCanvas.addEventListener("cell-click", onPixelCellClick as EventListener);
   pixelCanvas.addEventListener("cell-hover", onPixelCellHover as EventListener);
   pixelCanvasRef.value.appendChild(pixelCanvas);
-  renderPixelBuffer();
+  // Load the current symbol's glyph so the editor immediately reflects the
+  // committed glyph atlas (same bitmaps as the Glyphs tab).
+  loadGlyphFromFont();
 }
 
 function paintPixelAt(x: number, y: number) {
   if (!pixelEditor) return;
   if (pixelTool.value === "eyedropper") {
-    pixelColor.value = pixelEditor.buffer[y * PIXEL_SIZE + x] ?? 0;
+    pixelColor.value = pixelEditor.buffer[y * pixelEditor.width + x] ?? 0;
     pixelTool.value = "pencil";
     renderPixelBuffer();
     return;
@@ -961,10 +1231,11 @@ function redoPixel() {
 
 function exportPixelData() {
   if (!pixelEditor) return;
+  const { w, h } = pixelCell.value;
   const data = {
     format: "ucore-pixel-v1",
-    width: PIXEL_SIZE,
-    height: PIXEL_SIZE,
+    width: w,
+    height: h,
     pixels: Array.from(pixelEditor.buffer),
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -973,7 +1244,7 @@ function exportPixelData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `pixel-${PIXEL_SIZE}x${PIXEL_SIZE}.json`;
+  a.download = `pixel-${w}x${h}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -1320,14 +1591,17 @@ onUnmounted(() => {
 function initGrid(tabId: string) {
   if (!gridContainer.value) return;
   const cfg = tabConfigs[tabId];
+  const font = cfg.font;
   if (activeCanvas) activeCanvas.style.display = "none";
   let el = canvasCache.get(tabId);
   if (!el) {
     el = createGridUICanvas({
       cols: cfg.cols,
       rows: cfg.rows,
-      font: cfg.font,
+      font,
       cellSize: cfg.cellSize,
+      squareCells: cfg.square,
+      fitExact: cfg.fitExact,
     });
     if (cfg.charWidth) el.setAttribute("char-width", String(cfg.charWidth));
     el.style.flexShrink = "0";
@@ -1338,7 +1612,13 @@ function initGrid(tabId: string) {
     const canvas = el;
     nextTick(() => canvas.refit());
   } else {
-    el.setAttribute("font", cfg.font);
+    el.setAttribute("cols", String(cfg.cols));
+    el.setAttribute("rows", String(cfg.rows));
+    el.setAttribute("font", font);
+    if (cfg.square) el.setAttribute("square-cells", "");
+    else el.removeAttribute("square-cells");
+    if (cfg.fitExact) el.setAttribute("fit-exact", "");
+    else el.removeAttribute("fit-exact");
     if (cfg.charWidth) el.setAttribute("char-width", String(cfg.charWidth));
     else el.removeAttribute("char-width");
     el.style.display = "";
@@ -2155,6 +2435,13 @@ function onSharedKeydown(event: KeyboardEvent) {
   }
 }
 
+/** Keep keyboard focus on the grid viewport when the user clicks the canvas
+ *  (the canvas lives inside a shadow root, so a plain click does not focus
+ *  the focusable viewport host — this made Terminal input appear dead). */
+function focusGridContainer() {
+  gridContainer.value?.focus();
+}
+
 /* ─── Terminal Tab ────────────────────────────────────────────────── */
 function terminalWebSocketUrl() {
   const url = new URL("/api/terminal/runtime/ws", UCORE_API);
@@ -2162,75 +2449,131 @@ function terminalWebSocketUrl() {
   return url.toString();
 }
 
+/** Block cursor visibility + the initial blink-then-solid behaviour. */
+let terminalCursorVisible = true;
+let terminalCursorBlinkTimer: number | null = null;
+
+function ensureTerminalBuffer(): GridBuffer {
+  if (
+    !terminalBuffer ||
+    terminalBuffer.length !== TERMINAL_ROWS ||
+    terminalBuffer[0]?.length !== TERMINAL_COLS
+  ) {
+    terminalBuffer = createBuffer(TERMINAL_COLS, TERMINAL_ROWS);
+  }
+  return terminalBuffer;
+}
+
+/** Render the 40×25 content inside a 42×27 grid with a 1-cell black margin,
+ *  plus the inverted block cursor. */
+function terminalRender() {
+  if (!activeCanvas) return;
+  const cfg = tabConfigs.terminal; // 42×27
+  const content = ensureTerminalBuffer(); // 40×25
+
+  const grid = createBuffer(cfg.cols, cfg.rows); // black margin ring
+  for (let r = 0; r < TERMINAL_ROWS; r++) {
+    for (let c = 0; c < TERMINAL_COLS; c++) {
+      grid[r + TERMINAL_MARGIN][c + TERMINAL_MARGIN] = content[r][c];
+    }
+  }
+
+  const cy =
+    Math.max(0, Math.min(TERMINAL_ROWS - 1, terminalCursorY)) + TERMINAL_MARGIN;
+  const cx =
+    Math.max(0, Math.min(TERMINAL_COLS - 1, terminalCursorX)) + TERMINAL_MARGIN;
+  if (terminalCursorVisible) {
+    const cell = grid[cy][cx];
+    // Inverted-video block cursor.
+    grid[cy][cx] = { char: cell.char, fg: cell.bg, bg: cell.fg };
+  }
+  activeCanvas.setBuffer(grid);
+}
+
+/** Blink the block cursor continuously while the terminal is active. */
+function startTerminalCursorBlink() {
+  terminalCursorVisible = true;
+  terminalRender();
+  if (terminalCursorBlinkTimer) clearInterval(terminalCursorBlinkTimer);
+  terminalCursorBlinkTimer = window.setInterval(() => {
+    terminalCursorVisible = !terminalCursorVisible;
+    terminalRender();
+  }, 500);
+}
+
+function stopTerminalCursorBlink() {
+  if (terminalCursorBlinkTimer) clearInterval(terminalCursorBlinkTimer);
+  terminalCursorBlinkTimer = null;
+  terminalCursorVisible = true;
+}
+
 function terminalPrintLine(text: string, fg = 7, bg = 0) {
   if (!activeCanvas) return;
-  const cfg = tabConfigs.terminal;
-  let buf = activeCanvas.buffer;
-  if (!buf || buf.length === 0) buf = createBuffer(cfg.cols, cfg.rows);
-  if (terminalCursorY >= cfg.rows) {
+  let buf = ensureTerminalBuffer();
+  if (terminalCursorY >= TERMINAL_ROWS) {
     buf = scrollBuffer(buf, 1);
-    terminalCursorY = cfg.rows - 1;
+    terminalCursorY = TERMINAL_ROWS - 1;
   }
   buf = writeString(buf, 0, terminalCursorY, text, fg, bg);
+  terminalBuffer = buf;
   terminalCursorX = 0;
   terminalCursorY++;
-  activeCanvas.setBuffer(buf);
+  terminalRender();
 }
 
 function terminalPutChar(char: string, fg = 7, bg = 0) {
   if (!activeCanvas) return;
-  const cfg = tabConfigs.terminal;
-  let buf = activeCanvas.buffer;
-  if (!buf || buf.length === 0) buf = createBuffer(cfg.cols, cfg.rows);
-  if (terminalCursorY >= cfg.rows) {
+  let buf = ensureTerminalBuffer();
+  if (terminalCursorY >= TERMINAL_ROWS) {
     buf = scrollBuffer(buf, 1);
-    terminalCursorY = cfg.rows - 1;
+    terminalCursorY = TERMINAL_ROWS - 1;
   }
-  if (terminalCursorX >= cfg.cols) terminalNewLine();
-  buf = activeCanvas.buffer || buf;
+  if (terminalCursorX >= TERMINAL_COLS) terminalNewLine();
+  buf = terminalBuffer || buf;
   buf[terminalCursorY][terminalCursorX] = { char, fg, bg };
+  terminalBuffer = buf;
   terminalCursorX++;
-  activeCanvas.setBuffer(buf);
+  terminalRender();
 }
 
 function terminalNewLine() {
   if (!activeCanvas) return;
-  const cfg = tabConfigs.terminal;
-  let buf = activeCanvas.buffer;
-  if (!buf || buf.length === 0) buf = createBuffer(cfg.cols, cfg.rows);
+  let buf = ensureTerminalBuffer();
   terminalCursorX = 0;
   terminalCursorY++;
-  if (terminalCursorY >= cfg.rows) {
+  if (terminalCursorY >= TERMINAL_ROWS) {
     buf = scrollBuffer(buf, 1);
-    terminalCursorY = cfg.rows - 1;
+    terminalCursorY = TERMINAL_ROWS - 1;
   }
-  activeCanvas.setBuffer(buf);
+  terminalBuffer = buf;
+  terminalRender();
 }
 
 function terminalBackspace() {
   if (!activeCanvas || terminalCursorX <= 0) return;
   terminalCursorX--;
-  const buf = activeCanvas.buffer;
+  const buf = ensureTerminalBuffer();
   buf[terminalCursorY][terminalCursorX] = { char: " ", fg: 7, bg: 0 };
-  activeCanvas.setBuffer(buf);
+  terminalBuffer = buf;
+  terminalRender();
 }
 
 function terminalClearScreen() {
   if (!activeCanvas) return;
-  const cfg = tabConfigs.terminal;
-  activeCanvas.setBuffer(createBuffer(cfg.cols, cfg.rows));
   terminalCursorX = 0;
   terminalCursorY = 0;
+  terminalBuffer = createBuffer(TERMINAL_COLS, TERMINAL_ROWS);
+  terminalRender();
 }
 
 function terminalClearLineFromCursor() {
   if (!activeCanvas) return;
-  const cfg = tabConfigs.terminal;
-  const buf = activeCanvas.buffer;
-  for (let col = terminalCursorX; col < cfg.cols; col++) {
+  const buf = ensureTerminalBuffer();
+  for (let col = terminalCursorX; col < TERMINAL_COLS; col++) {
     buf[terminalCursorY][col] = { char: " ", fg: 7, bg: 0 };
   }
-  activeCanvas.setBuffer(buf);
+  terminalBuffer = buf;
+  terminalRender();
 }
 
 function handleTerminalControlSequence(params: string, command: string) {
@@ -2265,26 +2608,65 @@ function terminalWriteOutput(text: string) {
       }
     }
     const char = text[index];
-    if (char === "\r") terminalCursorX = 0;
-    else if (char === "\n") terminalNewLine();
-    else if (char === "\b" || char === "\x7F") terminalBackspace();
-    else if (char >= " ") terminalPutChar(char);
+    if (char === "\r") {
+      terminalCursorX = 0;
+      terminalAtLineStart = true;
+    } else if (char === "\n") {
+      terminalNewLine();
+      terminalAtLineStart = true;
+    } else if (char === "\b" || char === "\x7F") {
+      terminalBackspace();
+      terminalAtLineStart = false;
+    } else if (char >= " ") {
+      // Strip the shell's " > " prompt at the start of a line.
+      if (terminalAtLineStart && char === ">" && text[index + 1] === " ") {
+        terminalAtLineStart = false;
+        index += 2;
+        continue;
+      }
+      terminalAtLineStart = false;
+      terminalPutChar(char);
+    }
     index++;
   }
 }
 
+function centerText(text: string, width = TERMINAL_COLS): string {
+  const pad = Math.max(0, Math.floor((width - text.length) / 2));
+  return " ".repeat(pad) + text;
+}
+
+function terminalPrintCentered(text: string, fg = 7, bg = 0) {
+  terminalPrintLine(centerText(text), fg, bg);
+}
+
+/** Overwrite a whole row without disturbing the cursor position. */
+function terminalWriteRow(row: number, text: string, fg = 7, bg = 0) {
+  if (row < 0 || row >= TERMINAL_ROWS) return;
+  const padded = (centerText(text) + " ".repeat(TERMINAL_COLS)).slice(
+    0,
+    TERMINAL_COLS,
+  );
+  terminalBuffer = writeString(ensureTerminalBuffer(), 0, row, padded, fg, bg);
+  terminalRender();
+}
+
+/** C64-style boot banner: title, system stats, READY., then a blank line
+ *  before the prompt. */
 function loadTerminalWelcome() {
   if (!activeCanvas) return;
   terminalCursorX = 0;
   terminalCursorY = 0;
-  let buf = createBuffer(tabConfigs.terminal.cols, tabConfigs.terminal.rows);
-  activeCanvas.setBuffer(buf);
-  terminalPrintLine("uDosConnect Terminal Runtime", 4, 0);
-  terminalPrintLine("=".repeat(tabConfigs.terminal.cols), 3, 0);
-  terminalPrintLine("GridCore Canvas  ·  uCode bridge adapter", 2, 0);
-  terminalPrintLine("Connecting to local runtime...", 7, 0);
-  terminalPrintLine("", 7, 0);
-  terminalCursorY = 6;
+  terminalBuffer = createBuffer(TERMINAL_COLS, TERMINAL_ROWS);
+  terminalRender();
+  terminalPrintCentered("**** UCODE GRIDCORE TERMINAL ****", 4, 0);
+  terminalPrintCentered("40X25 GRID · 8X8 CELL · PRESS START 2P", 7, 0);
+  terminalPrintLine("READY.", 4, 0);
+  terminalPrintLine("", 7, 0); // line gap before the prompt
+  terminalCursorY = 4;
+  terminalCursorX = 0;
+  terminalAtLineStart = true;
+  startTerminalCursorBlink();
 }
 
 function loadTerminalRuntime() {
@@ -2307,7 +2689,14 @@ function connectTerminalRuntime() {
     try {
       const payload = JSON.parse(String(event.data));
       if (payload.type === "ready")
-        terminalPrintLine(`Runtime ready: ${payload.runtime}`, 2, 0);
+        terminalWriteRow(
+          1,
+          `40X25 GRID · 8X8 CELL · ${String(
+            payload.runtime || "runtime",
+          ).toUpperCase()}`,
+          7,
+          0,
+        );
       else if (payload.type === "output")
         terminalWriteOutput(String(payload.data || ""));
       else if (payload.type === "error")
@@ -2331,6 +2720,7 @@ function connectTerminalRuntime() {
 }
 
 function disconnectTerminalRuntime() {
+  stopTerminalCursorBlink();
   if (!terminalSocket) return;
   terminalSocket.close(1000, "Terminal tab inactive");
   terminalSocket = null;
@@ -2397,7 +2787,7 @@ function loadLayerDemo() {
 }
 
 /* ─── Glyph Inspector ─────────────────────────────────────────────── */
-const glyphInspectorFont = ref<"pressstart2p" | "mode7gx3">("pressstart2p");
+const glyphInspectorFont = ref<"pressstart2p" | "bedstead">("pressstart2p");
 
 function loadGlyphInspector() {
   if (!activeCanvas) return;
@@ -2409,7 +2799,7 @@ function loadGlyphInspector() {
   const label =
     glyphInspectorFont.value === "pressstart2p"
       ? "TERMINAL 8x8"
-      : "TELETEXT 12x16";
+      : "BEDSTEAD 12x20";
   buf = writeString(buf, 0, 0, label, 6, 0, true);
   // Rows 1..6 — printable ASCII 32..126, 16 per row.
   let code = 32;
@@ -2425,7 +2815,7 @@ function loadGlyphInspector() {
   nextTick(() => activeCanvas?.refit());
 }
 
-function setGlyphInspectorFont(font: "pressstart2p" | "mode7gx3") {
+function setGlyphInspectorFont(font: "pressstart2p" | "bedstead") {
   glyphInspectorFont.value = font;
   loadGlyphInspector();
 }
@@ -2499,6 +2889,12 @@ function clearGrid() {
   justify-content: center;
   overflow: auto;
   padding: 2%;
+  background: #000000;
+}
+/* Terminal: wider C64-style border (darker blue bezel around the grid). */
+.ucode-viewport--terminal {
+  padding: 4%;
+  background: #2c4a8c;
 }
 .ucode-viewport gridui-canvas {
   flex-shrink: 0;
@@ -2624,8 +3020,8 @@ function clearGrid() {
   right: 0;
   margin-top: var(--gridcore-popover-offset-y);
   display: grid;
-  grid-template-columns: repeat(3, var(--gridcore-popover-cell-size));
-  grid-template-rows: repeat(3, var(--gridcore-popover-cell-size));
+  grid-template-columns: repeat(8, var(--gridcore-popover-cell-size));
+  grid-template-rows: repeat(4, var(--gridcore-popover-cell-size));
   gap: var(--gridcore-popover-gap);
   padding: var(--gridcore-popover-padding);
   background: var(--gridcore-color-surface);
@@ -2738,7 +3134,7 @@ function clearGrid() {
   justify-content: center;
   background: transparent;
   border: var(--gridcore-border);
-  border-radius: var(--gridcore-popover-radius);
+  border-radius: 0;
   color: var(--gridcore-color-text-muted);
   cursor: pointer;
   flex-shrink: 0;
@@ -2753,18 +3149,18 @@ function clearGrid() {
   background: var(--gridcore-color-background-alt);
 }
 .pixel-toolbar__action-btn {
-  height: var(--gridcore-action-btn-height);
-  padding: 0 var(--gridcore-action-btn-pad-x);
+  height: 22px;
+  padding: 0 10px;
   font-size: var(--gridcore-font-size-xs);
   font-weight: var(--gridcore-font-weight-semibold);
   background: var(--gridcore-color-background-alt);
   color: var(--gridcore-color-text-muted);
   border: var(--gridcore-border);
-  border-radius: var(--gridcore-popover-radius);
+  border-radius: 0;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  line-height: var(--gridcore-action-btn-height);
+  line-height: 22px;
 }
 .pixel-toolbar__action-btn:hover {
   color: var(--gridcore-color-text);
@@ -2790,6 +3186,26 @@ function clearGrid() {
   outline: var(--gridcore-focus-outline-width) solid
     var(--gridcore-color-primary);
   outline-offset: var(--gridcore-focus-outline-offset);
+}
+
+/* Overlay label floats over the top-left corner of the editing grid.
+   It must be absolutely positioned — as an in-flow flex item it sits NEXT
+   to the grid and steals width, shrinking the editing surface. */
+.editor-section__label--overlay {
+  position: absolute;
+  top: var(--gridcore-space-sm);
+  left: var(--gridcore-space-sm);
+  z-index: 2;
+  padding: 2px 8px;
+  font-size: var(--gridcore-font-size-xs);
+  font-family: var(--gridcore-font-family-mono);
+  color: var(--gridcore-color-text-muted);
+  background: var(--gridcore-color-background-alt);
+  border: var(--gridcore-border);
+  border-radius: var(--gridcore-radius-sm);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
 }
 
 /* ─── Grid Editor Layout ────────────────────────────────────────── */
@@ -2984,6 +3400,7 @@ function clearGrid() {
   display: flex;
   flex-direction: column;
   gap: var(--gridcore-space-xs);
+  flex-shrink: 0;
 }
 .sidebar-title {
   font-size: var(--gridcore-sidebar-title-size);
@@ -3026,12 +3443,30 @@ function clearGrid() {
 /* Font character grid */
 .sidebar-font-chars {
   flex: 1;
-  min-height: 0;
+  min-height: 140px;
   overflow-y: auto;
+}
+.sidebar-chars-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gridcore-space-xs);
+}
+.sidebar-chars-group + .sidebar-chars-group {
+  margin-top: var(--gridcore-space-sm);
+}
+.sidebar-chars-caption {
+  font-size: var(--gridcore-font-size-xs);
+  font-weight: var(--gridcore-font-weight-semibold);
+  color: var(--gridcore-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 .sidebar-chars-grid {
   display: grid;
-  grid-template-columns: repeat(var(--gridcore-sidebar-char-columns), 1fr);
+  grid-template-columns: repeat(
+    var(--gridcore-sidebar-char-columns),
+    minmax(0, 1fr)
+  );
   gap: var(--gridcore-sidebar-char-gap);
 }
 .sidebar-char-chip {
@@ -3039,7 +3474,11 @@ function clearGrid() {
   align-items: center;
   justify-content: center;
   width: 100%;
-  aspect-ratio: 1;
+  height: 24px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
   border: var(--gridcore-border);
   border-radius: var(--gridcore-sidebar-char-radius);
   background: var(--gridcore-color-surface);

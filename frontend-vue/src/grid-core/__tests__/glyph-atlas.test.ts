@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GlyphAtlas } from "../glyph-atlas";
-import teletextAtlasJson from "../seeds/glyph-atlas.teletext.json";
+import bedsteadAtlasJson from "../seeds/glyph-atlas.bedstead.json";
 import terminalAtlasJson from "../seeds/glyph-atlas.terminal.json";
 
 describe("GlyphAtlas (Sprint A)", () => {
@@ -21,18 +21,24 @@ describe("GlyphAtlas (Sprint A)", () => {
     expect(A.slice(7 * 8).reduce((a, b) => a + b, 0)).toBe(0);
   });
 
-  it("loads the teletext atlas (MODE7GX3 12x16) with 95 glyphs", () => {
-    const atlas = new GlyphAtlas(teletextAtlasJson);
+  it("loads the Bedstead atlas (SAA5050 12x20) with ASCII + graphics", () => {
+    const atlas = new GlyphAtlas(bedsteadAtlasJson);
     expect(atlas.glyphW).toBe(12);
-    expect(atlas.glyphH).toBe(16);
+    expect(atlas.glyphH).toBe(20);
     expect(atlas.cellW).toBe(24);
-    expect(atlas.cellH).toBe(32);
+    expect(atlas.cellH).toBe(40);
     expect(atlas.scale).toBe(2);
-    expect(atlas.size).toBe(95);
+    // ASCII + box-drawing + blocks + 2×3 sextants.
+    expect(atlas.size).toBeGreaterThanOrEqual(298);
 
     const A = atlas.getBitmap("A".charCodeAt(0));
-    expect(A.length).toBe(192);
+    expect(A.length).toBe(240);
     expect(A.reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
+
+    // Box-drawing and sextant glyphs are baked (authentic SAA5050 shapes).
+    expect(atlas.has("─".charCodeAt(0))).toBe(true);
+    expect(atlas.has("█".charCodeAt(0))).toBe(true);
+    expect(atlas.has(0x1fb00)).toBe(true);
   });
 
   it("maps space to an all-zero bitmap", () => {

@@ -31,9 +31,11 @@ test("glyph inspector renders the terminal (8x8) font", async ({ page }) => {
   await expect(visibleCanvas(page)).toHaveScreenshot("glyphs-terminal.png");
 });
 
-test("glyph inspector renders the teletext (12x16) font", async ({ page }) => {
+test("glyph inspector renders the Bedstead (12x20) font", async ({ page }) => {
   await openGlyphsTab(page);
-  await page.getByRole("button", { name: "Teletext 12×16" }).click();
+  await page
+    .getByRole("button", { name: "Bedstead 12×20", exact: true })
+    .click();
   await page.waitForTimeout(600);
-  await expect(visibleCanvas(page)).toHaveScreenshot("glyphs-teletext.png");
+  await expect(visibleCanvas(page)).toHaveScreenshot("glyphs-bedstead.png");
 });

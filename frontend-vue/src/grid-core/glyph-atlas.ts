@@ -75,6 +75,12 @@ export class GlyphAtlas {
     return bitmap;
   }
 
+  /** Whether the atlas contains a glyph for the character code. */
+  has(charCode: number): boolean {
+    const key = `U+${charCode.toString(16).toUpperCase().padStart(4, "0")}`;
+    return Object.prototype.hasOwnProperty.call(this.data.glyphs, key);
+  }
+
   /** Number of glyphs present in the atlas. */
   get size(): number {
     return Object.keys(this.data.glyphs).length;
