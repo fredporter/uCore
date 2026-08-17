@@ -21,6 +21,16 @@ import { PALETTE_DARK, PALETTE_PIXEL_32, getColour } from "./palette";
 import bedsteadAtlasJson from "./seeds/glyph-atlas.bedstead.json";
 import terminalAtlasJson from "./seeds/glyph-atlas.terminal.json";
 import type { GridBuffer, GridCell } from "./types";
+// Grid Cell Algebra — canonical source of truth is @udos/gridcore/coordinates/dot.
+// Leaf import (no deps) so the renderer and sprite/bob layers share one origin.
+import {
+  DOT_PX,
+  SQUARE_CELL,
+  TALL_CELL,
+  cellToDotRect,
+  dotToCell,
+  type CellRegister,
+} from "../../../../uCode/packages/gridcore/src/coordinates/dot";
 
 /* ─── Glyph Renderers (singletons) ──────────────────────────────── */
 const terminalAtlas = new GlyphAtlas(terminalAtlasJson);
@@ -333,6 +343,36 @@ export class GridUICanvasElement extends HTMLElement {
   refit(): void {
     this._fitToContainer();
     this._render();
+  }
+
+  /* ─── Dot-lattice (Grid Cell Algebra) ───────────────────────────── */
+
+  /** Lattice cell register for the active font (square 8×8 / tall 12×20). */
+  get cellRegister(): CellRegister {
+    return this._font === "bedstead" ? TALL_CELL : SQUARE_CELL;
+  }
+
+  /** CSS pixels per lattice dot at the current cell scale. */
+  get dotSize(): number {
+    return this._cellWidth / (this.cellRegister.glyphW / DOT_PX);
+  }
+
+  /** Dot-space rectangle (x, y, w, h in dots) occupied by a cell. */
+  dotRectForCell(
+    col: number,
+    row: number,
+  ): { x: number; y: number; w: number; h: number } {
+    return cellToDotRect(col, row, this.cellRegister);
+  }
+
+  /** The cell containing a dot-space coordinate (floored). */
+  cellAtDot(colDots: number, rowDots: number): { col: number; row: number } {
+    return dotToCell(colDots, rowDots, this.cellRegister);
+  }
+
+  /** CSS-pixel position of a dot coordinate within the canvas. */
+  dotToCss(dots: number): number {
+    return dots * this.dotSize;
   }
 
   /**
