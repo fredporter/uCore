@@ -3,7 +3,7 @@
     { "name": "uCore", "path": "." }
   ],
   "settings": {
-    "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
+    "python.defaultInterpreterPath": "/Users/fredbook/.venvs/global/bin/python",
     "python.terminal.activateEnvironment": true,
     "python.terminal.activateEnvInCurrentTerminal": true,
     "python.analysis.typeCheckingMode": "basic",
