@@ -92,7 +92,7 @@ jobs:
       - name: Install backend dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ./external/uFlow -e ./external/uKnowledge
+          pip install -e ./external/uFlow -e ./external/uKnowledge -e ./external/uCode
           pip install -e ./backend[dev]
 
       - name: Prepare isolated runtime and Git identity
