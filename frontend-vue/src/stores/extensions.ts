@@ -134,9 +134,8 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
     activation_required: false,
     description: "Built-in documentation viewer",
   },
-  // Compatibility id retained for saved state; Developer is built into uCore.
   {
-    id: "udev",
+    id: "developer",
     name: "Developer",
     kind: "surface",
     required: true,

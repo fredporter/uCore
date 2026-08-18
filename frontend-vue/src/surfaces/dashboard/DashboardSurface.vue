@@ -164,8 +164,7 @@ const SURFACE_CARD_DATA: Record<
     route: "/sonic",
     color: "var(--usx-color-success)",
   },
-  // The historical "udev" id is retained for saved extension state.
-  udev: {
+  developer: {
     title: "Developer",
     description: "Repositories, Code Review & Editing",
     icon: "code",
@@ -206,8 +205,8 @@ const visibleSurfaces = computed(() => {
     }
   }
   // Developer is a built-in uCore surface. Guard against catalogue duplicates.
-  if (!seen.has("udev")) {
-    cards.push({ id: "udev", ...SURFACE_CARD_DATA.udev });
+  if (!seen.has("developer")) {
+    cards.push({ id: "developer", ...SURFACE_CARD_DATA.developer });
   }
   // Always show Markdown Editor card
   cards.push({ id: "markdown", ...SURFACE_CARD_DATA.markdown });

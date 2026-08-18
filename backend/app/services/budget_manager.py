@@ -7,7 +7,7 @@ Enforces spending limits with circuit breaker pattern:
 - Per-agent budget caps (reviewer gets more than dev)
 - Circuit breaker: when budget < threshold, only free tier
 
-Config: ~/.ucore/config/budget.yaml
+Config: ``$UDOS_HOME/config/budget.yaml``
 
 Usage:
     bm = BudgetManager.get()
@@ -21,13 +21,14 @@ import json
 import logging
 import sqlite3
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from typing import Any
+
+from app.core.settings import settings
 
 log = logging.getLogger("ucore.budget_manager")
 
-DB_PATH = Path.home() / ".ucore" / "indices" / "budget.db"
-CONFIG_PATH = Path.home() / ".ucore" / "config" / "budget.yaml"
+DB_PATH = settings.udos_home / "indices" / "budget.db"
+CONFIG_PATH = settings.config_dir / "budget.yaml"
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS spend_log (

@@ -22,9 +22,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
+
 log = logging.getLogger("ucore.knowledge_layer")
 
-DB_PATH = Path.home() / ".ucore" / "knowledge" / "shared.db"
+DB_PATH = settings.udos_home / "knowledge" / "shared.db"
 
 
 class KnowledgeLayer:

@@ -1,8 +1,7 @@
 """Slate — Dev Mode recovery template system (renamed from Plate).
 
->>>>>>> renamed: Plate → Slate across the uCore ecosystem. 
->>>>>>> Slate now hosts versioned, verifiable Dev Mode templates
->>>>>>> organized in four tiers: default, stable, experimental, custom.
+Slate hosts versioned, verifiable Dev Mode templates organized in four tiers:
+default, stable, experimental, and custom.
 
 Manages application state templates stored in ~/.ucode/templates/
 across four tiers: default, stable, experimental, custom.
@@ -23,9 +22,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
+
 log = logging.getLogger("ucore.services.template_manager")
 
-TEMPLATE_DIR = Path.home() / ".ucore" / "templates"
+TEMPLATE_DIR = settings.udos_home / "templates"
 TIERS = ["default", "stable", "experimental", "custom"]
 
 

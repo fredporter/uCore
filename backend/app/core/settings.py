@@ -20,25 +20,17 @@ def _udos_code_root() -> Path:
 
 
 def _udos_home(code_root: Path) -> Path:
-    """Resolve the detachable runtime home without disrupting legacy installs."""
+    """Resolve the detachable runtime home."""
     explicit = os.environ.get("UDOS_HOME")
     if explicit:
         return Path(explicit).expanduser()
 
-    canonical = code_root / ".udos"
-    legacy = Path.home() / ".ucore"
-    if legacy.exists() and not canonical.exists():
-        return legacy
-    return canonical
+    return code_root / ".udos"
 
 
 _UDOS_ROOT = _udos_code_root()
 _UDOS_HOME = _udos_home(_UDOS_ROOT)
-_SECRETS_HOME = (
-    _UDOS_HOME
-    if _UDOS_HOME == Path.home() / ".ucore"
-    else _UDOS_HOME / "secrets"
-)
+_SECRETS_HOME = _UDOS_HOME / "secrets"
 
 
 @dataclass

@@ -15,17 +15,15 @@ from pathlib import Path
 from typing import Any
 
 from app.core.logging import log
+from app.core.settings import settings
 
-MIRROR_ROOT = Path.home() / ".ucore" / "docs-mirror"
+MIRROR_ROOT = settings.udos_home / "docs-mirror"
 MIRROR_INDEX = MIRROR_ROOT / "_mirror.json"
 
 # Dev-lane component doc roots — in-repo docs/ only.
 CORE_DOC_ROOTS: dict[str, Path] = {
-    "uCore": Path.home() / "Code" / "uCore" / "docs",
-    "uFlow": Path.home() / "Code" / "uFlow" / "docs",
-    "uKnowledge": Path.home() / "Code" / "uKnowledge" / "docs",
-    "uCode": Path.home() / "Code" / "uCode" / "docs",
-    "uVector": Path.home() / "Code" / "uVector" / "docs",
+    name: settings.udos_root / name / "docs"
+    for name in ("uCore", "uFlow", "uKnowledge", "uCode", "uVector")
 }
 
 # User-lane paths that must NEVER be mirrored.
@@ -61,7 +59,7 @@ def _git_sha(repo_root: Path) -> str:
 
 def discover_extension_doc_roots(code_root: Path | None = None) -> dict[str, Path]:
     """Discover `udos-*` extension repos under ~/Code with a docs/ directory."""
-    code = code_root or (Path.home() / "Code")
+    code = code_root or settings.udos_root
     roots: dict[str, Path] = {}
     if not code.is_dir():
         return roots

@@ -6,7 +6,7 @@ Tracks every significant action in the Developer Surface:
   - Manual snapshots (user-triggered via History tab)
   - Undo/rollback operations
 
-Database: ~/.ucore/history/actions.db
+Database: ``$UDOS_HOME/history/actions.db``
 """
 from __future__ import annotations
 
@@ -18,10 +18,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
+
 log = logging.getLogger("ucore.history")
 
-DB_PATH = Path.home() / ".ucore" / "history" / "actions.db"
-UCORE_ROOT = Path.home() / "Code" / "uCore"
+DB_PATH = settings.udos_home / "history" / "actions.db"
+UCORE_ROOT = settings.udos_root / "uCore"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS actions (

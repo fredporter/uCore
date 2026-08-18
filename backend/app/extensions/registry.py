@@ -135,7 +135,7 @@ class ExtensionRegistry:
                 "id": "ucore-tools",
                 "name": "Dev Tools",
                 "kind": ExtensionKind.TOOL,
-                "description": "Docker, Git, GitHub CLI, Ollama, Node, Python, VS Code tool integrations",
+                "description": "Docker, Git, GitHub CLI, Ollama, Node, and Python tool integrations",
                 "optional": True,
                 "api_prefix": "/api/tools",
             },

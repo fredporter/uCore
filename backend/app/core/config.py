@@ -1,6 +1,4 @@
-"""Unified Configuration for uCore (Python)
-Merges Cline settings, Secret Store values, and Environment Variables.
-"""
+"""Unified configuration for uCore."""
 from __future__ import annotations
 
 import os
@@ -32,7 +30,7 @@ class LoggingConfig:
 
 
 @dataclass
-class ClineConfig:
+class AgentPolicyConfig:
     operating_principles: list[str] | None = field(default=None)
     mcp_usage: list[str] | None = field(default=None)
 
@@ -40,8 +38,8 @@ class ClineConfig:
         if self.operating_principles is None:
             self.operating_principles = [
                 "Prefer safe, reversible changes and keep diffs small",
-                "Keep durable workflow state in .tasker/ Markdown files",
-                "Treat Cline Kanban as orchestration UI, not source of truth",
+                "Keep durable workflow state in uFlow Markdown files",
+                "Route providers by task policy instead of user selection",
                 "Keep MCP integrations localhost-only by default",
                 "Preserve Git history clarity with focused, test-backed changes",
             ]
@@ -59,7 +57,7 @@ class AppConfig:
     mcp: MCPConfig | None = field(default=None)
     database: DatabaseConfig | None = field(default=None)
     logging: LoggingConfig | None = field(default=None)
-    cline: ClineConfig | None = field(default=None)
+    agent_policy: AgentPolicyConfig | None = field(default=None)
 
     def __post_init__(self):
         if self.github is None:
@@ -70,8 +68,8 @@ class AppConfig:
             self.database = DatabaseConfig()
         if self.logging is None:
             self.logging = LoggingConfig()
-        if self.cline is None:
-            self.cline = ClineConfig()
+        if self.agent_policy is None:
+            self.agent_policy = AgentPolicyConfig()
 
 
 # Singleton instance

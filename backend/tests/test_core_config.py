@@ -15,8 +15,10 @@ def test_config_loads_defaults():
     assert cfg.logging.level == "INFO"
 
 
-def test_config_has_cline_principles():
+def test_config_has_agent_policy_principles():
     cfg = get_config()
-    principles = cfg.cline.operating_principles if cfg.cline else []
+    principles = (
+        cfg.agent_policy.operating_principles if cfg.agent_policy else []
+    )
     assert principles
     assert "Prefer safe, reversible changes" in principles[0]

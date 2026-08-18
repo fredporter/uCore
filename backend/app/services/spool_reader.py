@@ -1,6 +1,6 @@
 """spool_reader — Unified activity feed reader for uCore logs.
 
-Reads from ~/.ucore/logs/*.log and parses structured log entries into
+Reads from ``$UDOS_HOME/logs/*.log`` and parses structured log entries into
 a queryable activity feed. Supports real-time watching, filtering, and
 search for the clipboard popover Logs tab and brain_sync synthesis.
 
@@ -14,9 +14,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
 from app.services.identity import get_full_identity as _get_identity
 
-LOG_DIR = Path.home() / ".ucore" / "logs"
+LOG_DIR = settings.logs_dir
 LOG_PATTERNS = ("*.log",)
 
 # Identity cache — refreshed once per session

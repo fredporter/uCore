@@ -1,3 +1,0 @@
-/Users/fredbook/Code/uCore/backend/.venv/bin/python3: No module named app
-/Users/fredbook/Code/uCore/backend/.venv/bin/python3: No module named app
-/Users/fredbook/Code/uCore/backend/.venv/bin/python3: Error while finding module specification for 'app.core.snackbar' (ModuleNotFoundError: No module named 'app')

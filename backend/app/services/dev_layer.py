@@ -1,19 +1,20 @@
 """dev_layer — Dev Mode toggle service.
 
-Simple 3-state toggle persisted to ~/.ucore/config.yaml.
+Simple 3-state toggle persisted under ``$UDOS_HOME``.
 Exposed via REST API at /api/dev-layer/state and /api/dev-layer/toggle.
 """
 from __future__ import annotations
 
 import logging
 from enum import Enum
-from pathlib import Path
 
 import yaml
 
+from app.core.settings import settings
+
 log = logging.getLogger("ucore.services.dev_layer")
 
-CONFIG_FILE = Path.home() / ".ucore" / "config.yaml"
+CONFIG_FILE = settings.udos_home / "config.yaml"
 
 
 class DevMode(Enum):
