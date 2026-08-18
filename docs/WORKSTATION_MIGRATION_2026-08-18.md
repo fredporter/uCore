@@ -52,3 +52,8 @@ consumer and launch/login tests pass without them.
 - Colima: running with Docker runtime under Virtualization.Framework.
 - Ollama: service running with eight migrated models visible.
 - Node 20.20.2 and npm 10.8.2 resolve through compatibility paths.
+- GitHub CLI authentication remains available for the `fredporter` account.
+- Docker context `colima` is healthy on server version 29.2.1.
+- No Kubernetes context is currently selected.
+- The SSH agent currently has no loaded identities; key files remain untouched
+  in the standard `~/.ssh` directory.
