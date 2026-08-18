@@ -48,8 +48,8 @@ def test_build_workflow_status_includes_guardrails(
         },
     )
 
-    assert result["engine"]["name"] == "Cline Kanban"
-    assert result["engine"]["bind"] == "127.0.0.1:3484"
-    assert any("localhost" in rule for rule in result["guardrails"])
+    assert result["engine"]["name"] == "uFlow Markdown Workflow Engine"
+    assert result["engine"]["storage"] == str(tasker_dir)
+    assert any("sole durable" in rule for rule in result["guardrails"])
     assert result["maintenance"]["jobs"][0]["skill_id"] == "brain_sync"
     assert result["maintenance"]["tray"]["status"] == "running"

@@ -12,19 +12,21 @@
 #   4. Installs Node.js dependencies via pnpm
 #   5. Syncs locked vendor modules (snackmachine, udos-* packages)
 #   6. Builds the Vue frontend
-#   7. Creates ~/.ucore/ directory structure
+#   7. Creates the UDOS_HOME directory structure
 #   8. Installs launchd agents for auto-start
 #   9. Sets up UDOS_ROOT environment variable
 
 set -euo pipefail
 
 UCORE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+UDOS_ROOT="${UDOS_ROOT:-$(dirname "$UCORE_ROOT")}"
+UDOS_HOME="${UDOS_HOME:-$UDOS_ROOT/.udos}"
 BACKEND_DIR="$UCORE_ROOT/backend"
 FRONTEND_DIR="$UCORE_ROOT/frontend-vue"
-VENV_DIR="$UCORE_ROOT/.venv"
-LOG_DIR="$HOME/.ucore/logs"
-DATA_DIR="$HOME/.ucore/data"
-CONFIG_DIR="$HOME/.ucore/config"
+VENV_DIR="$UDOS_ROOT/.venv"
+LOG_DIR="$UDOS_HOME/logs"
+DATA_DIR="$UDOS_HOME/data"
+CONFIG_DIR="$UDOS_HOME/config"
 
 # ─── Colors ──────────────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -56,7 +58,7 @@ This script sets up the uCore development environment including:
     - Locked vendor module sync via scripts/vendor_sync.sh
   - Vue frontend build
   - macOS launchd agents for auto-start
-  - ~/.ucore/ data directory structure
+  - UDOS_HOME data directory structure (default: ~/Code/.udos)
 
 Prerequisites:
   - Python 3.12.x (3.12 recommended)
@@ -84,13 +86,6 @@ if [[ "${1:-}" == "--uninstall" ]]; then
     rm -f "$HOME/Library/LaunchAgents/com.udos.ucore-frontend.plist"
     rm -f "$HOME/Library/LaunchAgents/com.udos.ucore-watchdog.plist"
     ok "Launchd agents removed"
-
-    # Remove ~/.ucore/ data directory
-    if [[ -d "$HOME/.ucore" ]]; then
-        info "Removing ~/.ucore/ data directory..."
-        rm -rf "$HOME/.ucore"
-        ok "~/.ucore/ removed"
-    fi
 
     # Remove UDOS_ROOT from .zshrc
     if grep -q 'export UDOS_ROOT=' "$HOME/.zshrc" 2>/dev/null; then
@@ -168,7 +163,7 @@ ok "pnpm: $(pnpm --version)"
 
 # ─── Create Directory Structure ──────────────────────────────────────
 
-info "Creating ~/.ucore/ directory structure..."
+info "Creating UDOS_HOME directory structure at $UDOS_HOME..."
 mkdir -p "$LOG_DIR"
 mkdir -p "$DATA_DIR"
 mkdir -p "$CONFIG_DIR"
@@ -197,6 +192,14 @@ pip install --quiet --upgrade pip setuptools wheel 2>&1 | tail -1
 # Install uCore in editable mode (installs dependencies from pyproject.toml)
 pip install --quiet -e . 2>&1 | tail -1
 ok "uCore Python package installed"
+
+# Install required split-repo owners into the shared ecosystem environment.
+for package_repo in "$UDOS_ROOT/uFlow" "$UDOS_ROOT/uKnowledge"; do
+    if [[ -f "$package_repo/pyproject.toml" ]]; then
+        pip install --quiet --no-build-isolation -e "$package_repo" 2>&1 | tail -1
+    fi
+done
+ok "Required split-repo Python packages installed"
 
 # Install dev dependencies
 pip install --quiet -e ".[dev]" 2>&1 | tail -1 || true

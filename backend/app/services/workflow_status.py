@@ -56,33 +56,23 @@ def build_workflow_status(
 
     return {
         "engine": {
-            "name": "Cline Kanban",
-            "role": "Primary Developer workflow engine",
-            "command": "npx kanban",
-            "bind": "127.0.0.1:3484",
-            "access": "localhost-only",
-            "isolation": "ephemeral git worktrees per card",
-            "review_loop": "diff + inline feedback per task",
+            "name": "uFlow Markdown Workflow Engine",
+            "role": "Canonical user, developer, system, and autonomous workflow state",
+            "storage": str(default_tasker_dir()),
+            "access": "uCore API and vault-compatible Markdown",
+            "isolation": "workflow type, workspace, mission, task, and step",
+            "review_loop": "task evidence, artifact links, approval, and outcome",
             "automation": [
-                "linked cards",
-                "auto-commit",
-                "auto-pr",
+                "uFlow task transitions",
+                "budget-gated execution",
+                "reviewable developer changes",
             ],
         },
         "guardrails": [
-            "Keep the Kanban server bound to localhost only.",
-            (
-                "Do not expose via public host, tunnel, or 0.0.0.0 in "
-                "the default dev workflow."
-            ),
-            (
-                "Use ephemeral worktrees to isolate agent changes from "
-                "the main workspace."
-            ),
-            (
-                "Prefer SSH tunnel or Tailscale only if remote access is "
-                "ever required."
-            ),
+            "uFlow is the sole durable task and workflow authority.",
+            "Do not create repository-local or agent-owned task stores.",
+            "Require explicit authorization for destructive or external actions.",
+            "Record budget, evidence, artifacts, and outcome on durable tasks.",
         ],
         "task_markdown": tasker,
         "maintenance": {
@@ -92,11 +82,17 @@ def build_workflow_status(
             "endpoint": "/api/system/maintenance",
         },
         "next_actions": [
-            "Expose .tasker board actions in the Workflow Builder UI.",
+            "Expose uFlow board actions in the Workflow surface.",
             "Add sync controls for tasker_sync and vault_sync.",
-            (
-                "Integrate richer agent orchestration only after the local "
-                "workflow substrate is stable."
-            ),
+            "Route agents through HiveMind and the budget manager.",
         ],
     }
+
+
+# Compatibility exports: uFlow owns the durable task directory and board scan.
+from uflow.task_store import (  # noqa: E402,F401
+    default_tasker_dir as default_tasker_dir,
+)
+from uflow.task_store import (
+    scan_tasker_boards as scan_tasker_boards,
+)

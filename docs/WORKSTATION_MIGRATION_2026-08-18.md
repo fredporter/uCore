@@ -1,6 +1,17 @@
 <!-- path-policy: allow-literals -->
 # Workstation Migration — 2026-08-18
 
+## uFlow task-state migration
+
+The 32 Markdown files formerly stored at `uCore/.tasker` were verified and moved to
+the uFlow-owned runtime location `~/Code/.udos/flow/tasks`. The original directory is
+quarantined at `~/Code/ARCHIVED/cleanup-2026-08-18/uCore-runtime-state/tasker` and can
+be recovered until the stabilization branches are merged and accepted.
+
+The ecosystem Python environment now lives at `~/Code/.venv`; uCore's historical
+`.venv` paths are compatibility symlinks. Setup installs uFlow and uKnowledge as
+editable packages into that shared environment.
+
 **Status:** Completed with compatibility links
 
 **Host:** fredbook

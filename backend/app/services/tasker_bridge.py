@@ -276,3 +276,27 @@ def export_rows_to_tasker(
         "exports": exported,
         "dry_run": dry_run,
     }
+
+
+# Compatibility exports: uFlow is the canonical owner of Markdown task storage.
+from uflow.task_store import (  # noqa: E402,F401
+    export_rows_to_tasker as export_rows_to_tasker,
+)
+from uflow.task_store import (
+    normalize_priority as normalize_priority,
+)
+from uflow.task_store import (
+    normalize_status as normalize_status,
+)
+from uflow.task_store import (
+    normalize_tags as normalize_tags,
+)
+from uflow.task_store import (
+    pick_alias as pick_alias,
+)
+from uflow.task_store import (
+    render_task_markdown as render_task_markdown,
+)
+from uflow.task_store import (
+    slugify as slugify,
+)
