@@ -89,6 +89,13 @@ jobs:
           ref: work/2026-08-18-stabilise
           path: external/uKnowledge
 
+      - name: Checkout uCode runtime
+        uses: actions/checkout@v4
+        with:
+          repository: fredporter/uCode
+          ref: work/2026-08-18-stabilise
+          path: external/uCode
+
       - name: Install backend dependencies
         run: |
           python -m pip install --upgrade pip
