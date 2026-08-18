@@ -22,6 +22,7 @@ Usage:
         version="1.1.0",
     )
 """
+
 from __future__ import annotations
 
 import json
@@ -250,8 +251,7 @@ def _check_dogfooding(plate_id: str, meta: PlateMeta) -> dict[str, Any]:
                 continue  # Built-in render variables
             if var not in meta.destroy.salvage_keys:
                 warnings.append(
-                    f"Rebuild command uses variable '${{{var}}}' "
-                    f"but it's not in salvage_keys"
+                    f"Rebuild command uses variable '${{{var}}}' but it's not in salvage_keys"
                 )
 
     # Check the command references exist
@@ -262,9 +262,7 @@ def _check_dogfooding(plate_id: str, meta: PlateMeta) -> dict[str, Any]:
             template_path = match.group(1)
             resolved = Path(template_path).expanduser()
             if not resolved.exists():
-                warnings.append(
-                    f"Cookiecutter template not found: {template_path}"
-                )
+                warnings.append(f"Cookiecutter template not found: {template_path}")
 
     return {
         "name": "dogfooding",
@@ -366,13 +364,15 @@ def verify_plate(
             pass_rate=0.0,
             total_checks=1,
             passed_checks=0,
-            checks=[{
-                "name": "plate_exists",
-                "description": "Check that the plate exists",
-                "passed": False,
-                "errors": [f"Plate '{plate_id}' not found"],
-                "warnings": [],
-            }],
+            checks=[
+                {
+                    "name": "plate_exists",
+                    "description": "Check that the plate exists",
+                    "passed": False,
+                    "errors": [f"Plate '{plate_id}' not found"],
+                    "warnings": [],
+                }
+            ],
             errors=[f"Plate '{plate_id}' not found"],
             warnings=[],
             duration_seconds=time.time() - start,
@@ -474,7 +474,6 @@ def promote_plate(
     Returns:
         PromotionResult with promotion status
     """
-    errors: list[str] = []
     source_path = Path(source).expanduser()
     target_path = Path(target).expanduser()
 
@@ -553,7 +552,9 @@ def promote_plate(
 
     log.info(
         "Promoted %s -> %s (v%s)",
-        source, target_path, version,
+        source,
+        target_path,
+        version,
     )
 
     return PromotionResult(
@@ -605,6 +606,7 @@ def _build_plate_from_source(
     try:
         content = source_path.read_text()
         import hashlib
+
         checksum = hashlib.sha256(content.encode("utf-8")).hexdigest()
     except Exception:
         pass
@@ -621,19 +623,22 @@ def _build_plate_from_source(
         "lessons": base.get("lessons", []),
         "created": base.get("created", datetime.now(UTC).isoformat()),
         "updated": datetime.now(UTC).isoformat(),
-        "destroy": base.get("destroy", {
-            "salvage_keys": [],
-            "rebuild_command": "",
-            "backup_before_destroy": True,
-            "spool_archive": {
-                "enabled": True,
-                "spool_dir": "~/.ucore/logs",
-                "compress_metadata": True,
-                "include_source": False,
-                "include_lessons": True,
-                "max_spool_age_days": 365,
+        "destroy": base.get(
+            "destroy",
+            {
+                "salvage_keys": [],
+                "rebuild_command": "",
+                "backup_before_destroy": True,
+                "spool_archive": {
+                    "enabled": True,
+                    "spool_dir": "${UDOS_HOME}/logs",
+                    "compress_metadata": True,
+                    "include_source": False,
+                    "include_lessons": True,
+                    "max_spool_age_days": 365,
+                },
             },
-        }),
+        ),
     }
 
     return plate_data
@@ -645,27 +650,38 @@ def _build_plate_from_source(
 def add_verification_args(parser: Any) -> None:
     """Add verification and promotion arguments to an argparse parser."""
     parser.add_argument(
-        "--verify", type=str, nargs="?", const="all", default=None,
+        "--verify",
+        type=str,
+        nargs="?",
+        const="all",
+        default=None,
         help="Verify a specific plate or 'all'",
     )
     parser.add_argument(
-        "--verify-no-dogfooding", action="store_true",
+        "--verify-no-dogfooding",
+        action="store_true",
         help="Skip dogfooding checks during verification",
     )
     parser.add_argument(
-        "--verify-no-security", action="store_true",
+        "--verify-no-security",
+        action="store_true",
         help="Skip security checks during verification",
     )
     parser.add_argument(
-        "--promote", type=str, default=None,
+        "--promote",
+        type=str,
+        default=None,
         help="Promote a source file to a plate. Format: source=target",
     )
     parser.add_argument(
-        "--promote-version", type=str, default="1.0.0",
+        "--promote-version",
+        type=str,
+        default="1.0.0",
         help="Version for promoted plate (default: 1.0.0)",
     )
     parser.add_argument(
-        "--promote-force", action="store_true",
+        "--promote-force",
+        action="store_true",
         help="Skip verification and force promotion",
     )
 
@@ -682,17 +698,18 @@ def handle_verification_commands(args: Any) -> None:
                 run_security=run_security,
             )
         else:
-            results = [verify_plate(
-                args.verify,
-                run_dogfooding=run_dogfooding,
-                run_security=run_security,
-            )]
+            results = [
+                verify_plate(
+                    args.verify,
+                    run_dogfooding=run_dogfooding,
+                    run_security=run_security,
+                )
+            ]
 
         for r in results:
             status = "PASSED" if r.passed else "FAILED"
             print(f"\n  {r.plate_id} (v{r.version}) [{r.domain}]: {status}")
-            print(f"    Pass rate: {r.pass_rate:.0%} "
-                  f"({r.passed_checks}/{r.total_checks})")
+            print(f"    Pass rate: {r.pass_rate:.0%} ({r.passed_checks}/{r.total_checks})")
             print(f"    Duration: {r.duration_seconds:.2f}s")
             for c in r.checks:
                 c_status = "PASS" if c["passed"] else "FAIL"

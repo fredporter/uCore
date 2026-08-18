@@ -1,5 +1,5 @@
 # uCore System Pages Registry Configuration
-# Copy to ~/.ucore/config/system-pages-registry.yaml and adjust.
+# Copy to $UDOS_HOME/config/system-pages-registry.yaml and adjust.
 #
 # Purpose:
 # - External registry for System Surface S-page menus.

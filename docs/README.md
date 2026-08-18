@@ -7,7 +7,6 @@
 | Doc                                                                                      | Purpose                           |
 | ---------------------------------------------------------------------------------------- | --------------------------------- |
 | [MCP_SETUP.md](MCP_SETUP.md)                                                             | Install and configure MCP servers |
-| [CLINE_GITHUB_WORKFLOWS.md](CLINE_GITHUB_WORKFLOWS.md)                                   | GitHub automation for Cline       |
 | [USER_SETUP_VAULT_MCP_WORKSPACES.md](USER_SETUP_VAULT_MCP_WORKSPACES.md)                 | Vault and MCP workspace setup     |
 
 ## Active System Specs

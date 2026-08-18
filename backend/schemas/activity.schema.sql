@@ -1,5 +1,5 @@
 -- Activity Pod Schema - uCore Feed System (Pod/Nugget/Seed/Slate/Spool)
--- Stored at: ~/.ucore/pods/activity.db
+-- Stored at: $UDOS_HOME/pods/activity.db
 
 CREATE TABLE IF NOT EXISTS user_activity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

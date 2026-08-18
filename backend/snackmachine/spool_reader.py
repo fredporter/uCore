@@ -1,11 +1,12 @@
 """spool_reader — Unified activity feed reader for uCore logs.
 
-Reads from ~/.ucore/logs/*.log and parses structured log entries into
+Reads from ``$UDOS_HOME/logs/*.log`` and parses structured log entries into
 a queryable activity feed. Supports real-time watching, filtering, and
 search for the clipboard popover Logs tab and brain_sync synthesis.
 
 Spec: docs/SPOOL_SPEC.md
 """
+
 from __future__ import annotations
 
 import os
@@ -16,6 +17,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
+
 
 def _get_identity() -> dict[str, str]:
     return {
@@ -23,7 +26,8 @@ def _get_identity() -> dict[str, str]:
         "session_id": socket.gethostname(),
     }
 
-LOG_DIR = Path.home() / ".ucore" / "logs"
+
+LOG_DIR = settings.logs_dir
 LOG_PATTERNS = ("*.log",)
 
 # Identity cache — refreshed once per session
@@ -72,7 +76,9 @@ class SpoolEntry:
         return asdict(self)
 
 
-def discover_log_files(log_dir: str | Path | None = None, patterns: tuple[str, ...] = LOG_PATTERNS) -> list[Path]:
+def discover_log_files(
+    log_dir: str | Path | None = None, patterns: tuple[str, ...] = LOG_PATTERNS
+) -> list[Path]:
     log_dir = Path(log_dir or LOG_DIR)
     if not log_dir.exists():
         return []
@@ -105,7 +111,7 @@ def parse_line(line: str, source: str = "unknown") -> SpoolEntry | None:
     module = "unknown"
     message = line
     if ts_match and level_match:
-        after_level = line[level_match.end():].strip()
+        after_level = line[level_match.end() :].strip()
         mod_match = MODULE_RE.match(after_level)
         if mod_match:
             module = mod_match.group(1)
@@ -136,17 +142,27 @@ def parse_line(line: str, source: str = "unknown") -> SpoolEntry | None:
     # Attach UDOS identity
     identity = _get_udos_identity()
     return SpoolEntry(
-        timestamp=ts, level=level, source=source, module=module,
-        message=message, raw=line, tags=tags,
+        timestamp=ts,
+        level=level,
+        source=source,
+        module=module,
+        message=message,
+        raw=line,
+        tags=tags,
         user_id=identity.get("user_id", ""),
         session_id=identity.get("session_id", ""),
     )
 
 
-def read_spool(log_dir: str | Path | None = None, max_entries: int = 500,
-               levels: list[str] | None = None, modules: list[str] | None = None,
-               search: str | None = None, since: str | None = None,
-               errors_only: bool = False) -> list[SpoolEntry]:
+def read_spool(
+    log_dir: str | Path | None = None,
+    max_entries: int = 500,
+    levels: list[str] | None = None,
+    modules: list[str] | None = None,
+    search: str | None = None,
+    since: str | None = None,
+    errors_only: bool = False,
+) -> list[SpoolEntry]:
     log_dir = Path(log_dir or LOG_DIR)
     files = discover_log_files(log_dir)
     entries: list[SpoolEntry] = []
@@ -169,7 +185,11 @@ def read_spool(log_dir: str | Path | None = None, max_entries: int = 500,
         entries = [e for e in entries if e.module in modules]
     if search:
         search_lower = search.lower()
-        entries = [e for e in entries if search_lower in e.message.lower() or search_lower in e.module.lower()]
+        entries = [
+            e
+            for e in entries
+            if search_lower in e.message.lower() or search_lower in e.module.lower()
+        ]
     if since:
         entries = [e for e in entries if e.timestamp >= since]
     return entries[:max_entries]
@@ -177,6 +197,7 @@ def read_spool(log_dir: str | Path | None = None, max_entries: int = 500,
 
 def summarize_spool(log_dir: str | Path | None = None, hours: int = 24, max_lines: int = 30) -> str:
     from datetime import timedelta
+
     cutoff = (datetime.now(UTC) - timedelta(hours=hours)).isoformat()
     entries = read_spool(log_dir, max_entries=500, since=cutoff)
     if not entries:
@@ -192,8 +213,12 @@ def summarize_spool(log_dir: str | Path | None = None, hours: int = 24, max_line
         by_module.setdefault(e.module, []).append(e)
     lines: list[str] = [
         f"## Spool Activity (last {hours}h)",
-        "", f"Total entries: {len(entries)}", f"Errors: {len(errors)}",
-        f"Warnings: {len(warnings)}", "", "### By Module",
+        "",
+        f"Total entries: {len(entries)}",
+        f"Errors: {len(errors)}",
+        f"Warnings: {len(warnings)}",
+        "",
+        "### By Module",
     ]
     for module, mod_entries in sorted(by_module.items(), key=lambda x: len(x[1]), reverse=True):
         errors_in_mod = sum(1 for e in mod_entries if e.is_error)

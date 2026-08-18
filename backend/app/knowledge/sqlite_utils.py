@@ -3,6 +3,7 @@
 Discovers uDos-managed SQLite databases on disk and provides
 read/write-guarded query helpers.
 """
+
 from __future__ import annotations
 
 import json
@@ -15,12 +16,16 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-SPOOL_PATH = Path(
-    os.getenv("UCORE_SNACKS_REPLIES", "~/.local/share/snackmachine/replies.jsonl"),
-).expanduser()
-BACKUP_DIR = Path(os.getenv("UCORE_DB_BACKUPS", "~/.ucore/backups/db")).expanduser()
+from app.core.settings import settings
 
-UCORE_DIR = Path.home() / ".ucore"
+SPOOL_PATH = Path(
+    os.getenv("UCORE_SNACKS_REPLIES", str(settings.udos_home / "replies.jsonl")),
+).expanduser()
+BACKUP_DIR = Path(
+    os.getenv("UCORE_DB_BACKUPS", str(settings.udos_home / "backups" / "db")),
+).expanduser()
+
+UCORE_DIR = settings.udos_home
 
 
 def _utc_now() -> str:

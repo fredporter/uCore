@@ -89,7 +89,7 @@ plate:
     backup_before_destroy: true
     spool_archive:
       enabled: true
-      spool_dir: "~/.ucore/logs"
+      spool_dir: "${UDOS_HOME}/logs"
       compress_metadata: true
       include_source: false
       include_lessons: true

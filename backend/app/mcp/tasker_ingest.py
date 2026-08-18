@@ -1,6 +1,6 @@
-"""tasker_ingest — MCP bridge: Cline task_progress to dev flow state.
+"""tasker_ingest — MCP bridge: external task progress to uFlow state.
 
-Ingests ephemeral task_progress checklists from Cline or other AI agent
+Ingests ephemeral task-progress checklists from an external AI agent
 sessions and syncs them into .tasker.dev-flow.yaml, spool, devlog.mcp.yaml,
 and private wisdom. Also triggers optional git commit.
 
@@ -17,6 +17,7 @@ Usage:
     "auto_commit": false
   }
 """
+
 from __future__ import annotations
 
 import logging
@@ -41,13 +42,13 @@ DEFAULT_WISDOM_FILE = writable_wisdom_path()
 
 
 class TaskerIngest(BaseSkill):
-    """Ingest Cline task_progress into persistent dev-flow tracking."""
+    """Ingest agent task progress into persistent uFlow tracking."""
 
     meta = SkillMeta(
         id="tasker_ingest",
         name="Tasker Ingest",
         description=(
-            "Bridge: ingest Cline/session task_progress checklists into "
+            "Bridge: ingest agent/session task-progress checklists into "
             ".tasker.dev-flow.yaml, spool, devlog.mcp.yaml, and private wisdom"
         ),
         category="workflow",
@@ -99,9 +100,7 @@ class TaskerIngest(BaseSkill):
                 type="list",
                 required=False,
                 default=[],
-                description=(
-                    "Durable lessons learned to append to private wisdom"
-                ),
+                description=("Durable lessons learned to append to private wisdom"),
             ),
             SkillParam(
                 name="auto_commit",
@@ -247,9 +246,7 @@ class TaskerIngest(BaseSkill):
                     wisdom_appends.append(f"- {lesson}")
             if wisdom_appends:
                 lesson_block = (
-                    f"\n## Session: {session_id or timestamp}\n"
-                    + "\n".join(wisdom_appends)
-                    + "\n"
+                    f"\n## Session: {session_id or timestamp}\n" + "\n".join(wisdom_appends) + "\n"
                 )
                 wisdom_path.write_text(existing + lesson_block, encoding="utf-8")
                 results["wisdom_appended"] = len(wisdom_appends)
@@ -279,25 +276,33 @@ class TaskerIngest(BaseSkill):
             line = line.strip()
             # Match: - [x] Description  or  - [ ] Description
             if line.startswith("- [x]") or line.startswith("- [X]") or line.startswith("- [*]"):
-                items.append({
-                    "text": line[5:].strip(),
-                    "done": True,
-                })
+                items.append(
+                    {
+                        "text": line[5:].strip(),
+                        "done": True,
+                    }
+                )
             elif line.startswith("- [ ]"):
-                items.append({
-                    "text": line[5:].strip(),
-                    "done": False,
-                })
+                items.append(
+                    {
+                        "text": line[5:].strip(),
+                        "done": False,
+                    }
+                )
             elif line.startswith("* [x]") or line.startswith("* [X]"):
-                items.append({
-                    "text": line[5:].strip(),
-                    "done": True,
-                })
+                items.append(
+                    {
+                        "text": line[5:].strip(),
+                        "done": True,
+                    }
+                )
             elif line.startswith("* [ ]"):
-                items.append({
-                    "text": line[5:].strip(),
-                    "done": False,
-                })
+                items.append(
+                    {
+                        "text": line[5:].strip(),
+                        "done": False,
+                    }
+                )
         return items
 
     def _render_devlog_entry(
@@ -352,21 +357,23 @@ class TaskerIngest(BaseSkill):
         for i, item in enumerate(items):
             task_uid = f"task.ingest.{session_id}.{i:03d}" if session_id else f"task.auto.{i:03d}"
             status = "done" if item["done"] else "todo"
-            new_tasks.append({
-                "uid": task_uid,
-                "title": item["text"],
-                "description": f"From session {session_id}: {item['text']}",
-                "status": status,
-                "priority": "medium",
-                "lane": "maintenance",
-                "tags": ["tasker-ingest", workspace, outcome],
-                "source": {
-                    "file": "tasker_ingest.py",
-                    "type": "session-ingest",
-                },
-                "created": timestamp,
-                "updated": timestamp,
-            })
+            new_tasks.append(
+                {
+                    "uid": task_uid,
+                    "title": item["text"],
+                    "description": f"From session {session_id}: {item['text']}",
+                    "status": status,
+                    "priority": "medium",
+                    "lane": "maintenance",
+                    "tags": ["tasker-ingest", workspace, outcome],
+                    "source": {
+                        "file": "tasker_ingest.py",
+                        "type": "session-ingest",
+                    },
+                    "created": timestamp,
+                    "updated": timestamp,
+                }
+            )
 
         # Parse existing YAML, merge tasks
         try:
@@ -385,7 +392,9 @@ class TaskerIngest(BaseSkill):
         data["updated"] = timestamp
 
         # Write back
-        tasker_file.write_text(yaml.dump(data, default_flow_style=False, sort_keys=False), encoding="utf-8")
+        tasker_file.write_text(
+            yaml.dump(data, default_flow_style=False, sort_keys=False), encoding="utf-8"
+        )
 
     def _status(self, tasker_file: Path) -> dict:
         """Return current status of the tasker file."""
@@ -424,11 +433,15 @@ class TaskerIngest(BaseSkill):
             if not dry_run:
                 subprocess.run(
                     ["git", "-C", str(repo_dir), "add", "-A"],
-                    capture_output=True, text=True, check=False,
+                    capture_output=True,
+                    text=True,
+                    check=False,
                 )
                 result = subprocess.run(
                     ["git", "-C", str(repo_dir), "commit", "-m", commit_msg],
-                    capture_output=True, text=True, check=False,
+                    capture_output=True,
+                    text=True,
+                    check=False,
                 )
                 return {
                     "success": result.returncode == 0,
@@ -455,7 +468,11 @@ class TaskerIngest(BaseSkill):
             tasks = data.get("tasks", [])
             archive = data.get("archive", [])
 
-            done_tasks = [t for t in tasks if t.get("status") == "done" and t.get("uid", "").startswith("task.ingest.")]
+            done_tasks = [
+                t
+                for t in tasks
+                if t.get("status") == "done" and t.get("uid", "").startswith("task.ingest.")
+            ]
             kept_tasks = [t for t in tasks if t not in done_tasks]
 
             for t in done_tasks:
@@ -467,7 +484,9 @@ class TaskerIngest(BaseSkill):
                 data["tasks"] = kept_tasks
                 data["archive"] = archive
                 data["task_count"] = len(kept_tasks)
-                tasker_file.write_text(yaml.dump(data, default_flow_style=False, sort_keys=False), encoding="utf-8")
+                tasker_file.write_text(
+                    yaml.dump(data, default_flow_style=False, sort_keys=False), encoding="utf-8"
+                )
 
             return {
                 "success": True,

@@ -74,11 +74,11 @@ more expensive provider.
 Codex is the primary environment for real ecosystem development. GitHub/Copilot
 may add repository-native issue, pull-request, Actions and review assistance.
 
-Cline is retained as an optional contained planner. It is disabled by default,
-cannot use yolo/auto-approval, cannot be launched directly by Dev Mode and may
-operate only in an active Git repository under `UDOS_ROOT`. Act mode requires a
-future harness with an isolated worktree, file/path allow-list, budget gate,
-command policy, diff review, tests, rollback and explicit merge/push approval.
+Cline is not part of the installed runtime or current Developer surface. A future
+contained adapter may be evaluated, but it must live outside the authority path,
+remain disabled by default, and cannot use yolo/auto-approval. Act mode would
+require an isolated worktree, path allow-list, budget gate, command policy, diff
+review, tests, rollback and explicit merge/push approval before it could ship.
 
 Cline Kanban is not installed. Durable task presentation belongs to uFlow and
 uCore; duplicating it would reintroduce task and status drift.

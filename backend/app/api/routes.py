@@ -1,4 +1,5 @@
 """uCore API — route registration (non-core API endpoints)"""
+
 from __future__ import annotations
 
 import logging
@@ -186,7 +187,9 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/budget/reload", handle_budget_reload)
     app.router.add_get("/api/developer/repos", handle_list_repos)
     app.router.add_get("/api/developer/repos/{repo_name}/files", handle_list_repo_files)
-    app.router.add_get("/api/developer/repos/{repo_name}/file-preview", handle_get_repo_file_preview)
+    app.router.add_get(
+        "/api/developer/repos/{repo_name}/file-preview", handle_get_repo_file_preview
+    )
     app.router.add_put("/api/developer/repos/{repo_name}/file-preview", handle_update_repo_file)
     app.router.add_get("/api/developer/repos/{repo_name}/diff", handle_get_repo_file_diff)
     app.router.add_get("/api/developer/repos/{repo_name}/review", handle_list_repo_review)
@@ -272,6 +275,7 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/skills/run", handle_run_named_skill)
     # Health and skill state endpoints
     from .skills import handle_health, handle_skill_source, handle_skill_state
+
     app.router.add_get("/api/skills/state", handle_skill_state)
     app.router.add_get("/api/skills/health", handle_health)
     app.router.add_get("/api/skills/{skill_id}/source", handle_skill_source)
@@ -279,6 +283,7 @@ def register_routes(app: web.Application) -> None:
     # ── Unified Executables (Skills + Snack plugins) ──────────────
     try:
         from .executables_api import register_executables_routes
+
         register_executables_routes(app)
         log.debug("Executables API routes registered")
     except ImportError as e:
@@ -292,6 +297,7 @@ def register_routes(app: web.Application) -> None:
     # ── Unified Services (Services + Tools + MCP) ─────────────────
     try:
         from .services_api import register_services_routes
+
         register_services_routes(app)
         log.debug("Services API routes registered")
     except ImportError as e:
@@ -304,6 +310,7 @@ def register_routes(app: web.Application) -> None:
         handle_render,
         handle_stream,
     )
+
     app.router.add_post("/api/render", handle_render)
     app.router.add_get("/api/render/stream", handle_stream)
     app.router.add_post("/api/render/event", handle_publish_event)
@@ -311,6 +318,7 @@ def register_routes(app: web.Application) -> None:
 
     # ── Editor surface (Markdown scrape/summarize/binder) ───────────
     from .editor_api import handle_save_to_binder, handle_scrape_web, handle_summarize
+
     app.router.add_post("/api/editor/scrape-web", handle_scrape_web)
     app.router.add_post("/api/editor/summarize", handle_summarize)
     app.router.add_post("/api/editor/save-to-binder", handle_save_to_binder)
@@ -325,6 +333,7 @@ def register_routes(app: web.Application) -> None:
         handle_research_stream,
         handle_vault_scan,
     )
+
     app.router.add_post("/api/research/start", handle_research_start)
     app.router.add_get("/api/research/status", handle_research_status)
     app.router.add_get("/api/research/list", handle_research_list)
@@ -341,12 +350,11 @@ def register_routes(app: web.Application) -> None:
         handle_binder_score,
         handle_binder_update,
     )
+
     app.router.add_get("/api/binder/list", handle_binder_list)
     app.router.add_post("/api/binder/add", handle_binder_add)
     app.router.add_patch("/api/binder/update", handle_binder_update)
     app.router.add_patch("/api/binder/score", handle_binder_score)
-
-
 
     # ── Autonomy Engine ────────────────────────────────────────────
     try:
@@ -355,7 +363,9 @@ def register_routes(app: web.Application) -> None:
 
         from aiohttp import web
 
-        STATE_FILE = Path.home() / ".ucore" / "logs" / "autonomy_state.json"
+        from app.core.settings import settings
+
+        STATE_FILE = settings.logs_dir / "autonomy_state.json"
 
         async def handle_autonomy_state(_request: web.Request) -> web.Response:
             """GET /api/autonomy/state — return last autonomy check state."""
@@ -376,6 +386,7 @@ def register_routes(app: web.Application) -> None:
     # ── Spool / Activity Feed ───────────────────────────────────────
     try:
         from .spool import register_spool_routes
+
         register_spool_routes(app)
         log.debug("Spool activity feed routes registered")
     except ImportError as e:
@@ -384,6 +395,7 @@ def register_routes(app: web.Application) -> None:
     # ── Identity (UDN-IDENTITY-API-001) ─────────────────────────────
     try:
         from .identity_api import register_identity_routes
+
         register_identity_routes(app)
         log.debug("Identity routes registered")
     except ImportError as e:
@@ -414,6 +426,7 @@ def register_routes(app: web.Application) -> None:
     # ── Dashboard Surface ──────────────────────────────────────────
     try:
         from ..surfaces.dashboard import DashboardStore, register_dashboard_routes
+
         if not hasattr(app, "_dashboard_store"):
             app[DASHBOARD_STORE_KEY] = DashboardStore()
         register_dashboard_routes(app, app[DASHBOARD_STORE_KEY])
@@ -424,6 +437,7 @@ def register_routes(app: web.Application) -> None:
     # ── Documentation Surface ────────────────────────────────────
     try:
         from ..surfaces.documentation_api import register_documentation_routes
+
         register_documentation_routes(app)
         log.debug("Documentation surface registered")
     except ImportError as e:
@@ -432,6 +446,7 @@ def register_routes(app: web.Application) -> None:
     # ── Server Surface ────────────────────────────────────────────
     try:
         from ..surfaces.server import ServerStore, register_server_routes
+
         if not hasattr(app, "_server_store"):
             app["_server_store"] = ServerStore()
         register_server_routes(app, app["_server_store"])
@@ -442,6 +457,7 @@ def register_routes(app: web.Application) -> None:
     # ── System Surface API ────────────────────────────────────────
     try:
         from ..surfaces.system_api import register_system_api_routes
+
         register_system_api_routes(app)
         log.debug("System surface API registered")
     except ImportError as e:
@@ -450,6 +466,7 @@ def register_routes(app: web.Application) -> None:
     # ── Library Index (unified vault search) ────────────────────────
     try:
         from .library import register_library_routes
+
         register_library_routes(app)
         log.debug("Library index routes registered")
     except ImportError as e:
@@ -458,6 +475,7 @@ def register_routes(app: web.Application) -> None:
     # ── Vault Topology (vault layer config for frontend) ────────────
     try:
         from .vault_api import register_vault_routes
+
         register_vault_routes(app)
         log.debug("Vault topology routes registered")
     except ImportError as e:
@@ -466,6 +484,7 @@ def register_routes(app: web.Application) -> None:
     # ── Catalog Service (skills, MCP servers, LLMs) ──────────────────
     try:
         from .catalog import setup_routes as setup_catalog_routes
+
         setup_catalog_routes(app)
         log.debug("Catalog API routes registered")
     except ImportError as e:
@@ -474,6 +493,7 @@ def register_routes(app: web.Application) -> None:
     # ── Hivemind Knowledge Layer ─────────────────────────────────────
     try:
         from .hivemind_knowledge import setup_routes as setup_hivemind_knowledge_routes
+
         setup_hivemind_knowledge_routes(app)
         log.debug("Hivemind knowledge layer routes registered")
     except ImportError as e:
@@ -482,6 +502,7 @@ def register_routes(app: web.Application) -> None:
     # ── Dev Layer API (Dev Mode toggle) ─────────────────────────────
     try:
         from .dev_layer_api import register_dev_layer_routes
+
         register_dev_layer_routes(app)
         log.debug("Dev Layer API routes registered")
     except ImportError as e:
@@ -490,6 +511,7 @@ def register_routes(app: web.Application) -> None:
     # ── Tasker API (backend data for Kanban) ─────────────────────────
     try:
         from .tasker_api import handle_workflow_tasks, register_tasker_routes
+
         register_tasker_routes(app)
         # Workflow-specific filtered task endpoint
         app.router.add_get("/api/workflow/tasks", handle_workflow_tasks)
@@ -500,6 +522,7 @@ def register_routes(app: web.Application) -> None:
     # ── Feed API (unified incoming data layer) ────────────────────────
     try:
         from .feed_api import register_feed_routes
+
         register_feed_routes(app)
         log.debug("Feed API routes registered")
     except ImportError as e:
@@ -508,6 +531,7 @@ def register_routes(app: web.Application) -> None:
     # ── Control Panel API (unified ecosystem status) ──────────────────
     try:
         from .control_api import register_control_routes
+
         register_control_routes(app)
         log.debug("Control Panel API routes registered")
     except ImportError as e:
@@ -516,16 +540,19 @@ def register_routes(app: web.Application) -> None:
     # ── Surface Registry API ───────────────────────────────────────────
     try:
         from .surface_registry_api import register_surface_routes
+
         register_surface_routes(app)
         log.debug("Surface Registry API routes registered")
     except ImportError as e:
         log.debug(
-            "Surface Registry routes not available: %s", e,
+            "Surface Registry routes not available: %s",
+            e,
         )
 
     # ── Template (Slate) API ──────────────────────────────────────────
     try:
         from .template_api import register_template_routes
+
         register_template_routes(app)
         log.debug("Template (Slate) API routes registered")
     except ImportError as e:
@@ -534,6 +561,7 @@ def register_routes(app: web.Application) -> None:
     # ── History API (action log, snapshots, rollback) ──────────────────
     try:
         from .history_api import register_history_routes
+
         register_history_routes(app)
         log.debug("History API routes registered")
     except ImportError as e:

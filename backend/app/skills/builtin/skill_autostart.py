@@ -6,6 +6,7 @@ Provides:
 - Auto-start services if not running
 - Integration with health API and MCP
 """
+
 from __future__ import annotations
 
 import json
@@ -17,12 +18,16 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
 from app.skills.base import BaseSkill, SkillMeta
 
 log = logging.getLogger("skill_autostart")
 
 UCORE_URL = "http://127.0.0.1:8484"
-UCORE_BACKEND_DIR = os.environ.get("UCORE_BACKEND_DIR", str(Path.home() / "Code" / "uCore" / "backend"))
+UCORE_BACKEND_DIR = os.environ.get(
+    "UCORE_BACKEND_DIR",
+    str(settings.udos_root / "uCore" / "backend"),
+)
 UCORE_MENU_LABEL = "com.udos.ucore-menu"
 UCORE_SERVER_LABEL = "com.udos.ucore-server"
 
@@ -37,9 +42,7 @@ def _api_get(path: str, timeout: float = 3.0) -> dict | None:
         return None
 
 
-def _api_post_json(
-    path: str, payload: dict | None = None, timeout: float = 6.0
-) -> dict | None:
+def _api_post_json(path: str, payload: dict | None = None, timeout: float = 6.0) -> dict | None:
     """POST JSON to snackbar API and return parsed JSON, or None."""
     try:
         body = json.dumps(payload or {}).encode("utf-8")
@@ -63,7 +66,7 @@ def is_backend_alive() -> bool:
 
 def is_menu_running() -> bool:
     """Check if uCore menu is running."""
-    lockfile = Path.home() / ".ucore" / "ucore-menu.pid"
+    lockfile = settings.udos_home / "ucore-menu.pid"
     if not lockfile.exists():
         return False
     try:
@@ -102,9 +105,7 @@ def start_backend() -> bool:
     """Start the snackbar backend."""
     try:
         venv_python = Path(UCORE_BACKEND_DIR) / ".venv" / "bin" / "python"
-        python_bin = (
-            str(venv_python) if venv_python.exists() else "/usr/bin/python3"
-        )
+        python_bin = str(venv_python) if venv_python.exists() else "/usr/bin/python3"
 
         subprocess.Popen(
             [python_bin, "-m", "app", "--port", "8484"],
@@ -124,9 +125,7 @@ def start_menu() -> bool:
     """Start the uCore menu bar app."""
     try:
         venv_python = Path(UCORE_BACKEND_DIR) / ".venv" / "bin" / "python"
-        python_bin = (
-            str(venv_python) if venv_python.exists() else "/usr/bin/python3"
-        )
+        python_bin = str(venv_python) if venv_python.exists() else "/usr/bin/python3"
 
         subprocess.Popen(
             [python_bin, "-m", "app.menu.unified_menu_simple"],
@@ -194,10 +193,10 @@ def run_health_check() -> dict[str, Any]:
 
     # Determine overall status
     all_healthy = (
-        services["backend"]["running"] and
-        services["menu"]["running"] and
-        services["server_plist"]["installed"] and
-        services["menu_plist"]["installed"]
+        services["backend"]["running"]
+        and services["menu"]["running"]
+        and services["server_plist"]["installed"]
+        and services["menu_plist"]["installed"]
     )
 
     return {
@@ -215,18 +214,13 @@ def _get_recommendations(services: dict) -> list[str]:
 
     if not services["server_plist"]["installed"]:
         recs.append(
-            "Install server plist: bash scripts/install_ucore_menu_launchd.sh "
-            "--install-server"
+            "Install server plist: bash scripts/install_ucore_menu_launchd.sh --install-server"
         )
 
     if not services["menu_plist"]["installed"]:
-        recs.append(
-            "Install menu plist: bash scripts/install_ucore_menu_launchd.sh"
-        )
+        recs.append("Install menu plist: bash scripts/install_ucore_menu_launchd.sh")
 
-    backend_ok = (
-        services["backend"]["running"] or services["backend"]["started"]
-    )
+    backend_ok = services["backend"]["running"] or services["backend"]["started"]
     if not backend_ok:
         recs.append("Backend failed to start - check logs")
 
@@ -247,6 +241,7 @@ def _get_recommendations(services: dict) -> list[str]:
 
 
 # ─── Skill Class ─────────────────────────────────────────────────────
+
 
 class AutoStartSkill(BaseSkill):
     """Skill for auto-start health checking and service management."""
@@ -269,6 +264,6 @@ class AutoStartSkill(BaseSkill):
 
 if __name__ == "__main__":
     import asyncio
+
     result = asyncio.run(AutoStartSkill().run())
     print(json.dumps(result, indent=2, default=str))
-

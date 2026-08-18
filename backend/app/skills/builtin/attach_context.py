@@ -1,12 +1,13 @@
 """attach_context — Inject CONTEXT.md into AI sessions.
 
 Reads the project CONTEXT.md and returns it as a system prompt
-or context block for injection into Continue/Cline sessions.
+or context block for injection into external agent sessions.
 
 Usage:
   POST /api/skills/attach_context/run
   Body: { "project": "uCore" }  — optional, defaults to uCore
 """
+
 from __future__ import annotations
 
 from app.core.settings import settings
@@ -43,20 +44,14 @@ class AttachContext(BaseSkill):
                 type="string",
                 required=False,
                 default="system_prompt",
-                description=(
-                    "Output format: system_prompt, raw, "
-                    "or markdown_block"
-                ),
+                description=("Output format: system_prompt, raw, or markdown_block"),
             ),
             SkillParam(
                 name="include_wisdom",
                 type="boolean",
                 required=False,
                 default=True,
-                description=(
-                    "Include private project wisdom alongside CONTEXT.md "
-                    "when available"
-                ),
+                description=("Include private project wisdom alongside CONTEXT.md when available"),
             ),
         ],
     )
@@ -65,22 +60,13 @@ class AttachContext(BaseSkill):
         project = kwargs.get("project", "ucore").lower().strip()
         fmt = kwargs.get("format", "system_prompt").strip()
         include_wisdom = bool(kwargs.get("include_wisdom", True))
-        context_path = (
-            PROJECT_CONTEXT_FILES.get(project)
-            or PROJECT_CONTEXT_FILES["default"]
-        )
-        wisdom_path = (
-            PROJECT_WISDOM_FILES.get(project)
-            or PROJECT_WISDOM_FILES["default"]
-        )
+        context_path = PROJECT_CONTEXT_FILES.get(project) or PROJECT_CONTEXT_FILES["default"]
+        wisdom_path = PROJECT_WISDOM_FILES.get(project) or PROJECT_WISDOM_FILES["default"]
 
         if not context_path.exists():
             return {
                 "success": False,
-                "error": (
-                    f"CONTEXT.md not found for '{project}' "
-                    f"at {context_path}"
-                ),
+                "error": (f"CONTEXT.md not found for '{project}' at {context_path}"),
             }
 
         context_text = context_path.read_text(encoding="utf-8")
@@ -90,10 +76,7 @@ class AttachContext(BaseSkill):
 
         combined_text = context_text
         if wisdom_text:
-            combined_text = (
-                f"{context_text}\n\n---\n\n"
-                f"# Project Wisdom\n\n{wisdom_text}"
-            )
+            combined_text = f"{context_text}\n\n---\n\n# Project Wisdom\n\n{wisdom_text}"
 
         if fmt == "raw":
             return {
@@ -129,7 +112,6 @@ and coding conventions before responding."""
             "length": len(system_prompt),
             "has_wisdom": wisdom_text is not None,
             "instructions": (
-                "Prepend this system prompt to the current AI "
-                "session for full project context."
+                "Prepend this system prompt to the current AI session for full project context."
             ),
         }

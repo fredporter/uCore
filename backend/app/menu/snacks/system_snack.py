@@ -1,4 +1,5 @@
 """System Snack — Backend/frontend/service management for uCore menu."""
+
 from __future__ import annotations
 
 import json
@@ -10,6 +11,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Optional
 
+from app.core.settings import settings
 from app.skills.shared_utils import update_menu_delegate
 from snackmachine.registry import SnackPlugin, SnackSpec, register_snack
 
@@ -19,7 +21,10 @@ UCORE_URL = "http://127.0.0.1:8484"
 UI_HUB_URL = "http://localhost:5175"
 UCORE_LABEL = "com.udos.ucore-menu"
 UCORE_PLIST = os.path.expanduser("~/Library/LaunchAgents/com.udos.ucore-menu.plist")
-UCORE_BACKEND_DIR = os.environ.get("UCORE_BACKEND_DIR", str(Path.home() / "Code" / "uCore" / "backend"))
+UCORE_BACKEND_DIR = os.environ.get(
+    "UCORE_BACKEND_DIR",
+    str(settings.udos_root / "uCore" / "backend"),
+)
 
 
 class SystemSnack(SnackPlugin):
@@ -48,7 +53,7 @@ class SystemSnack(SnackPlugin):
                 "restart-backend",
                 "restart-frontend",
                 "toggle-start-at-login",
-                "open-s190-diagnostics"
+                "open-s190-diagnostics",
             ],
             metadata={
                 "backend": self._backend_connected,
@@ -112,6 +117,7 @@ class SystemSnack(SnackPlugin):
         while time.time() < deadline:
             if self._is_uihub_alive():
                 from AppKit import NSURL, NSWorkspace
+
                 NSWorkspace.sharedWorkspace().openURL_(NSURL.URLWithString_(UI_HUB_URL))
                 return True
             time.sleep(0.3)
@@ -156,7 +162,9 @@ class SystemSnack(SnackPlugin):
             # Start frontend
             subprocess.Popen(
                 ["pnpm", "run", "dev"],
-                cwd=os.environ.get("UCORE_FRONTEND_DIR", str(Path.home() / "Code" / "uCore" / "frontend")),
+                cwd=os.environ.get(
+                    "UCORE_FRONTEND_DIR", str(Path.home() / "Code" / "uCore" / "frontend")
+                ),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 start_new_session=True,
@@ -169,6 +177,7 @@ class SystemSnack(SnackPlugin):
     def _enable_start_at_login(self) -> bool:
         """Install and load the uCore launchd plist (delegates to launchd_manager)."""
         from app.menu.launchd_manager import install as launchd_install
+
         self._start_at_login = launchd_install()
         return self._start_at_login
 
@@ -182,12 +191,13 @@ class SystemSnack(SnackPlugin):
     def _disable_start_at_login(self) -> bool:
         """Unload and remove the launchd plist (delegates to launchd_manager)."""
         from app.menu.launchd_manager import uninstall as launchd_uninstall
+
         self._start_at_login = not launchd_uninstall()
         return not self._start_at_login
 
     def _open_s190_diagnostics(self, reason: str = "manual") -> bool:
         """Open local S190 diagnostics fallback page."""
-        fallback_path = Path.home() / ".ucore" / "s190-uihub-fallback.html"
+        fallback_path = settings.udos_home / "s190-uihub-fallback.html"
         fallback_path.parent.mkdir(parents=True, exist_ok=True)
 
         safe_reason = reason.replace("<", "<").replace(">", ">")
@@ -230,6 +240,7 @@ class SystemSnack(SnackPlugin):
 
         fallback_path.write_text(html)
         from AppKit import NSURL, NSWorkspace
+
         NSWorkspace.sharedWorkspace().openURL_(NSURL.URLWithString_(f"file://{fallback_path}"))
         return True
 

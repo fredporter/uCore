@@ -12,6 +12,7 @@ from typing import Any
 import aiohttp
 from aiohttp import ClientTimeout, web
 
+from app.core.settings import settings
 from app.utils.config_loader import (
     load_service_registry,
     load_system_pages_registry,
@@ -21,12 +22,7 @@ log = logging.getLogger("ucore")
 
 # ─── Settings Store Path ──────────────────────────────────────────
 
-_SETTINGS_STORE_DIR = Path(
-    os.environ.get(
-        "UCORE_DATA_DIR",
-        os.path.expanduser("~/.ucore/data"),
-    ),
-)
+_SETTINGS_STORE_DIR = settings.data_dir
 _SETTINGS_STORE_FILE = _SETTINGS_STORE_DIR / "system_settings.json"
 
 
@@ -78,6 +74,7 @@ _S_PAGES_DEFAULT: list[dict] = [
     {"id": "S600", "title": "Help and Recovery", "icon": "help"},
 ]
 
+
 def _get_pages() -> list[dict]:
     """Load S-pages from config; fall back to built-in defaults."""
     return load_system_pages_registry()
@@ -96,13 +93,15 @@ def register_system_api_routes(app: web.Application) -> None:  # noqa: C901
         s_pages = _get_pages()
         page_type = request.query.get("type", "all").lower()
         pages = s_pages if page_type in ("all", "s") else []
-        return web.json_response({
-            "pages": pages,
-            "count": len(pages),
-            "s_count": len(s_pages),
-            # Kept for backward compatibility with older frontend payload readers.
-            "p_count": 0,
-        })
+        return web.json_response(
+            {
+                "pages": pages,
+                "count": len(pages),
+                "s_count": len(s_pages),
+                # Kept for backward compatibility with older frontend payload readers.
+                "p_count": 0,
+            }
+        )
 
     # ── Settings (disk-persisted) ───────────────────────────────
     async def handle_get_settings(_request: web.Request) -> web.Response:
@@ -165,11 +164,7 @@ def register_system_api_routes(app: web.Application) -> None:  # noqa: C901
                     timeout=ClientTimeout(total=timeout),
                 ) as session:
                     async with session.get(url) as resp:
-                        status = (
-                            "up"
-                            if resp.status in accept_status
-                            else "degraded"
-                        )
+                        status = "up" if resp.status in accept_status else "degraded"
                         return _build_result(svc, status, resp.status)
             except Exception:
                 return _build_result(svc, "down", None)
@@ -181,14 +176,16 @@ def register_system_api_routes(app: web.Application) -> None:  # noqa: C901
         degraded = sum(1 for s in results if s["status"] == "degraded")
         down = sum(1 for s in results if s["status"] == "down")
 
-        return web.json_response({
-            "services": results,
-            "count": len(results),
-            "up": up,
-            "degraded": degraded,
-            "down": down,
-            "health_pct": round((up / max(len(results), 1)) * 100),
-        })
+        return web.json_response(
+            {
+                "services": results,
+                "count": len(results),
+                "up": up,
+                "degraded": degraded,
+                "down": down,
+                "health_pct": round((up / max(len(results), 1)) * 100),
+            }
+        )
 
     app.router.add_get("/api/system/pages", handle_pages)
     app.router.add_get("/api/system/services", handle_system_services)

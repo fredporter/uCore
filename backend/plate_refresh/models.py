@@ -3,6 +3,7 @@
 Defines PlateMeta, DestroyRebuildConfig, and related types
 for canonical, versioned, recoverable blueprints.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -23,7 +24,7 @@ class SpoolArchiveConfig(BaseModel):
     """
 
     enabled: bool = True
-    spool_dir: str = "~/.ucore/logs"
+    spool_dir: str = "${UDOS_HOME}/logs"
     compress_metadata: bool = True
     include_source: bool = False
     include_lessons: bool = True

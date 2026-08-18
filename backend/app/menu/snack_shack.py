@@ -8,26 +8,37 @@ Provides:
 - Dogfooding protection via version tracking
 - Lane tagging (System Operations, Dev Mode, User Mission Operations)
 """
+
 from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 import subprocess
 import time
 from pathlib import Path
 from typing import Any, Optional
 
+from app.core.settings import settings
 from app.services.spool_reader import read_spool
 from snackmachine.registry import SnackPlugin, SnackSpec, register_snack
 
 log = logging.getLogger("snack-shack")
 
 UCORE_URL = "http://127.0.0.1:8484"
-import os
 
-SNACKS_REPO_PATH = Path(os.environ.get("UCORE_BACKEND_DIR", str(Path.home() / "Code" / "uCore" / "backend"))) / "app" / "snacks"
-SNACKS_USER_PATH = Path.home() / ".ucore/snacks"
+SNACKS_REPO_PATH = (
+    Path(
+        os.environ.get(
+            "UCORE_BACKEND_DIR",
+            str(settings.udos_root / "uCore" / "backend"),
+        ),
+    )
+    / "app"
+    / "snacks"
+)
+SNACKS_USER_PATH = settings.udos_home / "snacks"
 SNACKS_TEMPLATE_PATH = SNACKS_REPO_PATH / "templates"
 
 
@@ -125,6 +136,7 @@ class SnackShack(SnackPlugin):
         if self._menu_delegate:
             try:
                 from app.menu.unified_menu_simple import post_notification
+
                 post_notification(title, message)
                 return True
             except Exception as e:

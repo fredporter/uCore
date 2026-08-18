@@ -31,4 +31,4 @@ publish:
   source: github  # github, local, mcp
   repo: uDosGo/uCore  # For GitHub publishing
   path: backend/app/snacks/custom/  # Install path in repo
-  restore_to: ~/.ucore/snacks/  # User restore location
+  restore_to: ${UDOS_HOME}/snacks/  # User restore location

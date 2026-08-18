@@ -1,5 +1,5 @@
 # uCore Developer Repo Policy Configuration
-# Copy to ~/.ucore/config/developer-repo-policy.yaml and adjust.
+# Copy to $UDOS_HOME/config/developer-repo-policy.yaml and adjust.
 #
 # Purpose:
 # - Backend classification policy for Developer Surface repository discovery.
@@ -31,7 +31,7 @@ system_repos:
 
 core_repos:
   # Additional core repos beyond system_repos
-  - udev
+  - uCore
 
 extension_repos:
   # Extension plugins (udos-* repos automatically included)

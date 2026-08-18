@@ -218,7 +218,6 @@ function serviceIcon(svc: {
       node: "javascript",
       python: "terminal",
       ollama: "smart_toy",
-      vscode: "code_blocks",
       gh: "code",
     };
     return map[svc.name.toLowerCase()] || "build";

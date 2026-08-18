@@ -148,7 +148,7 @@ identities with confidence and evidence, resolve a Sonic device record, and pres
 Recognition may be model-assisted, but identity must remain confirmable offline from
 observable features and the local device library.
 
-## Current-state findings (2026-08-18)
+## Stabilized implementation (2026-08-18)
 
 - `~/Public/global-knowledge` is approximately 409 MB with 1,157 files, including
   about 501 Markdown files. Its strongest coverage is practical survival knowledge.
@@ -158,13 +158,13 @@ observable features and the local device library.
   and archived topic trees that are physically present.
 - Index/version figures are stale and disagree with the filesystem.
 - Provenance and redistribution metadata are insufficient for public packaging.
-- uKnowledge currently delegates much of its implemented behavior back to
-  `app.knowledge.appflowy` and returns `501` for most ownership routes. It is not yet
-  an independent offline knowledge engine.
-- uKnowledge still writes workspace registry state to legacy `~/.ucore`; mutable
-  index/registry state must resolve through `UDOS_HOME` under `~/Code/.udos`.
-- `~/Public/.local` contains runtime/config/tool state and violates the storage
-  boundary. Public should contain public vault content, not application runtime.
+- uKnowledge now owns filesystem-first workspace registration, safe Markdown read,
+  lexical search, and the Public-vault write boundary. uCore delegates to those
+  contracts instead of owning a second knowledge implementation.
+- Mutable workspace and index state resolves beneath `$UDOS_HOME` (normally
+  `~/Code/.udos`); public and user vaults remain portable Markdown trees.
+- BrowserUI reads live knowledge/bookmark state rather than sample stacks and saves
+  only through the selected writable workspace contract.
 
 ## Stabilization sequence
 
@@ -174,15 +174,15 @@ observable features and the local device library.
 3. Separate release, candidate, reference-quarantine, compost, and generated output.
 4. Define schemas for items, sources, licences, editions, submissions, citations, and
    device links.
-5. Remove AppFlowy and uCore-internal dependencies from the basic filesystem reader,
-   indexer, and search API.
-6. Move all mutable indexes, caches, registries, and jobs into `UDOS_HOME`; keep the
+5. Maintain the completed filesystem-first reader/search boundary without AppFlowy
+   or uCore ownership regressions.
+6. Keep all mutable indexes, caches, registries, and jobs in `UDOS_HOME`; keep the
    public vault portable and human-readable.
 7. Build a deterministic edition validator and a minimal lexical offline package.
-8. Wire uCore Documentation to browse/search/read the package with clear offline,
+8. Extend the wired uCore browser/search/read experience with clear offline,
    provenance, freshness, and safety states.
-9. Replace BrowserUI sample stacks with the provenance-preserving user-vault and
-   contribution pipeline.
+9. Extend BrowserUI's live knowledge/bookmark foundation with the full
+   provenance-preserving contribution pipeline.
 10. Curate a balanced minimum edition: orientation, language, maths, science,
    geography, history/civics, health, practical life, nature, making/repair,
    emergency readiness, and uDos/uCode basics.

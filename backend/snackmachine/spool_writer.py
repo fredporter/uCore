@@ -5,12 +5,14 @@ for audit trails and activity tracking.
 
 Spec: docs/SPOOL_SPEC.md
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from pathlib import Path
 
-LOG_DIR = Path.home() / ".ucore" / "logs"
+from app.core.settings import settings
+
+LOG_DIR = settings.logs_dir
 
 
 def write_spool(

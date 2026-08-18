@@ -6,6 +6,7 @@ import logging
 import sys
 from pathlib import Path
 
+from app.core.settings import settings
 from app.skills.base import BaseSkill
 
 log = logging.getLogger("ucore.skills.registry")
@@ -13,16 +14,19 @@ _registry: dict[str, BaseSkill] = {}
 _loaded = False
 SKILL_PATHS = [
     Path(__file__).parent / "builtin",
-    Path.home() / ".ucore/skills",
+    settings.udos_home / "skills",
 ]
+
 
 def _discover():
     skills = {}
     for sd in SKILL_PATHS:
-        if not sd.exists(): continue
+        if not sd.exists():
+            continue
         sys.path.insert(0, str(sd.parent))
         for f in sd.iterdir():
-            if f.suffix != ".py" or f.name.startswith("_"): continue
+            if f.suffix != ".py" or f.name.startswith("_"):
+                continue
             try:
                 spec = importlib.util.spec_from_file_location(f"skills_{f.stem}", f)
                 if spec and spec.loader:
@@ -30,23 +34,40 @@ def _discover():
                     sys.modules[spec.name] = mod
                     spec.loader.exec_module(mod)
                     for _, obj in inspect.getmembers(mod):
-                        if inspect.isclass(obj) and issubclass(obj, BaseSkill) and obj is not BaseSkill:
-                            inst = obj(); skills[inst.meta.id] = inst
+                        if (
+                            inspect.isclass(obj)
+                            and issubclass(obj, BaseSkill)
+                            and obj is not BaseSkill
+                        ):
+                            inst = obj()
+                            skills[inst.meta.id] = inst
             except Exception as e:
                 log.warning(f"Skill load fail {f.name}: {e}")
         sys.path.pop(0)
     return skills
 
+
 def _ensure():
     global _registry, _loaded
-    if not _loaded: _registry = _discover(); _loaded = True
+    if not _loaded:
+        _registry = _discover()
+        _loaded = True
+
 
 def list_skills() -> list[dict]:
     _ensure()
-    return [{"id": s.meta.id, "name": s.meta.name, "description": s.meta.description,
-             "category": s.meta.category, "timeout": s.meta.timeout,
-             "requires_confirmation": getattr(s.meta, "requires_confirmation", False),
-             "category_priority": _get_category_priority(s.meta.category)} for s in _registry.values()]
+    return [
+        {
+            "id": s.meta.id,
+            "name": s.meta.name,
+            "description": s.meta.description,
+            "category": s.meta.category,
+            "timeout": s.meta.timeout,
+            "requires_confirmation": getattr(s.meta, "requires_confirmation", False),
+            "category_priority": _get_category_priority(s.meta.category),
+        }
+        for s in _registry.values()
+    ]
 
 
 def _get_category_priority(category: str) -> int:
@@ -62,8 +83,11 @@ def _get_category_priority(category: str) -> int:
     }
     return priorities.get(category, 7)
 
+
 def get_skill(skill_id: str) -> BaseSkill | None:
-    _ensure(); return _registry.get(skill_id)
+    _ensure()
+    return _registry.get(skill_id)
+
 
 async def run_skill_by_id(
     skill_id: str,
@@ -72,11 +96,11 @@ async def run_skill_by_id(
     **kwargs,
 ) -> dict:
     skill = get_skill(skill_id)
-    if not skill: return {"success": False, "error": f"Skill '{skill_id}' not found"}
-    requires_confirmation = (
-        getattr(skill.meta, "requires_confirmation", False)
-        or skill.meta.category in ("mutating", "destructive", "write")
-    )
+    if not skill:
+        return {"success": False, "error": f"Skill '{skill_id}' not found"}
+    requires_confirmation = getattr(
+        skill.meta, "requires_confirmation", False
+    ) or skill.meta.category in ("mutating", "destructive", "write")
     if requires_confirmation and not execution_authorized:
         return {
             "success": False,
@@ -85,5 +109,6 @@ async def run_skill_by_id(
             "requires_confirmation": True,
         }
     errors = skill.validate(**kwargs)
-    if errors: return {"success": False, "errors": errors}
+    if errors:
+        return {"success": False, "errors": errors}
     return await skill.run(**kwargs)

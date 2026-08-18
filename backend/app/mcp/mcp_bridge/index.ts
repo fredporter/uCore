@@ -6,6 +6,12 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
+declare const process: {
+  env: Record<string, string | undefined>;
+  on(event: string, handler: () => void | Promise<void>): void;
+  exit(code?: number): never;
+};
+
 const UCORE_BASE = process.env.UCORE_URL || "http://localhost:8484";
 
 async function apiGet(path: string): Promise<any> {

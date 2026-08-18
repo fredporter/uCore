@@ -21,6 +21,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from app.core.settings import settings
+
 log = logging.getLogger("health_monitor")
 
 # ─── Data Models ──────────────────────────────────────────────────
@@ -29,6 +31,7 @@ log = logging.getLogger("health_monitor")
 @dataclass
 class HealthEvent:
     """Single health check event"""
+
     timestamp: str
     component: str  # "backend", "frontend", "ollama", "database", etc.
     status: str  # "ok", "degraded", "error", "recovering"
@@ -41,6 +44,7 @@ class HealthEvent:
 @dataclass
 class ComponentHealth:
     """Component health status"""
+
     name: str
     status: str  # "ok", "degraded", "error"
     last_check: str
@@ -60,7 +64,7 @@ class HealthMonitor:
         self.components: Dict[str, ComponentHealth] = {}
         self.events: List[HealthEvent] = []
         self.max_events = 500  # Keep last 500 events
-        self.log_dir = Path("~/.ucore/logs").expanduser()
+        self.log_dir = settings.logs_dir
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.running = False
         self.check_interval = 5.0  # seconds
@@ -76,7 +80,7 @@ class HealthMonitor:
         """Stop the health monitor."""
         log.info("Health monitor stopping...")
         self.running = False
-        if hasattr(self, '_task') and self._task:
+        if hasattr(self, "_task") and self._task:
             self._task.cancel()
             try:
                 await self._task
@@ -114,12 +118,10 @@ class HealthMonitor:
     def _check_backend(self) -> tuple[str, str]:
         """Check if backend is responsive (runs in thread pool)."""
         try:
-            from app.core.settings import settings
             port = settings.port
             import urllib.request
-            response = urllib.request.urlopen(
-                f"http://localhost:{port}/api/health", timeout=2
-            )
+
+            response = urllib.request.urlopen(f"http://localhost:{port}/api/health", timeout=2)
             if response.status == 200:
                 return "ok", f"Backend responding normally on port {port}"
             else:
@@ -132,12 +134,10 @@ class HealthMonitor:
     def _check_database(self) -> tuple[str, str]:
         """Check database connectivity (runs in thread pool)."""
         try:
-            indices_dir = Path("~/.ucore/indices").expanduser()
-            db_files = (
-                list(indices_dir.glob("*.db")) if indices_dir.exists() else []
-            )
+            indices_dir = settings.udos_home / "indices"
+            db_files = list(indices_dir.glob("*.db")) if indices_dir.exists() else []
             if not db_files:
-                return "error", "No database files in ~/.ucore/indices"
+                return "error", f"No database files in {indices_dir}"
 
             if os.access(db_files[0], os.R_OK):
                 return "ok", f"Database accessible ({len(db_files)} db file(s))"
@@ -169,11 +169,13 @@ class HealthMonitor:
     def _check_popcorn(self) -> tuple[str, str]:
         """Check Popcorn status (runs in thread pool, macOS only)."""
         import platform
+
         if platform.system() != "Darwin":
             return "ok", "Popcorn not applicable (not macOS)"
 
         try:
             from app.services.popcorn_manager import get_popcorn_status
+
             status = get_popcorn_status()
 
             menu = status.get("menu", {})
@@ -230,7 +232,7 @@ class HealthMonitor:
 
         self.events.append(event)
         if len(self.events) > self.max_events:
-            self.events = self.events[-self.max_events:]
+            self.events = self.events[-self.max_events :]
 
         # Log it
         if severity == "error":
@@ -268,6 +270,7 @@ class HealthMonitor:
         log.info("Attempting backend recovery via /api/control/recover...")
         try:
             import urllib.request
+
             req = urllib.request.Request(
                 "http://127.0.0.1:8484/api/control/recover",
                 method="POST",
@@ -282,10 +285,16 @@ class HealthMonitor:
             # Backend is completely down — try restart via launchd
             log.info("Backend unreachable; attempting launchd kickstart...")
             import subprocess
+
             try:
                 subprocess.run(
-                    ["launchctl", "kickstart", "gui/$(id -u)/com.udos.ucore-server"],
-                    capture_output=True, timeout=5,
+                    [
+                        "launchctl",
+                        "kickstart",
+                        f"gui/{os.getuid()}/com.udos.ucore-server",
+                    ],
+                    capture_output=True,
+                    timeout=5,
                 )
                 return "backend_launchd_kickstart_attempted"
             except Exception as e:
@@ -297,11 +306,12 @@ class HealthMonitor:
         """Attempt to recover database connectivity."""
         log.info("Attempting database recovery...")
         try:
-            db_path = Path("~/.ucore/ucore.db").expanduser()
+            db_path = settings.data_dir / "ucore.db"
             if not db_path.exists():
                 # Try to recreate from migration
                 try:
                     from app.core.database import migrate_db
+
                     result = migrate_db()
                     return f"database_recreated_v{result.get('version', '?')}"
                 except Exception as e:
@@ -322,6 +332,7 @@ class HealthMonitor:
         log.info("Attempting Popcorn recovery...")
         try:
             from app.services.popcorn_manager import perform_action
+
             result = perform_action("restart-menu")
             if result.get("success"):
                 return "popcorn_restarted_via_menu"
@@ -333,9 +344,7 @@ class HealthMonitor:
         """Get current health status"""
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "components": {
-                name: asdict(comp) for name, comp in self.components.items()
-            },
+            "components": {name: asdict(comp) for name, comp in self.components.items()},
             "events_count": len(self.events),
             "last_events": [asdict(e) for e in self.events[-10:]],  # Last 10
         }

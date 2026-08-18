@@ -1,5 +1,5 @@
 # uCore API Registry Configuration
-# Copy to ~/.ucore/config/api-registry.yaml and adjust
+# Copy to $UDOS_HOME/config/api-registry.yaml and adjust
 
 # Variable definitions: ${tier:purpose} → provider+model
 # These are fallbacks when the registry cannot find a match

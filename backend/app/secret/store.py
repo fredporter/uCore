@@ -1,8 +1,9 @@
 """AES-256-GCM encrypted secret store for uCore.
 
-Stores API keys and credentials encrypted at rest in ~/.ucore/secrets.enc.
+Stores API keys and credentials encrypted beneath ``$UDOS_HOME/secrets``.
 Uses a 256-bit key derived from a stored salt + host identifier.
 """
+
 from __future__ import annotations
 
 import json
@@ -17,6 +18,7 @@ from app.core.settings import settings
 AESGCM: Any
 try:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM as _AESGCM
+
     AESGCM = _AESGCM
 except ImportError:
     AESGCM = None
@@ -36,6 +38,7 @@ def _derive_key(master_key: bytes) -> bytes:
         return master_key
     from cryptography.hazmat.primitives import hashes  # type: ignore
     from cryptography.hazmat.primitives.hkdf import HKDF  # type: ignore
+
     hkdf = HKDF(
         algorithm=hashes.SHA256(),
         length=32,
@@ -103,7 +106,7 @@ class SecretStore:
             return []
 
         events: list[dict] = []
-        for line in reversed(lines[-max(limit * 2, 200):]):
+        for line in reversed(lines[-max(limit * 2, 200) :]):
             if len(events) >= limit:
                 break
             try:
@@ -237,10 +240,18 @@ class SecretStore:
     def sync_from_env(self):
         """Import known env vars into the store."""
         known_keys = [
-            "OPENROUTER_API_KEY", "GITHUB_TOKEN", "ANTHROPIC_API_KEY",
-            "MISTRAL_API_KEY", "DEEPSEEK_API_KEY", "OPENAI_API_KEY",
-            "GEMINI_API_KEY", "GROQ_API_KEY", "HUGGINGFACE_TOKEN",
-            "REPLICATE_API_KEY", "COHERE_API_KEY", "AI21_API_KEY",
+            "OPENROUTER_API_KEY",
+            "GITHUB_TOKEN",
+            "ANTHROPIC_API_KEY",
+            "MISTRAL_API_KEY",
+            "DEEPSEEK_API_KEY",
+            "OPENAI_API_KEY",
+            "GEMINI_API_KEY",
+            "GROQ_API_KEY",
+            "HUGGINGFACE_TOKEN",
+            "REPLICATE_API_KEY",
+            "COHERE_API_KEY",
+            "AI21_API_KEY",
         ]
         changed = False
         for key in known_keys:

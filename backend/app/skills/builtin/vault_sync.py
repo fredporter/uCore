@@ -1,13 +1,14 @@
 """vault_sync — Rebuild the unified vault library index.
 
 Scans ~/Vault (master user vault), ~/Shared, and ~/Public into the
-FTS5 index at ~/.ucore/indices/library.db, then reports per-source
+FTS5 index at ``$UDOS_HOME/indices/library.db``, then reports per-source
 file counts.
 
 Usage:
   POST /api/skills/vault_sync/run
   Body: { "dry_run": false, "summary_only": true }
 """
+
 from __future__ import annotations
 
 from app.services import library_index

@@ -1,12 +1,13 @@
 """Ollama Snack — Ollama LLM server management for uCore menu."""
+
 from __future__ import annotations
 
 import logging
 import subprocess
 import time
-from pathlib import Path
 from typing import Any, Optional
 
+from app.core.settings import settings
 from snackmachine.registry import SnackPlugin, SnackSpec, register_snack
 
 log = logging.getLogger("ollama-snack")
@@ -19,7 +20,7 @@ class OllamaSnack(SnackPlugin):
         self._menu_delegate = menu_delegate
         self._status = "checking"
         self._models = []
-        self._disable_file = Path("~/.ucore/ollama_disabled").expanduser()
+        self._disable_file = settings.udos_home / "ollama_disabled"
 
     @property
     def spec(self) -> SnackSpec:

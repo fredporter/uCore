@@ -19,6 +19,7 @@ Usage:
         nugget_output_dir="~/Nuggets/"
     )
 """
+
 from __future__ import annotations
 
 import json
@@ -27,6 +28,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
 from app.skills.base import BaseSkill, SkillMeta, SkillParam
 
 log = logging.getLogger("ucore.skills.vault_discovery")
@@ -39,18 +41,33 @@ VAULT_PATHS = {
 }
 
 UCORE_PATHS = {
-    "config": Path("~/.ucore/").expanduser(),
-    "logs": Path("~/.ucore/logs/").expanduser(),
+    "config": settings.config_dir,
+    "logs": settings.logs_dir,
     "plates": Path("plates/").resolve(),
 }
 
 SUPPORTED_EXTENSIONS = {
-    ".md", ".yaml", ".yml", ".json", ".txt", ".csv",
-    ".py", ".ts", ".tsx", ".css", ".html",
+    ".md",
+    ".yaml",
+    ".yml",
+    ".json",
+    ".txt",
+    ".csv",
+    ".py",
+    ".ts",
+    ".tsx",
+    ".css",
+    ".html",
 }
 EXCLUDE_DIRS = {
-    ".git", "node_modules", "__pycache__", ".next",
-    ".obsidian", ".vscode", ".venv", ".mypy_cache",
+    ".git",
+    "node_modules",
+    "__pycache__",
+    ".next",
+    ".obsidian",
+    ".vscode",
+    ".venv",
+    ".mypy_cache",
 }
 
 
@@ -67,16 +84,14 @@ class VaultDiscoverySkill(BaseSkill):
             SkillParam(
                 name="dry_run",
                 type="boolean",
-                description="If true, only identify without "
-                "destructive actions",
+                description="If true, only identify without destructive actions",
                 required=False,
                 default=True,
             ),
             SkillParam(
                 name="extract_nuggets",
                 type="boolean",
-                description="If true, extract reusable components "
-                "as Nuggets",
+                description="If true, extract reusable components as Nuggets",
                 required=False,
                 default=False,
             ),
@@ -113,9 +128,7 @@ class VaultDiscoverySkill(BaseSkill):
         """
         dry_run = kwargs.get("dry_run", True)
         extract_nuggets = kwargs.get("extract_nuggets", False)
-        nugget_output_dir = Path(
-            kwargs.get("nugget_output_dir", "~/Nuggets/")
-        ).expanduser()
+        nugget_output_dir = Path(kwargs.get("nugget_output_dir", "~/Nuggets/")).expanduser()
         vault_layers_str = kwargs.get("vault_layers", "all")
 
         # Determine which types to scan
@@ -130,7 +143,9 @@ class VaultDiscoverySkill(BaseSkill):
 
         log.info(
             "Vault discovery: dry_run=%s, layers=%s, nuggets=%s",
-            dry_run, layers_to_scan, extract_nuggets,
+            dry_run,
+            layers_to_scan,
+            extract_nuggets,
         )
 
         # Scan each vault type
@@ -152,7 +167,8 @@ class VaultDiscoverySkill(BaseSkill):
         nuggets: list[dict[str, Any]] = []
         if extract_nuggets and not dry_run:
             nuggets = self._extract_nuggets(
-                vaults, nugget_output_dir,
+                vaults,
+                nugget_output_dir,
             )
 
         report = {
@@ -168,13 +184,17 @@ class VaultDiscoverySkill(BaseSkill):
 
         log.info(
             "Vault discovery complete: %d files, %d bytes, %d nuggets",
-            total_files, total_size, len(nuggets),
+            total_files,
+            total_size,
+            len(nuggets),
         )
 
         return report
 
     def _scan_vault_layer(
-        self, vault_path: Path, layer: str,
+        self,
+        vault_path: Path,
+        layer: str,
     ) -> dict[str, Any]:
         """Scan a single vault type and return stats."""
         if not vault_path.exists():
@@ -223,10 +243,7 @@ class VaultDiscoverySkill(BaseSkill):
             "files": files_count,
             "size_bytes": size_bytes,
             "extensions": extensions,
-            "structure": [
-                {"dir": d, "files": c}
-                for d, c in sorted(structure.items())
-            ],
+            "structure": [{"dir": d, "files": c} for d, c in sorted(structure.items())],
         }
 
     def _scan_ucore_data(self) -> dict[str, Any]:
@@ -245,13 +262,16 @@ class VaultDiscoverySkill(BaseSkill):
             files = []
             for f in sorted(path.rglob("*")):
                 if f.is_file() and ".git" not in f.parts:
-                    files.append({
-                        "name": f.name,
-                        "size": f.stat().st_size,
-                        "modified": datetime.fromtimestamp(
-                            f.stat().st_mtime, tz=UTC,
-                        ).isoformat(),
-                    })
+                    files.append(
+                        {
+                            "name": f.name,
+                            "size": f.stat().st_size,
+                            "modified": datetime.fromtimestamp(
+                                f.stat().st_mtime,
+                                tz=UTC,
+                            ).isoformat(),
+                        }
+                    )
 
             results[name] = {
                 "path": str(path),
@@ -261,7 +281,7 @@ class VaultDiscoverySkill(BaseSkill):
             }
 
         # Also scan for spool archives specifically
-        spool_dir = Path("~/.ucore/logs").expanduser()
+        spool_dir = settings.logs_dir
         spool_archives = list(spool_dir.glob("plate_*.spool.json.gz"))
         results["spool_archives"] = {
             "path": str(spool_dir),
