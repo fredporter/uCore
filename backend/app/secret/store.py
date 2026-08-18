@@ -177,6 +177,7 @@ class SecretStore:
 
     def _save_plaintext(self):
         path = DATA_DIR / "secrets.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(self._secrets, indent=2))
         path.chmod(0o600)
         self._dirty = False

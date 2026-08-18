@@ -62,6 +62,10 @@ jobs:
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
+    env:
+      UDOS_ROOT: ${{ github.workspace }}/..
+      UDOS_HOME: ${{ runner.temp }}/udos-home
+      UCORE_UCODE_PATH: ${{ github.workspace }}/external/uCode
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -90,6 +94,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ./external/uFlow -e ./external/uKnowledge
           pip install -e ./backend[dev]
+
+      - name: Prepare isolated runtime and Git identity
+        run: |
+          mkdir -p "$UDOS_HOME/data"
+          git config --global user.name "uCore CI"
+          git config --global user.email "ci@udos.invalid"
 
       - name: Run backend tests
         run: python -m pytest -q backend/tests
