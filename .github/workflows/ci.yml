@@ -13,6 +13,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install governance probe dependencies
+        run: python -m pip install aiohttp pyyaml
 
       - name: Validate planning governance
         run: bash scripts/validate_planning_governance.sh
