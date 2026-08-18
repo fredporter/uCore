@@ -44,6 +44,8 @@
 | [UDOS_HOME_MIGRATION.md](UDOS_HOME_MIGRATION.md)                         | Runtime/vault boundary and safe migration |
 | [ECOSYSTEM_STORAGE_ARCHITECTURE.md](ECOSYSTEM_STORAGE_ARCHITECTURE.md)   | Canonical storage, credentials and drift controls |
 | [WORKSTATION_MIGRATION_2026-08-18.md](WORKSTATION_MIGRATION_2026-08-18.md) | Migration record, verification and rollback boundary |
+| [AGENT_EXECUTION_ARCHITECTURE.md](AGENT_EXECUTION_ARCHITECTURE.md)       | Intention routing, providers, orchestration and controls |
+| [SKILLS_AUDIT_2026-08-18.md](SKILLS_AUDIT_2026-08-18.md)                 | Skill disposition and remediation sequence |
 
 ## Active Developer / Dev Mode Specs
 
