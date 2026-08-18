@@ -17,7 +17,7 @@ views inside the owning surface.
 | uCode | Use the compact user runtime | Terminal, Teletext, Pixel, Grid, Layer, Glyphs | Keep as work modes within one runtime surface. They are not ecosystem navigation destinations. |
 | Snackbar | Observe and administer runtime capabilities | Dashboard, Services, Agents, Feeds, Skills, Snacks, Extensions, Logs, MCP | Keep for the current operations pass, but treat this as an operator surface. Next simplification should group inventory views under Dashboard without creating more tabs. |
 | System | Configure identity, variables, secrets, and recovery | Pages, Variables, Secrets, Global, User | Keep. Runtime diagnostics stay in Snackbar. |
-| Documentation | Read guides, knowledge, learning, and publishing output | Guide & Docs, Knowledge, Learning, Publishing | Keep for now. Reconcile Publishing with Workflow Publish after their backend contracts are compared; do not add another publishing surface. |
+| Documentation | Read guides, knowledge, and learning | Guide & Docs, Knowledge, Learning | Keep. Publishing is owned by Workflow; the historical Documentation deep link redirects there. |
 | Developer | Inspect repositories and edit real code | Code, Repository, Editor | Keep. Repository and Editor are contextual states selected from Code, not a replacement for uCode user tasks. |
 
 ## Contextual and compatibility surfaces
@@ -53,15 +53,11 @@ Agents rather than presenting agent choice to the user.
 
 ## Reconciliation queue
 
-1. Replace the Intelligence workflow placeholder with a contextual link/summary
-   from uFlow, rather than duplicating Workflow controls.
-2. Compare Documentation Publishing and Workflow Publish contracts, then merge the
-   user journey into Workflow if they perform the same lifecycle.
-3. Consolidate Snackbar's inventory-only tabs into dashboard sections or contextual
+1. Consolidate Snackbar's inventory-only tabs into dashboard sections or contextual
    detail views; retain direct compatibility links during the transition.
-4. Replace BrowserUI sample stacks with vault-backed research state before exposing
-   it through user workflows.
-5. After the core repositories are stable on `main`, revisit or rebuild
+2. Wire vault document content and research capture persistence through uKnowledge;
+   sample stacks have been removed and empty state is now truthful.
+3. After the core repositories are stable on `main`, revisit or rebuild
    SonicScrewdriver as the first standalone GridCore proving project.
 
 ## Release sequence

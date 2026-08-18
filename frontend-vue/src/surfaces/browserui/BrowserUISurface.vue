@@ -16,7 +16,7 @@
                 <h3 class="surface__panel-title">Browser</h3>
                 <div class="browserui-panel__badges">
                   <UBadge type="info" size="sm">Cards Explorer</UBadge>
-                  <UBadge type="warning" size="sm">Seed Memory Fallback</UBadge>
+                  <UBadge type="success" size="sm">Vault-backed</UBadge>
                 </div>
               </div>
               <p class="surface__panel-description">
@@ -156,8 +156,8 @@
 
           <div v-if="displayedGroups.length === 0" class="browserui-empty">
             <UIcon name="filter_alt_off" />
-            <h3>No cards match the current filters</h3>
-            <p>Try clearing filters or adjusting search/group settings.</p>
+            <h3>{{ stacks.length ? "No cards match the current filters" : "No research cards yet" }}</h3>
+            <p>{{ stacks.length ? "Try clearing filters or adjusting search/group settings." : "Save research to your vault or add a bookmark to begin." }}</p>
             <button class="uxs-btn" @click="resetControls">
               <UIcon name="refresh" /> Reset filters
             </button>
@@ -317,24 +317,12 @@ interface DisplayGroup {
   items: DisplayCard[]
 }
 
-interface SeedTask {
-  id?: string
-  title?: string
-  description?: string
-  body?: string
-  mission?: string
-  task?: string
-  binder?: string
-  board?: string
-  status?: string
-  tags?: string[]
-}
-
-interface VaultLayer {
+interface KnowledgeDocument {
   id: string
-  label: string
-  description?: string
-  path?: string
+  title: string
+  rel_path?: string
+  workspace_id?: string
+  source?: string
   permissions?: string
 }
 
@@ -372,100 +360,6 @@ const sessionCardMeta = ref<Record<string, { tags: string[]; groups: string[] }>
 const TABS = [
   { id: "cards", label: "Cards", icon: "dashboard" },
   { id: "dashboard", label: "Research", icon: "science" },
-]
-
-const DEFAULT_STACKS: Stack[] = [
-  {
-    id: "research",
-    title: "Research",
-    icon: "search",
-    items: [
-      {
-        id: "r1",
-        title: "MCP Protocol Spec",
-        url: "https://modelcontextprotocol.io",
-        description: "Official MCP specification",
-        tags: ["#mcp", "#protocol"],
-      },
-      {
-        id: "r2",
-        title: "Vue 3 Docs",
-        url: "https://vuejs.org",
-        description: "Vue 3 framework documentation",
-        tags: ["#vue", "#frontend"],
-      },
-      {
-        id: "r3",
-        title: "Rust Async Book",
-        url: "https://rust-lang.github.io/async-book/",
-        description: "Async Rust guide",
-        tags: ["#rust", "#async"],
-      },
-    ],
-  },
-  {
-    id: "bookmarks",
-    title: "Bookmarks",
-    icon: "bookmark",
-    items: [
-      {
-        id: "b1",
-        title: "GitHub Copilot Docs",
-        url: "https://docs.github.com/en/copilot",
-        description: "Copilot documentation",
-        tags: ["#tools", "#ai"],
-      },
-      {
-        id: "b2",
-        title: "MDN Web Docs",
-        url: "https://developer.mozilla.org",
-        description: "Web platform reference",
-        tags: ["#reference", "#web"],
-      },
-      {
-        id: "b3",
-        title: "Docker Compose Docs",
-        url: "https://docs.docker.com/compose/",
-        description: "Multi-container apps",
-        tags: ["#docker", "#devops"],
-      },
-      {
-        id: "b4",
-        title: "Tailwind CSS Docs",
-        url: "https://tailwindcss.com/docs",
-        description: "Utility-first CSS",
-        tags: ["#css", "#frontend"],
-      },
-    ],
-  },
-  {
-    id: "learning",
-    title: "Learning",
-    icon: "school",
-    items: [
-      {
-        id: "l1",
-        title: "Pinia Docs",
-        url: "https://pinia.vuejs.org",
-        description: "Vue state management",
-        tags: ["#vue", "#state"],
-      },
-      {
-        id: "l2",
-        title: "Vite Docs",
-        url: "https://vitejs.dev",
-        description: "Next-gen frontend tooling",
-        tags: ["#build", "#frontend"],
-      },
-      {
-        id: "l3",
-        title: "CodeMirror 6",
-        url: "https://codemirror.net",
-        description: "Code editor component",
-        tags: ["#editor", "#code"],
-      },
-    ],
-  },
 ]
 
 function normalizeTag(value: string): string {
@@ -694,104 +588,40 @@ function applySessionMeta() {
   }))
 }
 
-async function fetchSeedMemoryStacks(): Promise<Stack[]> {
+async function fetchKnowledgeStacks(): Promise<Stack[]> {
   try {
-    const [tasksRes, vaultRes] = await Promise.all([
-      fetch(`${API_BASE}/api/workflow/tasks?scope=user`, {
-        signal: AbortSignal.timeout(5000),
-      }),
-      fetch(`${API_BASE}/api/vault/topology`, {
-        signal: AbortSignal.timeout(5000),
-      }),
-    ])
-
-    const stacksOut: Stack[] = []
-
-    if (tasksRes.ok) {
-      const tasksData = await tasksRes.json()
-      const tasks: SeedTask[] = Array.isArray(tasksData?.tasks)
-        ? tasksData.tasks
-        : []
-
-      if (tasks.length > 0) {
-        const items: StackItem[] = tasks.slice(0, 16).map((task, i) => {
-          const title =
-            String(task.title || task.task || task.mission || "Seed Task").trim() ||
-            "Seed Task"
-          const description =
-            String(task.description || task.body || task.mission || "User workflow seed task").trim() ||
-            "User workflow seed task"
-          const seedTags = [
-            ...new Set(
-              [
-                ...(Array.isArray(task.tags) ? task.tags : []),
-                "#seed",
-                "#workflow",
-                task.status ? normalizeTag(String(task.status)) : "",
-                task.board ? normalizeTag(String(task.board)) : "",
-              ].filter(Boolean).map((t) => normalizeTag(String(t))),
-            ),
-          ]
-
-          const groups = [task.mission, task.binder, task.board]
-            .map((g) => normalizeGroup(String(g || "")))
-            .filter(Boolean)
-
-          return {
-            id: String(task.id || `seed-task-${i}`),
-            title,
-            description,
-            tags: seedTags,
-            groups,
-          }
-        })
-
-        stacksOut.push({
-          id: "seed-workflow",
-          title: "Seed Workflow",
-          icon: "task_alt",
-          items,
-        })
-      }
+    const res = await fetch(`${API_BASE}/api/knowledge/documents`, {
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    const documents: KnowledgeDocument[] = Array.isArray(data?.documents) ? data.documents : []
+    const byWorkspace = new Map<string, StackItem[]>()
+    for (const document of documents) {
+      const workspace = document.workspace_id || document.source || "knowledge"
+      const items = byWorkspace.get(workspace) || []
+      items.push({
+        id: document.id,
+        title: document.title || document.rel_path || "Untitled note",
+        description: document.rel_path || "Markdown knowledge note",
+        tags: ["#knowledge", normalizeTag(workspace), normalizeTag(document.permissions || "read")],
+        groups: [workspace],
+      })
+      byWorkspace.set(workspace, items)
     }
-
-    if (vaultRes.ok) {
-      const vaultData = await vaultRes.json()
-      const layers: VaultLayer[] = Array.isArray(vaultData?.layers)
-        ? vaultData.layers
-        : []
-
-      if (layers.length > 0) {
-        const items: StackItem[] = layers.map((layer, i) => ({
-          id: `seed-vault-${layer.id || i}`,
-          title: layer.label || layer.id || "Vault Layer",
-          description:
-            `${layer.description || "Vault layer"}${layer.path ? ` — ${layer.path}` : ""}`,
-          tags: [
-            "#seed",
-            "#vault",
-            normalizeTag(layer.permissions || "read"),
-          ].filter(Boolean),
-          groups: [normalizeGroup(layer.id || "vault")],
-        }))
-
-        stacksOut.push({
-          id: "seed-vault",
-          title: "Vault Structure",
-          icon: "folder_managed",
-          items,
-        })
-      }
-    }
-
-    return stacksOut
+    return [...byWorkspace.entries()].map(([workspace, items]) => ({
+      id: `knowledge-${workspace}`,
+      title: workspace === "main" ? "Main Vault" : workspace,
+      icon: workspace === "public" ? "public" : "folder_managed",
+      items,
+    }))
   } catch {
     return []
   }
 }
 
 async function fetchBookmarks() {
-  const seedStacks = await fetchSeedMemoryStacks()
+  const knowledgeStacks = await fetchKnowledgeStacks()
 
   try {
     const res = await fetch(`${API_BASE}/api/knowledge?type=bookmark`, {
@@ -809,18 +639,7 @@ async function fetchBookmarks() {
         groups: [],
       }))
       if (items.length) {
-        const fallbackStacks = seedStacks.length
-          ? seedStacks
-          : DEFAULT_STACKS.map((stack) => ({
-              ...stack,
-              items: stack.items.map((item) => ({ ...item, groups: item.groups || [] })),
-            }))
-
-        // If backend bookmarks are sparse, keep sample stacks so grouping/layout stays rich.
-        stacks.value =
-          items.length < 6
-            ? [{ id: "bookmarks", title: "Bookmarks", icon: "bookmark", items }, ...fallbackStacks]
-            : [{ id: "bookmarks", title: "Bookmarks", icon: "bookmark", items }]
+        stacks.value = [{ id: "bookmarks", title: "Bookmarks", icon: "bookmark", items }, ...knowledgeStacks]
         applySessionMeta()
         pruneSelectedTags()
         return
@@ -830,12 +649,7 @@ async function fetchBookmarks() {
     // backend offline
   }
 
-  stacks.value = (seedStacks.length
-    ? seedStacks
-    : DEFAULT_STACKS.map((stack) => ({
-        ...stack,
-        items: stack.items.map((item) => ({ ...item, groups: item.groups || [] })),
-      })))
+  stacks.value = knowledgeStacks
   applySessionMeta()
   pruneSelectedTags()
 }

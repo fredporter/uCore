@@ -331,11 +331,14 @@ const TABS = [
   { id: "guide", label: "Guide & Docs", icon: "menu_book" },
   { id: "knowledge", label: "Knowledge", icon: "auto_stories" },
   { id: "learning", label: "Learning", icon: "school" },
-  { id: "publish", label: "Publishing", icon: "publish" },
 ];
 const VALID_DOC_TABS = new Set(TABS.map((tab) => tab.id));
 const routeTab = String(route.query.tab || "");
 const activeTab = ref(VALID_DOC_TABS.has(routeTab) ? routeTab : "guide");
+
+if (routeTab === "publish") {
+  router.replace({ path: "/workflow", query: { tab: "publish" } });
+}
 
 watch(activeTab, (tab) => {
   if (route.query.tab !== tab) {
@@ -347,6 +350,10 @@ watch(
   () => route.query.tab,
   (tab) => {
     const normalized = String(tab || "guide");
+    if (normalized === "publish") {
+      router.replace({ path: "/workflow", query: { tab: "publish" } });
+      return;
+    }
     if (VALID_DOC_TABS.has(normalized)) activeTab.value = normalized;
   },
 );
