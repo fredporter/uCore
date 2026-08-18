@@ -42,6 +42,8 @@
 | [VUE_REFACTOR_SURFACE_TAGGING.md](VUE_REFACTOR_SURFACE_TAGGING.md)       | Vue refactor surface tags     |
 | [SURFACE_OWNERSHIP.md](SURFACE_OWNERSHIP.md)                             | Canonical route and tab ownership |
 | [UDOS_HOME_MIGRATION.md](UDOS_HOME_MIGRATION.md)                         | Runtime/vault boundary and safe migration |
+| [ECOSYSTEM_STORAGE_ARCHITECTURE.md](ECOSYSTEM_STORAGE_ARCHITECTURE.md)   | Canonical storage, credentials and drift controls |
+| [WORKSTATION_MIGRATION_2026-08-18.md](WORKSTATION_MIGRATION_2026-08-18.md) | Migration record, verification and rollback boundary |
 
 ## Active Developer / Dev Mode Specs
 

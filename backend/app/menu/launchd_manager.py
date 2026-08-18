@@ -16,8 +16,10 @@ log = logging.getLogger("launchd-manager")
 
 UCORE_LABEL = "com.udos.ucore-menu"
 UCORE_PLIST = os.path.expanduser(f"~/Library/LaunchAgents/{UCORE_LABEL}.plist")
-UCORE_LOCKFILE = os.path.expanduser("~/.ucore/ucore-menu.pid")
 UCORE_BACKEND_DIR = os.environ.get("UCORE_BACKEND_DIR", str(Path.home() / "Code" / "uCore" / "backend"))
+UDOS_HOME = Path(os.environ.get("UDOS_HOME", Path.home() / "Code" / ".udos")).expanduser()
+UCORE_LOCKFILE = str(UDOS_HOME / "ucore-menu.pid")
+UCORE_LOG_DIR = UDOS_HOME / "logs"
 
 # The canonical module to run - MUST be kept in sync across all callers
 CANONICAL_MODULE = "app.menu.unified_menu_simple"
@@ -57,15 +59,17 @@ def get_plist_content() -> str:
   <key>LimitLoadToSessionType</key>
   <string>Aqua</string>
   <key>StandardOutPath</key>
-  <string>{os.path.expanduser('~/.ucore/logs/ucore-menu-stdout.log')}</string>
+  <string>{UCORE_LOG_DIR / 'ucore-menu-stdout.log'}</string>
   <key>StandardErrorPath</key>
-  <string>{os.path.expanduser('~/.ucore/logs/ucore-menu-stderr.log')}</string>
+  <string>{UCORE_LOG_DIR / 'ucore-menu-stderr.log'}</string>
   <key>TimeOut</key>
   <integer>60</integer>
   <key>EnvironmentVariables</key>
   <dict>
     <key>UCORE_DEBUG</key>
     <string>1</string>
+    <key>UDOS_HOME</key>
+    <string>{UDOS_HOME}</string>
     <key>PATH</key>
     <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
   </dict>
@@ -83,7 +87,7 @@ def install() -> bool:
         log.info("Installing uCore Menu launchd plist...")
 
         # Ensure directories exist
-        os.makedirs(os.path.expanduser("~/.ucore/logs"), exist_ok=True)
+        UCORE_LOG_DIR.mkdir(parents=True, exist_ok=True)
         Path(UCORE_PLIST).parent.mkdir(parents=True, exist_ok=True)
 
         # Write plist
@@ -221,15 +225,17 @@ def get_frontend_plist_content() -> str:
     <false/>
   </dict>
   <key>StandardOutPath</key>
-  <string>{os.path.expanduser('~/.ucore/logs/ucore-frontend-stdout.log')}</string>
+  <string>{UCORE_LOG_DIR / 'ucore-frontend-stdout.log'}</string>
   <key>StandardErrorPath</key>
-  <string>{os.path.expanduser('~/.ucore/logs/ucore-frontend-stderr.log')}</string>
+  <string>{UCORE_LOG_DIR / 'ucore-frontend-stderr.log'}</string>
   <key>TimeOut</key>
   <integer>60</integer>
   <key>EnvironmentVariables</key>
   <dict>
     <key>UCORE_DEBUG</key>
     <string>1</string>
+    <key>UDOS_HOME</key>
+    <string>{UDOS_HOME}</string>
     <key>PATH</key>
     <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
   </dict>
@@ -244,7 +250,7 @@ def install_frontend() -> bool:
         uid = os.getuid()
         log.info("Installing uCore Frontend launchd plist...")
 
-        os.makedirs(os.path.expanduser("~/.ucore/logs"), exist_ok=True)
+        UCORE_LOG_DIR.mkdir(parents=True, exist_ok=True)
         Path(UCORE_FRONTEND_PLIST).parent.mkdir(parents=True, exist_ok=True)
 
         Path(UCORE_FRONTEND_PLIST).write_text(get_frontend_plist_content(), encoding="utf-8")

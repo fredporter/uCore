@@ -17,6 +17,14 @@ jobs:
       - name: Validate planning governance
         run: bash scripts/validate_planning_governance.sh
 
+      - name: Reject new home-root state paths (pull request)
+        if: github.event_name == 'pull_request'
+        run: git diff --unified=0 "origin/${{ github.base_ref }}...HEAD" | python3 scripts/check_home_path_policy.py --diff-stdin
+
+      - name: Reject new home-root state paths (push)
+        if: github.event_name == 'push'
+        run: git diff --unified=0 "${{ github.event.before }}..${{ github.sha }}" | python3 scripts/check_home_path_policy.py --diff-stdin
+
       - name: Validate capability requirements coverage
         run: python3 scripts/validate_capability_requirements.py
 

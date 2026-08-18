@@ -68,7 +68,8 @@ REFRESH_INTERVAL = 30.0  # seconds
 
 UCORE_LABEL = "com.udos.ucore-menu"
 UCORE_PLIST = os.path.expanduser(f"~/Library/LaunchAgents/{UCORE_LABEL}.plist")
-UCORE_LOCKFILE = os.path.expanduser("~/.ucore/ucore-menu.pid")
+UDOS_HOME = Path(os.environ.get("UDOS_HOME", Path.home() / "Code" / ".udos")).expanduser()
+UCORE_LOCKFILE = str(UDOS_HOME / "ucore-menu.pid")
 UCORE_BACKEND_DIR = os.environ.get("UCORE_BACKEND_DIR", str(Path.home() / "Code" / "uCore" / "backend"))
 SNACKMACHINE_REPO_DIR = Path(
     os.environ.get(
@@ -93,13 +94,13 @@ EXTENSION_LINKS = {
     "roundtable": "http://localhost:5175/assistui",
 }
 
-log_dir = os.path.expanduser("~/.ucore/logs")
-os.makedirs(log_dir, exist_ok=True)
+log_dir = UDOS_HOME / "logs"
+log_dir.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] ucore-menu: %(message)s",
     handlers=[
-        logging.FileHandler(os.path.join(log_dir, "ucore-menu.log")),
+        logging.FileHandler(log_dir / "ucore-menu.log"),
         logging.StreamHandler(),
     ],
 )
