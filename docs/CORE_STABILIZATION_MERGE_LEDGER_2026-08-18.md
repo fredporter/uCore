@@ -67,7 +67,7 @@ complete table above from clean `main` checkouts before tagging or releasing.
 - Confirm the Developer surface remains Repo / Code / Editor oriented.
 - Confirm Snackbar/System/Intelligence contain operational concerns without new
   top-level navigation.
-- Confirm no active install/runtime path recreates `~/.ucore`, `~/.udos`,
+- Confirm no active install/runtime path recreates `~/.ucore`, `~/.udos`, <!-- path-policy: allow -->
   `.tasker`, `.vscode`, or `.clinerules`.
 - Confirm generated files, credentials, vault contents and local runtime state are
   absent from every diff.

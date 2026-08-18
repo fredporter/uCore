@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# path-policy: allow-literals
 """Read-only inventory for consolidating uDOS runtime state into UDOS_HOME."""
 
 from __future__ import annotations

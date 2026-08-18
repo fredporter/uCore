@@ -657,7 +657,7 @@ async function fetchReadiness() {
       "workflow.run",
       "knowledge.search",
       "ucode.grid",
-      "developer.autonomous",
+      "developer.guided",
       "llm.openrouter",
       "identity_gateway",
       "wordpress_gateway",

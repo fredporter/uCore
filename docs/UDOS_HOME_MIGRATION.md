@@ -1,4 +1,5 @@
 # uDOS Runtime Home Migration
+<!-- path-policy: allow-literals -->
 
 **Status:** Approved architecture; migration not yet executed  
 **Updated:** 2026-08-18
