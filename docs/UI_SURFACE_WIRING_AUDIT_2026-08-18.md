@@ -22,8 +22,9 @@ views inside the owning surface.
 
 ## Contextual and compatibility surfaces
 
-- BrowserUI is hidden and should be invoked by research/workflow actions. Its sample
-  data and standalone tab model are not ready for primary navigation.
+- BrowserUI is the uKnowledge web acquisition/research workbench and should be
+  invoked by Intelligence or Workflow actions. Its current sample data and standalone
+  tab model are not ready for primary navigation.
 - Groovebox is a project/add-on built on top of the core. Its route may remain
   stable, but it appears only as a project card when available.
 - SonicScrewdriver is a standalone GridCore-based device toolkit: a device library,
@@ -76,3 +77,6 @@ easy-to-explain reason to discover uDos before a new user understands that they 
 the wider platform. Its device revival and portable-runtime journey should lead into
 uCode, GridCore, vault workflows, documentation, and learning without making Sonic
 itself part of uCore.
+
+The Global Knowledge bank and Sonic device library have separate ownership and
+packaging contracts; see `UKNOWLEDGE_OFFLINE_LIBRARY_ARCHITECTURE.md`.
