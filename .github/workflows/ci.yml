@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       UDOS_ROOT: ${{ github.workspace }}/..
-      UDOS_HOME: ${{ runner.temp }}/udos-home
+      UDOS_HOME: ${{ github.workspace }}/.ci-udos
       UCORE_UCODE_PATH: ${{ github.workspace }}/external/uCode
     steps:
       - name: Checkout
