@@ -823,7 +823,7 @@ class UnifiedMenuDelegate(NSObject):
             self.startDevMode_(None)
 
     def quitApp_(self, _sender):
-        """Quit the menu app."""
+        """Quit cleanly; launchd restarts crashes, not successful exits."""
         log.info("Quitting uCore Menu")
         if self._refresh_timer:
             self._refresh_timer.cancel()

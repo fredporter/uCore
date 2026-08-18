@@ -48,7 +48,10 @@ def get_plist_content() -> str:
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>
-  <true/>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
   <key>LSUIElement</key>
   <true/>
   <key>LimitLoadToSessionType</key>
