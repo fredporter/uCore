@@ -22,9 +22,11 @@ views inside the owning surface.
 
 ## Contextual and compatibility surfaces
 
-- BrowserUI is the uKnowledge web acquisition/research workbench and should be
-  invoked by Intelligence or Workflow actions. Its current sample data and standalone
-  tab model are not ready for primary navigation.
+- BrowserUI is the user-owned knowledge acquisition/research workbench and should be
+  invoked by Intelligence or Workflow actions. It writes to user/add-on vaults and
+  may package contributions; Global Knowledge remains read-only outside authorized
+  Dev/maintainer workflows. Its current sample data and standalone tab model are not
+  ready for primary navigation.
 - Groovebox is a project/add-on built on top of the core. Its route may remain
   stable, but it appears only as a project card when available.
 - SonicScrewdriver is a standalone GridCore-based device toolkit: a device library,

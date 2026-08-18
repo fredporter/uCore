@@ -7,18 +7,19 @@ internet services, cloud accounts, and remote models are unavailable. Its public
 library aims for broad general-reference coverage comparable to a compact offline
 encyclopaedia, while going further in practical, local, and actionable knowledge.
 
-The canonical source vault is `~/Public/global-knowledge`. uKnowledge owns the
-contracts that validate, package, index, search, update, and serve that vault. uCore
-hosts the Vue experience; it does not own the corpus or knowledge engine.
+The installed Global Knowledge vault is `~/Public/global-knowledge`. It is read-only
+in normal user mode. uKnowledge owns the contracts that validate, package, index,
+search, update, and serve signed editions. uCore hosts the Vue experience; it does
+not own the corpus or knowledge engine.
 
 ## Boundaries
 
 | Owner | Responsibility |
 | --- | --- |
-| Global Knowledge vault | Redistributable human knowledge, source records, media, topic maps, editions, and public release manifests. |
+| Global Knowledge vault | Read-only installed editions for normal users; canonical corpus writes and releases are restricted to the Dev/maintainer workflow. |
 | uKnowledge | Corpus schema, validation, provenance, offline indexes, packages/deltas, search/retrieval, citations, integrity, and knowledge APIs. |
 | uCore | Browse/search/read UI, download/update controls, storage reporting, and links into Learning and Workflow. |
-| BrowserUI | Web research and acquisition workbench: capture, snapshot, cite, extract, compare, enhance, and submit material to the candidate lane. |
+| BrowserUI | User research workbench: capture, snapshot, cite, extract, compare, enhance, and save into a user-owned knowledge vault; optionally create a Global Knowledge submission. |
 | Learning Pathway | Sequenced lessons, exercises, assessment, and progress built from cited knowledge items. |
 | uCode | The small supported coding/runtime language and user-facing computing concepts documented in the knowledge bank. |
 | SonicScrewdriver | Device identity, specifications, firmware/reflash knowledge, compatibility, transformation recipes, and device-derived portals. |
@@ -29,7 +30,31 @@ uDos and uCode. It should not attempt to mirror documentation for every programm
 language, operating system, or machine. Device-specific technical depth belongs in
 SonicScrewdriver's device library and may be linked by stable identifiers.
 
-## Corpus lanes
+## Access and contribution boundary
+
+- Normal user mode may browse, search, cite, link, and learn from an installed Global
+  Knowledge edition. It cannot modify that edition.
+- BrowserUI writes research into the user's own vault, or another explicitly selected
+  writable add-on/shared vault. It never writes directly into Global Knowledge.
+- A user can create a portable contribution package containing proposed Markdown,
+  sources, provenance, licence assertions, diffs, and optional supporting media.
+- Submission does not grant publication. It enters a review queue analogous to a wiki
+  contribution or pull request.
+- Only Dev Mode maintainers may accept submissions into the canonical candidate
+  corpus, edit release material, sign an edition, or publish update packages.
+- Installed editions are replaced or updated atomically from validated packages;
+  local annotations and user extensions remain in user-owned vaults.
+
+This is a capability rule, not merely a hidden button. uKnowledge's write APIs must
+reject canonical-corpus mutation without an authorized Dev/maintainer context.
+
+This boundary reconciles existing specifications rather than introducing a new
+model: `VAULT_BINDER_WORKFLOW_INTEGRATION.md` already classifies Public vaults as
+read-only, `VAULT_PLATES_AND_DESTROY_SPEC.md` defines Global Knowledge as a read-only
+seed plate, and the corpus's `survival/INDEX.md` directs contributions through a
+separate knowledge-bank system.
+
+## Maintainer corpus lanes
 
 Every item must be in exactly one lane:
 
@@ -81,7 +106,7 @@ AppFlowy, a cloud model, or an internet connection.
 
 BrowserUI is not a general-purpose browser surface. It is the contextual research
 workbench used by Intelligence and Workflow when online material should become
-durable offline knowledge:
+durable offline knowledge in a user-owned vault:
 
 1. Capture the URL, retrieval time, publisher/author, licence signals, and a hash or
    permitted snapshot before transformation.
@@ -95,8 +120,12 @@ durable offline knowledge:
 5. Keep source text, model-produced changes, and reviewer decisions distinguishable.
    A model may propose edits but may not invent provenance, erase uncertainty, or
    promote a candidate into a release edition.
-6. Save the resulting inspectable Markdown into the candidate lane and create a
-   uFlow review task when licensing, factual, regional, or safety review remains.
+6. Save the resulting inspectable Markdown into the selected user-owned knowledge
+   vault. If the user chooses to contribute it, build a submission package and create
+   a uFlow submission/review task without mutating the installed Global Knowledge.
+
+In Dev Mode, an authorized maintainer can review a submission, request changes,
+accept it into the canonical candidate lane, and later include it in a signed release.
 
 Because Markdown is the durable substrate, low-cost agents can perform most routine
 corpus development. Quality comes from schemas, citations, diffs, validators,
@@ -140,20 +169,23 @@ observable features and the local device library.
 ## Stabilization sequence
 
 1. Preserve the current corpus and create an auditable inventory without publishing.
-2. Separate release, candidate, reference-quarantine, compost, and generated output.
-3. Define schemas for items, sources, licences, editions, citations, and device links.
-4. Remove AppFlowy and uCore-internal dependencies from the basic filesystem reader,
+2. Enforce read-only installed editions, writable user knowledge vaults, and an
+   explicit contribution-package boundary.
+3. Separate release, candidate, reference-quarantine, compost, and generated output.
+4. Define schemas for items, sources, licences, editions, submissions, citations, and
+   device links.
+5. Remove AppFlowy and uCore-internal dependencies from the basic filesystem reader,
    indexer, and search API.
-5. Move all mutable indexes, caches, registries, and jobs into `UDOS_HOME`; keep the
+6. Move all mutable indexes, caches, registries, and jobs into `UDOS_HOME`; keep the
    public vault portable and human-readable.
-6. Build a deterministic edition validator and a minimal lexical offline package.
-7. Wire uCore Documentation to browse/search/read the package with clear offline,
+7. Build a deterministic edition validator and a minimal lexical offline package.
+8. Wire uCore Documentation to browse/search/read the package with clear offline,
    provenance, freshness, and safety states.
-8. Replace BrowserUI sample stacks with the provenance-preserving acquisition
-   pipeline and invoke it contextually from research workflows.
-9. Curate a balanced minimum edition: orientation, language, maths, science,
+9. Replace BrowserUI sample stacks with the provenance-preserving user-vault and
+   contribution pipeline.
+10. Curate a balanced minimum edition: orientation, language, maths, science,
    geography, history/civics, health, practical life, nature, making/repair,
    emergency readiness, and uDos/uCode basics.
-10. Connect reviewed items to the Learning Pathway.
-11. After the core stabilizes, define stable cross-links to SonicScrewdriver's device
+11. Connect reviewed items to the Learning Pathway.
+12. After the core stabilizes, define stable cross-links to SonicScrewdriver's device
     library and build the first device-to-knowledge portal journey.
