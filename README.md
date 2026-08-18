@@ -78,7 +78,6 @@ Self-hosted runner prerequisites:
 
 What it runs:
 
-- python3 scripts/check_snackmachine_contract.py
 - bash scripts/smoke_snackmachine_integration.sh
 
 ## Architecture

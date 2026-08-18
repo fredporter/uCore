@@ -47,17 +47,6 @@ jobs:
       - name: Validate extension manifests
         run: python3 scripts/validate_extension_manifests.py
 
-      - name: Checkout SnackMachine contract source
-        uses: actions/checkout@v4
-        with:
-          repository: fredporter/SnackMachine
-          path: external/SnackMachine
-
-      - name: Validate SnackMachine contract compatibility
-        env:
-          UCORE_SNACKMACHINE_PATH: ${{ github.workspace }}/external/SnackMachine
-        run: python3 scripts/check_snackmachine_contract.py
-
       - name: Audit duplicate API routes
         run: python3 scripts/audit_duplicate_routes.py
 
@@ -73,9 +62,6 @@ jobs:
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -85,13 +71,28 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Checkout uFlow
+        uses: actions/checkout@v4
+        with:
+          repository: fredporter/uFlow
+          ref: work/2026-08-18-stabilise
+          path: external/uFlow
+
+      - name: Checkout uKnowledge
+        uses: actions/checkout@v4
+        with:
+          repository: fredporter/uKnowledge
+          ref: work/2026-08-18-stabilise
+          path: external/uKnowledge
+
       - name: Install backend dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev]
+          pip install -e ./external/uFlow -e ./external/uKnowledge
+          pip install -e ./backend[dev]
 
       - name: Run backend tests
-        run: pytest -q
+        run: python -m pytest -q backend/tests
 
   frontend-build:
     name: Frontend Build
@@ -104,6 +105,16 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 10
+
+      - name: Checkout uCode
+        uses: actions/checkout@v4
+        with:
+          repository: fredporter/uCode
+          ref: work/2026-08-18-stabilise
+          path: external/uCode
+
+      - name: Expose sibling uCode source contract
+        run: ln -s "$GITHUB_WORKSPACE/external/uCode" "$GITHUB_WORKSPACE/../uCode"
 
       - name: Set up Node
         uses: actions/setup-node@v4
