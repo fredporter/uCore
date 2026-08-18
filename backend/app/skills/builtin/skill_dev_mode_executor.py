@@ -37,10 +37,10 @@ AGENT_ROUTING = {
 }
 
 EXECUTOR_CHOICE = {
-    "implementation": "cline-invoke",
-    "coding": "cline-invoke",
-    "debugging": "cline-invoke",
-    "testing": "cline-invoke",
+    "implementation": "route_task",
+    "coding": "route_task",
+    "debugging": "route_task",
+    "testing": "route_task",
     "architecture": "roundtable-dispatch",
     "design": "hivemind-consensus",
     "planning": "hivemind-consensus",
@@ -356,44 +356,13 @@ class DevModeExecutorSkill(BaseSkill):
             return {"executor": "roundtable", "error": str(exc)}
 
     async def _call_cline(self, task: str) -> dict:
-        """Invoke Cline CLI."""
-        import asyncio
-        import os
-        import subprocess
-
-        cline_bin = None
-        for c in ["cline", "npx @cline/cli"]:
-            try:
-                subprocess.run(["which", c.split()[0]], capture_output=True, text=True, timeout=2, check=True)
-                cline_bin = c
-                break
-            except Exception:
-                continue
-
-        if not cline_bin:
-            return {"executor": "cline", "error": "Cline CLI not found"}
-
-        try:
-            cmd = cline_bin.split() + ["--task", task[:500]]
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env={**os.environ},
-            )
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(), timeout=120,
-            )
-            output = stdout.decode("utf-8", errors="replace") if stdout else ""
-            return {
-                "executor": "cline",
-                "exit_code": proc.returncode,
-                "output": output[:2000],
-            }
-        except asyncio.TimeoutError:
-            return {"executor": "cline", "error": "Timeout after 120s"}
-        except Exception as exc:
-            return {"executor": "cline", "error": str(exc)}
+        """Reject direct Cline execution; use the governed adapter."""
+        return {
+            "executor": "cline",
+            "success": False,
+            "error": "Direct Cline execution is disabled by policy",
+            "required_path": "cline-invoke plan adapter, then reviewed worktree harness",
+        }
 
     async def _call_route_task(self, task: str) -> dict:
         """Fallback: route through route_task skill."""

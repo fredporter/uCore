@@ -65,9 +65,25 @@ def _get_category_priority(category: str) -> int:
 def get_skill(skill_id: str) -> BaseSkill | None:
     _ensure(); return _registry.get(skill_id)
 
-async def run_skill_by_id(skill_id: str, **kwargs) -> dict:
+async def run_skill_by_id(
+    skill_id: str,
+    *,
+    execution_authorized: bool = False,
+    **kwargs,
+) -> dict:
     skill = get_skill(skill_id)
     if not skill: return {"success": False, "error": f"Skill '{skill_id}' not found"}
+    requires_confirmation = (
+        getattr(skill.meta, "requires_confirmation", False)
+        or skill.meta.category in ("mutating", "destructive", "write")
+    )
+    if requires_confirmation and not execution_authorized:
+        return {
+            "success": False,
+            "error": "Skill requires explicit execution authorization",
+            "skill_id": skill_id,
+            "requires_confirmation": True,
+        }
     errors = skill.validate(**kwargs)
     if errors: return {"success": False, "errors": errors}
     return await skill.run(**kwargs)

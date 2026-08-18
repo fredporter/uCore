@@ -1,14 +1,9 @@
 """Cline Invoke Skill — invoke Cline CLI from uCore skills.
 
-Invokes Cline CLI (VS Code extension's CLI) from within uCore's skill
-ecosystem, allowing Dev Mode to use Cline as an agentic executor for
-complex multi-step tasks.
+Retained as an optional, contained planning executor. Act/yolo execution is
+disabled until the worktree, diff-review, budget and approval harness exists.
 
-Modes:
-    - yolo: autonomous execution with auto-approval on
-    - interactive: auto-approval off
-
-Integrates with: Cline CLI, OpenRouter API, gh CLI.
+Integrates with: Cline CLI.
 """
 from __future__ import annotations
 
@@ -66,10 +61,9 @@ def _load_user_vars() -> dict:
 def _resolve_cline_runtime_config(kwargs: dict, mode: str) -> dict[str, str]:
     """Resolve provider/model/thinking/approval from internal config first.
 
-    Fail-fast policy:
-    - provider/model must be explicitly configured in kwargs, variables store,
-      or UCORE_CLINE_* env vars.
-    - do not silently hardcode provider/model defaults.
+    Fail-fast policy: the model must be explicitly configured in kwargs,
+    variables, or UCORE_CLINE_MODEL. Provider authentication belongs to Cline's
+    isolated config directory and is never passed through uCore command lines.
     """
     user_vars = _load_user_vars()
 
@@ -92,23 +86,11 @@ def _resolve_cline_runtime_config(kwargs: dict, mode: str) -> dict[str, str]:
         or "low"
     )
 
-    auto_approve = str(
-        kwargs.get(
-            "auto_approve",
-            user_vars.get(
-                "cline_auto_approve",
-                "true" if mode == "yolo" else "false",
-            ),
-        ),
-    ).strip().lower()
-    if auto_approve not in {"true", "false"}:
-        auto_approve = "true" if mode == "yolo" else "false"
-
     return {
         "provider": provider,
         "model": model,
         "thinking": thinking,
-        "auto_approve": auto_approve,
+        "auto_approve": "false",
     }
 
 
@@ -116,8 +98,8 @@ def _build_repair_instructions(missing: list[str]) -> list[str]:
     """Return actionable repair steps for missing runtime config."""
     steps = [
         "Set values via internal API: PUT /api/variables/user",
-        "Example payload: {\"cline_provider\": \"ollama\", \"cline_model\": \"qwen2.5-coder:3b\", \"cline_thinking\": \"low\"}",
-        "Or set env vars: UCORE_CLINE_PROVIDER and UCORE_CLINE_MODEL",
+        "Example payload: {\"cline_model\": \"qwen2.5-coder:3b\", \"cline_thinking\": \"low\"}",
+        "Or set env var: UCORE_CLINE_MODEL",
     ]
     if "api_key" in missing:
         steps.append(
@@ -133,9 +115,9 @@ class ClineInvokeSkill(BaseSkill):
         id="cline-invoke",
         name="Cline Invoke",
                 description=(
-                    "Invoke Cline CLI from uCore skills using positional"
-                    " prompt mode. Supports yolo (auto-approve true) and"
-                    " interactive (auto-approve false)."
+                    "Optional Cline planning adapter. Disabled by default;"
+                    " act/yolo execution is blocked until sandboxed worktree"
+                    " review is implemented."
                 ),
         category="developer",
         timeout=300,
@@ -150,8 +132,8 @@ class ClineInvokeSkill(BaseSkill):
                 name="mode",
                 type="string",
                 required=False,
-                default="interactive",
-                description="Execution mode: 'yolo' or 'interactive'",
+                default="plan",
+                description="Execution mode: 'plan' only",
             ),
             SkillParam(
                 name="cwd",
@@ -196,11 +178,8 @@ class ClineInvokeSkill(BaseSkill):
                 description="Thinking level override: none|low|medium|high|xhigh",
             ),
             SkillParam(
-                name="auto_approve",
-                type="string",
-                required=False,
-                default="",
-                description="Override auto-approve: true|false",
+                name="auto_approve", type="string", required=False,
+                default="false", description="Reserved; always forced false",
             ),
         ],
         requires_confirmation=True,
@@ -208,16 +187,43 @@ class ClineInvokeSkill(BaseSkill):
 
     async def run(self, **kwargs) -> dict:
         task = kwargs.get("task", "").strip()
-        mode = kwargs.get("mode", "interactive").lower()
+        mode = kwargs.get("mode", "plan").lower()
         cwd = kwargs.get("cwd", str(Path.cwd()))
-        timeout = int(kwargs.get("timeout", 120))
+        timeout = min(int(kwargs.get("timeout", 120)), 180)
         context = kwargs.get("context", "")
 
         if not task:
             return {"success": False, "error": "task is required"}
 
-        if mode not in ("yolo", "interactive"):
-            mode = "interactive"
+        if os.environ.get("UCORE_ENABLE_CLINE", "").lower() not in {"1", "true", "yes"}:
+            return {
+                "success": False,
+                "error": "Cline is disabled by policy",
+                "repair_required": True,
+                "enable_with": "UCORE_ENABLE_CLINE=true",
+                "allowed_mode": "plan",
+            }
+
+        if mode != "plan" or str(kwargs.get("auto_approve", "false")).lower() == "true":
+            return {
+                "success": False,
+                "error": "Cline act/yolo and auto-approval are disabled by policy",
+                "allowed_mode": "plan",
+            }
+
+        repo_path = Path(cwd).expanduser().resolve()
+        code_root = settings.udos_root.resolve()
+        if (
+            repo_path == code_root
+            or not repo_path.is_relative_to(code_root)
+            or not (repo_path / ".git").exists()
+            or "ARCHIVED" in repo_path.parts
+        ):
+            return {
+                "success": False,
+                "error": "Cline cwd must be an active allow-listed Git repository under UDOS_ROOT",
+                "cwd": str(repo_path),
+            }
 
         # Locate Cline CLI
         cline_bin = _find_cline_binary()
@@ -234,8 +240,6 @@ class ClineInvokeSkill(BaseSkill):
         runtime_cfg = _resolve_cline_runtime_config(kwargs, mode)
 
         missing_cfg: list[str] = []
-        if not runtime_cfg["provider"]:
-            missing_cfg.append("provider")
         if not runtime_cfg["model"]:
             missing_cfg.append("model")
         if missing_cfg:
@@ -250,46 +254,8 @@ class ClineInvokeSkill(BaseSkill):
                 "repair_steps": _build_repair_instructions(missing_cfg),
             }
 
-        # Resolve API key: DEEPSEEK_API_KEY first, then SecretStore, then
-        # OPENROUTER_API_KEY, then env file fallback
-        api_key: str = ""
-        # Priority 1: DEEPSEEK_API_KEY from environment
-        api_key = os.environ.get("DEEPSEEK_API_KEY", "")
-        # Priority 2: DEEPSEEK_API_KEY from SecretStore
-        if not api_key:
-            try:
-                from app.secret.store import get_store
-                store = get_store()
-                dsk_val = store.get("DEEPSEEK_API_KEY")
-                if dsk_val:
-                    api_key = dsk_val
-            except Exception:
-                pass
-        # Priority 3: OPENROUTER_API_KEY from environment (fallback)
-        if not api_key:
-            api_key = os.environ.get("OPENROUTER_API_KEY", "")
-        # Priority 4: DEEPSEEK_API_KEY or OPENROUTER_API_KEY from env file
-
-        if not api_key:
-            try:
-                config_path = (
-                    Path.home() / ".config" / "hivemind" / ".env"
-                )
-                if config_path.exists():
-                    content = config_path.read_text()
-                    for line in content.splitlines():
-                        if line.startswith("DEEPSEEK_API_KEY="):
-                            api_key = line.split("=", 1)[1].strip().strip('"')
-                            if api_key:
-                                break
-                        if line.startswith("OPENROUTER_API_KEY="):
-                            api_key = line.split("=", 1)[1].strip().strip('"')
-                            if api_key:
-                                break
-            except Exception:
-                pass
-
-        # Build command against current Cline CLI interface.
+        # Cline owns its provider authentication inside the canonical config
+        # directory. uCore never extracts or passes provider keys on the CLI.
         prompt = task
         if context:
             prompt = f"{task}\n\nContext:\n{context}"
@@ -297,39 +263,20 @@ class ClineInvokeSkill(BaseSkill):
         cmd = [
             cline_bin,
             "--json",
-            "--cwd", cwd,
-            "-P", runtime_cfg["provider"],
+            "--cwd", str(repo_path),
+            "--config", str(settings.udos_home / "integrations" / "cline"),
+            "--plan",
             "-m", runtime_cfg["model"],
-            "--thinking", runtime_cfg["thinking"],
+            "--reasoning-effort", runtime_cfg["thinking"],
             "-t", str(timeout),
-            "--auto-approve", runtime_cfg["auto_approve"],
+            "--double-check-completion",
         ]
-
-        # API key is only required for key-based providers.
-        needs_key_provider = runtime_cfg["provider"].lower() in {
-            "openrouter", "openai", "anthropic", "gemini", "groq", "deepseek", "mistral",
-        }
-        if needs_key_provider and not api_key:
-            missing_cfg = ["api_key"]
-            return {
-                "success": False,
-                "error": (
-                    f"Provider '{runtime_cfg['provider']}' requires an API key, but none was found"
-                ),
-                "repair_required": True,
-                "missing": missing_cfg,
-                "repair_steps": _build_repair_instructions(missing_cfg),
-                "provider": runtime_cfg["provider"],
-                "model": runtime_cfg["model"],
-            }
-        if needs_key_provider and api_key:
-            cmd.extend(["-k", api_key])
 
         cmd.append(prompt)
 
         # Execute
         try:
-            result = await self._run_cline(cmd, cwd, timeout)
+            result = await self._run_cline(cmd, str(repo_path), timeout)
             if result.get("needs_auth"):
                 return {
                     "success": False,
