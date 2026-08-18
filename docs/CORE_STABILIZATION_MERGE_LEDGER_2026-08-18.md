@@ -22,12 +22,12 @@ is `~/Code/.venv`.
 
 ## Review branches and checkpoints
 
-| Repository | Branch | Head checkpoint |
+| Repository | Branch | Key review checkpoint |
 | --- | --- | --- |
 | uFlow | `work/2026-08-18-stabilise` | `028df3d` — task substrate moved into uFlow |
 | uKnowledge | `work/2026-08-18-stabilise` | `7e52162` — filesystem-first knowledge library |
 | uCode | `work/2026-08-18-stabilise` | `65b1706` — shared state/runtime boundary |
-| uCore | `work/2026-08-18-stabilise` | `610ec2f` — clean-checkout CI aligned with the stabilized architecture |
+| uCore | `work/2026-08-18-stabilise` | `6dff063` — clean-checkout CI aligned with the stabilized architecture |
 
 ## Verification evidence
 
