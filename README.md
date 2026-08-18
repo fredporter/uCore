@@ -148,12 +148,12 @@ VS Code (Cline) → MCP Bridge → uCore (port 8484)
 | Surface       | Route                | Description                                                           |
 | ------------- | -------------------- | --------------------------------------------------------------------- |
 | Dashboard     | `/`                  | Main landing, Dev Mode filtering                                      |
-| Assistant     | `/assistui`          | AI chat & agent-assisted workflows                                    |
-| Server        | `/server`            | Server management                                                     |
+| Intelligence  | `/intelligence`      | Chat, planning, models, agents, budget, and history                    |
+| Snackbar      | `/snackbar`          | Services, feeds, skills, snacks, extensions, logs, and MCP            |
 | Developer     | `/developer`         | Developer tools                                                       |
 | System        | `/system`            | System settings                                                       |
 | Workflow      | `/workflow`          | Workflow builder                                                      |
-| SnackMachine  | `/server?tab=snacks` | Core snack workspace (packaged snacks via SnackMachine extension)     |
+| SnackMachine  | `/snackbar?tab=snacks` | Core snack workspace (packaged snacks via SnackMachine extension)   |
 | BrowserUI     | `/browserui`         | Browser automation                                                    |
 | Documentation | `/documentation`     | Docs viewer                                                           |
 | uCode         | `/ucode`             | uCode runtime bridge: GridCore, GridSmith, teletext, terminal widgets |

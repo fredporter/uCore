@@ -134,17 +134,16 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
     activation_required: false,
     description: "Built-in documentation viewer",
   },
-  // Extensions that require installation + activation
+  // Compatibility id retained for saved state; Developer is built into uCore.
   {
     id: "udev",
     name: "Developer",
     kind: "surface",
-    required: false,
+    required: true,
     icon: "code",
     route: "/developer",
-    activation_required: true,
-    description: "Full developer lane — requires uDev",
-    install_url: "https://github.com/fredporter/uDev",
+    activation_required: false,
+    description: "Built-in repository browser and code editor",
   },
   {
     id: "snack-shack",

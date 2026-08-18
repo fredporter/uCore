@@ -79,7 +79,7 @@ const routes: RouteRecordRaw[] = [
       const tab = String(to.query.tab || "snacks");
       if (tab === "workflows") return "/workflow?tab=publish";
       if (tab === "vault") return "/workflow?tab=binder";
-      if (tab === "mcp") return "/developer?tab=mcp-servers";
+      if (tab === "mcp") return "/snackbar?tab=mcp";
       if (tab === "variables") return "/system?tab=variables";
       if (tab === "scheduler") return "/snackbar?tab=dashboard";
       return "/snackbar?tab=snacks";

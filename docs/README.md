@@ -40,6 +40,7 @@
 | [MENUBAR_UNIFICATION_PLAN.md](MENUBAR_UNIFICATION_PLAN.md)               | Menubar unification           |
 | [FRONTEND_CONSOLIDATION_PLAYBOOK.md](FRONTEND_CONSOLIDATION_PLAYBOOK.md) | Frontend consolidation        |
 | [VUE_REFACTOR_SURFACE_TAGGING.md](VUE_REFACTOR_SURFACE_TAGGING.md)       | Vue refactor surface tags     |
+| [SURFACE_OWNERSHIP.md](SURFACE_OWNERSHIP.md)                             | Canonical route and tab ownership |
 
 ## Active Developer / Dev Mode Specs
 
