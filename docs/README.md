@@ -41,6 +41,7 @@
 | [FRONTEND_CONSOLIDATION_PLAYBOOK.md](FRONTEND_CONSOLIDATION_PLAYBOOK.md) | Frontend consolidation        |
 | [VUE_REFACTOR_SURFACE_TAGGING.md](VUE_REFACTOR_SURFACE_TAGGING.md)       | Vue refactor surface tags     |
 | [SURFACE_OWNERSHIP.md](SURFACE_OWNERSHIP.md)                             | Canonical route and tab ownership |
+| [UDOS_HOME_MIGRATION.md](UDOS_HOME_MIGRATION.md)                         | Runtime/vault boundary and safe migration |
 
 ## Active Developer / Dev Mode Specs
 

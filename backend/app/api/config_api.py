@@ -57,9 +57,13 @@ async def handle_get_config(request: web.Request) -> web.Response:
         ],
         "installation": [
             _entry("UDOS_ROOT", str(settings.udos_root)),
+            _entry("UDOS_HOME", str(settings.udos_home)),
             _entry("Data Dir", str(settings.data_dir)),
             _entry("Config Dir", str(settings.config_dir)),
             _entry("Logs Dir", str(settings.logs_dir)),
+            _entry("User Vault", str(settings.vault_root)),
+            _entry("Shared Vaults", str(settings.shared_vault_root)),
+            _entry("Public Vaults", str(settings.public_vault_root)),
             _entry("Surface Registry", settings.surface_registry_path),
             _entry("Install Name", settings.install_name),
         ],
