@@ -40,10 +40,12 @@ export {
   type ReaderTeletextPage,
   type VaultDoc,
   type VaultLibrary,
-} from "@udos/gridcore";
+} from "@udos/gridcore/teletext";
 
 // ── Local config: uCore vault public library definitions ──────────
 // This maps uCore's vault sources (public / global-knowledge) to Ceefax page ranges.
+import type { PublicLibraryDef } from "@udos/gridcore/teletext";
+
 export const PUBLIC_LIBRARY_DEFS: PublicLibraryDef[] = [
   {
     id: "documentation",

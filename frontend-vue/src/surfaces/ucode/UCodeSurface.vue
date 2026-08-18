@@ -626,71 +626,14 @@ import worldMapSeed from "../../grid-core/seeds/layers/world-map.json";
 import moonMapSeed from "../../grid-core/seeds/layers/moon.json";
 import regionMapSeed from "../../grid-core/seeds/layers/region.json";
 import {
-  // Types
-  type ReaderTeletextPage,
   type VaultDoc,
   type VaultLibrary,
-  type PublicLibraryDef,
-  type BuilderContext,
-
-  // Constants
   TELETEXT_FASTEXT,
   DOC_PAGE_OFFSET,
-  DOC_SCREEN_LINES,
+  DOCS_PER_LIST_PAGE,
   MAX_DOCS_PER_LIBRARY,
-
-  // Helpers (pure)
-  docTitle,
-  wrapText,
-  libraryForPage,
-  ceefaxClock,
-
-  // Layout
-  writeDoubleHeight,
-  writeMosaicRule,
-  writeSeparatedBar,
-  writeBoxedDoubleHeightTitle,
-
-  // Builders
-  mainIndexPage,
-  docListPage,
-  docContentPage,
-  newsPage,
-  subIndexPage,
-  helpPage,
-  teletextContent,
-  docScreens,
-
-  // Config
   PUBLIC_LIBRARY_DEFS,
-} from "@udos/gridcore";
-  DOC_SCREEN_LINES,
-
-  // Helpers
-  docTitle,
-  wrapText,
-  libraryForPage,
-  ceefaxClock,
-
-  // Layout
-  writeDoubleHeight,
-  writeMosaicRule,
-  writeSeparatedBar,
-  writeBoxedDoubleHeightTitle,
-
-  // Builders
-  mainIndexPage,
-  docListPage,
-  docContentPage,
-  newsPage,
-  subIndexPage,
-  helpPage,
-  teletextContent,
-  docScreens,
-
-  // Config
-  PUBLIC_LIBRARY_DEFS,
-} from "@udos/gridcore";
+} from "../../grid-core/teletext";
 
 const shell = useShellStore();
 const gridcoreSettings = useGridCoreSettingsStore();
@@ -1908,7 +1851,8 @@ async function loadVaultContent(): Promise<void> {
     );
     vaultLibraries.value = PUBLIC_LIBRARY_DEFS.map((def) => {
       const all = fetched.get(def.source) ?? [];
-      const docs = (def.tag ? all.filter((d) => d.tags.includes(def.tag)) : all)
+      const tag = def.tag;
+      const docs = (tag ? all.filter((d) => d.tags.includes(tag)) : all)
         .filter((d) => d.extension === "md" || d.extension === "markdown")
         .slice(0, MAX_DOCS_PER_LIBRARY);
       return { ...def, docs };
