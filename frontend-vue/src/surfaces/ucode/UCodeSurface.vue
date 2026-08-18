@@ -575,6 +575,7 @@
  * @usage Routed at '/ucode'.
  */
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useGridCoreSettingsStore } from "../../stores/gridcoreSettings";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
@@ -636,6 +637,8 @@ import {
 } from "../../grid-core/teletext";
 
 const shell = useShellStore();
+const route = useRoute();
+const router = useRouter();
 const gridcoreSettings = useGridCoreSettingsStore();
 const gridcorePresetClass = computed(
   () => `gridcore-surface--${gridcoreSettings.preset}`,
@@ -651,7 +654,9 @@ const UCODE_TABS: TabDef[] = [
   { id: "glyphs", label: "Glyphs", icon: "font_download" },
 ];
 
-const activeTab = ref("terminal");
+const VALID_UCODE_TABS = new Set(UCODE_TABS.map((tab) => tab.id));
+const routeTab = String(route.query.tab || "");
+const activeTab = ref(VALID_UCODE_TABS.has(routeTab) ? routeTab : "terminal");
 
 const tabTitles: Record<string, string> = {
   terminal: "uCode — Terminal",
@@ -1640,6 +1645,9 @@ function initGrid(tabId: string) {
 }
 
 watch(activeTab, (newTab) => {
+  if (route.query.tab !== newTab) {
+    router.replace({ query: { ...route.query, tab: newTab } });
+  }
   if (newTab !== "terminal") disconnectTerminalRuntime();
   terminalCursorX = 0;
   terminalCursorY = 0;
@@ -1657,6 +1665,14 @@ watch(activeTab, (newTab) => {
     else if (gridContainer.value) initGrid(newTab);
   });
 });
+
+watch(
+  () => route.query.tab,
+  (tab) => {
+    const normalized = String(tab || "terminal");
+    if (VALID_UCODE_TABS.has(normalized)) activeTab.value = normalized;
+  },
+);
 
 function loadTabContent(tabId?: string) {
   const id = tabId || activeTab.value;

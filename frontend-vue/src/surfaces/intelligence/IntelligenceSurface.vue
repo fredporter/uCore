@@ -119,9 +119,6 @@
       <!-- ═══ Models tab ═══ -->
       <SnackbarModelsPanel v-else-if="activeTab === 'models'" />
 
-      <!-- ═══ Agents tab ═══ -->
-      <SnackbarAgentsPanel v-else-if="activeTab === 'agents'" />
-
       <!-- ═══ Budget tab ═══ -->
       <SnackbarBudgetPanel v-else-if="activeTab === 'budget'" />
 
@@ -134,6 +131,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useSnackbarOpsStore } from "../../stores/snackbarOps";
 import { useChatStore, ASSISTUI_MODES } from "../../stores/chat";
@@ -141,27 +139,42 @@ import { useWorkflowStore } from "../../stores/workflow";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import SnackbarModelsPanel from "../snackbar/panels/SnackbarModelsPanel.vue";
-import SnackbarAgentsPanel from "../snackbar/panels/SnackbarAgentsPanel.vue";
 import SnackbarBudgetPanel from "../snackbar/panels/SnackbarBudgetPanel.vue";
 import CombinedHistoryPanel from "./panels/CombinedHistoryPanel.vue";
 
 const INTEL_TABS = [
   { id: "chat", label: "Chat", icon: "chat" },
-  { id: "intel", label: "Intelligence", icon: "chat" },
-  { id: "models", label: "Models", icon: "chat" },
-  { id: "agents", label: "Agents", icon: "chat" },
-  { id: "budget", label: "Budget", icon: "chat" },
-  { id: "history", label: "History", icon: "chat" },
+  { id: "intel", label: "Settings", icon: "tune" },
+  { id: "models", label: "Models", icon: "smart_toy" },
+  { id: "budget", label: "Budget", icon: "payments" },
+  { id: "history", label: "History", icon: "history" },
 ];
 
 const shell = useShellStore();
+const route = useRoute();
+const router = useRouter();
 const srv = useSnackbarOpsStore();
 const chat = useChatStore();
 const wf = useWorkflowStore();
 
-const activeTab = ref("chat");
+const VALID_INTEL_TABS = new Set(INTEL_TABS.map((tab) => tab.id));
+const routeTab = String(route.query.tab || "");
+const activeTab = ref(VALID_INTEL_TABS.has(routeTab) ? routeTab : "chat");
 
-watch(activeTab, (tab) => shell.setIntelTab(tab), { immediate: true });
+watch(activeTab, (tab) => {
+  shell.setIntelTab(tab);
+  if (route.query.tab !== tab) {
+    router.replace({ query: { ...route.query, tab } });
+  }
+}, { immediate: true });
+
+watch(
+  () => route.query.tab,
+  (tab) => {
+    const normalized = String(tab || "chat");
+    if (VALID_INTEL_TABS.has(normalized)) activeTab.value = normalized;
+  },
+);
 const modelPickerOpen = ref(false);
 const inputRef = ref<HTMLTextAreaElement | null>(null);
 
