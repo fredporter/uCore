@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sqlite3
 import time
 from datetime import UTC, datetime, timedelta
@@ -34,7 +35,8 @@ from plate_refresh.refresh import discover_plates, load_plate
 log = logging.getLogger("ucore.plate_refresh.monitoring")
 
 ROOT = Path(__file__).resolve().parents[2]
-MONITOR_DB = Path.home() / ".ucore" / "plate_monitor.db"
+UDOS_HOME = Path(os.environ.get("UDOS_HOME", Path.home() / "Code" / ".udos"))
+MONITOR_DB = UDOS_HOME / "plate_monitor.db"
 
 
 # ─── Database Setup ───────────────────────────────────────

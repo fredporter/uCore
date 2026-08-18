@@ -62,8 +62,7 @@
 
 ## Active Task / Planning Trackers
 
-- `.tasker.dev-flow.yaml` — canonical active task list
-- `.tasker/README.md` — tasker directory guide
+- `uFlow` — canonical workflow and task owner (`$UDOS_HOME/flow/tasks`)
 - `docs/CONSOLIDATION_PLAN.md` — docs consolidation tracker (kept for reference)
 
 ## Archive

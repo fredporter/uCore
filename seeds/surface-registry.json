@@ -50,8 +50,8 @@
       "devTab": true,
       "devOnly": true,
       "description": "Developer hub — Control Panel unifies ecosystem status, plus drill-down panels for models, agents, repos, MCP, skills, workflows",
-      "runtimes": ["dev_layer", "tasker_ingest", "control_service"],
-      "panels": ["ControlPanel", "AgentsPanel", "ClineCliPanel", "FeedPanel", "KanbanPanel", "MCPServersPanel", "ModelsPanel", "ReposPanel", "ReviewPanel", "SettingsPanel", "SkillsPanel", "WorkflowsPanel", "RegistryPanel"]
+      "runtimes": ["dev_layer", "control_service"],
+      "panels": ["ControlPanel", "AgentsPanel", "FeedPanel", "KanbanPanel", "MCPServersPanel", "ModelsPanel", "ReposPanel", "ReviewPanel", "SettingsPanel", "SkillsPanel", "WorkflowsPanel", "RegistryPanel"]
     },
     "workflow": {
       "component": "WorkflowSurface",
@@ -101,7 +101,7 @@
       "devTab": false,
       "devOnly": false,
       "description": "Documentation and help",
-      "runtimes": ["docs_roundup"],
+      "runtimes": ["documentation_api"],
       "panels": []
     },
     "teletext": {
@@ -154,12 +154,6 @@
       "service": "LLM Router",
       "file": "backend/app/mcp/llm_router.py",
       "protocols": ["MCP"],
-      "endpoints": []
-    },
-    "tasker_ingest": {
-      "service": "Tasker Ingest Bridge",
-      "file": "backend/app/mcp/tasker_ingest.py",
-      "protocols": ["MCP", "internal"],
       "endpoints": []
     },
     "control_service": {

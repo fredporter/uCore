@@ -12,6 +12,7 @@ Usage:
     pytest tests/e2e_playwright.py::test_backend_health -v
 """
 
+import os
 import time
 from pathlib import Path
 
@@ -248,7 +249,8 @@ async def test_backend_logs_requests(page: Page):
     assert response.status == 200
 
     # Log file should exist
-    log_file = Path.home() / ".ucore" / "logs" / "ucore-menu.log"
+    udos_home = Path(os.environ.get("UDOS_HOME", Path.home() / "Code" / ".udos"))
+    log_file = udos_home / "logs" / "ucore-menu.log"
     assert log_file.parent.exists(), "Log directory should exist"
 
 

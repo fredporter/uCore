@@ -38,6 +38,8 @@ is `~/Code/.venv`.
 | uCore Vue production build | passed; existing chunk-size warnings only |
 | uCore changed-file Ruff gate | passed |
 | uCore home-path policy | 4 passed |
+| uCore planning governance | passed |
+| uCore documentation and knowledge route contracts | passed |
 | uCore self-hosted MCP bridge | TypeScript build passed; diagnostics healthy |
 | uFlow | 4 passed |
 | uKnowledge | 10 passed, including Public read-only and traversal controls |
@@ -71,6 +73,10 @@ complete table above from clean `main` checkouts before tagging or releasing.
   `.tasker`, `.vscode`, or `.clinerules`.
 - Confirm generated files, credentials, vault contents and local runtime state are
   absent from every diff.
+
+The final drift audit also removed the tracked Cline rules, legacy Tasker/devlog
+state, and their duplicate writer skills. `brain_sync` now owns private memory
+only; durable tasks remain exclusively under uFlow.
 
 ## Local-worktree note
 

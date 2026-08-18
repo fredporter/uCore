@@ -4,22 +4,15 @@ Builds a lightweight local "Brain" layer by reviewing recent project files,
 spool logs, and vault activity, then refreshing private wisdom with durable
 lessons, recent change summaries, and spool activity analysis.
 
-Also provides tasker/devlog bridge actions (sync, read, write, archive, purge)
-merged from the former tasker_devlog_bridge skill.
-
 Usage:
   POST /api/skills/brain_sync/run
     Body: {
-        "action": "sync" | "read" | "write" | "archive" | "purge" | "summarize",
+        "action": "summarize" | "purge",
         "hours": 24,
         "limit": 12,
         "include_spool": true,
         "include_vault_activity": true,
         "include_test_failures": true,
-        "tasker_dir": ".tasker",
-        "devlog_file": "devlog.mcp.yaml",
-        "content": "",
-        "max_age_days": 7,
         "dry_run": false
     }
 """
@@ -41,9 +34,7 @@ from app.services.wisdom_paths import (
 from app.skills.base import BaseSkill, SkillMeta, SkillParam
 
 WISDOM_PATH = writable_wisdom_path()
-DEFAULT_SCAN_DIRS = ("backend", "docs", "frontend", "scripts", ".tasker")
-DEFAULT_TASKER_DIR = PROJECT_ROOT / ".tasker"
-DEFAULT_DEVLOG_FILE = PROJECT_ROOT / "devlog.mcp.yaml"
+DEFAULT_SCAN_DIRS = ("backend", "docs", "frontend", "scripts")
 TEST_REPORT_PATTERNS = (
     "**/junit*.xml",
     "**/pytest*.xml",
@@ -61,8 +52,7 @@ class BrainSync(BaseSkill):
         name="Brain Sync",
         description=(
             "Synthesize recent project changes, spool activity, and "
-            "vault changes into private wisdom. Also provides "
-            "tasker/devlog bridge actions (sync, read, write, archive, purge)."
+            "vault changes into private wisdom."
         ),
         category="assist",
         timeout=30,
@@ -72,7 +62,7 @@ class BrainSync(BaseSkill):
                 type="string",
                 required=False,
                 default="summarize",
-                description="Action: summarize, sync, read, write, archive, purge",
+                description="Action: summarize or purge",
             ),
             SkillParam(
                 name="hours",
@@ -123,27 +113,6 @@ class BrainSync(BaseSkill):
                 ),
             ),
             SkillParam(
-                name="tasker_dir",
-                type="string",
-                required=False,
-                default=str(DEFAULT_TASKER_DIR),
-                description="Path to .tasker directory (for sync/read/write/archive)",
-            ),
-            SkillParam(
-                name="devlog_file",
-                type="string",
-                required=False,
-                default=str(DEFAULT_DEVLOG_FILE),
-                description="Path to devlog.mcp.yaml (for sync/read/write)",
-            ),
-            SkillParam(
-                name="content",
-                type="string",
-                required=False,
-                default="",
-                description="Content to write to devlog (for write action)",
-            ),
-            SkillParam(
                 name="max_age_days",
                 type="integer",
                 required=False,
@@ -164,15 +133,7 @@ class BrainSync(BaseSkill):
     async def run(self, **kwargs) -> dict:
         action = str(kwargs.get("action", "summarize")).strip().lower()
 
-        if action == "sync":
-            return await self._sync_tasker_devlog(**kwargs)
-        elif action == "read":
-            return self._read_tasker_devlog(**kwargs)
-        elif action == "write":
-            return self._write_devlog(**kwargs)
-        elif action == "archive":
-            return self._archive_old_tasks(**kwargs)
-        elif action == "purge":
+        if action == "purge":
             return self._purge_legacy_docs(**kwargs)
 
         # Default: summarize (original brain_sync behavior)
@@ -241,125 +202,6 @@ class BrainSync(BaseSkill):
             "episodic_included": episodic_summary is not None,
         }
 
-    # ─── Tasker/Devlog Bridge Actions (merged from tasker_devlog_bridge) ──
-
-    async def _sync_tasker_devlog(self, **kwargs) -> dict:
-        """Sync .tasker with devlog.mcp.yaml and spool activity."""
-        tasker_dir = Path(kwargs.get("tasker_dir", DEFAULT_TASKER_DIR)).expanduser()
-        devlog_file = Path(kwargs.get("devlog_file", DEFAULT_DEVLOG_FILE)).expanduser()
-        hours = int(kwargs.get("hours", 24))
-        dry_run = bool(kwargs.get("dry_run", False))
-
-        completed_tasks = self._collect_completed_tasks(tasker_dir)
-        cutoff = (datetime.now(UTC) - timedelta(hours=hours)).isoformat()
-        spool_entries = read_spool(since=cutoff)
-
-        devlog_content = self._render_devlog(
-            completed_tasks=completed_tasks,
-            spool_entries=spool_entries,
-            hours=hours,
-        )
-
-        if not dry_run:
-            devlog_file.parent.mkdir(parents=True, exist_ok=True)
-            devlog_file.write_text(devlog_content, encoding="utf-8")
-
-        return {
-            "success": True,
-            "action": "sync",
-            "devlog_path": str(devlog_file),
-            "completed_tasks": len(completed_tasks),
-            "spool_entries": len(spool_entries),
-            "hours": hours,
-            "dry_run": dry_run,
-        }
-
-    def _read_tasker_devlog(self, **kwargs) -> dict:
-        """Read current state of tasker and devlog."""
-        tasker_dir = Path(kwargs.get("tasker_dir", DEFAULT_TASKER_DIR)).expanduser()
-        devlog_file = Path(kwargs.get("devlog_file", DEFAULT_DEVLOG_FILE)).expanduser()
-
-        tasks = []
-        if tasker_dir.exists():
-            for task_file in tasker_dir.rglob("*.md"):
-                if task_file.name == "README.md":
-                    continue
-                try:
-                    content = task_file.read_text(encoding="utf-8")
-                    tasks.append({
-                        "path": str(task_file.relative_to(tasker_dir.parent)),
-                        "content": content[:500],
-                    })
-                except Exception:
-                    continue
-
-        devlog_content = ""
-        if devlog_file.exists():
-            devlog_content = devlog_file.read_text(encoding="utf-8")
-
-        return {
-            "success": True,
-            "action": "read",
-            "tasks": tasks,
-            "devlog_preview": devlog_content[:1000] if devlog_content else None,
-        }
-
-    def _write_devlog(self, **kwargs) -> dict:
-        """Write content to devlog.mcp.yaml."""
-        devlog_file = Path(kwargs.get("devlog_file", DEFAULT_DEVLOG_FILE)).expanduser()
-        content = kwargs.get("content", "")
-        dry_run = bool(kwargs.get("dry_run", False))
-
-        if not dry_run:
-            devlog_file.parent.mkdir(parents=True, exist_ok=True)
-            devlog_file.write_text(content, encoding="utf-8")
-
-        return {
-            "success": True,
-            "action": "write",
-            "devlog_path": str(devlog_file),
-            "dry_run": dry_run,
-        }
-
-    def _archive_old_tasks(self, **kwargs) -> dict:
-        """Archive completed tasks older than max_age_days."""
-        tasker_dir = Path(kwargs.get("tasker_dir", DEFAULT_TASKER_DIR)).expanduser()
-        max_age_days = int(kwargs.get("max_age_days", 7))
-        dry_run = bool(kwargs.get("dry_run", False))
-
-        archived_dir = tasker_dir.parent / ".tasker.archived"
-        archived_count = 0
-
-        if not tasker_dir.exists():
-            return {"success": True, "action": "archive", "archived": 0, "dry_run": dry_run}
-
-        cutoff = datetime.now(UTC) - timedelta(days=max_age_days)
-
-        for task_file in tasker_dir.rglob("*.md"):
-            if task_file.name == "README.md":
-                continue
-            try:
-                content = task_file.read_text(encoding="utf-8")
-                if "status: done" in content or "status: completed" in content:
-                    mtime = datetime.fromtimestamp(task_file.stat().st_mtime, tz=UTC)
-                    if mtime < cutoff:
-                        relative = task_file.relative_to(tasker_dir)
-                        dest = archived_dir / relative
-                        if not dry_run:
-                            dest.parent.mkdir(parents=True, exist_ok=True)
-                            dest.write_text(content, encoding="utf-8")
-                            task_file.unlink(missing_ok=True)
-                        archived_count += 1
-            except Exception:
-                continue
-
-        return {
-            "success": True,
-            "action": "archive",
-            "archived": archived_count,
-            "dry_run": dry_run,
-        }
-
     def _purge_legacy_docs(self, **kwargs) -> dict:
         """Purge legacy completed documentation reports."""
         docs_dir = Path(kwargs.get("docs_dir", PROJECT_ROOT / "docs"))
@@ -390,77 +232,6 @@ class BrainSync(BaseSkill):
             "purged": purged,
             "dry_run": dry_run,
         }
-
-    def _collect_completed_tasks(self, tasker_dir: Path) -> list[dict[str, Any]]:
-        """Collect completed tasks from .tasker directory."""
-        tasks = []
-        if not tasker_dir.exists():
-            return tasks
-
-        for task_file in tasker_dir.rglob("*.md"):
-            if task_file.name == "README.md":
-                continue
-            try:
-                content = task_file.read_text(encoding="utf-8")
-                if "status: done" in content or "status: completed" in content:
-                    task_info = self._parse_task_file(task_file, content)
-                    tasks.append(task_info)
-            except Exception:
-                continue
-
-        return tasks
-
-    def _parse_task_file(self, path: Path, content: str) -> dict[str, Any]:
-        """Parse task file to extract metadata."""
-        lines = content.split("\n")
-        title = lines[0].replace("#", "").strip() if lines else path.stem
-
-        status = "done"
-        for line in lines[:20]:
-            if line.startswith("- status:"):
-                status = line.split(":", 1)[1].strip()
-                break
-
-        return {
-            "file": str(path.relative_to(path.parent.parent)),
-            "archived": True,
-            "title": title,
-            "status": status,
-        }
-
-    def _render_devlog(
-        self,
-        completed_tasks: list[dict[str, Any]],
-        spool_entries: list[dict[str, Any]],
-        hours: int,
-    ) -> str:
-        """Render MCP-formatted devlog."""
-        lines = [
-            f"# Devlog MCP — Generated: {datetime.now(UTC).isoformat()}",
-            "",
-            'version: "1.0.0"',
-            'generated_by: "brain_sync"',
-            f"hours: {hours}",
-            f"completed_tasks: {len(completed_tasks)}",
-            f"spool_entries: {len(spool_entries)}",
-            "",
-            "## Completed Tasks",
-        ]
-
-        for task in completed_tasks:
-            lines.append(f"- file: {task['file']}")
-            lines.append(f"  archived: {task['archived']}")
-            lines.append("")
-
-        lines.append("## Spool Activity")
-        for entry in spool_entries[-50:]:
-            lines.append(f"- timestamp: {entry.get('timestamp', 'unknown')}")
-            lines.append(f"  level: {entry.get('level', 'INFO')}")
-            lines.append(f"  module: {entry.get('module', 'unknown')}")
-            lines.append(f"  message: {entry.get('message', '')}")
-            lines.append("")
-
-        return "\n".join(lines)
 
     def _collect_recent_files(
         self,

@@ -476,7 +476,6 @@ class EcosystemAuditSkill(BaseSkill):
             "llm_router": BACKEND_DIR / "mcp" / "llm_router.py",
             "model_pricing": BACKEND_DIR / "services" / "model_pricing.py",
             "template_manager": BACKEND_DIR / "services" / "template_manager.py",
-            "tasker_ingest": BACKEND_DIR / "mcp" / "tasker_ingest.py",
         }
 
         for name, path in candidate_modules.items():

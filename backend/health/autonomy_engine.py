@@ -24,7 +24,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-LOG_DIR = Path.home() / ".ucore" / "logs"
+UDOS_HOME = Path(os.environ.get("UDOS_HOME", Path.home() / "Code" / ".udos"))
+LOG_DIR = UDOS_HOME / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 AUDIT_LOG = LOG_DIR / "autonomy.log"

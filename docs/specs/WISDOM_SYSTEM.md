@@ -13,14 +13,14 @@ The Wisdom system gives agents durable project context without committing person
 | Context | `CONTEXT.md` | tracked | Public project architecture and working conventions |
 | Wisdom template | `docs/templates/wisdom.md` | tracked | Sanitized seed for local installs |
 | Fieldnotes template | `docs/templates/fieldnotes.md` | tracked | Sanitized seed for local installs |
-| Private wisdom | `~/.ucore/memory/uCore/wisdom.md` | untracked | Generated durable lessons and local synthesis |
-| Private fieldnotes | `~/.ucore/memory/uCore/fieldnotes.md` | untracked | Optional developer notebook |
+| Private wisdom | `$UDOS_HOME/memory/uCore/wisdom.md` | untracked | Generated durable lessons and local synthesis |
+| Private fieldnotes | `$UDOS_HOME/memory/uCore/fieldnotes.md` | untracked | Optional developer notebook |
 | Legacy local files | `wisdom.md`, `fieldnotes.md` | ignored | Local-only compatibility files if they already exist |
 
 ## Runtime Flow
 
 1. `brain_sync` reads existing private wisdom, recent project changes, spool activity, test failure signals, and episodic entries.
-2. `brain_sync` writes refreshed wisdom to `~/.ucore/memory/uCore/wisdom.md`.
+2. `brain_sync` writes refreshed wisdom to `$UDOS_HOME/memory/uCore/wisdom.md`.
 3. `attach_context` injects `CONTEXT.md` plus private wisdom when available.
 4. `backup` includes private wisdom in local backups.
 5. `tasker_ingest` appends durable lessons to private wisdom, not to the repository root.

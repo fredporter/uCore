@@ -1,6 +1,6 @@
 # Docs Consolidation Plan
 
-> **Superseded for active task tracking by `.tasker.dev-flow.yaml`.**
+> **Historical tracker only. Active workflow state is owned by uFlow.**
 > **Canonical docs destination: `/Users/fredbook/Code/uDocs`.**
 > This file is kept as a historical migration tracker only.
 
