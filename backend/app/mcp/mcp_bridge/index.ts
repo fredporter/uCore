@@ -57,7 +57,7 @@ const TOOLS = [
   {
     name: "ucore_list_skills",
     description:
-      "List all registered uCore skills (currently 54). Returns id, name, description, category, and parameters for each skill.",
+      "List governed internal uCore capabilities. Returns id, name, description, category, and parameters.",
     inputSchema: {
       type: "object",
       properties: {
@@ -72,14 +72,13 @@ const TOOLS = [
   {
     name: "ucore_run_skill",
     description:
-      "Execute a named uCore skill by its ID. Skills include: ecosystem-audit, file_edit_enhancer, surface-registry, mcp_self_heal, dev-mode-executor, vault_discovery, and 48 more.",
+      "Execute a governed internal uCore capability by its ID.",
     inputSchema: {
       type: "object",
       properties: {
         skill_id: {
           type: "string",
-          description:
-            "The skill ID to run (e.g. 'ecosystem-audit', 'surface-registry', 'file_edit_enhancer')",
+          description: "The capability ID returned by ucore_list_skills",
         },
         params: {
           type: "object",
@@ -87,16 +86,6 @@ const TOOLS = [
         },
       },
       required: ["skill_id"],
-    },
-  },
-  {
-    name: "ucore_surface_registry",
-    description:
-      "List all registered uCore surfaces (Groovebox, Developer, Server, System, Workflow, etc.) with their status, port, and health.",
-    inputSchema: {
-      type: "object",
-      properties: {},
-      required: [],
     },
   },
   {
@@ -304,18 +293,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const skillId = args?.skill_id as string;
         const params = (args?.params as Record<string, unknown>) || {};
         const data = await apiPost(`/api/skills/${skillId}/run`, params);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(data, null, 2),
-            },
-          ],
-        };
-      }
-
-      case "ucore_surface_registry": {
-        const data = await apiPost("/api/skills/surface-registry/run", {});
         return {
           content: [
             {
