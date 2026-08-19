@@ -20,7 +20,7 @@ not proxy, mesh, re-export, self-heal, or supervise third-party MCP servers.
 
 ### Working candidate
 
-`backend/app/mcp/mcp_bridge` uses the official TypeScript MCP SDK. A direct
+`backend/app/mcp/udos_mcp` uses the official TypeScript MCP SDK. A direct
 protocol probe successfully completed:
 
 - `initialize` with protocol revision `2025-06-18`;
@@ -101,16 +101,18 @@ The transport and lifecycle rules follow the official MCP specification:
 
 ## Initial supported surface
 
-The first release should expose only a small, proven read-only set:
+The first implementation exposes only the six entries below that already have
+canonical owned GET routes:
 
 - `system.health.get`
 - `developer.repositories.list`
 - `developer.repository.status`
 - `flow.tasks.list`
-- `flow.task.get`
 - `knowledge.search`
-- `knowledge.document.get`
 - `code.grid.tools.list`
+
+`flow.task.get` and `knowledge.document.get` remain candidates, not advertised
+contracts, until uFlow and uKnowledge provide implemented canonical reads.
 
 Names are stable external contracts. Internal filenames, Skill IDs, providers,
 models, local paths, and service topology are not exposed as tool contracts.
@@ -154,8 +156,10 @@ Vendor intake rules are tightened for this work:
 1. Upgrade the existing TypeScript bridge to the official stable v2 server
    package, add an Inspector-backed protocol smoke test, and rename the
    package/server to `udos-mcp`.
-2. Replace the bridge's ad-hoc endpoint list with the eight read-only owned
-   adapters above, including input/output schemas and timeouts.
+2. Replace the bridge's ad-hoc endpoint list with the six read-only owned
+   adapters that have implemented canonical routes, including input schemas
+   and timeouts. Defer single-task and single-document reads until their
+   owning repositories provide real GET contracts.
 3. Remove Python `api/mcp.py`, `mcp_handlers`, MCP guardrails/self-heal, the
    custom peer mesh, duplicate Snackbar routes, stale diagnostics, launchers,
    manifests, and UI claims that enumerate non-MCP services.

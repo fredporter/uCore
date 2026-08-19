@@ -10,11 +10,9 @@
     "build": "pnpm --filter @udos/ui-hub-vue run build",
     "test": "./.venv/bin/python -m pytest -q backend/tests",
     "lint": "cd backend && ruff check .",
-    "mcp:diagnostics": "cd backend && python3 -m mcp.mcp_diagnostics",
-    "mcp:start": "cd backend && python3 -m app.main"
-  },
-  "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0"
+    "mcp:build": "npm --prefix backend/app/mcp/udos_mcp run build",
+    "mcp:test": "npm --prefix backend/app/mcp/udos_mcp test",
+    "mcp:start": "node backend/app/mcp/udos_mcp/build/index.js"
   },
   "engines": {
     "node": ">=22.0.0",
