@@ -36,9 +36,9 @@ def _health_is_ready(host: str, port: int) -> bool:
 def start_hivemind() -> None:
     """Launch Hivemind MCP server as a background child process.
 
-    Hivemind is core to the agent execution pipeline:
-      hivemind-consensus → design/planning/analysis tasks
-      roundtable-dispatch → documentation/parallel-agent tasks
+    Hivemind hosts the governed agent and consensus service. Provider and
+    budget selection remain behind the canonical Flow Router rather than
+    separate executable Skill wrappers.
 
     If Hivemind is already running and healthy, attaches silently.
     If the port is occupied but unhealthy, skips auto-start.

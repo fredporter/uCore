@@ -123,7 +123,7 @@ class UserWorkflowApiTest(AioHTTPTestCase):
             assert resp.status == 200
             payload = await resp.json()
             assert payload["seed"]["tasks"]["created_count"] == 4
-            assert payload["seed"]["workflows"]["created_count"] == 2
+            assert payload["seed"]["workflows"]["created_count"] == 1
             assert "appflowy_sidecar" not in payload["cleared"]
 
             seeded_files = payload["seed"]["tasks"]["created"]
