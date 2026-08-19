@@ -118,7 +118,10 @@ models, local paths, and service topology are not exposed as tool contracts.
 ## Approved Vendor shortlist
 
 The following upstream repositories are cloned under `~/Code/Vendor/01-RAW`.
-RAW means provenance-preserved and under review, not integrated.
+Vendor is intentionally local and non-versioned. RAW means provenance-preserved
+and under review, not integrated. If source is adopted or modified, it moves
+into the owning active repository and its normal GitHub review lifecycle;
+Vendor never becomes a product worktree or runtime dependency.
 
 | Component | Role | Adoption decision |
 |---|---|---|
@@ -137,8 +140,8 @@ Vendor intake rules are tightened for this work:
 
 - `origin` always remains upstream;
 - record an immutable intake commit, license, purpose, and disposition;
-- a fork remote is created only when a reviewed product patch is actually
-  required, not for every research clone;
+- a fork is created in the owning active repository only when a reviewed
+  product patch is actually required, not for every research clone;
 - RAW and STUDIED clones are never product runtime dependencies;
 - prefer pinned published packages/binaries over copied source;
 - no generated dependencies, build outputs, credentials, or local product
