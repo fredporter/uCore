@@ -110,10 +110,10 @@ fi
 # Ensure only one menu process remains (single popcorn icon)
 enforce_single_menu_instance
 
-# Run health check skill
+# Probe the canonical backend health endpoint
 log "🏥 Running health check..."
 if check_backend; then
-    curl -s --max-time 5 "http://localhost:8484/api/skills/autostart_health_check/run" > /dev/null 2>&1 || true
+    curl -s --max-time 5 "http://localhost:8484/api/health" > /dev/null 2>&1 || true
 fi
 
 log "✅ uCore startup complete"

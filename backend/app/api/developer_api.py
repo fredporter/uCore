@@ -840,8 +840,7 @@ async def handle_workspace_switch(request: web.Request) -> web.Response:
     Called by the frontend when the user switches between System
     and Project lanes and/or changes the selected project repository.
     The workspace path is stored in-memory so
-    that subsequent skill executions (dev-mode-executor, file-edit, etc.)
-    can operate on the correct codebase.
+    that subsequent governed developer operations can use the correct codebase.
     """
     try:
         body = await request.json()

@@ -377,24 +377,6 @@ async def handle_mcp_discover(request: web.Request) -> web.Response:
         }
     )
 
-    # ── Autostart Health Check ───────────────────────────────
-    tools.append(
-        {
-            "name": "autostart_health_check",
-            "description": "Check and auto-start snackbar services (backend, menu, MCP)",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "check_only": {
-                        "type": "boolean",
-                        "description": "Only check status, don't auto-start",
-                        "default": False,
-                    },
-                },
-            },
-        }
-    )
-
     return web.json_response(
         {
             "jsonrpc": "2.0",

@@ -79,8 +79,9 @@ allowed roots, deterministic dry run where relevant and dedicated tests.
 
 ### Remove from general Skill execution
 
-- `reset_database`, `spool_destroy` and `dev-destroy-rebuild`: privileged
-  recovery workflows, never ordinary agent-selected Skills.
+- `reset_database` and `spool_destroy`: privileged recovery operations, never
+  ordinary agent-selected capabilities. The duplicate `dev-destroy-rebuild`
+  skill has been removed.
 - `autostart`: lifecycle/service management, owned by Snackbar/System.
 - `surface-registry` and `usx-standard`: build/registry tooling rather than
   user-selectable agent Skills.

@@ -50,9 +50,7 @@
 
 | Doc                                                                                                        | Purpose                                                  |
 | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| [DEVMODE_CODE_ANALYSIS_SKILLS.md](DEVMODE_CODE_ANALYSIS_SKILLS.md)                                         | DevMode code analysis skills                             |
 | [DEVELOPER_SURFACE.md](DEVELOPER_SURFACE.md)                                                               | Current Developer Surface UX, lanes, controls, and APIs  |
-| [FEATURE_SPEC_CONTROL_PANEL_AND_AGENTIC_EXECUTION.md](FEATURE_SPEC_CONTROL_PANEL_AND_AGENTIC_EXECUTION.md) | Control panel and agentic pipeline feature spec          |
 | [specs/ECOSYSTEM_EXTENDED_DEV_FLOW_2026-07-31.md](specs/ECOSYSTEM_EXTENDED_DEV_FLOW_2026-07-31.md)         | Extended ecosystem flow, repo ownership, and sprint plan |
 | [specs/AUTONOMOUS_DEV_ROUNDS_RUNBOOK.md](specs/AUTONOMOUS_DEV_ROUNDS_RUNBOOK.md)                           | Stable autonomous dev round lifecycle and hard gates     |
 | [QQCODE_TUI_INTEGRATION.md](QQCODE_TUI_INTEGRATION.md)                                                     | QQCode TUI integration                                   |

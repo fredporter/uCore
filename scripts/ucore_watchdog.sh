@@ -75,7 +75,7 @@ enforce_single_menu_instance() {
 
 run_autonomy_health_action() {
     curl -s --max-time 6 \
-        "http://127.0.0.1:8484/api/skills/autostart_health_check/run" \
+        "http://127.0.0.1:8484/api/health" \
         > /dev/null 2>&1 || true
 }
 
