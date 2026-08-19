@@ -5,6 +5,7 @@ PUT  /api/dev-layer/state   — Set Dev Mode state
 POST /api/dev-layer/toggle  — Cycle through OFF → MINIMAL → ON → OFF
 GET  /api/dev-layer/hud     — Aggregate Dev HUD data (tasks + vars + capabilities + actions)
 """
+
 from __future__ import annotations
 
 import json
@@ -13,6 +14,7 @@ from pathlib import Path
 
 from aiohttp import web
 
+from app.core.settings import settings
 from app.services.dev_layer import DevMode, get_dev_layer
 
 log = logging.getLogger("ucore.api.dev_layer")
@@ -35,9 +37,12 @@ async def handle_set_dev_state(request: web.Request) -> web.Response:
 
     mode_str = str(body.get("mode", "")).strip().lower()
     if mode_str not in ("on", "off", "minimal"):
-        return web.json_response({
-            "error": "Invalid mode. Use: on, off, or minimal",
-        }, status=400)
+        return web.json_response(
+            {
+                "error": "Invalid mode. Use: on, off, or minimal",
+            },
+            status=400,
+        )
 
     layer = get_dev_layer()
     layer.mode = DevMode(mode_str)
@@ -55,6 +60,7 @@ async def handle_toggle_dev_state(request: web.Request) -> web.Response:
 
 
 # ── Dev HUD Aggregate ─────────────────────────────────────────────
+
 
 async def handle_get_dev_hud(request: web.Request) -> web.Response:
     """GET /api/dev-layer/hud — aggregate Dev HUD data.
@@ -75,10 +81,12 @@ async def handle_get_dev_hud(request: web.Request) -> web.Response:
 
 # ── HUD sub-collectors ─────────────────────────────────────────────
 
+
 def _get_tasker_hud() -> dict:
     """Collect tasker summary from the .tasker markdown boards."""
     try:
         from app.services.workflow_status import default_tasker_dir
+
         base = default_tasker_dir()
     except Exception:
         return {"error": "tasker not available"}
@@ -133,7 +141,7 @@ def _parse_markdown_task_inline(path: Path) -> dict:
 def _get_variables_hud() -> dict:
     """Collect user variables for the Dev HUD."""
     try:
-        var_file = Path.home() / ".ucore" / "data" / "variables.json"
+        var_file = settings.data_dir / "variables.json"
         if var_file.exists():
             return {"user": json.loads(var_file.read_text(encoding="utf-8"))}
     except Exception:
@@ -146,8 +154,11 @@ def _get_capabilities_hud() -> dict:
     caps: dict = {}
     try:
         from app.extensions.registry import registry
+
         ext = registry.get_extensions()
-        running = {e.get("id", "") for e in ext if isinstance(e, dict) and e.get("status") == "online"}
+        running = {
+            e.get("id", "") for e in ext if isinstance(e, dict) and e.get("status") == "online"
+        }
     except Exception:
         running = set()
 

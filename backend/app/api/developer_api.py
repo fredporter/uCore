@@ -1,4 +1,5 @@
 """Developer API — local repo discovery and workspace file listing."""
+
 from __future__ import annotations
 
 import subprocess
@@ -13,12 +14,31 @@ from app.utils.config_loader import load_developer_repo_policy
 # ─── File discovery constants (stable, not policy-driven) ────────
 
 ALLOWED_EXTENSIONS = {
-    ".md", ".json", ".yaml", ".yml", ".txt", ".csv",
-    ".py", ".ts", ".tsx", ".js", ".jsx", ".css", ".sh", ".toml",
+    ".md",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".txt",
+    ".csv",
+    ".py",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".css",
+    ".sh",
+    ".toml",
 }
 IGNORED_DIRS = {
-    ".git", "node_modules", "dist", "build", ".venv", "venv",
-    "__pycache__", ".pytest_cache", ".mypy_cache",
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
 }
 MAX_PREVIEW_BYTES = 200_000
 
@@ -71,10 +91,7 @@ def _looks_like_doc_library(repo_path: Path) -> bool:
         return True
 
     doc_marker_dirs = policy["doc_marker_dirs"]
-    if any(
-        (repo_path / marker).exists()
-        for marker in doc_marker_dirs if marker != "docs"
-    ):
+    if any((repo_path / marker).exists() for marker in doc_marker_dirs if marker != "docs"):
         return True
 
     tracked_files = _git_output(repo_path, "ls-files").splitlines()
@@ -99,10 +116,7 @@ def _looks_like_doc_library(repo_path: Path) -> bool:
             if code_files >= 3:
                 return False
 
-    return (
-        doc_files >= threshold["min_doc_files"]
-        and code_files <= threshold["max_code_files"]
-    )
+    return doc_files >= threshold["min_doc_files"] and code_files <= threshold["max_code_files"]
 
 
 def _has_code_markers(repo_path: Path) -> bool:
@@ -225,17 +239,19 @@ def _list_repos(scope: str = "code", exclude_system: bool = False) -> list[dict]
         status_lines = _git_output(child, "status", "--porcelain").splitlines()
         remote = _git_output(child, "remote", "get-url", "origin") or "No remote"
         changes = len([line for line in status_lines if line.strip()])
-        repos.append({
-            "id": child.name,
-            "name": child.name,
-            "path": str(child),
-            "branch": branch,
-            "status": "clean" if changes == 0 else "modified",
-            "changes": changes,
-            "remote": remote,
-            "fileCount": _repo_file_count(child),
-            "kind": kind,
-        })
+        repos.append(
+            {
+                "id": child.name,
+                "name": child.name,
+                "path": str(child),
+                "branch": branch,
+                "status": "clean" if changes == 0 else "modified",
+                "changes": changes,
+                "remote": remote,
+                "fileCount": _repo_file_count(child),
+                "kind": kind,
+            }
+        )
 
     return repos
 
@@ -261,22 +277,25 @@ def _list_repo_files(
             continue
 
         stat = path.stat()
-        files.append({
-            "id": len(files) + 1,
-            "name": str(rel_path),
-            "type": path.suffix.lstrip(".").lower() or "file",
-            "size": stat.st_size,
-            "updatedAt": path.stat().st_mtime,
-            "tags": [path.suffix.lstrip(".").lower()] if path.suffix else [],
-            "binder": repo_name,
-        })
+        files.append(
+            {
+                "id": len(files) + 1,
+                "name": str(rel_path),
+                "type": path.suffix.lstrip(".").lower() or "file",
+                "size": stat.st_size,
+                "updatedAt": path.stat().st_mtime,
+                "tags": [path.suffix.lstrip(".").lower()] if path.suffix else [],
+                "binder": repo_name,
+            }
+        )
         if len(files) >= limit:
             break
 
     files.sort(key=lambda item: item["updatedAt"], reverse=True)
     for file in files:
-        file["updatedAt"] = __import__("datetime").datetime.fromtimestamp(
-            file["updatedAt"]).isoformat()
+        file["updatedAt"] = (
+            __import__("datetime").datetime.fromtimestamp(file["updatedAt"]).isoformat()
+        )
     return files
 
 
@@ -320,25 +339,31 @@ def _list_repo_status(repo_name: str) -> dict[str, list[dict[str, Any]]]:
             path = path.split(" -> ", 1)[1]
 
         if x not in {" ", "?"}:
-            staged.append({
-                "file": path,
-                "code": x,
-                "status": _status_label(x),
-            })
+            staged.append(
+                {
+                    "file": path,
+                    "code": x,
+                    "status": _status_label(x),
+                }
+            )
 
         if y not in {" "}:
-            unstaged.append({
-                "file": path,
-                "code": y,
-                "status": _status_label(y),
-            })
+            unstaged.append(
+                {
+                    "file": path,
+                    "code": y,
+                    "status": _status_label(y),
+                }
+            )
 
         if x == "?":
-            unstaged.append({
-                "file": path,
-                "code": "??",
-                "status": "added",
-            })
+            unstaged.append(
+                {
+                    "file": path,
+                    "code": "??",
+                    "status": "added",
+                }
+            )
 
     return {"staged": staged, "unstaged": unstaged}
 
@@ -371,12 +396,14 @@ def _list_repo_review(repo_name: str) -> list[dict[str, Any]]:
         if " -> " in path:
             path = path.split(" -> ", 1)[1]
         status = _status_label(code)
-        reviews.append({
-            "file": path,
-            "status": status,
-            "lines": line_counts.get(path, 0),
-            "summary": _review_summary(code, path),
-        })
+        reviews.append(
+            {
+                "file": path,
+                "status": status,
+                "lines": line_counts.get(path, 0),
+                "summary": _review_summary(code, path),
+            }
+        )
 
     return reviews
 
@@ -502,7 +529,7 @@ def _clean_inline(value: Any, limit: int = 220) -> str:
     compact = " ".join(value.split())
     if len(compact) <= limit:
         return compact
-    return f"{compact[:limit - 3]}..."
+    return f"{compact[: limit - 3]}..."
 
 
 def _summarize_binder_context(
@@ -531,7 +558,9 @@ def _summarize_binder_context(
     tasks_raw = focus.get("tasks")
     tasks: list[str] = []
     if isinstance(tasks_raw, list):
-        tasks = [_clean_inline(item, 120) for item in tasks_raw if isinstance(item, str) and item.strip()][:3]
+        tasks = [
+            _clean_inline(item, 120) for item in tasks_raw if isinstance(item, str) and item.strip()
+        ][:3]
 
     source_repo = ""
     source_path = ""
@@ -593,11 +622,13 @@ async def handle_start_developer(request: web.Request) -> web.Response:
     log.info("[DEVMODE] Developer surface is self-hosted within uCore (uDev retired)")
 
     _announce_dev("online")
-    return web.json_response({
-        "success": True,
-        "message": "Developer surface is integrated into uCore — served by Vite on port 5175",
-        "dev_mode": {"active": True, "self_hosted": True}
-    })
+    return web.json_response(
+        {
+            "success": True,
+            "message": "Developer surface is integrated into uCore — served by Vite on port 5175",
+            "dev_mode": {"active": True, "self_hosted": True},
+        }
+    )
 
 
 async def handle_stop_developer(request: web.Request) -> web.Response:
@@ -611,11 +642,13 @@ async def handle_stop_developer(request: web.Request) -> web.Response:
     log.info("[DEVMODE] Developer surface stop requested (self-hosted, no external process)")
 
     _announce_dev("offline")
-    return web.json_response({
-        "success": True,
-        "message": "Developer surface status set to offline",
-        "dev_mode": {"active": False}
-    })
+    return web.json_response(
+        {
+            "success": True,
+            "message": "Developer surface status set to offline",
+            "dev_mode": {"active": False},
+        }
+    )
 
 
 async def handle_developer_status(request: web.Request) -> web.Response:
@@ -635,25 +668,30 @@ async def handle_developer_status(request: web.Request) -> web.Response:
             active = resp.status < 500
             if active:
                 log.debug("[DEVMODE] Vite dev server is active on :5175")
-            return web.json_response({
-                "active": active,
-                "description": "Developer Surface — self-hosted in uCore (Vite :5175)",
-                "icon_visible": active
-            })
+            return web.json_response(
+                {
+                    "active": active,
+                    "description": "Developer Surface — self-hosted in uCore (Vite :5175)",
+                    "icon_visible": active,
+                }
+            )
     except Exception:
         log.debug("[DEVMODE] Vite dev server not reachable on :5175")
-        return web.json_response({
-            "active": False,
-            "description": "Developer Surface — Vite dev server not running",
-            "icon_visible": False
-        })
+        return web.json_response(
+            {
+                "active": False,
+                "description": "Developer Surface — Vite dev server not running",
+                "icon_visible": False,
+            }
+        )
 
 
 async def handle_list_repos(request: web.Request) -> web.Response:
     """GET /api/developer/repos — list code repositories under ~/Code."""
     scope = request.query.get("scope", "code")
     exclude_system = _to_bool(
-        request.query.get("exclude_system"), default=False,
+        request.query.get("exclude_system"),
+        default=False,
     )
     try:
         repos = _list_repos(scope=scope, exclude_system=exclude_system)
@@ -683,13 +721,15 @@ async def handle_list_repo_files(request: web.Request) -> web.Response:
         )
     except FileNotFoundError:
         return web.json_response({"error": f"Repository not found: {repo_name}"}, status=404)
-    return web.json_response({
-        "repo": repo_name,
-        "files": files,
-        "limit": limit,
-        "include_hidden": include_hidden,
-        "include_all_extensions": include_all_extensions,
-    })
+    return web.json_response(
+        {
+            "repo": repo_name,
+            "files": files,
+            "limit": limit,
+            "include_hidden": include_hidden,
+            "include_all_extensions": include_all_extensions,
+        }
+    )
 
 
 async def handle_get_repo_file_preview(request: web.Request) -> web.Response:
@@ -719,23 +759,27 @@ async def handle_workspace_switch(request: web.Request) -> web.Response:
         body = await request.json()
     except Exception:
         return web.json_response(
-            {"error": "Invalid JSON body"}, status=400,
+            {"error": "Invalid JSON body"},
+            status=400,
         )
     workspace = body.get("workspace", "")
     lane = body.get("lane", "ecosystem")
     if not workspace:
         return web.json_response(
-            {"error": "workspace is required"}, status=400,
+            {"error": "workspace is required"},
+            status=400,
         )
 
     # Store as app-level config for this session
     request.app["_dev_workspace"] = workspace
     request.app["_dev_lane"] = lane
-    return web.json_response({
-        "success": True,
-        "workspace": workspace,
-        "lane": lane,
-    })
+    return web.json_response(
+        {
+            "success": True,
+            "workspace": workspace,
+            "lane": lane,
+        }
+    )
 
 
 async def handle_update_repo_file(request: web.Request) -> web.Response:
@@ -843,6 +887,7 @@ async def handle_commit_repo_files(request: web.Request) -> web.Response:
 
 # ─── Dev Chat ───────────────────────────────────────────────────────
 
+
 async def handle_developer_chat(request: web.Request) -> web.Response:
     """POST /api/developer/chat — dev-lane chat completion.
 
@@ -875,11 +920,16 @@ async def handle_developer_chat(request: web.Request) -> web.Response:
         binder_fp = _clean_inline(binder_context.get("fingerprint"), 80)
     log.info(
         "Dev chat: lane=%s workspace=%s model=%s binder_fp=%s message=%s...",
-        lane, workspace, model, binder_fp or "none", message[:80],
+        lane,
+        workspace,
+        model,
+        binder_fp or "none",
+        message[:80],
     )
 
     try:
         from ..services.provider_router import ProviderRouter
+
         router = ProviderRouter()
         dev_system = (
             "You are the uCore Developer Assistant. You work in the Developer Surface "
@@ -899,7 +949,7 @@ async def handle_developer_chat(request: web.Request) -> web.Response:
             "• /api/mcp/tools — list MCP server tools\n"
             "• /api/mcp/diagnostics — MCP health diagnostics\n\n"
             "**Health & System:**\n"
-            "• /api/control/status — full ecosystem health (Cline, Ollama, Hivemind, etc.)\n"
+            "• /api/control/status — full ecosystem health (Ollama, Hivemind, providers, etc.)\n"
             "• /api/ollama/status — Ollama model status\n"
             "• /api/system — system info\n"
             "• /api/health — health check\n\n"
@@ -919,19 +969,24 @@ async def handle_developer_chat(request: web.Request) -> web.Response:
         chat_messages.extend(history)
         chat_messages.append({"role": "user", "content": message})
         response = await router.chat(messages=chat_messages, model=model)
-        return web.json_response({
-            "response": response.get("content", ""),
-            "lane": lane,
-            "workspace": workspace,
-            "model": response.get("model", model),
-            "usage": response.get("usage", {}),
-        })
+        return web.json_response(
+            {
+                "response": response.get("content", ""),
+                "lane": lane,
+                "workspace": workspace,
+                "model": response.get("model", model),
+                "usage": response.get("usage", {}),
+            }
+        )
     except Exception as e:
         log.error("Dev chat error: %s", e)
-        return web.json_response({
-            "error": str(e),
-            "message": "Dev chat request failed",
-        }, status=500)
+        return web.json_response(
+            {
+                "error": str(e),
+                "message": "Dev chat request failed",
+            },
+            status=500,
+        )
 
 
 async def handle_developer_chat_stream(request: web.Request) -> web.StreamResponse:
@@ -985,6 +1040,7 @@ async def handle_developer_chat_stream(request: web.Request) -> web.StreamRespon
 
     try:
         from ..services.provider_router import ProviderRouter
+
         router = ProviderRouter()
         dev_system = (
             "You are a developer assistant working in uCore. "
@@ -1016,9 +1072,8 @@ async def handle_developer_chat_stream(request: web.Request) -> web.StreamRespon
             )
 
         if stream_context_lines:
-            dev_system = (
-                f"{dev_system}\n\nBinder context (stream metadata):\n"
-                + "\n".join(stream_context_lines)
+            dev_system = f"{dev_system}\n\nBinder context (stream metadata):\n" + "\n".join(
+                stream_context_lines
             )
         chat_messages = [
             {"role": "system", "content": dev_system},
@@ -1030,6 +1085,7 @@ async def handle_developer_chat_stream(request: web.Request) -> web.StreamRespon
         # Simulate streaming by sending tokens one at a time
         import asyncio
         import json
+
         words = content.split(" ")
         for i, word in enumerate(words):
             token = word + (" " if i < len(words) - 1 else "")
@@ -1039,7 +1095,7 @@ async def handle_developer_chat_stream(request: web.Request) -> web.StreamRespon
         await response.write(b"data: [DONE]\n\n")
     except Exception as e:
         log.error("Dev chat stream error: %s", e)
-        await response.write(f"data: {{\"error\": \"{str(e)}\"}}\n\n".encode())
+        await response.write(f'data: {{"error": "{str(e)}"}}\n\n'.encode())
     finally:
         await response.write_eof()
 

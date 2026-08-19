@@ -113,10 +113,9 @@ Shows free-tier models with cost badges (free/ultra-cheap/budget/mid-range/premi
 
 ---
 
-## Remaining Work (Wave 4-5)
+## Deferred follow-up (owned by uFlow)
 
-- [ ] Wire `editor_api.py` scrape endpoint as a chat tool
-- [ ] Wire save-to-vault as a chat tool with vault layer boundaries
-- [ ] Full test suite for new functionality
-- [ ] End-to-end smoke test (Plan → Approve → Act → Vault result)
-- [ ] Update devlog, fieldnotes, wisdom
+The remaining product work is to connect governed browser capture and
+vault-bound writes, expand the functionality tests, add the Plan → Approve → Act
+end-to-end probe, and record its evidence. These are uFlow tasks rather than an
+active checklist embedded in this specification.

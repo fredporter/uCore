@@ -12,7 +12,7 @@ from app.core.settings import settings
 from snackmachine.registry import get_registry as _get_registry
 
 log = logging.getLogger("snackmachine.scheduler")
-DATA_DIR = Path(os.environ.get("SNACKMACHINE_DATA_DIR", Path.home() / ".ucore"))
+DATA_DIR = Path(os.environ.get("SNACKMACHINE_DATA_DIR", settings.udos_home))
 
 
 def run_skill_by_id(skill_id: str, **kw):
@@ -158,9 +158,7 @@ class MaintenanceScheduler:
             if not self._is_due(job, now):
                 continue
             result = await run_skill_by_id(job.skill_id, **job.params)
-            self._state.setdefault("last_run", {})[
-                job.skill_id
-            ] = now.date().isoformat()
+            self._state.setdefault("last_run", {})[job.skill_id] = now.date().isoformat()
             self._state.setdefault("last_result", {})[job.skill_id] = {
                 "success": result.get("success", False),
                 "timestamp": now.isoformat(),

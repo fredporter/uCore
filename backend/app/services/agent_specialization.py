@@ -10,6 +10,7 @@ Each agent has:
 - Cost tracking and timeout configuration
 - Capability tags for skill matching
 """
+
 from __future__ import annotations
 
 import logging
@@ -18,6 +19,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import yaml  # type: ignore[import-untyped]
+
+from app.core.settings import settings
 
 log = logging.getLogger(__name__)
 
@@ -71,7 +74,7 @@ class SpecializedAgentRegistry:
         self.workflow_templates: dict[str, WorkflowTemplate] = {}
 
         if config_path is None:
-            config_path = os.path.expanduser("~/.ucore/config/agents.yaml")
+            config_path = str(settings.config_dir / "agents.yaml")
             if not os.path.exists(config_path):
                 # Fallback to repo config
                 config_path = os.path.join(
@@ -114,8 +117,7 @@ class SpecializedAgentRegistry:
             for workflow_id, workflow_data in workflows.items():
                 try:
                     stage_templates = [
-                        WorkflowStageTemplate(**stage)
-                        for stage in workflow_data.get("stages", [])
+                        WorkflowStageTemplate(**stage) for stage in workflow_data.get("stages", [])
                     ]
                     self.workflow_templates[workflow_id] = WorkflowTemplate(
                         id=workflow_id,
@@ -186,7 +188,8 @@ class SpecializedAgentRegistry:
     }
 
     def get_cost_tier_for_agent(
-        self, agent_id: str,
+        self,
+        agent_id: str,
     ) -> str:
         """Map an agent to its appropriate cost tier.
 
@@ -208,20 +211,19 @@ class SpecializedAgentRegistry:
             return "premium"
 
     def get_agents_by_cost_tier(
-        self, tier: str,
+        self,
+        tier: str,
     ) -> list[AgentSpecialization]:
         """Return all agents mapped to a given cost tier."""
         return [
-            agent for agent in self.agents.values()
+            agent
+            for agent in self.agents.values()
             if self.get_cost_tier_for_agent(agent.id) == tier
         ]
 
     def get_max_cost_tier(self) -> str:
         """Return the highest (most expensive) tier currently configured."""
-        tiers = [
-            self.get_cost_tier_for_agent(a.id)
-            for a in self.agents.values()
-        ]
+        tiers = [self.get_cost_tier_for_agent(a.id) for a in self.agents.values()]
         if not tiers:
             return "free"
         return max(tiers, key=lambda t: self.COST_TIER_MAP.get(t, 99))
@@ -274,10 +276,7 @@ class SpecializedAgentRegistry:
         capability: str,
     ) -> list[AgentSpecialization]:
         """Get all agents that have a specific capability."""
-        return [
-            agent for agent in self.agents.values()
-            if capability in agent.capabilities
-        ]
+        return [agent for agent in self.agents.values() if capability in agent.capabilities]
 
     def get_surface_taxonomy(self) -> dict[str, dict[str, Any]]:
         """Return the configured canonical surface ownership model."""
@@ -293,9 +292,7 @@ class SpecializedAgentRegistry:
         for workflow in self.workflow_templates.values():
             if task_type in workflow.task_types:
                 return workflow
-            if summary and any(
-                token.lower() in summary for token in workflow.match_any
-            ):
+            if summary and any(token.lower() in summary for token in workflow.match_any):
                 return workflow
         return None
 

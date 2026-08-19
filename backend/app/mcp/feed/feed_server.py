@@ -6,7 +6,7 @@ Exposes four tools via the MCP dispatch system:
   - feed_suggest_binders: AI-driven binder suggestions from activity clusters
   - feed_link_task: link a .tasker task to a feed activity
 
-The Activity Pod is stored at ~/.ucore/pods/activity.db and initialized
+The Activity Pod is stored at ``$UDOS_HOME/pods/activity.db`` and initialized
 from backend/schemas/activity.schema.sql on first access.
 """
 from __future__ import annotations
@@ -17,9 +17,11 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
+
 log = logging.getLogger("ucore.mcp.feed_server")
 
-DEFAULT_POD_PATH = Path.home() / ".ucore" / "pods" / "activity.db"
+DEFAULT_POD_PATH = settings.udos_home / "pods" / "activity.db"
 HERE = Path(__file__).resolve().parent
 SCHEMA_PATH = HERE.parent.parent.parent / "schemas" / "activity.schema.sql"
 

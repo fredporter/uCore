@@ -18,7 +18,7 @@ log = logging.getLogger("ucore.skills")
 
 # Default skill paths — try Python registry first, then filesystem
 from app.services.health import get_health_summary
-from app.skills.registry import get_skill
+from app.skills.registry import get_skill, run_skill_by_id
 from app.skills.state import read_state
 
 SKILL_PATHS = [
@@ -91,7 +91,11 @@ async def _run_skill_by_id(
                 "requires_confirmation": True,
             }, status=403)
 
-        result = await skill.run(**kwargs)
+        result = await run_skill_by_id(
+            skill_id,
+            execution_authorized=confirmed,
+            **kwargs,
+        )
         # Broadcast completion to SSE subscribers
         try:
             from app.api.render_api import publish_event

@@ -1,5 +1,5 @@
 # OpenRouter Configuration for uCore Hivemind
-# Copy to ~/.ucore/config/openrouter.yaml and set API key
+# Copy to $UDOS_HOME/config/openrouter.yaml; keep the API key in Secret Store.
 
 version: "1.0.0"
 

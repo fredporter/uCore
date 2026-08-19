@@ -86,7 +86,27 @@
             </div>
           </div>
         </template>
-        <div v-else class="assistui-workflow-panel"><p>Workflow tasks and missions shown here.</p></div>
+        <section v-else class="assistui-workflow-panel surface__panel">
+          <div class="intel-header__row">
+            <div>
+              <h3 class="surface__panel-title">Workflow context</h3>
+              <p class="surface__panel-description">
+                uFlow owns durable tasks and missions. Intelligence can help plan
+                them, but changes happen in the Workflow surface.
+              </p>
+            </div>
+            <button class="intel-save-btn" @click="openWorkflow">
+              Open Workflow
+            </button>
+          </div>
+          <div v-if="wf.loading" class="intel-muted">Loading workflow state…</div>
+          <div v-else-if="wf.error" class="intel-muted">{{ wf.error }}</div>
+          <div v-else class="assistui-workflow-summary">
+            <div><strong>{{ wf.totalTasks }}</strong><span>Total tasks</span></div>
+            <div><strong>{{ wf.inProgressCount }}</strong><span>In progress</span></div>
+            <div><strong>{{ wf.missions.length }}</strong><span>Missions</span></div>
+          </div>
+        </section>
       </template>
 
       <!-- ═══ Intelligence tab ═══ -->
@@ -119,9 +139,6 @@
       <!-- ═══ Models tab ═══ -->
       <SnackbarModelsPanel v-else-if="activeTab === 'models'" />
 
-      <!-- ═══ Agents tab ═══ -->
-      <SnackbarAgentsPanel v-else-if="activeTab === 'agents'" />
-
       <!-- ═══ Budget tab ═══ -->
       <SnackbarBudgetPanel v-else-if="activeTab === 'budget'" />
 
@@ -134,6 +151,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useSnackbarOpsStore } from "../../stores/snackbarOps";
 import { useChatStore, ASSISTUI_MODES } from "../../stores/chat";
@@ -141,27 +159,42 @@ import { useWorkflowStore } from "../../stores/workflow";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import SnackbarModelsPanel from "../snackbar/panels/SnackbarModelsPanel.vue";
-import SnackbarAgentsPanel from "../snackbar/panels/SnackbarAgentsPanel.vue";
 import SnackbarBudgetPanel from "../snackbar/panels/SnackbarBudgetPanel.vue";
 import CombinedHistoryPanel from "./panels/CombinedHistoryPanel.vue";
 
 const INTEL_TABS = [
   { id: "chat", label: "Chat", icon: "chat" },
-  { id: "intel", label: "Intelligence", icon: "chat" },
-  { id: "models", label: "Models", icon: "chat" },
-  { id: "agents", label: "Agents", icon: "chat" },
-  { id: "budget", label: "Budget", icon: "chat" },
-  { id: "history", label: "History", icon: "chat" },
+  { id: "intel", label: "Settings", icon: "tune" },
+  { id: "models", label: "Models", icon: "smart_toy" },
+  { id: "budget", label: "Budget", icon: "payments" },
+  { id: "history", label: "History", icon: "history" },
 ];
 
 const shell = useShellStore();
+const route = useRoute();
+const router = useRouter();
 const srv = useSnackbarOpsStore();
 const chat = useChatStore();
 const wf = useWorkflowStore();
 
-const activeTab = ref("chat");
+const VALID_INTEL_TABS = new Set(INTEL_TABS.map((tab) => tab.id));
+const routeTab = String(route.query.tab || "");
+const activeTab = ref(VALID_INTEL_TABS.has(routeTab) ? routeTab : "chat");
 
-watch(activeTab, (tab) => shell.setIntelTab(tab), { immediate: true });
+watch(activeTab, (tab) => {
+  shell.setIntelTab(tab);
+  if (route.query.tab !== tab) {
+    router.replace({ query: { ...route.query, tab } });
+  }
+}, { immediate: true });
+
+watch(
+  () => route.query.tab,
+  (tab) => {
+    const normalized = String(tab || "chat");
+    if (VALID_INTEL_TABS.has(normalized)) activeTab.value = normalized;
+  },
+);
 const modelPickerOpen = ref(false);
 const inputRef = ref<HTMLTextAreaElement | null>(null);
 
@@ -199,6 +232,7 @@ const renderMarkdown = (content: string) => content
 function handlePromptClick(prompt: any) { chat.input = prompt.label; chat.sendMessage(); }
 function handleInputKeydown(e: KeyboardEvent) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); chat.sendMessage(); } }
 function switchMode(mode: string) { chat.setPromptMode(mode as any); }
+function openWorkflow() { router.push({ path: "/workflow", query: { tab: "mission-control" } }); }
 function savePrompt() {
   try { localStorage.setItem("ucore-chat-prompt", systemPrompt.value); } catch {}
   try { localStorage.setItem("ucore-chat-context", JSON.stringify(ctx.value)); } catch {}
@@ -227,6 +261,10 @@ onMounted(() => {
 .intel-textarea { width: 100%; padding: var(--usx-spacing-sm) var(--usx-spacing-md); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); background-color: var(--usx-color-surface); color: var(--usx-color-on-surface); font-size: var(--usx-font-size-sm); font-family: var(--usx-font-family-sans); resize: vertical; line-height: var(--usx-line-height-normal); }
 .intel-checkbox-row { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-1) 0; font-size: var(--usx-font-size-sm); }
 .intel-save-btn { min-height: var(--usx-touch-min); padding: 0 var(--usx-spacing-xl); background-color: var(--usx-color-primary); color: var(--usx-color-on-primary); border: var(--usx-border-width) solid var(--usx-color-primary); border-radius: var(--usx-radius-md); cursor: pointer; font-size: var(--usx-font-size-sm); }
+.assistui-workflow-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--usx-spacing-sm); margin-top: var(--usx-spacing-md); }
+.assistui-workflow-summary > div { display: grid; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-md); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); background: var(--usx-color-surface); }
+.assistui-workflow-summary strong { font-size: var(--usx-font-size-xl); }
+.assistui-workflow-summary span { color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-sm); }
 
 /* ── AssistUI chat styles ────────────────────────────────────── */
 .assistui-mode-toggle { display: flex; justify-content: center; gap: var(--usx-spacing-xs); padding: 0 0 var(--usx-spacing-sm); flex-shrink: 0; }

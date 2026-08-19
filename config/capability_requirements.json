@@ -3,7 +3,7 @@
     "extensions": ["uflow"],
     "tools": ["git"],
     "repos": ["uFlow"],
-    "variables": ["cline_provider", "cline_model"],
+    "variables": [],
     "secrets": []
   },
   "knowledge.search": {
@@ -20,18 +20,18 @@
     "variables": [],
     "secrets": []
   },
-  "developer.autonomous": {
+  "developer.guided": {
     "extensions": [],
     "tools": ["git", "node", "python"],
-    "repos": ["uDev"],
-    "variables": ["cline_provider", "cline_model"],
+    "repos": ["uCore", "uFlow", "uKnowledge", "uCode"],
+    "variables": [],
     "secrets": []
   },
   "llm.openrouter": {
     "extensions": [],
     "tools": [],
     "repos": [],
-    "variables": ["cline_provider", "cline_model"],
+    "variables": ["openrouter_model"],
     "secrets": ["OPENROUTER_API_KEY"]
   },
   "identity_gateway": {

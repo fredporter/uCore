@@ -6,6 +6,7 @@ Connects DistributionSystem to the plate refresh system so that:
 - Repairing a package re-renders the plate
 - Removing a package triggers the destroy workflow
 """
+
 from __future__ import annotations
 
 import json
@@ -108,13 +109,12 @@ class PackageManager:
                 "destroy": {
                     "salvage_keys": ["package_name", "version"],
                     "rebuild_command": (
-                        f"python -m app.services.distribution_system "
-                        f"--install {package_name}"
+                        f"python -m app.services.distribution_system --install {package_name}"
                     ),
                     "backup_before_destroy": True,
                     "spool_archive": {
                         "enabled": True,
-                        "spool_dir": "~/.ucore/logs",
+                        "spool_dir": "${UDOS_HOME}/logs",
                         "compress_metadata": True,
                         "include_source": False,
                         "include_lessons": True,
@@ -127,6 +127,7 @@ class PackageManager:
         # Write plate
         with open(target_path, "w") as f:
             import yaml
+
             yaml.dump(plate_data, f, default_flow_style=False)
 
         log.info("Created plate %s from package %s", plate_id, package_name)
@@ -288,26 +289,26 @@ class PackageManager:
             List of package info dicts with plate status
         """
         modules = self.dist.list_modules()
-        plates = discover_plates()
-
         results = []
         for module in modules:
             plate_id = self._find_plate_for_package(module.name)
             plate_status = "found" if plate_id else "not_found"
 
-            results.append({
-                "name": module.name,
-                "version": module.version,
-                "status": module.status.value,
-                "health_status": module.health_status,
-                "plate_id": plate_id,
-                "plate_status": plate_status,
-                "size_bytes": module.size_bytes,
-                "installed_path": module.installed_path,
-                "last_updated": (
-                    module.last_updated.isoformat() if module.last_updated else None
-                ),
-            })
+            results.append(
+                {
+                    "name": module.name,
+                    "version": module.version,
+                    "status": module.status.value,
+                    "health_status": module.health_status,
+                    "plate_id": plate_id,
+                    "plate_status": plate_status,
+                    "size_bytes": module.size_bytes,
+                    "installed_path": module.installed_path,
+                    "last_updated": (
+                        module.last_updated.isoformat() if module.last_updated else None
+                    ),
+                }
+            )
 
         return results
 
@@ -346,9 +347,7 @@ class PackageManager:
             "health_status": module.health_status,
             "size_bytes": module.size_bytes,
             "installed_path": module.installed_path,
-            "last_updated": (
-                module.last_updated.isoformat() if module.last_updated else None
-            ),
+            "last_updated": (module.last_updated.isoformat() if module.last_updated else None),
             "plate": plate_info,
             "dependencies": module.dependencies,
             "metadata": module.metadata,
@@ -369,39 +368,25 @@ class PackageManager:
         for pkg in packages:
             if pkg["health_status"] == "unhealthy":
                 issues.append(f"Package {pkg['name']} is unhealthy")
-                recommendations.append(
-                    f"Run: repair {pkg['name']}"
-                )
+                recommendations.append(f"Run: repair {pkg['name']}")
 
             if pkg["plate_status"] == "not_found":
                 issues.append(f"Package {pkg['name']} has no plate definition")
-                recommendations.append(
-                    f"Run: install {pkg['name']} to create plate"
-                )
+                recommendations.append(f"Run: install {pkg['name']} to create plate")
 
         # Check for orphaned plates (plates without packages)
         for pid in plates:
-            has_package = any(
-                pkg.get("plate_id") == pid for pkg in packages
-            )
+            has_package = any(pkg.get("plate_id") == pid for pkg in packages)
             if not has_package:
                 issues.append(f"Orphaned plate: {pid} (no corresponding package)")
 
         return {
             "total_packages": len(packages),
             "total_plates": len(plates),
-            "healthy_packages": sum(
-                1 for p in packages if p["health_status"] == "healthy"
-            ),
-            "unhealthy_packages": sum(
-                1 for p in packages if p["health_status"] == "unhealthy"
-            ),
-            "packages_with_plates": sum(
-                1 for p in packages if p["plate_status"] == "found"
-            ),
-            "packages_without_plates": sum(
-                1 for p in packages if p["plate_status"] == "not_found"
-            ),
+            "healthy_packages": sum(1 for p in packages if p["health_status"] == "healthy"),
+            "unhealthy_packages": sum(1 for p in packages if p["health_status"] == "unhealthy"),
+            "packages_with_plates": sum(1 for p in packages if p["plate_status"] == "found"),
+            "packages_without_plates": sum(1 for p in packages if p["plate_status"] == "not_found"),
             "issues": issues,
             "recommendations": recommendations,
         }

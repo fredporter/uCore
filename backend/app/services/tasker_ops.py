@@ -3,8 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from app.services.tasker_bridge import render_task_markdown, slugify
-from app.services.workflow_status import default_tasker_dir, scan_tasker_boards
+from uflow.task_store import (
+    default_tasker_dir,
+    render_task_markdown,
+    scan_tasker_boards,
+    slugify,
+)
 
 
 def resolve_tasker_dir(tasker_dir: str | None = None) -> Path:

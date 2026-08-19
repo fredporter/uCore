@@ -7,12 +7,14 @@ import json
 import os
 from pathlib import Path
 
+from app.core.settings import settings
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="SnackMachine CLI")
     sub = parser.add_subparsers(dest="command")
 
-    init_parser = sub.add_parser("init", help="Seed ~/.ucore/ with default configs")
+    init_parser = sub.add_parser("init", help="Seed $UDOS_HOME with default configs")
     init_parser.add_argument("--force", action="store_true", help="Overwrite existing")
 
     sub.add_parser("serve", help="Start snackmachine daemon (requires uCore)")
@@ -34,8 +36,8 @@ def main() -> None:
 
 
 def cmd_init(force: bool = False) -> None:
-    """Seed ~/.ucore/ with default snackmachine config."""
-    data_dir = Path(os.environ.get("SNACKMACHINE_DATA_DIR", Path.home() / ".ucore"))
+    """Seed the canonical uDos runtime home with SnackMachine config."""
+    data_dir = Path(os.environ.get("SNACKMACHINE_DATA_DIR", settings.udos_home))
     dirs = [
         data_dir / "config" / "mcp-manifests",
         data_dir / "indices",
@@ -62,32 +64,35 @@ def cmd_init(force: bool = False) -> None:
 
     print(f"\n✅ snackmachine initialized at {data_dir}")
     print("   Run 'snackmachine index' to build the FTS5 search index.")
-    print("   Drop snacks into ~/.ucore/snacks/ to auto-discover them.")
+    print(f"   Drop snacks into {data_dir / 'snacks'} to auto-discover them.")
 
 
-MCP_KNOWLEDGE_MANIFEST = json.dumps({
-    "name": "mcp-knowledge-conduit",
-    "version": "1.0.0",
-    "description": "Knowledge conduit: vault search, AI-ranked retrieval, doclang",
-    "tools": [
-        "knowledge_search",
-        "knowledge_ask",
-        "knowledge_list_sources",
-        "knowledge_extract_links",
-        "knowledge_summarize",
-        "knowledge_publish",
-        "knowledge_query_memory",
-    ],
-    "transport": "http",
-    "health_check": "/api/mcp/status",
-    "protocolVersion": "0.1.0",
-    "serverInfo": {"name": "SnackMachine Knowledge Conduit", "version": "1.0.0"},
-}, indent=2)
+MCP_KNOWLEDGE_MANIFEST = json.dumps(
+    {
+        "name": "mcp-knowledge-conduit",
+        "version": "1.0.0",
+        "description": "Knowledge conduit: vault search, AI-ranked retrieval, doclang",
+        "tools": [
+            "knowledge_search",
+            "knowledge_ask",
+            "knowledge_list_sources",
+            "knowledge_extract_links",
+            "knowledge_summarize",
+            "knowledge_publish",
+            "knowledge_query_memory",
+        ],
+        "transport": "http",
+        "health_check": "/api/mcp/status",
+        "protocolVersion": "0.1.0",
+        "serverInfo": {"name": "SnackMachine Knowledge Conduit", "version": "1.0.0"},
+    },
+    indent=2,
+)
 
 
 SNACKMACHINE_CONFIG = """\
 # SnackMachine config
-# Drop .py snacks into ~/.ucore/snacks/ — they auto-discover
+# Drop .py snacks into $UDOS_HOME/snacks — they auto-discover
 
 scheduler:
   interval: 60  # seconds between job checks
@@ -98,12 +103,12 @@ scheduler:
       time: "*/2 * * * *"  # every 2 hours
 
 spool:
-  dir: ~/.ucore/logs
+  dir: ${UDOS_HOME}/logs
   max_items: 1000
   max_days: 30
 
 indices:
-  dir: ~/.ucore/indices
+  dir: ${UDOS_HOME}/indices
   vault_layers:
     - user: ~/Vault
     - shared: ~/Shared

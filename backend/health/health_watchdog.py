@@ -15,6 +15,7 @@ HEALTH_URL = "http://localhost:8484/api/health"
 UCORE_MENU_LABEL = "com.udos.ucore-menu"
 UCORE_SERVER_LABEL = "com.udos.ucore-server"
 UCORE_BACKEND_DIR = os.environ.get("UCORE_BACKEND_DIR", str(Path.home() / "Code" / "uCore" / "backend"))
+UDOS_HOME = Path(os.environ.get("UDOS_HOME", Path.home() / "Code" / ".udos"))
 
 def check_health():
     """Check if snackbar backend is healthy."""
@@ -28,7 +29,7 @@ def check_health():
 
 def check_menu_running():
     """Check if uCore menu is running."""
-    lockfile = Path.home() / ".ucore" / "ucore-menu.pid"
+    lockfile = UDOS_HOME / "ucore-menu.pid"
     if not lockfile.exists():
         return False
     try:

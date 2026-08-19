@@ -7,6 +7,32 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+def _udos_code_root() -> Path:
+    return Path(
+        os.environ.get(
+            "UDOS_ROOT",
+            os.environ.get(
+                "ROOT",
+                os.environ.get("UDOS_CODE", os.path.expanduser("~/Code")),
+            ),
+        ),
+    ).expanduser()
+
+
+def _udos_home(code_root: Path) -> Path:
+    """Resolve the detachable runtime home."""
+    explicit = os.environ.get("UDOS_HOME")
+    if explicit:
+        return Path(explicit).expanduser()
+
+    return code_root / ".udos"
+
+
+_UDOS_ROOT = _udos_code_root()
+_UDOS_HOME = _udos_home(_UDOS_ROOT)
+_SECRETS_HOME = _UDOS_HOME / "secrets"
+
+
 @dataclass
 class Settings:
     """Central uCore configuration."""
@@ -28,26 +54,36 @@ class Settings:
     ).lower() in ("1", "true", "yes")
 
     # ── Paths ────────────────────────────────────────────────
+    udos_home: Path = _UDOS_HOME
     data_dir: Path = Path(
-        os.environ.get("UCORE_DATA_DIR", os.path.expanduser("~/.ucore/data")),
+        os.environ.get("UCORE_DATA_DIR", str(_UDOS_HOME / "data")),
     )
     config_dir: Path = Path(
         os.environ.get(
             "UCORE_CONFIG_DIR",
-            os.path.expanduser("~/.ucore/config"),
+            str(_UDOS_HOME / "config"),
         ),
     )
     logs_dir: Path = Path(
-        os.environ.get("UCORE_LOGS_DIR", os.path.expanduser("~/.ucore/logs")),
+        os.environ.get("UCORE_LOGS_DIR", str(_UDOS_HOME / "logs")),
     )
     memory_dir: Path = Path(
         os.environ.get(
             "UCORE_MEMORY_DIR",
-            os.path.expanduser("~/.ucore/memory"),
+            str(_UDOS_HOME / "memory"),
         ),
     )
     secrets_dir: Path = Path(
-        os.environ.get("UCORE_SECRETS_DIR", os.path.expanduser("~/.ucore")),
+        os.environ.get("UCORE_SECRETS_DIR", str(_SECRETS_HOME)),
+    )
+    vault_root: Path = Path(
+        os.environ.get("UDOS_VAULT_ROOT", os.path.expanduser("~/Vault")),
+    )
+    shared_vault_root: Path = Path(
+        os.environ.get("UDOS_SHARED_ROOT", os.path.expanduser("~/Shared")),
+    )
+    public_vault_root: Path = Path(
+        os.environ.get("UDOS_PUBLIC_ROOT", os.path.expanduser("~/Public")),
     )
 
     # ── Snackbar ─────────────────────────────────────────────
@@ -57,7 +93,7 @@ class Settings:
     # ── Surfaces ─────────────────────────────────────────────
     surface_registry_path: str = os.environ.get(
         "UCORE_SURFACE_REGISTRY",
-        os.path.expanduser("~/.ucore/surfaces.json"),
+        str(_UDOS_HOME / "surfaces.json"),
     )
 
     # ── Security ─────────────────────────────────────────────
@@ -79,15 +115,7 @@ class Settings:
     install_name: str = os.environ.get("UDOS_INSTALL_NAME", socket.gethostname())
 
     # ── Spine (Code base path — all repos under ~/Code/) ─────
-    udos_root: Path = Path(
-        os.environ.get(
-            "UDOS_ROOT",
-            os.environ.get(
-                "ROOT",
-                os.environ.get("UDOS_CODE", os.path.expanduser("~/Code")),
-            ),
-        ),
-    ).expanduser()
+    udos_root: Path = _UDOS_ROOT
 
     # ── Ollama / AI ──────────────────────────────────────────
     ollama_base_url: str = os.environ.get(

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import time
-from pathlib import Path
 
-_STATE_DIR = Path.home() / ".ucore"
+from app.core.settings import settings
+
+_STATE_DIR = settings.udos_home
 _STATE_FILE = _STATE_DIR / "skill-state.json"
 
 

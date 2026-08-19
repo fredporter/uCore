@@ -7,11 +7,13 @@ Usage:
     python -m plate_refresh.refresh --destroy skill.recover_port_conflict
     python -m plate_refresh.refresh --spool-list
 """
+
 from __future__ import annotations
 
 import gzip
 import json
 import logging
+import os
 import shutil
 import subprocess
 import time
@@ -22,6 +24,7 @@ from typing import Any
 
 import yaml
 
+from app.core.settings import settings
 from plate_refresh.models import (
     DriftReport,
     PlateMeta,
@@ -34,11 +37,20 @@ log = logging.getLogger("ucore.plate_refresh")
 ROOT = Path(__file__).resolve().parents[2]  # /Users/fredbook/Code/uCore
 PLATES_ROOT = ROOT / "plates"
 BACKUP_ROOT = ROOT / "plates" / ".backups"
-EXCLUDE_DIRS = {".git", "node_modules", "__pycache__", ".next",
-                ".obsidian", ".vscode", ".venv", ".mypy_cache"}
+EXCLUDE_DIRS = {
+    ".git",
+    "node_modules",
+    "__pycache__",
+    ".next",
+    ".obsidian",
+    ".vscode",
+    ".venv",
+    ".mypy_cache",
+}
 
 
 # ─── Plate Discovery ──────────────────────────────────────
+
 
 def discover_plates() -> dict[str, Path]:
     """Discover all plate YAML files in plates/ directory."""
@@ -71,6 +83,7 @@ def load_plate(plate_id: str) -> tuple[PlateMeta, dict[str, Any], Path] | None:
 
 
 # ─── Rendering ────────────────────────────────────────────
+
 
 def render_plates(context: dict[str, str] | None = None) -> list[str]:
     """Render all plates with context substitution.
@@ -110,7 +123,10 @@ def render_plates(context: dict[str, str] | None = None) -> list[str]:
         new_checksum = meta.compute_checksum(rendered_content)
         log.info(
             "Rendered plate %s (v%s) -> %s [checksum: %s]",
-            plate_id, meta.version, output_path, new_checksum[:12],
+            plate_id,
+            meta.version,
+            output_path,
+            new_checksum[:12],
         )
         rendered.append(str(output_path))
 
@@ -118,6 +134,7 @@ def render_plates(context: dict[str, str] | None = None) -> list[str]:
 
 
 # ─── Validation ───────────────────────────────────────────
+
 
 def validate_plate(plate_id: str) -> dict[str, Any]:
     """Validate a plate against its Pydantic schema.
@@ -165,6 +182,7 @@ def validate_all_plates() -> list[dict[str, Any]]:
 
 
 # ─── Drift Detection ──────────────────────────────────────
+
 
 def detect_drift(plate_id: str) -> DriftReport:
     """Detect drift between a plate and its rendered output.
@@ -237,9 +255,11 @@ def detect_all_drift() -> list[DriftReport]:
 
 # ─── SPOOL Archive ────────────────────────────────────────
 
+
 def _resolve_spool_dir(spool_cfg: SpoolArchiveConfig) -> Path:
-    """Resolve spool directory, expanding ~ to home."""
-    spool_path = Path(spool_cfg.spool_dir).expanduser()
+    """Resolve spool directory against the detachable uDos runtime home."""
+    raw_path = spool_cfg.spool_dir.replace("${UDOS_HOME}", str(settings.udos_home))
+    spool_path = Path(os.path.expandvars(raw_path)).expanduser()
     spool_path.mkdir(parents=True, exist_ok=True)
     return spool_path
 
@@ -255,7 +275,7 @@ def write_spool_archive(
 ) -> str | None:
     """Compress a destroyed component's essence into an MCP-formatted SPOOL record.
 
-    The SPOOL record is a gzip-compressed JSON blob written to ~/.ucore/logs/
+    The SPOOL record is a gzip-compressed JSON blob written to $UDOS_HOME/logs/
     that preserves:
     - Plate metadata (id, version, domain, description)
     - Salvaged state (keys preserved from corruption)
@@ -311,9 +331,7 @@ def write_spool_archive(
     }
 
     # Compress to gzip
-    spool_filename = (
-        f"plate_{plate_id}_{now.strftime('%Y%m%d_%H%M%S')}.spool.json.gz"
-    )
+    spool_filename = f"plate_{plate_id}_{now.strftime('%Y%m%d_%H%M%S')}.spool.json.gz"
     spool_path = spool_dir / spool_filename
 
     with gzip.open(spool_path, "wt", encoding="utf-8") as f:
@@ -329,7 +347,7 @@ def write_spool_archive(
 
 
 def list_spool_archives(domain: str | None = None) -> list[dict[str, Any]]:
-    """List all SPOOL archive records in ~/.ucore/logs/.
+    """List all SPOOL archive records in ``$UDOS_HOME/logs``.
 
     Args:
         domain: Optional domain filter (skill, snack, mcp, etc.)
@@ -337,7 +355,7 @@ def list_spool_archives(domain: str | None = None) -> list[dict[str, Any]]:
     Returns:
         List of spool record summaries
     """
-    spool_dir = Path("~/.ucore/logs").expanduser()
+    spool_dir = settings.logs_dir
     if not spool_dir.exists():
         return []
 
@@ -348,16 +366,18 @@ def list_spool_archives(domain: str | None = None) -> list[dict[str, Any]]:
                 record = json.load(fh)
             if domain and record.get("plate", {}).get("domain") != domain:
                 continue
-            archives.append({
-                "file": str(f),
-                "timestamp": record.get("timestamp", ""),
-                "plate_id": record.get("plate", {}).get("id", ""),
-                "version": record.get("plate", {}).get("version", ""),
-                "domain": record.get("plate", {}).get("domain", ""),
-                "salvaged_keys": list(record.get("salvaged", {}).keys()),
-                "lesson_count": len(record.get("lessons", [])),
-                "has_errors": len(record.get("errors", [])) > 0,
-            })
+            archives.append(
+                {
+                    "file": str(f),
+                    "timestamp": record.get("timestamp", ""),
+                    "plate_id": record.get("plate", {}).get("id", ""),
+                    "version": record.get("plate", {}).get("version", ""),
+                    "domain": record.get("plate", {}).get("domain", ""),
+                    "salvaged_keys": list(record.get("salvaged", {}).keys()),
+                    "lesson_count": len(record.get("lessons", [])),
+                    "has_errors": len(record.get("errors", [])) > 0,
+                }
+            )
         except Exception as exc:
             log.warning("Failed to read spool archive %s: %s", f, exc)
 
@@ -386,6 +406,7 @@ def read_spool_archive(spool_path: str) -> dict[str, Any] | None:
 
 
 # ─── DESTROY/REBUILD Protocol ─────────────────────────────
+
 
 def destroy_and_rebuild(
     plate_id: str,
@@ -434,9 +455,7 @@ def destroy_and_rebuild(
     if meta.destroy.backup_before_destroy:
         backup_dir = BACKUP_ROOT / meta.domain
         backup_dir.mkdir(parents=True, exist_ok=True)
-        backup_name = (
-            f"{plate_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.yaml"
-        )
+        backup_name = f"{plate_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.yaml"
         backup_path = str(backup_dir / backup_name)
         shutil.copy2(str(path), backup_path)
         log.info("Backed up %s to %s", plate_id, backup_path)
@@ -459,7 +478,11 @@ def destroy_and_rebuild(
             for k, v in salvaged.items():
                 cmd = cmd.replace(f"${{{k}}}", str(v))
             result_proc = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True, timeout=120,
+                cmd,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=120,
             )
             rebuild_output = result_proc.stdout
             if result_proc.returncode != 0:
@@ -476,7 +499,7 @@ def destroy_and_rebuild(
             errors.append(f"Validation after rebuild: {err}")
 
     # Write SPOOL archive (after rebuild so we can include rebuild_output)
-    spool_path = write_spool_archive(
+    write_spool_archive(
         plate_id=plate_id,
         meta=meta,
         raw=raw,
@@ -489,7 +512,8 @@ def destroy_and_rebuild(
     success = len(errors) == 0
     log.info(
         "DESTROY/REBUILD for %s: %s",
-        plate_id, "SUCCESS" if success else "FAILED",
+        plate_id,
+        "SUCCESS" if success else "FAILED",
     )
 
     return RebuildResult(
@@ -513,8 +537,8 @@ VAULT_PATHS = {
 }
 
 UCORE_DIRS = {
-    "config": Path("~/.ucore/").expanduser(),
-    "logs": Path("~/.ucore/logs/").expanduser(),
+    "config": settings.config_dir,
+    "logs": settings.logs_dir,
     "plates": ROOT / "plates",
 }
 
@@ -533,12 +557,13 @@ def _discover_vaults() -> dict[str, Any]:
 
         count = 0
         for dirpath, dirnames, filenames in os.walk(path):
-            dirnames[:] = [d for d in dirnames
-                           if d not in EXCLUDE_DIRS]
+            dirnames[:] = [d for d in dirnames if d not in EXCLUDE_DIRS]
             count += len(filenames)
 
         vaults[layer] = {
-            "path": str(path), "exists": True, "files": count,
+            "path": str(path),
+            "exists": True,
+            "files": count,
         }
         total_files += count
 
@@ -551,10 +576,11 @@ def _discover_vaults() -> dict[str, Any]:
         ucore_data[name] = {"path": str(path), "files": count}
 
     # Spool archives
-    spool_dir = Path("~/.ucore/logs").expanduser()
+    spool_dir = settings.logs_dir
     spool_count = len(list(spool_dir.glob("plate_*.spool.json.gz")))
     ucore_data["spool_archives"] = {
-        "path": str(spool_dir), "count": spool_count,
+        "path": str(spool_dir),
+        "count": spool_count,
     }
 
     return {
@@ -585,6 +611,7 @@ def _destroy_user_vault() -> RebuildResult:
     backup_path = str(backup_dir / backup_name)
 
     import tarfile
+
     try:
         with tarfile.open(backup_path, "w:gz") as tar:
             tar.add(vault_path, arcname="Vault")
@@ -603,18 +630,19 @@ def _destroy_user_vault() -> RebuildResult:
         },
         "errors": errors,
     }
-    spool_dir = Path("~/.ucore/logs").expanduser()
+    spool_dir = settings.logs_dir
     spool_dir.mkdir(parents=True, exist_ok=True)
     spool_path = spool_dir / (
-        f"vault_user_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        ".spool.json.gz"
+        f"vault_user_{datetime.now().strftime('%Y%m%d_%H%M%S')}.spool.json.gz"
     )
     import gzip
+
     with gzip.open(spool_path, "wt", encoding="utf-8") as f:
         json.dump(spool_record, f, indent=2, default=str)
 
     # Remove vault contents (keep directory)
     import shutil
+
     for item in vault_path.iterdir():
         try:
             if item.is_dir():
@@ -631,8 +659,7 @@ def _destroy_user_vault() -> RebuildResult:
         errors=errors,
         backup_path=backup_path,
         rebuild_output=(
-            f"User vault destroyed. Backup at {backup_path}. "
-            f"SPOOL archive at {spool_path}."
+            f"User vault destroyed. Backup at {backup_path}. SPOOL archive at {spool_path}."
         ),
     )
 
@@ -646,23 +673,23 @@ def _destroy_installation() -> RebuildResult:
     if not vault_result.success:
         errors.extend(vault_result.errors)
 
-    # 2. Backup and remove ~/.ucore/
-    ucore_dir = Path("~/.ucore/").expanduser()
+    # 2. Backup and remove the detachable uDos runtime home.
+    ucore_dir = settings.udos_home
     if ucore_dir.exists():
         backup_dir = BACKUP_ROOT / "installation"
         backup_dir.mkdir(parents=True, exist_ok=True)
-        backup_name = (
-            f"ucore_install_{datetime.now().strftime('%Y%m%d_%H%M%S')}.tar.gz"
-        )
+        backup_name = f"ucore_install_{datetime.now().strftime('%Y%m%d_%H%M%S')}.tar.gz"
         backup_path = str(backup_dir / backup_name)
         import tarfile
+
         try:
             with tarfile.open(backup_path, "w:gz") as tar:
-                tar.add(ucore_dir, arcname=".ucore")
+                tar.add(ucore_dir, arcname=".udos")
             import shutil
+
             shutil.rmtree(ucore_dir)
         except Exception as exc:
-            errors.append(f"Failed to backup/remove ~/.ucore/: {exc}")
+            errors.append(f"Failed to backup/remove {ucore_dir}: {exc}")
 
     # 3. Write final SPOOL archive
     spool_record = {
@@ -670,13 +697,13 @@ def _destroy_installation() -> RebuildResult:
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "errors": errors,
     }
-    spool_dir = Path("~/.ucore/logs").expanduser()
+    spool_dir = settings.logs_dir
     spool_dir.mkdir(parents=True, exist_ok=True)
     spool_path = spool_dir / (
-        f"installation_destroy_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        ".spool.json.gz"
+        f"installation_destroy_{datetime.now().strftime('%Y%m%d_%H%M%S')}.spool.json.gz"
     )
     import gzip
+
     with gzip.open(spool_path, "wt", encoding="utf-8") as f:
         json.dump(spool_record, f, indent=2, default=str)
 
@@ -685,13 +712,12 @@ def _destroy_installation() -> RebuildResult:
         plate_id="installation",
         success=success,
         errors=errors,
-        rebuild_output=(
-            f"Installation destroyed. SPOOL archive at {spool_path}."
-        ),
+        rebuild_output=(f"Installation destroyed. SPOOL archive at {spool_path}."),
     )
 
 
 # ─── Interactive DESTROY Menu ────────────────────────────
+
 
 def interactive_destroy():
     """Present interactive DESTROY/REBUILD options to the user."""
@@ -707,13 +733,13 @@ def interactive_destroy():
     print()
     for layer, stats in discovery["vaults"].items():
         status = "EXISTS" if stats["exists"] else "NOT FOUND"
-        print(f"  {layer:8s} -> {stats['path']:<35s} [{status}] "
-              f"{stats['files']} files")
+        print(f"  {layer:8s} -> {stats['path']:<35s} [{status}] {stats['files']} files")
     print()
     print("  uCore data:")
     for name, stats in discovery["ucore_data"].items():
-        print(f"    {name:15s}: {stats['path']} "
-              f"({stats.get('files', stats.get('count', 0))} files)")
+        print(
+            f"    {name:15s}: {stats['path']} ({stats.get('files', stats.get('count', 0))} files)"
+        )
     print()
     print(f"  Total: {discovery['total_files']} files across all vaults")
     print()
@@ -722,13 +748,10 @@ def interactive_destroy():
     print("Select an option:")
     print()
     print("  [1] Dry-run only (identify everything, no changes)")
-    print("  [2] Destroy & Rebuild (reset corrupted components, "
-          "keep user data)")
-    print("  [3] Destroy User Data Only (remove ~/Vault/, "
-          "keep installation)")
+    print("  [2] Destroy & Rebuild (reset corrupted components, keep user data)")
+    print("  [3] Destroy User Data Only (remove ~/Vault/, keep installation)")
     print("  [4] Destroy Installation & Data (complete uninstall)")
-    print("  [5] Break off Nuggets (extract reusable components, "
-          "then rebuild)")
+    print("  [5] Break off Nuggets (extract reusable components, then rebuild)")
     print("  [6] Cancel")
     print()
 
@@ -744,10 +767,14 @@ def interactive_destroy():
 
     elif choice == "2":
         print("\n[2] Destroy & Rebuild selected.")
-        confirm = input(
-            "This will reset corrupted components. "
-            "User data will be preserved. Continue? [y/N]: "
-        ).strip().lower()
+        confirm = (
+            input(
+                "This will reset corrupted components. "
+                "User data will be preserved. Continue? [y/N]: "
+            )
+            .strip()
+            .lower()
+        )
         if confirm != "y":
             print("Cancelled.")
             return
@@ -762,10 +789,14 @@ def interactive_destroy():
 
     elif choice == "3":
         print("\n[3] Destroy User Data Only selected.")
-        confirm = input(
-            "This will remove all contents of ~/Vault/ "
-            "(backup will be created). Continue? [y/N]: "
-        ).strip().lower()
+        confirm = (
+            input(
+                "This will remove all contents of ~/Vault/ "
+                "(backup will be created). Continue? [y/N]: "
+            )
+            .strip()
+            .lower()
+        )
         if confirm != "y":
             print("Cancelled.")
             return
@@ -777,16 +808,18 @@ def interactive_destroy():
 
     elif choice == "4":
         print("\n[4] Destroy Installation & Data selected.")
-        confirm = input(
-            "WARNING: This will remove ALL user data and the "
-            "uCore installation. Continue? [y/N]: "
-        ).strip().lower()
+        confirm = (
+            input(
+                "WARNING: This will remove ALL user data and the "
+                "uCore installation. Continue? [y/N]: "
+            )
+            .strip()
+            .lower()
+        )
         if confirm != "y":
             print("Cancelled.")
             return
-        confirm2 = input(
-            "Type 'DESTROY' to confirm complete uninstall: "
-        ).strip()
+        confirm2 = input("Type 'DESTROY' to confirm complete uninstall: ").strip()
         if confirm2 != "DESTROY":
             print("Cancelled.")
             return
@@ -798,10 +831,11 @@ def interactive_destroy():
 
     elif choice == "5":
         print("\n[5] Break off Nuggets selected.")
-        confirm = input(
-            "Extract reusable components from vaults as Nuggets? "
-            "Continue? [y/N]: "
-        ).strip().lower()
+        confirm = (
+            input("Extract reusable components from vaults as Nuggets? Continue? [y/N]: ")
+            .strip()
+            .lower()
+        )
         if confirm != "y":
             print("Cancelled.")
             return
@@ -810,13 +844,17 @@ def interactive_destroy():
             from app.skills.builtin.skill_vault_discovery import (
                 VaultDiscoverySkill,
             )
+
             skill = VaultDiscoverySkill()
             import asyncio
-            result = asyncio.run(skill.run(
-                dry_run=False,
-                extract_nuggets=True,
-                nugget_output_dir="~/Nuggets/",
-            ))
+
+            result = asyncio.run(
+                skill.run(
+                    dry_run=False,
+                    extract_nuggets=True,
+                    nugget_output_dir="~/Nuggets/",
+                )
+            )
             print(f"\nExtracted {len(result['nuggets'])} Nuggets:")
             for n in result["nuggets"]:
                 print(f"  {n['id']}: {n['source']} ({n['files']} files)")
@@ -832,48 +870,67 @@ def interactive_destroy():
 
 # ─── CLI ──────────────────────────────────────────────────
 
+
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Plate Refresh Engine -- Render, validate, "
-        "detect drift, rebuild",
+        description="Plate Refresh Engine -- Render, validate, detect drift, rebuild",
     )
     parser.add_argument("--render", action="store_true", help="Render all plates")
     parser.add_argument(
-        "--validate", type=str, nargs="?", const="all", default=None,
+        "--validate",
+        type=str,
+        nargs="?",
+        const="all",
+        default=None,
         help="Validate a specific plate or 'all'",
     )
     parser.add_argument(
-        "--drift-detect", type=str, nargs="?", const="all", default=None,
+        "--drift-detect",
+        type=str,
+        nargs="?",
+        const="all",
+        default=None,
         help="Detect drift for a plate or 'all'",
     )
     parser.add_argument(
-        "--destroy", type=str, default=None,
+        "--destroy",
+        type=str,
+        default=None,
         help="DESTROY/REBUILD a specific plate",
     )
     parser.add_argument(
-        "--destroy-interactive", action="store_true",
+        "--destroy-interactive",
+        action="store_true",
         help="Interactive DESTROY menu with vault discovery",
     )
     parser.add_argument(
-        "--list", action="store_true", help="List all discovered plates",
+        "--list",
+        action="store_true",
+        help="List all discovered plates",
     )
     parser.add_argument(
-        "--spool-list", action="store_true",
+        "--spool-list",
+        action="store_true",
         help="List all SPOOL archive records",
     )
     parser.add_argument(
-        "--spool-read", type=str, default=None,
+        "--spool-read",
+        type=str,
+        default=None,
         help="Read and decompress a SPOOL archive file",
     )
     parser.add_argument(
-        "--spool-domain", type=str, default=None,
+        "--spool-domain",
+        type=str,
+        default=None,
         help="Filter spool list by domain",
     )
     # Add verification and monitoring arguments
     from plate_refresh.monitoring import add_monitoring_args
     from plate_refresh.verification import add_verification_args
+
     add_verification_args(parser)
     add_monitoring_args(parser)
 
@@ -963,6 +1020,7 @@ def main():
     # Handle verification and monitoring commands
     from plate_refresh.monitoring import handle_monitoring_commands
     from plate_refresh.verification import handle_verification_commands
+
     handle_verification_commands(args)
     handle_monitoring_commands(args)
 

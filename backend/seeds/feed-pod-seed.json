@@ -1,7 +1,7 @@
 {
   "name": "feed-pod",
   "version": "1.0.0",
-  "schema": "~/.ucore/schemas/activity.schema.sql",
+  "schema": "${UDOS_HOME}/schemas/activity.schema.sql",
   "sources": {
     "browser": {
       "enabled": true,

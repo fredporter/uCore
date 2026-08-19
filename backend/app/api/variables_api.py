@@ -19,13 +19,10 @@ from pathlib import Path
 
 from aiohttp import web
 
+from app.core.settings import settings
+
 # ─── Variable Store Path ─────────────────────────────────────────────
-_VARIABLE_STORE_DIR = Path(
-    os.environ.get(
-        "UCORE_DATA_DIR",
-        os.path.expanduser("~/.ucore/data"),
-    ),
-)
+_VARIABLE_STORE_DIR = settings.data_dir
 _VARIABLE_STORE_FILE = _VARIABLE_STORE_DIR / "variables.json"
 _INSTALL_META_FILE = _VARIABLE_STORE_DIR / "install_meta.json"
 
@@ -42,11 +39,10 @@ def _ensure_store() -> None:
                 datetime.now(UTC).astimezone().tzinfo,
             ) or "UTC",
             "uid": str(uuid.uuid4()),
-            "cline_provider": "ollama",
-            "cline_model": os.environ.get(
+            "model_routing": "automatic",
+            "local_model": os.environ.get(
                 "UCORE_OLLAMA_MODEL", "qwen2.5-coder:3b",
             ),
-            "cline_thinking": "low",
         }
         _VARIABLE_STORE_FILE.write_text(json.dumps(default_vars, indent=2))
 
@@ -132,8 +128,7 @@ async def handle_update_user_variables(request: web.Request) -> web.Response:
     allowed_keys = {
         "username", "role", "location",
         "timezone", "uid", "email",
-        "cline_provider", "cline_model", "cline_thinking",
-        "cline_auto_approve",
+        "model_routing", "local_model",
     }
     for key, value in body.items():
         if key in allowed_keys:

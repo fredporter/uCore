@@ -4,16 +4,16 @@ The flagship Dev Mode skill that chains the entire agentic workflow:
   1. Analyze task complexity (route_task)
   2. Select specialized agent (agents.yaml routing matrix)
   3. (Optional) Multi-model deliberation (hivemind-consensus)
-  4. Execute via Cline or Roundtable (cline-invoke / roundtable-dispatch)
+  4. Execute via the governed router, Roundtable, or Hivemind
   5. Review results (reviewer agent)
-  6. Log to spool + update .tasker
+  6. Log to spool + update uFlow
 
 Usage:
   POST /api/skills/dev-mode-executor/run
   Body: {"task_uid": "task.auth.001", "use_consensus": true}
 
 Integrates with: route_task, hivemind-consensus, roundtable-dispatch,
-  cline-invoke, tasker API, spool.
+  route_task, task API, spool.
 """
 from __future__ import annotations
 
@@ -22,6 +22,8 @@ import logging
 import time
 import urllib.request
 from pathlib import Path
+
+from uflow.task_store import default_tasker_dir
 
 from app.skills.base import BaseSkill, SkillMeta, SkillParam
 
@@ -37,10 +39,10 @@ AGENT_ROUTING = {
 }
 
 EXECUTOR_CHOICE = {
-    "implementation": "cline-invoke",
-    "coding": "cline-invoke",
-    "debugging": "cline-invoke",
-    "testing": "cline-invoke",
+    "implementation": "route_task",
+    "coding": "route_task",
+    "debugging": "route_task",
+    "testing": "route_task",
     "architecture": "roundtable-dispatch",
     "design": "hivemind-consensus",
     "planning": "hivemind-consensus",
@@ -67,7 +69,7 @@ class DevModeExecutorSkill(BaseSkill):
                 name="task_uid",
                 type="string",
                 required=True,
-                description="Task UID from .tasker to execute",
+                description="Task UID from uFlow to execute",
             ),
             SkillParam(
                 name="use_consensus",
@@ -83,7 +85,7 @@ class DevModeExecutorSkill(BaseSkill):
                 default="auto",
                 description=(
                     "Execution mode: 'auto' (select best),"
-                    " 'cline', 'roundtable', 'hivemind'"
+                    " 'route_task', 'roundtable', 'hivemind'"
                 ),
             ),
             SkillParam(
@@ -129,7 +131,7 @@ class DevModeExecutorSkill(BaseSkill):
                     "status": "skipped", "reason": str(exc),
                 }
 
-        # Stage 1: Fetch task from .tasker
+        # Stage 1: Fetch task from uFlow
         task_data = self._fetch_task(task_uid)
         if not task_data:
             return {
@@ -197,13 +199,13 @@ class DevModeExecutorSkill(BaseSkill):
     # ─── Stage 1: Fetch Task ───────────────────────────────────
 
     def _fetch_task(self, task_uid: str) -> dict | None:
-        """Fetch task from .tasker directory."""
+        """Fetch a task from uFlow's Markdown store."""
         td = self._find_tasker_dir()
         if not td:
             return None
 
         # Search for task file
-        for tf in td.glob("*.md"):
+        for tf in td.rglob("*.md"):
             if task_uid in tf.name or task_uid in tf.stem:
                 content = tf.read_text(encoding="utf-8", errors="replace")
                 title = tf.stem
@@ -234,15 +236,9 @@ class DevModeExecutorSkill(BaseSkill):
 
     @staticmethod
     def _find_tasker_dir() -> Path | None:
-        """Locate .tasker directory."""
-        candidates = [
-            Path.cwd() / ".tasker",
-            Path.home() / "Code" / "uCore" / ".tasker",
-        ]
-        for c in candidates:
-            if c.is_dir():
-                return c
-        return None
+        """Locate uFlow's canonical task directory."""
+        path = default_tasker_dir()
+        return path if path.is_dir() else None
 
     # ─── Stage 2: Analyze & Route ──────────────────────────────
 
@@ -268,7 +264,7 @@ class DevModeExecutorSkill(BaseSkill):
 
         # Map to specialized agent
         agent = AGENT_ROUTING.get(task_type, "dev")
-        executor = EXECUTOR_CHOICE.get(task_type, "cline-invoke")
+        executor = EXECUTOR_CHOICE.get(task_type, "route_task")
 
         # Estimate complexity
         complex_signals = [
@@ -330,9 +326,6 @@ class DevModeExecutorSkill(BaseSkill):
         if executor == "roundtable-dispatch":
             return await self._call_roundtable(task)
 
-        if executor == "cline-invoke":
-            return await self._call_cline(task)
-
         # Fallback: route_task
         return await self._call_route_task(task)
 
@@ -354,46 +347,6 @@ class DevModeExecutorSkill(BaseSkill):
                 return {"executor": "roundtable", "result": json.loads(resp.read().decode())}
         except Exception as exc:
             return {"executor": "roundtable", "error": str(exc)}
-
-    async def _call_cline(self, task: str) -> dict:
-        """Invoke Cline CLI."""
-        import asyncio
-        import os
-        import subprocess
-
-        cline_bin = None
-        for c in ["cline", "npx @cline/cli"]:
-            try:
-                subprocess.run(["which", c.split()[0]], capture_output=True, text=True, timeout=2, check=True)
-                cline_bin = c
-                break
-            except Exception:
-                continue
-
-        if not cline_bin:
-            return {"executor": "cline", "error": "Cline CLI not found"}
-
-        try:
-            cmd = cline_bin.split() + ["--task", task[:500]]
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env={**os.environ},
-            )
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(), timeout=120,
-            )
-            output = stdout.decode("utf-8", errors="replace") if stdout else ""
-            return {
-                "executor": "cline",
-                "exit_code": proc.returncode,
-                "output": output[:2000],
-            }
-        except asyncio.TimeoutError:
-            return {"executor": "cline", "error": "Timeout after 120s"}
-        except Exception as exc:
-            return {"executor": "cline", "error": str(exc)}
 
     async def _call_route_task(self, task: str) -> dict:
         """Fallback: route through route_task skill."""
@@ -432,7 +385,7 @@ class DevModeExecutorSkill(BaseSkill):
             pass
 
     def _update_tasker(self, task_uid: str, status: str) -> None:
-        """Update task status in .tasker."""
+        """Update task status through uFlow's API."""
         try:
             payload = json.dumps({
                 "task_id": task_uid,

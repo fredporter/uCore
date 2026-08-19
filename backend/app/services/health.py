@@ -3,6 +3,7 @@ from __future__ import annotations
 import glob
 from pathlib import Path
 
+from app.core.settings import settings
 from app.skills.state import read_state
 
 
@@ -10,12 +11,13 @@ def _clean_and_truncate_line(line: str, max_len: int = 150) -> str:
     """Truncate the line to a safe length and redact secret/token patterns."""
     # Simple redaction for common authorization/token values if any
     import re
+
     # Match strings resembling bearer tokens, api keys, password/secret strings
     # Redact Authorization header or passwords or any other standard credential strings
     redacted = re.sub(
         r'(?i)(token|bearer|auth|authorization|api_key|password|secret|key)\s*[:= ]\s*["\']?[a-zA-Z0-9_\.\-]{8,150}["\']?',
         r'\1: "[REDACTED]"',
-        line
+        line,
     )
     if len(redacted) > max_len:
         return redacted[:max_len] + "..."
@@ -26,14 +28,14 @@ def _tail_lines(path: Path, max_lines: int = 200) -> list[str]:
     try:
         with open(path, encoding="utf-8", errors="replace") as f:
             lines = f.readlines()
-            return [l.rstrip("\n") for l in lines[-max_lines:]]
+            return [line.rstrip("\n") for line in lines[-max_lines:]]
     except Exception:
         return []
 
 
 def recent_errors_from_logs(log_dir: Path | None = None, max_entries: int = 50) -> list[dict]:
     if log_dir is None:
-        log_dir = Path.home() / ".ucore" / "logs"
+        log_dir = settings.logs_dir
     out: list[dict] = []
     if not log_dir.exists():
         return out

@@ -1,7 +1,7 @@
 # Bidirectional vault sync configuration for uCore.
 # Copy to config/vault-sync.yaml and adjust paths as needed.
 
-state_file: ~/.ucore/vault-sync-state.json
+state_file: ${UDOS_HOME}/vault-sync-state.json
 
 # Vault topology — 3 vault types only (see docs/VAULT_BINDER_WORKFLOW_INTEGRATION.md):
 #   user   → ~/Vault/      (personal vault — single source of truth)
@@ -12,24 +12,24 @@ state_file: ~/.ucore/vault-sync-state.json
 
 containers:
   - id: user-vault
-    left: /Users/fredbook/Vault
-    right: /Users/fredbook/Code/uDocs/ingest/user-vault
+    left: ${UDOS_VAULT_ROOT}
+    right: ${UDOS_ROOT}/uDocs/ingest/user-vault
     mode: bidirectional
     include:
       - "**/*.md"
       - "**/*.markdown"
 
   - id: shared-vault
-    left: /Users/fredbook/Shared
-    right: /Users/fredbook/Code/uDocs/ingest/shared
+    left: ${UDOS_SHARED_ROOT}
+    right: ${UDOS_ROOT}/uDocs/ingest/shared
     mode: bidirectional
     include:
       - "**/*.md"
       - "**/*.markdown"
 
   - id: global-knowledge
-    left: /Users/fredbook/Public
-    right: /Users/fredbook/Code/uDocs/ingest/public
+    left: ${UDOS_PUBLIC_ROOT}
+    right: ${UDOS_ROOT}/uDocs/ingest/public
     mode: bidirectional
     include:
       - "**/*.md"

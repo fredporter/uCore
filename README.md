@@ -78,7 +78,6 @@ Self-hosted runner prerequisites:
 
 What it runs:
 
-- python3 scripts/check_snackmachine_contract.py
 - bash scripts/smoke_snackmachine_integration.sh
 
 ## Architecture
@@ -88,7 +87,8 @@ knowledge, and domain plugins — live in dedicated repos and plug in via
 a lightweight extension contract.
 
 ```
-VS Code (Cline) → MCP Bridge → uCore (port 8484)
+Codex (external development) → Git/GitHub → uCore (port 8484)
+uCore guided agents → Ollama/OpenRouter/OpenAI APIs
   │
   ├── Core shell (uCore host-only)
   │   ├── Skills (15 built-in) — backup, sync, route, ask vault
@@ -148,12 +148,12 @@ VS Code (Cline) → MCP Bridge → uCore (port 8484)
 | Surface       | Route                | Description                                                           |
 | ------------- | -------------------- | --------------------------------------------------------------------- |
 | Dashboard     | `/`                  | Main landing, Dev Mode filtering                                      |
-| Assistant     | `/assistui`          | AI chat & agent-assisted workflows                                    |
-| Server        | `/server`            | Server management                                                     |
+| Intelligence  | `/intelligence`      | Chat, planning, models, agents, budget, and history                    |
+| Snackbar      | `/snackbar`          | Services, feeds, skills, snacks, extensions, logs, and MCP            |
 | Developer     | `/developer`         | Developer tools                                                       |
 | System        | `/system`            | System settings                                                       |
 | Workflow      | `/workflow`          | Workflow builder                                                      |
-| SnackMachine  | `/server?tab=snacks` | Core snack workspace (packaged snacks via SnackMachine extension)     |
+| SnackMachine  | `/snackbar?tab=snacks` | Core snack workspace (packaged snacks via SnackMachine extension)   |
 | BrowserUI     | `/browserui`         | Browser automation                                                    |
 | Documentation | `/documentation`     | Docs viewer                                                           |
 | uCode         | `/ucode`             | uCode runtime bridge: GridCore, GridSmith, teletext, terminal widgets |
@@ -168,7 +168,7 @@ Canonical docs live in **[uDocs](https://github.com/uDosGo/uDocs)**:
 | [API Reference](https://github.com/uDosGo/uDocs/blob/main/api/rest-api.md)                | All endpoints with examples            |
 | [Runbooks](https://github.com/uDosGo/uDocs/blob/main/runbooks/development.md)             | Setup, deploy, backup, troubleshooting |
 | [Surfaces](https://github.com/uDosGo/uDocs/tree/main/surfaces)                            | All 12 surfaces                        |
-| [Cline Guide](https://github.com/uDosGo/uDocs/blob/main/guides/cline-roundtable-setup.md) | Cline + Roundtable orchestration       |
+| [Agent Architecture](docs/AGENT_EXECUTION_ARCHITECTURE.md)                              | Guided model routing and orchestration |
 
 Local docs in `docs/` cover vault plates, USX layout, and system specs.
 

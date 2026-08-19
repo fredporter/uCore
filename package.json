@@ -8,7 +8,7 @@
     "dev": "pnpm --filter @udos/ui-hub-vue run dev",
     "dev:backend": "cd backend && PYTHONPATH=. python3 -m app",
     "build": "pnpm --filter @udos/ui-hub-vue run build",
-    "test": "cd backend && pytest -q",
+    "test": "./.venv/bin/python -m pytest -q backend/tests",
     "lint": "cd backend && ruff check .",
     "mcp:diagnostics": "cd backend && python3 -m mcp.mcp_diagnostics",
     "mcp:start": "cd backend && python3 -m app.main"

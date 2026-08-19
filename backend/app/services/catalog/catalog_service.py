@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
+from app.core.settings import settings
+
 from .models import (
     CatalogEntry,
     EntryType,
@@ -36,7 +38,7 @@ class CatalogService:
             return
 
         # Catalog directory
-        self.catalog_dir = Path.home() / ".ucore" / "catalog"
+        self.catalog_dir = settings.udos_home / "catalog"
         self.catalog_dir.mkdir(parents=True, exist_ok=True)
 
         # Database path
@@ -124,34 +126,43 @@ class CatalogService:
             cursor = conn.cursor()
 
             # Insert or replace entry
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO entries
                 (uid, type, name, description, metadata, relationships, tags, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                entry.uid,
-                entry.type.value,
-                entry.name,
-                entry.description,
-                json.dumps(entry.metadata),
-                json.dumps([r.dict() for r in entry.relationships]),
-                json.dumps(entry.tags),
-                entry.created_at.isoformat(),
-                entry.updated_at.isoformat(),
-            ))
+            """,
+                (
+                    entry.uid,
+                    entry.type.value,
+                    entry.name,
+                    entry.description,
+                    json.dumps(entry.metadata),
+                    json.dumps([r.dict() for r in entry.relationships]),
+                    json.dumps(entry.tags),
+                    entry.created_at.isoformat(),
+                    entry.updated_at.isoformat(),
+                ),
+            )
 
             # Update FTS index
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO entry_fts (uid, name, description)
                 VALUES (?, ?, ?)
-            """, (entry.uid, entry.name, entry.description))
+            """,
+                (entry.uid, entry.name, entry.description),
+            )
 
             # Insert relationships
             for rel in entry.relationships:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO relationships (uid, type, target, weight)
                     VALUES (?, ?, ?, ?)
-                """, (entry.uid, rel.type.value, rel.target, rel.weight))
+                """,
+                    (entry.uid, rel.type.value, rel.target, rel.weight),
+                )
 
             conn.commit()
             conn.close()
@@ -174,11 +185,14 @@ class CatalogService:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT uid, type, name, description, metadata, relationships, tags, created_at, updated_at
                 FROM entries
                 WHERE uid = ?
-            """, (uid,))
+            """,
+                (uid,),
+            )
 
             row = cursor.fetchone()
             conn.close()
@@ -213,20 +227,26 @@ class CatalogService:
             cursor = conn.cursor()
 
             if entry_type:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT uid, type, name, description, metadata, relationships, tags, created_at, updated_at
                     FROM entries
                     WHERE type = ?
                     ORDER BY updated_at DESC
                     LIMIT ? OFFSET ?
-                """, (entry_type.value, limit, offset))
+                """,
+                    (entry_type.value, limit, offset),
+                )
             else:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT uid, type, name, description, metadata, relationships, tags, created_at, updated_at
                     FROM entries
                     ORDER BY updated_at DESC
                     LIMIT ? OFFSET ?
-                """, (limit, offset))
+                """,
+                    (limit, offset),
+                )
 
             rows = cursor.fetchall()
             conn.close()
@@ -258,23 +278,29 @@ class CatalogService:
             cursor = conn.cursor()
 
             if entry_type:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT e.uid, e.type, e.name, e.description, e.metadata, e.relationships, e.tags, e.created_at, e.updated_at
                     FROM entries e
                     JOIN entry_fts fts ON e.uid = fts.uid
                     WHERE fts MATCH ? AND e.type = ?
                     ORDER BY fts.rank
                     LIMIT ?
-                """, (query, entry_type.value, limit))
+                """,
+                    (query, entry_type.value, limit),
+                )
             else:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT e.uid, e.type, e.name, e.description, e.metadata, e.relationships, e.tags, e.created_at, e.updated_at
                     FROM entries e
                     JOIN entry_fts fts ON e.uid = fts.uid
                     WHERE fts MATCH ?
                     ORDER BY fts.rank
                     LIMIT ?
-                """, (query, limit))
+                """,
+                    (query, limit),
+                )
 
             rows = cursor.fetchall()
             conn.close()
@@ -304,11 +330,14 @@ class CatalogService:
             cursor = conn.cursor()
 
             # Get direct relationships
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT type, target, weight
                 FROM relationships
                 WHERE uid = ?
-            """, (uid,))
+            """,
+                (uid,),
+            )
 
             rows = cursor.fetchall()
             conn.close()
@@ -356,21 +385,25 @@ class CatalogService:
             # Add node
             entry = self.get_entry(current_uid)
             if entry:
-                graph["nodes"].append({
-                    "uid": entry.uid,
-                    "type": entry.type.value,
-                    "name": entry.name,
-                })
+                graph["nodes"].append(
+                    {
+                        "uid": entry.uid,
+                        "type": entry.type.value,
+                        "name": entry.name,
+                    }
+                )
 
             # Get relationships
             relationships = self.get_relationships(current_uid, 0)
             for rel in relationships:
                 target_uid = SpatialUID(rel["target"])
-                graph["edges"].append({
-                    "from": current_uid,
-                    "to": target_uid,
-                    "type": rel["type"],
-                })
+                graph["edges"].append(
+                    {
+                        "from": current_uid,
+                        "to": target_uid,
+                        "type": rel["type"],
+                    }
+                )
                 traverse(target_uid, current_depth + 1)
 
         traverse(uid, 0)
@@ -447,14 +480,7 @@ class CatalogService:
             name=name,
             description=description,
             metadata=json.loads(metadata_json),
-            relationships=[
-                Relationship(
-                    type=str(r["type"]),
-                    target=SpatialUID(r["target"]),
-                    weight=r.get("weight", 0.5),
-                )
-                for r in json.loads(relationships_json)
-            ],
+            relationships=json.loads(relationships_json),
             tags=json.loads(tags_json),
             created_at=datetime.fromisoformat(created_at),
             updated_at=datetime.fromisoformat(updated_at),

@@ -3,7 +3,7 @@
 Runs every 24 hours (or on demand) to:
 - Execute ecosystem-audit
 - Check health thresholds
-- Log results to ~/.ucore/logs/
+- Log results to ``$UDOS_HOME/logs``
 - Alert if health drops below 95%
 
 Usage as cron job:
@@ -12,6 +12,7 @@ Usage as cron job:
 Usage as one-shot:
   python -m health.autonomy_engine --once
 """
+
 from __future__ import annotations
 
 import json
@@ -23,7 +24,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-LOG_DIR = Path.home() / ".ucore" / "logs"
+from app.core.settings import settings
+
+LOG_DIR = settings.logs_dir
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 AUDIT_LOG = LOG_DIR / "autonomy.log"
@@ -41,7 +44,9 @@ logging.basicConfig(
 log = logging.getLogger("autonomy")
 
 
-def _call_api(path: str, method: str = "GET", body: dict | None = None, timeout: int = 120) -> dict | None:
+def _call_api(
+    path: str, method: str = "GET", body: dict | None = None, timeout: int = 120
+) -> dict | None:
     """Call the uCore backend API."""
     import urllib.request
 
@@ -161,7 +166,9 @@ def run_full_check() -> dict[str, Any]:
     }
 
     save_state(state)
-    log.info(f"State saved. Health: {health_pct}% | Ollama: {'online' if ollama.get('online') else 'offline'}")
+    log.info(
+        f"State saved. Health: {health_pct}% | Ollama: {'online' if ollama.get('online') else 'offline'}"
+    )
     return state
 
 
@@ -177,7 +184,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="uCore Autonomy Engine")
     parser.add_argument("--once", action="store_true", help="Run once and exit")
-    parser.add_argument("--interval", type=int, default=86400, help="Seconds between checks (default: 24h)")
+    parser.add_argument(
+        "--interval", type=int, default=86400, help="Seconds between checks (default: 24h)"
+    )
     args = parser.parse_args()
 
     if args.once:

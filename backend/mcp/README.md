@@ -1,13 +1,14 @@
 # uCore MCP
 
-Canonical implementation uses one MCP JSON-RPC stdio bridge:
+Canonical implementation uses one self-hosted MCP JSON-RPC stdio bridge:
 
 - Server id: `ucore-bridge`
-- Config source: `.vscode/mcp.json`
-- Command: `node ../uDev/mcp-bridge/build/index.js`
+- Source: `backend/app/mcp/mcp_bridge/`
+- Command: `node backend/app/mcp/mcp_bridge/build/index.js`
 - Backend target: `UCORE_URL=http://127.0.0.1:8484`
 
-The old multi-manifest MCP layout is deprecated.
+Client-specific MCP configuration is external. uCore does not depend on an
+editor-owned configuration directory. The old multi-manifest layout is retired.
 
 ## Diagnostics
 
@@ -17,7 +18,5 @@ cd backend && python3 -m mcp.mcp_diagnostics
 
 This validates:
 
-- `.vscode/mcp.json` exists
-- `ucore-bridge` is declared
-- no HTTP-type MCP servers are configured
-- bridge binary exists at `../uDev/mcp-bridge/build/index.js`
+- bridge source and package metadata exist
+- the local bridge build exists

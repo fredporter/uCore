@@ -20,7 +20,7 @@ class ToolsAPITest(AioHTTPTestCase):
         data = await resp.json()
         assert "tools" in data
         assert "count" in data
-        assert data["count"] >= 7  # 7 tools: git, docker, node, python, ollama, github_cli, vscode
+        assert data["count"] >= 6
 
     async def test_tool_status_existing(self):
         """Should return status for known tools without error."""

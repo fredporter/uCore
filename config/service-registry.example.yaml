@@ -1,5 +1,5 @@
 # uCore Service Registry Configuration
-# Copy to ~/.ucore/config/service-registry.yaml and adjust.
+# Copy to $UDOS_HOME/config/service-registry.yaml and adjust.
 #
 # Purpose:
 # - Single source of truth for service definitions used by:

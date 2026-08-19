@@ -1,4 +1,5 @@
 """uCore API — metadata endpoints (system info, etc.)"""
+
 from __future__ import annotations
 
 import os
@@ -11,33 +12,37 @@ from aiohttp import web
 
 from ..core.settings import settings
 
-POPCORN_PID_FILE = Path.home() / ".ucore" / "ucore-popcorn.pid"
+POPCORN_PID_FILE = settings.udos_home / "ucore-popcorn.pid"
 
 
 async def health_handler(request: web.Request) -> web.Response:
     """Return service health status (for liveness probe)."""
-    return web.json_response({
-        "status": "ok",
-        "service": "uCore",
-        "version": settings.version,
-        "popcorn": _get_popcorn_status(),
-    })
+    return web.json_response(
+        {
+            "status": "ok",
+            "service": "uCore",
+            "version": settings.version,
+            "popcorn": _get_popcorn_status(),
+        }
+    )
 
 
 async def system_info_handler(request: web.Request) -> web.Response:
     """Return system/platform metadata with real-time resource data."""
     resources = _get_resource_snapshot()
-    return web.json_response({
-        "platform": plat.system(),
-        "machine": plat.machine(),
-        "python": plat.python_version(),
-        "hostname": plat.node(),
-        "app": settings.app_name,
-        "version": settings.version,
-        "clipboard_shortcut": settings.clipboard_shortcut,
-        "resources": resources,
-        "services": _get_service_status(),
-    })
+    return web.json_response(
+        {
+            "platform": plat.system(),
+            "machine": plat.machine(),
+            "python": plat.python_version(),
+            "hostname": plat.node(),
+            "app": settings.app_name,
+            "version": settings.version,
+            "clipboard_shortcut": settings.clipboard_shortcut,
+            "resources": resources,
+            "services": _get_service_status(),
+        }
+    )
 
 
 def _get_resource_snapshot() -> dict:
@@ -93,6 +98,7 @@ def _get_load_avg() -> tuple[float, float, float]:
 
 def _count_cores() -> int:
     import os
+
     return os.cpu_count() or 1
 
 
@@ -157,6 +163,7 @@ def _get_uptime() -> float:
             timeout=5,
         )
         import re
+
         m = re.search(r"sec\s*=\s*(\d+)", result.stdout)
         if m:
             return time_mod.time() - int(m.group(1))
@@ -187,9 +194,7 @@ def _get_service_status() -> dict:
             timeout=3,
         )
         containers = [c for c in result.stdout.splitlines() if c.strip()]
-        services["docker"] = (
-            "running" if result.returncode == 0 else "unavailable"
-        )
+        services["docker"] = "running" if result.returncode == 0 else "unavailable"
         if containers:
             services["containers"] = containers[:5]
     except Exception:

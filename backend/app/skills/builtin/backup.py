@@ -7,10 +7,11 @@ Usage:
   POST /api/skills/backup/run
   Body: {
     "type": "full" | "database" | "config" | "secrets" | "wisdom",
-    "destination": "~/.ucore/backups",
+    "destination": "$UDOS_HOME/backups",
     "retention_days": 14
   }
 """
+
 from __future__ import annotations
 
 import logging
@@ -50,7 +51,7 @@ class BackupData(BaseSkill):
                 name="destination",
                 type="string",
                 required=False,
-                default="~/.ucore/backups",
+                default=str(settings.udos_home / "backups"),
             ),
             SkillParam(
                 name="retention_days",
@@ -65,7 +66,9 @@ class BackupData(BaseSkill):
 
     async def run(self, **kwargs) -> dict:
         backup_type = kwargs.get("type", "full").strip().lower()
-        dest = Path(kwargs.get("destination", "~/.ucore/backups")).expanduser()
+        dest = Path(
+            kwargs.get("destination", str(settings.udos_home / "backups")),
+        ).expanduser()
         dest.mkdir(parents=True, exist_ok=True)
         retention_days = kwargs.get("retention_days", RETENTION_DAYS)
         ts = time.strftime("%Y%m%d-%H%M%S")
@@ -117,6 +120,7 @@ class BackupData(BaseSkill):
     def _backup_database(self, dest: Path, ts: str) -> dict | None:
         """Backup the SQLite database."""
         from app.core.database import get_db_path
+
         db_path = get_db_path()
         if db_path and Path(db_path).exists():
             backup_file = dest / f"ucore-backup-{ts}.db"

@@ -127,7 +127,10 @@ cat > "$PLIST_PATH" <<EOF
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>
-  <true/>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
   <key>StandardOutPath</key>
   <string>${LOG_DIR}/ucore-menu-stdout.log</string>
   <key>StandardErrorPath</key>

@@ -1,44 +1,10 @@
+"""uCore presentation of status from the uFlow-owned task store."""
+
 from __future__ import annotations
 
-import os
-from pathlib import Path
 from typing import Any
 
-from app.core.settings import settings
-
-
-def default_tasker_dir() -> Path:
-    return Path(
-        os.getenv(
-            "UCORE_TASKER_DIR",
-            str(settings.udos_root / "uCore/.tasker"),
-        ),
-    ).expanduser()
-
-
-def scan_tasker_boards(tasker_dir: Path | None = None) -> dict[str, Any]:
-    base = tasker_dir or default_tasker_dir()
-    boards: list[dict[str, Any]] = []
-
-    if base.exists():
-        for board_dir in sorted(p for p in base.iterdir() if p.is_dir()):
-            files = sorted(board_dir.glob("*.md"))
-            boards.append(
-                {
-                    "name": board_dir.name,
-                    "path": str(board_dir),
-                    "count": len(files),
-                    "items": [f.name for f in files[:10]],
-                },
-            )
-
-    return {
-        "tasker_dir": str(base),
-        "exists": base.exists(),
-        "boards": boards,
-        "count": len(boards),
-        "total_items": sum(board["count"] for board in boards),
-    }
+from uflow.task_store import default_tasker_dir, scan_tasker_boards
 
 
 def build_workflow_status(
@@ -56,33 +22,23 @@ def build_workflow_status(
 
     return {
         "engine": {
-            "name": "Cline Kanban",
-            "role": "Primary Developer workflow engine",
-            "command": "npx kanban",
-            "bind": "127.0.0.1:3484",
-            "access": "localhost-only",
-            "isolation": "ephemeral git worktrees per card",
-            "review_loop": "diff + inline feedback per task",
+            "name": "uFlow Markdown Workflow Engine",
+            "role": "Canonical user, developer, system, and autonomous workflow state",
+            "storage": str(default_tasker_dir()),
+            "access": "uCore API and vault-compatible Markdown",
+            "isolation": "workflow type, workspace, mission, task, and step",
+            "review_loop": "task evidence, artifact links, approval, and outcome",
             "automation": [
-                "linked cards",
-                "auto-commit",
-                "auto-pr",
+                "uFlow task transitions",
+                "budget-gated execution",
+                "reviewable developer changes",
             ],
         },
         "guardrails": [
-            "Keep the Kanban server bound to localhost only.",
-            (
-                "Do not expose via public host, tunnel, or 0.0.0.0 in "
-                "the default dev workflow."
-            ),
-            (
-                "Use ephemeral worktrees to isolate agent changes from "
-                "the main workspace."
-            ),
-            (
-                "Prefer SSH tunnel or Tailscale only if remote access is "
-                "ever required."
-            ),
+            "uFlow is the sole durable task and workflow authority.",
+            "Do not create repository-local or agent-owned task stores.",
+            "Require explicit authorization for destructive or external actions.",
+            "Record budget, evidence, artifacts, and outcome on durable tasks.",
         ],
         "task_markdown": tasker,
         "maintenance": {
@@ -92,11 +48,11 @@ def build_workflow_status(
             "endpoint": "/api/system/maintenance",
         },
         "next_actions": [
-            "Expose .tasker board actions in the Workflow Builder UI.",
-            "Add sync controls for tasker_sync and vault_sync.",
-            (
-                "Integrate richer agent orchestration only after the local "
-                "workflow substrate is stable."
-            ),
+            "Expose uFlow board actions in the Workflow surface.",
+            "Add sync controls for task and vault sync.",
+            "Route models through HiveMind and the budget manager.",
         ],
     }
+
+
+__all__ = ["build_workflow_status", "default_tasker_dir", "scan_tasker_boards"]

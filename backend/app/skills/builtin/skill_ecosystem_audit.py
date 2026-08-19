@@ -5,12 +5,13 @@ Discovers and catalogues:
   - Paths (file system paths used by skills, configs, vault, seeds)
   - Variables (scope, key, type, default from variable APIs)
   - Secrets (key, store, scope from config/env files)
-    - MCP Servers (name, command, args, env from .vscode/mcp.json)
+  - MCP servers and bridge components owned by uCore
   - Routes (method, path, handler from routes.py)
   - Runtimes (name, file, endpoints, variables, commands from backend modules)
 
 Generates seeds/ecosystem-registry.json for frontend consumption.
 """
+
 from __future__ import annotations
 
 import json
@@ -18,6 +19,7 @@ import logging
 import re
 from pathlib import Path
 
+from app.core.settings import settings
 from app.skills.base import BaseSkill, SkillMeta, SkillParam
 
 log = logging.getLogger("ucore.skills.ecosystem_audit")
@@ -41,9 +43,10 @@ def _repo_for(path: Path) -> str:
         if sp.startswith(root):
             return name
     return "unknown"
+
+
 API_DIR = BACKEND_DIR / "api"
 ROUTES_FILE = API_DIR / "routes.py"
-MCP_CONFIG_FILE = ROOT_DIR / ".vscode" / "mcp.json"
 ENV_FILE = ROOT_DIR.parent.parent / ".config" / "hivemind" / ".env"
 VAULT_CONFIG = ROOT_DIR.parent / "uCode" / "config" / "vault.yaml"
 SECRETS_API = API_DIR / "secret_store_api.py"
@@ -157,15 +160,14 @@ class EcosystemAuditSkill(BaseSkill):
 
         # Extract description
         desc_match = re.search(
-            r'description\s*=\s*\(\s*\n?(.*?)\n?\s*\)',
-            content, re.DOTALL,
+            r"description\s*=\s*\(\s*\n?(.*?)\n?\s*\)",
+            content,
+            re.DOTALL,
         )
         if desc_match:
             desc = desc_match.group(1).strip().strip('"').strip("'")
             parts = desc.split()
-            desc = " ".join([
-                d.strip().strip('"').strip("'") for d in parts
-            ])
+            desc = " ".join([d.strip().strip('"').strip("'") for d in parts])
             info["description"] = desc[:200]
 
         # Extract category
@@ -185,25 +187,27 @@ class EcosystemAuditSkill(BaseSkill):
         # Extract SkillParams
         param_matches = re.findall(
             r'SkillParam\(\s*name\s*=\s*"([^"]+)"'
-            r'.*?description\s*=\s*\(\s*(.*?)\s*\)',
-            content, re.DOTALL,
+            r".*?description\s*=\s*\(\s*(.*?)\s*\)",
+            content,
+            re.DOTALL,
         )
         for pname, pdesc in param_matches:
-            pdesc_clean = " ".join(
-                d.strip().strip('"').strip("'") for d in pdesc.split()
-            )
+            pdesc_clean = " ".join(d.strip().strip('"').strip("'") for d in pdesc.split())
             ptype = "string"
             type_match = re.search(
                 rf'SkillParam\(\s*name\s*=\s*"{pname}".*?type\s*=\s*"([^"]+)"',
-                content, re.DOTALL,
+                content,
+                re.DOTALL,
             )
             if type_match:
                 ptype = type_match.group(1)
-            info["params"].append({
-                "name": pname,
-                "type": ptype,
-                "description": pdesc_clean[:120],
-            })
+            info["params"].append(
+                {
+                    "name": pname,
+                    "type": ptype,
+                    "description": pdesc_clean[:120],
+                }
+            )
 
         return info
 
@@ -222,15 +226,18 @@ class EcosystemAuditSkill(BaseSkill):
             r'app\.router\.add_(get|post|put|delete)\("([^"]+)"\s*,\s*(\w+)',
             content,
         ):
-            routes.append({
-                "method": match.group(1).upper(),
-                "path": match.group(2),
-                "handler": match.group(3),
-            })
+            routes.append(
+                {
+                    "method": match.group(1).upper(),
+                    "path": match.group(2),
+                    "handler": match.group(3),
+                }
+            )
 
         # Also look for try/except block imports
         import_blocks = re.findall(
-            r"from \.(\w+)\s+import\s+(\w+)", content,
+            r"from \.(\w+)\s+import\s+(\w+)",
+            content,
         )
         modules_used = list(set(m[0] for m in import_blocks))
 
@@ -251,16 +258,19 @@ class EcosystemAuditSkill(BaseSkill):
         if ENV_FILE.exists():
             content = ENV_FILE.read_text()
             for match in re.finditer(
-                r'(#\s*(.*?)\n)?\s*(\w+)\s*=\s*"[^"]*"', content,
+                r'(#\s*(.*?)\n)?\s*(\w+)\s*=\s*"[^"]*"',
+                content,
             ):
                 key = match.group(3)
                 comment = match.group(2) or ""
-                secrets.append({
-                    "key": key,
-                    "scope": "environment",
-                    "store": "~/.config/hivemind/.env",
-                    "description": comment.strip()[:100],
-                })
+                secrets.append(
+                    {
+                        "key": key,
+                        "scope": "environment",
+                        "store": "~/.config/hivemind/.env",
+                        "description": comment.strip()[:100],
+                    }
+                )
 
         # Check vault.yaml for secret references
         if VAULT_CONFIG.exists():
@@ -268,12 +278,14 @@ class EcosystemAuditSkill(BaseSkill):
             key_matches = re.findall(r'-\s*"(\w+)"', content)
             for key in key_matches:
                 if any(k.upper() in ("KEY", "TOKEN", "SECRET") for k in [key]):
-                    secrets.append({
-                        "key": key,
-                        "scope": "vault",
-                        "store": "~/.local/share/udos/Vault/",
-                        "description": "Referenced in vault.yaml",
-                    })
+                    secrets.append(
+                        {
+                            "key": key,
+                            "scope": "vault",
+                            "store": "~/.local/share/udos/Vault/",
+                            "description": "Referenced in vault.yaml",
+                        }
+                    )
 
         return {"success": True, "secrets": secrets, "total": len(secrets)}
 
@@ -285,83 +297,87 @@ class EcosystemAuditSkill(BaseSkill):
 
         # From vault.yaml
         if VAULT_CONFIG.exists():
-            variables.append({
-                "scope": "user",
-                "file": "~/.local/share/udos/Vault/variables/user.yaml",
-                "description": "User-level persistent variables",
-                "examples": ["theme", "editor_font_size", "last_world"],
-            })
-            variables.append({
-                "scope": "global",
-                "file": "~/.local/share/udos/Vault/variables/global.yaml",
-                "description": "System-wide variables",
-                "examples": ["runtime_version", "engine"],
-            })
-            variables.append({
-                "scope": "snack",
-                "file": "snack manifest (per-container)",
-                "description": "Per-snack container state",
-                "examples": ["level", "player_hp"],
-            })
-            variables.append({
-                "scope": "system",
-                "file": "memory only (not persisted)",
-                "description": "Runtime-only state",
-                "examples": ["pid", "uptime_seconds"],
-            })
+            variables.append(
+                {
+                    "scope": "user",
+                    "file": "~/.local/share/udos/Vault/variables/user.yaml",
+                    "description": "User-level persistent variables",
+                    "examples": ["theme", "editor_font_size", "last_world"],
+                }
+            )
+            variables.append(
+                {
+                    "scope": "global",
+                    "file": "~/.local/share/udos/Vault/variables/global.yaml",
+                    "description": "System-wide variables",
+                    "examples": ["runtime_version", "engine"],
+                }
+            )
+            variables.append(
+                {
+                    "scope": "snack",
+                    "file": "snack manifest (per-container)",
+                    "description": "Per-snack container state",
+                    "examples": ["level", "player_hp"],
+                }
+            )
+            variables.append(
+                {
+                    "scope": "system",
+                    "file": "memory only (not persisted)",
+                    "description": "Runtime-only state",
+                    "examples": ["pid", "uptime_seconds"],
+                }
+            )
 
         # From variables_api.py
         if VARIABLES_API.exists():
             content = VARIABLES_API.read_text()
-            get_vars = re.findall(r'handle_get_(\w+)_variables', content)
+            get_vars = re.findall(r"handle_get_(\w+)_variables", content)
             for gv in get_vars:
-                variables.append({
-                    "scope": gv,
-                    "source": "variables_api.py",
-                    "description": f"Exposed via /api/variables/{gv}",
-                    "examples": [],
-                })
+                variables.append(
+                    {
+                        "scope": gv,
+                        "source": "variables_api.py",
+                        "description": f"Exposed via /api/variables/{gv}",
+                        "examples": [],
+                    }
+                )
 
         return {"success": True, "variables": variables, "total": len(variables)}
 
     # ─── Audit MCP ────────────────────────────────────────────────────
 
     def _audit_mcp(self) -> dict:
-        """Discover MCP server configurations from canonical workspace config."""
+        """Discover MCP servers and bridge components owned by uCore."""
         servers = []
 
-        # From .vscode/mcp.json
-        if MCP_CONFIG_FILE.exists():
-            try:
-                data = json.loads(MCP_CONFIG_FILE.read_text())
-                server_map = data.get("servers", {}) if isinstance(data, dict) else {}
-                for name, config in server_map.items():
-                    if not isinstance(config, dict):
-                        continue
-                    servers.append({
-                        "name": name,
-                        "type": config.get("type", ""),
-                        "command": config.get("command", ""),
-                        "args": config.get("args", []),
-                        "cwd": config.get("cwd", ""),
-                        "env": config.get("env", {}),
-                        "disabled": config.get("disabled", False),
-                        "source": ".vscode/mcp.json",
-                    })
-            except Exception:
-                pass
+        bridge_dir = BACKEND_DIR / "mcp" / "mcp_bridge"
+        if (bridge_dir / "index.ts").exists():
+            servers.append(
+                {
+                    "name": "ucore-bridge",
+                    "type": "stdio",
+                    "file": str((bridge_dir / "index.ts").relative_to(ROOT_DIR)),
+                    "command": "node backend/app/mcp/mcp_bridge/build/index.js",
+                    "cwd": str(ROOT_DIR),
+                    "source": "uCore self-hosted bridge",
+                }
+            )
 
         # Also check registered MCP tools in the backend
         mcp_tools_dir = BACKEND_DIR / "mcp"
         if mcp_tools_dir.exists():
             for mcp_mod in mcp_tools_dir.glob("*_server.py"):
-                servers.append({
-                    "name": mcp_mod.stem.replace("_server", ""),
-                    "file": str(mcp_mod.relative_to(ROOT_DIR)),
-                    "source": "backend auto-discovery",
-                    "command": f"python3 -m app.mcp.{mcp_mod.stem}",
-                    "cwd": str(BACKEND_DIR),
-                })
+                servers.append(
+                    {
+                        "name": mcp_mod.stem.replace("_server", ""),
+                        "file": str(mcp_mod.relative_to(ROOT_DIR)),
+                        "source": "backend auto-discovery",
+                        "command": f"python3 -m app.mcp.{mcp_mod.stem}",
+                        "cwd": str(BACKEND_DIR),
+                    }
+                )
 
         return {"success": True, "servers": servers, "total": len(servers)}
 
@@ -382,55 +398,67 @@ class EcosystemAuditSkill(BaseSkill):
         for d in config_dirs:
             path = Path(d)
             if path.exists():
-                paths.append({
-                    "path": str(path.relative_to(ROOT_DIR)),
-                    "type": "config",
-                    "description": "Configuration directory",
-                })
+                paths.append(
+                    {
+                        "path": str(path.relative_to(ROOT_DIR)),
+                        "type": "config",
+                        "description": "Configuration directory",
+                    }
+                )
 
         # Runtime paths
         runtime_paths = [
-            "~/.config/hivemind/.env",
-            "~/.cline/mcp_settings.json",
-            "~/.continue/config.yaml",
-            "~/.local/share/udos/Vault/",
-            "~/.local/share/udos/programs/",
-            "~/.local/share/udos/snacks/",
+            str(settings.udos_home),
+            str(settings.config_dir),
+            str(settings.logs_dir),
+            str(settings.vault_root),
+            str(settings.shared_vault_root),
+            str(settings.public_vault_root),
         ]
         for p in runtime_paths:
-            paths.append({
-                "path": p,
-                "type": "runtime",
-                "description": "User runtime path",
-            })
+            paths.append(
+                {
+                    "path": p,
+                    "type": "runtime",
+                    "description": "User runtime path",
+                }
+            )
 
         # Skills directory
-        paths.append({
-            "path": "backend/app/skills/builtin/",
-            "type": "skills",
-            "description": "Builtin skills directory",
-        })
+        paths.append(
+            {
+                "path": "backend/app/skills/builtin/",
+                "type": "skills",
+                "description": "Builtin skills directory",
+            }
+        )
 
         # API directory
-        paths.append({
-            "path": "backend/app/api/",
-            "type": "api",
-            "description": "REST API handlers",
-        })
+        paths.append(
+            {
+                "path": "backend/app/api/",
+                "type": "api",
+                "description": "REST API handlers",
+            }
+        )
 
         # MCP directory
-        paths.append({
-            "path": "backend/app/mcp/",
-            "type": "mcp",
-            "description": "MCP servers directory",
-        })
+        paths.append(
+            {
+                "path": "backend/app/mcp/",
+                "type": "mcp",
+                "description": "MCP servers directory",
+            }
+        )
 
         # Services
-        paths.append({
-            "path": "backend/app/services/",
-            "type": "services",
-            "description": "Backend service modules",
-        })
+        paths.append(
+            {
+                "path": "backend/app/services/",
+                "type": "services",
+                "description": "Backend service modules",
+            }
+        )
 
         return {"success": True, "paths": paths, "total": len(paths)}
 
@@ -448,7 +476,6 @@ class EcosystemAuditSkill(BaseSkill):
             "llm_router": BACKEND_DIR / "mcp" / "llm_router.py",
             "model_pricing": BACKEND_DIR / "services" / "model_pricing.py",
             "template_manager": BACKEND_DIR / "services" / "template_manager.py",
-            "tasker_ingest": BACKEND_DIR / "mcp" / "tasker_ingest.py",
         }
 
         for name, path in candidate_modules.items():
@@ -458,7 +485,8 @@ class EcosystemAuditSkill(BaseSkill):
 
             endpoints = []
             for match in re.findall(
-                r'"([a-z_]+)"\s*:\s*self\._[a-z_]+', content,
+                r'"([a-z_]+)"\s*:\s*self\._[a-z_]+',
+                content,
             ):
                 endpoints.append(match)
             for match in re.findall(r'name="([a-z_]+)"', content):
@@ -466,7 +494,8 @@ class EcosystemAuditSkill(BaseSkill):
 
             variables = {}
             for match in re.findall(
-                r"self\.([a-z_]+)\s*=\s*([^#\n]+)", content,
+                r"self\.([a-z_]+)\s*=\s*([^#\n]+)",
+                content,
             ):
                 key, val = match
                 if len(key) > 2 and not key.startswith("_"):
@@ -503,8 +532,6 @@ class EcosystemAuditSkill(BaseSkill):
         eco = full.get("ecosystem", {})
 
         assessed: dict[str, list[dict]] = {}
-        issues: list[dict] = []
-
         # Score skills
         scored_skills = []
         for s in eco.get("skills", {}).get("items", []):
@@ -530,11 +557,13 @@ class EcosystemAuditSkill(BaseSkill):
                     except Exception:
                         status = "broken"
                         s_issues.append("Cannot read file")
-            scored_skills.append({
-                **s,
-                "health": status,
-                "issues": s_issues,
-            })
+            scored_skills.append(
+                {
+                    **s,
+                    "health": status,
+                    "issues": s_issues,
+                }
+            )
         assessed["skills"] = scored_skills
 
         # Score MCP servers
@@ -543,27 +572,24 @@ class EcosystemAuditSkill(BaseSkill):
             status = "working"
             m_issues: list[str] = []
             cmd = m.get("command", "")
-            if cmd and not any(
-                Path(c.split()[0]).exists()
-                for c in [cmd]
-            ):
+            if cmd and not any(Path(c.split()[0]).exists() for c in [cmd]):
                 # If it's a python module, check the file
                 if "python" in cmd or "app.mcp" in cmd:
                     mod_part = cmd.replace("python3 -m ", "").replace("python -m ", "")
-                    mod_path = (
-                        BACKEND_DIR / "mcp" / (mod_part.split(".")[-1] + ".py")
-                    )
+                    mod_path = BACKEND_DIR / "mcp" / (mod_part.split(".")[-1] + ".py")
                     if not mod_path.exists():
                         status = "broken"
                         m_issues.append(f"Module not found: {mod_path}")
             if m.get("disabled"):
                 status = "untested"
                 m_issues.append("Server is disabled")
-            scored_mcp.append({
-                **m,
-                "health": status,
-                "issues": m_issues,
-            })
+            scored_mcp.append(
+                {
+                    **m,
+                    "health": status,
+                    "issues": m_issues,
+                }
+            )
         assessed["mcp_servers"] = scored_mcp
 
         # Score runtimes
@@ -575,22 +601,22 @@ class EcosystemAuditSkill(BaseSkill):
             if not rt_path.exists():
                 status = "broken"
                 r_issues.append(f"File not found: {rt.get('file')}")
-            scored_runtimes.append({
-                "name": name,
-                **rt,
-                "health": status,
-                "issues": r_issues,
-            })
+            scored_runtimes.append(
+                {
+                    "name": name,
+                    **rt,
+                    "health": status,
+                    "issues": r_issues,
+                }
+            )
         assessed["runtimes"] = scored_runtimes
 
         # Routes and paths are always 'working' if discovered
         assessed["routes"] = [
-            {**r, "health": "working", "issues": []}
-            for r in eco.get("routes", {}).get("items", [])
+            {**r, "health": "working", "issues": []} for r in eco.get("routes", {}).get("items", [])
         ]
         assessed["paths"] = [
-            {**p, "health": "working", "issues": []}
-            for p in eco.get("paths", {}).get("items", [])
+            {**p, "health": "working", "issues": []} for p in eco.get("paths", {}).get("items", [])
         ]
         assessed["secrets"] = [
             {**s, "health": "working", "issues": []}
@@ -603,9 +629,13 @@ class EcosystemAuditSkill(BaseSkill):
 
         # Aggregate health
         all_items = (
-            scored_skills + scored_mcp + scored_runtimes
-            + assessed["routes"] + assessed["paths"]
-            + assessed["secrets"] + assessed["variables"]
+            scored_skills
+            + scored_mcp
+            + scored_runtimes
+            + assessed["routes"]
+            + assessed["paths"]
+            + assessed["secrets"]
+            + assessed["variables"]
         )
         health_counts = {"working": 0, "untested": 0, "broken": 0, "orphaned": 0}
         for item in all_items:
@@ -613,9 +643,7 @@ class EcosystemAuditSkill(BaseSkill):
             health_counts[h] = health_counts.get(h, 0) + 1
 
         total = sum(health_counts.values())
-        health_pct = (
-            round((health_counts["working"] / total) * 100, 1) if total > 0 else 0
-        )
+        health_pct = round((health_counts["working"] / total) * 100, 1) if total > 0 else 0
 
         result = {
             "success": True,
@@ -626,9 +654,7 @@ class EcosystemAuditSkill(BaseSkill):
                 **health_counts,
                 "health_pct": health_pct,
             },
-            "recommendations": self._health_recommendations(
-                health_counts, scored_skills
-            ),
+            "recommendations": self._health_recommendations(health_counts, scored_skills),
         }
 
         # Persist
@@ -643,23 +669,14 @@ class EcosystemAuditSkill(BaseSkill):
     def _health_recommendations(counts: dict, skills: list) -> list[str]:
         recs = []
         if counts.get("broken", 0) > 0:
-            recs.append(
-                f"Fix {counts['broken']} broken items — "
-                "check error logs for details"
-            )
+            recs.append(f"Fix {counts['broken']} broken items — check error logs for details")
         if counts.get("untested", 0) > 0:
-            recs.append(
-                f"Smoke-test {counts['untested']} untested items "
-                "to validate they work"
-            )
+            recs.append(f"Smoke-test {counts['untested']} untested items to validate they work")
         if counts.get("orphaned", 0) > 0:
             recs.append(
-                f"Review {counts['orphaned']} orphaned items — "
-                "consider archiving or re-wiring"
+                f"Review {counts['orphaned']} orphaned items — consider archiving or re-wiring"
             )
-        untested_skills = [
-            s["name"] for s in skills if s.get("health") == "untested"
-        ]
+        untested_skills = [s["name"] for s in skills if s.get("health") == "untested"]
         if untested_skills:
             recs.append(
                 f"Untested skills: {', '.join(untested_skills[:5])}"

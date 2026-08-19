@@ -72,8 +72,8 @@ skipped.
 Recommended practical split:
 
 - local Ollama models: draft/refactor/scaffold bursts
-- Copilot in VS Code: integration fixes, verification, final wave closeout
-- Cline: bounded branch-local execution only, never source-of-truth
+- Codex: primary external ecosystem and add-on development environment
+- GitHub/Copilot: repository-native review, Actions, issues and pull requests
 
 ## Documentation Non-Regression Gate
 
@@ -87,17 +87,17 @@ Required checks in CI:
 
 ## Config Source-of-Truth
 
-For Cline invocation and model/provider settings:
+For model/provider settings:
 
-1. uCore user variables store (`~/.ucore/data/variables.json`)
-2. uCore settings/env (`UCORE_CLINE_*`, `UCORE_OLLAMA_*`)
+1. uCore user variables store (`$UDOS_HOME/data/variables.json`)
+2. uCore settings/env (`UCORE_OLLAMA_*`, `OPENROUTER_*`, `OPENAI_*`)
 3. Secret store for key-based providers only
 
 No hardcoded provider/model values in execution code.
 
 ## Fail-Fast Config Policy
 
-For execution skills (for example Cline invocation):
+For execution skills:
 
 - Required runtime values (provider/model and required API keys) must be validated.
 - If missing, return repair-required response with concrete steps.

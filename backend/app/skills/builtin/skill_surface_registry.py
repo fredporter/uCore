@@ -557,12 +557,12 @@ class SurfaceRegistrySkill(BaseSkill):
     def _detect_backend_wiring(self, surfaces: list[str]) -> list[str]:
         """Detect surfaces with known backend runtime connections."""
         known_runtimes = {
-            "developer": ["dev_layer", "tasker_ingest"],
+            "developer": ["dev_layer", "control_service"],
             "server": ["hivemind_server", "llm_router"],
             "workflow": ["task_processor"],
             "snackmachine": ["snackmachine"],
             "assistui": ["assistui_runtime"],
-            "documentation": ["docs_roundup"],
+            "documentation": ["documentation_api"],
             "terminal": ["terminal_runtime"],
             "ucode": ["ucode_runtime"],
             "browserui": ["browser_runtime"],
@@ -592,7 +592,6 @@ class SurfaceRegistrySkill(BaseSkill):
             "template_manager": (
                 BACKEND_DIR / "services" / "template_manager.py"
             ),
-            "tasker_ingest": BACKEND_DIR / "mcp" / "tasker_ingest.py",
         }
 
         for name, path in candidate_modules.items():

@@ -1,4 +1,5 @@
 """Documentation Surface API routes for doc site discovery, browsing, and export."""
+
 from __future__ import annotations
 
 import asyncio
@@ -9,6 +10,7 @@ from typing import Any
 
 from aiohttp import web
 
+from app.core.settings import settings
 from app.services.doclang_bridge import export_vault_to_doclang_context
 
 log = logging.getLogger("ucore.documentation")
@@ -21,10 +23,7 @@ DEFAULT_EXPORT_OUTPUT = GLOBAL_KNOWLEDGE_ROOT / "doclang" / "vault-doclang.jsonl
 
 # Repos to scan for documentation indexing
 REPO_DOC_ROOTS: dict[str, Path] = {
-    "uCore": Path.home() / "Code" / "uCore" / "docs",
-    "uFlow": Path.home() / "Code" / "uFlow" / "docs",
-    "uCode": Path.home() / "Code" / "uCode" / "docs",
-    "uKnowledge": Path.home() / "Code" / "uKnowledge" / "docs",
+    name: settings.udos_root / name / "docs" for name in ("uCore", "uFlow", "uCode", "uKnowledge")
 }
 
 # Courses frontmatter field extraction
@@ -49,13 +48,15 @@ def _list_doc_sites() -> list[dict[str, Any]]:
     for child in sorted(DOC_SITES_ROOT.iterdir(), key=lambda p: p.name.lower()):
         if not child.is_dir() or child.name.startswith("."):
             continue
-        sites.append({
-            "id": child.name,
-            "name": child.name.replace("-", " ").replace("_", " ").title(),
-            "path": str(child),
-            "description": "Published documentation site",
-            "built": _site_built(child),
-        })
+        sites.append(
+            {
+                "id": child.name,
+                "name": child.name.replace("-", " ").replace("_", " ").title(),
+                "path": str(child),
+                "description": "Published documentation site",
+                "built": _site_built(child),
+            }
+        )
     return sites
 
 
@@ -68,11 +69,13 @@ def _list_knowledge_sections() -> list[dict[str, Any]]:
         if child.name.startswith(".") or child.name.startswith("_"):
             continue
         if child.is_dir():
-            sections.append({
-                "id": child.name,
-                "name": child.name.replace("-", " ").replace("_", " ").title(),
-                "path": str(child),
-            })
+            sections.append(
+                {
+                    "id": child.name,
+                    "name": child.name.replace("-", " ").replace("_", " ").title(),
+                    "path": str(child),
+                }
+            )
     return sections
 
 
@@ -83,6 +86,7 @@ def _extract_frontmatter(markdown: str) -> dict[str, Any]:
         return {}
     try:
         import yaml
+
         parsed = yaml.safe_load(match.group(1))
         if isinstance(parsed, dict):
             return parsed
@@ -118,11 +122,7 @@ def _list_courses() -> list[dict[str, Any]]:
 
             fm = _extract_frontmatter(text)
             course: dict[str, Any] = {
-                "name": (
-                    md_file.stem.replace("-", " ")
-                    .replace("_", " ")
-                    .title()
-                ),
+                "name": (md_file.stem.replace("-", " ").replace("_", " ").title()),
                 "path": str(md_file.relative_to(root)),
                 "source": source,
                 "level": fm.get("level", "basic"),
@@ -162,14 +162,16 @@ def _list_notebooks() -> list[dict[str, Any]]:
     notebooks: list[dict[str, Any]] = []
     for nb_file in sorted(knowledge_root.rglob("*.ipynb"), key=lambda p: p.name.lower()):
         stat = nb_file.stat()
-        notebooks.append({
-            "name": nb_file.name,
-            "stem": nb_file.stem,
-            "path": str(nb_file.relative_to(knowledge_root)),
-            "full_path": str(nb_file),
-            "size": stat.st_size,
-            "mtime": stat.st_mtime,
-        })
+        notebooks.append(
+            {
+                "name": nb_file.name,
+                "stem": nb_file.stem,
+                "path": str(nb_file.relative_to(knowledge_root)),
+                "full_path": str(nb_file),
+                "size": stat.st_size,
+                "mtime": stat.st_mtime,
+            }
+        )
     return notebooks
 
 
@@ -189,19 +191,23 @@ def _list_repo_docs() -> list[dict[str, Any]]:
                 # Skip archived docs
                 continue
             rel = str(md_file.relative_to(docs_root))
-            docs.append({
-                "name": md_file.stem.replace("-", " ").replace("_", " ").title(),
-                "path": rel,
-                "size": md_file.stat().st_size,
-            })
+            docs.append(
+                {
+                    "name": md_file.stem.replace("-", " ").replace("_", " ").title(),
+                    "path": rel,
+                    "size": md_file.stat().st_size,
+                }
+            )
 
         if docs:
-            repos.append({
-                "repo": repo_name,
-                "root": str(docs_root),
-                "docs": docs,
-                "count": len(docs),
-            })
+            repos.append(
+                {
+                    "repo": repo_name,
+                    "root": str(docs_root),
+                    "docs": docs,
+                    "count": len(docs),
+                }
+            )
 
     return repos
 
@@ -293,23 +299,27 @@ async def handle_docs_root(_request: web.Request) -> web.Response:
 async def handle_docs_sites(_request: web.Request) -> web.Response:
     """GET /api/docs/sites - list discovered documentation sites."""
     sites = _list_doc_sites()
-    return web.json_response({
-        "root": str(DOC_SITES_ROOT),
-        "exists": DOC_SITES_ROOT.exists(),
-        "sites": sites,
-        "count": len(sites),
-    })
+    return web.json_response(
+        {
+            "root": str(DOC_SITES_ROOT),
+            "exists": DOC_SITES_ROOT.exists(),
+            "sites": sites,
+            "count": len(sites),
+        }
+    )
 
 
 async def handle_docs_global_knowledge(_request: web.Request) -> web.Response:
     """GET /api/docs/global-knowledge - list knowledge sections."""
     sections = _list_knowledge_sections()
-    return web.json_response({
-        "root": str(GLOBAL_KNOWLEDGE_ROOT),
-        "exists": GLOBAL_KNOWLEDGE_ROOT.exists(),
-        "sections": sections,
-        "count": len(sections),
-    })
+    return web.json_response(
+        {
+            "root": str(GLOBAL_KNOWLEDGE_ROOT),
+            "exists": GLOBAL_KNOWLEDGE_ROOT.exists(),
+            "sections": sections,
+            "count": len(sections),
+        }
+    )
 
 
 async def handle_docs_serve_site(request: web.Request) -> web.Response:
@@ -348,39 +358,47 @@ async def handle_docs_export(request: web.Request) -> web.Response:
     if result.get("error"):
         return web.json_response(result, status=400)
 
-    return web.json_response({
-        "message": "Vault export completed",
-        **result,
-    })
+    return web.json_response(
+        {
+            "message": "Vault export completed",
+            **result,
+        }
+    )
 
 
 async def handle_docs_courses(_request: web.Request) -> web.Response:
     """GET /api/docs/courses - list learning courses from ~/Public/learning/."""
     courses = _list_courses()
-    return web.json_response({
-        "root": str(LEARNING_ROOT),
-        "exists": LEARNING_ROOT.exists(),
-        "courses": courses,
-        "count": len(courses),
-    })
+    return web.json_response(
+        {
+            "root": str(LEARNING_ROOT),
+            "exists": LEARNING_ROOT.exists(),
+            "courses": courses,
+            "count": len(courses),
+        }
+    )
 
 
 async def handle_docs_notebooks(_request: web.Request) -> web.Response:
     """GET /api/docs/notebooks - list Jupyter notebooks from knowledge directories."""
     notebooks = _list_notebooks()
-    return web.json_response({
-        "notebooks": notebooks,
-        "count": len(notebooks),
-    })
+    return web.json_response(
+        {
+            "notebooks": notebooks,
+            "count": len(notebooks),
+        }
+    )
 
 
 async def handle_docs_repo_docs(_request: web.Request) -> web.Response:
     """GET /api/docs/repo-docs - index documentation from ~/Code/* repos."""
     repo_docs = _list_repo_docs()
-    return web.json_response({
-        "repos": repo_docs,
-        "count": len(repo_docs),
-    })
+    return web.json_response(
+        {
+            "repos": repo_docs,
+            "count": len(repo_docs),
+        }
+    )
 
 
 async def handle_docs_mirror_sync(_request: web.Request) -> web.Response:
@@ -471,8 +489,8 @@ _CONTENT_ROOTS: dict[str, Path] = {
     "learning": LEARNING_ROOT,
     "vault": Path.home() / "Vault",
     "knowledge": GLOBAL_KNOWLEDGE_ROOT,
-    "archive": Path.home() / "Code" / "uCore" / "docs" / "archive",
-    "mirror": Path.home() / ".ucore" / "docs-mirror",
+    "archive": settings.udos_root / "uCore" / "docs" / "archive",
+    "mirror": settings.udos_home / "docs-mirror",
 }
 
 

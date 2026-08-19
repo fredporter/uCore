@@ -21,7 +21,11 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/assistui/:pathMatch(.*)*",
-    redirect: "/intelligence",
+    redirect: (to) => {
+      const tab = String(to.query.tab || "chat");
+      if (tab === "agents") return "/snackbar?tab=agents";
+      return { path: "/intelligence", query: to.query };
+    },
   },
   {
     path: "/intelligence/:pathMatch(.*)*",
@@ -79,7 +83,7 @@ const routes: RouteRecordRaw[] = [
       const tab = String(to.query.tab || "snacks");
       if (tab === "workflows") return "/workflow?tab=publish";
       if (tab === "vault") return "/workflow?tab=binder";
-      if (tab === "mcp") return "/developer?tab=mcp-servers";
+      if (tab === "mcp") return "/snackbar?tab=mcp";
       if (tab === "variables") return "/system?tab=variables";
       if (tab === "scheduler") return "/snackbar?tab=dashboard";
       return "/snackbar?tab=snacks";
@@ -138,6 +142,13 @@ const routes: RouteRecordRaw[] = [
 export const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+router.beforeEach((to) => {
+  // Agent selection is operational state, not a user-facing Intelligence mode.
+  if (to.path.startsWith("/intelligence") && to.query.tab === "agents") {
+    return { path: "/snackbar", query: { tab: "agents" } };
+  }
 });
 
 const DYNAMIC_IMPORT_RELOAD_KEY = "ucore.router.dynamic-import-reload";

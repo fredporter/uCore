@@ -14,7 +14,8 @@ from pathlib import Path
 log = logging.getLogger("ucore.menu.lockfile")
 
 
-LOCKFILE_PATH = Path.home() / ".ucore" / "menu.lock"
+UDOS_HOME = Path(os.environ.get("UDOS_HOME", Path.home() / "Code" / ".udos")).expanduser()
+LOCKFILE_PATH = UDOS_HOME / "menu.lock"
 
 
 def _get_boot_time() -> float:
@@ -161,4 +162,3 @@ def release_lock() -> None:
         pass  # Corrupt lock file — leave it, next start will clean it
     except Exception as exc:
         log.error("Failed to release lock: %s", exc)
-

@@ -7,6 +7,7 @@ and is registered in the TOOL_HANDLERS registry below.
 Usage:
     from app.api.mcp_handlers import dispatch_tool, TOOL_HANDLERS
 """
+
 from __future__ import annotations
 
 import logging
@@ -90,7 +91,7 @@ async def dispatch_tool(body: Dict[str, Any]) -> web.Response:
 
     Accepts multiple payload shapes:
       - Standard MCP: { "name": "tool_name", "arguments": {...} }
-      - VS Code/Continue: { "tool": "tool_name", "params": {...} }
+      - Compatible clients: { "tool": "tool_name", "params": {...} }
       - Alternate: { "tool_name": "tool_name", "input": {...} }
 
     Delegates to individual handler functions by domain module.
@@ -99,7 +100,9 @@ async def dispatch_tool(body: Dict[str, Any]) -> web.Response:
     arguments = body.get("arguments") or body.get("params") or body.get("input") or {}
     request_id = body.get("id")
 
-    log.info("[MCP call] tool=%r args_keys=%s", tool_name, list(arguments.keys()) if arguments else [])
+    log.info(
+        "[MCP call] tool=%r args_keys=%s", tool_name, list(arguments.keys()) if arguments else []
+    )
 
     if tool_name.startswith("skill_"):
         return await handle_skill_tool(tool_name, arguments, request_id)
@@ -108,8 +111,11 @@ async def dispatch_tool(body: Dict[str, Any]) -> web.Response:
     if handler:
         return await handler(arguments, request_id)
 
-    return web.json_response({
-        "jsonrpc": "2.0",
-        "error": {"code": -32601, "message": f"Tool '{tool_name}' not found"},
-        "id": request_id,
-    }, status=404)
+    return web.json_response(
+        {
+            "jsonrpc": "2.0",
+            "error": {"code": -32601, "message": f"Tool '{tool_name}' not found"},
+            "id": request_id,
+        },
+        status=404,
+    )

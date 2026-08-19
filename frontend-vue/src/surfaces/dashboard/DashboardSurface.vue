@@ -60,7 +60,6 @@ import { useShellStore } from "../../stores/shell";
 import { useExtensionStore } from "../../stores/extensions";
 import SurfaceCard from "../../skills/molecules/SurfaceCard.vue";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
-import { SNACKBAR_BASE } from "@/api/base";
 
 const router = useRouter();
 const shell = useShellStore();
@@ -165,10 +164,9 @@ const SURFACE_CARD_DATA: Record<
     route: "/sonic",
     color: "var(--usx-color-success)",
   },
-  // Manifest id for the uDev extension is "udev" — map it to the Developer card.
-  udev: {
+  developer: {
     title: "Developer",
-    description: "Dev Lane — Models, Agents, Kanban",
+    description: "Repositories, Code Review & Editing",
     icon: "code",
     route: "/developer",
     color: "var(--usx-color-danger)",
@@ -206,10 +204,9 @@ const visibleSurfaces = computed(() => {
       seen.add(surface.manifest.id);
     }
   }
-  // Always show Developer card when the uDev repo exists (or is running)
-  // Guard against duplicates if the extension loop already added it.
-  if ((udevRepoExists || extStore.isRunning("udev")) && !seen.has("udev")) {
-    cards.push({ id: "udev", ...SURFACE_CARD_DATA.udev });
+  // Developer is a built-in uCore surface. Guard against catalogue duplicates.
+  if (!seen.has("developer")) {
+    cards.push({ id: "developer", ...SURFACE_CARD_DATA.developer });
   }
   // Always show Markdown Editor card
   cards.push({ id: "markdown", ...SURFACE_CARD_DATA.markdown });
@@ -237,27 +234,7 @@ const activeExtensions = computed(() => {
     }));
 });
 
-// uDev repo presence — show Developer card when ~/Code/uDev exists
-const udevRepoExists = ref(false);
-
-async function probeUdevRepo() {
-  try {
-    const res = await fetch(`${SNACKBAR_BASE}/api/developer/repos?scope=all`, {
-      signal: AbortSignal.timeout(4000),
-    });
-    if (!res.ok) return;
-    const payload = await res.json();
-    const repos = Array.isArray(payload?.repos) ? payload.repos : [];
-    udevRepoExists.value = repos.some(
-      (repo: any) => String(repo?.name || "").toLowerCase() === "udev",
-    );
-  } catch {
-    // Backend unreachable — fall back to running state
-  }
-}
-
 onMounted(() => {
-  void probeUdevRepo();
   void extStore.fetchCatalogue();
 });
 

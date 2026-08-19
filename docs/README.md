@@ -7,7 +7,6 @@
 | Doc                                                                                      | Purpose                           |
 | ---------------------------------------------------------------------------------------- | --------------------------------- |
 | [MCP_SETUP.md](MCP_SETUP.md)                                                             | Install and configure MCP servers |
-| [CLINE_GITHUB_WORKFLOWS.md](CLINE_GITHUB_WORKFLOWS.md)                                   | GitHub automation for Cline       |
 | [USER_SETUP_VAULT_MCP_WORKSPACES.md](USER_SETUP_VAULT_MCP_WORKSPACES.md)                 | Vault and MCP workspace setup     |
 
 ## Active System Specs
@@ -40,6 +39,12 @@
 | [MENUBAR_UNIFICATION_PLAN.md](MENUBAR_UNIFICATION_PLAN.md)               | Menubar unification           |
 | [FRONTEND_CONSOLIDATION_PLAYBOOK.md](FRONTEND_CONSOLIDATION_PLAYBOOK.md) | Frontend consolidation        |
 | [VUE_REFACTOR_SURFACE_TAGGING.md](VUE_REFACTOR_SURFACE_TAGGING.md)       | Vue refactor surface tags     |
+| [SURFACE_OWNERSHIP.md](SURFACE_OWNERSHIP.md)                             | Canonical route and tab ownership |
+| [UDOS_HOME_MIGRATION.md](UDOS_HOME_MIGRATION.md)                         | Runtime/vault boundary and safe migration |
+| [ECOSYSTEM_STORAGE_ARCHITECTURE.md](ECOSYSTEM_STORAGE_ARCHITECTURE.md)   | Canonical storage, credentials and drift controls |
+| [WORKSTATION_MIGRATION_2026-08-18.md](WORKSTATION_MIGRATION_2026-08-18.md) | Migration record, verification and rollback boundary |
+| [AGENT_EXECUTION_ARCHITECTURE.md](AGENT_EXECUTION_ARCHITECTURE.md)       | Intention routing, providers, orchestration and controls |
+| [SKILLS_AUDIT_2026-08-18.md](SKILLS_AUDIT_2026-08-18.md)                 | Skill disposition and remediation sequence |
 
 ## Active Developer / Dev Mode Specs
 
@@ -57,8 +62,7 @@
 
 ## Active Task / Planning Trackers
 
-- `.tasker.dev-flow.yaml` — canonical active task list
-- `.tasker/README.md` — tasker directory guide
+- `uFlow` — canonical workflow and task owner (`$UDOS_HOME/flow/tasks`)
 - `docs/CONSOLIDATION_PLAN.md` — docs consolidation tracker (kept for reference)
 
 ## Archive

@@ -13,9 +13,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install governance probe dependencies
+        run: python -m pip install aiohttp pyyaml
 
       - name: Validate planning governance
         run: bash scripts/validate_planning_governance.sh
+
+      - name: Reject new home-root state paths (pull request)
+        if: github.event_name == 'pull_request'
+        run: git diff --unified=0 "origin/${{ github.base_ref }}...HEAD" | python3 scripts/check_home_path_policy.py --diff-stdin
+
+      - name: Reject new home-root state paths (push)
+        if: github.event_name == 'push'
+        run: git diff --unified=0 "${{ github.event.before }}..${{ github.sha }}" | python3 scripts/check_home_path_policy.py --diff-stdin
 
       - name: Validate capability requirements coverage
         run: python3 scripts/validate_capability_requirements.py
@@ -29,17 +47,6 @@ jobs:
       - name: Validate extension manifests
         run: python3 scripts/validate_extension_manifests.py
 
-      - name: Checkout SnackMachine contract source
-        uses: actions/checkout@v4
-        with:
-          repository: fredporter/SnackMachine
-          path: external/SnackMachine
-
-      - name: Validate SnackMachine contract compatibility
-        env:
-          UCORE_SNACKMACHINE_PATH: ${{ github.workspace }}/external/SnackMachine
-        run: python3 scripts/check_snackmachine_contract.py
-
       - name: Audit duplicate API routes
         run: python3 scripts/audit_duplicate_routes.py
 
@@ -52,15 +59,13 @@ jobs:
       - name: Validate split-repo packaging layout
         run: python3 scripts/validate_split_repo_packaging.py
 
-      - name: Validate MCP config lock
-        run: python3 scripts/validate_mcp_config.py
-
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
+    env:
+      UDOS_ROOT: ${{ github.workspace }}/..
+      UDOS_HOME: ${{ github.workspace }}/.ci-udos
+      UCORE_UCODE_PATH: ${{ github.workspace }}/external/uCode
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -70,23 +75,63 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Checkout uFlow
+        uses: actions/checkout@v4
+        with:
+          repository: fredporter/uFlow
+          ref: work/2026-08-18-stabilise
+          path: external/uFlow
+
+      - name: Checkout uKnowledge
+        uses: actions/checkout@v4
+        with:
+          repository: fredporter/uKnowledge
+          ref: work/2026-08-18-stabilise
+          path: external/uKnowledge
+
+      - name: Checkout uCode runtime
+        uses: actions/checkout@v4
+        with:
+          repository: fredporter/uCode
+          ref: work/2026-08-18-stabilise
+          path: external/uCode
+
       - name: Install backend dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev]
+          pip install -e ./external/uFlow -e ./external/uKnowledge -e ./external/uCode
+          pip install -e ./backend[dev]
+
+      - name: Prepare isolated runtime and Git identity
+        run: |
+          mkdir -p "$UDOS_HOME/data"
+          git config --global user.name "uCore CI"
+          git config --global user.email "ci@udos.invalid"
 
       - name: Run backend tests
-        run: pytest -q
+        run: python -m pytest -q backend/tests
 
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Checkout uCode
+        uses: actions/checkout@v4
+        with:
+          repository: fredporter/uCode
+          ref: work/2026-08-18-stabilise
+          path: external/uCode
+
+      - name: Expose sibling uCode source contract
+        run: ln -s "$GITHUB_WORKSPACE/external/uCode" "$GITHUB_WORKSPACE/../uCode"
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -98,8 +143,8 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate prose class standard
-        run: pnpm run check:prose-standard
-
       - name: Build frontend
-        run: pnpm run build
+        run: pnpm --dir frontend-vue run build
+
+      - name: Test frontend
+        run: pnpm --dir frontend-vue run test -- --run

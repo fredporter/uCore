@@ -1,5 +1,5 @@
 # uCore Budget Configuration
-# Copy to ~/.ucore/config/budget.yaml and adjust
+# Copy to $UDOS_HOME/config/budget.yaml and adjust
 
 # Session budget (resets on restart)
 session_budget_usd: 5.0

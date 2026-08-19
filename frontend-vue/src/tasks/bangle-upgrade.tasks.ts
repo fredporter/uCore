@@ -900,7 +900,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description:
       "Replace raw JSON pre block with rendered HTML; add raw/rendered toggle",
     phase: 7,
-    component: "uDev/panels/SkillsPanel.vue",
+    component: "surfaces/snackbar/panels/SnackbarSkillsPanel.vue",
     priority: "high",
     status: "done",
     estimatedHours: 1.5,
@@ -1065,7 +1065,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
       "Create OverlayLayer.vue wrapper",
       "Include: ChatBubble, ToastOverlay, AlertOverlay, PopupOverlay, StoriesOverlay",
       "Mount in uCore App.vue",
-      "Mount in uDev App.vue",
+      "Mount in the uCore UI Hub",
       "z-index stack: toast 1100, alert 1200, popup 1300, stories 1400",
     ],
   },
@@ -1241,7 +1241,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     tags: ["sprint-2", "chat"],
     checklist: [
       "uCore OverlayLayer wired",
-      "uDev OverlayLayer wired",
+      "uCore OverlayLayer wired",
       "sendChatMessage() functional",
     ],
   },

@@ -1,5 +1,5 @@
 """Unified Library Index — consolidates all vault sources into a
-single searchable index at ~/.ucore/indices/.
+single searchable index under ``$UDOS_HOME/indices``.
 
 Vault topology (3 types, see backend/app/api/vault_api.py):
   user   -> ~/Vault/      (personal vault)
@@ -8,7 +8,7 @@ Vault topology (3 types, see backend/app/api/vault_api.py):
 
 Note: ~/Code/ is NOT a vault — it is the Developer Lane codebase.
 
-The index is stored as SQLite at ~/.ucore/indices/library.db with
+The index is stored as SQLite at ``$UDOS_HOME/indices/library.db`` with
 FTS5 for full-text search across all sources.
 """
 from __future__ import annotations
@@ -21,9 +21,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
+
 log = logging.getLogger("ucore.library_index")
 
-INDEX_DIR = Path.home() / ".ucore" / "indices"
+INDEX_DIR = settings.udos_home / "indices"
 INDEX_DB = INDEX_DIR / "library.db"
 
 VAULT_PATHS = {
@@ -43,7 +45,7 @@ EXCLUDE_DIRS = {
 }
 
 # Additional workspaces (user-registered vaults/folders) ---------------
-WORKSPACES_FILE = Path.home() / ".ucore" / "workspaces.json"
+WORKSPACES_FILE = settings.udos_home / "workspaces.json"
 # Workspaces may only be selected from the shared/public vault roots.
 WORKSPACE_ROOTS = [Path.home() / "Shared", Path.home() / "Public"]
 

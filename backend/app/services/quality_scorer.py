@@ -6,7 +6,7 @@ Evaluates model responses across multiple dimensions:
 - Output quality (heuristic: length, structure, code blocks)
 - Task completion (did the response address the prompt?)
 
-Stores results in SQLite at ~/.ucore/indices/quality.db for historical analysis.
+Stores results in SQLite at ``$UDOS_HOME/indices/quality.db``.
 
 Usage:
     scorer = QualityScorer.get()
@@ -30,9 +30,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
+
 log = logging.getLogger("ucore.quality_scorer")
 
-DB_PATH = Path.home() / ".ucore" / "indices" / "quality.db"
+DB_PATH = settings.udos_home / "indices" / "quality.db"
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS quality_log (

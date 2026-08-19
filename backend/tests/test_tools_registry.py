@@ -10,12 +10,12 @@ from app.tools.registry import check_tool, get_tool, list_tools
 async def test_list_tools():
     """list_tools returns all discovered tools."""
     tools = await list_tools()
-    assert len(tools) >= 6  # github_cli, git, python, node, docker, ollama, vscode
+    assert len(tools) >= 6  # github_cli, git, python, node, docker, ollama
     tool_ids = {t.id for t in tools}
     assert "github_cli" in tool_ids
     assert "git" in tool_ids
     assert "python" in tool_ids
-    assert "vscode" in tool_ids
+    assert "ollama" in tool_ids
 
 
 @pytest.mark.asyncio

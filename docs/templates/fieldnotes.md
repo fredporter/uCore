@@ -9,7 +9,7 @@ Use fieldnotes for optional local observations that are useful during developmen
 
 ## Local Path
 
-`~/.ucore/memory/uCore/fieldnotes.md`
+`~/Code/.udos/memory/uCore/fieldnotes.md` (or `$UDOS_HOME/memory/uCore/fieldnotes.md`)
 
 ## Promotion Rule
 

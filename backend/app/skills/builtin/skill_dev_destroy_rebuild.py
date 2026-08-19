@@ -10,6 +10,7 @@ Workflow:
 
 Safety: never touches data, only Dev Mode config/state.
 """
+
 from __future__ import annotations
 
 import json
@@ -20,23 +21,24 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
 from app.services.template_manager import get_template_manager
 from app.skills.base import BaseSkill, SkillMeta, SkillParam
 
 log = logging.getLogger("ucore.skills.destroy_rebuild")
 
-RECOVERY_DIR = Path.home() / ".ucore" / "recovery"
-SPOOL_DIR = Path.home() / ".tasker" / "spool"
+RECOVERY_DIR = settings.udos_home / "recovery"
+SPOOL_DIR = settings.udos_home / "spool"
 WISDOM_DIR = SPOOL_DIR / "wisdom"
 
 # Components that can be destroyed/rebuild
 RESETTABLE_COMPONENTS = {
     "dev_layer": {
-        "path": Path.home() / ".ucore" / "config.yaml",
+        "path": settings.udos_home / "config.yaml",
         "description": "Dev Mode layer state (mode, surface visibility)",
     },
     "templates": {
-        "path": Path.home() / ".ucore" / "templates",
+        "path": settings.udos_home / "templates",
         "description": "All template snapshots (default, stable, exp, custom)",
     },
     "dev_mode_store": {
@@ -45,7 +47,7 @@ RESETTABLE_COMPONENTS = {
     },
     "spool_wisdom": {
         "path": WISDOM_DIR,
-        "description": "Wisdom records in .tasker/spool/wisdom",
+        "description": "Wisdom records in $UDOS_HOME/spool/wisdom",
     },
 }
 
@@ -186,9 +188,7 @@ class DestroyRebuildSkill(BaseSkill):
                 saved_template = self._template_mgr.create_template(
                     name=template_name,
                     tier="custom",
-                    description=(
-                        f"Auto-saved before DESTROY of {', '.join(targets)}"
-                    ),
+                    description=(f"Auto-saved before DESTROY of {', '.join(targets)}"),
                     tags=["auto-save", "pre-destroy", *targets],
                     state=self._capture_state(targets),
                 )
@@ -215,8 +215,7 @@ class DestroyRebuildSkill(BaseSkill):
             "destroyed": destroyed,
             "template_id": saved_template.id if saved_template else None,
             "message": (
-                f"Destroyed {len(destroyed)} component(s). "
-                f"Use 'rebuild {backup.id}' to restore."
+                f"Destroyed {len(destroyed)} component(s). Use 'rebuild {backup.id}' to restore."
             ),
         }
 
@@ -265,9 +264,7 @@ class DestroyRebuildSkill(BaseSkill):
             return self._rebuild_from_template(template_id, components)
         return self._rebuild_defaults(components)
 
-    def _rebuild_from_backup(
-        self, backup_id: str, components: list[str] | None
-    ) -> dict[str, Any]:
+    def _rebuild_from_backup(self, backup_id: str, components: list[str] | None) -> dict[str, Any]:
         """Restore from a specific recovery point."""
         rp = self._find_recovery(backup_id)
         if not rp:
@@ -317,9 +314,7 @@ class DestroyRebuildSkill(BaseSkill):
             "state": state,
         }
 
-    def _rebuild_defaults(
-        self, components: list[str] | None
-    ) -> dict[str, Any]:
+    def _rebuild_defaults(self, components: list[str] | None) -> dict[str, Any]:
         """Reset components to defaults."""
         targets = components or list(RESETTABLE_COMPONENTS.keys())
         log.info("Resetting %d components to defaults", len(targets))
@@ -327,8 +322,7 @@ class DestroyRebuildSkill(BaseSkill):
             "restored_from": "defaults",
             "reset": targets,
             "message": (
-                f"Reset {len(targets)} component(s) to defaults. "
-                "Restart surfaces to apply."
+                f"Reset {len(targets)} component(s) to defaults. Restart surfaces to apply."
             ),
         }
 
@@ -393,10 +387,7 @@ class DestroyRebuildSkill(BaseSkill):
                             "path": str(path),
                             "exists": True,
                             "type": "directory",
-                            "entries": [
-                                str(p.relative_to(path))
-                                for p in path.rglob("*")
-                            ],
+                            "entries": [str(p.relative_to(path)) for p in path.rglob("*")],
                         }
                 except Exception:
                     state["components"][comp] = {"path": str(path), "error": "read failed"}
@@ -434,9 +425,7 @@ class DestroyRebuildSkill(BaseSkill):
 
     def _save_recovery_point(self, rp: RecoveryPoint) -> None:
         manifest_file = rp.path / "manifest.json"
-        manifest_file.write_text(
-            json.dumps(rp.to_dict(), indent=2), "utf-8"
-        )
+        manifest_file.write_text(json.dumps(rp.to_dict(), indent=2), "utf-8")
 
     def _load_recovery_points(self) -> None:
         """Scan recovery directory for existing points."""
@@ -448,12 +437,14 @@ class DestroyRebuildSkill(BaseSkill):
                 if manifest_file.exists():
                     try:
                         data = json.loads(manifest_file.read_text("utf-8"))
-                        self._recovery.append(RecoveryPoint(
-                            id=data.get("id", entry.name),
-                            timestamp=data.get("timestamp", ""),
-                            components=data.get("components", []),
-                            path=entry,
-                        ))
+                        self._recovery.append(
+                            RecoveryPoint(
+                                id=data.get("id", entry.name),
+                                timestamp=data.get("timestamp", ""),
+                                components=data.get("components", []),
+                                path=entry,
+                            )
+                        )
                     except (json.JSONDecodeError, KeyError):
                         pass
 

@@ -1,9 +1,9 @@
 """Control Service — aggregates all uCore ecosystem status into one payload.
 
 Used by the Control Panel (Developer Surface) to display:
-- Status badges (Cline, OpenRouter, Hivemind, Roundtable, Ollama, Feed, Slate, Budget)
+- Status badges (OpenRouter, Hivemind, Roundtable, Ollama, Feed, Slate, Budget)
 - Live feed stream
-- Agent status (Hivemind consensus, Roundtable swarm, Cline session, Ollama models)
+- Agent status (Hivemind consensus, Roundtable swarm, Ollama models)
 - Cost dashboard (daily/weekly/monthly)
 - Active mission (from .tasker)
 - Tasker overview, MCP servers, Slates, Alerts
@@ -109,25 +109,6 @@ async def _start_hivemind_server() -> tuple[bool, str]:
 # ---------------------------------------------------------------------------
 # Status badge checks
 # ---------------------------------------------------------------------------
-
-async def check_cline() -> dict:
-    """Check Cline CLI availability."""
-    result = {"online": False, "detail": "Cline CLI not reachable"}
-    # Try Cline CLI health endpoint
-    data = await _http_get("http://localhost:8485/health", timeout=1.0)
-    if data:
-        result["online"] = True
-        result["detail"] = "Cline CLI connected"
-        result["data"] = data
-        return result
-    # Fallback: check if cline CLI is in PATH
-    cli_path = await _run_shell(["which", "cline"], timeout=1.0)
-    if cli_path:
-        result["online"] = True
-        result["detail"] = f"Cline CLI available at {cli_path}"
-        return result
-    return result
-
 
 async def check_openrouter() -> dict:
     """Check OpenRouter API connectivity."""
@@ -270,11 +251,6 @@ async def recover_offline_services() -> dict:
             # Roundtable is hosted in the same server process.
             actions.append("Roundtable piggybacks on Hivemind process")
 
-    # OpenRouter and Cline are not daemonized by uCore here; report guidance.
-    cline_before = statuses_before.get("cline", {})
-    if not cline_before.get("online"):
-        actions.append("Cline not detected locally; verify Cline installation/CLI path")
-
     openrouter_before = statuses_before.get("openrouter", {})
     if not openrouter_before.get("online"):
         actions.append("OpenRouter remains unavailable; verify OPENROUTER_API_KEY in Secret Store")
@@ -345,14 +321,6 @@ async def get_roundtable_status() -> dict:
     return {"status": "unknown", "detail": "Roundtable status unavailable"}
 
 
-async def get_cline_status() -> dict:
-    """Get current Cline session info."""
-    data = await _http_get("http://localhost:8485/status", timeout=1.0)
-    if data:
-        return {"active": True, "data": data}
-    return {"active": False, "detail": "No active Cline session"}
-
-
 async def get_ollama_status() -> dict:
     """Get detailed Ollama status."""
     data = await _http_get("http://localhost:11434/api/tags", timeout=1.5)
@@ -407,8 +375,8 @@ async def get_active_mission() -> dict:
     lines = content.splitlines()
 
     name = latest.stem.replace("sprint-", "").replace("-", " ").title()
-    tasks_total = sum(1 for l in lines if l.strip().startswith("- ["))
-    tasks_done = sum(1 for l in lines if l.strip().startswith("- [x]"))
+    tasks_total = sum(1 for line in lines if line.strip().startswith("- ["))
+    tasks_done = sum(1 for line in lines if line.strip().startswith("- [x]"))
     # Count binders
     binders = list(td.glob("binder-*.md"))
 
@@ -609,7 +577,6 @@ async def get_control_status() -> dict:
 
 async def _gather_statuses() -> dict:
     results = await asyncio.gather(
-        check_cline(),
         check_openrouter(),
         check_hivemind(),
         check_roundtable(),
@@ -618,7 +585,7 @@ async def _gather_statuses() -> dict:
         check_slate(),
         get_cost_status(),
     )
-    keys = ["cline", "openrouter", "hivemind", "roundtable", "ollama", "feed", "slate", "budget"]
+    keys = ["openrouter", "hivemind", "roundtable", "ollama", "feed", "slate", "budget"]
     return dict(zip(keys, results))
 
 
@@ -631,10 +598,9 @@ async def _gather_feed() -> dict:
 
 
 async def _gather_agents() -> dict:
-    hive, rt, cline, ollama = await asyncio.gather(
+    hive, rt, ollama = await asyncio.gather(
         get_hivemind_status(),
         get_roundtable_status(),
-        get_cline_status(),
         get_ollama_status(),
     )
-    return {"hivemind": hive, "roundtable": rt, "cline": cline, "ollama": ollama}
+    return {"hivemind": hive, "roundtable": rt, "ollama": ollama}

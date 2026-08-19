@@ -94,7 +94,7 @@ class RouteTask(BaseSkill):
                     "Target agent: 'auto' (routing matrix), "
                     "'architect', 'dev', 'reviewer', 'debugger', "
                     "'docgen', 'gridsmith-dev', 'hivemind', "
-                    "'roundtable', 'cline', 'ollama', 'openrouter'"
+                    "'roundtable', 'hivemind', 'ollama', 'openrouter'"
                 ),
             ),
         ],
@@ -261,7 +261,7 @@ class RouteTask(BaseSkill):
             }
 
         # ── Explicit agent dispatch ──────────────────────────────────
-        # When target_agent is a named executor (cline, hivemind,
+        # When target_agent is a named executor (hivemind,
         # roundtable, ollama, openrouter), bypass the complexity matrix
         # and route directly to the requested agent.
         explicit_routing = self._route_by_target(target_agent, task, execute)
@@ -337,19 +337,6 @@ class RouteTask(BaseSkill):
 
         # ── Agent routing table ────────────────────────────────────
         agent_map: dict[str, dict] = {
-            "cline": {
-                "agent": "cline",
-                "provider": "cline",
-                "model": "deepseek-via-cline",
-                "cost": "DeepSeek credits (via Cline Pass)",
-                "reason": (
-                    "Explicit Cline dispatch —"
-                    " premium autonomous executor"
-                ),
-                "tokens_per_second": "~60",
-                "skill_id": "cline-invoke",
-                "mode": "yolo",
-            },
             "hivemind": {
                 "agent": "hivemind",
                 "provider": "hivemind",

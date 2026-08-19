@@ -8,7 +8,7 @@ This skill provides the unified SPOOL lifecycle plus the Nugget concept:
               Enables tiny archival records that dont consume space like .git can.
 
 2. BACKUP   — Timelined/diff-based backups that also get SPOOLed.
-              Backups are stored as small, timestamped chunks in ~/.ucore/backups/
+              Backups are stored as small, timestamped chunks in $UDOS_HOME/backups/
               and automatically SPOOLed so they dont accumulate indefinitely.
               Old backups are pruned based on max_age_days.
 
@@ -25,7 +25,7 @@ This skill provides the unified SPOOL lifecycle plus the Nugget concept:
               data and can be redeployed/reborn. Unlike a SPOOL (which is a system
               by-product of Destroy/Backup), a Nugget is intentionally created and
               left by a user, or may be a by-product of a Destroy and System Plate
-              Reset. Nuggets are stored in ~/.ucore/nuggets/ and can be:
+              Reset. Nuggets are stored in $UDOS_HOME/nuggets/ and can be:
               - Intentionally created by a user to preserve something valuable
               - By-product of a DESTROY and System Plate Reset
               - Redeployed/reborn via unfurl back into a living component
@@ -64,9 +64,9 @@ log = logging.getLogger("ucore.skills.spool_manager")
 
 # ─── Paths ─────────────────────────────────────────────────
 
-SPOOL_DIR = Path("~/.ucore/logs").expanduser()
-BACKUP_DIR = Path("~/.ucore/backups").expanduser()
-NUGGET_DIR = Path("~/.ucore/nuggets").expanduser()
+SPOOL_DIR = settings.logs_dir
+BACKUP_DIR = settings.udos_home / "backups"
+NUGGET_DIR = settings.udos_home / "nuggets"
 PLATES_ROOT = Path(__file__).resolve().parents[4] / "plates"  # uCore/plates/
 
 # ─── Log rotation constants (merged from spool_maintenance) ──────────
@@ -79,6 +79,7 @@ PROJECT_ROOT = settings.udos_root / "uCore"
 
 
 # ─── Helpers ───────────────────────────────────────────────
+
 
 def _ensure_dirs() -> None:
     """Ensure SPOOL and BACKUP directories exist."""
@@ -169,18 +170,20 @@ def _list_spool_files(
                 continue
             if event and record.get("event") != event:
                 continue
-            results.append({
-                "file": str(f),
-                "timestamp": record.get("timestamp", ""),
-                "event": record.get("event", ""),
-                "component_id": record.get("component", {}).get("id", ""),
-                "component_type": record.get("component", {}).get("type", ""),
-                "version": record.get("component", {}).get("version", ""),
-                "salvaged_keys": list(record.get("salvaged", {}).keys()),
-                "lesson_count": len(record.get("lessons", [])),
-                "has_errors": len(record.get("errors", [])) > 0,
-                "has_backup": bool(record.get("backup")),
-            })
+            results.append(
+                {
+                    "file": str(f),
+                    "timestamp": record.get("timestamp", ""),
+                    "event": record.get("event", ""),
+                    "component_id": record.get("component", {}).get("id", ""),
+                    "component_type": record.get("component", {}).get("type", ""),
+                    "version": record.get("component", {}).get("version", ""),
+                    "salvaged_keys": list(record.get("salvaged", {}).keys()),
+                    "lesson_count": len(record.get("lessons", [])),
+                    "has_errors": len(record.get("errors", [])) > 0,
+                    "has_backup": bool(record.get("backup")),
+                }
+            )
             if len(results) >= max_results:
                 break
         except Exception:
@@ -213,6 +216,7 @@ def _compute_diff(source: str, target: str) -> dict[str, Any]:
 
 
 # ─── Skill: spool_archive ──────────────────────────────────
+
 
 class SpoolArchiveSkill(BaseSkill):
     """ARCHIVE — Compress legacy content into SPOOL record.
@@ -316,7 +320,9 @@ class SpoolArchiveSkill(BaseSkill):
             "source_size_bytes": src.stat().st_size if src.exists() else 0,
             "source_modified": datetime.fromtimestamp(
                 src.stat().st_mtime, tz=timezone.utc
-            ).isoformat() if src.exists() else "",
+            ).isoformat()
+            if src.exists()
+            else "",
             **extra_metadata,
         }
 
@@ -357,10 +363,11 @@ class SpoolArchiveSkill(BaseSkill):
 
 # ─── Skill: spool_backup ───────────────────────────────────
 
+
 class SpoolBackupSkill(BaseSkill):
     """BACKUP — Timelined/diff-based backup with SPOOL integration.
 
-    Creates timestamped backups in ~/.ucore/backups/ and writes a
+    Creates timestamped backups in $UDOS_HOME/backups/ and writes a
     SPOOL record referencing the backup. Supports diff-based backups
     (only store changes from previous backup) and automatic pruning
     of old backups based on max_age_days.
@@ -527,6 +534,7 @@ class SpoolBackupSkill(BaseSkill):
 
 # ─── Skill: spool_destroy ──────────────────────────────────
 
+
 class SpoolDestroySkill(BaseSkill):
     """DESTROY — Component destruction with full SPOOL preservation.
 
@@ -637,11 +645,13 @@ class SpoolDestroySkill(BaseSkill):
                 except Exception:
                     pass
 
-        steps.append({
-            "step": "salvage",
-            "status": "ok",
-            "salvaged_keys": list(salvaged.keys()),
-        })
+        steps.append(
+            {
+                "step": "salvage",
+                "status": "ok",
+                "salvaged_keys": list(salvaged.keys()),
+            }
+        )
 
         # Step 2: BACKUP
         if source_path and not dry_run:
@@ -662,15 +672,15 @@ class SpoolDestroySkill(BaseSkill):
                         root_dir=src.parent,
                         base_dir=src.name,
                     )
-                    backup_path = str(
-                        comp_backup_dir / f"{component_id}_{ts}.pre_destroy.tar.gz"
-                    )
+                    backup_path = str(comp_backup_dir / f"{component_id}_{ts}.pre_destroy.tar.gz")
 
-        steps.append({
-            "step": "backup",
-            "status": "ok" if backup_path else "skipped",
-            "backup_path": backup_path,
-        })
+        steps.append(
+            {
+                "step": "backup",
+                "status": "ok" if backup_path else "skipped",
+                "backup_path": backup_path,
+            }
+        )
 
         # Step 3: ARCHIVE (write SPOOL record)
         record = _build_spool_record(
@@ -690,11 +700,13 @@ class SpoolDestroySkill(BaseSkill):
         )
         spool_path = _write_spool_file(record)
 
-        steps.append({
-            "step": "archive",
-            "status": "ok",
-            "spool_path": spool_path,
-        })
+        steps.append(
+            {
+                "step": "archive",
+                "status": "ok",
+                "spool_path": spool_path,
+            }
+        )
 
         # Step 4: DESTROY (skip in dry_run)
         if not dry_run and source_path:
@@ -704,23 +716,29 @@ class SpoolDestroySkill(BaseSkill):
                     src.unlink()
                 elif src.is_dir():
                     shutil.rmtree(src)
-                steps.append({
-                    "step": "destroy",
-                    "status": "ok",
-                    "removed": str(src),
-                })
+                steps.append(
+                    {
+                        "step": "destroy",
+                        "status": "ok",
+                        "removed": str(src),
+                    }
+                )
             else:
-                steps.append({
-                    "step": "destroy",
-                    "status": "skipped",
-                    "reason": "Source not found",
-                })
+                steps.append(
+                    {
+                        "step": "destroy",
+                        "status": "skipped",
+                        "reason": "Source not found",
+                    }
+                )
         else:
-            steps.append({
-                "step": "destroy",
-                "status": "dry_run",
-                "would_remove": source_path,
-            })
+            steps.append(
+                {
+                    "step": "destroy",
+                    "status": "dry_run",
+                    "would_remove": source_path,
+                }
+            )
 
         # Step 5: REBUILD
         if rebuild_command and not dry_run:
@@ -729,16 +747,22 @@ class SpoolDestroySkill(BaseSkill):
                 for k, v in salvaged.items():
                     cmd = cmd.replace(f"${{{k}}}", str(v))
                 result = subprocess.run(
-                    cmd, shell=True, capture_output=True, text=True, timeout=120,
+                    cmd,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
                 )
                 rebuild_output = result.stdout
                 if result.returncode != 0:
                     errors.append(f"Rebuild failed: {result.stderr}")
-                steps.append({
-                    "step": "rebuild",
-                    "status": "ok" if result.returncode == 0 else "failed",
-                    "output": rebuild_output[:200],
-                })
+                steps.append(
+                    {
+                        "step": "rebuild",
+                        "status": "ok" if result.returncode == 0 else "failed",
+                        "output": rebuild_output[:200],
+                    }
+                )
             except subprocess.TimeoutExpired:
                 errors.append("Rebuild timed out")
                 steps.append({"step": "rebuild", "status": "timeout"})
@@ -746,18 +770,22 @@ class SpoolDestroySkill(BaseSkill):
                 errors.append(f"Rebuild error: {exc}")
                 steps.append({"step": "rebuild", "status": "error"})
         else:
-            steps.append({
-                "step": "rebuild",
-                "status": "dry_run" if dry_run else "skipped",
-                "command": rebuild_command,
-            })
+            steps.append(
+                {
+                    "step": "rebuild",
+                    "status": "dry_run" if dry_run else "skipped",
+                    "command": rebuild_command,
+                }
+            )
 
         # Step 6: VERIFY
-        steps.append({
-            "step": "verify",
-            "status": "ok" if not errors else "failed",
-            "errors": errors,
-        })
+        steps.append(
+            {
+                "step": "verify",
+                "status": "ok" if not errors else "failed",
+                "errors": errors,
+            }
+        )
 
         success = len(errors) == 0
         return {
@@ -777,6 +805,7 @@ class SpoolDestroySkill(BaseSkill):
 
 
 # ─── Skill: spool_unfurl ───────────────────────────────────
+
 
 class SpoolUnfurlSkill(BaseSkill):
     """UNFURL — Reverse SPOOL: reconstruct component from archived essence.
@@ -870,6 +899,7 @@ class SpoolUnfurlSkill(BaseSkill):
             for plate_file in PLATES_ROOT.rglob("*.yaml"):
                 try:
                     import yaml as yl
+
                     with open(plate_file) as f:
                         data = yl.safe_load(f)
                     if data and data.get("plate", {}).get("id") == component_id:
@@ -948,6 +978,7 @@ class SpoolUnfurlSkill(BaseSkill):
 
 # ─── Skill: spool_list ─────────────────────────────────────
 
+
 class SpoolListSkill(BaseSkill):
     """List and search SPOOL archives.
 
@@ -1003,10 +1034,7 @@ class SpoolListSkill(BaseSkill):
         # Apply text search filter
         if search:
             search_lower = search.lower()
-            archives = [
-                a for a in archives
-                if search_lower in a["component_id"].lower()
-            ]
+            archives = [a for a in archives if search_lower in a["component_id"].lower()]
 
         return {
             "success": True,
@@ -1021,6 +1049,7 @@ class SpoolListSkill(BaseSkill):
 
 
 # ─── Skill: spool_prune ────────────────────────────────────
+
 
 class SpoolPruneSkill(BaseSkill):
     """Prune old backups and SPOOL records by age, rotate logs, and archive tasks.
@@ -1213,6 +1242,7 @@ class SpoolPruneSkill(BaseSkill):
 
 # ─── Nugget Helpers ────────────────────────────────────────
 
+
 def _ensure_nugget_dir() -> None:
     """Ensure the Nugget directory exists."""
     NUGGET_DIR.mkdir(parents=True, exist_ok=True)
@@ -1262,9 +1292,7 @@ def _generate_cookiecutter_template(
     template_content = source_content
     for key, value in context.items():
         if isinstance(value, (str, int, float)):
-            template_content = template_content.replace(
-                str(value), f"{{{{cookiecutter.{key}}}}}"
-            )
+            template_content = template_content.replace(str(value), f"{{{{cookiecutter.{key}}}}}")
 
     # Write the main template file
     main_file = template_dir / "main.py"
@@ -1288,7 +1316,7 @@ def _write_nugget_file(
     """Write a Nugget record to gzip'd JSON file.
 
     Nuggets use the same gzip'd JSON format as SPOOLs but are stored
-    in ~/.ucore/nuggets/ and have a 'nugget' event type. They are
+    in $UDOS_HOME/nuggets/ and have a 'nugget' event type. They are
     intentionally created artifacts meant to be discovered and reborn.
 
     If cookiecutter_template is provided, the Nugget is stored as a
@@ -1308,6 +1336,7 @@ def _write_nugget_file(
         # Store as gzip'd tar: record.json + cookiecutter template dir
         import io as _io
         import tarfile
+
         nugget_path = NUGGET_DIR / filename.replace(".json.gz", ".tar.gz")
         cc_dir = Path(cookiecutter_template)
         with tarfile.open(nugget_path, "w:gz") as tar:
@@ -1364,10 +1393,12 @@ def _read_nugget_file(
                 # Extract Cookiecutter template to temp dir
                 try:
                     tar.getmember("cookiecutter_template")
-                    tmp_dir = Path(tempfile.mkdtemp(
-                        prefix=f"nugget_extract_"
-                        f"{record.get('component', {}).get('id', 'unknown')}_"
-                    ))
+                    tmp_dir = Path(
+                        tempfile.mkdtemp(
+                            prefix=f"nugget_extract_"
+                            f"{record.get('component', {}).get('id', 'unknown')}_"
+                        )
+                    )
                     tar.extractall(path=tmp_dir)
                     cc_path = str(tmp_dir / "cookiecutter_template")
                     return record, cc_path
@@ -1400,19 +1431,21 @@ def _list_nugget_files(
                 record = json.load(fh)
             if component_type and record.get("component", {}).get("type") != component_type:
                 continue
-            results.append({
-                "file": str(f),
-                "timestamp": record.get("timestamp", ""),
-                "component_id": record.get("component", {}).get("id", ""),
-                "component_type": record.get("component", {}).get("type", ""),
-                "version": record.get("component", {}).get("version", ""),
-                "description": record.get("component", {}).get("description", ""),
-                "salvaged_keys": list(record.get("salvaged", {}).keys()),
-                "lesson_count": len(record.get("lessons", [])),
-                "has_schema": bool(record.get("schema")),
-                "created_by": record.get("component", {}).get("created_by", ""),
-                "legacy": record.get("component", {}).get("legacy", False),
-            })
+            results.append(
+                {
+                    "file": str(f),
+                    "timestamp": record.get("timestamp", ""),
+                    "component_id": record.get("component", {}).get("id", ""),
+                    "component_type": record.get("component", {}).get("type", ""),
+                    "version": record.get("component", {}).get("version", ""),
+                    "description": record.get("component", {}).get("description", ""),
+                    "salvaged_keys": list(record.get("salvaged", {}).keys()),
+                    "lesson_count": len(record.get("lessons", [])),
+                    "has_schema": bool(record.get("schema")),
+                    "created_by": record.get("component", {}).get("created_by", ""),
+                    "legacy": record.get("component", {}).get("legacy", False),
+                }
+            )
             if len(results) >= max_results:
                 break
         except Exception:
@@ -1421,6 +1454,7 @@ def _list_nugget_files(
 
 
 # ─── Skill: nugget_create ──────────────────────────────────
+
 
 class NuggetCreateSkill(BaseSkill):
     """NUGGET CREATE — Intentionally create a Nugget from a component.
@@ -1431,7 +1465,7 @@ class NuggetCreateSkill(BaseSkill):
     left by a user, or may be a by-product of a Destroy and System Plate
     Reset.
 
-    Nuggets are stored in ~/.ucore/nuggets/ and can be:
+    Nuggets are stored in $UDOS_HOME/nuggets/ and can be:
     - Intentionally created by a user to preserve something valuable
     - By-product of a DESTROY and System Plate Reset
     - Redeployed/reborn via unfurl back into a living component
@@ -1598,6 +1632,7 @@ class NuggetCreateSkill(BaseSkill):
 
 # ─── Skill: nugget_list ────────────────────────────────────
 
+
 class NuggetListSkill(BaseSkill):
     """NUGGET LIST — List and search Nuggets.
 
@@ -1653,7 +1688,8 @@ class NuggetListSkill(BaseSkill):
         if search:
             search_lower = search.lower()
             nuggets = [
-                n for n in nuggets
+                n
+                for n in nuggets
                 if search_lower in n["component_id"].lower()
                 or search_lower in n.get("description", "").lower()
             ]
@@ -1676,10 +1712,11 @@ class NuggetListSkill(BaseSkill):
 
 # ─── Skill: nugget_redeploy ────────────────────────────────
 
+
 class NuggetRedeploySkill(BaseSkill):
     """NUGGET REDEPLOY — Redeploy/reborn a Nugget back into a living component.
 
-    Reads a Nugget file from ~/.ucore/nuggets/ and materializes the
+    Reads a Nugget file from $UDOS_HOME/nuggets/ and materializes the
     component from its plate definition with salvaged state. This is
     the rebirth path for Nuggets — taking a compressed legacy relic
     and bringing it back to life.
@@ -1777,6 +1814,7 @@ class NuggetRedeploySkill(BaseSkill):
             for plate_file in PLATES_ROOT.rglob("*.yaml"):
                 try:
                     import yaml as yl
+
                     with open(plate_file) as f:
                         data = yl.safe_load(f)
                     if data and data.get("plate", {}).get("id") == component_id:
@@ -1838,9 +1876,7 @@ class NuggetRedeploySkill(BaseSkill):
         output_lines.append("# This component was reborn from a Nugget.")
         output_lines.append("# To fully restore, run:")
         if plate_found:
-            output_lines.append(
-                f"#   python -m plate_refresh.refresh --destroy {component_id}"
-            )
+            output_lines.append(f"#   python -m plate_refresh.refresh --destroy {component_id}")
         output_lines.append("# Or use the plate directly from plates/")
 
         # Write reborn component
@@ -1859,10 +1895,11 @@ class NuggetRedeploySkill(BaseSkill):
 
 # ─── Skill: nugget_discover ────────────────────────────────
 
+
 class NuggetDiscoverSkill(BaseSkill):
     """NUGGET DISCOVER — Discover Nuggets left by other users or systems.
 
-    Scans ~/.ucore/nuggets/ for Nuggets that were left behind as legacy
+    Scans $UDOS_HOME/nuggets/ for Nuggets that were left behind as legacy
     artifacts. This is the discovery mechanism for finding useful relics
     that may contain valuable data, schemas, or lessons.
 
@@ -1929,7 +1966,8 @@ class NuggetDiscoverSkill(BaseSkill):
         if search:
             search_lower = search.lower()
             nuggets = [
-                n for n in nuggets
+                n
+                for n in nuggets
                 if search_lower in n["component_id"].lower()
                 or search_lower in n.get("description", "").lower()
             ]
@@ -1942,9 +1980,9 @@ class NuggetDiscoverSkill(BaseSkill):
         if max_age_days > 0:
             cutoff = datetime.now(timezone.utc) - timedelta(days=max_age_days)
             nuggets = [
-                n for n in nuggets
-                if n.get("timestamp", "") and
-                datetime.fromisoformat(n["timestamp"]) >= cutoff
+                n
+                for n in nuggets
+                if n.get("timestamp", "") and datetime.fromisoformat(n["timestamp"]) >= cutoff
             ]
 
         # Limit results
@@ -1966,4 +2004,3 @@ class NuggetDiscoverSkill(BaseSkill):
                 "useful data, schemas, or lessons from past components."
             ),
         }
-

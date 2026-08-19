@@ -9,7 +9,7 @@ Status: Seed template for local project wisdom
 
 ## Memory Architecture
 - Public repo: this template and documentation only.
-- Private local state: `~/.ucore/memory/uCore/wisdom.md`.
+- Private local state: `~/Code/.udos/memory/uCore/wisdom.md` (or `$UDOS_HOME/memory/uCore/wisdom.md`).
 - Runtime integration: `brain_sync` refreshes private wisdom; `attach_context` injects it with `CONTEXT.md` when available.
 
 ## Synthesis Inputs

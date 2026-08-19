@@ -2,10 +2,7 @@
 set -euo pipefail
 
 # Enforce planning governance:
-# - Active planning is allowed only in:
-#   - .tasker/UNIFIED_DEV_TASK_WORKFLOW.md
-#   - .tasker/phases/*.md
-#   - .tasker/backlog/*.md
+# - Durable active planning belongs to uFlow, outside this repository.
 # - Archived planning is allowed under docs/archive/plans/
 # - Exception tag for temporary active task notes elsewhere:
 #   - <!-- planning-governance: allow-active-tasks -->
@@ -16,13 +13,6 @@ cd "$ROOT_DIR"
 
 allowed_file() {
   local path="$1"
-  [[ "$path" == ".tasker/UNIFIED_DEV_TASK_WORKFLOW.md" ]] && return 0
-  [[ "$path" == .tasker/phases/* ]] && return 0
-  [[ "$path" == .tasker/backlog/* ]] && return 0
-  [[ "$path" == .tasker/sprints/* ]] && return 0
-  [[ "$path" == .tasker/handover-* ]] && return 0
-  [[ "$path" == .tasker/archive/* ]] && return 0
-  [[ "$path" == .tasker/archived/* ]] && return 0
   [[ "$path" == docs/archive/plans/* ]] && return 0
   [[ "$path" == docs/archive/* ]] && return 0
   [[ "$path" == docs/archived/* ]] && return 0
@@ -35,7 +25,6 @@ planning_candidate() {
   local base
   base="$(basename "$path")"
 
-  [[ "$path" == .tasker/* ]] && return 0
   [[ "$path" == docs/* ]] || return 1
 
   if [[ "$base" =~ (PLAN|TASK|SPRINT|TODO|CHECKLIST|HANDOVER|ROADMAP|PHASE) ]]; then
@@ -48,6 +37,7 @@ planning_candidate() {
 violations=0
 
 while IFS= read -r file; do
+  [[ -f "$file" ]] || continue
   if ! planning_candidate "$file"; then
     continue
   fi
@@ -89,7 +79,7 @@ rm -f /tmp/ucore_plan_check_1.txt /tmp/ucore_plan_check_2.txt
 if [[ "$violations" -gt 0 ]]; then
   echo "---"
   echo "Planning governance check failed in $violations file(s)."
-  echo "Active tasks are only allowed in .tasker/UNIFIED_DEV_TASK_WORKFLOW.md, .tasker/phases/, and .tasker/backlog/."
+  echo "Durable active tasks belong in uFlow; repository Markdown may contain only completed evidence or archived plans."
   exit 1
 fi
 

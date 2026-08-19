@@ -575,6 +575,7 @@
  * @usage Routed at '/ucode'.
  */
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useGridCoreSettingsStore } from "../../stores/gridcoreSettings";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
@@ -625,8 +626,19 @@ import type { LayerMap } from "../../grid-core/seeds/layer-map";
 import worldMapSeed from "../../grid-core/seeds/layers/world-map.json";
 import moonMapSeed from "../../grid-core/seeds/layers/moon.json";
 import regionMapSeed from "../../grid-core/seeds/layers/region.json";
+import {
+  type VaultDoc,
+  type VaultLibrary,
+  TELETEXT_FASTEXT,
+  DOC_PAGE_OFFSET,
+  DOCS_PER_LIST_PAGE,
+  MAX_DOCS_PER_LIBRARY,
+  PUBLIC_LIBRARY_DEFS,
+} from "../../grid-core/teletext";
 
 const shell = useShellStore();
+const route = useRoute();
+const router = useRouter();
 const gridcoreSettings = useGridCoreSettingsStore();
 const gridcorePresetClass = computed(
   () => `gridcore-surface--${gridcoreSettings.preset}`,
@@ -642,7 +654,9 @@ const UCODE_TABS: TabDef[] = [
   { id: "glyphs", label: "Glyphs", icon: "font_download" },
 ];
 
-const activeTab = ref("terminal");
+const VALID_UCODE_TABS = new Set(UCODE_TABS.map((tab) => tab.id));
+const routeTab = String(route.query.tab || "");
+const activeTab = ref(VALID_UCODE_TABS.has(routeTab) ? routeTab : "terminal");
 
 const tabTitles: Record<string, string> = {
   terminal: "uCode — Terminal",
@@ -1631,6 +1645,9 @@ function initGrid(tabId: string) {
 }
 
 watch(activeTab, (newTab) => {
+  if (route.query.tab !== newTab) {
+    router.replace({ query: { ...route.query, tab: newTab } });
+  }
   if (newTab !== "terminal") disconnectTerminalRuntime();
   terminalCursorX = 0;
   terminalCursorY = 0;
@@ -1648,6 +1665,14 @@ watch(activeTab, (newTab) => {
     else if (gridContainer.value) initGrid(newTab);
   });
 });
+
+watch(
+  () => route.query.tab,
+  (tab) => {
+    const normalized = String(tab || "terminal");
+    if (VALID_UCODE_TABS.has(normalized)) activeTab.value = normalized;
+  },
+);
 
 function loadTabContent(tabId?: string) {
   const id = tabId || activeTab.value;
@@ -1768,76 +1793,15 @@ const teletextHistory: number[] = [];
 let teletextDigitBuffer = "";
 let teletextClockTimer: number | null = null;
 
-// Ceefax fastext: four coloured links mapped to F1–F4 (red/green/yellow/blue).
-const TELETEXT_FASTEXT = [
-  { label: "Index", color: 1, page: 100 },
-  { label: "Docs", color: 2, page: 200 },
-  { label: "Knowledge", color: 3, page: 300 },
-  { label: "Help", color: 4, page: 888 },
-];
-
-/* ─── Vault content (published Documentation + Global Knowledge) ──── */
-interface VaultDoc {
-  path: string;
-  filename: string;
-  binder: string | null;
-  tags: string[];
-  preview: string;
-  extension: string;
-}
-
-interface VaultLibrary {
-  id: string;
-  label: string;
-  /** Library index source ("public" or a registered workspace). */
-  source: string;
-  /** Folder tag used to filter within the source (null = all). */
-  tag: string | null;
-  /** Ceefax page for this library's index (200/300/400). */
-  page: number;
-  colour: number;
-  docs: VaultDoc[];
-}
-
-// Public vault libraries → Ceefax page ranges.
-// Global Knowledge is a registered workspace (source "global-knowledge");
-// Documentation + Learning live under ~/Public (source "public").
-const PUBLIC_LIBRARY_DEFS = [
-  {
-    id: "documentation",
-    label: "Documentation",
-    source: "public",
-    tag: "doc-sites",
-    page: 200,
-    colour: 2,
-  },
-  {
-    id: "knowledge",
-    label: "Global Knowledge",
-    source: "global-knowledge",
-    tag: null,
-    page: 300,
-    colour: 3,
-  },
-  {
-    id: "learning",
-    label: "Learning",
-    source: "public",
-    tag: "learning",
-    page: 400,
-    colour: 6,
-  },
-];
+// Note: TELETEXT_FASTEXT, VaultDoc, VaultLibrary, PUBLIC_LIBRARY_DEFS,
+// DOCS_PER_LIST_PAGE, MAX_DOCS_PER_LIBRARY, DOC_PAGE_OFFSET, DOC_SCREEN_LINES
+// are imported from @/grid-core/teletext.
 
 const vaultLibraries = ref<VaultLibrary[]>([]);
 const vaultLoaded = ref(false);
 const vaultError = ref<string | null>(null);
 /** path → full file content, cached after first read. */
 const vaultDocCache = new Map<string, string>();
-
-const DOCS_PER_LIST_PAGE = 14; // fits between title (rows 3-4) and fastext
-const MAX_DOCS_PER_LIBRARY = 48; // cap to keep within the 100-page range
-const DOC_PAGE_OFFSET = 50; // content pages start at library.page + 50
 
 function docTitle(doc: VaultDoc): string {
   const base = doc.filename.replace(/\.[^.]+$/, "");
@@ -1903,7 +1867,8 @@ async function loadVaultContent(): Promise<void> {
     );
     vaultLibraries.value = PUBLIC_LIBRARY_DEFS.map((def) => {
       const all = fetched.get(def.source) ?? [];
-      const docs = (def.tag ? all.filter((d) => d.tags.includes(def.tag)) : all)
+      const tag = def.tag;
+      const docs = (tag ? all.filter((d) => d.tags.includes(tag)) : all)
         .filter((d) => d.extension === "md" || d.extension === "markdown")
         .slice(0, MAX_DOCS_PER_LIBRARY);
       return { ...def, docs };
@@ -3063,41 +3028,6 @@ function clearGrid() {
       calc(var(--gridcore-checker-size) / -2),
     calc(var(--gridcore-checker-size) / -2) 0;
 }
-.pixel-colour-popover__swatch--0,
-.layer-colour-popover__swatch--0 {
-  background: var(--gridcore-palette-0);
-}
-.pixel-colour-popover__swatch--1,
-.layer-colour-popover__swatch--1 {
-  background: var(--gridcore-palette-1);
-}
-.pixel-colour-popover__swatch--2,
-.layer-colour-popover__swatch--2 {
-  background: var(--gridcore-palette-2);
-}
-.pixel-colour-popover__swatch--3,
-.layer-colour-popover__swatch--3 {
-  background: var(--gridcore-palette-3);
-}
-.pixel-colour-popover__swatch--4,
-.layer-colour-popover__swatch--4 {
-  background: var(--gridcore-palette-4);
-}
-.pixel-colour-popover__swatch--5,
-.layer-colour-popover__swatch--5 {
-  background: var(--gridcore-palette-5);
-}
-.pixel-colour-popover__swatch--6,
-.layer-colour-popover__swatch--6 {
-  background: var(--gridcore-palette-6);
-}
-.pixel-colour-popover__swatch--7,
-.layer-colour-popover__swatch--7 {
-  background: var(--gridcore-palette-7);
-}
-.ucode-import-input {
-  display: none;
-}
 .pixel-colour-popover__swatch .colour-marker {
   position: absolute;
   font-size: var(--gridcore-marker-font-size);
@@ -3374,8 +3304,11 @@ function clearGrid() {
   position: absolute;
   font-size: var(--gridcore-marker-font-size);
   font-weight: var(--gridcore-font-weight-bold);
+  font-family: var(--gridcore-font-family-mono);
   line-height: 1;
-  text-shadow: var(--gridcore-marker-shadow);
+  padding: var(--gridcore-marker-pad-y) var(--gridcore-marker-pad-x);
+  border-radius: var(--gridcore-sidebar-char-radius);
+  pointer-events: none;
 }
 .layer-colour-popover__swatch .colour-marker.bg {
   bottom: var(--gridcore-marker-offset-sm);

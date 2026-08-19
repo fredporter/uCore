@@ -64,9 +64,9 @@ HomeRuntime should be treated as part of the HomeNest ecosystem. If the runtime 
 
 ## Data
 
-All mutable data lives in `~/.ucore/`:
+All mutable ecosystem data lives beneath `~/Code/.udos/` (or `$UDOS_HOME`):
 
-- `~/.ucore/indices/library.db` — FTS5 search index
-- `~/.ucore/knowledge/shared.db` — Multi-agent memory
-- `~/.ucore/logs/` — Spool files
-- `~/.ucore/secrets.enc` — Encrypted secrets
+- `~/Code/.udos/indices/library.db` — FTS5 search index
+- `~/Code/.udos/knowledge/shared.db` — Multi-agent memory
+- `~/Code/.udos/logs/` — Spool files
+- `~/Code/.udos/secrets/` — Encrypted secrets

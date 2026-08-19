@@ -1,6 +1,6 @@
 """Shared config loader for uCore YAML configuration files.
 
-Reads YAML files from ~/.ucore/config/ with safe fallback defaults.
+Reads YAML files from ``$UDOS_HOME/config`` with safe fallback defaults.
 Used by server.py, system_api.py, and developer_api.py to replace
 hardcoded policy/service/page arrays.
 """
@@ -14,6 +14,8 @@ from typing import Any
 
 import yaml
 
+from app.core.settings import settings
+
 log = logging.getLogger("ucore.config")
 
 
@@ -22,7 +24,7 @@ def _config_dir() -> Path:
     env_dir = os.environ.get("UCORE_CONFIG_DIR")
     if env_dir:
         return Path(env_dir).expanduser()
-    return Path.home() / ".ucore" / "config"
+    return settings.config_dir
 
 
 def _read_yaml(filename: str) -> dict[str, Any] | None:

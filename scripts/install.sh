@@ -15,6 +15,7 @@ set -euo pipefail
 # ─── Config ──────────────────────────────────────────────────────────
 UCORE_REPO="https://github.com/uDosGo/uCore.git"
 UCORE_DIR="${UCORE_DIR:-$HOME/Code/uCore}"
+UDOS_HOME="${UDOS_HOME:-$HOME/Code/.udos}"
 BRANCH="main"
 
 # ─── Colors ──────────────────────────────────────────────────────────
@@ -190,7 +191,7 @@ else
     echo "╚══════════════════════════════════════════╝"
     echo ""
     echo "  Some services may still be starting."
-    echo "  Check logs: ~/.ucore/logs/"
+    echo "  Check logs: $UDOS_HOME/logs/"
     echo ""
     echo "  To retry: $UCORE_DIR/scripts/setup.sh"
 fi

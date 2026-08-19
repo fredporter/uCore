@@ -23,6 +23,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
+
 from .manifest import ExtensionKind, ExtensionManifest
 
 log = logging.getLogger("ucore.extensions.registry")
@@ -34,7 +36,7 @@ MANIFEST_FILE_NAME = "ucore-extension.json"
 
 DISCOVERY_PATHS: list[Path] = [
     Path(__file__).parent.parent / "extensions" / "manifests",
-    Path.home() / ".ucore" / "extensions",
+    settings.udos_home / "extensions",
 ]
 """Default search locations for extension manifests."""
 
@@ -68,7 +70,11 @@ def _add_external_path(ext_id: str) -> None:
     Uses env var if set, otherwise defaults to ~/Code/{ext_id}.
     Only adds the path if it exists on disk.
     """
-    default = str(Path.home() / "Code" / ext_id.title() if ext_id == "uflow" else Path.home() / "Code" / ext_id)
+    default = str(
+        Path.home() / "Code" / ext_id.title()
+        if ext_id == "uflow"
+        else Path.home() / "Code" / ext_id
+    )
     # Normalise: uflow -> ~/Code/uFlow, uknowledge -> ~/Code/uKnowledge
     repo_name_map = {"uflow": "uFlow", "uknowledge": "uKnowledge"}
     repo_dir = repo_name_map.get(ext_id, ext_id)
@@ -135,7 +141,7 @@ class ExtensionRegistry:
                 "id": "ucore-tools",
                 "name": "Dev Tools",
                 "kind": ExtensionKind.TOOL,
-                "description": "Docker, Git, GitHub CLI, Ollama, Node, Python, VS Code tool integrations",
+                "description": "Docker, Git, GitHub CLI, Ollama, Node, and Python tool integrations",
                 "optional": True,
                 "api_prefix": "/api/tools",
             },
@@ -192,12 +198,14 @@ class ExtensionRegistry:
                         discovered += 1
                         log.info(
                             "Discovered extension: %s (%s)",
-                            manifest.id, manifest_file,
+                            manifest.id,
+                            manifest_file,
                         )
                 except Exception as exc:
                     log.warning(
                         "Failed to load manifest %s: %s",
-                        manifest_file, exc,
+                        manifest_file,
+                        exc,
                     )
         return discovered
 
@@ -257,12 +265,14 @@ class ExtensionRegistry:
                 if not manifest.optional:
                     log.error(
                         "Required extension %s failed to load: %s",
-                        ext_id, exc,
+                        ext_id,
+                        exc,
                     )
                 else:
                     log.warning(
                         "Optional extension %s failed to load: %s",
-                        ext_id, exc,
+                        ext_id,
+                        exc,
                     )
         return results
 
@@ -283,7 +293,8 @@ class ExtensionRegistry:
                 self._loaded[ext_id] = True
                 self._errors.pop(ext_id, None)
                 log.debug(
-                    "Routes registered for extension: %s", ext_id,
+                    "Routes registered for extension: %s",
+                    ext_id,
                 )
             except ImportError:
                 # Path-discovery fallback for external split-repo packages
@@ -304,9 +315,9 @@ class ExtensionRegistry:
                     self._errors[ext_id] = "Route registrar import failed"
                     if manifest.optional:
                         log.debug(
-                            "Extension %s route registrar not available "
-                            "(optional, skipping): %s",
-                            ext_id, manifest.route_registrar,
+                            "Extension %s route registrar not available (optional, skipping): %s",
+                            ext_id,
+                            manifest.route_registrar,
                         )
                     else:
                         log.exception(

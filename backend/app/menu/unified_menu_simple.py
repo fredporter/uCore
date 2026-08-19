@@ -68,7 +68,8 @@ REFRESH_INTERVAL = 30.0  # seconds
 
 UCORE_LABEL = "com.udos.ucore-menu"
 UCORE_PLIST = os.path.expanduser(f"~/Library/LaunchAgents/{UCORE_LABEL}.plist")
-UCORE_LOCKFILE = os.path.expanduser("~/.ucore/ucore-menu.pid")
+UDOS_HOME = Path(os.environ.get("UDOS_HOME", Path.home() / "Code" / ".udos")).expanduser()
+UCORE_LOCKFILE = str(UDOS_HOME / "ucore-menu.pid")
 UCORE_BACKEND_DIR = os.environ.get("UCORE_BACKEND_DIR", str(Path.home() / "Code" / "uCore" / "backend"))
 SNACKMACHINE_REPO_DIR = Path(
     os.environ.get(
@@ -93,13 +94,13 @@ EXTENSION_LINKS = {
     "roundtable": "http://localhost:5175/assistui",
 }
 
-log_dir = os.path.expanduser("~/.ucore/logs")
-os.makedirs(log_dir, exist_ok=True)
+log_dir = UDOS_HOME / "logs"
+log_dir.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] ucore-menu: %(message)s",
     handlers=[
-        logging.FileHandler(os.path.join(log_dir, "ucore-menu.log")),
+        logging.FileHandler(log_dir / "ucore-menu.log"),
         logging.StreamHandler(),
     ],
 )
@@ -194,38 +195,6 @@ def _installed_extensions() -> list[dict[str, str]]:
         )
 
     return extensions
-
-
-def _launch_dev_server_direct() -> bool:
-    """Directly launch the uDev developer-surface server on port 5176.
-
-    Used as a fallback when the backend is not running, so the Developer
-    card can still be brought up in UI Hub.
-    """
-    import subprocess
-    from pathlib import Path
-
-    udev_dir = Path(
-        os.environ.get(
-            "UDEV_DIR",
-            str(Path.home() / "Code" / "uDev"),
-        )
-    )
-    if not (udev_dir / "package.json").exists():
-        log.warning("uDev repository not found at %s", udev_dir)
-        return False
-    try:
-        subprocess.Popen(
-            ["npm", "run", "dev:surface"],
-            cwd=str(udev_dir),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
-        return True
-    except Exception as exc:
-        log.error("Failed to launch uDev developer server directly: %s", exc)
-        return False
 
 
 # ─── App Delegate ─────────────────────────────────────────────────────
@@ -764,9 +733,8 @@ class UnifiedMenuDelegate(NSObject):
         log.info("Restart menu: %s", result.get("message", result))
 
     def startDevMode_(self, _sender):
-        """Start the uDev developer server (Dev Mode) so the Developer
-        card appears in UI Hub."""
-        log.info("Starting Dev Mode developer server")
+        """Enable uCore's built-in Developer surface."""
+        log.info("Enabling built-in Developer surface")
         try:
             if is_ucore_alive():
                 result = api_post_sync(
@@ -777,11 +745,7 @@ class UnifiedMenuDelegate(NSObject):
                         "Backend dev start returned failure: %s", result
                     )
             else:
-                log.warning(
-                    "Backend down — launching uDev developer server directly"
-                )
-                _launch_dev_server_direct()
-            # Give Vite a short boot window before re-checking status.
+                log.warning("Backend unavailable; Developer surface cannot be enabled")
             time.sleep(1.5)
         except Exception as exc:
             log.error("Failed to start dev server: %s", exc)
@@ -791,19 +755,11 @@ class UnifiedMenuDelegate(NSObject):
         )
 
     def stopDevMode_(self, _sender):
-        """Stop the uDev developer server (Dev Mode)."""
-        log.info("Stopping Dev Mode developer server")
+        """Disable uCore's built-in Developer mode."""
+        log.info("Disabling built-in Developer mode")
         try:
             if is_ucore_alive():
                 api_post_sync("/api/developer/stop", timeout=5.0)
-            else:
-                import subprocess
-
-                subprocess.run(
-                    ["pkill", "-f", "developer-surface.*vite|vite.*5176"],
-                    capture_output=True,
-                    timeout=5,
-                )
         except Exception as exc:
             log.error("Failed to stop dev server: %s", exc)
         self._dev_connected = is_dev_alive()
@@ -812,7 +768,7 @@ class UnifiedMenuDelegate(NSObject):
         )
 
     def toggleDevMode_(self, _sender):
-        """Toggle the uDev developer server (Dev Mode).
+        """Toggle uCore's built-in Developer mode.
 
         Single menu item shows the live status; clicking starts the
         server when stopped and stops it when running.
@@ -823,7 +779,7 @@ class UnifiedMenuDelegate(NSObject):
             self.startDevMode_(None)
 
     def quitApp_(self, _sender):
-        """Quit the menu app."""
+        """Quit cleanly; launchd restarts crashes, not successful exits."""
         log.info("Quitting uCore Menu")
         if self._refresh_timer:
             self._refresh_timer.cancel()

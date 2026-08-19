@@ -2,13 +2,14 @@
 
 # uCore MCP Setup
 
-uCore now uses one MCP JSON-RPC stdio server in workspace config.
+uCore exposes one self-hosted MCP JSON-RPC stdio server. External developer
+clients may connect to it, but their configuration is not part of uCore.
 
 ## Canonical MCP Server
 
-- Config file: .vscode/mcp.json
 - Server id: ucore-bridge
-- Command: node ../uDev/mcp-bridge/build/index.js
+- Source: backend/app/mcp/mcp_bridge
+- Command: node backend/app/mcp/mcp_bridge/build/index.js
 - Env: UCORE_URL=http://127.0.0.1:8484
 
 ## Start Sequence
@@ -16,7 +17,7 @@ uCore now uses one MCP JSON-RPC stdio server in workspace config.
 ```bash
 cd /Users/fredbook/Code/uCore
 pnpm run dev:backend
-cd /Users/fredbook/Code/uDev/mcp-bridge && npm run build
+cd /Users/fredbook/Code/uCore/backend/app/mcp/mcp_bridge && npm run build
 ```
 
 ## Diagnostics
@@ -28,7 +29,5 @@ python3 -m mcp.mcp_diagnostics
 
 Expected checks:
 
-- .vscode/mcp.json exists
-- ucore-bridge is declared
-- no HTTP MCP servers exist in active config
-- bridge binary exists
+- bridge source and package metadata exist
+- the local bridge build exists

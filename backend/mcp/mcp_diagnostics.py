@@ -1,63 +1,25 @@
-"""MCP diagnostics for the canonical uCore stdio bridge setup.
+"""Diagnostics for uCore's self-hosted MCP bridge.
 
-Source of truth:
-  - Workspace config: .vscode/mcp.json
-  - Bridge binary: discovered from multiple candidate paths (uDev retired,
-    bridge may live in uCore itself or a sibling repo)
+Client-specific configuration belongs to the external client. uCore owns the
+bridge source, its package metadata, and the backend tool registry.
 """
+
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def _mcp_config_path() -> Path:
-    return _repo_root() / ".vscode" / "mcp.json"
-
-
-def _load_mcp_config() -> dict[str, Any]:
-    path = _mcp_config_path()
-    try:
-        data = json.loads(path.read_text())
-        if not isinstance(data, dict):
-            return {"error": "mcp_config_not_object", "path": str(path)}
-        return data
-    except Exception as exc:
-        return {"error": f"mcp_config_unreadable: {exc}", "path": str(path)}
-
-
-def _get_servers() -> dict[str, Any]:
-    data = _load_mcp_config()
-    if "error" in data:
-        return {}
-    servers = data.get("servers", {})
-    return servers if isinstance(servers, dict) else {}
-
-
-def list_servers() -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    for name, cfg in _get_servers().items():
-        if not isinstance(cfg, dict):
-            continue
-        rows.append(
-            {
-                "name": name,
-                "type": cfg.get("type", ""),
-                "command": cfg.get("command", ""),
-                "args": cfg.get("args", []),
-                "cwd": cfg.get("cwd", ""),
-            }
-        )
-    return rows
+def _bridge_root() -> Path:
+    return _repo_root() / "backend" / "app" / "mcp" / "mcp_bridge"
 
 
 def list_tools() -> list[str]:
-    """Static tool names exposed by the canonical uCore bridge."""
+    """Static tool names exposed by the self-hosted bridge."""
     return [
         "ucore_ecosystem_audit",
         "ucore_list_skills",
@@ -75,45 +37,19 @@ def list_tools() -> list[str]:
     ]
 
 
-def health() -> dict[str, Any]:
-    repo_root = _repo_root()
-    mcp_path = _mcp_config_path()
-    servers = _get_servers()
-
-    has_ucore_bridge = "ucore-bridge" in servers
-    stale_http = [
-        name
-        for name, cfg in servers.items()
-        if isinstance(cfg, dict) and cfg.get("type") == "http"
-    ]
-
-    # Discover bridge binary — uDev has been retired, check multiple candidates.
-    candidates = [
-        repo_root / "bmcp" / "mcp-bridge" / "build" / "index.js",
-        repo_root.parent / "uDev" / "mcp-bridge" / "build" / "index.js",
-    ]
-    bridge_bin = None
-    for cand in candidates:
-        if cand.exists():
-            bridge_bin = cand
-            break
-    if bridge_bin is None:
-        bridge_bin = candidates[0]  # report the first candidate for diagnostics
-
+def health() -> dict[str, object]:
+    bridge_root = _bridge_root()
     checks = {
-        "mcp_config_exists": mcp_path.exists(),
-        "ucore_bridge_declared": has_ucore_bridge,
-        "no_http_servers": len(stale_http) == 0,
-        "bridge_binary_exists": bridge_bin.exists(),
+        "bridge_source_exists": (bridge_root / "index.ts").exists(),
+        "bridge_package_exists": (bridge_root / "package.json").exists(),
+        "bridge_build_exists": (bridge_root / "build" / "index.js").exists(),
     }
-    ok = all(checks.values())
-
     return {
-        "health": "ok" if ok else "degraded",
+        "health": "ok" if all(checks.values()) else "degraded",
         "checks": checks,
-        "stale_http_servers": stale_http,
-        "servers": list_servers(),
+        "bridge_root": str(bridge_root),
         "tool_count": len(list_tools()),
+        "client_configuration": "external",
     }
 
 

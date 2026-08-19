@@ -1,7 +1,7 @@
 """Research Job Queue — SQLite-backed async pipeline for BrowserUI research.
 
 Orchestrates: scrape URL → summarise via ChatUI → save to binder.
-Jobs tracked in ~/.ucore/indices/research_queue.db.
+Jobs tracked in ``$UDOS_HOME/indices/research_queue.db``.
 """
 from __future__ import annotations
 
@@ -13,9 +13,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
+
 log = logging.getLogger("ucore.research_queue")
 
-DB_PATH = Path.home() / ".ucore" / "indices" / "research_queue.db"
+DB_PATH = settings.udos_home / "indices" / "research_queue.db"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS jobs (
@@ -100,11 +102,14 @@ class ResearchQueue:
         updates = ["state = ?", "progress = ?", "started = COALESCE(started, ?)"]
         params: list = [state, progress, now]
         if result is not None:
-            updates.append("result = ?"); params.append(result)
+            updates.append("result = ?")
+            params.append(result)
         if error is not None:
-            updates.append("error = ?"); params.append(error)
+            updates.append("error = ?")
+            params.append(error)
         if state in ("completed", "failed"):
-            updates.append("completed = ?"); params.append(now)
+            updates.append("completed = ?")
+            params.append(now)
         params.append(job_id)
         self._conn.execute(
             f"UPDATE jobs SET {', '.join(updates)} WHERE id = ?", params
@@ -115,9 +120,14 @@ class ResearchQueue:
         """List jobs, optionally filtered."""
         query = "SELECT * FROM jobs WHERE 1=1"
         params: list = []
-        if state: query += " AND state = ?"; params.append(state)
-        if binder: query += " AND binder = ?"; params.append(binder)
-        query += " ORDER BY created DESC LIMIT ?"; params.append(limit)
+        if state:
+            query += " AND state = ?"
+            params.append(state)
+        if binder:
+            query += " AND binder = ?"
+            params.append(binder)
+        query += " ORDER BY created DESC LIMIT ?"
+        params.append(limit)
         return [ResearchJob(r).to_dict() for r in
                 self._conn.execute(query, params).fetchall()]
 

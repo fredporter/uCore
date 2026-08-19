@@ -134,17 +134,15 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
     activation_required: false,
     description: "Built-in documentation viewer",
   },
-  // Extensions that require installation + activation
   {
-    id: "udev",
+    id: "developer",
     name: "Developer",
     kind: "surface",
-    required: false,
+    required: true,
     icon: "code",
     route: "/developer",
-    activation_required: true,
-    description: "Full developer lane — requires uDev",
-    install_url: "https://github.com/fredporter/uDev",
+    activation_required: false,
+    description: "Built-in repository browser and code editor",
   },
   {
     id: "snack-shack",
