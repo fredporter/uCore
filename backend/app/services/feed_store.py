@@ -1,6 +1,6 @@
-"""feed_server — MCP tools for the Feed Activity Pod (SQLite).
+"""Feed activity store for the Activity Pod (SQLite).
 
-Exposes four tools via the MCP dispatch system:
+Provides four internal operations:
   - feed_ingest_activity: insert an activity event into user_activity
   - feed_query: query activities by source, timeframe, importance
   - feed_suggest_binders: AI-driven binder suggestions from activity clusters
@@ -19,7 +19,7 @@ from typing import Any
 
 from app.core.settings import settings
 
-log = logging.getLogger("ucore.mcp.feed_server")
+log = logging.getLogger("ucore.services.feed_store")
 
 DEFAULT_POD_PATH = settings.udos_home / "pods" / "activity.db"
 HERE = Path(__file__).resolve().parent
@@ -27,7 +27,7 @@ SCHEMA_PATH = HERE.parent.parent.parent / "schemas" / "activity.schema.sql"
 
 
 class FeedServer:
-    """MCP server for Feed Activity Pod ingestion, query, suggestion, and linking."""
+    """Store for Feed Activity Pod ingestion, query, suggestion, and linking."""
 
     def __init__(self, pod_path: str | None = None):
         self._pod_path = Path(pod_path or DEFAULT_POD_PATH).expanduser()
@@ -51,7 +51,7 @@ class FeedServer:
     def close(self) -> None:
         self._conn.close()
 
-    # ── MCP Tool: feed_ingest_activity ────────────────────────────
+    # ── Activity ingestion ────────────────────────────────────────
 
     async def ingest_activity(
         self,
@@ -87,7 +87,7 @@ class FeedServer:
         )
         return {"id": row_id, "message": "Activity ingested"}
 
-    # ── MCP Tool: feed_query ──────────────────────────────────────
+    # ── Activity query ────────────────────────────────────────────
 
     async def query_feed(
         self,
@@ -115,7 +115,7 @@ class FeedServer:
         rows = cursor.fetchall()
         return [dict(row) for row in rows]
 
-    # ── MCP Tool: feed_suggest_binders ────────────────────────────
+    # ── Binder suggestions ────────────────────────────────────────
 
     async def suggest_binders(
         self, min_confidence: float = 0.5,
@@ -171,7 +171,7 @@ class FeedServer:
 
         return suggestions
 
-    # ── MCP Tool: feed_link_task ───────────────────────────────────
+    # ── Task links ────────────────────────────────────────────────
 
     async def link_task_to_activity(
         self,

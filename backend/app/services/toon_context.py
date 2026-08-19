@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional
 from app.core.settings import settings
 from app.utils.sqlite_helpers import get_sqlite_connection
 
-log = logging.getLogger("ucore.mcp.toon")
+log = logging.getLogger("ucore.services.toon_context")
 
 
 def default_toon_db_path() -> Path:
@@ -38,8 +38,8 @@ class TOONContextEntry:
 
 
 class TOONContextServer:
-    """TOON Context Server - Token-Optimized Object Notation for AI context.
-    
+    """TOON context cache for Token-Optimized Object Notation.
+
     Converts structured data (JSON, CSV, Markdown) to TOON format which is
     30-60% more token-efficient while preserving semantic meaning.
     """

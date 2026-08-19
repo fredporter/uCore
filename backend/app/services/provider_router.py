@@ -46,7 +46,7 @@ def _load_env_file(path: Path) -> None:
 # Load env files on import
 _env_paths = [
     settings.udos_home / ".env",
-    settings.config_dir / "hivemind.env",
+    settings.config_dir / "providers.env",
 ]
 for _ep in _env_paths:
     _load_env_file(_ep)

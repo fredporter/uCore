@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.mcp.toon.server import TOONContextServer
+from app.services.toon_context import TOONContextServer
 
 
 def test_toon_server_basic():

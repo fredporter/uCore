@@ -29,7 +29,7 @@ User Activity Sources:
   Browser (Chrome/Arc/Safari) → Email (Mail.app) → Messages (iMessage)
   Alerts (Push) → Search Queries → Calendar Events → Clipboard History
         ↓
-Feed Ingest Layer (FeedServer MCP)
+Feed Ingest Layer (FeedServer store)
   - feed_ingest_activity: insert into Activity Pod
   - feed_query: query by source, timeframe, importance
   - feed_suggest_binders: AI-driven binder suggestions
@@ -65,7 +65,7 @@ Indexes: timestamp, contact_id, source, (source, source_id)
 
 ## 5. Feed MCP Server
 
-**Location:** `backend/app/mcp/feed/feed_server.py`
+**Location:** `backend/app/services/feed_store.py`
 **Class:** `FeedServer`
 
 Tools:
@@ -134,7 +134,7 @@ Source configuration for:
 ## 11. Implementation Status
 
 - [x] Activity Pod schema (5 tables, 4 indexes)
-- [x] FeedServer with 4 MCP tools
+- [x] FeedServer store with four internal operations
 - [x] Feed API routes wired into routes.py
 - [x] FeedConsumer bridging feed → Spool
 - [x] Frontend Pinia feed store

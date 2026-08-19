@@ -35,7 +35,7 @@ Every plate has:
 plate:
   id: "skill.recover_port_conflict"    # Unique identifier
   version: "1.0.0"                     # SemVer
-  domain: "skill"                      # skill | snack | mcp | hivemind | secret | css
+  domain: "skill"                      # skill | snack | secret | css
   description: "Detect and resolve port conflicts"
   schema:                              # Pydantic/JSON Schema validation
     type: object
@@ -65,7 +65,6 @@ plates/
 │   ├── skill_plate.py                # Cookiecutter template: skill scaffold
 │   └── ...
 ├── snacks/                           # Snack plates
-├── hivemind/                         # Hivemind workflow plates
 ├── secrets/                          # Variable/secret plates
 └── css/                              # CSS/USX theme plates
 ```
@@ -112,7 +111,7 @@ class PlateMeta(BaseModel):
     """Canonical plate metadata — extends SkillMeta pattern."""
     id: str
     version: str = Field(pattern=r"^\d+\.\d+\.\d+$")
-    domain: Literal["skill", "snack", "mcp", "hivemind", "secret", "css"]
+    domain: Literal["skill", "snack", "secret", "css"]
     description: str = ""
     schema: dict[str, Any] = {}
     source: Literal["builtin", "user", "community"] = "builtin"
@@ -277,7 +276,6 @@ plate:
 3. On detecting corruption: run DESTROY/REBUILD protocol
 4. After successful modification, promote to plate:
    - `plates/skills/` for new skills (via cookiecutter)
-   - `plates/mcp/` for new MCP tools
    - Update version number on changes
 5. Never delete a plate — archive with version suffix
 ```

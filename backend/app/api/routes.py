@@ -460,15 +460,6 @@ def register_routes(app: web.Application) -> None:
     except ImportError as e:
         log.debug("Catalog routes not available: %s", e)
 
-    # ── Hivemind Knowledge Layer ─────────────────────────────────────
-    try:
-        from .hivemind_knowledge import setup_routes as setup_hivemind_knowledge_routes
-
-        setup_hivemind_knowledge_routes(app)
-        log.debug("Hivemind knowledge layer routes registered")
-    except ImportError as e:
-        log.debug("Hivemind knowledge routes not available: %s", e)
-
     # ── Dev Layer API (Dev Mode toggle) ─────────────────────────────
     try:
         from .dev_layer_api import register_dev_layer_routes
