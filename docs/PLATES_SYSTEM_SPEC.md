@@ -65,74 +65,12 @@ plates/
 │   ├── skill_plate.py                # Cookiecutter template: skill scaffold
 │   └── ...
 ├── snacks/                           # Snack plates
-├── mcp/                              # MCP tool plates
 ├── hivemind/                         # Hivemind workflow plates
 ├── secrets/                          # Variable/secret plates
 └── css/                              # CSS/USX theme plates
 ```
 
-## 5. OpenAPI/Swagger MCP Registry
-
-The MCP tool registry (`TOOL_HANDLERS`) auto-generates an **OpenAPI 3.1 spec** at `/api/mcp/openapi.json`:
-
-```yaml
-openapi: "3.1.0"
-info:
-  title: "uCore MCP API"
-  version: "1.0.0"
-  description: "Auto-generated from TOOL_HANDLERS registry"
-servers:
-  - url: "http://localhost:8484"
-    description: "uCore Backend"
-paths:
-  /api/mcp/discover:
-    get:
-      summary: "List all available MCP tools"
-      operationId: "handle_mcp_discover"
-      responses:
-        "200":
-          description: "Tool list"
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ToolDefinition"
-  /api/mcp/call:
-    post:
-      summary: "Call an MCP tool"
-      operationId: "handle_mcp_call"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/MCPCallRequest"
-      responses:
-        "200":
-          description: "Tool response"
-components:
-  schemas:
-    ToolDefinition:
-      type: object
-      properties:
-        name: { type: string }
-        description: { type: string }
-        input_schema: { type: object }
-    MCPCallRequest:
-      type: object
-      properties:
-        name: { type: string }
-        arguments: { type: object }
-```
-
-**Benefits:**
-- Swagger UI at `/api/mcp/docs` for interactive testing
-- Auto-generated client SDKs for any language
-- MCP-compatible discovery endpoint
-- Versioned API surface for drift detection
-
-## 6. Cookiecutter for Skill Plates
+## 5. Cookiecutter for Skill Plates
 
 Skill scaffolding uses Cookiecutter:
 
@@ -160,7 +98,7 @@ skill_plate/
     └── post_gen_project.py            # Register in registry, run tests
 ```
 
-## 7. Pydantic BaseModel for Plate Validation
+## 6. Pydantic BaseModel for Plate Validation
 
 Extend the existing `BaseSkill`/`SkillMeta` pattern for all plates:
 
@@ -191,7 +129,7 @@ class DestroyRebuildConfig(BaseModel):
     backup_before_destroy: bool = True
 ```
 
-## 8. Plate Refresh Engine
+## 7. Plate Refresh Engine
 
 Located at `backend/plate_refresh/`, the engine:
 
@@ -213,7 +151,7 @@ if report["drift_detected"]:
     salvage_and_rebuild(report)
 ```
 
-## 9. DESTROY/REBUILD Protocol
+## 8. DESTROY/REBUILD Protocol
 
 When corruption or hallucination is detected:
 
@@ -344,7 +282,7 @@ plate:
 5. Never delete a plate — archive with version suffix
 ```
 
-## 10. Promotion Workflow
+## 9. Promotion Workflow
 
 Users can promote working modifications to plates:
 
@@ -359,7 +297,7 @@ ucore plate promote --from backend/app/skills/builtin/my_skill.py \
                     --version 1.1.0
 ```
 
-## 11. Drift Detection
+## 10. Drift Detection
 
 The capability catalogue and registry discovery test compare enabled modules
 against the governed builtin set:
@@ -373,24 +311,21 @@ python -m pytest -q backend/tests/test_skill_registry_discovery_policy.py
 #   - orphaned: instances with no plate
 ```
 
-## 12. Integration Points
+## 11. Integration Points
 
 | System | Plate Role |
 |--------|-----------|
 | `backend/app/skills/registry.py` | Auto-discovers skills; plates define canonical set |
 | `backend/app/skills/state.py` | Persists skill state; plates define default state shape |
-| `backend/app/api/mcp_guardrails.py` | Validates MCP layer against expected plate |
 | `backend/plate_refresh/refresh.py` | Renders plates to output |
 | `plates/destroy/` | DESTROY/REBUILD recovery plates |
-| `backend/app/api/mcp.py` | Auto-generates OpenAPI spec from TOOL_HANDLERS |
 | `.clinerules` | Agent instructions for plate workflow |
 
-## 13. Future Work
+## 12. Future Work
 
 - [ ] Plate version migration (auto-upgrade on version mismatch)
 - [ ] Community plate repository (shareable via git submodule)
 - [ ] Plate diff viewer (visual comparison of drift)
 - [ ] Auto-promote on successful test pass
-- [ ] OpenAPI/Swagger UI at `/api/mcp/docs`
 - [ ] Cookiecutter plate for `gh:ucore/skill-plate`
 - [ ] Pydantic `PlateMeta` → `BaseSkill` auto-generation

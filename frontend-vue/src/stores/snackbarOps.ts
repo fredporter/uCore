@@ -15,8 +15,7 @@ export type SnackbarOpsTab =
   | "skills"
   | "snacks"
   | "extensions"
-  | "logs"
-  | "mcp";
+  | "logs";
 
 export interface RuntimeSnack {
   id: string;
@@ -45,7 +44,7 @@ export interface ServiceStatus {
 export interface UnifiedServiceInfo {
   id: string;
   name: string;
-  kind: "service" | "tool" | "mcp";
+  kind: "service" | "tool";
   description: string;
   status: "up" | "degraded" | "down";
   port: number;
@@ -87,19 +86,6 @@ export interface ExecutableInfo {
   actions: string[];
 }
 
-export interface MCPTool {
-  name: string;
-  description: string;
-  server: string;
-}
-
-export interface MCPServerInfo {
-  name: string;
-  status: "online" | "offline" | "unknown";
-  port: number;
-  tools: number;
-}
-
 export interface BudgetInfo {
   remaining: number;
   used: number;
@@ -129,7 +115,6 @@ export const SNACKBAR_OPS_TABS: {
   { id: "snacks", label: "Snacks", icon: "storefront" },
   { id: "extensions", label: "Extensions", icon: "extension" },
   { id: "logs", label: "Logs", icon: "article" },
-  { id: "mcp", label: "MCP", icon: "hub" },
 ];
 
 export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
@@ -142,8 +127,6 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
   const modelUsage = ref<ModelUsage[]>([]);
   const agents = ref<AgentInfo[]>([]);
   const executables = ref<ExecutableInfo[]>([]);
-  const mcpTools = ref<MCPTool[]>([]);
-  const mcpServers = ref<MCPServerInfo[]>([]);
   const budgetRemaining = ref<number | null>(null);
   const budgetLimit = ref<number>(50.0);
   const budgetUsed = ref<number>(0.0);
@@ -426,38 +409,6 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
     }
   }
 
-  async function fetchMCP(): Promise<void> {
-    try {
-      const [toolsRes, controlRes] = await Promise.all([
-        fetch("/api/mcp/tools"),
-        fetch("/api/control/status"),
-      ]);
-
-      if (toolsRes.ok) {
-        const toolsData = await toolsRes.json();
-        const raw = Array.isArray(toolsData?.tools) ? toolsData.tools : [];
-        mcpTools.value = raw.map((t: any) => ({
-          name: t.name || "",
-          description: t.description || "",
-          server: t.server || "ucore",
-        }));
-      }
-
-      if (controlRes.ok) {
-        const controlData = await controlRes.json();
-        const mcpList = controlData?.mcp_servers || [];
-        mcpServers.value = mcpList.map((s: any) => ({
-          name: s.name || s.id || "Unknown",
-          status: s.status || "unknown",
-          port: s.port || 0,
-          tools: s.tool_count || 0,
-        }));
-      }
-    } catch (e: any) {
-      console.warn("MCP status fetch failed:", e.message);
-    }
-  }
-
   async function fetchAll(): Promise<void> {
     loading.value = true;
     error.value = null;
@@ -467,7 +418,6 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
         fetchUnifiedServices(),
         fetchSnacks(),
         fetchExecutables(),
-        fetchMCP(),
         fetchLogs(),
         fetchModels(),
         fetchAgents(),
@@ -487,8 +437,6 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
     snacks,
     systemSnacks,
     executables,
-    mcpTools,
-    mcpServers,
     logs,
     modelUsage,
     agents,
@@ -509,7 +457,6 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
     fetchLogs,
     fetchSnacks,
     fetchExecutables,
-    fetchMCP,
     fetchModels,
     fetchAgents,
     fetchBudget,

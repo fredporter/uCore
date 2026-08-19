@@ -16,7 +16,7 @@ class _Policy:
 
 class _FakeBudgetManager:
     def __init__(self, *, allowed: bool, reason: str | None = None):
-        self.policy = _Policy(guarded_endpoints=["/api/chat", "/api/mcp/chat"])
+        self.policy = _Policy(guarded_endpoints=["/api/chat", "/api/developer/chat"])
         self.allowed = allowed
         self.reason = reason
         self.calls: list[dict] = []
@@ -73,7 +73,7 @@ class BudgetMiddlewareAPITest(AioHTTPTestCase):
             return response
 
         app.router.add_post("/api/chat", _chat_handler)
-        app.router.add_post("/api/mcp/chat", _chat_handler)
+        app.router.add_post("/api/developer/chat", _chat_handler)
 
         async def _health_handler(_request: web.Request) -> web.Response:
             return web.json_response({"status": "ok"})
@@ -116,7 +116,7 @@ class BudgetMiddlewareAPITest(AioHTTPTestCase):
         self.fake_budget.allowed = True
 
         resp = await self.client.post(
-            "/api/mcp/chat",
+            "/api/developer/chat",
             json={
                 "messages": [{"role": "user", "content": "hi"}],
                 "vendor": "anthropic",

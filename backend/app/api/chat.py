@@ -321,7 +321,7 @@ async def _execute_tool(tool_name: str, arguments: dict) -> str:
         return json.dumps({
             "ollama": {"status": "checking"},
             "backend": {"status": "online"},
-            "mcp_servers": {"count": "check /api/mcp/diagnostics for details"},
+            "mcp_gateway": {"mode": "external stdio client"},
         })
 
     if tool_name == "binder_create":

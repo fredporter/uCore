@@ -431,43 +431,6 @@ async def get_tasker_overview() -> dict:
 
 
 # ---------------------------------------------------------------------------
-# MCP servers
-# ---------------------------------------------------------------------------
-
-async def get_mcp_servers() -> list[dict]:
-    """Get MCP server status."""
-    data = await _http_get("http://localhost:8484/api/mcp/tools", timeout=1.0)
-    if data:
-        tools = data if isinstance(data, list) else data.get("tools", [])
-        # Group by server
-        servers: dict[str, dict] = {}
-        for t in tools:
-            srv = t.get("server", "unknown")
-            if srv not in servers:
-                servers[srv] = {"name": srv, "online": True, "tools": 0}
-            servers[srv]["tools"] += 1
-        return list(servers.values())
-
-    # Fallback: hardcoded known servers with health checks
-    known = [
-        {"name": "snackbar", "url": "http://localhost:8484/health", "endpoint": "localhost:8484"},
-        {"name": "hivemind", "url": "http://localhost:8490/health", "endpoint": "localhost:8490"},
-        {"name": "vault", "url": "http://localhost:8765/health", "endpoint": "localhost:8765"},
-        {"name": "gridsmith", "url": "http://localhost:8888/health", "endpoint": "localhost:8888"},
-    ]
-    results = []
-    for s in known:
-        health = await _http_get(s["url"], timeout=1.5)
-        results.append({
-            "name": s["name"],
-            "online": health is not None,
-            "endpoint": s["endpoint"],
-            "tools": 0,
-        })
-    return results
-
-
-# ---------------------------------------------------------------------------
 # Slates
 # ---------------------------------------------------------------------------
 
@@ -549,14 +512,13 @@ async def get_active_alerts() -> list[dict]:
 async def get_control_status() -> dict:
     """Aggregate all ecosystem status into one payload."""
     # Run all checks concurrently
-    statuses, feed, agents, cost, mission, tasker, mcp, slates, alerts = await asyncio.gather(
+    statuses, feed, agents, cost, mission, tasker, slates, alerts = await asyncio.gather(
         _gather_statuses(),
         _gather_feed(),
         _gather_agents(),
         get_cost_summary(),
         get_active_mission(),
         get_tasker_overview(),
-        get_mcp_servers(),
         get_slate_list(),
         get_active_alerts(),
     )
@@ -568,7 +530,6 @@ async def get_control_status() -> dict:
         "cost": cost,
         "mission": mission,
         "tasker": tasker,
-        "mcp": mcp,
         "slates": slates,
         "alerts": alerts,
         "updated_at": datetime.now(timezone.utc).isoformat(),
