@@ -169,13 +169,10 @@ def _get_capabilities_hud() -> dict:
 
 
 _QUICK_ACTIONS: list[dict] = [
-    {"id": "ecosystem-audit", "label": "Run Ecosystem Audit", "icon": "monitoring"},
-    {"id": "system-health", "label": "System Health Check", "icon": "favorite"},
-    {"id": "binder-refresh", "label": "Refresh Binder Context", "icon": "folder"},
-    {"id": "spool-prune", "label": "Prune Spool Logs", "icon": "cleaning_services"},
-    {"id": "vault-sync", "label": "Sync Vault", "icon": "sync"},
-    {"id": "tasker-sync", "label": "Sync Tasker", "icon": "assignment"},
-    {"id": "snapshot", "label": "Take Snapshot", "icon": "camera"},
+    {
+        "id": "system-health", "label": "System Health Check",
+        "icon": "favorite", "method": "GET", "path": "/api/health/full",
+    },
 ]
 
 

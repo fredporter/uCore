@@ -312,7 +312,7 @@ async def _execute_tool(tool_name: str, arguments: dict) -> str:
             return json.dumps({"skills": skills[:20], "total": len(skills)})
         except (ImportError, AttributeError):
             return json.dumps({"skills": [
-                {"id": "ecosystem-audit", "name": "Ecosystem Audit", "category": "system"},
+                {"id": "backup", "name": "Backup", "category": "maintenance"},
                 {"id": "vault_discovery", "name": "Vault Discovery", "category": "knowledge"},
                 {"id": "workflow_audit", "name": "Workflow Audit", "category": "workflow"},
             ], "total": 3, "source": "samples"})
