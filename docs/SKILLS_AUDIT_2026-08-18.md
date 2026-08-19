@@ -6,6 +6,13 @@
 
 **Dedicated Skill test files before remediation:** 8
 
+**2026-08-19 base-standard hard cut:** Runtime user-skill discovery and arbitrary
+filesystem executable fallback are removed. Internal uDos capabilities load only
+from the governed builtin registry. Codex Skills are external development
+instructions, not executable uDos capabilities. This is a pre-release reset;
+there is no compatibility shim for loose `.py` files, legacy skill directories,
+or caller-selected scripts and environment variables.
+
 ## Findings
 
 The current term “Skill” covers unrelated concepts:
