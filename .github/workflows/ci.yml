@@ -6,10 +6,18 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   planning-governance:
     name: Planning Governance
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,6 +70,7 @@ jobs:
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       UDOS_ROOT: ${{ github.workspace }}/..
       UDOS_HOME: ${{ github.workspace }}/.ci-udos
@@ -79,21 +88,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: fredporter/uFlow
-          ref: work/2026-08-18-stabilise
+          ref: main
           path: external/uFlow
 
       - name: Checkout uKnowledge
         uses: actions/checkout@v4
         with:
           repository: fredporter/uKnowledge
-          ref: work/2026-08-18-stabilise
+          ref: main
           path: external/uKnowledge
 
       - name: Checkout uCode runtime
         uses: actions/checkout@v4
         with:
           repository: fredporter/uCode
-          ref: work/2026-08-18-stabilise
+          ref: main
           path: external/uCode
 
       - name: Install backend dependencies
@@ -114,6 +123,7 @@ jobs:
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -127,7 +137,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: fredporter/uCode
-          ref: work/2026-08-18-stabilise
+          ref: main
           path: external/uCode
 
       - name: Expose sibling uCode source contract

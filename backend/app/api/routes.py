@@ -38,6 +38,7 @@ def register_routes(app: web.Application) -> None:
         handle_list_repo_files,
         handle_list_repo_review,
         handle_list_repos,
+        handle_repo_github_status,
         handle_repo_status,
         handle_stage_repo_file,
         handle_start_developer,
@@ -72,7 +73,6 @@ def register_routes(app: web.Application) -> None:
         handle_quality_score,
         handle_quality_stats,
     )
-    from .github import register_github_routes
     from .gridsmith_api import (
         handle_gridsmith_grid_create,
         handle_gridsmith_import_basic,
@@ -194,6 +194,9 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/developer/repos/{repo_name}/diff", handle_get_repo_file_diff)
     app.router.add_get("/api/developer/repos/{repo_name}/review", handle_list_repo_review)
     app.router.add_get("/api/developer/repos/{repo_name}/status", handle_repo_status)
+    app.router.add_get(
+        "/api/developer/repos/{repo_name}/github", handle_repo_github_status
+    )
     app.router.add_post("/api/developer/repos/{repo_name}/stage", handle_stage_repo_file)
     app.router.add_post("/api/developer/repos/{repo_name}/unstage", handle_unstage_repo_file)
     app.router.add_post("/api/developer/repos/{repo_name}/commit", handle_commit_repo_files)
@@ -381,7 +384,6 @@ def register_routes(app: web.Application) -> None:
     register_surface_routes(app)
     register_snack_routes(app)
     register_container_routes(app)
-    register_github_routes(app)
 
     # ── Spool / Activity Feed ───────────────────────────────────────
     try:
