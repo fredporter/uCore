@@ -2,7 +2,7 @@
 
 **Status:** Active remediation
 
-**Observed registry:** 53 executable Skills, including one user example
+**Observed registry before remediation:** 53 executable Skills, including one user example
 
 **Dedicated Skill test files before remediation:** 8
 
@@ -29,10 +29,13 @@ enforced confirmation only in the HTTP API. Internal scheduler and executable
 registry calls could bypass it. Core authorization is now enforced in
 `run_skill_by_id` with regression tests.
 
-Provider and executor selection is duplicated across `route_task`, Dev Mode,
-HiveMind, Roundtable and Cline. Cline integration also contained obsolete CLI
-flags, direct key discovery and auto-approval behavior; it is now contained and
-disabled by default.
+Provider and executor selection was duplicated across `route_task`, Dev Mode,
+HiveMind, Roundtable and Cline. The deprecated `route_task` compatibility shim
+and the hard-coded `hivemind-consensus` and `roundtable-dispatch` Skill wrappers
+have now been removed. Flow Router is the single provider/budget routing path;
+HiveMind remains a bounded service behind that contract. Cline integration also
+contained obsolete CLI flags, direct key discovery and auto-approval behavior;
+it is now contained and disabled by default.
 
 ## Disposition
 
@@ -50,12 +53,6 @@ allowed roots, deterministic dry run where relevant and dedicated tests.
 
 ### Repair behind canonical contracts
 
-- `route_task`: become intention/capability classification only; remove direct
-  provider names from user inputs and duplicated execution logic.
-- `hivemind-consensus`: become HiveMind orchestration client with budget,
-  privacy, attempts and evidence fields.
-- `roundtable-dispatch`: become a selective deliberation strategy invoked by
-  HiveMind, not a default provider.
 - `cline-invoke`: retain disabled, plan-only adapter until worktree harness.
 - `gh-workflow-bridge`: narrow to GitHub issues, Actions, PR/review and Codex
   handoff with explicit external-write approval.
@@ -95,8 +92,8 @@ allowed roots, deterministic dry run where relevant and dedicated tests.
    the Skill contract.
 3. Default-deny unclassified and example Skills in production discovery.
 4. Separate privileged recovery operations from general execution.
-5. Implement the intention task envelope and one provider/budget route.
-6. Rewire HiveMind, Roundtable, GitHub and Cline as bounded adapters.
+5. Implement the intention task envelope on the existing Flow Router.
+6. Rewire HiveMind, GitHub and Cline as bounded adapters.
 7. Split/merge the oversized and duplicated capabilities.
 8. Add catalogue validation, dedicated tests and CI coverage for every enabled
    capability.

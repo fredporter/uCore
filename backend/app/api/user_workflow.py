@@ -455,21 +455,6 @@ def _seed_workflows() -> dict[str, Any]:
                 },
             ],
         },
-        {
-            "id": "wf-draft-publish-seed",
-            "name": "Draft to Publish Checklist",
-            "description": "Lightweight readiness workflow for publishing.",
-            "schedule": "manual",
-            "steps": [
-                {
-                    "type": "skill",
-                    "skill_id": "route_task",
-                    "params": {
-                        "task": "Review draft and prepare publish checklist",
-                    },
-                },
-            ],
-        },
     ]
 
     created: list[dict[str, Any]] = []
