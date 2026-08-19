@@ -164,7 +164,6 @@ def _get_capabilities_hud() -> dict:
 
     caps["developer"] = "online" if "ucore-developer" in running else "offline"
     caps["ollama"] = "online" if "ollama" in running else "offline"
-    caps["hivemind"] = "online" if "hivemind" in running else "offline"
     return caps
 
 

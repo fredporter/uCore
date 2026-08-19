@@ -1,9 +1,9 @@
 """Control Service — aggregates all uCore ecosystem status into one payload.
 
 Used by the Control Panel (Developer Surface) to display:
-- Status badges (OpenRouter, Hivemind, Roundtable, Ollama, Feed, Slate, Budget)
+- Status badges (OpenRouter, Ollama, Feed, Slate, Budget)
 - Live feed stream
-- Agent status (Hivemind consensus, Roundtable swarm, Ollama models)
+- Local model status
 - Cost dashboard (daily/weekly/monthly)
 - Active mission (from .tasker)
 - Tasker overview, MCP servers, Slates, Alerts
@@ -14,9 +14,7 @@ import asyncio
 import json
 import logging
 import os
-import socket
 import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -78,34 +76,6 @@ def _tasker_dir() -> Path | None:
     return None
 
 
-def _backend_root() -> Path:
-    """Resolve backend root directory for detached process starts."""
-    return Path(__file__).resolve().parents[2]
-
-
-def _is_port_open(host: str, port: int, timeout: float = 0.4) -> bool:
-    """Fast TCP check used as a fallback for health endpoints."""
-    try:
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except OSError:
-        return False
-
-
-async def _start_hivemind_server() -> tuple[bool, str]:
-    """Start Hivemind server on port 8490 if not already running."""
-    from app.mcp.hivemind_launcher import start_hivemind
-
-    if _is_port_open("localhost", 8490):
-        return True, "Hivemind already listening on port 8490"
-
-    try:
-        start_hivemind()
-        return True, "Started Hivemind on port 8490"
-    except Exception as exc:
-        return False, f"Failed to start Hivemind: {exc}"
-
-
 # ---------------------------------------------------------------------------
 # Status badge checks
 # ---------------------------------------------------------------------------
@@ -163,32 +133,6 @@ async def check_openrouter() -> dict:
     return result
 
 
-async def check_hivemind() -> dict:
-    """Check Hivemind health on port 8490."""
-    data = await _http_get("http://localhost:8490/health", timeout=1.0)
-    if data:
-        return {"online": True, "detail": "Hivemind responding", "data": data}
-    if _is_port_open("localhost", 8490):
-        return {"online": True, "detail": "Hivemind port open (health endpoint pending)"}
-    return {"online": False, "detail": "Hivemind not reachable on port 8490"}
-
-
-async def check_roundtable() -> dict:
-    """Check Roundtable agent status."""
-    data = await _http_get("http://localhost:8490/api/hivemind/roundtable", timeout=1.0)
-    if data:
-        return {"online": True, "detail": "Roundtable available", "data": data}
-    health = await _http_get("http://localhost:8490/health", timeout=1.0)
-    if health:
-        rt = health.get("roundtable") if isinstance(health, dict) else None
-        return {
-            "online": True,
-            "detail": f"Roundtable via Hivemind ({rt.get('status', 'ready')})" if isinstance(rt, dict) else "Roundtable served by Hivemind",
-            "data": rt if isinstance(rt, dict) else {},
-        }
-    return {"online": False, "detail": "Roundtable not reachable"}
-
-
 async def check_ollama() -> dict:
     """Check Ollama status."""
     data = await _http_get("http://localhost:11434/api/tags", timeout=1.5)
@@ -220,17 +164,7 @@ async def check_slate() -> dict:
 
 async def get_cost_status() -> dict:
     """Get budget/cost status."""
-    data = await _http_get("http://localhost:8490/api/hivemind/llm/cost", timeout=1.0)
-    if data:
-        daily = data.get("daily", {})
-        return {
-            "online": True,
-            "detail": f"${daily.get('used', 0):.2f} / ${daily.get('limit', 0):.2f}",
-            "daily": daily,
-            "weekly": data.get("weekly", {}),
-            "monthly": data.get("monthly", {}),
-        }
-    # Fallback: try budget API
+    # Budget API is the sole cost authority.
     data = await _http_get("http://localhost:8484/api/budget/status", timeout=1.0)
     if data:
         return {"online": True, "detail": "Budget data available", **data}
@@ -242,14 +176,6 @@ async def recover_offline_services() -> dict:
     """Attempt recovery for offline ecosystem services used by Control Panel."""
     statuses_before = await _gather_statuses()
     actions: list[str] = []
-
-    hive_before = statuses_before.get("hivemind", {})
-    if not hive_before.get("online"):
-        ok, detail = await _start_hivemind_server()
-        actions.append(detail)
-        if ok:
-            # Roundtable is hosted in the same server process.
-            actions.append("Roundtable piggybacks on Hivemind process")
 
     openrouter_before = statuses_before.get("openrouter", {})
     if not openrouter_before.get("online"):
@@ -302,25 +228,6 @@ async def get_unprocessed_count() -> int:
 # Agent status
 # ---------------------------------------------------------------------------
 
-async def get_hivemind_status() -> dict:
-    """Get Hivemind consensus status."""
-    data = await _http_get("http://localhost:8490/api/hivemind/status", timeout=1.0)
-    if data:
-        return data
-    health = await _http_get("http://localhost:8490/health", timeout=1.0)
-    if health:
-        return {"status": "running", "detail": "Hivemind server alive", "data": health}
-    return {"status": "offline", "detail": "Hivemind not reachable"}
-
-
-async def get_roundtable_status() -> dict:
-    """Get Roundtable swarm status."""
-    data = await _http_get("http://localhost:8490/api/hivemind/roundtable", timeout=1.0)
-    if data:
-        return data
-    return {"status": "unknown", "detail": "Roundtable status unavailable"}
-
-
 async def get_ollama_status() -> dict:
     """Get detailed Ollama status."""
     data = await _http_get("http://localhost:11434/api/tags", timeout=1.5)
@@ -340,15 +247,7 @@ async def get_ollama_status() -> dict:
 
 async def get_cost_summary() -> dict:
     """Get cost summary (daily, weekly, monthly, top models)."""
-    data = await _http_get("http://localhost:8490/api/hivemind/llm/cost", timeout=1.0)
-    if data:
-        return {
-            "daily": data.get("daily", {}),
-            "weekly": data.get("weekly", {}),
-            "monthly": data.get("monthly", {}),
-            "top_models": data.get("top_models", []),
-        }
-    # Fallback
+    # Budget API is the sole cost authority.
     budget = await _http_get("http://localhost:8484/api/budget/status", timeout=1.0)
     if budget:
         return {"daily": budget, "weekly": {}, "monthly": {}, "top_models": []}
@@ -483,15 +382,6 @@ async def get_active_alerts() -> list[dict]:
             "source": "feed",
         })
 
-    # Hivemind
-    hive = await check_hivemind()
-    if not hive.get("online"):
-        alerts.append({
-            "type": "error",
-            "message": "Hivemind not responding on port 8490",
-            "source": "hivemind",
-        })
-
     # OpenRouter credits
     or_status = await check_openrouter()
     credits = or_status.get("credits", 0)
@@ -539,14 +429,12 @@ async def get_control_status() -> dict:
 async def _gather_statuses() -> dict:
     results = await asyncio.gather(
         check_openrouter(),
-        check_hivemind(),
-        check_roundtable(),
         check_ollama(),
         check_feed(),
         check_slate(),
         get_cost_status(),
     )
-    keys = ["openrouter", "hivemind", "roundtable", "ollama", "feed", "slate", "budget"]
+    keys = ["openrouter", "ollama", "feed", "slate", "budget"]
     return dict(zip(keys, results))
 
 
@@ -559,9 +447,4 @@ async def _gather_feed() -> dict:
 
 
 async def _gather_agents() -> dict:
-    hive, rt, ollama = await asyncio.gather(
-        get_hivemind_status(),
-        get_roundtable_status(),
-        get_ollama_status(),
-    )
-    return {"hivemind": hive, "roundtable": rt, "ollama": ollama}
+    return {"ollama": await get_ollama_status()}

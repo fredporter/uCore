@@ -1,5 +1,5 @@
 #!/bin/bash
-# uCore Watchdog — health/self-heal loop for backend + orchestration services.
+# uCore Watchdog — health loop for the backend and frontend.
 # Intended to run via launchd StartInterval.
 
 set -euo pipefail
@@ -23,10 +23,6 @@ log() {
 
 check_backend() {
     curl -s --max-time 3 "http://127.0.0.1:8484/api/health" > /dev/null 2>&1
-}
-
-check_hivemind() {
-    curl -s --max-time 2 "http://127.0.0.1:8490/health" > /dev/null 2>&1
 }
 
 check_vite() {
@@ -223,11 +219,6 @@ main() {
         else
             log "Backend still unhealthy after recovery attempts"
         fi
-    fi
-
-    if check_backend && ! check_hivemind; then
-        log "Hivemind health failed; attempting control recovery"
-        attempt_control_recover || true
     fi
 
     if check_backend; then

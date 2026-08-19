@@ -59,7 +59,7 @@ Focuses on task planning with known statuses, priorities, and board types.
 
 Lists real dev APIs:
 - Repos: list, files, review, status, diff, file-preview, stage, commit
-- Skills & MCP: list skills, execute skills, MCP tools, diagnostics
+- Skills: list and execute governed skills
 - Health: control status, Ollama status, system info
 
 Lane-aware: passes current lane and workspace context.

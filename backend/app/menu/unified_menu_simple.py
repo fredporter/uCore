@@ -90,8 +90,6 @@ CORE_EXTENSION_IDS = {
 
 EXTENSION_LINKS = {
     "snackmachine-extension": "http://localhost:5175/snackbar?tab=snacks",
-    "hivemind": "http://localhost:5175/assistui",
-    "roundtable": "http://localhost:5175/assistui",
 }
 
 log_dir = UDOS_HOME / "logs"

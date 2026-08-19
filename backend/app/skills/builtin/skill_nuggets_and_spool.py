@@ -240,7 +240,7 @@ class SpoolArchiveSkill(BaseSkill):
             SkillParam(
                 name="component_type",
                 type="string",
-                description="Type: skill, snack, mcp, hivemind, secret, css, legacy",
+                description="Type: skill, snack, secret, css, legacy",
                 default="legacy",
             ),
             SkillParam(
@@ -397,7 +397,7 @@ class SpoolBackupSkill(BaseSkill):
             SkillParam(
                 name="component_type",
                 type="string",
-                description="Type: skill, snack, mcp, hivemind, secret, css, legacy",
+                description="Type: skill, snack, secret, css, legacy",
                 default="legacy",
             ),
             SkillParam(
@@ -559,7 +559,7 @@ class SpoolDestroySkill(BaseSkill):
             SkillParam(
                 name="component_type",
                 type="string",
-                description="Type: skill, snack, mcp, hivemind, secret, css",
+                description="Type: skill, snack, secret, css",
                 default="skill",
             ),
             SkillParam(
@@ -994,7 +994,7 @@ class SpoolListSkill(BaseSkill):
             SkillParam(
                 name="component_type",
                 type="string",
-                description="Filter by type: skill, snack, mcp, hivemind, secret, css, legacy",
+                description="Filter by type: skill, snack, secret, css, legacy",
                 default="",
             ),
             SkillParam(
@@ -1487,7 +1487,7 @@ class NuggetCreateSkill(BaseSkill):
             SkillParam(
                 name="component_type",
                 type="string",
-                description="Type: skill, snack, mcp, hivemind, secret, css, legacy",
+                description="Type: skill, snack, secret, css, legacy",
                 default="legacy",
             ),
             SkillParam(
@@ -1648,7 +1648,7 @@ class NuggetListSkill(BaseSkill):
             SkillParam(
                 name="component_type",
                 type="string",
-                description="Filter by type: skill, snack, mcp, hivemind, secret, css, legacy",
+                description="Filter by type: skill, snack, secret, css, legacy",
                 default="",
             ),
             SkillParam(
@@ -1919,7 +1919,7 @@ class NuggetDiscoverSkill(BaseSkill):
             SkillParam(
                 name="component_type",
                 type="string",
-                description="Filter by type: skill, snack, mcp, hivemind, secret, css, legacy",
+                description="Filter by type: skill, snack, secret, css, legacy",
                 default="",
             ),
             SkillParam(

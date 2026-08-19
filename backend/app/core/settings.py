@@ -1,4 +1,4 @@
-"""uCore settings — unified configuration for snackbar + hivemind + API"""
+"""uCore settings — unified configuration for Snackbar and the API."""
 from __future__ import annotations
 
 import os

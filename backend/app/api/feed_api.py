@@ -20,7 +20,7 @@ _feed_server = None
 def _get_feed_server():
     global _feed_server
     if _feed_server is None:
-        from app.mcp.feed.feed_server import FeedServer
+        from app.services.feed_store import FeedServer
         _feed_server = FeedServer()
     return _feed_server
 

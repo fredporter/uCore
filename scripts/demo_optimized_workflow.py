@@ -6,7 +6,6 @@ features to reduce token waste and improve cost efficiency.
 """
 
 import asyncio
-import json
 import sys
 from pathlib import Path
 
@@ -22,7 +21,7 @@ async def demo_toon_optimization():
     print("\n=== TOON Context Optimization Demo ===\n")
     
     # Import TOON server
-    from app.mcp.toon.server import TOONContextServer
+    from app.services.toon_context import TOONContextServer
     
     # Create server
     toon_server = TOONContextServer()
@@ -106,7 +105,7 @@ async def demo_flow_router():
     
     # Get analytics
     analytics = router.get_analytics()
-    print(f"Flow Router Analytics:")
+    print("Flow Router Analytics:")
     print(f"  Total requests: {analytics['total_requests']}")
     print(f"  Cost savings: ${analytics['cost_savings']:.4f}")
     print(f"  Token savings: {analytics['token_savings']} tokens")
@@ -114,7 +113,7 @@ async def demo_flow_router():
     
     # Get history
     history = router.get_routing_history(limit=3)
-    print(f"\nRecent routing history:")
+    print("\nRecent routing history:")
     for i, entry in enumerate(history):
         print(f"  {i+1}. {entry['task_description'][:50]}... → {entry['selected_provider']}/{entry['selected_model']}")
 

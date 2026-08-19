@@ -8,7 +8,7 @@
 **Component:** uCore backend + brain_sync
 **Purpose:** A unified, searchable log of all uCore ecosystem activity — skill executions,
 system events, vault operations, clipboard events — exposed as a spool feed for
-the clipboard popover Logs tab, brain_sync synthesis, and MCP tools.
+the clipboard popover Logs tab and brain_sync synthesis.
 
 ---
 
@@ -21,7 +21,7 @@ entries into a queryable event stream.
 |---------|----------------|
 | **Feed source** | `~/.ucore/logs/*.log` (append-only log files) |
 | **Parser** | `backend/app/services/spool_reader.py` |
-| **Feed viewer** | MCP tools + clipboard popover Logs tab (future) |
+| **Feed viewer** | Clipboard popover Logs tab (future) |
 | **Real-time updates** | File watcher (future, via IPC) |
 | **Search & filter** | By level, module, date, full-text |
 | **Actionable** | Log entries link to skill re-execution (future) |

@@ -4,7 +4,7 @@ import logging
 
 from aiohttp import web
 
-from app.mcp.toon import TOONContextServer
+from app.services.toon_context import TOONContextServer
 
 log = logging.getLogger("ucore.api.toon")
 
