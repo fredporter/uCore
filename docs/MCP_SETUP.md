@@ -2,32 +2,37 @@
 
 # uCore MCP Setup
 
-uCore exposes one self-hosted MCP JSON-RPC stdio server. External developer
+uCore exposes one self-hosted MCP stdio server. External developer
 clients may connect to it, but their configuration is not part of uCore.
 
 ## Canonical MCP Server
 
-- Server id: ucore-bridge
-- Source: backend/app/mcp/mcp_bridge
-- Command: node backend/app/mcp/mcp_bridge/build/index.js
+- Server id: udos-mcp
+- Source: backend/app/mcp/udos_mcp
+- Command: node backend/app/mcp/udos_mcp/build/index.js
 - Env: UCORE_URL=http://127.0.0.1:8484
+
+The gateway advertises six bounded read-only tools: system health, repository
+list/status, workflow task list, knowledge search, and GridSmith tool list.
 
 ## Start Sequence
 
 ```bash
 cd /Users/fredbook/Code/uCore
 pnpm run dev:backend
-cd /Users/fredbook/Code/uCore/backend/app/mcp/mcp_bridge && npm run build
+cd /Users/fredbook/Code/uCore/backend/app/mcp/udos_mcp && npm ci
 ```
 
 ## Diagnostics
 
 ```bash
-cd /Users/fredbook/Code/uCore/backend
-python3 -m mcp.mcp_diagnostics
+cd /Users/fredbook/Code/uCore/backend/app/mcp/udos_mcp
+npm test
 ```
 
 Expected checks:
 
-- bridge source and package metadata exist
-- the local bridge build exists
+- the official MCP client initializes the compiled stdio server
+- the exact read-only tool catalogue is advertised
+- calls reach the expected owned API routes
+- invalid input is rejected by the SDK schema
