@@ -313,12 +313,10 @@ async def _execute_tool(tool_name: str, arguments: dict) -> str:
         except (ImportError, AttributeError):
             return json.dumps({"skills": [
                 {"id": "ecosystem-audit", "name": "Ecosystem Audit", "category": "system"},
-                {"id": "dev-mode-executor", "name": "Dev Mode Executor", "category": "developer"},
-                {"id": "file-edit-enhancer", "name": "File Edit Enhancer", "category": "tools"},
-                {"id": "tasker-ingest", "name": "Tasker Ingest", "category": "workflow"},
-                {"id": "vault-discovery", "name": "Vault Discovery", "category": "vault"},
-                {"id": "skill-docs-roundup", "name": "Docs Roundup", "category": "documentation"},
-            ], "total": 6, "source": "samples"})
+                {"id": "route_task", "name": "Route Task", "category": "assist"},
+                {"id": "vault_discovery", "name": "Vault Discovery", "category": "knowledge"},
+                {"id": "workflow_audit", "name": "Workflow Audit", "category": "workflow"},
+            ], "total": 3, "source": "samples"})
 
     if tool_name == "system_health":
         return json.dumps({

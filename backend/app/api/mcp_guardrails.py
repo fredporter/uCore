@@ -54,7 +54,6 @@ REQUIRED_HANDLER_SIGNATURES = {
     "handle_toon_encode": ["arguments", "request_id"],
     "handle_toon_stats": ["arguments", "request_id"],
     "handle_toon_clear": ["arguments", "request_id"],
-    "handle_autostart_health_check": ["arguments", "request_id"],
 }
 
 # Domain modules that make up the mcp_handlers package
@@ -65,7 +64,6 @@ HANDLER_DOMAIN_MODULES = [
     "gridsmith",
     "flow_router",
     "toon",
-    "autostart",
     "skill",
 ]
 
@@ -91,7 +89,6 @@ REQUIRED_TOOL_NAMES = {
     "toon_encode",
     "toon_stats",
     "toon_clear",
-    "autostart_health_check",
 }
 
 

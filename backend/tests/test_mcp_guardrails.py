@@ -55,7 +55,6 @@ class TestMCPGuardrails:
         assert "gridsmith_create_grid" in REQUIRED_TOOL_NAMES
         assert "toon_encode" in REQUIRED_TOOL_NAMES
         assert "flow_router_route" in REQUIRED_TOOL_NAMES
-        assert "autostart_health_check" in REQUIRED_TOOL_NAMES
 
 
 class TestMCPSelfHealSkill:

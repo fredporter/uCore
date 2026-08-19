@@ -15,9 +15,6 @@ from typing import Any, Dict
 
 from aiohttp import web
 
-from app.api.mcp_handlers.autostart import (
-    handle_autostart_health_check,
-)
 from app.api.mcp_handlers.clipboard import (
     handle_clipboard_capture,
     handle_clipboard_delete,
@@ -82,7 +79,6 @@ TOOL_HANDLERS: dict[str, Any] = {
     "toon_encode": handle_toon_encode,
     "toon_stats": handle_toon_stats,
     "toon_clear": handle_toon_clear,
-    "autostart_health_check": handle_autostart_health_check,
 }
 
 
