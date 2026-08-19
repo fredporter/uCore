@@ -1,5 +1,5 @@
-from app.skills.base import BaseSkill, SkillMeta
 from app.skills import registry
+from app.skills.base import BaseSkill, SkillMeta
 
 
 class _DestructiveSkill(BaseSkill):

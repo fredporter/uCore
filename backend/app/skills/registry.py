@@ -6,44 +6,40 @@ import logging
 import sys
 from pathlib import Path
 
-from app.core.settings import settings
 from app.skills.base import BaseSkill
 
 log = logging.getLogger("ucore.skills.registry")
 _registry: dict[str, BaseSkill] = {}
 _loaded = False
-SKILL_PATHS = [
-    Path(__file__).parent / "builtin",
-    settings.udos_home / "skills",
-]
+BUILTIN_SKILL_PATH = Path(__file__).parent / "builtin"
 
 
 def _discover():
     skills = {}
-    for sd in SKILL_PATHS:
-        if not sd.exists():
+    sd = BUILTIN_SKILL_PATH
+    if not sd.exists():
+        return skills
+    sys.path.insert(0, str(sd.parent))
+    for f in sd.iterdir():
+        if f.suffix != ".py" or f.name.startswith("_"):
             continue
-        sys.path.insert(0, str(sd.parent))
-        for f in sd.iterdir():
-            if f.suffix != ".py" or f.name.startswith("_"):
-                continue
-            try:
-                spec = importlib.util.spec_from_file_location(f"skills_{f.stem}", f)
-                if spec and spec.loader:
-                    mod = importlib.util.module_from_spec(spec)
-                    sys.modules[spec.name] = mod
-                    spec.loader.exec_module(mod)
-                    for _, obj in inspect.getmembers(mod):
-                        if (
-                            inspect.isclass(obj)
-                            and issubclass(obj, BaseSkill)
-                            and obj is not BaseSkill
-                        ):
-                            inst = obj()
-                            skills[inst.meta.id] = inst
-            except Exception as e:
-                log.warning(f"Skill load fail {f.name}: {e}")
-        sys.path.pop(0)
+        try:
+            spec = importlib.util.spec_from_file_location(f"skills_{f.stem}", f)
+            if spec and spec.loader:
+                mod = importlib.util.module_from_spec(spec)
+                sys.modules[spec.name] = mod
+                spec.loader.exec_module(mod)
+                for _, obj in inspect.getmembers(mod):
+                    if (
+                        inspect.isclass(obj)
+                        and issubclass(obj, BaseSkill)
+                        and obj is not BaseSkill
+                    ):
+                        inst = obj()
+                        skills[inst.meta.id] = inst
+        except Exception as e:
+            log.warning("Skill load fail %s: %s", f.name, e)
+    sys.path.pop(0)
     return skills
 
 
