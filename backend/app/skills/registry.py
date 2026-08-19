@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+import json
 import logging
 import sys
 from pathlib import Path
@@ -12,6 +13,29 @@ log = logging.getLogger("ucore.skills.registry")
 _registry: dict[str, BaseSkill] = {}
 _loaded = False
 BUILTIN_SKILL_PATH = Path(__file__).parent / "builtin"
+CATALOGUE_PATH = Path(__file__).parent / "catalogue.json"
+
+
+def _catalogue_modules() -> list[dict]:
+    data = json.loads(CATALOGUE_PATH.read_text(encoding="utf-8"))
+    modules = data.get("modules")
+    if data.get("version") != 1 or not isinstance(modules, list):
+        raise RuntimeError("Invalid internal capability catalogue")
+    required = {"module", "owner", "lifecycle", "risk", "lane", "allowed_roots"}
+    for item in modules:
+        if not isinstance(item, dict) or required - set(item):
+            raise RuntimeError("Incomplete internal capability catalogue entry")
+    names = [item["module"] for item in modules]
+    if len(names) != len(set(names)):
+        raise RuntimeError("Duplicate internal capability catalogue module")
+    discovered = sorted(
+        path.name
+        for path in BUILTIN_SKILL_PATH.glob("*.py")
+        if not path.name.startswith("_")
+    )
+    if sorted(names) != discovered:
+        raise RuntimeError("Internal capability catalogue does not match builtin modules")
+    return modules
 
 
 def _discover():
@@ -20,9 +44,8 @@ def _discover():
     if not sd.exists():
         return skills
     sys.path.insert(0, str(sd.parent))
-    for f in sd.iterdir():
-        if f.suffix != ".py" or f.name.startswith("_"):
-            continue
+    for entry in _catalogue_modules():
+        f = sd / entry["module"]
         try:
             spec = importlib.util.spec_from_file_location(f"skills_{f.stem}", f)
             if spec and spec.loader:

@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "modules": [
+    {"module": "ask_vault.py", "owner": "uKnowledge", "lifecycle": "active", "risk": "read", "lane": "knowledge", "allowed_roots": ["Vault", "Shared", "Public"]},
+    {"module": "attach_context.py", "owner": "uCore", "lifecycle": "active", "risk": "read", "lane": "assist", "allowed_roots": ["Code", "Vault"]},
+    {"module": "backup.py", "owner": "uCore", "lifecycle": "active", "risk": "write", "lane": "maintenance", "allowed_roots": ["UDOS_HOME", "Vault", "Shared", "Public"]},
+    {"module": "brain_sync.py", "owner": "uCore", "lifecycle": "review", "risk": "write", "lane": "memory", "allowed_roots": ["UDOS_HOME", "Vault"]},
+    {"module": "clipboard_maintenance.py", "owner": "uCore", "lifecycle": "active", "risk": "write", "lane": "maintenance", "allowed_roots": ["UDOS_HOME"]},
+    {"module": "docs_mirror_sync.py", "owner": "uKnowledge", "lifecycle": "review", "risk": "write", "lane": "knowledge", "allowed_roots": ["UDOS_HOME", "Code"]},
+    {"module": "episodic_log.py", "owner": "uCore", "lifecycle": "review", "risk": "write", "lane": "memory", "allowed_roots": ["UDOS_HOME"]},
+    {"module": "git_maintenance.py", "owner": "uCore", "lifecycle": "active", "risk": "write", "lane": "developer", "allowed_roots": ["Code"]},
+    {"module": "lint_fix.py", "owner": "uCore", "lifecycle": "active", "risk": "write", "lane": "developer", "allowed_roots": ["Code"]},
+    {"module": "route_task.py", "owner": "uCore", "lifecycle": "review", "risk": "external", "lane": "assist", "allowed_roots": ["UDOS_HOME"]},
+    {"module": "skill_audit.py", "owner": "uCore", "lifecycle": "replace", "risk": "read", "lane": "system", "allowed_roots": ["Code"]},
+    {"module": "skill_autostart.py", "owner": "uCore", "lifecycle": "remove", "risk": "write", "lane": "system", "allowed_roots": ["UDOS_HOME"]},
+    {"module": "skill_dev_destroy_rebuild.py", "owner": "uCore", "lifecycle": "privileged", "risk": "destructive", "lane": "recovery", "allowed_roots": ["UDOS_HOME", "Code"]},
+    {"module": "skill_dev_mode_executor.py", "owner": "uCore", "lifecycle": "replace", "risk": "external", "lane": "developer", "allowed_roots": ["Code", "UDOS_HOME"]},
+    {"module": "skill_ecosystem_audit.py", "owner": "uCore", "lifecycle": "replace", "risk": "read", "lane": "system", "allowed_roots": ["Code", "UDOS_HOME"]},
+    {"module": "skill_hivemind_consensus.py", "owner": "uCore", "lifecycle": "review", "risk": "external", "lane": "assist", "allowed_roots": ["UDOS_HOME"]},
+    {"module": "skill_mcp_self_heal.py", "owner": "uCore", "lifecycle": "merge", "risk": "write", "lane": "recovery", "allowed_roots": ["Code", "UDOS_HOME"]},
+    {"module": "skill_nuggets_and_spool.py", "owner": "uCore", "lifecycle": "split", "risk": "destructive", "lane": "recovery", "allowed_roots": ["UDOS_HOME"]},
+    {"module": "skill_roundtable_dispatch.py", "owner": "uCore", "lifecycle": "review", "risk": "external", "lane": "assist", "allowed_roots": ["UDOS_HOME"]},
+    {"module": "skill_self_heal.py", "owner": "uCore", "lifecycle": "merge", "risk": "destructive", "lane": "recovery", "allowed_roots": ["Code", "UDOS_HOME"]},
+    {"module": "skill_ucore_index.py", "owner": "uCore", "lifecycle": "replace", "risk": "read", "lane": "system", "allowed_roots": ["Code", "UDOS_HOME"]},
+    {"module": "skill_vault_discovery.py", "owner": "uKnowledge", "lifecycle": "move", "risk": "read", "lane": "knowledge", "allowed_roots": ["Vault", "Shared", "Public"]},
+    {"module": "tasker_sync.py", "owner": "uFlow", "lifecycle": "move", "risk": "write", "lane": "workflow", "allowed_roots": ["UDOS_HOME"]},
+    {"module": "vault_sync.py", "owner": "uKnowledge", "lifecycle": "move", "risk": "write", "lane": "knowledge", "allowed_roots": ["Vault", "Shared", "Public", "UDOS_HOME"]},
+    {"module": "workflow_audit.py", "owner": "uFlow", "lifecycle": "move", "risk": "read", "lane": "workflow", "allowed_roots": ["UDOS_HOME"]},
+    {"module": "workflow_guard.py", "owner": "uFlow", "lifecycle": "move", "risk": "write", "lane": "workflow", "allowed_roots": ["UDOS_HOME"]},
+    {"module": "workflow_pause.py", "owner": "uFlow", "lifecycle": "move", "risk": "write", "lane": "workflow", "allowed_roots": ["UDOS_HOME"]}
+  ]
+}
