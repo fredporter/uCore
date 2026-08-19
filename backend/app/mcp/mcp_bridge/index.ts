@@ -45,16 +45,6 @@ async function apiPost(
 
 const TOOLS = [
   {
-    name: "ucore_ecosystem_audit",
-    description:
-      "Run a full uCore ecosystem health audit. Returns health percentage, working/broken/orphaned counts across all 54 skills, surfaces, MCP servers, and tests.",
-    inputSchema: {
-      type: "object",
-      properties: {},
-      required: [],
-    },
-  },
-  {
     name: "ucore_list_skills",
     description:
       "List governed internal uCore capabilities. Returns id, name, description, category, and parameters.",
@@ -144,16 +134,6 @@ const TOOLS = [
         },
       },
       required: ["query"],
-    },
-  },
-  {
-    name: "ucore_autonomy_state",
-    description:
-      "Get the latest autonomy engine health state (from the overnight cron). Includes overall health %, Ollama status, and last audit timestamp.",
-    inputSchema: {
-      type: "object",
-      properties: {},
-      required: [],
     },
   },
   {
@@ -252,20 +232,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
-      case "ucore_ecosystem_audit": {
-        const data = await apiPost("/api/skills/ecosystem-audit/run", {
-          action: "assess",
-        });
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(data, null, 2),
-            },
-          ],
-        };
-      }
-
       case "ucore_list_skills": {
         const search = args?.search as string | undefined;
         let data = await apiGet("/api/skills");
@@ -350,18 +316,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const params = new URLSearchParams({ q: query });
         if (workspaceId) params.set("workspace_id", workspaceId);
         const data = await apiGet(`/api/knowledge/search?${params.toString()}`);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(data, null, 2),
-            },
-          ],
-        };
-      }
-
-      case "ucore_autonomy_state": {
-        const data = await apiGet("/api/autonomy/state");
         return {
           content: [
             {

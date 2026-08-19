@@ -163,14 +163,20 @@ async function loadHud() {
   }
 }
 
-async function triggerAction(action: { id: string; label: string }) {
+async function triggerAction(action: {
+  id: string;
+  label: string;
+  method: "GET" | "POST";
+  path: string;
+}) {
   runningAction.value = action.id;
   try {
-    await fetch(`${SNACKBAR_BASE}/api/skills/${action.id}/run`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
+    const options: RequestInit = { method: action.method };
+    if (action.method === "POST") {
+      options.headers = { "Content-Type": "application/json" };
+      options.body = JSON.stringify({});
+    }
+    await fetch(`${SNACKBAR_BASE}${action.path}`, options);
   } catch {
     // best-effort
   } finally {

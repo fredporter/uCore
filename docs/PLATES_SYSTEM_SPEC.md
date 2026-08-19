@@ -218,7 +218,7 @@ if report["drift_detected"]:
 When corruption or hallucination is detected:
 
 ```
-1. DETECT   → Run integrity checks (mcp_guardrails, skill_audit)
+1. DETECT   → Run integrity checks (MCP guardrails and capability catalogue)
 2. SALVAGE  → Extract key state from corrupted instance
               - Skills: meta.id, meta.params, current state from state.py
               - Snacks: snack_id, config values
@@ -361,10 +361,11 @@ ucore plate promote --from backend/app/skills/builtin/my_skill.py \
 
 ## 11. Drift Detection
 
-The `skill_audit` skill compares running instances against plates:
+The capability catalogue and registry discovery test compare enabled modules
+against the governed builtin set:
 
 ```python
-report = await run_skill_by_id("skill_audit", scope="all")
+python -m pytest -q backend/tests/test_skill_registry_discovery_policy.py
 # Returns:
 #   - matched: components that match their plate
 #   - drifted: components that differ (with diff)

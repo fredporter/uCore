@@ -57,8 +57,10 @@ allowed roots, deterministic dry run where relevant and dedicated tests.
 - `gh-workflow-bridge`: narrow to GitHub issues, Actions, PR/review and Codex
   handoff with explicit external-write approval.
 - `brain_sync`: separate deterministic indexing from model synthesis.
-- `skill-audit` and `ecosystem-audit`: replace source-text heuristics with
-  manifest/schema validation and executable tests.
+- The source-text `skill-audit`, generated `ecosystem-audit`, and broad
+  `ucore-index` Skills are retired. The fail-closed capability catalogue,
+  registry discovery tests, route audit, and `/api/health/full` are the
+  deterministic validation and runtime-health authorities.
 
 ### Merge or split
 

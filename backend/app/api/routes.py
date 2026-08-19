@@ -359,28 +359,6 @@ def register_routes(app: web.Application) -> None:
     app.router.add_patch("/api/binder/update", handle_binder_update)
     app.router.add_patch("/api/binder/score", handle_binder_score)
 
-    # ── Autonomy Engine ────────────────────────────────────────────
-    try:
-        import json
-        from pathlib import Path
-
-        from aiohttp import web
-
-        from app.core.settings import settings
-
-        STATE_FILE = settings.logs_dir / "autonomy_state.json"
-
-        async def handle_autonomy_state(_request: web.Request) -> web.Response:
-            """GET /api/autonomy/state — return last autonomy check state."""
-            if STATE_FILE.exists():
-                return web.json_response(json.loads(STATE_FILE.read_text()))
-            return web.json_response({"healthy": False, "error": "No autonomy data yet"})
-
-        app.router.add_get("/api/autonomy/state", handle_autonomy_state)
-        log.debug("Autonomy state endpoint registered")
-    except Exception as e:
-        log.debug("Autonomy engine not available: %s", e)
-
     register_surface_routes(app)
     register_snack_routes(app)
     register_container_routes(app)
