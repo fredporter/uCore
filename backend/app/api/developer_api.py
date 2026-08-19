@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -182,6 +183,80 @@ def _git_output(repo_path: Path, *args: str) -> str:
     if result.returncode != 0:
         return ""
     return result.stdout.strip()
+
+
+def _github_json(repo_path: Path, *args: str) -> Any:
+    """Run one read-only gh query against a repository remote."""
+    try:
+        result = subprocess.run(
+            ["gh", *args],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None
+
+
+def _repo_github_status(repo_name: str) -> dict[str, Any]:
+    """Return the GitHub/Actions state used by the Developer surface."""
+    repo_path = _repo_path(repo_name)
+    branch = _git_output(repo_path, "rev-parse", "--abbrev-ref", "HEAD") or "unknown"
+    repository = _github_json(
+        repo_path,
+        "repo",
+        "view",
+        "--json",
+        "nameWithOwner,url,defaultBranchRef",
+    )
+    if not isinstance(repository, dict):
+        return {
+            "repo": repo_name,
+            "configured": False,
+            "branch": branch,
+            "error": "GitHub CLI is unavailable, unauthenticated, or the remote is not on GitHub",
+        }
+
+    runs = _github_json(
+        repo_path,
+        "run",
+        "list",
+        "--branch",
+        branch,
+        "--limit",
+        "5",
+        "--json",
+        "databaseId,workflowName,status,conclusion,headBranch,event,createdAt,url",
+    )
+    prs = _github_json(
+        repo_path,
+        "pr",
+        "list",
+        "--head",
+        branch,
+        "--state",
+        "open",
+        "--limit",
+        "1",
+        "--json",
+        "number,title,state,isDraft,url,statusCheckRollup",
+    )
+    return {
+        "repo": repo_name,
+        "configured": True,
+        "branch": branch,
+        "repository": repository,
+        "pull_request": prs[0] if isinstance(prs, list) and prs else None,
+        "runs": runs if isinstance(runs, list) else [],
+    }
 
 
 def _repo_file_count(repo_path: Path, limit: int = 500) -> int:
@@ -700,6 +775,19 @@ async def handle_list_repos(request: web.Request) -> web.Response:
     return web.json_response({"repos": repos, "count": len(repos)})
 
 
+async def handle_repo_github_status(request: web.Request) -> web.Response:
+    """GET /api/developer/repos/{repo_name}/github — PR and Actions state."""
+    repo_name = request.match_info["repo_name"]
+    try:
+        payload = _repo_github_status(repo_name)
+    except FileNotFoundError:
+        return web.json_response(
+            {"error": f"Repository not found: {repo_name}"},
+            status=404,
+        )
+    return web.json_response(payload)
+
+
 async def handle_list_repo_files(request: web.Request) -> web.Response:
     repo_name = request.match_info["repo_name"]
     include_hidden = _to_bool(request.query.get("include_hidden"), default=False)
@@ -939,6 +1027,7 @@ async def handle_developer_chat(request: web.Request) -> web.Response:
             "• /api/developer/repos/{name}/files — list files in a repo\n"
             "• /api/developer/repos/{name}/review — git status review of changes\n"
             "• /api/developer/repos/{name}/status — staged/unstaged file status\n"
+            "• /api/developer/repos/{name}/github — GitHub PR and Actions status\n"
             "• /api/developer/repos/{name}/diff?path=... — view file diff\n"
             "• /api/developer/repos/{name}/file-preview?path=... — preview file content\n"
             "• /api/developer/repos/{name}/stage — stage a file (POST)\n"

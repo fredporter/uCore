@@ -42,6 +42,15 @@
           </div>
         </div>
         <div v-else-if="activeTab==='repository'">
+          <div v-if="githubStatus" class="dev-github-bar">
+            <UIcon name="cloud" />
+            <a v-if="githubStatus.repository?.url" :href="githubStatus.repository.url" target="_blank" rel="noopener">{{ githubStatus.repository.nameWithOwner }}</a>
+            <span v-else>GitHub unavailable</span>
+            <UBadge v-if="latestRun" :type="latestRun.conclusion === 'success' ? 'success' : latestRun.status === 'in_progress' ? 'info' : 'warning'" size="sm">
+              {{ latestRun.workflowName }}: {{ latestRun.conclusion || latestRun.status }}
+            </UBadge>
+            <a v-if="githubStatus.pull_request" :href="githubStatus.pull_request.url" target="_blank" rel="noopener">PR #{{ githubStatus.pull_request.number }}</a>
+          </div>
           <div v-if="!activePath" class="dev-empty">Select a file from the sidebar.</div>
           <div v-else-if="loadingFile" class="dev-loading"><UIcon name="sync" /> Loading...</div>
           <ProseCodeReader v-else :file-name="activePath.split('/').pop() || ''" :content="fileContent" />
@@ -79,6 +88,8 @@ const DEV_TABS = [
 interface Repo { name: string; branch: string; status: string; path: string; changes?: number; kind?: string; }
 interface FileItem { name: string; type: string; size?: number; }
 interface TreeNode { name: string; path: string; isDir: boolean; depth: number; }
+interface GithubRun { workflowName: string; status: string; conclusion: string; url: string; }
+interface GithubStatus { configured: boolean; repository?: { nameWithOwner: string; url: string }; pull_request?: { number: number; url: string } | null; runs?: GithubRun[]; }
 
 const repos = ref<Repo[]>([]);
 const fileTree = ref<FileItem[]>([]);
@@ -93,6 +104,8 @@ const showSidebar = computed(() => shell.developerSidebarOpen && activeTab.value
 const sidebarRepo = ref("");
 const devLane = ref<"core" | "extension" | "project">("extension");
 const expandedDirs = ref<Set<string>>(new Set());
+const githubStatus = ref<GithubStatus | null>(null);
+const latestRun = computed(() => githubStatus.value?.runs?.[0] || null);
 
 function getLaneForRepo(repo: Repo): "core" | "extension" | "project" {
   const name = (repo.name || "").trim().toLowerCase();
@@ -169,6 +182,11 @@ function toggleDir(path: string) {
 async function openSidebarRepo(name: string) {
   sidebarRepo.value = name; activeRepo.value = name; activePath.value = ""; expandedDirs.value = new Set();
   loadingFiles.value = true;
+  githubStatus.value = null;
+  try {
+    const res = await fetch("/api/developer/repos/" + encodeURIComponent(name) + "/github", { signal: AbortSignal.timeout(12000) });
+    if (res.ok) githubStatus.value = await res.json();
+  } catch {}
   try { const res = await fetch("/api/developer/repos/" + encodeURIComponent(name) + "/files", { signal: AbortSignal.timeout(8000) }); if (res.ok) { const d = await res.json(); fileTree.value = d.files || []; } } catch { fileTree.value = []; }
   loadingFiles.value = false;
   // Auto-select default file
@@ -275,5 +293,7 @@ watch(
 .dev-lane-bar { display: flex; justify-content: center; gap: var(--usx-spacing-xs); margin-bottom: var(--usx-spacing-md); align-items: center; flex-wrap: wrap; }
 .dev-lane-bar button { align-self: center; flex-shrink: 0; white-space: nowrap; padding: var(--usx-spacing-xs) var(--usx-spacing-md); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-surface); color: var(--usx-color-on-surface); cursor: pointer; font-size: var(--usx-font-size-sm); height: auto; min-height: auto; }
 .dev-lane-bar button.active { background: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
+.dev-github-bar { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-sm) var(--usx-spacing-md); margin-bottom: var(--usx-spacing-md); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-surface-variant); font-size: var(--usx-font-size-sm); }
+.dev-github-bar a { color: var(--usx-color-primary); text-decoration: none; }
 .dev-loading, .dev-empty { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-xl); color: var(--usx-color-on-surface-muted); justify-content: center; font-size: var(--usx-font-size-sm); }
 </style>

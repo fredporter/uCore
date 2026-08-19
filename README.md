@@ -55,31 +55,6 @@ curl http://localhost:8484/api/health
 ./scripts/install.sh --uninstall
 ```
 
-### Manual Smoke Workflow (GitHub Actions)
-
-uCore includes a manual workflow for SnackMachine integration smoke:
-
-- Workflow name: SnackMachine Smoke
-- Workflow file: .github/workflows/snackmachine-smoke.yml
-- Trigger: Actions -> SnackMachine Smoke -> Run workflow
-
-Inputs:
-
-- ucore_url (default: http://127.0.0.1:8484)
-- frontend_url (default: http://localhost:5175)
-- snackmachine_path (default: $HOME/Code/SnackMachine)
-
-Self-hosted runner prerequisites:
-
-- uCore backend running and reachable at ucore_url
-- uCore frontend running and reachable at frontend_url
-- SnackMachine repo checked out at snackmachine_path
-- Python 3 available on runner PATH
-
-What it runs:
-
-- bash scripts/smoke_snackmachine_integration.sh
-
 ## Architecture
 
 uCore is the **host platform core**. Optional capabilities — workflow,
