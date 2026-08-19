@@ -1,5 +1,9 @@
 # MCP for Everything Policy
 
+> Superseded on 2026-08-19 by `MCP_ARCHITECTURE_AUDIT_2026-08-19.md`.
+> MCP is an external adapter boundary, not a universal internal integration
+> layer. The policy below is retained only as evidence of the retired design.
+
 Version: 1.0.0
 Effective: 2026-06-26
 
