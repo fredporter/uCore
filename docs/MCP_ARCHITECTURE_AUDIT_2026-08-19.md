@@ -37,11 +37,11 @@ tool discovery through an MCP SDK.
 
 | Path | Finding | Disposition |
 |---|---|---|
-| `backend/app/api/mcp.py` and `mcp_handlers/` | Bespoke GET/POST REST facade that resembles JSON-RPC but has no MCP initialization, session, or transport lifecycle | Remove after the gateway uses owned APIs directly |
-| `backend/app/services/mcp/` | Custom peer mesh with hard-coded machines, `/v1/health`, and legacy Snackmachine JSONL transport | Remove |
-| `backend/app/snackbar/modules/mcp_bridge.py` | Second API facade mixing peer calls, providers, and chat under `/api/mcp/*` | Remove |
-| `backend/mcp/mcp_diagnostics.py` | Static file-existence check with tool names already removed from the bridge | Replace with a real gateway protocol smoke test |
-| `skill_mcp_self_heal.py` and MCP guardrails | Validate and repair the bespoke Python facade, not an MCP transport | Remove with that facade |
+| Python REST facade and handler registry | Removed in PR #11 after the gateway switched to owned APIs |
+| Custom peer/GitHub mesh | Removed in PR #11; external GitHub MCP connects directly to its host |
+| Duplicate Snackbar MCP facade and panel | Removed in PR #11 |
+| Static Python diagnostics | Replaced in PR #10 by an official-client protocol test |
+| MCP self-heal and guardrails | Removed in PR #11 with the facade they mutated |
 | HiveMind/feed/TOON naming | Independent HTTP services described as MCP without a compliant MCP transport | Rename as services or expose selected operations through the gateway |
 | uCode `config/mcp_config.json` | Registers the uCore web app, Ollama, HiveMind, and feed processes as MCP servers although they do not speak MCP over stdio | Remove |
 | uCode GridSmith MCP server | Hand-rolled 2024-11-05 HTTP JSON-RPC; POST-only, permissive CORS, no standard Streamable HTTP lifecycle/auth | Replace with a domain adapter registered in `udos-mcp` |
@@ -160,9 +160,9 @@ Vendor intake rules are tightened for this work:
    adapters that have implemented canonical routes, including input schemas
    and timeouts. Defer single-task and single-document reads until their
    owning repositories provide real GET contracts.
-3. Remove Python `api/mcp.py`, `mcp_handlers`, MCP guardrails/self-heal, the
-   custom peer mesh, duplicate Snackbar routes, stale diagnostics, launchers,
-   manifests, and UI claims that enumerate non-MCP services.
+3. Remove Python facade/handlers, guardrails/self-heal, custom peer mesh,
+   duplicate Snackbar routes, stale diagnostics/launchers/manifests, and UI
+   claims that enumerate non-MCP services. Completed in PR #11.
 4. Remove uCode's invalid MCP configuration; migrate selected GridSmith reads
    behind the uCode adapter and rename Mini Control Protocol symbols/docs.
 5. Publish one client configuration example for the stdio gateway and prove it

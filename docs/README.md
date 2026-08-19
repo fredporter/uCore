@@ -6,8 +6,8 @@
 
 | Doc                                                                                      | Purpose                           |
 | ---------------------------------------------------------------------------------------- | --------------------------------- |
-| [MCP_SETUP.md](MCP_SETUP.md)                                                             | Install and configure MCP servers |
-| [USER_SETUP_VAULT_MCP_WORKSPACES.md](USER_SETUP_VAULT_MCP_WORKSPACES.md)                 | Vault and MCP workspace setup     |
+| [MCP_SETUP.md](MCP_SETUP.md)                                                             | Build and configure `udos-mcp`    |
+| [USER_SETUP_VAULT_MCP_WORKSPACES.md](USER_SETUP_VAULT_MCP_WORKSPACES.md)                 | Vault and workspace setup         |
 
 ## Active System Specs
 

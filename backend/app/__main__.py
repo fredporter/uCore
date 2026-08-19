@@ -105,22 +105,6 @@ def main():
     except Exception as exc:
         log.warning("⚠️  Startup health check error: %s", exc)
 
-    # MCP Integrity Check (fast structural only)
-    try:
-        from .api.mcp_guardrails import validate_mcp_integrity
-        report = validate_mcp_integrity()
-        if not report["ok"]:
-            log.warning("⚠️  MCP integrity check FAILED: %s", report["errors"])
-            log.warning("   Run 'skill_mcp_self_heal' to attempt auto-repair")
-        else:
-            log.info("✅ MCP integrity check passed")
-    except Exception as exc:
-        log.warning("⚠️  MCP integrity check error: %s", exc)
-
-    # ── Auto-Start Hivemind (port 8490) ────────────────────────
-    from .mcp.hivemind_launcher import start_hivemind
-    start_hivemind()
-
     # Delegate to snackbar
     from .core.snackbar import main as run_snackbar
     run_snackbar()

@@ -10,7 +10,6 @@
     {"module": "episodic_log.py", "owner": "uCore", "lifecycle": "review", "risk": "write", "lane": "memory", "allowed_roots": ["UDOS_HOME"]},
     {"module": "git_maintenance.py", "owner": "uCore", "lifecycle": "active", "risk": "write", "lane": "developer", "allowed_roots": ["Code"]},
     {"module": "lint_fix.py", "owner": "uCore", "lifecycle": "active", "risk": "write", "lane": "developer", "allowed_roots": ["Code"]},
-    {"module": "skill_mcp_self_heal.py", "owner": "uCore", "lifecycle": "merge", "risk": "write", "lane": "recovery", "allowed_roots": ["Code", "UDOS_HOME"]},
     {"module": "skill_nuggets_and_spool.py", "owner": "uCore", "lifecycle": "split", "risk": "destructive", "lane": "recovery", "allowed_roots": ["UDOS_HOME"]},
     {"module": "skill_self_heal.py", "owner": "uCore", "lifecycle": "merge", "risk": "destructive", "lane": "recovery", "allowed_roots": ["Code", "UDOS_HOME"]},
     {"module": "skill_vault_discovery.py", "owner": "uKnowledge", "lifecycle": "move", "risk": "read", "lane": "knowledge", "allowed_roots": ["Vault", "Shared", "Public"]},

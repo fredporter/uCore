@@ -36,22 +36,21 @@ the FTS5 index at `~/.ucore/indices/library.db`. Scheduled syncs run daily.
 
 ## 2. MCP Integration
 
-### 2.1. MCP Server Setup
+### 2.1. Canonical Gateway
 
-MCP servers provide tools and resources that uCore can leverage. Ensure the necessary MCP servers are running and accessible locally.
+uCore provides one local stdio gateway, `udos-mcp`. Build and test it using
+[`MCP_SETUP.md`](MCP_SETUP.md). The MCP host launches the gateway; it is not an
+always-running uCore HTTP service.
 
-*   **Firewatch MCP**: For browser automation. Install globally (`npm install -g firewatch-mcp`) and configure in Cline settings. Refer to `docs/ZEN_PLAYWRIGHT_AUTOMATION_TOOLCHAIN.md` for detailed setup.
-*   **Zapier MCP**: For connecting to Zapier's ecosystem. Refer to Zapier MCP documentation for setup.
+External MCP servers are configured directly in the client that owns them. They
+are not proxied, registered, or supervised by uCore.
 
 ### 2.2. Using MCP Tools
 
-MCP tools are accessed via the Cline CLI or directly through API calls.
+MCP tools are accessed through an MCP client using the stdio command documented
+in `MCP_SETUP.md`.
 
-*   **Cline CLI**:
-    ```bash
-    cline --yolo "Use Firewatch to navigate to http://localhost:5173 and click 'Import'"
-    ```
-*   **API Calls**: Refer to `backend/app/api/mcp/` for direct API endpoint usage.
+There is no `/api/mcp/*` compatibility facade.
 
 ## 3. Workspace Switching
 
@@ -66,8 +65,8 @@ layers in the sidebar and knowledge tools.
 ## 4. Integrating with Automation Tools
 
 Use the existing skills (`vault_sync`, `tasker_sync`, `brain_sync`) directly
-instead of third-party sync tools. Workflow automation can call these through
-the MCP/skill API.
+instead of third-party sync tools. Workflow automation uses the canonical
+uFlow and uKnowledge APIs.
 
 ## 5. Scheduling Automation
 

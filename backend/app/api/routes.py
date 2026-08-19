@@ -91,11 +91,6 @@ def register_routes(app: web.Application) -> None:
         handle_ollama_performance,
         handle_ollama_status,
     )
-    from .mcp import (
-        handle_mcp_call,
-        handle_mcp_diagnostics,
-        handle_mcp_discover,
-    )
     from .metadata import (
         maintenance_status_handler,
         system_info_handler,
@@ -142,11 +137,6 @@ def register_routes(app: web.Application) -> None:
 
     registry.register_routes(app)
     log.debug("Extension registry routes wired")
-
-    # MCP Integration
-    app.router.add_get("/api/mcp/tools", handle_mcp_discover)
-    app.router.add_post("/api/mcp/call", handle_mcp_call)
-    app.router.add_get("/api/mcp/diagnostics", handle_mcp_diagnostics)
 
     # TOON Context Optimization
     app.router.add_post("/api/toon/encode", handle_toon_encode)

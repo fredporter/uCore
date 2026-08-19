@@ -2,7 +2,6 @@
 
 Provides a single entrypoint for full-system health checks, aggregating:
 - HTTP server liveness
-- MCP structural integrity (guardrails)
 - Skill registry load status
 - Plate/template verification
 - Database connectivity
@@ -46,27 +45,6 @@ async def _check_http_liveness() -> HealthComponent:
         message="uCore HTTP server responding",
         latency_ms=(time.perf_counter() - t0) * 1000,
     )
-
-
-async def _check_mcp_integrity() -> HealthComponent:
-    t0 = time.perf_counter()
-    try:
-        from app.api.mcp_guardrails import validate_mcp_integrity
-        report = validate_mcp_integrity()
-        return HealthComponent(
-            name="mcp_integrity",
-            ok=report["ok"],
-            message="MCP layer healthy" if report["ok"] else f"MCP integrity failure: {report['errors']}",
-            detail={"checks": len(report.get("checks", [])), "errors": report.get("errors", [])},
-            latency_ms=(time.perf_counter() - t0) * 1000,
-        )
-    except Exception as e:
-        return HealthComponent(
-            name="mcp_integrity",
-            ok=False,
-            message=f"MCP integrity check error: {e}",
-            latency_ms=(time.perf_counter() - t0) * 1000,
-        )
 
 
 async def _check_skill_registry() -> HealthComponent:
@@ -214,7 +192,6 @@ async def get_full_health() -> dict[str, Any]:
     """
     checks = await asyncio.gather(
         _check_http_liveness(),
-        _check_mcp_integrity(),
         _check_skill_registry(),
         _check_plate_health(),
         _check_database(),
@@ -266,24 +243,14 @@ async def run_self_repair() -> dict[str, Any]:
     """Attempt automatic repair of known issues.
 
     Triggers:
-      1. MCP self-heal skill (structural repair)
-      2. Skill registry reload
-      3. Plate verification (identify corrupted plates)
+      1. Skill registry reload
+      2. Plate verification (identify corrupted plates)
 
     Returns repair report.
     """
     repairs: list[dict[str, Any]] = []
 
-    # 1. MCP self-heal
-    try:
-        from app.skills.builtin.skill_mcp_self_heal import MCPSelfHealSkill
-        skill = MCPSelfHealSkill()
-        result = await skill.run(dry_run=False)
-        repairs.append({"component": "mcp_layer", "success": result.get("success", False), "message": result.get("message", "")})
-    except Exception as e:
-        repairs.append({"component": "mcp_layer", "success": False, "message": str(e)})
-
-    # 2. Skill registry reload
+    # 1. Skill registry reload
     try:
         from app.skills.registry import reload_registry
         reload_result = reload_registry()
@@ -291,7 +258,7 @@ async def run_self_repair() -> dict[str, Any]:
     except Exception as e:
         repairs.append({"component": "skill_registry", "success": False, "message": str(e)})
 
-    # 3. Plate verification
+    # 2. Plate verification
     try:
         from backend.plate_refresh.verification import verify_all_plates
         plate_result = verify_all_plates()
@@ -299,7 +266,7 @@ async def run_self_repair() -> dict[str, Any]:
     except Exception as e:
         repairs.append({"component": "plate_health", "success": False, "message": str(e)})
 
-    # 4. Run health check post-repair
+    # 3. Run health check post-repair
     health = await get_full_health()
 
     return {
