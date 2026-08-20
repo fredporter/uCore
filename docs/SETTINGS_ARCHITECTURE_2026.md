@@ -10,7 +10,7 @@ The settings system has three tiers of configuration, each backed by different p
 
 ## Layer 1: Global & User Settings (System Surface)
 
-**Location**: `http://localhost:5173/system?tab=global-settings` and `?tab=user-settings`
+**Location**: `http://localhost:5175/system?tab=global-settings` and `?tab=user-settings`
 
 **Component**: `frontend-vue/src/surfaces/system/SystemSurface.vue`
 
@@ -75,7 +75,7 @@ interface UserSettings {
 
 ## Layer 3: Developer Settings (Developer Surface)
 
-**Location**: `http://localhost:5173/developer?tab=settings`
+**Location**: `http://localhost:5175/developer`
 
 **Component**: `frontend-vue/src/surfaces/developer/panels/SettingsPanel.vue`
 

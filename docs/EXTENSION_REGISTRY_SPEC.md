@@ -282,7 +282,7 @@ required capability paths.
 ## uVector Position (Current)
 
 `uVector` is currently best treated as an **extension-class engine candidate**
-aligned with uCode2/uCode3-era rendering workflows, not as a `udos-*` domain
+aligned with future uCode rendering profiles, not as a `udos-*` domain
 plugin.
 
 Evidence from `uVector` repository:
@@ -296,7 +296,7 @@ Evidence from `uVector` repository:
 
 Current recommended interpretation:
 
-1. uVector aligns with future uCode2/uCode3 and grid-runtime rendering
+1. uVector aligns with future uCode and grid-runtime rendering
    concerns.
 2. uVector may also be consumed by Google/Nano-Banana image-generation flows
    as a conversion/post-processing engine.

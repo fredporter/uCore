@@ -1,6 +1,6 @@
 # Skills Audit — 2026-08-18
 
-**Status:** Active remediation
+**Status:** Completed/superseded remediation record
 
 **Observed registry before remediation:** 53 executable Skills, including one user example
 

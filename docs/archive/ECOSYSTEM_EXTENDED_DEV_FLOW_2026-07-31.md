@@ -1,6 +1,6 @@
 # Ecosystem Extended Dev Flow (2026-07-31)
 
-Status: Active planning baseline
+Status: Superseded planning record
 Owner: uCore host shell + companion plugin/extension repos
 Purpose: keep core infrastructure simple and robust while enabling focused plugin waves.
 

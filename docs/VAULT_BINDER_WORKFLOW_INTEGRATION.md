@@ -361,7 +361,7 @@ uCore enforces a strict separation between user content and system code:
 ### Boundary Rules
 
 1. **User Lane agents** (AssistUI chat) work only on vault content, binders, docs, and uCode (BASIC) files. They never touch the system codebase.
-2. **Developer Lane agents** (Hivemind, Roundtable, Cline) work only on the codebase. They never touch user vaults unless explicitly directed.
+2. **Developer Lane tools** work only on the codebase. They never touch user vaults unless explicitly directed.
 3. The Assistant should ask which lane the user intends before performing ambiguous actions.
 4. The Developer Surface is hidden by default (can be enabled in Settings).
 5. The default lane in AssistUI is **User**.

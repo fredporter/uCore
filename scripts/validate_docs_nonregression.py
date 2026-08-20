@@ -33,7 +33,7 @@ def main() -> int:
 
     ext_spec = _read("docs/EXTENSION_REGISTRY_SPEC.md")
     policy = _read("docs/RELIABILITY_SINGLE_PATH_POLICY.md")
-    dev_flow = _read("docs/specs/ECOSYSTEM_EXTENDED_DEV_FLOW_2026-07-31.md")
+    readme = _read("README.md")
     runbook = _read("docs/specs/AUTONOMOUS_DEV_ROUNDS_RUNBOOK.md")
 
     _require(
@@ -86,9 +86,9 @@ def main() -> int:
         failures,
     )
     _require(
-        dev_flow,
-        "Gate 0 - Core Stability First",
-        "extended flow includes stability-first gate",
+        readme,
+        "fake users, compatibility shims and duplicated MCP facades are unsupported",
+        "README states the pre-release hard-cut baseline",
         failures,
     )
     _require(
