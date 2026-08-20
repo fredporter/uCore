@@ -1,6 +1,6 @@
 # Agent Execution Architecture
 
-**Status:** Canonical direction
+**Status:** Superseded historical direction
 
 **Updated:** 2026-08-18
 

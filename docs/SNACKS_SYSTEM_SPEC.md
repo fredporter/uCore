@@ -62,7 +62,7 @@ backend/app/menu/unified_menu_simple.py now:
 - executes system snack actions via /api/snacks/system/{id}/run
 - renders multi-action submenu entries
 
-**Note**: Full snack management is available in the SnackMachine surface (http://localhost:5173/snackmachine).
+**Note**: Snack management is available in Snackbar (`http://localhost:5175/snackbar?tab=snacks`).
 
 ## Dependencies
 

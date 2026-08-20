@@ -1,4 +1,4 @@
-# macOS Menu Bar Unification Plan
+# Archived — macOS Menu Bar Unification Plan
 
 **Date:** 2026-06-27  
 **Status:** ✅ Complete  

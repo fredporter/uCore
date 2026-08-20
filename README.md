@@ -1,173 +1,94 @@
-# uCore — Unified Development OS
+# uCore
 
-[![Python](https://img.shields.io/badge/Python-3.12-blue)]()
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)]()
-[![License](https://img.shields.io/badge/License-Apache%202.0-green)]()
-[![Tests](https://img.shields.io/badge/Tests-301%20passing-brightgreen)]()
+uCore is the local-first host application for the uDOS development ecosystem.
+It provides the Vue shell, governed backend APIs, extension discovery, runtime
+health, and the Developer surface used to work with repositories under
+`~/Code`.
 
-uCore is a **local-first, AI-powered development daemon** that unifies syntax, automation, and runtime management.
+**Pre-release:** the architecture is being dogfooded directly from `main`; it is
+not yet a public release or a compatibility target.
 
-**Port:** 8484 | **Stack:** Python 3.12 + aiohttp + SQLite + Vue 3 + TypeScript
+## Canonical ownership
 
-## Quick Start
+| Repository | Owns |
+| --- | --- |
+| `uCore` | Host shell, Developer UI, governed capabilities, settings and extension loading |
+| `uFlow` | Durable missions, tasks, workflows, approvals and execution evidence |
+| `uKnowledge` | Vault discovery, search, indexing and knowledge APIs |
+| `uCode` | GridCore, rendering packages, terminal/runtime and code primitives |
 
-### First Time on macOS (Fresh System)
+Domain projects and `udos-*` extensions remain independently owned. They may
+integrate through the extension contract; their domain logic does not move into
+uCore.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/uDosGo/uCore/main/scripts/bootstrap.sh | bash
-```
+## Development
 
-This installs Homebrew, Python 3.12, Node.js 22, pnpm, clones uCore, and starts everything.
-
-The installer also validates and syncs locked vendor modules for a consistent
-uDos experience (SnackMachine core, udos-agents, udos-budget, udos-identity).
-
-### Already Have Prerequisites
+Required baseline: macOS, Python 3.12, Node.js 22+, and pnpm 9+.
 
 ```bash
 git clone https://github.com/uDosGo/uCore.git
 cd uCore
 ./scripts/setup.sh
+
+# backend: http://localhost:8484
+pnpm dev:backend
+
+# frontend: http://localhost:5175
+pnpm dev
 ```
 
-### Vendor Module Lock (Deterministic)
+Enable Dev Mode from the uCore interface, then open
+`http://localhost:5175/developer`. The Developer surface is deliberately small:
+
+- **Code** — repository and file browsing;
+- **Repository** — working-tree review, stage/unstage and commit;
+- **Editor** — guarded file editing with diff review.
+
+It also shows the current branch, open pull request and recent GitHub Actions
+runs through the authenticated `gh` CLI. Remote mutations follow the explicit
+branch → checks → pull request → merge sequence.
+
+## Verification
 
 ```bash
-# Refresh lock metadata from vendor/sources.yaml and validate
-./scripts/vendor_sync.sh --refresh-lock --check
-
-# Install locked Python vendor modules
-source .venv/bin/activate
-./scripts/vendor_sync.sh --install-python --check
+pnpm build
+pnpm test
+pnpm lint
+pnpm mcp:build
+pnpm mcp:test
 ```
 
-### Verify
+The official MCP implementation is `backend/app/mcp/udos_mcp`. It is a
+self-hosted stdio gateway with six bounded read-only tools. It is not a second
+orchestration, task, provider, or knowledge system.
 
-```bash
-curl http://localhost:8484/api/health
-# Look for 🍿 in the macOS menu bar
-# Frontend: http://localhost:5175
-```
+## Architecture rules
 
-### Uninstall
+- `~/Code` is the Developer lane; `~/Vault`, `~/Shared`, and `~/Public` are
+  content lanes.
+- GitHub is the remote source of truth. uFlow owns durable task and evidence
+  state.
+- Provider and budget decisions pass through one governed routing path.
+- Capabilities are registered explicitly and fail closed; loose runtime scripts,
+  fake users, compatibility shims and duplicated MCP facades are unsupported.
+- `Vendor/` is local development research only. Useful components are forked
+  into an active repository before becoming product dependencies.
+- Required extensions fail clearly when unavailable; there are no hidden
+  fallback implementations.
 
-```bash
-./scripts/install.sh --uninstall
-```
+## Current documentation
 
-## Architecture
+- [Developer surface](docs/DEVELOPER_SURFACE.md)
+- [Developer GitHub contract](docs/DEVELOPER_GITHUB_CONTRACT.md)
+- [Extension registry](docs/EXTENSION_REGISTRY_SPEC.md)
+- [MCP setup](docs/MCP_SETUP.md)
+- [MCP architecture audit](docs/MCP_ARCHITECTURE_AUDIT_2026-08-19.md)
+- [Surface ownership](docs/SURFACE_OWNERSHIP.md)
+- [Repository ownership boundaries](docs/UCORE_UCODE_ROLE_BOUNDARY.md)
 
-uCore is the **host platform core**. Optional capabilities — workflow,
-knowledge, and domain plugins — live in dedicated repos and plug in via
-a lightweight extension contract.
-
-```
-Codex (external development) → Git/GitHub → uCore (port 8484)
-uCore guided agents → Ollama/OpenRouter/OpenAI APIs
-  │
-  ├── Core shell (uCore host-only)
-  │   ├── Skills (15 built-in) — backup, sync, route, ask vault
-  │   ├── Secrets — AES-256-GCM encrypted store
-  │   ├── Chat — AI providers via OpenRouter/Ollama/Gemini
-  │   ├── Surfaces (10) — Dashboard, Assistant, Server, Developer,
-  │   │                    System, Workflow, SnackMachine, BrowserUI,
-  │   │                    Documentation, uCode
-  │   ├── Plates — Vault plates, surface templates (Cookiecutter)
-  │   ├── Hivemind — MCP orchestration, template verification, audit
-  │   ├── TOON Context Optimization — Token-optimized context encoding
-  │   └── Flow-LLM Router — Cost-optimized routing with analytics
-  │
-  ├── Extension Registry (plugin contract)
-  │   ├── Discovery — scans for ucore-extension.json manifests
-  │   ├── Loading — imports and calls setup(app) on each extension
-  │   └── Routing — delegates /api/* prefixes to extensions
-  │
-  ├── Adaptable (moving to dedicated repos)
-  │   ├── uFlow — workflow engine, runs, logs, task orchestration
-  │   └── uKnowledge — vault search, semantic search, indexing
-  │
-  └── Plugins (udos-* prefix)
-      └── HomeNest/modules/home-ops/udos-home — starter domain plugin module
-
-→ Roundtable MCP → parallel Claude/Gemini/OpenRouter execution
-```
-
-## Repositories
-
-| Repo           | Kind          | Purpose                                    | Location            |
-| -------------- | ------------- | ------------------------------------------ | ------------------- |
-| **uCore**      | host/core     | Platform daemon + extension registry       | `~/Code/uCore`      |
-| **uFlow**      | workflow      | Workflow engine, runs, logs, tasks         | `~/Code/uFlow`      |
-| **uKnowledge** | knowledge     | Vault search, semantic search, indexing | `~/Code/uKnowledge` |
-| **uCode**      | runtime       | Base runtime and core grid/code foundation | `~/Code/uCode`      |
-| **uCode2**     | runtime       | Advanced runtime layer (later extension)   | `~/Code/uCode2`     |
-| **HomeNest**   | plugin (udos) | Home automation + app-layer runtime        | `~/Code/HomeNest`   |
-| **uDocs**      | docs          | Canonical documentation                    | GitHub              |
-
-## Editor Strategy
-
-- Dedicated third-party workspace sync inside uCore is deprecated.
-- Vault content should remain portable and work in standard editors such as
-  Obsidian without uCore-specific lock-in.
-- Primary editing happens in the in-product Markdown editor for first-class
-  document workflows.
-- Task flows should link to markdown specs/docs when deeper implementation
-  details are required.
-
-> During the repo split, uCore keeps **routing adapters**
-> (`app.extensions.adapters/`) as import bridges only.
-> Missing required external repos must fail fast.
-
-## Surfaces (10)
-
-| Surface       | Route                | Description                                                           |
-| ------------- | -------------------- | --------------------------------------------------------------------- |
-| Dashboard     | `/`                  | Main landing, Dev Mode filtering                                      |
-| Intelligence  | `/intelligence`      | Chat, planning, models, agents, budget, and history                    |
-| Snackbar      | `/snackbar`          | Services, feeds, skills, snacks, extensions, logs, and MCP            |
-| Developer     | `/developer`         | Developer tools                                                       |
-| System        | `/system`            | System settings                                                       |
-| Workflow      | `/workflow`          | Workflow builder                                                      |
-| SnackMachine  | `/snackbar?tab=snacks` | Core snack workspace (packaged snacks via SnackMachine extension)   |
-| BrowserUI     | `/browserui`         | Browser automation                                                    |
-| Documentation | `/documentation`     | Docs viewer                                                           |
-| uCode         | `/ucode`             | uCode runtime bridge: GridCore, GridSmith, teletext, terminal widgets |
-
-## Documentation
-
-Canonical docs live in **[uDocs](https://github.com/uDosGo/uDocs)**:
-
-| Section                                                                                   | Description                            |
-| ----------------------------------------------------------------------------------------- | -------------------------------------- |
-| [Architecture](https://github.com/uDosGo/uDocs/blob/main/architecture/overview.md)        | System topology, data flow, security   |
-| [API Reference](https://github.com/uDosGo/uDocs/blob/main/api/rest-api.md)                | All endpoints with examples            |
-| [Runbooks](https://github.com/uDosGo/uDocs/blob/main/runbooks/development.md)             | Setup, deploy, backup, troubleshooting |
-| [Surfaces](https://github.com/uDosGo/uDocs/tree/main/surfaces)                            | All 12 surfaces                        |
-| [Agent Architecture](docs/AGENT_EXECUTION_ARCHITECTURE.md)                              | Guided model routing and orchestration |
-
-Local docs in `docs/` cover vault plates, USX layout, and system specs.
-
-## Key Endpoints
-
-```bash
-curl http://localhost:8484/api/health          # Health check
-curl http://localhost:8484/api/skills          # 15 skills
-curl http://localhost:8484/api/tools           # 7 tools
-curl http://localhost:8484/api/models          # 4 providers
-curl http://localhost:8484/api/secrets         # Encrypted store
-curl http://localhost:8484/api/mcp/tools       # MCP tools
-curl http://localhost:8484/api/knowledge/workspaces  # Vault workspace bridge
-```
-
-## Status
-
-- **301 backend tests** — all passing
-- **0 TypeScript errors** — clean build
-- **15 built-in skills** — auto-discovered
-- **4 AI providers** — Ollama, OpenRouter, Claude, Gemini
-- **12 surfaces** — Vue 3 + USX layout system
-- **Plates system** — Vault plates, surface templates, destroy patterns
+Historical plans and superseded experiments live under `docs/archive/`,
+`docs/archived/`, and `docs/legacy/`; they are not implementation contracts.
 
 ## License
 
-Apache 2.0 — see LICENSE.
+Apache 2.0 — see [LICENSE](LICENSE).

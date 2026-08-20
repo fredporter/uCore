@@ -1,7 +1,7 @@
 # uCore Plates System Specification
 
 > **Version:** 1.0  
-> **Status:** Draft  
+> **Status:** Superseded draft  
 > **Scope:** Skills, Snacks, MCP Tools, Hivemind Patterns, Variables/Secrets, CSS/USX  
 > **Naming:** "Plates" — canonical, versioned, recoverable blueprints (like printing plates)
 
