@@ -7,6 +7,7 @@
  */
 
 import type { GridBuffer, GridCell } from "@udos/gridcore/buffer/cell";
+import { segmentGraphemes } from "@udos/gridcore/characters";
 
 /**
  * Create an empty grid buffer filled with space characters.
@@ -44,11 +45,12 @@ export function writeString(
 
   if (row < 0 || row >= rows) return result;
 
-  for (let i = 0; i < text.length; i++) {
+  const graphemes = segmentGraphemes(text);
+  for (let i = 0; i < graphemes.length; i++) {
     const c = col + i;
     if (c >= 0 && c < cols) {
       result[row][c] = {
-        char: text[i],
+        char: graphemes[i].text,
         fg,
         bg,
         bold,
@@ -146,12 +148,13 @@ export function bufferToString(buf: GridBuffer): string {
  */
 export function stringToBuffer(text: string): GridBuffer {
   const lines = text.split("\n");
-  const cols = Math.max(...lines.map((l) => l.length), 0);
-  return lines.map((line) => {
+  const segmentedLines = lines.map((line) => segmentGraphemes(line));
+  const cols = Math.max(...segmentedLines.map((line) => line.length), 0);
+  return segmentedLines.map((line) => {
     const row: GridCell[] = [];
     for (let i = 0; i < cols; i++) {
       row.push({
-        char: i < line.length ? line[i] : " ",
+        char: i < line.length ? line[i].text : " ",
         fg: 7,
         bg: 0,
       });

@@ -371,28 +371,6 @@ def register_routes(app: web.Application) -> None:
     except ImportError as e:
         log.debug("Identity routes not available: %s", e)
 
-    # ── uCode runtime bridge: Ceefax + BBCSDL (adapter) ────────────
-    try:
-        from app.extensions.adapters.ucode_runtime_adapter import (
-            register_routes as register_ucode_runtime_routes,
-        )
-
-        register_ucode_runtime_routes(app, CEEFAX_STORE_KEY)
-        log.debug("uCode runtime bridge routes registered")
-    except ImportError as e:
-        log.debug("uCode runtime bridge adapter not available: %s", e)
-
-    # ── Terminal runtime bridge (adapter) ───────────────────────────
-    try:
-        from app.extensions.adapters.ucode_runtime_adapter import (
-            register_terminal_runtime_routes,
-        )
-
-        register_terminal_runtime_routes(app)
-        log.debug("Terminal runtime bridge registered")
-    except ImportError as e:
-        log.debug("Terminal runtime bridge adapter not available: %s", e)
-
     # ── Dashboard Surface ──────────────────────────────────────────
     try:
         from ..surfaces.dashboard import DashboardStore, register_dashboard_routes

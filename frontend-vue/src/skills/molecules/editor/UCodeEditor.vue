@@ -64,6 +64,8 @@ layout. */
           v-if="showDiff && activeTab"
           :original="diffOriginal"
           :modified="activeContent"
+          :status="diffStatus"
+          :has-repository-diff="hasRepositoryDiff"
           @update:modified="onModifiedInDiff"
         />
         <JupyterCellsPanel
@@ -111,6 +113,9 @@ interface Props {
   fileRepo?: string;
   readOnly?: boolean;
   diffOriginal?: string;
+  diffStatus?: "clean" | "modified" | "added" | "deleted";
+  hasRepositoryDiff?: boolean;
+  saveRevision?: number;
   notebookCells?: NotebookCell[];
   showAddTab?: boolean;
 }
@@ -122,6 +127,9 @@ const props = withDefaults(defineProps<Props>(), {
   fileRepo: "",
   readOnly: false,
   diffOriginal: "",
+  diffStatus: "clean",
+  hasRepositoryDiff: false,
+  saveRevision: 0,
   notebookCells: () => [],
   showAddTab: false,
 });
@@ -242,6 +250,7 @@ function onSplitterResize(delta: number) {
 function onModifiedInDiff(value: string) {
   if (activeTabId.value) tabContents.value[activeTabId.value] = value;
   emit("update:fileContent", value);
+  onContentChange();
 }
 
 // ── Notebook cells ─────────────────────────────────────────────────
@@ -313,6 +322,14 @@ watch(
     if (info.name || info.path) openFile(info.name, info.path, info.content);
   },
   { immediate: true },
+);
+
+watch(
+  () => props.saveRevision,
+  () => {
+    isDirty.value = false;
+    if (activeTab.value) activeTab.value.dirty = false;
+  },
 );
 
 defineExpose({

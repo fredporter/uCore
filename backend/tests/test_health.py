@@ -24,4 +24,13 @@ def test_snackbar_import():
     assert app is not None
     routes = list(app.router.routes())
     assert len(routes) >= 4  # health, version, info, shutdown + system
-
+    paths = {route.resource.canonical for route in routes}
+    assert "/api/ucode/info" in paths
+    assert "/api/terminal/runtime/ws" in paths
+    assert "/api/ucode/library" in paths
+    assert "/api/ucode/library/{title_id}" in paths
+    assert "/api/ucode/library/{title_id}/launch" in paths
+    assert "/api/ucode/library/{title_id}/probe" in paths
+    assert "/api/ucode/library/{title_id}/verify" in paths
+    assert "/api/ucode/runtime/ws" in paths
+    assert "/api/ceefax/page/{num}" in paths

@@ -44,31 +44,11 @@ export {
 
 // ── Local config: uCore vault public library definitions ──────────
 // This maps uCore's vault sources (public / global-knowledge) to Ceefax page ranges.
-import type { PublicLibraryDef } from "@udos/gridcore/teletext";
-
-export const PUBLIC_LIBRARY_DEFS: PublicLibraryDef[] = [
-  {
-    id: "documentation",
-    label: "Documentation",
-    source: "public",
-    tag: "doc-sites",
-    page: 200,
-    colour: 2,
-  },
-  {
-    id: "knowledge",
-    label: "Global Knowledge",
-    source: "global-knowledge",
-    tag: null,
-    page: 300,
-    colour: 3,
-  },
-  {
-    id: "learning",
-    label: "Learning",
-    source: "public",
-    tag: "learning",
-    page: 400,
-    colour: 6,
-  },
-];
+export {
+  buildTeletextLibraries,
+  normalizeLibrarySearchPayload,
+  PUBLIC_LIBRARY_DEFS,
+  readLibrarySearchResponse,
+  TeletextCatalogueError,
+  type LibrarySearchResponse,
+} from "./catalogue";

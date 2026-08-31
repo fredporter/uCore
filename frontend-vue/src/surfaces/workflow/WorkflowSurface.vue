@@ -28,6 +28,7 @@
           <MissionControlPanel v-if="wf.activeTab === 'mission-control'" />
           <TasksPanel v-else-if="wf.activeTab === 'tasks'" />
           <AutomationPanel v-else-if="wf.activeTab === 'automation'" />
+          <FeedsPanel v-else-if="wf.activeTab === 'feeds'" />
           <PublishPanel v-else-if="wf.activeTab === 'publish'" />
         </div>
 
@@ -103,6 +104,9 @@ const MissionsPanel = defineAsyncComponent(
 );
 const AutomationPanel = defineAsyncComponent(
   () => import("./panels/AutomationPanel.vue"),
+);
+const FeedsPanel = defineAsyncComponent(
+  () => import("./panels/FeedsPanel.vue"),
 );
 const TasksPanel = defineAsyncComponent(
   () => import("./panels/TasksPanel.vue"),

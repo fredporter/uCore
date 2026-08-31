@@ -58,7 +58,7 @@
         <div v-else-if="activeTab==='editor'">
           <div v-if="!activePath" class="dev-empty">Select a file to edit.</div>
           <div v-else-if="loadingFile" class="dev-loading"><UIcon name="sync" /> Loading...</div>
-          <UCodeEditor v-else :file-content="fileContent" :file-name="activePath.split('/').pop() || ''" :file-path="activePath" :file-repo="activeRepo" :diff-original="originalContent" @update:file-content="fileContent = $event" @save="saveFile" />
+          <UCodeEditor v-else :file-content="fileContent" :file-name="activePath.split('/').pop() || ''" :file-path="activePath" :file-repo="activeRepo" :diff-original="diffBaseline" :diff-status="diffStatus" :has-repository-diff="hasRepositoryDiff" :save-revision="saveRevision" @update:file-content="fileContent = $event" @save="saveFile" />
         </div>
       </div>
     </div>
@@ -96,7 +96,10 @@ const fileTree = ref<FileItem[]>([]);
 const activeRepo = ref("");
 const activePath = ref("");
 const fileContent = ref("");
-const originalContent = ref("");
+const diffBaseline = ref("");
+const diffStatus = ref<"clean" | "modified" | "added" | "deleted">("clean");
+const hasRepositoryDiff = ref(false);
+const saveRevision = ref(0);
 const loadingRepos = ref(true);
 const loadingFiles = ref(false);
 const loadingFile = ref(false);
@@ -200,13 +203,50 @@ async function openSidebarRepo(name: string) {
 
 async function selectFile(path: string) {
   activePath.value = path; loadingFile.value = true;
-  try { const res = await fetch("/api/developer/repos/" + encodeURIComponent(activeRepo.value) + "/file-preview?path=" + encodeURIComponent(path), { signal: AbortSignal.timeout(10000) }); if (res.ok) { const d = await res.json(); fileContent.value = d.content || ""; originalContent.value = d.content || ""; } } catch {}
+  const repo = activeRepo.value;
+  try {
+    const res = await fetch("/api/developer/repos/" + encodeURIComponent(repo) + "/file-preview?path=" + encodeURIComponent(path), { signal: AbortSignal.timeout(10000) });
+    if (res.ok) {
+      const d = await res.json();
+      if (activeRepo.value === repo && activePath.value === path) {
+        fileContent.value = d.content || "";
+        await refreshFileDiff(repo, path, fileContent.value);
+      }
+    }
+  } catch {}
   loadingFile.value = false;
+}
+
+async function refreshFileDiff(repo: string, path: string, fallback: string): Promise<void> {
+  try {
+    const res = await fetch("/api/developer/repos/" + encodeURIComponent(repo) + "/diff?path=" + encodeURIComponent(path), { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error("Diff unavailable");
+    const data = await res.json();
+    if (activeRepo.value === repo && activePath.value === path) {
+      diffBaseline.value = typeof data.baseline === "string" ? data.baseline : fallback;
+      diffStatus.value = ["clean", "modified", "added", "deleted"].includes(data.status) ? data.status : "modified";
+      hasRepositoryDiff.value = data.hasDiff === true;
+    }
+  } catch {
+    if (activeRepo.value === repo && activePath.value === path) {
+      diffBaseline.value = fallback;
+      diffStatus.value = "clean";
+      hasRepositoryDiff.value = false;
+    }
+  }
 }
 
 async function saveFile() {
   if (!activeRepo.value || !activePath.value) return;
-  try { const res = await fetch("/api/developer/repos/" + encodeURIComponent(activeRepo.value) + "/file-preview?path=" + encodeURIComponent(activePath.value), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: fileContent.value }), signal: AbortSignal.timeout(15000) }); if (res.ok) { originalContent.value = fileContent.value; } } catch {}
+  try {
+    const repo = activeRepo.value;
+    const path = activePath.value;
+    const res = await fetch("/api/developer/repos/" + encodeURIComponent(repo) + "/file-preview?path=" + encodeURIComponent(path), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: fileContent.value }), signal: AbortSignal.timeout(15000) });
+    if (res.ok) {
+      await refreshFileDiff(repo, path, fileContent.value);
+      saveRevision.value++;
+    }
+  } catch {}
 }
 
 watch(activeTab, (tab) => {

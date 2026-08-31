@@ -19,6 +19,9 @@ log = logging.getLogger("ucore.adapters.ucode_runtime")
 DEFAULT_CEEFAX_REGISTRAR = "ucode_runtime.ceefax.register_ceefax_routes"
 DEFAULT_BBCSDL_REGISTRAR = "ucode_runtime.bbcsdl.register_bbcsdl_routes"
 DEFAULT_TERMINAL_WS_HANDLER = "ucode_runtime.terminal_runtime.handle_terminal_runtime_ws"
+DEFAULT_SESSION_WS_HANDLER = "ucode_runtime.session_runtime.handle_ucode_session_ws"
+DEFAULT_LIBRARY_REGISTRAR = "ucode_runtime.software_library.register_software_library_routes"
+DEFAULT_INFO_REGISTRAR = "ucode_runtime.runtime_info.register_runtime_info_routes"
 DEFAULT_CEEFAX_STORE_FACTORY = "ucode_runtime.ceefax.CeefaxStore"
 
 def _ensure_ucode_path() -> None:
@@ -39,11 +42,14 @@ def _resolve_callable(dotted_path: str) -> Callable[..., Any] | None:
         log.warning("Invalid registrar path: %s", dotted_path)
         return None
 
+    # uCode owns its runtime. In split-repo development the active uCode
+    # checkout must win over any older package already present in the host
+    # environment, otherwise Terminal can silently bind to stale behaviour.
+    _ensure_ucode_path()
     try:
         module = importlib.import_module(module_path)
         return getattr(module, symbol_name)
     except Exception:
-        _ensure_ucode_path()
         try:
             module = importlib.import_module(module_path)
             return getattr(module, symbol_name)
@@ -108,3 +114,51 @@ def register_terminal_runtime_routes(app: Any) -> None:
         "External terminal runtime handler is required but unavailable. "
         "Set UCORE_UCODE_PATH and provide UCORE_TERMINAL_RUNTIME_WS_HANDLER.",
     )
+
+
+def register_session_runtime_routes(app: Any) -> None:
+    """Register the versioned uCode session route via the external runtime."""
+    handler_path = os.environ.get(
+        "UCORE_UCODE_SESSION_WS_HANDLER",
+        DEFAULT_SESSION_WS_HANDLER,
+    )
+    handler = _resolve_callable(handler_path)
+    if handler is None:
+        raise RuntimeError(
+            "External uCode session handler is unavailable. Set UCORE_UCODE_PATH "
+            "or UCORE_UCODE_SESSION_WS_HANDLER."
+        )
+    app.router.add_get("/api/ucode/runtime/ws", handler)
+    log.info("uCode session route registered (protocol=ucode-session/1)")
+
+
+def register_software_library_routes(app: Any) -> None:
+    """Register the uCode-owned curated Software Library API."""
+    registrar_path = os.environ.get(
+        "UCORE_UCODE_LIBRARY_REGISTRAR",
+        DEFAULT_LIBRARY_REGISTRAR,
+    )
+    registrar = _resolve_callable(registrar_path)
+    if registrar is None:
+        raise RuntimeError(
+            "External uCode Software Library registrar is unavailable. "
+            "Set UCORE_UCODE_PATH or UCORE_UCODE_LIBRARY_REGISTRAR."
+        )
+    registrar(app)
+    log.info("uCode Software Library routes registered")
+
+
+def register_runtime_info_routes(app: Any) -> None:
+    """Register the uCode-owned runtime capability manifest."""
+    registrar_path = os.environ.get(
+        "UCORE_UCODE_INFO_REGISTRAR",
+        DEFAULT_INFO_REGISTRAR,
+    )
+    registrar = _resolve_callable(registrar_path)
+    if registrar is None:
+        raise RuntimeError(
+            "External uCode runtime-info registrar is unavailable. "
+            "Set UCORE_UCODE_PATH or UCORE_UCODE_INFO_REGISTRAR."
+        )
+    registrar(app)
+    log.info("uCode runtime capability route registered")

@@ -53,13 +53,23 @@ export const useDevModeStore = defineStore('devMode', () => {
   }
 
   async function toggle(): Promise<void> {
+    loading.value = true
     try {
       const res = await fetch(`${API}/api/dev-layer/toggle`, { method: 'POST' })
       if (res.ok) {
         const data = await res.json()
-        if (data?.mode) mode.value = data.mode as DevModeState
+        if (data?.mode) {
+          mode.value = data.mode as DevModeState
+          localStorage.setItem('ucore-dev-mode', data.mode)
+        }
       }
-    } catch { /* local state unchanged */ }
+    } catch {
+      const next: DevModeState = mode.value === 'off' ? 'minimal' : mode.value === 'minimal' ? 'on' : 'off'
+      mode.value = next
+      localStorage.setItem('ucore-dev-mode', next)
+    } finally {
+      loading.value = false
+    }
   }
 
   const showDevContent = computed(() => mode.value === 'on')

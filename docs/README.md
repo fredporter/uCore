@@ -48,6 +48,7 @@
 | [DEVELOPER_SURFACE.md](DEVELOPER_SURFACE.md)                                                               | Current Developer Surface UX, lanes, controls, and APIs  |
 | [DOCLANG_BRIDGE_EXPORT_SPEC.md](DOCLANG_BRIDGE_EXPORT_SPEC.md)                                             | DocLang bridge export                                    |
 | [TERMINAL_TELETEXT_GRID_WORK_TAG.md](TERMINAL_TELETEXT_GRID_WORK_TAG.md)                                   | Terminal/teletext grid work tag                          |
+| [specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md](specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md)   | Verification-gated optional Nanocoder Dev Mode tool plan |
 
 ## Task ownership
 

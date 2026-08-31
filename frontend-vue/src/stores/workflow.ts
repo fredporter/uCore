@@ -16,6 +16,7 @@ export type WorkflowTab =
   | "mission-control"
   | "tasks"
   | "automation"
+  | "feeds"
   | "editor"
   | "publish";
 
@@ -142,6 +143,7 @@ export const WORKFLOW_TABS: { id: WorkflowTab; label: string; icon: string }[] =
     { id: "mission-control", label: "Workflow", icon: "dashboard" },
     { id: "tasks", label: "Tasks", icon: "check" },
     { id: "automation", label: "Automation", icon: "science" },
+    { id: "feeds", label: "Feeds", icon: "rss_feed" },
     { id: "editor", label: "Editor", icon: "diamond" },
     { id: "publish", label: "Publish", icon: "publish" },
   ];

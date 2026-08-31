@@ -486,6 +486,27 @@ def create_app() -> web.Application:
     app.router.add_get("/api/health/full", full_health_handler)
     app.router.add_post("/api/system/repair", system_repair_handler)
 
+    # uCode is a required product surface. Register its runtime routes directly
+    # during host startup so an unrelated optional API import cannot prevent the
+    # Terminal PTY, Ceefax store, BBCSDL, or session protocol from existing.
+    from app.api.routes import CEEFAX_STORE_KEY
+    from app.extensions.adapters.ucode_runtime_adapter import (
+        register_routes as register_ucode_runtime_routes,
+    )
+    from app.extensions.adapters.ucode_runtime_adapter import (
+        register_runtime_info_routes,
+        register_session_runtime_routes,
+        register_software_library_routes,
+        register_terminal_runtime_routes,
+    )
+
+    register_ucode_runtime_routes(app, CEEFAX_STORE_KEY)
+    register_terminal_runtime_routes(app)
+    register_session_runtime_routes(app)
+    register_runtime_info_routes(app)
+    register_software_library_routes(app)
+    log.info("uCode runtime routes registered")
+
     # Run database migration on startup
     from app.core.database import migrate_db
     migration = migrate_db()

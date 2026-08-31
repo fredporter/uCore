@@ -1,0 +1,27 @@
+# Copy to $UDOS_HOME/config/feed-rules.yaml to customize.
+# Rules are previewed by default. Automatic execution stays off until explicitly enabled.
+auto_execute: false
+
+rules:
+  - id: actionable-messages
+    enabled: true
+    match:
+      sources: [mail, messages, contacts-notes-rules]
+      contains: [action, follow up, todo, ucore:, rule:]
+      min_importance: 0.4
+    action:
+      type: propose-task
+      board: inbox
+      priority: medium
+      binder: Sandbox
+
+  - id: upcoming-calendar
+    enabled: true
+    match:
+      sources: [calendar]
+      min_importance: 0.6
+    action:
+      type: propose-task
+      board: planning
+      priority: medium
+      binder: Sandbox

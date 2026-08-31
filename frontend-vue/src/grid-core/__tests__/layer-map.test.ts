@@ -10,7 +10,7 @@ import {
 import moonMapSeed from "../seeds/layers/moon.json";
 import regionMapSeed from "../seeds/layers/region.json";
 import worldMapSeed from "../seeds/layers/world-map.json";
-import { loadLayerMap } from "../seeds/load-layer-map";
+import { loadLayerMap, loadLayerMapBuffers } from "../seeds/load-layer-map";
 
 describe("layer maps (Sprint C)", () => {
   it("validates the ucode-layer-map-v1 documents", () => {
@@ -19,9 +19,13 @@ describe("layer maps (Sprint C)", () => {
     expect(isLayerMap(regionMapSeed)).toBe(true);
   });
 
-  it("loads the world map into a buffer of mosaic cells", () => {
+  it("loads the world map as six independently editable buffers", () => {
     const map = worldMapSeed as LayerMap;
-    const buf = loadLayerMap(map);
+    const buffers = loadLayerMapBuffers(map);
+    expect([...buffers.keys()]).toEqual([
+      "terrain", "details", "foreground", "lighting", "collision", "entities",
+    ]);
+    const buf = buffers.get("terrain")!;
     expect(buf.length).toBe(map.rows);
     expect(buf[0].length).toBe(map.cols);
 
@@ -33,6 +37,12 @@ describe("layer maps (Sprint C)", () => {
     expect(filled.every((c) => c.mosaic === true)).toBe(true);
     // Terrain colour (green=2).
     expect(filled.every((c) => c.fg === 2)).toBe(true);
+    expect(buffers.get("entities")!.flat().filter((c) => c.char === "◆")).toHaveLength(5);
+    expect(map.layers.find((layer) => layer.id === "lighting")).toMatchObject({
+      visible: false,
+      opacity: 0.35,
+      blendMode: "overlay",
+    });
   });
 
   it("maps gcell coordinates ↔ lat/lon (equirectangular round-trip)", () => {

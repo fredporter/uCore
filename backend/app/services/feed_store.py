@@ -23,7 +23,7 @@ log = logging.getLogger("ucore.services.feed_store")
 
 DEFAULT_POD_PATH = settings.udos_home / "pods" / "activity.db"
 HERE = Path(__file__).resolve().parent
-SCHEMA_PATH = HERE.parent.parent.parent / "schemas" / "activity.schema.sql"
+SCHEMA_PATH = HERE.parents[1] / "schemas" / "activity.schema.sql"
 
 
 class FeedServer:
@@ -43,6 +43,17 @@ class FeedServer:
         if SCHEMA_PATH.exists():
             ddl = SCHEMA_PATH.read_text(encoding="utf-8")
             self._conn.executescript(ddl)
+            columns = {
+                row["name"]
+                for row in self._conn.execute("PRAGMA table_info(user_activity)").fetchall()
+            }
+            if "external_id" not in columns:
+                self._conn.execute("ALTER TABLE user_activity ADD COLUMN external_id TEXT")
+            self._conn.execute(
+                """CREATE UNIQUE INDEX IF NOT EXISTS idx_activity_external
+                   ON user_activity(source, external_id)
+                   WHERE external_id IS NOT NULL AND external_id != ''"""
+            )
             self._conn.commit()
             log.debug("Feed schema ensured via %s", SCHEMA_PATH)
         else:
@@ -50,6 +61,10 @@ class FeedServer:
 
     def close(self) -> None:
         self._conn.close()
+
+    @property
+    def pod_path(self) -> Path:
+        return self._pod_path
 
     # ── Activity ingestion ────────────────────────────────────────
 
@@ -63,14 +78,21 @@ class FeedServer:
         contact_name: str = "",
         importance: float = 0.5,
         metadata: dict[str, Any] | None = None,
+        external_id: str | None = None,
     ) -> dict[str, Any]:
         """Insert a user activity event into the Feed Pod."""
         cursor = self._conn.cursor()
         cursor.execute(
-            """INSERT INTO user_activity (source, type, title, content, url, importance, metadata)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO user_activity
+               (source, external_id, type, title, content, url, importance, metadata)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(source, external_id) WHERE external_id IS NOT NULL AND external_id != ''
+               DO UPDATE SET type=excluded.type, title=excluded.title,
+                 content=excluded.content, url=excluded.url,
+                 importance=excluded.importance, metadata=excluded.metadata""",
             (
                 source,
+                external_id,
                 type,
                 title,
                 content,
@@ -80,7 +102,14 @@ class FeedServer:
             ),
         )
         self._conn.commit()
-        row_id = cursor.lastrowid
+        if external_id:
+            row = self._conn.execute(
+                "SELECT id FROM user_activity WHERE source = ? AND external_id = ?",
+                (source, external_id),
+            ).fetchone()
+            row_id = row["id"] if row else cursor.lastrowid
+        else:
+            row_id = cursor.lastrowid
         log.info(
             "Feed ingest: id=%s source=%s type=%s title=%.40s",
             row_id, source, type, title,
@@ -95,6 +124,7 @@ class FeedServer:
         since: str | None = None,
         limit: int = 50,
         importance_min: float = 0.0,
+        processed: bool | None = None,
     ) -> list[dict[str, Any]]:
         """Query activities from the Feed Pod."""
         cursor = self._conn.cursor()
@@ -107,6 +137,9 @@ class FeedServer:
         if since:
             query += " AND timestamp >= ?"
             params.append(since)
+        if processed is not None:
+            query += " AND processed = ?"
+            params.append(int(processed))
 
         query += " ORDER BY timestamp DESC LIMIT ?"
         params.append(limit)
