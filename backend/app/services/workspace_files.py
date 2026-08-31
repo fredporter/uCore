@@ -115,6 +115,22 @@ def rename_entry(source: str, path: str, name: str) -> dict[str, Any]:
     return _node(destination, _root(source), depth=0, max_depth=1)
 
 
+def move_entry(source: str, path: str, parent: str) -> dict[str, Any]:
+    target = _target(source, path)
+    destination_parent = _target(source, parent, allow_root=True)
+    if not destination_parent.is_dir():
+        raise ValueError("destination must be a folder")
+    destination = destination_parent / target.name
+    if destination == target:
+        return _node(target, _root(source), depth=0, max_depth=1)
+    if destination.exists():
+        raise ValueError("an entry with that name already exists")
+    if target.is_dir() and destination_parent.is_relative_to(target):
+        raise ValueError("a folder cannot be moved inside itself")
+    target.rename(destination)
+    return _node(destination, _root(source), depth=0, max_depth=1)
+
+
 def delete_entry(source: str, path: str) -> dict[str, Any]:
     target = _target(source, path)
     if not target.exists():

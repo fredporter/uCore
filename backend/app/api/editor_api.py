@@ -32,6 +32,7 @@ async def handle_workspace_file(request: web.Request) -> web.Response:
     from app.services.workspace_files import (
         create_entry,
         delete_entry,
+        move_entry,
         read_file,
         rename_entry,
         write_file,
@@ -52,11 +53,12 @@ async def handle_workspace_file(request: web.Request) -> web.Response:
             )
         elif request.method == "PUT":
             path = str(body.get("path") or "")
-            result = (
-                rename_entry(source, path, str(body.get("name") or ""))
-                if "name" in body
-                else write_file(source, path, str(body.get("content") or ""))
-            )
+            if "name" in body:
+                result = rename_entry(source, path, str(body.get("name") or ""))
+            elif "parent" in body:
+                result = move_entry(source, path, str(body.get("parent") or ""))
+            else:
+                result = write_file(source, path, str(body.get("content") or ""))
         else:
             result = delete_entry(source, str(body.get("path") or ""))
         return web.json_response(result)

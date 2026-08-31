@@ -178,6 +178,11 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     if (node) await mutate("PUT", { path: node.path, name: newName });
   }
 
+  async function moveNode(id: string, parent: string) {
+    const node = findNode(tree.value, id);
+    if (node) await mutate("PUT", { path: node.path, parent });
+  }
+
   async function mutate(method: string, body: Record<string, unknown>): Promise<FileNode> {
     error.value = "";
     try {
@@ -265,6 +270,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     createFolder,
     deleteNode,
     renameNode,
+    moveNode,
     updateFileContent,
     saveFile,
   };

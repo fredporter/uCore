@@ -200,6 +200,26 @@ test("Developer editor loads the authoritative repository diff baseline", async 
   await expect(page.locator(".diff-editor-panel__label--modified")).toHaveText("Working copy");
 });
 
+test("Workflow workspace loads, filters, and opens persistent files", async ({ page }) => {
+  const node = { id: "Notes/Today.md", name: "Today.md", type: "file", path: "/Notes/Today.md", extension: "md" };
+  await page.route("**/api/editor/workspace?source=user", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ tree: [node] }) }),
+  );
+  await page.route("**/api/editor/files?source=user&path=**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ path: node.path, content: "# Today\n\nPersistent content.\n" }) }),
+  );
+
+  await page.goto("/workflow?tab=editor");
+  const filter = page.getByRole("searchbox", { name: "Filter workspace files" });
+  await expect(page.getByText("Today.md", { exact: true })).toBeVisible();
+  await filter.fill("missing");
+  await expect(page.getByText("Today.md", { exact: true })).toHaveCount(0);
+  await filter.fill("today");
+  await page.getByText("Today.md", { exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "Today", exact: true }).first()).toBeVisible();
+});
+
 test("Terminal reconnects after an unexpected runtime disconnect and flushes queued input", async ({ page }) => {
   await page.addInitScript(() => {
     const runtime = window as typeof window & {
