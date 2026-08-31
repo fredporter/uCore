@@ -35,6 +35,8 @@
 
     <!-- Tree -->
     <div class="workspace-tree__list" role="tree">
+      <p v-if="ws.loading" class="workspace-tree__state">Loading…</p>
+      <p v-else-if="ws.error" class="workspace-tree__state">{{ ws.error }}</p>
       <WorkspaceTreeNode
         v-for="node in ws.tree"
         :key="node.id"
@@ -209,6 +211,12 @@ function handleCreate(payload: {
   flex: 1;
   overflow-y: auto;
   padding: var(--usx-spacing-xs) 0;
+}
+
+.workspace-tree__state {
+  margin: var(--usx-spacing-sm);
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-xs);
 }
 
 .workspace-tree__list::-webkit-scrollbar {

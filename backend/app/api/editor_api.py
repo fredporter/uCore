@@ -4,6 +4,8 @@ Editor API — web scraping and document operations for the Markdown editor surf
 POST /api/editor/scrape-web     — fetch URL and extract article text
 POST /api/editor/summarize      — AI-powered text summarization
 POST /api/editor/save-to-binder — export document to Binder
+GET  /api/editor/workspace      — list the persistent workspace tree
+*    /api/editor/files          — read/create/update/delete workspace entries
 """
 from __future__ import annotations
 
@@ -13,6 +15,53 @@ from typing import Any
 from aiohttp import ClientSession, ClientTimeout, web
 
 log = logging.getLogger("ucore.editor")
+
+
+async def handle_workspace(request: web.Request) -> web.Response:
+    """GET /api/editor/workspace — return the bounded workspace tree."""
+    from app.services.workspace_files import list_tree
+
+    try:
+        return web.json_response({"tree": list_tree(request.query.get("source", "user"))})
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
+
+async def handle_workspace_file(request: web.Request) -> web.Response:
+    """Read, create, update, rename, or delete an editor workspace entry."""
+    from app.services.workspace_files import (
+        create_entry,
+        delete_entry,
+        read_file,
+        rename_entry,
+        write_file,
+    )
+
+    source = request.query.get("source", "user")
+    try:
+        if request.method == "GET":
+            return web.json_response(read_file(source, request.query.get("path", "")))
+        body = await request.json()
+        source = str(body.get("source") or source)
+        if request.method == "POST":
+            result = create_entry(
+                source,
+                str(body.get("parent") or ""),
+                str(body.get("name") or ""),
+                str(body.get("type") or "file"),
+            )
+        elif request.method == "PUT":
+            path = str(body.get("path") or "")
+            result = (
+                rename_entry(source, path, str(body.get("name") or ""))
+                if "name" in body
+                else write_file(source, path, str(body.get("content") or ""))
+            )
+        else:
+            result = delete_entry(source, str(body.get("path") or ""))
+        return web.json_response(result)
+    except (ValueError, OSError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
 
 
 async def handle_scrape_web(request: web.Request) -> web.Response:

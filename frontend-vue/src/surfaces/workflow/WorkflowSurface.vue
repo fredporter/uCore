@@ -37,6 +37,9 @@
           v-if="wf.activeTab === 'editor'"
           class="workflow-panel workflow-panel--editor"
         >
+          <aside class="workflow-workspace-tree">
+            <WorkspaceTree />
+          </aside>
           <EditorPanel
             v-if="activeEditorItem"
             :content="editorContent"
@@ -94,6 +97,7 @@ import { computed, defineAsyncComponent, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useWorkflowStore, WORKFLOW_TABS } from "../../stores/workflow";
+import { useWorkspaceStore } from "../../stores/workspace";
 import type { WorkflowTab } from "../../stores/workflow";
 import { getEditorSurface } from "../../composables/useEditorSurface";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
@@ -117,9 +121,11 @@ const PublishPanel = defineAsyncComponent(
 import { EditorPanel } from "../../skills";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import UButton from "../../skills/atoms/UButton.vue";
+import WorkspaceTree from "../../skills/molecules/editor/WorkspaceTree.vue";
 
 const shell = useShellStore();
 const wf = useWorkflowStore();
+const workspace = useWorkspaceStore();
 const editorSurface = getEditorSurface();
 const route = useRoute();
 const router = useRouter();
@@ -139,6 +145,7 @@ function asWorkflowTab(tab: string): WorkflowTab | null {
 }
 
 onMounted(() => {
+  void workspace.loadTree();
   const routeTab = String(route.query.tab || "").trim();
   const safeTab = asWorkflowTab(routeTab);
   if (safeTab) {
@@ -200,10 +207,19 @@ watch(
 );
 
 function onEditorContentUpdate(value: string) {
-  wf.updateEditorContent(value);
+  if (sharedEditorFile.value) {
+    editorSurface.updateContent(value);
+  } else {
+    wf.updateEditorContent(value);
+  }
 }
 
-function onEditorSave(value: string) {
+async function onEditorSave(value: string) {
+  if (sharedEditorFile.value) {
+    editorSurface.updateContent(value);
+    await workspace.saveFile(sharedEditorFile.value.path, value);
+    return;
+  }
   wf.updateEditorContent(value);
   const itemId = wf.selectedTask?.id || wf.selectedFile?.path;
   console.log("[Workflow] Editor saved:", itemId);
@@ -217,9 +233,11 @@ const sharedEditorFile = computed(
   () => editorSurface.currentFile.value ?? null,
 );
 const activeWorkflowFile = computed(
-  () => wf.selectedFile || sharedEditorFile.value,
+  () => sharedEditorFile.value || wf.selectedFile,
 );
-const activeEditorTask = computed(() => wf.selectedTask || null);
+const activeEditorTask = computed(() =>
+  sharedEditorFile.value ? null : wf.selectedTask || null,
+);
 const activeEditorItem = computed(
   () => activeEditorTask.value || activeWorkflowFile.value,
 );
@@ -296,6 +314,20 @@ function onRetryPreflight() {
   flex: 1;
   min-width: 0;
   min-height: 0;
+}
+
+.workflow-workspace-tree {
+  width: min(18rem, 28vw);
+  min-width: 12rem;
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+@media (max-width: 767px) {
+  .workflow-workspace-tree {
+    width: 11rem;
+    min-width: 9rem;
+  }
 }
 
 /* ─── Editor Column — right sidebar, full height ──────────────── */

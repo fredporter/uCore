@@ -5,6 +5,7 @@
 import { ref, computed } from "vue";
 import { defineStore } from "pinia";
 import { getEditorSurface } from "../composables/useEditorSurface";
+import { UCORE_BASE } from "../api/base";
 
 export interface FileNode {
   id: string;
@@ -91,6 +92,27 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   const expandedIds = ref<Set<string>>(loadExpanded());
   const selectedId = ref<string | null>(null);
   const loading = ref(false);
+  const error = ref("");
+
+  async function request(path: string, init?: RequestInit) {
+    const response = await fetch(`${UCORE_BASE}${path}`, init);
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Workspace request failed");
+    return result;
+  }
+
+  async function loadTree() {
+    loading.value = true;
+    error.value = "";
+    try {
+      const result = await request("/api/editor/workspace?source=user");
+      tree.value = Array.isArray(result.tree) ? result.tree : [];
+    } catch (exc) {
+      error.value = exc instanceof Error ? exc.message : "Workspace is unavailable";
+    } finally {
+      loading.value = false;
+    }
+  }
 
   const selectedFile = computed(() =>
     selectedId.value ? findNode(tree.value, selectedId.value) : null,
@@ -114,67 +136,66 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     saveExpanded(expandedIds.value);
   }
 
-  function selectFile(node: FileNode) {
+  async function selectFile(node: FileNode) {
     if (node.type !== "file") return;
-    selectedId.value = node.id;
-    const editorSurface = getEditorSurface();
-    editorSurface.openFile({
-      path: node.path,
-      filename: node.name,
-      content: node.content ?? "",
-      extension: node.extension ?? "md",
-    });
+    try {
+      const result = await request(`/api/editor/files?source=user&path=${encodeURIComponent(node.path)}`);
+      node.content = String(result.content || "");
+      selectedId.value = node.id;
+      getEditorSurface().openFile({
+        path: node.path,
+        filename: node.name,
+        content: node.content,
+        extension: node.extension ?? "md",
+      });
+    } catch (exc) {
+      error.value = exc instanceof Error ? exc.message : "File could not be opened";
+    }
   }
 
-  function createFile(parentPath: string, name: string) {
-    const id = `file-${Date.now()}`;
-    const path = `${parentPath}/${name}`;
-    const extension = name.split(".").pop() ?? "md";
-    const newNode: FileNode = {
-      id,
-      name,
-      type: "file",
-      path,
-      extension,
-      content: `# ${name.replace(/\.md$/, "")}\n\n`,
-    };
-
-    const parent = findNodeByPath(tree.value, parentPath);
-    if (parent && parent.type === "folder") {
-      parent.children = [...(parent.children ?? []), newNode];
-    } else {
-      tree.value = [...tree.value, newNode];
-    }
-
-    selectFile(newNode);
+  async function createFile(parentPath: string, name: string) {
+    const newNode = await mutate("POST", { parent: parentPath, name, type: "file" });
+    await selectFile(newNode);
     return newNode;
   }
 
-  function createFolder(parentPath: string, name: string) {
-    const id = `folder-${Date.now()}`;
-    const path = `${parentPath}/${name}`;
-    const newNode: FileNode = { id, name, type: "folder", path, children: [] };
-
-    const parent = findNodeByPath(tree.value, parentPath);
-    if (parent && parent.type === "folder") {
-      parent.children = [...(parent.children ?? []), newNode];
-    } else {
-      tree.value = [...tree.value, newNode];
-    }
-
-    expandedIds.value.add(id);
+  async function createFolder(parentPath: string, name: string) {
+    const newNode = await mutate("POST", { parent: parentPath, name, type: "folder" });
+    expandedIds.value.add(newNode.id);
     saveExpanded(expandedIds.value);
     return newNode;
   }
 
-  function deleteNode(id: string) {
+  async function deleteNode(id: string) {
+    const node = findNode(tree.value, id);
+    if (!node) return;
+    await mutate("DELETE", { path: node.path });
     if (selectedId.value === id) selectedId.value = null;
-    tree.value = removeNode(tree.value, id);
   }
 
-  function renameNode(id: string, newName: string) {
+  async function renameNode(id: string, newName: string) {
     const node = findNode(tree.value, id);
-    if (node) node.name = newName;
+    if (node) await mutate("PUT", { path: node.path, name: newName });
+  }
+
+  async function mutate(method: string, body: Record<string, unknown>): Promise<FileNode> {
+    error.value = "";
+    try {
+      const result = await request("/api/editor/files", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "user", ...body }),
+      });
+      await loadTree();
+      return result as FileNode;
+    } catch (exc) {
+      error.value = exc instanceof Error ? exc.message : "Workspace change failed";
+      throw exc;
+    }
+  }
+
+  async function saveFile(path: string, content: string) {
+    await mutate("PUT", { path, content });
   }
 
   function updateFileContent(id: string, content: string) {
@@ -233,9 +254,11 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     expandedIds,
     selectedId,
     loading,
+    error,
     selectedFile,
     breadcrumb,
     isExpanded,
+    loadTree,
     toggleFolder,
     selectFile,
     createFile,
@@ -243,5 +266,6 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     deleteNode,
     renameNode,
     updateFileContent,
+    saveFile,
   };
 });

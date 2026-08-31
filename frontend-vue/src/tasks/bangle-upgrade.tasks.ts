@@ -33,7 +33,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 1,
     component: "WorkspaceTree.vue",
     priority: "critical",
-    status: "backlog",
+    status: "review",
     estimatedHours: 2,
     tags: ["phase-1", "component", "ui", "workspace"],
     checklist: [
@@ -54,7 +54,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 1,
     component: "WorkspaceTreeNode.vue",
     priority: "critical",
-    status: "backlog",
+    status: "in-progress",
     estimatedHours: 1.5,
     tags: ["phase-1", "component", "ui"],
     checklist: [
@@ -74,7 +74,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 1,
     component: "FileOperations.ts",
     priority: "high",
-    status: "backlog",
+    status: "review",
     estimatedHours: 1,
     tags: ["phase-1", "utility", "api"],
     checklist: [
@@ -93,7 +93,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 1,
     component: "useWorkspaceStore.ts",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-1", "store", "state"],
     checklist: [
@@ -116,7 +116,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 1,
     component: "EditorPanel.vue",
     priority: "critical",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-1", "refactor", "layout"],
     checklist: [
@@ -138,7 +138,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 1,
     component: "Integration",
     priority: "critical",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-1", "integration", "state"],
     checklist: [
@@ -160,7 +160,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 2,
     component: "FrontmatterParser.ts",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-2", "utility", "parser"],
     checklist: [
@@ -179,7 +179,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 2,
     component: "FrontmatterPills.vue",
     priority: "high",
-    status: "backlog",
+    status: "review",
     estimatedHours: 1.5,
     tags: ["phase-2", "component", "ui"],
     checklist: [
@@ -221,7 +221,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 2,
     component: "Integration",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-2", "integration"],
     checklist: [
@@ -350,7 +350,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 4,
     component: "WebScraperModal.vue",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-4", "component", "modal"],
     checklist: [
@@ -410,7 +410,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 4,
     component: "Backend",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["phase-4", "backend", "api"],
     checklist: [
@@ -433,7 +433,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 5,
     component: "HtmlToMarkdown.ts",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-5", "utility", "parser"],
     checklist: [
@@ -497,7 +497,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 6,
     component: "ResearchPanel.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-6", "component", "research"],
     checklist: [
@@ -517,7 +517,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 6,
     component: "SummarizeModal.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-6", "feature", "research"],
     checklist: [
@@ -560,7 +560,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 6,
     component: "Integration",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-6", "feature", "export"],
     checklist: [
@@ -617,7 +617,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 6,
     component: "Backend",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-6", "backend", "api"],
     checklist: [
@@ -865,7 +865,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 7,
     component: "backend/app/api/routes.py",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 0.5,
     tags: ["phase-7", "backend"],
     checklist: [
@@ -921,7 +921,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 7,
     component: "backend/app/api/skills.py",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-7", "backend", "integration"],
     checklist: [
@@ -1343,7 +1343,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     title: "Per-user workspace persistence",
     description: "Server-side file tree via GET/POST /api/workspace/tree",
     priority: "high",
-    status: "backlog",
+    status: "review",
     estimatedHours: 4,
     tags: ["sprint-3", "storage"],
     checklist: [
@@ -1391,7 +1391,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description:
       "CRUD endpoints for workspace files (create, read, update, delete)",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 5,
     tags: ["sprint-3", "backend", "api"],
     checklist: [

@@ -34,3 +34,5 @@ def test_snackbar_import():
     assert "/api/ucode/library/{title_id}/verify" in paths
     assert "/api/ucode/runtime/ws" in paths
     assert "/api/ceefax/page/{num}" in paths
+    assert "/api/editor/workspace" in paths
+    assert "/api/editor/files" in paths
