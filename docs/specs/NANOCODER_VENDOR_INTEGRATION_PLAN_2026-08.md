@@ -33,8 +33,8 @@ are independently confirmed.
 - The Developer Surface remains a repository browser/editor. Do not add an
   autonomous chat or terminal overlay there. Any future guided invocation UI
   belongs behind an approved Intelligence or Workflow action contract.
-- Do not create `~/Vendor`, `~/.config/nanocoder`, `~/.nanocoder`, `~/.ucore`,
-  or `~/.udos` state. Mutable tool state belongs under `UDOS_HOME`.
+- Do not create vendor, configuration, compatibility, or runtime state directly
+  under the home directory. Mutable tool state belongs under `UDOS_HOME`.
 
 ## Storage and lifecycle
 
