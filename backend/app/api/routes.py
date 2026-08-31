@@ -310,11 +310,22 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/extensions/announce", handle_extension_announce)
 
     # ── Editor surface (Markdown scrape/summarize/binder) ───────────
-    from .editor_api import handle_save_to_binder, handle_scrape_web, handle_summarize
+    from .editor_api import (
+        handle_save_to_binder,
+        handle_scrape_web,
+        handle_summarize,
+        handle_workspace,
+        handle_workspace_file,
+    )
 
     app.router.add_post("/api/editor/scrape-web", handle_scrape_web)
     app.router.add_post("/api/editor/summarize", handle_summarize)
     app.router.add_post("/api/editor/save-to-binder", handle_save_to_binder)
+    app.router.add_get("/api/editor/workspace", handle_workspace)
+    app.router.add_get("/api/editor/files", handle_workspace_file)
+    app.router.add_post("/api/editor/files", handle_workspace_file)
+    app.router.add_put("/api/editor/files", handle_workspace_file)
+    app.router.add_delete("/api/editor/files", handle_workspace_file)
     # ── Research Queue (BrowserUI) ──────────────────────────────
     from .research_api import (
         handle_binder_search,
