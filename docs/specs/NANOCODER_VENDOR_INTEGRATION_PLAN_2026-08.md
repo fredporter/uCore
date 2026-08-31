@@ -1,6 +1,6 @@
 # Nanocoder Vendor Integration Plan
 
-**Status:** Draft, verification-gated
+**Status:** Phase 0 blocked; inert contract prework complete
 **Owner:** uCore Dev Mode and vendor intake
 **Related owners:** uFlow task authority, uCode runtime authority
 
@@ -147,6 +147,24 @@ confirmation, and audit acceptance tests pass.
 4. Implement dry-run-only wrapper tests with a fake executable.
 5. Add uFlow task-reference/audit integration without changing uFlow ownership.
 6. Propose any UI or managed extension only after the preceding gates pass.
+
+## Prework completed 2026-08-31
+
+- [x] Developer authoritative-diff review boundary implemented and browser-tested.
+- [x] Artifact provenance schema scaffolded with pinned HTTPS URL, SHA-256,
+      version, platform, license, and bounded vendor identifier requirements.
+- [x] Preflight request schema requires Dev Mode on and a repository identifier;
+      it accepts no arbitrary filesystem path.
+- [x] Invocation request schema is dry-run-only, bounded by prompt/timeout limits,
+      and rejects undeclared environment or secret injection.
+- [x] Contract tests prove invalid provenance, traversal-like repository IDs,
+      write mode, and environment injection fail closed.
+- [ ] Canonical upstream and pinned release provenance verified externally.
+- [ ] Fake-executable wrapper, audit, and uFlow handoff implemented after acceptance.
+
+The schemas live in `backend/app/services/vendor_tool_contracts.py` and are not
+imported by runtime routes. No capability, binary discovery, installation,
+execution, UI, MCP, or scheduler behavior has been activated.
 
 ## Dev Mode foundation completed
 

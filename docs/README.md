@@ -49,6 +49,7 @@
 | [DOCLANG_BRIDGE_EXPORT_SPEC.md](DOCLANG_BRIDGE_EXPORT_SPEC.md)                                             | DocLang bridge export                                    |
 | [TERMINAL_TELETEXT_GRID_WORK_TAG.md](TERMINAL_TELETEXT_GRID_WORK_TAG.md)                                   | Terminal/teletext grid work tag                          |
 | [specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md](specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md)   | Verification-gated optional Nanocoder Dev Mode tool plan |
+| [DEV_MODE_READINESS_2026-08-31.md](DEV_MODE_READINESS_2026-08-31.md)                                     | Current Dev Mode prework, branch disposition, and gates  |
 
 ## Task ownership
 
