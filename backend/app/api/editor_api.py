@@ -30,6 +30,7 @@ async def handle_workspace(request: web.Request) -> web.Response:
 async def handle_workspace_file(request: web.Request) -> web.Response:
     """Read, create, update, rename, or delete an editor workspace entry."""
     from app.services.workspace_files import (
+        WorkspaceConflictError,
         create_entry,
         delete_entry,
         move_entry,
@@ -58,10 +59,17 @@ async def handle_workspace_file(request: web.Request) -> web.Response:
             elif "parent" in body:
                 result = move_entry(source, path, str(body.get("parent") or ""))
             else:
-                result = write_file(source, path, str(body.get("content") or ""))
+                result = write_file(
+                    source,
+                    path,
+                    str(body.get("content") or ""),
+                    str(body.get("version") or "") or None,
+                )
         else:
             result = delete_entry(source, str(body.get("path") or ""))
         return web.json_response(result)
+    except WorkspaceConflictError as exc:
+        return web.json_response({"error": str(exc), "conflict": True}, status=409)
     except (ValueError, OSError) as exc:
         return web.json_response({"error": str(exc)}, status=400)
 

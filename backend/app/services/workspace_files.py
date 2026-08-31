@@ -1,11 +1,20 @@
 """Bounded file operations for the editor workspace tree."""
 from __future__ import annotations
 
+import hashlib
 import shutil
 from pathlib import Path
 from typing import Any
 
 from app.services.library_index import EXCLUDE_DIRS, SUPPORTED_EXTENSIONS, workspace_root
+
+
+class WorkspaceConflictError(ValueError):
+    """Raised when a client saves against a stale file version."""
+
+
+def _version(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
 def _root(source: str) -> Path:
@@ -40,6 +49,7 @@ def _node(path: Path, root: Path, *, depth: int, max_depth: int) -> dict[str, An
     }
     if path.is_file():
         item["extension"] = path.suffix.lstrip(".").lower()
+        item["version"] = _version(path)
     elif depth < max_depth:
         children = [
             child for child in path.iterdir()
@@ -71,7 +81,11 @@ def read_file(source: str, path: str) -> dict[str, Any]:
     if not target.is_file() or target.suffix.lower() not in SUPPORTED_EXTENSIONS:
         raise ValueError("file is unavailable or unsupported")
     root = _root(source)
-    return {"path": f"/{target.relative_to(root).as_posix()}", "content": target.read_text(encoding="utf-8")}
+    return {
+        "path": f"/{target.relative_to(root).as_posix()}",
+        "content": target.read_text(encoding="utf-8"),
+        "version": _version(target),
+    }
 
 
 def create_entry(source: str, parent: str, name: str, kind: str) -> dict[str, Any]:
@@ -95,12 +109,21 @@ def create_entry(source: str, parent: str, name: str, kind: str) -> dict[str, An
     return _node(target, _root(source), depth=0, max_depth=1)
 
 
-def write_file(source: str, path: str, content: str) -> dict[str, Any]:
+def write_file(
+    source: str, path: str, content: str, expected_version: str | None = None,
+) -> dict[str, Any]:
     target = _target(source, path)
     if not target.is_file() or target.suffix.lower() not in SUPPORTED_EXTENSIONS:
         raise ValueError("file is unavailable or unsupported")
+    current_version = _version(target)
+    if expected_version and expected_version != current_version:
+        raise WorkspaceConflictError("file changed since it was opened")
     target.write_text(content, encoding="utf-8")
-    return {"ok": True, "path": f"/{target.relative_to(_root(source)).as_posix()}"}
+    return {
+        "ok": True,
+        "path": f"/{target.relative_to(_root(source)).as_posix()}",
+        "version": _version(target),
+    }
 
 
 def rename_entry(source: str, path: str, name: str) -> dict[str, Any]:

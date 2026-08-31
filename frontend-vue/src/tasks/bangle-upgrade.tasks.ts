@@ -33,7 +33,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 1,
     component: "WorkspaceTree.vue",
     priority: "critical",
-    status: "review",
+    status: "done",
     estimatedHours: 2,
     tags: ["phase-1", "component", "ui", "workspace"],
     checklist: [
@@ -54,7 +54,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 1,
     component: "WorkspaceTreeNode.vue",
     priority: "critical",
-    status: "in-progress",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-1", "component", "ui"],
     checklist: [
@@ -74,7 +74,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 1,
     component: "FileOperations.ts",
     priority: "high",
-    status: "review",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-1", "utility", "api"],
     checklist: [
@@ -1343,7 +1343,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     title: "Per-user workspace persistence",
     description: "Server-side file tree via GET/POST /api/workspace/tree",
     priority: "high",
-    status: "review",
+    status: "done",
     estimatedHours: 4,
     tags: ["sprint-3", "storage"],
     checklist: [

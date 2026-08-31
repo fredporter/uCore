@@ -12,6 +12,7 @@ export interface EditorFile {
   content: string;
   extension: string;
   readOnly?: boolean;
+  version?: string;
 }
 
 export const useEditorSurface = () => {

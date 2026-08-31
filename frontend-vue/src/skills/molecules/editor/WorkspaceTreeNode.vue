@@ -6,12 +6,14 @@
     :class="{ 'tree-node--selected': selectedId === node.id }"
     :style="{ paddingLeft: `${8 + depth * 16}px` }"
     role="treeitem"
+    draggable="true"
     :aria-selected="selectedId === node.id"
     @click="emit('select', node)"
     @contextmenu.prevent="showMenu($event)"
     @pointerdown="startLongPress"
     @pointerup="cancelLongPress"
     @pointercancel="cancelLongPress"
+    @dragstart="startDrag"
   >
     <UIcon :name="fileIcon" class="tree-node__icon" />
     <span class="tree-node__name">{{ node.name }}</span>
@@ -23,12 +25,16 @@
       class="tree-node tree-node--folder"
       :style="{ paddingLeft: `${8 + depth * 16}px` }"
       role="treeitem"
+      draggable="true"
       :aria-expanded="isExpanded"
       @click="emit('toggle', node.id)"
       @contextmenu.prevent="showMenu($event)"
       @pointerdown="startLongPress"
       @pointerup="cancelLongPress"
       @pointercancel="cancelLongPress"
+      @dragstart="startDrag"
+      @dragover.prevent
+      @drop.prevent="dropIntoFolder"
     >
       <UIcon
         :name="isExpanded ? 'expand_more' : 'chevron_right'"
@@ -52,6 +58,7 @@
         @delete="emit('delete', $event)"
         @rename="emit('rename', $event)"
         @move="emit('move', $event)"
+        @move-to="emit('move-to', $event)"
         @create="emit('create', $event)"
       />
     </div>
@@ -125,6 +132,7 @@ const emit = defineEmits<{
   delete: [id: string];
   rename: [node: FileNode];
   move: [node: FileNode];
+  "move-to": [payload: { id: string; parent: string }];
   create: [payload: { type: "file" | "folder"; parentPath: string }];
 }>();
 
@@ -184,6 +192,16 @@ function startLongPress(event: PointerEvent) {
 function cancelLongPress() {
   if (longPressTimer) clearTimeout(longPressTimer);
   longPressTimer = null;
+}
+
+function startDrag(event: DragEvent) {
+  event.dataTransfer?.setData("application/x-ucore-workspace-node", props.node.id);
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+}
+
+function dropIntoFolder(event: DragEvent) {
+  const id = event.dataTransfer?.getData("application/x-ucore-workspace-node");
+  if (id && id !== props.node.id) emit("move-to", { id, parent: props.node.path });
 }
 
 function onCreateFile() {

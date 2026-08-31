@@ -201,15 +201,17 @@ test("Developer editor loads the authoritative repository diff baseline", async 
 });
 
 test("Workflow workspace loads, filters, and opens persistent files", async ({ page }) => {
-  const node = { id: "Notes/Today.md", name: "Today.md", type: "file", path: "/Notes/Today.md", extension: "md" };
+  await page.setViewportSize({ width: 430, height: 760 });
+  const node = { id: "notes/Today.md", name: "Today.md", type: "file", path: "/Notes/Today.md", extension: "md" };
   await page.route("**/api/editor/workspace?source=user", (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ tree: [node] }) }),
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ tree: [{ id: "notes", name: "Notes", type: "folder", path: "/Notes", children: [node] }] }) }),
   );
   await page.route("**/api/editor/files?source=user&path=**", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ path: node.path, content: "# Today\n\nPersistent content.\n" }) }),
   );
 
   await page.goto("/workflow?tab=editor");
+  await page.getByRole("button", { name: "Open workspace files" }).click();
   const filter = page.getByRole("searchbox", { name: "Filter workspace files" });
   await expect(page.getByText("Today.md", { exact: true })).toBeVisible();
   await filter.fill("missing");
