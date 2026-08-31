@@ -22,12 +22,15 @@ stores, MCP meshes, or unverified vendor tools.
 - [x] Optional vendor artifact, preflight, and dry-run request contracts are
       scaffolded as inert validation models with no runtime registration.
 - [x] Bangle/Dev task ledger reconciled against tracked implementation evidence.
+- [x] Companion uCode GridCore/runtime prework validated, committed, and pinned
+      immutably for clean-checkout CI.
 
 ## Branch disposition
 
 | Branch | Disposition | Evidence / next action |
 | --- | --- | --- |
 | `codex/advance-runtime-feed-workflows` | Active delivery branch | Four earlier checkpoints plus current readiness work; merge through protected checks. |
+| uCode `codex/complete-gridcore-runtime-prework` | Companion delivery branch | Validated GridCore, Teletext, BBCSDL, session-runtime, and software-library prework at `c7dbc44`; merge through the uCode PR before returning the uCore CI pin to `main`. |
 | `recovery/2026-08-18-teletext-import` | Superseded, retain until active branch merges | Current Teletext catalogue, golden pages, and 16-test browser suite replace the incomplete two-file recovery commit. |
 | `work/2026-08-18-stabilise` | Historical stabilization branch | Its architecture/removal work was subsequently merged or superseded by protected PRs; do not merge wholesale. |
 | `codex/mcp-vendor-architecture-audit` | Superseded by current accepted audit | Current `MCP_ARCHITECTURE_AUDIT_2026-08-19.md` contains the accepted and implementation-updated form. |
@@ -44,12 +47,12 @@ timeouts.
 The following work is blocked on canonical upstream provenance and must not be
 simulated:
 
-- [ ] Confirm canonical upstream repository, organization, license, and release process.
-- [ ] Record a real immutable release URL, version, platform, SHA-256, and license.
-- [ ] Review the pinned artifact in a disposable environment.
-- [ ] Decide accept or reject. Only acceptance may activate capability requirements.
-- [ ] After acceptance, implement a fake-executable dry-run wrapper and audit tests.
-- [ ] After wrapper evidence, design the uFlow task-reference/audit handoff.
+- Externally blocked: confirm the canonical upstream repository, organization, license, and release process.
+- Externally blocked: record a real immutable release URL, version, platform, SHA-256, and license.
+- Planned after provenance: review the pinned artifact in a disposable environment.
+- Decision gate: accept or reject; only acceptance may activate capability requirements.
+- Planned after acceptance: implement a fake-executable dry-run wrapper and audit tests.
+- Planned after wrapper evidence: design the uFlow task-reference/audit handoff.
 
 No source entry, lock entry, binary path, capability requirement, route, UI
 action, MCP tool, or scheduler registration exists before that decision.

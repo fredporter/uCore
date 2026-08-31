@@ -159,8 +159,8 @@ confirmation, and audit acceptance tests pass.
       and rejects undeclared environment or secret injection.
 - [x] Contract tests prove invalid provenance, traversal-like repository IDs,
       write mode, and environment injection fail closed.
-- [ ] Canonical upstream and pinned release provenance verified externally.
-- [ ] Fake-executable wrapper, audit, and uFlow handoff implemented after acceptance.
+- Externally blocked: canonical upstream and pinned release provenance must be verified.
+- Planned after acceptance: implement the fake-executable wrapper, audit, and uFlow handoff.
 
 The schemas live in `backend/app/services/vendor_tool_contracts.py` and are not
 imported by runtime routes. No capability, binary discovery, installation,

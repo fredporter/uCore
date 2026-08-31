@@ -102,7 +102,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: fredporter/uCode
-          ref: main
+          # Companion prework required by this delivery branch. Keep immutable
+          # until the uCode PR lands, then advance this pin to main.
+          ref: c7dbc4414f30a542096984a753201afb7e0dc367
           path: external/uCode
 
       - name: Install backend dependencies
@@ -137,7 +139,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: fredporter/uCode
-          ref: main
+          # Must match the backend runtime checkout above.
+          ref: c7dbc4414f30a542096984a753201afb7e0dc367
           path: external/uCode
 
       - name: Expose sibling uCode source contract
