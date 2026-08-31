@@ -69,8 +69,18 @@
     <!-- Middle: always empty — surface tab navigation is now handled by SurfaceTabNav below -->
     <div class="global-toolbar__center"></div>
 
-    <!-- Right: Theme toggle + Settings (Dev mode moved to chat bubble) -->
+    <!-- Right: explicit global mode + display controls -->
     <div class="global-toolbar__right">
+      <button
+        class="global-toolbar__dev-toggle"
+        :class="{ 'global-toolbar__dev-toggle--on': devMode.mode !== 'off' }"
+        :aria-pressed="devMode.mode !== 'off'"
+        :title="`Developer mode: ${devMode.mode}. Click to cycle mode.`"
+        @click="devMode.toggle()"
+      >
+        <span class="global-toolbar__dev-dot" aria-hidden="true"></span>
+        <span class="global-toolbar__dev-label">Dev {{ devMode.loading ? '…' : devMode.mode }}</span>
+      </button>
       <button
         class="global-toolbar__icon-only global-toolbar__theme-toggle"
         :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
@@ -101,8 +111,8 @@ import { computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useSettingsStore } from "../../stores/settings";
+import { useDevModeStore } from "../../stores/devMode";
 import UIcon from "../atoms/UIcon.vue";
-import UBadge from "../atoms/UBadge.vue";
 
 interface Props {
   chatMode?: string;
@@ -118,6 +128,7 @@ const router = useRouter();
 const route = useRoute();
 const shell = useShellStore();
 const settings = useSettingsStore();
+const devMode = useDevModeStore();
 
 const isDark = computed(() => settings.themeMode === "dark");
 const sidebarDisabled = computed(

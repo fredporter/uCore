@@ -2052,6 +2052,98 @@
           "pattern": 1
         }
       ]
+    },
+    {
+      "id": "details",
+      "name": "Geographic details",
+      "colour": 6,
+      "visible": true,
+      "cells": [
+        { "col": 0, "row": 6, "char": "·" },
+        { "col": 5, "row": 6, "char": "·" },
+        { "col": 10, "row": 6, "char": "·" },
+        { "col": 15, "row": 6, "char": "·" },
+        { "col": 20, "row": 6, "char": "·" },
+        { "col": 25, "row": 6, "char": "·" },
+        { "col": 30, "row": 6, "char": "·" },
+        { "col": 35, "row": 6, "char": "·" },
+        { "col": 0, "row": 12, "char": "·" },
+        { "col": 5, "row": 12, "char": "·" },
+        { "col": 10, "row": 12, "char": "·" },
+        { "col": 15, "row": 12, "char": "·" },
+        { "col": 20, "row": 12, "char": "·" },
+        { "col": 25, "row": 12, "char": "·" },
+        { "col": 30, "row": 12, "char": "·" },
+        { "col": 35, "row": 12, "char": "·" },
+        { "col": 0, "row": 18, "char": "·" },
+        { "col": 10, "row": 18, "char": "·" },
+        { "col": 20, "row": 18, "char": "·" },
+        { "col": 30, "row": 18, "char": "·" }
+      ]
+    },
+    {
+      "id": "foreground",
+      "name": "Labels and frame",
+      "colour": 7,
+      "visible": true,
+      "locked": true,
+      "cells": [
+        { "col": 1, "row": 1, "char": "W" },
+        { "col": 2, "row": 1, "char": "O" },
+        { "col": 3, "row": 1, "char": "R" },
+        { "col": 4, "row": 1, "char": "L" },
+        { "col": 5, "row": 1, "char": "D" },
+        { "col": 1, "row": 23, "char": "E" },
+        { "col": 2, "row": 23, "char": "Q" },
+        { "col": 3, "row": 23, "char": "U" },
+        { "col": 4, "row": 23, "char": "A" },
+        { "col": 5, "row": 23, "char": "T" },
+        { "col": 6, "row": 23, "char": "O" },
+        { "col": 7, "row": 23, "char": "R" }
+      ]
+    },
+    {
+      "id": "lighting",
+      "name": "Day/night lighting",
+      "colour": 4,
+      "visible": false,
+      "opacity": 0.35,
+      "blendMode": "overlay",
+      "cells": [
+        { "col": 31, "row": 3, "pattern": 63, "bg": 4 },
+        { "col": 32, "row": 3, "pattern": 63, "bg": 4 },
+        { "col": 33, "row": 3, "pattern": 63, "bg": 4 },
+        { "col": 31, "row": 4, "pattern": 63, "bg": 4 },
+        { "col": 32, "row": 4, "pattern": 63, "bg": 4 },
+        { "col": 33, "row": 4, "pattern": 63, "bg": 4 }
+      ]
+    },
+    {
+      "id": "collision",
+      "name": "Navigation collision",
+      "colour": 1,
+      "visible": false,
+      "locked": true,
+      "cells": [
+        { "col": 11, "row": 7, "char": "×" },
+        { "col": 12, "row": 7, "char": "×" },
+        { "col": 20, "row": 9, "char": "×" },
+        { "col": 21, "row": 9, "char": "×" },
+        { "col": 30, "row": 15, "char": "×" }
+      ]
+    },
+    {
+      "id": "entities",
+      "name": "Cities and entities",
+      "colour": 3,
+      "visible": true,
+      "cells": [
+        { "col": 19, "row": 5, "char": "◆" },
+        { "col": 8, "row": 8, "char": "◆" },
+        { "col": 31, "row": 10, "char": "◆" },
+        { "col": 22, "row": 13, "char": "◆" },
+        { "col": 34, "row": 18, "char": "◆" }
+      ]
     }
   ]
 }

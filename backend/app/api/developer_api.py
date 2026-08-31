@@ -522,21 +522,29 @@ def _get_repo_file_diff(repo_name: str, relative_path: str) -> dict[str, Any]:
     repo_path = _repo_path(repo_name)
     _safe_file_path(repo_name, relative_path)
     status_output = _git_output(repo_path, "status", "--porcelain", "--", relative_path)
-    status_code = status_output[:2].strip() if status_output else ""
+    status_code = status_output[:2] if status_output else "  "
 
     if status_code == "??":
         diff_text = _build_untracked_diff(repo_name, relative_path)
+        baseline = ""
+        status = "added"
     else:
         diff_text = _git_output(repo_path, "diff", "--", relative_path)
         if not diff_text:
             diff_text = _git_output(repo_path, "diff", "--cached", "--", relative_path)
+        if status_code[1] != " ":
+            baseline = _git_output(repo_path, "show", f":{relative_path}")
+        else:
+            baseline = _git_output(repo_path, "show", f"HEAD:{relative_path}")
+        status = _status_label(status_code.strip()) if status_code.strip() else "clean"
 
     return {
         "repo": repo_name,
         "path": relative_path,
-        "status": _status_label(status_code) if status_code else "modified",
+        "status": status,
         "diff": diff_text,
         "hasDiff": bool(diff_text.strip()),
+        "baseline": baseline,
     }
 
 

@@ -51,6 +51,7 @@
  * @category layouts
  */
 import { onBeforeUnmount, onMounted, ref } from "vue";
+import { useDevModeStore } from "../stores/devMode";
 import { useShellStore } from "../stores/shell";
 import { useSettingsStore } from "../stores/settings";
 import { useWorkflowStore } from "../stores/workflow";
@@ -64,6 +65,7 @@ import type { FileEntry } from "../types/filepicker";
 
 const shell = useShellStore();
 const workflow = useWorkflowStore();
+const devMode = useDevModeStore();
 const router = useRouter();
 const route = useRoute();
 const runtimeWarning = ref("");
@@ -94,6 +96,7 @@ function reloadPage() {
 }
 
 onMounted(() => {
+  void devMode.probe();
   syncRuntimeWarningFromSession();
   if (typeof window !== "undefined") {
     window.addEventListener("ucore:runtime-warning", onRuntimeWarningEvent as EventListener);

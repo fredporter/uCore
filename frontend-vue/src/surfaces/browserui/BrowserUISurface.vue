@@ -285,6 +285,7 @@ import ResearchDashboard from "./panels/ResearchDashboard.vue"
 import { useChatStore } from "../../stores/chat"
 import { useWorkflowStore } from "../../stores/workflow"
 import { addBinder, fetchScrape, listResearchJobs, startResearch } from "./ApiBridge"
+import { ucoreApi } from "../../api/client"
 
 interface StackItem {
   id: string
@@ -715,9 +716,28 @@ async function saveToBinder(payload: { title: string; content: string; tags: str
   const filename = `${payload.title || "research-note"}.md`.toLowerCase().replace(/\s+/g, "-")
   const content = `---\ntitle: "${payload.title || ""}"\ndate: "${new Date().toISOString().slice(0, 10)}"\n---\n\n${payload.content}`
 
+  const imported = await ucoreApi.userWorkflow.importMarkdown({
+    content: payload.content,
+    source_format: "markdown",
+    title: payload.title || "Research note",
+    filename,
+    binder: "Research",
+    vault_layer: "user",
+    metadata: {
+      source: editorMeta.value.source || "browserui",
+      tags: payload.tags,
+      captured_by: "browserui",
+    },
+  })
+  if (!imported.ok || !(imported.data as any)?.path) {
+    window.alert("Could not save this research note to the local vault.")
+    return
+  }
+  const persistedPath = String((imported.data as any).path)
+
   wf.selectFile({
     id: `research-${Date.now()}`,
-    path: `/research/${filename}`,
+    path: persistedPath,
     filename,
     extension: "md",
     binder: "Research",

@@ -4,6 +4,7 @@
 CREATE TABLE IF NOT EXISTS user_activity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     source TEXT NOT NULL,
+    external_id TEXT,
     type TEXT NOT NULL,
     title TEXT, content TEXT, url TEXT,
     contact_id INTEGER, context_id INTEGER,

@@ -23,7 +23,9 @@ export interface LayerMapCell {
   col: number
   row: number
   /** 6-bit sextant pattern (0-63); 0 = empty/transparent. */
-  pattern: number
+  pattern?: number
+  /** Literal glyph for labels, markers, collision masks, and entities. */
+  char?: string
   /** Optional foreground colour override (palette index 0-7). */
   fg?: number
   /** Optional background colour override (palette index 0-7). */
@@ -36,6 +38,10 @@ export interface LayerMapLayer {
   name: string
   /** Default palette colour for this layer's cells. */
   colour: number
+  visible?: boolean
+  opacity?: number
+  blendMode?: 'normal' | 'multiply' | 'screen' | 'overlay'
+  locked?: boolean
   cells: LayerMapCell[]
 }
 

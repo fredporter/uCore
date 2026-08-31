@@ -7,10 +7,10 @@
   <div class="diff-editor-panel">
     <div class="diff-editor-panel__header">
       <span class="diff-editor-panel__label diff-editor-panel__label--original">
-        Original
+        {{ baselineLabel }}
       </span>
       <span class="diff-editor-panel__label diff-editor-panel__label--modified">
-        Changed
+        {{ hasRepositoryDiff ? "Working copy" : "No repository changes" }}
       </span>
     </div>
     <div ref="mergeHost" class="diff-editor-panel__merge" />
@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch } from "vue";
+import { computed, ref, onMounted, onBeforeUnmount, watch } from "vue";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { MergeView } from "@codemirror/merge";
@@ -27,9 +27,14 @@ import { oneDark } from "@codemirror/theme-one-dark";
 interface Props {
   original: string;
   modified: string;
+  status?: "clean" | "modified" | "added" | "deleted";
+  hasRepositoryDiff?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  status: "clean",
+  hasRepositoryDiff: false,
+});
 
 const emit = defineEmits<{
   "update:modified": [value: string];
@@ -37,6 +42,12 @@ const emit = defineEmits<{
 
 const mergeHost = ref<HTMLDivElement | null>(null);
 let mergeView: MergeView | null = null;
+const baselineLabel = computed(() => {
+  if (props.status === "added") return "New file";
+  if (props.status === "modified") return "Git baseline";
+  if (props.status === "deleted") return "Deleted in repository";
+  return "Git baseline";
+});
 
 onMounted(() => {
   if (!mergeHost.value) return;
@@ -50,14 +61,14 @@ onMounted(() => {
         oneDark,
         EditorView.theme({
           "&": {
-            background: "var(--usx-color-background, #0d1117)",
-            color: "var(--usx-color-on-surface, #c9d1d9)",
-            fontSize: "var(--usx-font-size-sm, 13px)",
+            background: "var(--usx-color-background)",
+            color: "var(--usx-color-on-surface)",
+            fontSize: "var(--usx-font-size-sm)",
             height: "100%",
           },
           ".cm-scroller": { overflow: "auto" },
           ".cm-content": {
-            padding: "var(--usx-spacing-xs, 4px)",
+            padding: "var(--usx-spacing-xs)",
           },
         }),
       ],
@@ -68,14 +79,14 @@ onMounted(() => {
         oneDark,
         EditorView.theme({
           "&": {
-            background: "var(--usx-color-background, #0d1117)",
-            color: "var(--usx-color-on-surface, #c9d1d9)",
-            fontSize: "var(--usx-font-size-sm, 13px)",
+            background: "var(--usx-color-background)",
+            color: "var(--usx-color-on-surface)",
+            fontSize: "var(--usx-font-size-sm)",
             height: "100%",
           },
           ".cm-scroller": { overflow: "auto" },
           ".cm-content": {
-            padding: "var(--usx-spacing-xs, 4px)",
+            padding: "var(--usx-spacing-xs)",
           },
         }),
         EditorView.updateListener.of((update) => {
@@ -156,14 +167,14 @@ defineExpose({ mergeView: () => mergeView });
 }
 
 .diff-editor-panel__label--original {
-  background: color-mix(in srgb, var(--usx-color-danger, #da3633) 8%, transparent);
-  color: var(--usx-color-danger, #da3633);
+  background: color-mix(in srgb, var(--usx-color-danger) 8%, transparent);
+  color: var(--usx-color-danger);
   border-right: var(--usx-border-width) solid var(--usx-color-border);
 }
 
 .diff-editor-panel__label--modified {
-  background: color-mix(in srgb, var(--usx-color-success, #3fb950) 8%, transparent);
-  color: var(--usx-color-success, #3fb950);
+  background: color-mix(in srgb, var(--usx-color-success) 8%, transparent);
+  color: var(--usx-color-success);
 }
 
 .diff-editor-panel__merge {

@@ -113,6 +113,7 @@
   --gridcore-sidebar-char-input-size: 20px;
 
   --gridcore-action-size: var(--usx-touch-min, 32px);
+  --gridcore-touch-target: 44px;
   --gridcore-prose-width: var(--usx-prose-width, 72ch);
   --gridcore-prose-heading-size: var(--usx-font-size-2xl, 24px);
 
@@ -209,4 +210,84 @@
   --gridcore-radius-sm: 2px;
   --gridcore-popover-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
   --gridcore-checker-size: 10px;
+}
+
+/* F5 interaction contract: every GridCore view uses the same visible focus
+   language. Mouse users retain the compact chrome; keyboard users get a
+   high-contrast ring that is not dependent on colour alone. */
+.gridcore-surface :where(
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea,
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline: var(--gridcore-focus-outline-width) solid var(--gridcore-color-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px var(--gridcore-color-background-alt);
+  position: relative;
+  z-index: 2;
+}
+
+.gridcore-surface :where(button, [role="button"]):disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Pointer accuracy is a presentation concern, not a change to lattice/cell
+   geometry. Coarse pointers therefore enlarge chrome only, never the 16:9
+   Terminal/Teletext register or the editor canvases. */
+@media (pointer: coarse) {
+  .gridcore-surface {
+    --gridcore-tool-btn-size: var(--gridcore-touch-target);
+    --gridcore-action-btn-height: var(--gridcore-touch-target);
+    --gridcore-control-height: var(--gridcore-touch-target);
+    --gridcore-toolbar-min-height: calc(var(--gridcore-touch-target) + 8px);
+    --gridcore-sidebar-char-input-size: 22px;
+  }
+
+  .gridcore-surface :where(
+    button,
+    [role="button"],
+    input:not([type="range"]),
+    select
+  ) {
+    min-height: var(--gridcore-touch-target);
+  }
+
+  .gridcore-surface :where(.sidebar-char-chip, .pixel-colour-popover__swatch, .layer-colour-popover__swatch) {
+    min-width: var(--gridcore-touch-target);
+    min-height: var(--gridcore-touch-target);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gridcore-surface,
+  .gridcore-surface *,
+  .gridcore-surface *::before,
+  .gridcore-surface *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .gridcore-surface :where(
+    button,
+    [role="button"],
+    input,
+    select,
+    textarea,
+    [tabindex]:not([tabindex="-1"])
+  ):focus-visible {
+    outline-color: Highlight;
+  }
+
+  .gridcore-surface :where(.active, .selected, [aria-selected="true"], [aria-pressed="true"]) {
+    border-color: Highlight;
+    forced-color-adjust: none;
+  }
 }

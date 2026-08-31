@@ -73,6 +73,7 @@ export default defineConfig({
       "/api": {
         target: API_ORIGIN,
         changeOrigin: true,
+        ws: true,
       },
       "/snackmachine": {
         target: API_ORIGIN,
