@@ -14,10 +14,14 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def test_workspace_file_lifecycle(workspace: Path):
     folder = workspace_files.create_entry("user", "", "Notes", "folder")
     created = workspace_files.create_entry("user", "/Notes", "Today.md", "file")
-    workspace_files.write_file("user", created["path"], "# Today\n")
+    opened = workspace_files.read_file("user", created["path"])
+    saved = workspace_files.write_file(
+        "user", created["path"], "# Today\n", opened["version"],
+    )
 
     assert folder["type"] == "folder"
     assert workspace_files.read_file("user", created["path"])["content"] == "# Today\n"
+    assert saved["version"] != opened["version"]
     assert workspace_files.list_tree("user")[0]["children"][0]["name"] == "Today.md"
 
     renamed = workspace_files.rename_entry("user", created["path"], "Plan.md")
@@ -65,3 +69,14 @@ def test_workspace_rejects_moving_folder_inside_itself(workspace: Path):
 
     with pytest.raises(ValueError, match="inside itself"):
         workspace_files.move_entry("user", "/Parent", "/Parent/Child")
+
+
+def test_workspace_rejects_stale_write(workspace: Path):
+    created = workspace_files.create_entry("user", "", "Conflict.md", "file")
+    opened = workspace_files.read_file("user", created["path"])
+    (workspace / "Conflict.md").write_text("external change", encoding="utf-8")
+
+    with pytest.raises(workspace_files.WorkspaceConflictError, match="changed"):
+        workspace_files.write_file(
+            "user", created["path"], "client change", opened["version"],
+        )

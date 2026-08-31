@@ -15,9 +15,23 @@ export interface FileNode {
   extension?: string;
   children?: FileNode[];
   content?: string;
+  version?: string;
 }
 
 const EXPANSION_KEY = "ucore-workspace-expanded";
+const TREE_CACHE_KEY = "ucore-workspace-tree-cache";
+const FILE_CACHE_KEY = "ucore-workspace-file-cache";
+const SAVE_QUEUE_KEY = "ucore-workspace-save-queue";
+
+interface QueuedSave { path: string; content: string; version?: string }
+
+function readStorage<T>(key: string, fallback: T): T {
+  try { return JSON.parse(localStorage.getItem(key) || "") as T; } catch { return fallback; }
+}
+
+function writeStorage(key: string, value: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
 
 function loadExpanded(): Set<string> {
   try {
@@ -97,7 +111,11 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   async function request(path: string, init?: RequestInit) {
     const response = await fetch(`${UCORE_BASE}${path}`, init);
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "Workspace request failed");
+    if (!response.ok) {
+      const error = new Error(result.error || "Workspace request failed") as Error & { status?: number };
+      error.status = response.status;
+      throw error;
+    }
     return result;
   }
 
@@ -107,8 +125,10 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     try {
       const result = await request("/api/editor/workspace?source=user");
       tree.value = Array.isArray(result.tree) ? result.tree : [];
+      writeStorage(TREE_CACHE_KEY, tree.value);
     } catch (exc) {
       error.value = exc instanceof Error ? exc.message : "Workspace is unavailable";
+      tree.value = readStorage<FileNode[]>(TREE_CACHE_KEY, tree.value);
     } finally {
       loading.value = false;
     }
@@ -141,15 +161,29 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     try {
       const result = await request(`/api/editor/files?source=user&path=${encodeURIComponent(node.path)}`);
       node.content = String(result.content || "");
+      node.version = String(result.version || node.version || "");
+      const files = readStorage<Record<string, { content: string; version?: string }>>(FILE_CACHE_KEY, {});
+      files[node.path] = { content: node.content, version: node.version };
+      writeStorage(FILE_CACHE_KEY, files);
       selectedId.value = node.id;
       getEditorSurface().openFile({
         path: node.path,
         filename: node.name,
         content: node.content,
         extension: node.extension ?? "md",
+        version: node.version,
       });
     } catch (exc) {
-      error.value = exc instanceof Error ? exc.message : "File could not be opened";
+      const cached = readStorage<Record<string, { content: string; version?: string }>>(FILE_CACHE_KEY, {})[node.path];
+      if (cached) {
+        node.content = cached.content;
+        node.version = cached.version;
+        selectedId.value = node.id;
+        getEditorSurface().openFile({ path: node.path, filename: node.name, content: cached.content, extension: node.extension ?? "md", version: cached.version });
+        error.value = "Offline copy";
+      } else {
+        error.value = exc instanceof Error ? exc.message : "File could not be opened";
+      }
     }
   }
 
@@ -199,9 +233,49 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     }
   }
 
-  async function saveFile(path: string, content: string) {
-    await mutate("PUT", { path, content });
+  async function saveFile(path: string, content: string, expectedVersion?: string) {
+    const node = findNodeByPath(tree.value, path);
+    const queued: QueuedSave = { path, content, version: expectedVersion ?? node?.version };
+    try {
+      const result = await request("/api/editor/files", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "user", ...queued }),
+      });
+      if (node) node.version = result.version;
+      const files = readStorage<Record<string, { content: string; version?: string }>>(FILE_CACHE_KEY, {});
+      files[path] = { content, version: result.version };
+      writeStorage(FILE_CACHE_KEY, files);
+      error.value = "";
+      return true;
+    } catch (exc) {
+      const status = (exc as Error & { status?: number }).status;
+      if (status === 409) {
+        error.value = "Save conflict: reload the file before saving again.";
+        throw exc;
+      }
+      const queue = readStorage<QueuedSave[]>(SAVE_QUEUE_KEY, []);
+      writeStorage(SAVE_QUEUE_KEY, [...queue.filter((item) => item.path !== path), queued]);
+      error.value = "Offline: save queued for reconnection.";
+      return false;
+    }
   }
+
+  async function flushSaveQueue() {
+    const queue = readStorage<QueuedSave[]>(SAVE_QUEUE_KEY, []);
+    if (!queue.length) return;
+    const remaining: QueuedSave[] = [];
+    for (const item of queue) {
+      try {
+        if (!(await saveFile(item.path, item.content, item.version))) remaining.push(item);
+      } catch {
+        remaining.push(item);
+      }
+    }
+    writeStorage(SAVE_QUEUE_KEY, remaining);
+  }
+
+  if (typeof window !== "undefined") window.addEventListener("online", () => void flushSaveQueue());
 
   function updateFileContent(id: string, content: string) {
     const node = findNode(tree.value, id);
@@ -273,5 +347,6 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     moveNode,
     updateFileContent,
     saveFile,
+    flushSaveQueue,
   };
 });

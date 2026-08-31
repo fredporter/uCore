@@ -5,9 +5,16 @@ import { useWorkspaceStore } from "./workspace";
 
 describe("workspace store", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
+    const values = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+      clear: () => values.clear(),
+    });
     setActivePinia(createPinia());
     getEditorSurface().closeEditor();
-    vi.restoreAllMocks();
   });
 
   it("loads the persistent tree and opens file content", async () => {
@@ -35,5 +42,44 @@ describe("workspace store", () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, expect.stringContaining("/api/editor/files"), expect.objectContaining({ method: "PUT" }));
     expect(store.error).toBe("");
+  });
+
+  it("queues a save while offline", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
+    const store = useWorkspaceStore();
+
+    const saved = await store.saveFile("/Today.md", "Offline update");
+
+    expect(saved).toBe(false);
+    expect(store.error).toContain("queued");
+    expect(localStorage.getItem("ucore-workspace-save-queue")).toContain("Offline update");
+  });
+
+  it("surfaces conflicts without queueing the stale write", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ error: "file changed", conflict: true }), { status: 409 }),
+    ));
+    const store = useWorkspaceStore();
+
+    await expect(store.saveFile("/Today.md", "Stale update")).rejects.toThrow("file changed");
+    expect(store.error).toContain("conflict");
+    expect(localStorage.getItem("ucore-workspace-save-queue")).toBeNull();
+  });
+
+  it("replays an offline save with its original version", async () => {
+    localStorage.setItem("ucore-workspace-save-queue", JSON.stringify([
+      { path: "/Today.md", content: "Queued", version: "original-version" },
+    ]));
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, version: "saved-version" }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const store = useWorkspaceStore();
+
+    await store.flushSaveQueue();
+
+    const request = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body));
+    expect(request.version).toBe("original-version");
+    expect(localStorage.getItem("ucore-workspace-save-queue")).toBe("[]");
   });
 });

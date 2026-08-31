@@ -38,7 +38,7 @@
       <UIcon name="search" />
       <input v-model="query" type="search" placeholder="Filter files" aria-label="Filter workspace files" />
     </label>
-    <div class="workspace-tree__list" role="tree">
+    <div class="workspace-tree__list" role="tree" @dragover.prevent @drop.prevent="dropAtRoot">
       <p v-if="ws.loading" class="workspace-tree__state">Loading…</p>
       <p v-else-if="ws.error" class="workspace-tree__state">{{ ws.error }}</p>
       <WorkspaceTreeNode
@@ -53,6 +53,7 @@
         @delete="ws.deleteNode"
         @rename="handleRename"
         @move="handleMove"
+        @move-to="({ id, parent }) => ws.moveNode(id, parent)"
         @create="handleCreate"
       />
     </div>
@@ -136,6 +137,12 @@ function handleRename(node: FileNode) {
 function handleMove(node: FileNode) {
   const parent = window.prompt("Move to folder path (use / for workspace root):", "/");
   if (parent !== null) void ws.moveNode(node.id, parent.trim());
+}
+
+function dropAtRoot(event: DragEvent) {
+  if ((event.target as HTMLElement).closest(".tree-node--folder")) return;
+  const id = event.dataTransfer?.getData("application/x-ucore-workspace-node");
+  if (id) void ws.moveNode(id, "/");
 }
 
 function handleCreate(payload: {

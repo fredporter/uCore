@@ -37,7 +37,27 @@
           v-if="wf.activeTab === 'editor'"
           class="workflow-panel workflow-panel--editor"
         >
-          <aside class="workflow-workspace-tree">
+          <button
+            class="workflow-workspace-toggle"
+            type="button"
+            aria-label="Open workspace files"
+            @click="workspaceTreeOpen = true"
+          >
+            <UIcon name="folder_open" /> Files
+          </button>
+          <button
+            v-if="workspaceTreeOpen"
+            class="workflow-workspace-backdrop"
+            aria-label="Close workspace files"
+            @click="workspaceTreeOpen = false"
+          />
+          <aside
+            class="workflow-workspace-tree"
+            :class="{ 'workflow-workspace-tree--open': workspaceTreeOpen }"
+          >
+            <button class="workflow-workspace-close" aria-label="Close workspace files" @click="workspaceTreeOpen = false">
+              <UIcon name="close" />
+            </button>
             <WorkspaceTree />
           </aside>
           <EditorPanel
@@ -93,7 +113,7 @@
  * @category surfaces
  * @usage Routed at '/workflow?tab=mission-control'
  */
-import { computed, defineAsyncComponent, onMounted, watch } from "vue";
+import { computed, defineAsyncComponent, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useWorkflowStore, WORKFLOW_TABS } from "../../stores/workflow";
@@ -126,6 +146,7 @@ import WorkspaceTree from "../../skills/molecules/editor/WorkspaceTree.vue";
 const shell = useShellStore();
 const wf = useWorkflowStore();
 const workspace = useWorkspaceStore();
+const workspaceTreeOpen = ref(false);
 const editorSurface = getEditorSurface();
 const route = useRoute();
 const router = useRouter();
@@ -176,6 +197,8 @@ watch(
     }
   },
 );
+
+watch(() => workspace.selectedId, () => { workspaceTreeOpen.value = false; });
 
 watch(
   () => wf.activeTab,
@@ -323,10 +346,52 @@ function onRetryPreflight() {
   min-height: 0;
 }
 
+.workflow-workspace-toggle,
+.workflow-workspace-close,
+.workflow-workspace-backdrop {
+  display: none;
+}
+
 @media (max-width: 767px) {
   .workflow-workspace-tree {
-    width: 11rem;
-    min-width: 9rem;
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(20rem, 86vw);
+    min-width: 0;
+    z-index: 41;
+    transform: translateX(-100%);
+    transition: transform 160ms ease;
+    background: var(--usx-color-surface);
+  }
+
+  .workflow-workspace-tree--open {
+    transform: translateX(0);
+  }
+
+  .workflow-workspace-toggle {
+    display: flex;
+    position: absolute;
+    z-index: 2;
+    align-items: center;
+    gap: var(--usx-spacing-xs);
+    margin: var(--usx-spacing-sm);
+  }
+
+  .workflow-workspace-close {
+    display: flex;
+    position: absolute;
+    z-index: 2;
+    top: var(--usx-spacing-xs);
+    right: var(--usx-spacing-xs);
+  }
+
+  .workflow-workspace-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    border: 0;
+    background: rgb(0 0 0 / 45%);
   }
 }
 
