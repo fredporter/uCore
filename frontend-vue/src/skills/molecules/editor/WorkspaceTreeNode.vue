@@ -9,6 +9,9 @@
     :aria-selected="selectedId === node.id"
     @click="emit('select', node)"
     @contextmenu.prevent="showMenu($event)"
+    @pointerdown="startLongPress"
+    @pointerup="cancelLongPress"
+    @pointercancel="cancelLongPress"
   >
     <UIcon :name="fileIcon" class="tree-node__icon" />
     <span class="tree-node__name">{{ node.name }}</span>
@@ -23,6 +26,9 @@
       :aria-expanded="isExpanded"
       @click="emit('toggle', node.id)"
       @contextmenu.prevent="showMenu($event)"
+      @pointerdown="startLongPress"
+      @pointerup="cancelLongPress"
+      @pointercancel="cancelLongPress"
     >
       <UIcon
         :name="isExpanded ? 'expand_more' : 'chevron_right'"
@@ -45,6 +51,7 @@
         @toggle="emit('toggle', $event)"
         @delete="emit('delete', $event)"
         @rename="emit('rename', $event)"
+        @move="emit('move', $event)"
         @create="emit('create', $event)"
       />
     </div>
@@ -85,6 +92,9 @@
       <button class="tree-context-menu__item" @click="onRename">
         <UIcon name="edit" /> Rename
       </button>
+      <button class="tree-context-menu__item" @click="onMove">
+        <UIcon name="drive_file_move" /> Move
+      </button>
       <button
         class="tree-context-menu__item tree-context-menu__item--danger"
         @click="onDelete"
@@ -114,6 +124,7 @@ const emit = defineEmits<{
   toggle: [id: string];
   delete: [id: string];
   rename: [node: FileNode];
+  move: [node: FileNode];
   create: [payload: { type: "file" | "folder"; parentPath: string }];
 }>();
 
@@ -152,6 +163,7 @@ const fileIcon = computed(() => {
 const menuVisible = ref(false);
 const menuX = ref(0);
 const menuY = ref(0);
+let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
 function showMenu(event: MouseEvent) {
   menuX.value = event.clientX;
@@ -161,6 +173,17 @@ function showMenu(event: MouseEvent) {
 
 function closeMenu() {
   menuVisible.value = false;
+}
+
+function startLongPress(event: PointerEvent) {
+  if (event.pointerType === "mouse") return;
+  cancelLongPress();
+  longPressTimer = setTimeout(() => showMenu(event), 500);
+}
+
+function cancelLongPress() {
+  if (longPressTimer) clearTimeout(longPressTimer);
+  longPressTimer = null;
 }
 
 function onCreateFile() {
@@ -178,6 +201,11 @@ function onRename() {
   emit("rename", props.node);
 }
 
+function onMove() {
+  closeMenu();
+  emit("move", props.node);
+}
+
 function onDelete() {
   closeMenu();
   if (window.confirm(`Delete "${props.node.name}"?`)) {
@@ -190,7 +218,10 @@ function handleGlobalClick() {
 }
 
 onMounted(() => document.addEventListener("click", handleGlobalClick));
-onBeforeUnmount(() => document.removeEventListener("click", handleGlobalClick));
+onBeforeUnmount(() => {
+  cancelLongPress();
+  document.removeEventListener("click", handleGlobalClick);
+});
 </script>
 
 <style scoped>

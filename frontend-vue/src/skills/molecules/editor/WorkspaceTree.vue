@@ -34,11 +34,15 @@
     </div>
 
     <!-- Tree -->
+    <label class="workspace-tree__search">
+      <UIcon name="search" />
+      <input v-model="query" type="search" placeholder="Filter files" aria-label="Filter workspace files" />
+    </label>
     <div class="workspace-tree__list" role="tree">
       <p v-if="ws.loading" class="workspace-tree__state">Loading…</p>
       <p v-else-if="ws.error" class="workspace-tree__state">{{ ws.error }}</p>
       <WorkspaceTreeNode
-        v-for="node in ws.tree"
+        v-for="node in filteredTree"
         :key="node.id"
         :node="node"
         :depth="0"
@@ -48,6 +52,7 @@
         @toggle="ws.toggleFolder"
         @delete="ws.deleteNode"
         @rename="handleRename"
+        @move="handleMove"
         @create="handleCreate"
       />
     </div>
@@ -71,13 +76,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from "vue";
+import { computed, ref, nextTick } from "vue";
 import { useWorkspaceStore, type FileNode } from "../../../stores/workspace";
 import WorkspaceTreeNode from "./WorkspaceTreeNode.vue";
 import UIcon from "../../atoms/UIcon.vue";
 
 const ws = useWorkspaceStore();
 const createInputEl = ref<HTMLInputElement | null>(null);
+const query = ref("");
+const filteredTree = computed(() => filterNodes(ws.tree, query.value.trim().toLowerCase()));
+
+function filterNodes(nodes: FileNode[], term: string): FileNode[] {
+  if (!term) return nodes;
+  return nodes.flatMap((node) => {
+    const children = filterNodes(node.children || [], term);
+    return node.name.toLowerCase().includes(term) || children.length
+      ? [{ ...node, children }]
+      : [];
+  });
+}
 
 const createDialog = ref<{
   visible: boolean;
@@ -114,6 +131,11 @@ function handleRename(node: FileNode) {
   if (newName && newName.trim() && newName !== node.name) {
     ws.renameNode(node.id, newName.trim());
   }
+}
+
+function handleMove(node: FileNode) {
+  const parent = window.prompt("Move to folder path (use / for workspace root):", "/");
+  if (parent !== null) void ws.moveNode(node.id, parent.trim());
 }
 
 function handleCreate(payload: {
@@ -211,6 +233,23 @@ function handleCreate(payload: {
   flex: 1;
   overflow-y: auto;
   padding: var(--usx-spacing-xs) 0;
+}
+
+.workspace-tree__search {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+}
+
+.workspace-tree__search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--usx-color-on-surface);
+  font-size: var(--usx-font-size-xs);
 }
 
 .workspace-tree__state {

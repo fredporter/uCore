@@ -45,3 +45,23 @@ def test_workspace_tree_excludes_hidden_and_runtime_directories(workspace: Path)
     tree = workspace_files.list_tree("user")
 
     assert [node["name"] for node in tree] == ["Visible.md"]
+
+
+def test_workspace_moves_entries_between_folders(workspace: Path):
+    workspace_files.create_entry("user", "", "From", "folder")
+    workspace_files.create_entry("user", "", "To", "folder")
+    created = workspace_files.create_entry("user", "/From", "Move.md", "file")
+
+    moved = workspace_files.move_entry("user", created["path"], "/To")
+
+    assert moved["path"] == "/To/Move.md"
+    assert not (workspace / "From" / "Move.md").exists()
+    assert (workspace / "To" / "Move.md").exists()
+
+
+def test_workspace_rejects_moving_folder_inside_itself(workspace: Path):
+    workspace_files.create_entry("user", "", "Parent", "folder")
+    workspace_files.create_entry("user", "/Parent", "Child", "folder")
+
+    with pytest.raises(ValueError, match="inside itself"):
+        workspace_files.move_entry("user", "/Parent", "/Parent/Child")
