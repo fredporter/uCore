@@ -179,7 +179,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 2,
     component: "FrontmatterPills.vue",
     priority: "high",
-    status: "review",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-2", "component", "ui"],
     checklist: [
@@ -370,7 +370,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 4,
     component: "ResearchDocTemplate.ts",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 0.5,
     tags: ["phase-4", "utility"],
     checklist: [
@@ -389,7 +389,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 4,
     component: "BrowserUISurface.vue",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-4", "refactor", "integration"],
     checklist: [
@@ -455,7 +455,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 5,
     component: "WebScraper.ts",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-5", "utility"],
     checklist: [
@@ -941,7 +941,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 8,
     component: "skills/organisms/AlertOverlay.vue",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["phase-8", "overlay", "component"],
     checklist: [
@@ -960,7 +960,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 8,
     component: "skills/molecules/ToastOverlay.vue",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["phase-8", "overlay", "toast"],
     checklist: [
@@ -979,7 +979,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 8,
     component: "composables/useToast.ts",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-8", "composable"],
     checklist: [
@@ -997,7 +997,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 8,
     component: "skills/organisms/PopupOverlay.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["phase-8", "overlay", "modal"],
     checklist: [
@@ -1018,7 +1018,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 8,
     component: "skills/organisms/StoriesOverlay.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 3,
     tags: ["phase-8", "overlay", "stories"],
     checklist: [
@@ -1039,7 +1039,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 8,
     component: "composables/useOverlay.ts",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-8", "composable"],
     checklist: [
@@ -1058,7 +1058,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 8,
     component: "App.vue",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-8", "integration"],
     checklist: [
@@ -1079,7 +1079,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 9,
     component: "utils/markdownRenderer.ts",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["phase-9", "markdown", "utility"],
     checklist: [
@@ -1101,7 +1101,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 9,
     component: "EditorPanel.vue",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-9", "frontend", "editor"],
     checklist: [
@@ -1120,7 +1120,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 9,
     component: "utils/storyRenderer.ts",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 3,
     tags: ["phase-9", "story", "marp"],
     checklist: [
@@ -1157,7 +1157,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 9,
     component: "utils/gameRenderer.ts",
     priority: "low",
-    status: "backlog",
+    status: "done",
     estimatedHours: 4,
     tags: ["phase-9", "game", "gridcore"],
     checklist: [
@@ -1176,7 +1176,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 9,
     component: "stores/workspace.ts",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-9", "integration"],
     checklist: [

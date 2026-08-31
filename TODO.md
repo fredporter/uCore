@@ -1,17 +1,15 @@
 # uCore Dev Status Ledger
 
 Status: Active
-Last updated: 2026-08-13
+Last updated: 2026-08-31
 
 ## Purpose
 
 This file is a high-level status ledger only.
 
-Active planning tasks, checklists, and sprint execution must live under `.tasker/` per governance policy:
-
-- `.tasker/phases/`
-- `.tasker/backlog/`
-- `.tasker/UNIFIED_DEV_TASK_WORKFLOW.md` (archived index)
+Canonical workflow/task state is owned by uFlow. Repository readiness evidence
+lives in reviewed specs and implementation-backed task ledgers; retired
+`.tasker` paths must not be recreated.
 
 ## Completed Foundations (Summary)
 
@@ -23,9 +21,9 @@ Active planning tasks, checklists, and sprint execution must live under `.tasker
 
 ## Active Program (Canonical Source)
 
-No active phase — Phase 11 completed 2026-08-14. See
-`.tasker/phases/active-phase-11-docs-mirror-publishing-2026-08-13.md` (marked
-complete) and `docs/handovers/PHASE11_DOCS_MIRROR_PUBLISHING_EVIDENCE_2026-08-14.md`.
+Dev Mode readiness pass active. Canonical repository plan:
+`docs/DEV_MODE_READINESS_2026-08-31.md`. Product task evidence:
+`frontend-vue/src/tasks/bangle-upgrade.tasks.ts`.
 
 ## Completed Phases
 
@@ -36,8 +34,9 @@ complete) and `docs/handovers/PHASE11_DOCS_MIRROR_PUBLISHING_EVIDENCE_2026-08-14
 
 Primary planning specs for this phase:
 
-1. `.tasker/phases/active-phase-11-docs-mirror-publishing-2026-08-13.md`
+1. `docs/DEV_MODE_READINESS_2026-08-31.md`
 2. `docs/DEVELOPER_SURFACE.md` (lane separation rules)
+3. `docs/specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md`
 
 ## Governance
 
