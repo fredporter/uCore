@@ -266,7 +266,7 @@ async def handle_feed_sources(request: web.Request) -> web.Response:
     """Describe source availability without prompting for macOS permissions."""
     from app.services.apple_feed_sync import AppleFeedSync
 
-    return web.json_response({"sources": AppleFeedSync().source_status()})
+    return web.json_response({"sources": AppleFeedSync(_get_feed_server()).source_status()})
 
 
 async def handle_feed_source_sync(request: web.Request) -> web.Response:

@@ -265,6 +265,11 @@ export const useWorkspaceStore = defineStore("workspace", () => {
         error.value = "Save conflict: reload the file before saving again.";
         throw exc;
       }
+      const retryable = status === undefined || status === 408 || status === 429 || status >= 500;
+      if (!retryable) {
+        error.value = exc instanceof Error ? exc.message : "Workspace save was rejected.";
+        throw exc;
+      }
       const queue = readStorage<QueuedSave[]>(SAVE_QUEUE_KEY, []);
       writeStorage(SAVE_QUEUE_KEY, [...queue.filter((item) => item.path !== path), queued]);
       error.value = "Offline: save queued for reconnection.";
