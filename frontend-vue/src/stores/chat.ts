@@ -49,7 +49,13 @@ export interface BudgetStatus {
   circuit_breaker?: boolean
 }
 
-import { SNACKBAR_API } from '@/api/base'
+import { OLLAMA_API, SNACKBAR_API } from '@/api/base'
+
+const LOCAL_ASSISTANT_MODEL = 'qwen2.5-coder:3b'
+const LOCAL_ASSISTANT_SYSTEM = `You are Local Assistant for uDOS and uCode. Help with
+uCore surfaces, uFlow tasks and workflows, uCode/GridCore development, repository
+review, vault organization, and offline planning. Be concise, practical, and clearly
+state when an operation requires a connected uCore service.`
 
 function generateId(): string {
   return `conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -86,13 +92,14 @@ export const useChatStore = defineStore('chat', () => {
   const promptMode = ref<'chat' | 'plan' | 'act' | 'workflow'>('chat')
   const prompts = ref<PromptCard[]>(DEFAULT_PROMPTS)
   const models = ref<ModelOption[]>([
+    { id: 'auto', provider: 'local Ollama', name: 'Local Assistant', cost: 'free' },
     { id: 'llama3.2', provider: 'ollama', name: 'Llama 3.2', cost: 'free' },
     { id: 'mistral', provider: 'ollama', name: 'Mistral', cost: 'free' },
     { id: 'dolphin-mixtral-8x7b', provider: 'openrouter-free', name: 'Dolphin Mixtral 8x7B', cost: 'free' },
     { id: 'phi-3-medium-128k-instruct', provider: 'openrouter-free', name: 'Phi-3 Medium 128K', cost: 'free' },
     { id: 'gpt-4o', provider: 'openrouter', name: 'GPT-4o', cost: 'mid-range' },
   ])
-  const selectedModel = ref('llama3.2')
+  const selectedModel = ref('auto')
   const conversations = ref<Conversation[]>(loadConversations())
   const activeConversation = ref<string | null>(null)
   const budgetStatus = ref<BudgetStatus>({ ok: true, daily_remaining: null, warning: null })
@@ -139,6 +146,7 @@ export const useChatStore = defineStore('chat', () => {
     try {
       // Try streaming via SSE
       const params = new URLSearchParams({ message, mode: promptMode.value })
+      if (selectedModel.value !== 'auto') params.set('model', selectedModel.value)
       const res = await fetch(`${SNACKBAR_API}/api/chat/stream?${params}`, {
         signal: AbortSignal.timeout(60000),
       })
@@ -182,6 +190,7 @@ export const useChatStore = defineStore('chat', () => {
           body: JSON.stringify({
             message,
             mode: promptMode.value,
+            ...(selectedModel.value === 'auto' ? {} : { model: selectedModel.value }),
             history: messages.value.map(m => ({ role: m.role, content: m.content })),
           }),
           signal: AbortSignal.timeout(15000),
@@ -208,9 +217,7 @@ export const useChatStore = defineStore('chat', () => {
         }
       } catch {
         const msg = messages.value.find(m => m.id === assistantId)
-        if (msg) {
-          msg.content = `**Echo:** ${message}\n\n> _AI is offline. Start the snackbar server for AI-powered responses._`
-        }
+        if (msg) msg.content = await localAssistantFallback(message)
       }
     } finally {
       loading.value = false
@@ -312,9 +319,40 @@ export const useChatStore = defineStore('chat', () => {
       const res = await fetch(`${SNACKBAR_API}/api/models`, { signal: AbortSignal.timeout(3000) })
       if (res.ok) {
         const data = await res.json()
-        if (data.models?.length > 0) models.value = data.models
+        if (data.models?.length > 0) {
+          models.value = [
+            { id: 'auto', provider: 'local Ollama', name: 'Local Assistant', cost: 'free' },
+            ...data.models.filter((model: ModelOption) => model.id !== 'auto'),
+          ]
+        }
       }
     } catch { /* keep defaults */ }
+  }
+
+  async function localAssistantFallback(message: string): Promise<string> {
+    try {
+      const res = await fetch(`${OLLAMA_API}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: LOCAL_ASSISTANT_MODEL,
+          stream: false,
+          messages: [
+            { role: 'system', content: LOCAL_ASSISTANT_SYSTEM },
+            ...messages.value
+              .filter(m => m.content && m.id !== 'welcome')
+              .slice(-8)
+              .map(m => ({ role: m.role, content: m.content })),
+          ],
+        }),
+        signal: AbortSignal.timeout(30000),
+      })
+      if (!res.ok) throw new Error(`Ollama returned ${res.status}`)
+      const data = await res.json()
+      const content = data.message?.content?.trim()
+      if (content) return content
+    } catch { /* report the bounded local fallback failure below */ }
+    return '**Local Assistant unavailable.** Start Ollama and install `qwen2.5-coder:3b`.'
   }
 
   async function fetchBudgetStatus() {
@@ -382,5 +420,5 @@ export const ASSISTUI_MODES: { id: string; icon: string; label: string; desc: st
   { id: 'chat', icon: 'chat', label: 'Chat', desc: 'Talk with your assistant — ask questions, get help' },
   { id: 'plan', icon: 'psychology', label: 'Plan', desc: 'Research & plan using vaults, repos, and AI' },
   { id: 'act', icon: 'play_arrow', label: 'Act', desc: 'Execute safe vault operations (scrape, save)' },
-  { id: 'workflow', icon: 'account_tree', label: 'Workflow', desc: 'Tasks, missions, planning, and binder' },
+  { id: 'workflow', icon: 'schedule', label: 'Workflow', desc: 'Tasks, missions, planning, and binder' },
 ]

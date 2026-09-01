@@ -1,12 +1,8 @@
 <template>
   <div class="wf-panel">
-    <div class="wf-panel__main">
-      <!-- Compact toolbar -->
-      <div class="wf-toolbar">
-        <span class="wf-toolbar__count">
-          <UIcon name="publish" />
-          Publish
-        </span>
+    <div class="wf-panel__main wf-zen-surface">
+      <div v-if="!embedded" class="wf-toolbar">
+        <div><h2>Publish</h2><p>Review the active document, then send it to a destination.</p></div>
       </div>
 
       <div v-if="wf.loading" class="wf-loading">
@@ -14,20 +10,26 @@
       </div>
 
       <div class="wf-section">
-        <h4 class="wf-section-title">Jekyll Pathway</h4>
+        <div class="wf-publish-steps">
+          <section>
+            <span class="wf-field-label">Destination</span>
+            <div class="wf-choice-row">
+              <button :class="{ active: destination === 'jekyll' }" type="button" @click="destination = 'jekyll'">Local site</button>
+              <button :class="{ active: destination === 'library' }" type="button" @click="destination = 'library'">Markdown library</button>
+              <button type="button" disabled title="Connect a cloud publishing provider">Cloud publish · soon</button>
+            </div>
+          </section>
+        </div>
         <div class="wf-publish-layout">
           <!-- Left: form fields -->
           <div class="wf-publish-form">
+            <label class="wf-field">
+              <span class="wf-field-label">Title</span>
+              <input v-model="jekyllTitle" class="wf-input" type="text" placeholder="Untitled" />
+            </label>
+            <details class="wf-publish-advanced">
+              <summary>Destination options</summary>
             <div class="wf-form-grid">
-              <label class="wf-field">
-                <span class="wf-field-label">Title</span>
-                <input
-                  v-model="jekyllTitle"
-                  class="wf-input"
-                  type="text"
-                  placeholder="My new post"
-                />
-              </label>
               <label class="wf-field">
                 <span class="wf-field-label">Slug</span>
                 <input
@@ -80,8 +82,9 @@
                 />
               </label>
             </div>
+            </details>
 
-            <label class="wf-checkbox-row">
+            <label v-if="false" class="wf-checkbox-row">
               <input
                 v-model="jekyllExecuteGit"
                 type="checkbox"
@@ -89,7 +92,7 @@
               />
               <span>Execute git publish (cloud only)</span>
             </label>
-            <label class="wf-checkbox-row">
+            <label v-if="false" class="wf-checkbox-row">
               <input
                 v-model="jekyllEditMode"
                 type="checkbox"
@@ -110,7 +113,7 @@
                 :disabled="jekyllBusy"
                 @click="publishJekyll"
               >
-                {{ jekyllBusy ? "Preparing..." : "Prepare Jekyll Draft" }}
+                {{ jekyllBusy ? "Preparing..." : "Prepare draft" }}
               </UButton>
             </div>
 
@@ -133,17 +136,6 @@
             </div>
           </div>
 
-          <!-- Right: Markdown editor -->
-          <div class="wf-publish-editor">
-            <div class="wf-publish-editor__header">
-              <span class="wf-field-label">Markdown draft</span>
-            </div>
-            <MarkdownEditor
-              v-model="jekyllContent"
-              :edit-mode="jekyllEditMode"
-              :autofocus="true"
-            />
-          </div>
         </div>
       </div>
     </div>
@@ -154,11 +146,16 @@
 import { ref, watch } from "vue";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 import UButton from "../../../skills/atoms/UButton.vue";
-import MarkdownEditor from "../../../skills/molecules/editor/MarkdownEditor.vue";
 import { useWorkflowStore } from "../../../stores/workflow";
 import { ucoreApi } from "../../../api/client";
 
 const wf = useWorkflowStore();
+const props = withDefaults(defineProps<{ sourceTitle?: string; sourceContent?: string; embedded?: boolean }>(), {
+  sourceTitle: "",
+  sourceContent: "",
+  embedded: false,
+});
+const destination = ref<"jekyll" | "library">("jekyll");
 
 const jekyllTitle = ref("");
 const jekyllSlug = ref("");
@@ -173,6 +170,13 @@ const jekyllEditMode = ref<"prose" | "code">("prose");
 const jekyllBusy = ref(false);
 const jekyllMessage = ref("");
 const jekyllOutput = ref<any>({});
+
+watch(() => [props.sourceTitle, props.sourceContent], ([title, content]) => {
+  jekyllTitle.value = title || "Untitled";
+  jekyllContent.value = content || "";
+  jekyllSlug.value = jekyllTitle.value.toLowerCase().replace(/\.(md|markdown)$/i, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  jekyllCommitMessage.value = `publish: ${jekyllSlug.value}`;
+}, { immediate: true });
 
 watch(
   () => wf.selectedTask,
@@ -250,7 +254,13 @@ async function publishJekyll(): Promise<void> {
   flex-direction: column;
   gap: var(--usx-spacing-md);
   overflow-y: auto;
+  width: min(100%, 64rem);
+  margin: 0 auto;
+  padding: clamp(var(--usx-spacing-md), 4vw, var(--usx-spacing-2xl));
 }
+
+.wf-panel__main { width: 100%; padding: var(--usx-spacing-md); }
+.wf-publish-layout, .wf-publish-form { width: 100%; max-width: none; }
 
 .wf-publish-layout {
   display: flex;
@@ -309,6 +319,17 @@ async function publishJekyll(): Promise<void> {
   flex-direction: column;
   gap: var(--usx-spacing-sm);
 }
+
+.wf-toolbar h2, .wf-toolbar p { margin: 0; }
+.wf-toolbar p { color: var(--usx-color-on-surface-muted); }
+.wf-publish-steps { display: grid; gap: var(--usx-spacing-sm); margin-bottom: var(--usx-spacing-md); }
+.wf-publish-steps section { padding: var(--usx-spacing-sm); border: 0 !important; border-radius: var(--usx-radius-sm); background: color-mix(in srgb, var(--usx-color-surface) 72%, var(--usx-color-primary) 3%); }
+.wf-choice-row { display: flex; flex-wrap: wrap; gap: var(--usx-spacing-xs); margin-top: var(--usx-spacing-xs); }
+.wf-choice-row button { min-height: 2.25rem; padding: 0 var(--usx-spacing-md); border: 0; border-radius: var(--usx-radius-full); background: var(--usx-color-surface-variant); color: var(--usx-color-on-surface); cursor: pointer; }
+.wf-choice-row button.active { color: var(--usx-color-primary); background: color-mix(in srgb, var(--usx-color-primary) 14%, var(--usx-color-surface)); }
+.wf-choice-row button:disabled { opacity: .45; cursor: default; }
+.wf-publish-advanced { border-top: var(--usx-border-width) solid var(--usx-color-border); padding-top: var(--usx-spacing-sm); }
+.wf-publish-advanced summary { cursor: pointer; color: var(--usx-color-on-surface-muted); margin-bottom: var(--usx-spacing-sm); }
 
 .wf-section-title {
   margin: 0;

@@ -1,22 +1,24 @@
 # Nanocoder Vendor Integration Plan
 
-**Status:** Phase 0 blocked; inert contract prework complete
+**Status:** Phase 0 active; canonical upstream and licence verified, immutable artifact intake pending
 **Owner:** uCore Dev Mode and vendor intake
 **Related owners:** uFlow task authority, uCode runtime authority
 
 ## Decision
 
-Nanocoder may be evaluated as an optional, locally invoked developer tool. The
-first integration mode is an unmanaged vendor CLI with a uCore-owned preflight
-and governed invocation boundary. It is not an MCP service, uFlow task store,
-provider router, or autonomous Developer Surface agent.
+Nanocoder will be integrated as the governed construction engine behind uCore
+Dev Mode operations. The primary interactive boundary is a uCore-owned Agent
+Client Protocol (ACP) client supervising `nanocoder --acp`; bounded
+non-interactive JSON runs are secondary. Nanocoder is not a uFlow task store,
+provider authority, Server skills registry, or autonomous replacement for the
+Developer Surface.
 
-The proposed upstream URL must be verified before intake. The current
-`https://github.com/nanocoder/nanocoder` lookup returns 404, so the claimed
-release artifact, supported configuration format, MCP capability, and MIT
-license are unverified. No binary download, vendor source entry, or runtime
-registration may occur until the canonical upstream and a pinned release asset
-are independently confirmed.
+The canonical upstream is `https://github.com/Nano-Collective/nanocoder` and the
+project publishes `@nanocollective/nanocoder`. The upstream repository identifies
+an MIT licence and publishes versioned releases; `v1.30.0` was current when this
+plan was reconciled on 2026-09-01. Immutable package integrity, dependency audit,
+supported-host verification, and the exact lock record remain required before
+installation or runtime registration.
 
 ## Non-negotiable boundaries
 
@@ -30,9 +32,10 @@ are independently confirmed.
 - MCP remains an external adapter boundary. uCore does not proxy, supervise,
   or publish third-party Nanocoder MCP servers. A user-configured Nanocoder MCP
   client connects directly to compatible external servers.
-- The Developer Surface remains a repository browser/editor. Do not add an
-  autonomous chat or terminal overlay there. Any future guided invocation UI
-  belongs behind an approved Intelligence or Workflow action contract.
+- The Developer Surface remains the repository browser/editor and hosts a
+  contextual Dev Mode operations panel for the selected repository. It renders
+  ACP session output, plans, tool calls, diffs, permission requests, and stop
+  controls; it does not add a second global chat interface.
 - Do not create vendor, configuration, compatibility, or runtime state directly
   under the home directory. Mutable tool state belongs under `UDOS_HOME`.
 
@@ -57,7 +60,7 @@ non-secret audit disposition required by uCore retention policy.
 
 1. Confirm the canonical upstream repository, organization, license text,
    release signing/checksum process, supported host platforms, configuration
-   format, and actual MCP behaviour from upstream documentation.
+   format, and actual ACP/MCP behaviour from upstream documentation.
 2. Record the immutable source commit or release version, artifact URL, SHA-256,
    license, capability inventory, operator, date, and disposition in the uCore
    vendor source/lock workflow.
@@ -68,7 +71,7 @@ non-secret audit disposition required by uCore retention policy.
 **Exit:** upstream identity and a reproducible pinned artifact are verified;
 `vendor_sync.sh --check` remains green. Otherwise close the intake as rejected.
 
-### Phase 1 - Optional CLI preflight
+### Phase 1 - Installation, preflight, and ACP supervision
 
 1. Add a uCore-owned optional tool capability only after Phase 0 approval.
 2. Resolve the binary solely from its pinned `$UDOS_HOME/tools/nanocoder/...`
@@ -76,18 +79,22 @@ non-secret audit disposition required by uCore retention policy.
 3. Preflight reports installed version, artifact hash match, supported platform,
    Dev Mode state, selected repository allowlist, and unavailable reason without
    executing Nanocoder.
-4. A process wrapper accepts an approved repository ID and task/prompt payload;
-   it resolves repository roots under `~/Code` and rejects traversal, external
-   paths, unbounded environment forwarding, and secret injection.
+4. A supervised ACP process accepts an approved repository ID and resolves its
+   working directory under `~/Code`; it rejects traversal, external paths,
+   unbounded environment forwarding, and secret injection.
+5. Set `NANOCODER_CONFIG_DIR` and logging paths to uCore-owned locations beneath
+   `UDOS_HOME`, preventing fallback to implicit platform/home configuration.
+6. Implement initialize, session, prompt, permission, plan, diff, cancellation,
+   shutdown, timeout, and crash handling against a fake ACP server first.
 
 **Exit:** absent, invalid, and hash-mismatched artifacts fail safely; a healthy
 artifact is discoverable but cannot perform writes without the next phase.
 
-### Phase 2 - Governed execution and uFlow handoff
+### Phase 2 - Governed ACP execution and uFlow handoff
 
-1. Start read-only planning/dry-run operations only. The wrapper sends a bounded
-   structured request and captures non-secret stdout/stderr, exit code, duration,
-   artifact version, repository ID, and task reference.
+1. Start with plan/read-only sessions. The ACP adapter captures non-secret
+   session events, duration, artifact version, repository ID, policy decision,
+   and task reference.
 2. Use uFlow task IDs through owned read APIs. No workflow may automatically
    invoke a write-capable tool because a task carries a tag or status.
 3. Permit a write-capable invocation only after a separate user confirmation,
@@ -100,15 +107,18 @@ artifact is discoverable but cannot perform writes without the next phase.
 timed-out calls leave no untracked state outside `UDOS_HOME` or the selected
 repository.
 
-### Phase 3 - Optional user experience and MCP posture
+### Phase 3 - Developer Surface operations and deeper development
 
-1. Only after Phase 2, add an approved action to the owning Intelligence or
-   Workflow surface with capability preflight, explicit confirmation, execution
-   status, and audit link. Keep Developer Surface repository editing unchanged.
-2. If upstream supports MCP, configure it as a third-party client directly from
+1. Add a contextual Dev Mode operations panel to the Developer Surface with
+   capability preflight, ACP transcript, plan, tool/diff cards, explicit
+   approve/deny, cancellation, execution status, and audit link.
+2. Add bounded internal-development actions for explaining selected code,
+   diagnosing failures, proposing tests, planning refactors, implementing an
+   approved task, and reviewing the working tree.
+3. If upstream supports MCP, configure it as a third-party client directly from
    Nanocoder under operator control. Do not add routes, a daemon, a bridge, or
    `udos-mcp` tools for generic Nanocoder execution.
-3. A future uCore-managed extension is a separate proposal. It must use
+4. A future uCore-managed extension is a separate proposal. It must use
    `kind: "tool"`, `optional: true`, `$UDOS_HOME/extensions`, and a narrow
    owned lifecycle contract.
 
@@ -124,6 +134,7 @@ confirmation, and audit acceptance tests pass.
 | Optional capability | preflight tests for missing, wrong-platform, and valid artifacts |
 | Invocation boundary | repository traversal, environment/secret exclusion, timeout, cancellation, and audit-redaction tests |
 | uFlow handoff | task reference read and execution-evidence write through uFlow-owned contracts |
+| ACP | fake-server initialize, stream, plan, permission, diff, cancel, timeout, crash, and shutdown tests |
 | UI | frontend type-check, focused unit tests, and confirmed-action browser test |
 | MCP | no new uCore MCP route/tool; any upstream MCP use is tested outside uCore's service boundary |
 
@@ -136,15 +147,15 @@ confirmation, and audit acceptance tests pass.
 | `uDev` skills and `.tasker` automation | Rejected. uDev is compatibility data; uFlow owns tasks and workflows. |
 | Automatic task-status-triggered autonomous edits | Rejected. Dry-run first; writes require explicit confirmation and review. |
 | uCore/Roundtable/Hivemind MCP bridge mesh | Rejected. Third-party MCP servers connect directly to the external client. |
-| Developer Surface overlay | Rejected. Developer remains a repository browser/editor; future actions belong to Intelligence or Workflow. |
+| Unscoped Developer chat overlay | Rejected. Developer uses a repository-scoped ACP operations panel; global chat remains the bottom widget. |
 
 ## Initial implementation backlog
 
-1. Verify upstream provenance and decide accept/reject.
-2. Extend the vendor source/lock schema only if it needs a binary-artifact type;
+1. Pin and verify the immutable npm/release artifact for the canonical upstream.
+2. Extend the vendor source/lock schema only if it needs an npm CLI artifact type;
    do not add an unpinned source record.
 3. Design the optional capability preflight and invocation request schema.
-4. Implement dry-run-only wrapper tests with a fake executable.
+4. Implement the ACP client against a fake server, followed by plan-only real-binary tests.
 5. Add uFlow task-reference/audit integration without changing uFlow ownership.
 6. Propose any UI or managed extension only after the preceding gates pass.
 
@@ -159,8 +170,12 @@ confirmation, and audit acceptance tests pass.
       and rejects undeclared environment or secret injection.
 - [x] Contract tests prove invalid provenance, traversal-like repository IDs,
       write mode, and environment injection fail closed.
-- Externally blocked: canonical upstream and pinned release provenance must be verified.
-- Planned after acceptance: implement the fake-executable wrapper, audit, and uFlow handoff.
+- Verified: canonical upstream, package identity, versioned releases, ACP support,
+  and MIT licence.
+- Pending before installation: immutable artifact integrity, dependency/security
+  audit, platform verification, and approved lock entry.
+- Planned after intake: fake ACP server, supervised process adapter, audit, and
+  uFlow handoff.
 
 The schemas live in `backend/app/services/vendor_tool_contracts.py` and are not
 imported by runtime routes. No capability, binary discovery, installation,
@@ -178,6 +193,7 @@ Evidence: uCore frontend type-check passes; Playwright passes 15 tests including
 the sidebar-to-editor authoritative-diff workflow; focused Developer backend
 tests pass 6 tests; `scripts/check_home_path_policy.py` passes.
 
-Nanocoder itself remains at Phase 0. No vendor artifact, configuration, wrapper,
-MCP route, UI action, or task automation has been installed because upstream
-provenance has not been verified.
+Nanocoder remains at Phase 0 intake. No artifact, configuration, process adapter,
+UI action, MCP route, or task automation has been installed yet; the remaining
+gate is immutable artifact and dependency verification rather than upstream
+identity.

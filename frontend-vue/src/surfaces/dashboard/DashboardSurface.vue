@@ -68,9 +68,8 @@ const extStore = useExtensionStore();
 // Hub navigation tabs — core + running surfaces
 const HUB_TABS = [
   { id: "dashboard", label: "Dashboard", icon: "home" },
-  { id: "workflow", label: "Workflow", icon: "flag" },
-  { id: "intelligence", label: "Intelligence", icon: "lightbulb" },
-  { id: "snackbar", label: "Snackbar", icon: "storefront" },
+  { id: "workflow", label: "Workflow", icon: "schedule" },
+  { id: "snackbar", label: "Server", icon: "dns" },
   { id: "system", label: "System", icon: "settings" },
 ];
 
@@ -82,7 +81,6 @@ watch(activeHubTab, (tabId) => {
   if (!tabId || tabId === "dashboard") return;
   const routes: Record<string, string> = {
     workflow: "/workflow?tab=mission-control",
-    intelligence: "/intelligence",
     snackbar: "/snackbar",
     system: "/system",
   };
@@ -101,13 +99,6 @@ const SURFACE_CARD_DATA: Record<
     color: string;
   }
 > = {
-  intelligence: {
-    title: "Intelligence",
-    description: "Chat settings, models, agents & budget",
-    icon: "lightbulb",
-    route: "/intelligence",
-    color: "var(--usx-color-accent)",
-  },
   workflow: {
     title: "Workflow",
     description: "Missions, Tasks & Binder",
@@ -123,9 +114,9 @@ const SURFACE_CARD_DATA: Record<
     color: "var(--usx-color-success)",
   },
   snackbar: {
-    title: "Snackbar Server",
-    description: "Server Ops, Services, Snacks & Logs",
-    icon: "storefront",
+    title: "Server",
+    description: "Services, AI, Automation & Logs",
+    icon: "dns",
     route: "/snackbar",
     color: "var(--usx-color-warning)",
   },
@@ -194,6 +185,8 @@ const visibleSurfaces = computed(() => {
   // Always show core surfaces + running optional surfaces
   const seen = new Set<string>();
   for (const surface of extStore.visibleSurfaces) {
+    // Chat is a global widget, not a dedicated navigable surface.
+    if (surface.manifest.id === "intelligence") continue;
     const card = SURFACE_CARD_DATA[surface.manifest.id];
     if (card) {
       cards.push({

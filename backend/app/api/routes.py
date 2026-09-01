@@ -332,6 +332,7 @@ def register_routes(app: web.Application) -> None:
         handle_research_enhance,
         handle_research_list,
         handle_research_process,
+        handle_research_search,
         handle_research_start,
         handle_research_status,
         handle_research_stream,
@@ -342,6 +343,7 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/research/status", handle_research_status)
     app.router.add_get("/api/research/list", handle_research_list)
     app.router.add_post("/api/research/process", handle_research_process)
+    app.router.add_get("/api/research/search", handle_research_search)
     app.router.add_post("/api/research/enhance", handle_research_enhance)
     app.router.add_get("/api/research/stream/{job_id}", handle_research_stream)
     app.router.add_get("/api/binder/search", handle_binder_search)

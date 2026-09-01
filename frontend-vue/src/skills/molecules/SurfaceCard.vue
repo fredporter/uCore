@@ -1,5 +1,11 @@
 <template>
-  <div class="surface-card" :style="{ '--accent': surface.color }" @click="emit('click')">
+  <button
+    type="button"
+    class="surface-card"
+    :style="{ '--accent': surface.color }"
+    :aria-label="`Open ${surface.title}`"
+    @click="emit('click')"
+  >
     <div class="surface-card__icon">
       <UIcon :name="surface.icon" />
     </div>
@@ -8,7 +14,7 @@
       <p class="surface-card__description">{{ surface.description }}</p>
     </div>
     <UIcon name="chevron-right" class="surface-card__arrow" />
-  </div>
+  </button>
 </template>
 
 <script setup lang="ts">
@@ -36,6 +42,11 @@ const emit = defineEmits<{
 
 <style scoped>
 .surface-card {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-lg);

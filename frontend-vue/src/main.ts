@@ -35,6 +35,7 @@ import "@udos/usx-tokens"; // usx-standard.css from package
 import "./styles/gridcore.css"; // GridCore internal variable contract
 import "./styles/usx-extensions.css"; // uCore-specific extensions: toolbar, multi-column, dev toggle
 import "./styles/usx-chat-bubble.css"; // Chat bubble overlay component
+import "./styles/usx-workflow-zen.css"; // canonical Workflow journey styling
 import "./styles/flowbite-skin.css"; // optional flowbite-inspired skin via data-ui-skin
 
 const app = createApp(App);

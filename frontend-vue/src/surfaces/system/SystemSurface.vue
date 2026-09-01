@@ -23,6 +23,9 @@
             <UBadge v-if="readinessLoading" type="info" size="sm"
               >checking</UBadge
             >
+            <UBadge v-else-if="readinessError" type="warning" size="sm"
+              >unavailable</UBadge
+            >
             <UBadge
               v-else-if="readinessBlockedCount > 0"
               type="warning"
@@ -69,16 +72,17 @@
         </div>
 
         <div class="system-pages-grid">
-          <div
+          <button
             v-for="page in allPages"
             :key="page.id"
             class="system-page-card"
+            type="button"
             @click="navigateToPage(page.id)"
           >
             <UIcon :name="page.icon" />
             <span class="system-page-id">{{ page.id }}</span>
             <span class="system-page-title">{{ page.title }}</span>
-          </div>
+          </button>
         </div>
         <p v-if="allPages.length === 0" class="system-muted-copy">
           No pages found.
@@ -94,19 +98,19 @@
               class="system-action-btn"
               @click="goTo('/snackbar?tab=dashboard')"
             >
-              Open Snackbar Dashboard
+              Open Server Overview
             </button>
             <button
               class="system-action-btn"
               @click="goTo('/snackbar?tab=services')"
             >
-              Open Snackbar Services
+              Open Server Services
             </button>
             <button
               class="system-action-btn"
-              @click="goTo('/snackbar?tab=snacks')"
+              @click="goTo('/snackbar?tab=automation')"
             >
-              Open Snackbar Snacks
+              Open Server Automation
             </button>
           </div>
         </div>
@@ -114,7 +118,7 @@
 
       <!-- Variables -->
       <div
-        v-else-if="currentTab === 'variables'"
+        v-else-if="currentTab === 'configuration'"
         class="system-panel system-tab-shell"
       >
         <h3 class="surface__panel-title">Variables</h3>
@@ -265,7 +269,7 @@
 
       <!-- Secrets -->
       <div
-        v-else-if="currentTab === 'secrets'"
+        v-if="currentTab === 'configuration'"
         class="system-panel system-tab-shell"
       >
         <h3 class="surface__panel-title">Secrets</h3>
@@ -345,7 +349,7 @@
 
       <!-- Global Settings -->
       <div
-        v-else-if="currentTab === 'global-settings'"
+        v-if="currentTab === 'configuration'"
         class="system-panel system-tab-shell"
       >
         <h3 class="surface__panel-title">Global Settings</h3>
@@ -390,7 +394,7 @@
 
       <!-- User Settings -->
       <div
-        v-else-if="currentTab === 'user-settings'"
+        v-if="currentTab === 'identity'"
         class="system-panel system-tab-shell"
       >
         <h3 class="surface__panel-title">User Settings</h3>
@@ -435,10 +439,8 @@ import type { TabDef } from "../../skills/molecules/SurfaceTabNav.vue";
 
 export const SYSTEM_TABS: TabDef[] = [
   { id: "pages", label: "Pages", icon: "dashboard" },
-  { id: "variables", label: "Variables", icon: "tune" },
-  { id: "secrets", label: "Secrets", icon: "key" },
-  { id: "global-settings", label: "Global", icon: "settings" },
-  { id: "user-settings", label: "User", icon: "person" },
+  { id: "configuration", label: "Configuration", icon: "tune" },
+  { id: "identity", label: "Identity", icon: "person" },
 ];
 </script>
 
@@ -463,7 +465,14 @@ const shell = useShellStore();
 const VALID_SYSTEM_TABS = new Set(SYSTEM_TABS.map((tab) => tab.id));
 
 const routeTab = String(route.query.tab || "");
-const activeTab = ref(VALID_SYSTEM_TABS.has(routeTab) ? routeTab : "pages");
+const LEGACY_SYSTEM_TABS: Record<string, string> = {
+  variables: "configuration",
+  secrets: "configuration",
+  "global-settings": "configuration",
+  "user-settings": "identity",
+};
+const initialTab = LEGACY_SYSTEM_TABS[routeTab] || routeTab;
+const activeTab = ref(VALID_SYSTEM_TABS.has(initialTab) ? initialTab : "pages");
 const currentTab = computed(() => activeTab.value);
 
 // ── Pages ────────────────────────────────────────────────────────
@@ -663,8 +672,11 @@ async function fetchReadiness() {
       "wordpress_gateway",
     ]);
   } catch (e: any) {
-    readinessError.value =
-      e?.message || "Failed to load capability readiness snapshot";
+    readinessSnapshot.value = null;
+    const message = String(e?.message || "");
+    readinessError.value = /json|http|unexpected/i.test(message)
+      ? "Readiness service is unavailable. Local recovery pages remain available."
+      : message || "Failed to load capability readiness snapshot";
   } finally {
     readinessLoading.value = false;
   }
@@ -768,7 +780,12 @@ async function loadSettings() {
 }
 
 onMounted(() => {
-  if (!VALID_SYSTEM_TABS.has(routeTab) && routeTab) {
+  if (routeTab && routeTab !== initialTab) {
+    router.replace({
+      path: "/system",
+      query: { ...route.query, tab: initialTab },
+    });
+  } else if (!VALID_SYSTEM_TABS.has(initialTab) && routeTab) {
     router.replace({
       path: "/system",
       query: { ...route.query, tab: "pages" },
@@ -781,6 +798,11 @@ onMounted(() => {
   fetchAgentsConfig();
   fetchSecrets();
   loadSettings();
+});
+
+watch(activeTab, (tab) => {
+  if (String(route.query.tab || "") === tab) return;
+  router.replace({ path: "/system", query: { ...route.query, tab } });
 });
 
 // Persist to localStorage as cache
@@ -806,7 +828,7 @@ watch(
 
 <style scoped>
 .surface__content {
-  padding: var(--usx-spacing-lg);
+  padding: clamp(var(--usx-spacing-md), 4vw, calc(var(--usx-spacing-xl) * 2));
 }
 .surface__panel-title {
   margin: 0 0 var(--usx-spacing-sm);
@@ -831,6 +853,8 @@ watch(
 }
 .system-panel {
   width: 100%;
+  max-width: 64rem;
+  margin-inline: auto;
   box-sizing: border-box;
 }
 .system-tab-shell {
@@ -862,6 +886,8 @@ watch(
     border-color var(--usx-transition-fast),
     transform var(--usx-transition-fast);
   border: 1px solid transparent;
+  color: inherit;
+  font: inherit;
 }
 .system-page-card:hover {
   border-color: var(--usx-color-primary);

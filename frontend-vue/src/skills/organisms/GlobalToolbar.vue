@@ -37,22 +37,22 @@
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
         :class="{
+          'global-toolbar__tab--active': route.path.includes('/workflow'),
+        }"
+        @click="navigate('/workflow')"
+        title="Workflow"
+      >
+        <UIcon name="schedule" class="global-toolbar__icon" />
+      </button>
+      <button
+        class="global-toolbar__tab global-toolbar__tab--nav"
+        :class="{
           'global-toolbar__tab--active': route.path.includes('/browserui'),
         }"
         @click="navigate('/browserui')"
         title="Research"
       >
         <UIcon name="visibility" class="global-toolbar__icon" />
-      </button>
-      <button
-        class="global-toolbar__tab global-toolbar__tab--nav"
-        :class="{
-          'global-toolbar__tab--active': route.path.includes('/intelligence'),
-        }"
-        @click="navigate('/intelligence')"
-        title="Chat"
-      >
-        <UIcon name="forum" class="global-toolbar__icon" />
       </button>
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
@@ -75,11 +75,13 @@
         class="global-toolbar__dev-toggle"
         :class="{ 'global-toolbar__dev-toggle--on': devMode.mode !== 'off' }"
         :aria-pressed="devMode.mode !== 'off'"
-        :title="`Developer mode: ${devMode.mode}. Click to cycle mode.`"
-        @click="devMode.toggle()"
+        :aria-label="`Developer mode ${devMode.mode === 'off' ? 'off' : 'on'}`"
+        :title="`Developer mode: ${devMode.mode === 'off' ? 'off' : 'on'}`"
+        @click="devMode.setMode(devMode.mode === 'off' ? 'on' : 'off')"
       >
-        <span class="global-toolbar__dev-dot" aria-hidden="true"></span>
-        <span class="global-toolbar__dev-label">Dev {{ devMode.loading ? '…' : devMode.mode }}</span>
+        <span class="global-toolbar__dev-switch" aria-hidden="true">
+          <span class="global-toolbar__dev-thumb"></span>
+        </span>
       </button>
       <button
         class="global-toolbar__icon-only global-toolbar__theme-toggle"

@@ -1,0 +1,237 @@
+/* Workflow Zen — the single visual contract for the full Workflow journey. */
+.workflow-layout {
+  --wf-zen-width: 60rem;
+  --wf-zen-pad: clamp(var(--usx-spacing-md), 3vw, var(--usx-spacing-xl));
+  --wf-zen-gap: var(--usx-spacing-lg);
+  --wf-zen-row: 3.25rem;
+  --wf-zen-rule: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-border) 82%, transparent);
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--usx-color-primary) 4%, transparent), transparent 28rem),
+    radial-gradient(circle at 88% 72%, rgb(255 255 255 / 1.2%), transparent 24rem),
+    var(--usx-color-background);
+}
+
+#app .workflow-layout .wf-zen-surface {
+  width: min(100%, var(--wf-zen-width));
+  max-width: var(--wf-zen-width);
+  margin-inline: auto;
+  padding: var(--wf-zen-pad);
+  box-sizing: border-box;
+  color: var(--usx-color-on-surface);
+  font-size: var(--usx-font-size-base);
+  line-height: var(--usx-line-height-normal);
+  gap: var(--wf-zen-gap);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+#app .workflow-layout .wf-zen-surface h2 { margin: 0; font-size: clamp(1.65rem, 5vw, 2.5rem); line-height: var(--usx-line-height-tight); letter-spacing: -.025em; }
+#app .workflow-layout .wf-zen-surface h3,
+#app .workflow-layout .wf-zen-surface h4 { margin: 0; font-size: var(--usx-font-size-base); line-height: var(--usx-line-height-tight); }
+#app .workflow-layout .wf-zen-surface p { line-height: var(--usx-line-height-normal); }
+
+#app .workflow-layout .wf-standard-header,
+#app .workflow-layout .wf-feeds__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--usx-spacing-md);
+  padding-block: var(--usx-spacing-xs) var(--usx-spacing-md);
+  border: 0;
+}
+#app .workflow-layout .wf-standard-header h2,
+#app .workflow-layout .wf-standard-header p,
+#app .workflow-layout .wf-feeds__header h2,
+#app .workflow-layout .wf-feeds__header p { margin: 0; }
+#app .workflow-layout .wf-standard-header__kicker { margin: 0 0 var(--usx-spacing-xs) !important; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-sm); letter-spacing: .08em; text-transform: uppercase; }
+#app .workflow-layout .wf-standard-header__action { display: inline-flex; align-items: center; justify-content: center; gap: var(--usx-spacing-xs); min-height: 2.5rem; padding: 0 var(--usx-spacing-lg); border: var(--usx-border-width) solid var(--usx-color-primary); border-radius: var(--usx-radius-full); background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent); color: var(--usx-color-primary); white-space: nowrap; }
+
+#app .workflow-layout .wf-zen-surface section,
+#app .workflow-layout .wf-zen-surface details,
+#app .workflow-layout .wf-zen-surface .surface__panel {
+  background: transparent;
+  border: 0;
+  border-top: var(--wf-zen-rule);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/*
+ * Authoritative section rhythm for every Workflow tab.
+ * Several legacy panel styles still target generic `section`/`.wf-section`
+ * elements with 24px padding, 16px gaps and bottom margins. Those rules were
+ * inflating Mission Control, Automation, Feeds and Flowlog after the canonical
+ * row styles had already been applied. Keep this selector intentionally more
+ * specific (and important) until those legacy blocks are removed.
+ */
+#app .workflow-layout .wf-zen-surface > :is(.wf-zen-section, .wf-section, .wf-flowlog) {
+  display: block !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  gap: 0 !important;
+}
+
+#app .workflow-layout .wf-panel--zen > .wf-zen-section > .wf-zen-section__heading {
+  box-sizing: border-box;
+  min-height: 4rem;
+  padding: var(--usx-spacing-sm) var(--usx-spacing-xs) !important;
+  margin: 0 !important;
+}
+
+#app .workflow-layout .wf-zen-surface button { font-family: var(--usx-font-family-sans); }
+#app .workflow-layout .wf-zen-surface :is(.wf-task-row, .wf-mission-row, .task-list__row, .wf-card, .wf-feed-card) {
+  box-sizing: border-box;
+  height: var(--wf-zen-row);
+  min-height: var(--wf-zen-row);
+  margin: 0 !important;
+  border-radius: 0;
+  border-bottom: var(--wf-zen-rule);
+  background: transparent;
+  box-shadow: none;
+}
+#app .workflow-layout .wf-panel--zen .wf-mission-cards .wf-mission-row {
+  box-sizing: border-box;
+  height: auto;
+  min-height: 6rem;
+  margin: 0 !important;
+  padding: var(--usx-spacing-md);
+}
+#app .workflow-layout .wf-panel--zen .wf-mission-row > .u-icon {
+  width: var(--usx-icon-size-md);
+  height: var(--usx-icon-size-md);
+  min-width: var(--usx-icon-size-md);
+  flex: 0 0 var(--usx-icon-size-md);
+  font-size: var(--usx-icon-size-md);
+}
+#app .workflow-layout .wf-panel--zen .wf-mission-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: var(--usx-spacing-sm);
+  padding: 0;
+}
+#app .workflow-layout .wf-zen-surface :is(.wf-card, .wf-feed-card, .wf-flowlog-item) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--usx-spacing-md);
+  width: 100%;
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+}
+#app .workflow-layout .wf-zen-surface :is(.wf-task-row, .wf-card, .wf-feed-card) {
+  min-height: var(--wf-zen-row);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+}
+#app .workflow-layout .wf-zen-surface :is(.wf-card__body, .wf-feed-card__body) {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+#app .workflow-layout .wf-zen-surface :is(.wf-card__body strong, .wf-feed-card__body h3) {
+  overflow: hidden;
+  font-size: var(--usx-font-size-base);
+  line-height: var(--usx-line-height-tight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#app .workflow-layout .wf-zen-surface :is(.wf-card__detail, .wf-feed-card__meta) {
+  overflow: hidden;
+  margin: 0;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-xs);
+  line-height: var(--usx-line-height-normal);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#app .workflow-layout .wf-zen-surface .wf-task-row {
+  display: grid;
+  grid-template-columns: .75rem minmax(0, 1fr) var(--usx-control-size-sm);
+  gap: var(--usx-spacing-xs);
+  padding-inline: var(--usx-spacing-xs);
+}
+#app .workflow-layout .wf-zen-surface .task-list {
+  width: 100%;
+  overflow: visible;
+  border: 0;
+  border-top: var(--wf-zen-rule);
+  border-radius: 0;
+  background: transparent;
+}
+#app .workflow-layout .wf-zen-surface .task-list__row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 3.25rem;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  margin: 0;
+  border: 0;
+  border-bottom: var(--wf-zen-rule);
+  color: var(--usx-color-on-surface);
+  text-align: left;
+  cursor: pointer;
+}
+#app .workflow-layout .wf-zen-surface .task-list__main { display: flex; align-items: center; flex: 1; min-width: 0; gap: var(--usx-spacing-sm); }
+#app .workflow-layout .wf-zen-surface .task-list__copy { display: grid; min-width: 0; gap: 2px; }
+#app .workflow-layout .wf-zen-surface .task-list__state { width: .7rem; height: .7rem; flex: 0 0 auto; border: 2px solid var(--usx-color-border); border-radius: 50%; }
+#app .workflow-layout .wf-zen-surface .task-list__state--in-progress { border-color: var(--usx-color-primary); background: var(--usx-color-primary); }
+#app .workflow-layout .wf-zen-surface .task-list__state--review { border-color: var(--usx-color-warning); }
+#app .workflow-layout .wf-zen-surface .task-list__state--blocked { border-color: var(--usx-color-danger); }
+#app .workflow-layout .wf-zen-surface .task-list__task-title { overflow: hidden; font-size: var(--usx-font-size-base); text-overflow: ellipsis; white-space: nowrap; }
+#app .workflow-layout .wf-zen-surface .task-list__meta { color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); }
+#app .workflow-layout .wf-zen-surface .task-list__editor-btn { display: inline-flex; align-items: center; justify-content: center; width: var(--usx-control-size-sm); height: var(--usx-control-size-sm); min-height: 0; flex: 0 0 var(--usx-control-size-sm); padding: 0; border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: color-mix(in srgb, var(--usx-color-surface) 68%, transparent); color: var(--usx-color-on-surface-muted); }
+#app .workflow-layout .wf-panel--zen .wf-now-list { border-top: 0; }
+@media (min-width: 1100px) {
+  #app .workflow-layout .wf-panel--zen .wf-now-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--usx-spacing-lg);
+  }
+}
+#app .workflow-layout .wf-zen-surface .wf-canonical-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  justify-self: end;
+  width: var(--usx-control-size-sm);
+  height: var(--usx-control-size-sm);
+  min-height: 0;
+  padding: 0;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: color-mix(in srgb, var(--usx-color-surface) 68%, transparent);
+  color: var(--usx-color-on-surface-muted);
+}
+#app .workflow-layout .wf-zen-surface .wf-card__detail { font-size: var(--usx-font-size-xs); }
+#app .workflow-layout .wf-zen-surface :is(.wf-list, .wf-flowlog-list) {
+  display: grid;
+  gap: 0;
+  border-top: var(--wf-zen-rule);
+}
+#app .workflow-layout .wf-zen-surface :is(.wf-card__meta, .wf-feed-card > :last-child) {
+  justify-self: end;
+}
+#app .workflow-layout .wf-zen-surface :is(.wf-card p, .wf-feed-card p) {
+  margin: 2px 0 0;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm);
+}
+#app .workflow-layout .wf-zen-surface :is(.wf-task-row, .wf-mission-row, .task-list__row, .wf-card, .wf-feed-card):hover {
+  background: color-mix(in srgb, var(--usx-color-on-surface) 4%, transparent);
+}
+
+#app .workflow-layout--editor-tab .editor-panel {
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--usx-color-primary) 3%, transparent), transparent 28rem),
+    var(--usx-color-background);
+}
+
+@media (max-width: 600px) {
+  .workflow-layout { --wf-zen-gap: var(--usx-spacing-sm); }
+  #app .workflow-layout .wf-zen-surface :is(.wf-card, .wf-feed-card) { grid-template-columns: minmax(0, 1fr) auto; gap: var(--usx-spacing-sm); }
+  #app .workflow-layout .wf-zen-surface .wf-card__meta { gap: var(--usx-spacing-xs); }
+  #app .workflow-layout :is(.wf-standard-header, .wf-feeds__header) { align-items: stretch; flex-direction: column; gap: var(--usx-spacing-sm); }
+}

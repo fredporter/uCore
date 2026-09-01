@@ -10,10 +10,8 @@ import { useSnackbarStore } from "./snackbar";
 export type SnackbarOpsTab =
   | "dashboard"
   | "services"
-  | "agents"
-  | "feeds"
-  | "skills"
-  | "snacks"
+  | "ai"
+  | "automation"
   | "extensions"
   | "logs";
 
@@ -107,12 +105,10 @@ export const SNACKBAR_OPS_TABS: {
   label: string;
   icon: string;
 }[] = [
-  { id: "dashboard", label: "Dashboard", icon: "dashboard" },
+  { id: "dashboard", label: "Overview", icon: "dashboard" },
   { id: "services", label: "Services", icon: "dns" },
-  { id: "agents", label: "Agents", icon: "group" },
-  { id: "feeds", label: "Feeds", icon: "rss_feed" },
-  { id: "skills", label: "Skills", icon: "extension" },
-  { id: "snacks", label: "Snacks", icon: "storefront" },
+  { id: "ai", label: "Models", icon: "smart_toy" },
+  { id: "automation", label: "Automations", icon: "automation" },
   { id: "extensions", label: "Extensions", icon: "extension" },
   { id: "logs", label: "Logs", icon: "article" },
 ];

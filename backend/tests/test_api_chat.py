@@ -4,7 +4,28 @@ from __future__ import annotations
 from aiohttp import web
 from aiohttp.test_utils import AioHTTPTestCase
 
-from app.api.chat import handle_chat, handle_chat_modes, handle_chat_prompts, handle_models
+from app.api.chat import (
+    _normalise_tool_calls,
+    handle_chat,
+    handle_chat_modes,
+    handle_chat_prompts,
+    handle_models,
+)
+
+
+def test_normalise_tool_calls_accepts_small_model_json_fallback():
+    calls = _normalise_tool_calls({
+        "content": '{"name": "list_skills", "arguments": {}}',
+    })
+    assert calls == [{
+        "function": {"name": "list_skills", "arguments": {}},
+    }]
+
+
+def test_normalise_tool_calls_rejects_unknown_tool():
+    assert _normalise_tool_calls({
+        "content": '{"name": "shell_exec", "arguments": {}}',
+    }) == []
 
 
 class ChatAPITest(AioHTTPTestCase):

@@ -110,7 +110,14 @@ export const useWorkspaceStore = defineStore("workspace", () => {
 
   async function request(path: string, init?: RequestInit) {
     const response = await fetch(`${UCORE_BASE}${path}`, init);
-    const result = await response.json();
+    const raw = await response.text();
+    let result: any = {};
+    try {
+      result = raw ? JSON.parse(raw) : {};
+    } catch {
+      if (!response.ok) throw new Error(`Workspace service returned HTTP ${response.status}`);
+      throw new Error("Workspace service returned an invalid response");
+    }
     if (!response.ok) {
       const error = new Error(result.error || "Workspace request failed") as Error & { status?: number };
       error.status = response.status;
@@ -127,8 +134,12 @@ export const useWorkspaceStore = defineStore("workspace", () => {
       tree.value = Array.isArray(result.tree) ? result.tree : [];
       writeStorage(TREE_CACHE_KEY, tree.value);
     } catch (exc) {
-      error.value = exc instanceof Error ? exc.message : "Workspace is unavailable";
       tree.value = readStorage<FileNode[]>(TREE_CACHE_KEY, tree.value);
+      // Cached/seeded files are a fully usable offline workspace. Avoid exposing
+      // transport/parser errors inside the file tree when that fallback exists.
+      error.value = tree.value.length
+        ? ""
+        : exc instanceof Error ? exc.message : "Workspace is unavailable";
     } finally {
       loading.value = false;
     }

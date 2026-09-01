@@ -983,6 +983,31 @@ async def handle_commit_repo_files(request: web.Request) -> web.Response:
 # ─── Dev Chat ───────────────────────────────────────────────────────
 
 
+def _execute_developer_read_intent(message: str, workspace: str = "") -> str | None:
+    """Execute bounded read-only Dev-lane requests before consulting the model."""
+    normalized = " ".join(message.lower().split())
+    if any(phrase in normalized for phrase in ("list repos", "list repositories", "show repos", "show repositories")):
+        repos = _list_repos(scope="code")
+        if not repos:
+            return "No repositories were found in the configured code workspace."
+        lines = [f"Found {len(repos)} repositories:"]
+        for repo in repos:
+            branch = repo.get("branch") or "detached"
+            state = "dirty" if repo.get("dirty") else "clean"
+            lines.append(f"- **{repo['name']}** — `{branch}` ({state})")
+        return "\n".join(lines)
+    if workspace and any(phrase in normalized for phrase in ("repo status", "repository status", "git status")):
+        status = _list_repo_status(workspace)
+        counts = {key: len(value) for key, value in status.items()}
+        return (
+            f"Executed status for **{workspace}**: "
+            f"{counts.get('staged', 0)} staged, "
+            f"{counts.get('unstaged', 0)} unstaged, and "
+            f"{counts.get('untracked', 0)} untracked files."
+        )
+    return None
+
+
 async def handle_developer_chat(request: web.Request) -> web.Response:
     """POST /api/developer/chat — dev-lane chat completion.
 
@@ -1008,6 +1033,20 @@ async def handle_developer_chat(request: web.Request) -> web.Response:
     history = body.get("history") or body.get("messages")
     if not isinstance(history, list):
         history = []
+
+    try:
+        executed_response = _execute_developer_read_intent(message, workspace)
+    except (FileNotFoundError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    if executed_response is not None:
+        return web.json_response({
+            "response": executed_response,
+            "lane": lane,
+            "workspace": workspace,
+            "model": "ucore-read-contract",
+            "usage": {},
+            "executed": True,
+        })
 
     log = __import__("logging").getLogger("ucore.devchat")
     binder_fp = ""

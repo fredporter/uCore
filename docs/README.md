@@ -50,6 +50,7 @@
 | [TERMINAL_TELETEXT_GRID_WORK_TAG.md](TERMINAL_TELETEXT_GRID_WORK_TAG.md)                                   | Terminal/teletext grid work tag                          |
 | [specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md](specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md)   | Verification-gated optional Nanocoder Dev Mode tool plan |
 | [DEV_MODE_READINESS_2026-08-31.md](DEV_MODE_READINESS_2026-08-31.md)                                     | Current Dev Mode prework, branch disposition, and gates  |
+| [DEV_MODE_LONG_SPRINTS_2026-09.md](DEV_MODE_LONG_SPRINTS_2026-09.md)                                     | Long sprint sequence for the Developer Workbench and product backlog |
 
 ## Task ownership
 

@@ -1,158 +1,41 @@
 <template>
   <div class="surface">
     <div class="surface__content browserui-shell">
-      <SurfaceTabNav
-        :tabs="TABS"
-        :model-value="activeTab"
-        orientation="horizontal"
-        @update:model-value="switchTab"
-      />
-
       <div v-if="activeTab === 'cards'" class="browserui-body">
         <section class="browserui-canvas">
-          <div class="browserui-toolbar" :class="`browserui-toolbar--group-${groupBy}`">
-            <div class="surface__panel browserui-panel">
-              <div class="browserui-panel__header">
-                <h3 class="surface__panel-title">Browser</h3>
-                <div class="browserui-panel__badges">
-                  <UBadge type="info" size="sm">Cards Explorer</UBadge>
-                  <UBadge type="success" size="sm">Vault-backed</UBadge>
-                </div>
-              </div>
-              <p class="surface__panel-description">
-                Search, group, and enrich cards with mission-control style controls.
-              </p>
-              <div class="browserui-actions-row">
-                <button class="uxs-btn" @click="resetControls">
-                  <UIcon name="refresh" /> Reset
-                </button>
-                <button
-                  v-if="hasActiveFilters"
-                  class="uxs-btn"
-                  @click="resetControls"
-                >
-                  <UIcon name="filter_alt_off" /> Clear filters
-                </button>
-                <button
-                  v-if="batchSelected.length"
-                  class="uxs-btn uxs-btn--primary"
-                  @click="batchResearch"
-                >
-                  <UIcon name="science" /> Research {{ batchSelected.length }}
-                </button>
-              </div>
+          <header class="browserui-zen">
+            <button class="browserui-zen__research" @click="activeTab = 'dashboard'">
+              <UIcon name="science" /> Research queue
+            </button>
+            <div class="browserui-zen__mark"><UIcon name="travel_explore" /></div>
+            <h1>What are you exploring?</h1>
+            <p>Search your collected sources and shape useful topics.</p>
+            <div class="browserui-zen__search">
+              <UInput v-model="searchQuery" placeholder="Search vaults, knowledge, and the web…" icon="search" @enter="runResearchSearch" />
+              <button v-if="hasActiveFilters" class="browserui-zen__clear" @click="resetControls" aria-label="Clear search">
+                <UIcon name="close" />
+              </button>
+              <button class="browserui-zen__submit" :disabled="researchSearching || !searchQuery.trim()" @click="runResearchSearch" aria-label="Search collections and web">
+                <UIcon :name="researchSearching ? 'sync' : 'arrow_forward'" />
+              </button>
             </div>
-
-            <div class="browserui-stats">
-              <div class="browserui-stat">
-                <span class="browserui-stat__value">{{ filteredSortedCards.length }}</span>
-                <span class="browserui-stat__label">Visible Cards</span>
-              </div>
-              <div class="browserui-stat">
-                <span class="browserui-stat__value browserui-stat__value--info">{{ displayedGroups.length }}</span>
-                <span class="browserui-stat__label">Columns</span>
-              </div>
-              <div class="browserui-stat">
-                <span class="browserui-stat__value browserui-stat__value--warning">{{ selectedTags.length }}</span>
-                <span class="browserui-stat__label">Topic Filters</span>
-              </div>
-              <div class="browserui-stat">
-                <span class="browserui-stat__value browserui-stat__value--success">{{ batchSelected.length }}</span>
-                <span class="browserui-stat__label">Selected</span>
-              </div>
+            <p v-if="researchNotice" class="browserui-zen__notice">{{ researchNotice }}</p>
+            <div v-if="allTags.length" class="browserui-pillrail" aria-label="Topics">
+              <button
+                v-for="tag in allTags"
+                :key="tag"
+                class="browserui-pill"
+                :class="{ 'browserui-pill--active': selectedTags.includes(tag) }"
+                @click="toggleTagFilter(tag)"
+              >{{ tag }}</button>
             </div>
-
-            <div class="browserui-section">
-              <h4 class="browserui-section__title">Search Controls</h4>
-              <div class="browserui-toolbar__row browserui-toolbar__row--primary">
-                <div class="browserui-search">
-                  <UInput v-model="searchQuery" placeholder="Search titles, tags, topics..." icon="search" />
-                </div>
-
-                <div class="browserui-toolbar__controls">
-                  <div class="browserui-combo">
-                    <span class="browserui-combo__prefix">Sort</span>
-                    <select v-model="sortKey" class="browserui-select browserui-select--combo">
-                      <option value="relevance">Relevance</option>
-                      <option value="score">Score</option>
-                      <option value="title">Title</option>
-                    </select>
-                  </div>
-
-                  <div class="browserui-combo">
-                    <span class="browserui-combo__prefix">Group</span>
-                    <select v-model="groupBy" class="browserui-select browserui-select--combo">
-                      <option value="stack">Stack</option>
-                      <option value="topic">Topic</option>
-                      <option value="score">Score</option>
-                      <option value="custom">Custom Group</option>
-                    </select>
-                  </div>
-
-                  <div class="browserui-combo">
-                    <span class="browserui-combo__prefix">Layout</span>
-                    <select v-model="density" class="browserui-select browserui-select--combo">
-                      <option value="stacked">Stacked</option>
-                      <option value="comfortable">Comfortable</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
+            <div v-if="batchSelected.length" class="browserui-zen__selection">
+              <span>{{ batchSelected.length }} selected</span>
+              <button class="uxs-btn" @click="batchResearch"><UIcon name="auto_awesome" /> Enrich</button>
+              <button class="uxs-btn uxs-btn--primary" @click="compileSelectionToBinder"><UIcon name="folder_special" /> Compile Binder</button>
+              <button class="uxs-btn" disabled title="Feed linking is scaffolded for the next workflow contract"><UIcon name="rss_feed" /> Link Feed</button>
             </div>
-
-            <div class="browserui-section">
-              <h4 class="browserui-section__title">Topics and Grouping</h4>
-              <div class="browserui-toolbar__row browserui-toolbar__row--secondary">
-                <div class="browserui-pillrail" aria-label="topic tags">
-                  <button
-                    v-for="tag in allTags"
-                    :key="tag"
-                    class="browserui-pill"
-                    :class="{ 'browserui-pill--active': selectedTags.includes(tag) }"
-                    @click="toggleTagFilter(tag)"
-                  >
-                    {{ tag }}
-                  </button>
-                </div>
-
-                <div class="browserui-resultsbar">
-                  <span class="browserui-resultsbar__text">
-                    {{ filteredSortedCards.length }} cards in {{ displayedGroups.length }} columns
-                  </span>
-                </div>
-
-                <div class="browserui-batch-tools">
-                  <div class="browserui-quickadd">
-                    <div class="browserui-mini-input-wrap">
-                      <UInput v-model="newTag" placeholder="Tag topic" icon="sell" />
-                    </div>
-                    <button
-                      class="uxs-btn uxs-btn--icon"
-                      title="Add topic tag"
-                      aria-label="Add topic tag"
-                      @click="addTagToSelection"
-                    >
-                      <UIcon name="add" />
-                    </button>
-                  </div>
-
-                  <div class="browserui-quickadd">
-                    <div class="browserui-mini-input-wrap">
-                      <UInput v-model="newGroup" placeholder="Group topic" icon="folder" />
-                    </div>
-                    <button
-                      class="uxs-btn uxs-btn--icon"
-                      title="Add topic group"
-                      aria-label="Add topic group"
-                      @click="addGroupToSelection"
-                    >
-                      <UIcon name="add" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          </header>
 
           <div v-if="displayedGroups.length === 0" class="browserui-empty">
             <UIcon name="filter_alt_off" />
@@ -163,7 +46,7 @@
             </button>
           </div>
 
-          <div v-else class="browserui-kanban">
+          <div v-else class="browserui-kanban browserui-kanban--zen">
             <article v-for="column in displayedGroups" :key="column.id" class="browserui-column">
               <header class="browserui-column__header">
                 <div class="browserui-column__title">
@@ -277,14 +160,12 @@ import { computed, onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import UInput from "../../skills/atoms/UInput.vue"
 import UIcon from "../../skills/atoms/UIcon.vue"
-import UBadge from "../../skills/atoms/UBadge.vue"
-import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue"
 import PreviewTab from "./panels/PreviewTab.vue"
 import EditTab from "./panels/EditTab.vue"
 import ResearchDashboard from "./panels/ResearchDashboard.vue"
 import { useChatStore } from "../../stores/chat"
 import { useWorkflowStore } from "../../stores/workflow"
-import { addBinder, fetchScrape, listResearchJobs, startResearch } from "./ApiBridge"
+import { addBinder, fetchScrape, listResearchJobs, searchResearch, startResearch } from "./ApiBridge"
 import { ucoreApi } from "../../api/client"
 
 interface StackItem {
@@ -336,6 +217,8 @@ const chat = useChatStore()
 
 const activeTab = ref<"cards" | "dashboard">("cards")
 const searchQuery = ref("")
+const researchSearching = ref(false)
+const researchNotice = ref("")
 const selectedCard = ref<DisplayCard | null>(null)
 const editorMode = ref<"preview" | "edit">("preview")
 const editorContent = ref("")
@@ -655,10 +538,50 @@ async function fetchBookmarks() {
   pruneSelectedTags()
 }
 
+async function runResearchSearch() {
+  const query = searchQuery.value.trim()
+  if (!query || researchSearching.value) return
+  researchSearching.value = true
+  researchNotice.value = "Searching local collections and online sources…"
+  try {
+    const localResponse = await ucoreApi.knowledge.search(query)
+    const localRaw = (((localResponse.data as any)?.results || (localResponse.data as any)?.items || []) as any[])
+    const localItems: StackItem[] = localRaw.map((item) => ({
+      id: item.id || item.path || `local-${item.title}`,
+      title: item.title || item.filename || item.path || "Knowledge note",
+      description: item.snippet || item.description || item.path || "Local knowledge result",
+      tags: ["#knowledge", normalizeTag(item.vault_layer || item.source || "vault")].filter(Boolean),
+      groups: [item.vault_layer || item.source || "User Vault"],
+    }))
+    let webItems: StackItem[] = []
+    try {
+      webItems = (await searchResearch(query)).map((item, index) => ({
+        id: `web-${Date.now()}-${index}`,
+        title: item.title,
+        url: item.url,
+        description: item.description,
+        tags: ["#web", normalizeTag(query)],
+        groups: ["Online sources"],
+      }))
+    } catch {
+      researchNotice.value = localItems.length ? "Showing offline matches; online search is unavailable." : "Online search is unavailable."
+    }
+    const retained = stacks.value.filter((stack) => !["search-local", "search-web"].includes(stack.id))
+    stacks.value = [
+      ...(localItems.length ? [{ id: "search-local", title: "Vault & Knowledge", icon: "folder_managed", items: localItems }] : []),
+      ...(webItems.length ? [{ id: "search-web", title: "Online sources", icon: "public", items: webItems }] : []),
+      ...retained,
+    ]
+    researchNotice.value = `${localItems.length} offline · ${webItems.length} online results`
+  } finally {
+    researchSearching.value = false
+  }
+}
+
 async function handleResearchCard(card: DisplayCard | StackItem) {
   try {
     const tags = card.tags?.length ? card.tags : ["#research"]
-    const response = await startResearch(card.url ?? "", tags[0].replace("#", ""), tags, "full")
+    const response = await startResearch(card.url ?? "", "research", tags, "full")
     researchJobs.value.unshift({
       id: response.job_id || "0",
       url: card.url ?? "",
@@ -697,6 +620,19 @@ async function batchResearch() {
   for (const card of cards) {
     await handleResearchCard(card)
   }
+  batchSelected.value = []
+}
+
+async function compileSelectionToBinder() {
+  const selected = new Set(batchSelected.value)
+  const cards = flattenCards().filter((card) => selected.has(card.id))
+  if (!cards.length) return
+  const topic = selectedTags.value[0]?.replace(/^#/, "") || "Research collection"
+  const content = cards
+    .map((card) => `## ${card.title}\n\n${researchContent.value[card.id] || card.description}\n\n${card.url ? `Source: ${card.url}` : ""}`)
+    .join("\n\n---\n\n")
+  const tags = [...new Set(cards.flatMap((card) => card.tags))]
+  await saveToBinder({ title: topic, content, tags })
   batchSelected.value = []
 }
 
@@ -855,6 +791,10 @@ watch(
   { deep: true },
 )
 
+watch(activeTab, (tab) => {
+  if (tab === "dashboard") void hydrateResearchJobs()
+})
+
 onMounted(async () => {
   loadSession()
   await fetchBookmarks()
@@ -890,6 +830,136 @@ onMounted(async () => {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+
+.browserui-zen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(760px, 100%);
+  margin: clamp(48px, 10vh, 112px) auto var(--usx-spacing-xl);
+  text-align: center;
+}
+
+.browserui-zen__research {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  border: 0;
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+}
+
+.browserui-zen__mark {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
+  color: var(--usx-color-primary);
+  font-size: 32px;
+}
+
+.browserui-zen h1 {
+  margin: var(--usx-spacing-md) 0 var(--usx-spacing-xs);
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+}
+
+.browserui-zen > p {
+  margin: 0 0 var(--usx-spacing-lg);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.browserui-zen__search {
+  position: relative;
+  width: 100%;
+}
+
+.browserui-zen__search :deep(.u-input) {
+  min-height: 64px;
+  height: 64px;
+  padding-left: var(--usx-spacing-lg);
+  padding-right: 52px;
+  border-radius: var(--usx-radius-full);
+  background: var(--usx-color-surface);
+  box-shadow: none;
+}
+
+.browserui-zen__search :deep(.u-input__field) {
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: var(--usx-font-size-lg);
+}
+
+.browserui-zen__clear {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--usx-control-size-md) + var(--usx-spacing-sm));
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+}
+
+.browserui-zen__submit {
+  position: absolute;
+  top: 50%;
+  right: var(--usx-spacing-xs);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--usx-control-size-md);
+  height: var(--usx-control-size-md);
+  min-height: 0;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: var(--usx-radius-full);
+  background: var(--usx-color-primary);
+  color: var(--usx-color-on-primary);
+}
+.browserui-zen__submit:disabled { opacity: .45; }
+.browserui-zen__notice { margin: var(--usx-spacing-xs) 0 0 !important; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); }
+
+.browserui-zen .browserui-pillrail {
+  justify-content: center;
+  margin-top: var(--usx-spacing-md);
+}
+
+.browserui-zen__selection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-sm);
+  margin-top: var(--usx-spacing-md);
+}
+
+.browserui-kanban--zen {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 100%);
+  margin: 0 auto;
+  gap: var(--usx-spacing-md);
+}
+
+.browserui-kanban--zen .browserui-column {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .browserui-zen {
+    margin-top: var(--usx-spacing-xl);
+  }
 }
 
 .browserui-canvas {

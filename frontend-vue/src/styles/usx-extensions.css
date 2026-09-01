@@ -219,8 +219,8 @@
   padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-full);
-  background: transparent;
-  color: var(--usx-color-on-surface-muted);
+  background: color-mix(in srgb, white 90%, var(--usx-color-surface));
+  color: #263238;
   cursor: pointer;
   font-size: var(--usx-font-size-sm);
   font-weight: var(--usx-font-weight-semibold);
@@ -237,24 +237,41 @@
   border-color: var(--usx-color-on-surface-muted);
 }
 
-/* Dev dot indicator */
-.global-toolbar__dev-dot {
-  display: inline-block;
-  width: var(--usx-spacing-sm);
-  height: var(--usx-spacing-sm);
-  border-radius: 50%;
-  background: var(--usx-color-on-surface-muted);
+/* Compact accessible slider indicator */
+.global-toolbar__dev-switch {
+  display: inline-flex;
+  align-items: center;
+  width: 30px;
+  height: 18px;
+  padding: 2px;
+  border-radius: var(--usx-radius-full);
+  background: #cfd8dc;
+  box-sizing: border-box;
   transition: background var(--usx-transition-fast);
 }
 
-.global-toolbar__dev-toggle--on {
-  color: var(--usx-color-on-surface);
-  border-color: var(--usx-color-success);
-  background: transparent;
+.global-toolbar__dev-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+  transform: translateX(0);
+  transition: transform var(--usx-transition-fast);
 }
 
-.global-toolbar__dev-toggle--on .global-toolbar__dev-dot {
+.global-toolbar__dev-toggle--on {
+  color: #123c2c;
+  border-color: var(--usx-color-success);
+  background: color-mix(in srgb, white 82%, var(--usx-color-success));
+}
+
+.global-toolbar__dev-toggle--on .global-toolbar__dev-switch {
   background: var(--usx-color-success);
+}
+
+.global-toolbar__dev-toggle--on .global-toolbar__dev-thumb {
+  transform: translateX(12px);
 }
 
 .global-toolbar__dev-toggle--on:hover {

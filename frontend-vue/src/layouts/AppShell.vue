@@ -1,8 +1,8 @@
 <template>
-  <div class="app-shell" :class="{ 'sidebar-open': shell.sidebarOpen }">
+  <div class="app-shell" :class="{ 'sidebar-open': globalSidebarOpen }">
     <GlobalToolbar
       :chat-mode="shell.chatMode"
-      :sidebar-open="shell.sidebarOpen"
+      :sidebar-open="globalSidebarOpen"
       @toggle-chat="shell.toggleChat"
       @toggle-sidebar="handleGlobalSidebarToggle"
     />
@@ -21,12 +21,12 @@
       class="app-body"
       :class="{
         'app-body--tabs-first':
-          shell.sidebarOpen && shell.tabOrientation === 'vertical',
+          globalSidebarOpen && shell.tabOrientation === 'vertical',
         'app-body--tabs-top':
-          shell.sidebarOpen && shell.tabOrientation === 'horizontal',
+          globalSidebarOpen && shell.tabOrientation === 'horizontal',
       }"
     >
-      <aside v-if="shell.sidebarOpen" class="app-sidebar">
+      <aside v-if="globalSidebarOpen" class="app-sidebar">
         <FilepickerSidebar
           @file-select="handleFileSelect"
           @new-file="handleNewFile"
@@ -50,7 +50,7 @@
  * Replaces RootLayout + SurfaceShellContext from React.
  * @category layouts
  */
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useDevModeStore } from "../stores/devMode";
 import { useShellStore } from "../stores/shell";
 import { useSettingsStore } from "../stores/settings";
@@ -70,6 +70,12 @@ const router = useRouter();
 const route = useRoute();
 const runtimeWarning = ref("");
 const RUNTIME_WARNING_KEY = "ucore.runtime.warning";
+const isWorkflowEditor = computed(
+  () => route.path === "/workflow" && String(route.query.tab || "") === "editor",
+);
+const globalSidebarOpen = computed(
+  () => shell.sidebarOpen && !isWorkflowEditor.value,
+);
 
 // Initialize settings store to apply persisted theme (dark mode default)
 useSettingsStore();
@@ -112,6 +118,11 @@ onBeforeUnmount(() => {
 function handleGlobalSidebarToggle() {
   if (route.path === "/developer") {
     shell.toggleDeveloperSidebar();
+    return;
+  }
+  if (isWorkflowEditor.value) {
+    shell.setSidebarOpen(false);
+    window.dispatchEvent(new CustomEvent("ucore:workflow-files-toggle"));
     return;
   }
   shell.toggleSidebar();
@@ -350,6 +361,8 @@ async function handleNewFile(binderId: string) {
 
 .app-body--tabs-top .app-sidebar {
   grid-area: vault;
+  width: clamp(11rem, 40vw, var(--usx-sidebar-width));
+  min-width: 0;
   min-height: 0;
 }
 

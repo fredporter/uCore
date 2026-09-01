@@ -134,13 +134,11 @@
           </div>
           <button class="intel-save-btn" @click="savePrompt">Save Chat Settings</button>
         </div>
+        <section class="intel-config-grid">
+          <SnackbarModelsPanel />
+          <SnackbarBudgetPanel />
+        </section>
       </template>
-
-      <!-- ═══ Models tab ═══ -->
-      <SnackbarModelsPanel v-else-if="activeTab === 'models'" />
-
-      <!-- ═══ Budget tab ═══ -->
-      <SnackbarBudgetPanel v-else-if="activeTab === 'budget'" />
 
       <!-- ═══ History tab ═══ -->
       <CombinedHistoryPanel v-else-if="activeTab === 'history'" />
@@ -164,10 +162,8 @@ import CombinedHistoryPanel from "./panels/CombinedHistoryPanel.vue";
 
 const INTEL_TABS = [
   { id: "chat", label: "Chat", icon: "chat" },
-  { id: "intel", label: "Settings", icon: "tune" },
-  { id: "models", label: "Models", icon: "smart_toy" },
-  { id: "budget", label: "Budget", icon: "payments" },
-  { id: "history", label: "History", icon: "history" },
+  { id: "intel", label: "Configure", icon: "tune" },
+  { id: "history", label: "Activity", icon: "history" },
 ];
 
 const shell = useShellStore();
@@ -178,7 +174,8 @@ const chat = useChatStore();
 const wf = useWorkflowStore();
 
 const VALID_INTEL_TABS = new Set(INTEL_TABS.map((tab) => tab.id));
-const routeTab = String(route.query.tab || "");
+const legacyTab = String(route.query.tab || "");
+const routeTab = legacyTab === "models" || legacyTab === "budget" ? "intel" : legacyTab;
 const activeTab = ref(VALID_INTEL_TABS.has(routeTab) ? routeTab : "chat");
 
 watch(activeTab, (tab) => {
@@ -191,7 +188,8 @@ watch(activeTab, (tab) => {
 watch(
   () => route.query.tab,
   (tab) => {
-    const normalized = String(tab || "chat");
+    const raw = String(tab || "chat");
+    const normalized = raw === "models" || raw === "budget" ? "intel" : raw;
     if (VALID_INTEL_TABS.has(normalized)) activeTab.value = normalized;
   },
 );
@@ -250,11 +248,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.intel-content { display: grid; gap: var(--usx-spacing-md); padding: var(--usx-spacing-lg); }
+.intel-content { display: grid; gap: var(--usx-spacing-lg); width: min(100%, 72rem); margin: 0 auto; padding: clamp(var(--usx-spacing-md), 4vw, var(--usx-spacing-2xl)); }
 .intel-header { background: linear-gradient(180deg, color-mix(in srgb, var(--usx-color-primary) 4%, transparent) 0%, transparent 78%); }
 .intel-header__row { display: flex; align-items: center; justify-content: space-between; gap: var(--usx-spacing-sm); flex-wrap: wrap; }
 .intel-header__badge { display: inline-flex; align-items: center; min-height: calc(var(--usx-touch-min) - var(--usx-spacing-sm)); padding: 0 var(--usx-spacing-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-full); font-size: var(--usx-font-size-xs); color: var(--usx-color-on-surface-muted); background: color-mix(in srgb, var(--usx-color-surface-variant) 75%, var(--usx-color-surface)); }
 .intel-panel { max-width: var(--usx-prose-width); }
+.intel-config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr)); gap: var(--usx-spacing-lg); align-items: start; }
 .intel-muted { font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); margin-bottom: var(--usx-spacing-lg); }
 .intel-form-section { margin-bottom: var(--usx-spacing-lg); }
 .intel-section-label { font-size: var(--usx-font-size-sm); font-weight: var(--usx-font-weight-semibold); margin-bottom: var(--usx-spacing-sm); }
@@ -268,9 +267,9 @@ onMounted(() => {
 
 /* ── AssistUI chat styles ────────────────────────────────────── */
 .assistui-mode-toggle { display: flex; justify-content: center; gap: var(--usx-spacing-xs); padding: 0 0 var(--usx-spacing-sm); flex-shrink: 0; }
-.assistui-mode-btn { display: inline-flex !important; align-items: center; padding: 2px var(--usx-spacing-md) !important; border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-surface); color: var(--usx-color-on-surface); font-size: var(--usx-font-size-sm); font-weight: var(--usx-font-weight-medium); cursor: pointer; white-space: nowrap; height: auto !important; min-height: auto !important; max-height: 28px !important; line-height: 1.2 !important; margin-bottom: 0 !important; transition: all var(--usx-transition-fast); }
+.assistui-mode-btn { display: inline-flex !important; align-items: center; justify-content: center; padding: 0 var(--usx-spacing-sm) !important; border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); background: transparent; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-sm); font-weight: var(--usx-font-weight-medium); cursor: pointer; white-space: nowrap; height: var(--usx-control-size-sm) !important; min-height: var(--usx-control-size-sm) !important; line-height: 1 !important; margin: 0 !important; transition: color var(--usx-transition-fast), border-color var(--usx-transition-fast); }
 .assistui-mode-btn:hover { background-color: var(--usx-color-surface-variant); border-color: var(--usx-color-primary); }
-.assistui-mode-btn--active { background-color: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
+.assistui-mode-btn--active { background-color: transparent; color: var(--usx-color-primary); border-color: var(--usx-color-primary); }
 .assistui-chat-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
 .assistui-chat-body--engaged { padding: var(--usx-spacing-md); }
 .assistui-welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--usx-spacing-lg); padding: var(--usx-spacing-2xl) var(--usx-spacing-lg); }
@@ -280,11 +279,11 @@ onMounted(() => {
 .assistui-welcome-bubble .assistui-msg-bubble { width: 100%; box-sizing: border-box; text-align: left; font-size: var(--usx-font-size-base); }
 .assistui-composer--welcome { width: 100%; max-width: var(--usx-prose-width); }
 .assistui-composer--footer { padding: var(--usx-spacing-sm); border-top: var(--usx-border-width) solid var(--usx-color-border); background: var(--usx-color-surface); flex-shrink: 0; position: relative; }
-.assistui-composer-row { display: flex; align-items: center; gap: 0; border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-lg); background: var(--usx-color-surface); padding: 0; transition: border-color var(--usx-transition-fast); }
+.assistui-composer-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; gap: var(--usx-spacing-sm); border: 0; border-radius: 0; background: transparent; padding: 0; }
 .assistui-composer-row:focus-within { border-color: var(--usx-color-primary); }
-.assistui-composer-actions { display: flex; align-items: center; gap: var(--usx-spacing-xs); flex-shrink: 0; padding: var(--usx-spacing-xs); }
+.assistui-composer-actions { display: flex; align-items: stretch; gap: var(--usx-spacing-xs); flex-shrink: 0; padding: 0; }
 .assistui-model-btn { display: inline-flex; align-items: center; gap: var(--usx-spacing-xs); padding: 0 var(--usx-spacing-xs); min-height: var(--usx-control-size-md); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-full); background: var(--usx-color-surface); color: var(--usx-color-on-surface); font-size: var(--usx-font-size-xs); cursor: pointer; white-space: nowrap; }
-.assistui-model-dropdown { position: absolute; top: calc(100% + var(--usx-spacing-xs)); left: 0; background: var(--usx-color-surface); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); min-width: var(--usx-dropdown-min-width); z-index: 10; box-shadow: var(--usx-shadow-sm); display: flex; flex-direction: column; }
+.assistui-model-dropdown { position: absolute; top: calc(100% + var(--usx-spacing-xs)); left: 0; background: var(--usx-color-surface); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); min-width: var(--usx-dropdown-min-width); z-index: 10; box-shadow: none; display: flex; flex-direction: column; }
 .assistui-model-dropdown--up { top: auto; bottom: calc(100% + var(--usx-spacing-xs)); }
 .assistui-model-option { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-sm) var(--usx-spacing-md); background: transparent; color: var(--usx-color-on-surface); border: none; cursor: pointer; font-size: var(--usx-font-size-sm); text-align: left; }
 .assistui-model-option:hover { background: var(--usx-color-surface-hover); }

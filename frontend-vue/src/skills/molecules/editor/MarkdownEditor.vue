@@ -3,7 +3,7 @@
     <!-- Toolbar: formatting buttons (prose + editable only) plus a slot for
          external controls (save, view mode, close) injected by the parent -->
     <div class="markdown-editor__toolbar">
-      <template v-if="!readOnly && editMode !== 'code'">
+      <template v-if="!readOnly">
         <!-- Text formatting -->
         <button class="markdown-btn" title="Bold (Ctrl+B)" @click="applyBold">
           <span class="material-symbols-outlined">format_bold</span>
@@ -67,6 +67,7 @@
     <!-- Raw markdown code editor (preserves line breaks) -->
     <textarea
       v-if="editMode === 'code'"
+      ref="codeEl"
       class="markdown-editor__code"
       :value="modelValue"
       :readonly="readOnly"
@@ -112,10 +113,9 @@ import {
   underline,
 } from "@bangle.dev/base-components";
 import { Plugin } from "@bangle.dev/pm";
-import {
-  defaultMarkdownParser,
-  defaultMarkdownSerializer,
-} from "prosemirror-markdown";
+import { defaultMarkdownSerializer } from "prosemirror-markdown";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
 
 interface Props {
   modelValue?: string;
@@ -146,6 +146,7 @@ const emit = defineEmits<{
 }>();
 
 const editorEl = ref<HTMLDivElement | null>(null);
+const codeEl = ref<HTMLTextAreaElement | null>(null);
 const editMode = ref<"prose" | "code">(props.editMode);
 let editor: MarkdownRuntime | null = null;
 let lastExternalValue = props.modelValue;
@@ -191,36 +192,42 @@ function resolvePlugins(raw: unknown, payload: any): unknown[] {
 
 // ─── Toolbar action handlers ───────────────────────────────
 function applyBold() {
+  if (editMode.value === "code") return wrapCodeSelection("**", "**", "bold text");
   if (!editor) return;
   bold.commands.toggleBold()(editor.view.state, editor.view.dispatch);
   editor.view.focus();
 }
 
 function applyItalic() {
+  if (editMode.value === "code") return wrapCodeSelection("_", "_", "italic text");
   if (!editor) return;
   italic.commands.toggleItalic()(editor.view.state, editor.view.dispatch);
   editor.view.focus();
 }
 
 function applyUnderline() {
+  if (editMode.value === "code") return wrapCodeSelection("<u>", "</u>", "underlined text");
   if (!editor) return;
   underline.commands.toggleUnderline()(editor.view.state, editor.view.dispatch);
   editor.view.focus();
 }
 
 function applyCode() {
+  if (editMode.value === "code") return wrapCodeSelection("`", "`", "code");
   if (!editor) return;
   code.commands.toggleCode()(editor.view.state, editor.view.dispatch);
   editor.view.focus();
 }
 
 function applyHeading() {
+  if (editMode.value === "code") return prefixCodeLines("## ");
   if (!editor) return;
   heading.commands.toggleHeading(2)(editor.view.state, editor.view.dispatch);
   editor.view.focus();
 }
 
 function applyBlockquote() {
+  if (editMode.value === "code") return prefixCodeLines("> ");
   if (!editor) return;
   blockquote.commands.wrapInBlockquote()(
     editor.view.state,
@@ -230,6 +237,7 @@ function applyBlockquote() {
 }
 
 function applyBulletList() {
+  if (editMode.value === "code") return prefixCodeLines("- ");
   if (!editor) return;
   bulletList.commands.toggleBulletList()(
     editor.view.state,
@@ -239,6 +247,7 @@ function applyBulletList() {
 }
 
 function applyOrderedList() {
+  if (editMode.value === "code") return prefixCodeLines("1. ");
   if (!editor) return;
   orderedList.commands.toggleOrderedList()(
     editor.view.state,
@@ -257,6 +266,38 @@ function redo() {
   if (!editor) return;
   history.commands.redo()(editor.view.state, editor.view.dispatch);
   editor.view.focus();
+}
+
+function commitCodeEdit(value: string, start: number, end: number) {
+  lastExternalValue = value;
+  emit("update:modelValue", value);
+  emit("change", value);
+  requestAnimationFrame(() => {
+    codeEl.value?.focus();
+    codeEl.value?.setSelectionRange(start, end);
+  });
+}
+
+function wrapCodeSelection(before: string, after: string, fallback: string) {
+  const el = codeEl.value;
+  if (!el) return;
+  const start = el.selectionStart;
+  const end = el.selectionEnd;
+  const selected = props.modelValue.slice(start, end) || fallback;
+  const value = props.modelValue.slice(0, start) + before + selected + after + props.modelValue.slice(end);
+  commitCodeEdit(value, start + before.length, start + before.length + selected.length);
+}
+
+function prefixCodeLines(prefix: string) {
+  const el = codeEl.value;
+  if (!el) return;
+  const start = props.modelValue.lastIndexOf("\n", Math.max(0, el.selectionStart - 1)) + 1;
+  const selectedEnd = el.selectionEnd;
+  const endBreak = props.modelValue.indexOf("\n", selectedEnd);
+  const end = endBreak < 0 ? props.modelValue.length : endBreak;
+  const selected = props.modelValue.slice(start, end);
+  const replacement = selected.split("\n").map((line) => `${prefix}${line}`).join("\n");
+  commitCodeEdit(props.modelValue.slice(0, start) + replacement + props.modelValue.slice(end), start, start + replacement.length);
 }
 
 function instantiateEditor(initialValue: string) {
@@ -308,7 +349,10 @@ function instantiateEditor(initialValue: string) {
     state: new BangleEditorState({
       specs,
       plugins: buildPlugins as any,
-      initialValue,
+      // Bangle treats string initialValue as HTML. Render Markdown to sanitized
+      // structural HTML so headings, lists and intentional newlines survive
+      // Bangle's own schema-aware DOM parser.
+      initialValue: DOMPurify.sanitize(marked.parse(initialValue) as string),
     }),
     focusOnInit: props.autofocus,
     pmViewOpts: {
@@ -388,9 +432,10 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-sm);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
-  background: var(--usx-color-surface);
+  min-height: var(--usx-control-size-sm);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  border-bottom: 0;
+  background: color-mix(in srgb, var(--usx-color-surface) 58%, transparent);
   flex-shrink: 0;
   overflow-x: auto;
   white-space: nowrap;
@@ -400,13 +445,16 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 2rem;
-  min-height: 0;
-  height: 2rem;
-  padding: 0 var(--usx-spacing-xs);
-  border: var(--usx-border-width) solid var(--usx-color-border);
+  width: var(--usx-control-size-sm);
+  height: var(--usx-control-size-sm);
+  min-width: var(--usx-control-size-sm);
+  min-height: var(--usx-control-size-sm);
+  flex: 0 0 var(--usx-control-size-sm);
+  box-sizing: border-box;
+  padding: 0;
+  border: 0;
   border-radius: var(--usx-radius-sm);
-  background: var(--usx-color-surface);
+  background: transparent;
   color: var(--usx-color-on-surface);
   cursor: pointer;
   font-size: var(--usx-font-size-sm);
@@ -429,13 +477,12 @@ onBeforeUnmount(() => {
 
 .markdown-btn:hover {
   background: var(--usx-color-surface-hover);
-  border-color: var(--usx-color-primary);
+  color: var(--usx-color-primary);
 }
 
 .markdown-btn:active {
   background: var(--usx-color-primary);
   color: var(--usx-color-on-primary);
-  border-color: var(--usx-color-primary);
 }
 
 .markdown-separator {
@@ -467,7 +514,7 @@ onBeforeUnmount(() => {
   font-family: var(--usx-font-family-mono);
   font-size: var(--usx-font-size-sm);
   line-height: 1.6;
-  padding: var(--usx-spacing-md);
+  padding: clamp(var(--usx-spacing-md), 4vw, calc(var(--usx-spacing-2xl) * 1.5));
   white-space: pre-wrap;
   word-break: break-word;
   tab-size: 2;
@@ -480,7 +527,7 @@ onBeforeUnmount(() => {
 :deep(.ProseMirror) {
   flex: 1;
   overflow-y: auto;
-  padding: var(--usx-spacing-md);
+  padding: clamp(var(--usx-spacing-md), 4vw, calc(var(--usx-spacing-2xl) * 1.5));
   outline: none;
   white-space: pre-wrap;
   word-break: break-word;

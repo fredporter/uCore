@@ -14,11 +14,11 @@
     <div class="surface__content snackbar-server-content">
       <section class="surface__panel snackbar-server-header">
         <div class="snackbar-server-header__row">
-          <h3 class="surface__panel-title">Snackbar Server</h3>
+          <h3 class="surface__panel-title">Server</h3>
           <span class="snackbar-server-header__badge">Runtime Surface</span>
         </div>
         <p class="surface__panel-description">
-          Unified operational panels for services, agents, feeds, skills, snacks, and extensions.
+          Runtime health, AI configuration, automation, extensions, and logs.
         </p>
       </section>
 
@@ -31,20 +31,22 @@
       <div v-else-if="activeTab === 'services'" class="server-tab-shell">
         <SnackbarServicesPanel />
       </div>
-      <!-- Agents -->
-      <div v-else-if="activeTab === 'agents'" class="server-tab-shell">
+      <!-- AI: models, agents, and budget share one operational context -->
+      <div v-else-if="activeTab === 'ai'" class="server-tab-shell server-panel-stack">
+        <SnackbarModelsPanel />
         <SnackbarAgentsPanel />
+        <SnackbarBudgetPanel />
       </div>
-      <!-- Feeds (feed-spool) -->
-      <div v-else-if="activeTab === 'feeds'" class="server-tab-shell">
+      <!-- Automation: the inputs, capabilities, and schedules of one pipeline -->
+      <div v-else-if="activeTab === 'automation'" class="server-tab-shell server-panel-stack">
+        <section class="surface__panel">
+          <h3 class="surface__panel-title">Automations &amp; Skills Runner</h3>
+          <p class="surface__panel-description">
+            The master library and runtime for reusable skills, feed inputs, and scheduled automations. Workflows invoke registered items from here.
+          </p>
+        </section>
         <SnackbarFeedsPanel />
-      </div>
-      <!-- Skills (on-demand) -->
-      <div v-else-if="activeTab === 'skills'" class="server-tab-shell">
         <SnackbarSkillsPanel />
-      </div>
-      <!-- Snacks (scheduler / set-and-forget) -->
-      <div v-else-if="activeTab === 'snacks'" class="server-tab-shell">
         <SnackbarSnacksPanel />
       </div>
       <!-- Extensions -->
@@ -86,6 +88,12 @@ const SnackbarServicesPanel = defineAsyncComponent(
 const SnackbarAgentsPanel = defineAsyncComponent(
   () => import("./panels/SnackbarAgentsPanel.vue"),
 );
+const SnackbarModelsPanel = defineAsyncComponent(
+  () => import("./panels/SnackbarModelsPanel.vue"),
+);
+const SnackbarBudgetPanel = defineAsyncComponent(
+  () => import("./panels/SnackbarBudgetPanel.vue"),
+);
 const SnackbarFeedsPanel = defineAsyncComponent(
   () => import("./panels/SnackbarFeedsPanel.vue"),
 );
@@ -121,6 +129,15 @@ function normalizeSnackbarOpsTab(
   tab: string | null | undefined,
 ): SnackbarOpsTab {
   if (!tab) return "dashboard";
+  const legacyTabs: Record<string, SnackbarOpsTab> = {
+    agents: "ai",
+    models: "ai",
+    budget: "ai",
+    feeds: "automation",
+    skills: "automation",
+    snacks: "automation",
+  };
+  if (legacyTabs[tab]) return legacyTabs[tab];
   return VALID_SNACKBAR_OPS_TABS.has(tab as SnackbarOpsTab)
     ? (tab as SnackbarOpsTab)
     : "dashboard";
@@ -212,7 +229,12 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-/* Shared USX standard layer across Snackbar Server tabs */
+.server-panel-stack {
+  display: grid;
+  gap: var(--usx-spacing-md);
+}
+
+/* Shared USX standard layer across Server tabs */
 .snackbar-server-content :deep(.surface__panel) {
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-md);

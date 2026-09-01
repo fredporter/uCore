@@ -25,6 +25,9 @@ Dev Mode readiness pass active. Canonical repository plan:
 `docs/DEV_MODE_READINESS_2026-08-31.md`. Product task evidence:
 `frontend-vue/src/tasks/bangle-upgrade.tasks.ts`.
 
+Long-sprint execution sequence:
+`docs/DEV_MODE_LONG_SPRINTS_2026-09.md`.
+
 ## Completed Phases
 
 - Phase 10 — Ecosystem Hardening and Autonomous Rounds (all gates checked).

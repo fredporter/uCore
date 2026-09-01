@@ -28,6 +28,38 @@ def get_router() -> ProviderRouter:
     return _router
 
 
+def _normalise_tool_calls(response: dict) -> list[dict]:
+    """Accept native tool calls and the JSON fallback emitted by small models."""
+    native = response.get("tool_calls")
+    if isinstance(native, list) and native:
+        return native
+
+    content = response.get("content")
+    if not isinstance(content, str):
+        return []
+    candidate = content.strip()
+    if candidate.startswith("```"):
+        lines = candidate.splitlines()
+        if len(lines) >= 3 and lines[-1].strip() == "```":
+            candidate = "\n".join(lines[1:-1]).strip()
+            if candidate.lower().startswith("json\n"):
+                candidate = candidate[5:].strip()
+    try:
+        payload = json.loads(candidate)
+    except (TypeError, json.JSONDecodeError):
+        return []
+    if not isinstance(payload, dict):
+        return []
+    name = payload.get("name")
+    arguments = payload.get("arguments", {})
+    known_tools = {
+        tool["function"]["name"] for tool in _CHAT_TOOLS
+    }
+    if name not in known_tools or not isinstance(arguments, (dict, str)):
+        return []
+    return [{"function": {"name": name, "arguments": arguments}}]
+
+
 # ─── Tool Definitions (Ollama function-calling format) ──────────────
 
 _CHAT_TOOLS: list[dict] = [
@@ -743,7 +775,7 @@ async def handle_chat(request: web.Request) -> web.Response:
                 tools=_CHAT_TOOLS,
             )
 
-            tool_calls = response.get("tool_calls")
+            tool_calls = _normalise_tool_calls(response)
             if not tool_calls:
                 # No more tools — return final response
                 return web.json_response({

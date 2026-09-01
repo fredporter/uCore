@@ -18,9 +18,10 @@
             @keydown.escape="cancelEdit"
             @blur="confirmEdit"
           />
-          <span v-else class="frontmatter-pills__cell-display">{{
-            row.display
-          }}</span>
+          <span v-else-if="row.type === 'tag'" class="frontmatter-pills__tags">
+            <span v-for="tag in row.tags" :key="tag" class="frontmatter-pills__tag">{{ tag }}</span>
+          </span>
+          <span v-else class="frontmatter-pills__cell-display">{{ row.display }}</span>
         </span>
         <span v-if="canEdit" class="frontmatter-pills__cell-actions">
           <button
@@ -65,6 +66,7 @@ interface Row {
   key: string;
   display: string;
   rawValue: string;
+  tags: string[];
   type: "tag" | "status" | "date" | "author" | "source" | "generic";
 }
 
@@ -75,6 +77,11 @@ const rows = computed<Row[]>(() => {
       key,
       rawValue: raw,
       display: formatDisplay(key, value),
+      tags: key === "tags"
+        ? (Array.isArray(value) ? value : String(value).split(","))
+            .map((tag) => String(tag).trim().replace(/^#/, ""))
+            .filter(Boolean)
+        : [],
       type: classifyKey(key),
     };
   });
@@ -198,6 +205,20 @@ function removeRow(key: string) {
 
 .frontmatter-pills__cell--tag .frontmatter-pills__cell-display {
   color: var(--usx-color-info);
+}
+
+.frontmatter-pills__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.frontmatter-pills__tag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
+  color: var(--usx-color-primary);
+  white-space: nowrap;
 }
 
 .frontmatter-pills__cell--source .frontmatter-pills__cell-display {

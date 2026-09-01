@@ -35,7 +35,7 @@
 
     <!-- Tree -->
     <label class="workspace-tree__search">
-      <UIcon name="search" />
+      <UIcon name="search" :size="18" />
       <input v-model="query" type="search" placeholder="Filter files" aria-label="Filter workspace files" />
     </label>
     <div class="workspace-tree__list" role="tree" @dragover.prevent @drop.prevent="dropAtRoot">
@@ -191,14 +191,15 @@ function handleCreate(payload: {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: var(--usx-control-size-sm);
+  height: var(--usx-control-size-sm);
   border: none;
   background: transparent;
   cursor: pointer;
   border-radius: var(--usx-radius-sm);
   color: var(--usx-color-on-surface-muted);
   transition: all 120ms ease;
+  font-size: var(--usx-icon-size-md);
 }
 
 .workspace-tree__action-btn:hover {
@@ -246,17 +247,30 @@ function handleCreate(payload: {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  min-height: var(--usx-control-size-sm);
+  padding: 0 var(--usx-spacing-sm);
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-icon-size-md);
+  margin: 0;
 }
 
 .workspace-tree__search input {
   width: 100%;
   min-width: 0;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
   border: 0;
+  border-radius: 0;
   background: transparent;
+  box-shadow: none;
   color: var(--usx-color-on-surface);
-  font-size: var(--usx-font-size-xs);
+  font-family: var(--usx-font-family-sans);
+  font-size: var(--usx-font-size-sm);
+  line-height: var(--usx-line-height-normal);
+  outline: 0;
 }
 
 .workspace-tree__state {

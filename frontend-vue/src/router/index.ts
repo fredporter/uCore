@@ -23,15 +23,19 @@ const routes: RouteRecordRaw[] = [
     path: "/assistui/:pathMatch(.*)*",
     redirect: (to) => {
       const tab = String(to.query.tab || "chat");
-      if (tab === "agents") return "/snackbar?tab=agents";
-      return { path: "/intelligence", query: to.query };
+      if (["agents", "models", "budget"].includes(tab)) return "/snackbar?tab=ai";
+      if (tab === "history") return "/snackbar?tab=logs";
+      return "/";
     },
   },
   {
     path: "/intelligence/:pathMatch(.*)*",
-    name: "intelligence",
-    component: () => import("../surfaces/intelligence/IntelligenceSurface.vue"),
-    meta: { title: "Intelligence", icon: "lightbulb" },
+    redirect: (to) => {
+      const tab = String(to.query.tab || "chat");
+      if (["agents", "models", "budget", "intel"].includes(tab)) return "/snackbar?tab=ai";
+      if (tab === "history") return "/snackbar?tab=logs";
+      return "/";
+    },
   },
   {
     path: "/ucode/:pathMatch(.*)*",
@@ -84,9 +88,9 @@ const routes: RouteRecordRaw[] = [
       if (tab === "workflows") return "/workflow?tab=publish";
       if (tab === "vault") return "/workflow?tab=binder";
       if (tab === "mcp") return "/developer";
-      if (tab === "variables") return "/system?tab=variables";
+      if (tab === "variables") return "/system?tab=configuration";
       if (tab === "scheduler") return "/snackbar?tab=dashboard";
-      return "/snackbar?tab=snacks";
+      return "/snackbar?tab=automation";
     },
   },
   {
@@ -145,9 +149,12 @@ export const router = createRouter({
 });
 
 router.beforeEach((to) => {
-  // Agent selection is operational state, not a user-facing Intelligence mode.
-  if (to.path.startsWith("/intelligence") && to.query.tab === "agents") {
-    return { path: "/snackbar", query: { tab: "agents" } };
+  // Server owns the automation/skills runner; Workflow only invokes its items.
+  if (
+    to.path.startsWith("/workflow") &&
+    ["automation", "automations", "feeds", "skills"].includes(String(to.query.tab || ""))
+  ) {
+    return { path: "/snackbar", query: { tab: "automation" } };
   }
 });
 

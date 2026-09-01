@@ -90,17 +90,14 @@ const devModeOn = computed(
 );
 const toggleDevMode = () => devMode.toggle();
 
-// ─── Hide chat bubble only on the Intelligence "chat" tab ────────
-const hideChatBubble = computed(
-  () => route.path.includes("/intelligence") && shell.intelTab === "chat",
-);
+// Chat has one global entry point: the bottom bubble.
+const hideChatBubble = computed(() => false);
 
 // ─── Context strip ───────────────────────────────────────────────
 const contextLabel = computed(() => {
   const path = shell.lastSurface ?? "";
   if (path.includes("/workflow")) return "Workflow";
   if (path.includes("/browserui")) return "Browser";
-  if (path.includes("/intelligence")) return "Intelligence";
   if (path.includes("/snackbar")) return "Snackbar";
   if (path.includes("/system")) return "System";
   if (path.includes("/developer")) return "Developer";
