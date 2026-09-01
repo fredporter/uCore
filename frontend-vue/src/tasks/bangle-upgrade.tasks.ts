@@ -1480,6 +1480,28 @@ export const BANGLE_TASKS_BY_PHASE = {
 };
 
 /**
+ * Canonical counts derived from task objects. Consumers and documentation
+ * should use this summary instead of counting status text in this source file.
+ */
+export const BANGLE_TASK_SUMMARY = Object.freeze(
+  BANGLE_UPGRADE_TASKS.reduce(
+    (summary, task) => {
+      summary.total += 1;
+      summary[task.status] += 1;
+      return summary;
+    },
+    {
+      total: 0,
+      backlog: 0,
+      todo: 0,
+      "in-progress": 0,
+      review: 0,
+      done: 0,
+    } as Record<SprintTask["status"] | "total", number>,
+  ),
+);
+
+/**
  * Calculate phase dependencies and critical path
  */
 export function getPhasePrerequisites(phase: number): number[] {

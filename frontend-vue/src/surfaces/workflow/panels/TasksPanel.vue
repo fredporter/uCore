@@ -4,7 +4,11 @@
     :class="{ 'wf-panel--editor-open': showCodeEditor && activeCodeTask }"
   >
     <!-- ── Task list / kanban (always visible, shrinks when editor slides in) ── -->
-    <div class="wf-panel__main">
+    <div class="wf-panel__main wf-zen-surface">
+      <header class="wf-standard-header">
+        <div><p class="wf-standard-header__kicker">User Workflow</p><h2>Task List</h2><p>{{ wf.inProgressCount }} in progress · {{ wf.activeTasks.length }} open</p></div>
+        <button class="wf-standard-header__action" type="button" @click="wf.setTab('editor')"><UIcon name="add" /> New or open task</button>
+      </header>
       <!-- Compact toolbar row -->
       <div class="wf-toolbar">
         <div class="wf-toolbar__toggles">
@@ -53,27 +57,10 @@
           @click="openTaskEditor(task)"
         >
           <div class="task-list__main">
-            <div class="task-list__task-title">{{ task.title }}</div>
-            <div class="task-list__pills">
-              <span class="task-pill" :class="`task-pill--${task.status}`">{{
-                formatStatus(task.status)
-              }}</span>
-              <span
-                class="task-pill"
-                :class="`task-pill--priority-${task.priority}`"
-              >
-                {{ task.priority }}
-              </span>
-              <span class="task-pill task-pill--board">{{
-                task.board || "general"
-              }}</span>
-              <span
-                v-for="tag in task.tags"
-                :key="tag"
-                class="task-pill task-pill--tag"
-              >
-                {{ tag }}
-              </span>
+            <span class="task-list__state" :class="`task-list__state--${task.status}`" />
+            <div>
+              <div class="task-list__task-title">{{ task.title }}</div>
+              <div class="task-list__meta">{{ task.board || "Workflow" }} · {{ formatStatus(task.status) }}</div>
             </div>
           </div>
           <button
@@ -148,12 +135,14 @@
         </div>
       </div>
 
-      <div v-if="wf.flowLogTasks.length > 0" class="surface__panel wf-flowlog">
-        <h4 class="surface__panel-title">Flowlog</h4>
-        <p class="surface__panel-description">
-          Completed tasks move here automatically so active work stays
-          uncluttered.
-        </p>
+      <section v-if="wf.flowLogTasks.length > 0" class="wf-flowlog">
+        <header class="wf-flowlog__header">
+          <div>
+            <h4 class="surface__panel-title">Flowlog</h4>
+            <p class="surface__panel-description">Completed work, kept out of your active list.</p>
+          </div>
+          <span class="wf-flowlog__count">{{ wf.flowLogTasks.length }} complete</span>
+        </header>
         <div class="wf-flowlog-list">
           <button
             v-for="task in wf.flowLogTasks"
@@ -161,18 +150,17 @@
             class="wf-flowlog-item"
             @click="openTaskEditor(task)"
           >
-            <div class="wf-flowlog-item__title">{{ task.title }}</div>
-            <div class="wf-flowlog-item__meta">
-              <span>{{ task.binder || "Sandbox" }}</span>
-              <span>{{
-                task.completedAt
-                  ? new Date(task.completedAt).toLocaleString()
-                  : "completed"
-              }}</span>
+            <div class="wf-flowlog-item__copy">
+              <div class="wf-flowlog-item__title">{{ task.title }}</div>
+              <div class="wf-flowlog-item__meta">
+                <span>{{ task.binder || "Sandbox" }}</span>
+                <span>{{ task.completedAt ? new Date(task.completedAt).toLocaleDateString() : "Completed" }}</span>
+              </div>
             </div>
+            <span class="wf-flowlog-item__status" aria-label="Completed"><UIcon name="check_circle" /></span>
           </button>
         </div>
-      </div>
+      </section>
     </div>
 
     <!-- ── Slide-in code editor panel (from right) ── -->
@@ -374,6 +362,63 @@ async function handleDrop(targetStatus: string) {
   flex-direction: column;
   gap: var(--usx-spacing-md);
   overflow-y: auto;
+  width: min(100%, 60rem);
+  margin: 0 auto;
+  padding: clamp(var(--usx-spacing-md), 3vw, var(--usx-spacing-xl));
+}
+
+/* ── Compact toolbar ────────────────────────────────────────── */
+
+.wf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xs) 0;
+}
+
+.wf-toolbar__toggles {
+  display: flex;
+  gap: 2px;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+  overflow: hidden;
+}
+
+.wf-toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--usx-touch-min) * 0.7);
+  height: calc(var(--usx-touch-min) * 0.7);
+  border: none;
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+  padding: 0;
+  min-height: 0;
+  border-radius: 0;
+}
+
+.wf-toolbar__btn:hover {
+  background: color-mix(in srgb, var(--usx-color-primary) 6%, transparent);
+}
+
+.wf-toolbar__btn--active {
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-primary);
+}
+
+.wf-toolbar__count {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
+  text-align: right;
+}
+
+.wf-toolbar__count--done {
+  color: var(--usx-color-success);
 }
 
 /* ── Slide-in code editor (from right) ──────────────────────── */
@@ -499,12 +544,8 @@ async function handleDrop(targetStatus: string) {
 }
 
 .wf-toolbar__btn--active {
-  background: var(--usx-color-primary);
-  color: var(--usx-color-on-primary, #fff);
-}
-
-.wf-toolbar__btn--active:hover {
-  background: var(--usx-color-primary-hover, var(--usx-color-primary));
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-primary);
 }
 
 .wf-toolbar__count {
@@ -518,16 +559,34 @@ async function handleDrop(targetStatus: string) {
 }
 
 .wf-flowlog-list {
-  display: flex;
-  gap: var(--usx-spacing-xs);
-  flex-wrap: wrap;
+  display: grid;
+  border-top: var(--usx-border-width) solid var(--usx-color-border);
 }
 
-.wf-flowlog-item {
+.wf-flowlog__header {
   display: flex;
-  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--usx-spacing-md);
+  padding: var(--usx-spacing-md) var(--usx-spacing-xs) var(--usx-spacing-sm);
+}
+
+.wf-flowlog__header .surface__panel-title,
+.wf-flowlog__header .surface__panel-description { margin: 0; }
+.wf-flowlog__header .surface__panel-description { margin-top: 2px; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); }
+.wf-flowlog__count { color: var(--usx-color-success); font-size: var(--usx-font-size-xs); white-space: nowrap; }
+
+.wf-flowlog-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-sm);
+  width: 100%;
+  padding: var(--usx-spacing-sm) var(--usx-spacing-xs);
+  border: 0;
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: 0;
+  background: transparent;
   text-align: left;
   cursor: pointer;
 }
@@ -536,6 +595,9 @@ async function handleDrop(targetStatus: string) {
   font-size: var(--usx-font-size-base);
   font-weight: var(--usx-font-weight-semibold);
 }
+
+.wf-flowlog-item__copy { display: grid; min-width: 0; gap: 2px; }
+.wf-flowlog-item__status { display: inline-flex; align-items: center; justify-content: center; color: var(--usx-color-success); }
 
 .wf-flowlog-item__meta {
   display: flex;
@@ -546,11 +608,42 @@ async function handleDrop(targetStatus: string) {
   font-size: var(--usx-font-size-xs);
 }
 
+.wf-flowlog {
+  padding: var(--usx-spacing-lg) 0 0;
+  border: 0;
+  border-top: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.wf-flowlog .surface__panel-title,
+.wf-flowlog .surface__panel-description { margin-left: var(--usx-spacing-xs); margin-right: var(--usx-spacing-xs); }
+
 .task-list {
+  border: 0;
+  border-top: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.wf-flowlog-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--usx-spacing-sm);
+  border-top: 0;
+}
+
+.wf-flowlog-item {
+  min-height: 4rem;
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
   border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-lg);
-  background: var(--usx-color-surface);
-  overflow: hidden;
+  border-radius: var(--usx-radius-sm);
+  background: color-mix(in srgb, var(--usx-color-surface) 72%, transparent);
+}
+
+@media (max-width: 600px) {
+  .wf-flowlog-list { grid-template-columns: 1fr; }
+  .wf-flowlog__header { align-items: flex-start; }
 }
 
 /* 2‑column task list on wide screens */
@@ -570,7 +663,8 @@ async function handleDrop(targetStatus: string) {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  min-height: 3.25rem;
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
   cursor: pointer;
 }
@@ -588,9 +682,18 @@ async function handleDrop(targetStatus: string) {
 }
 
 .task-list__main {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
   flex: 1;
   min-width: 0;
 }
+
+.task-list__state { width: .7rem; height: .7rem; flex: 0 0 auto; border: 2px solid var(--usx-color-border); border-radius: 50%; }
+.task-list__state--in-progress { border-color: var(--usx-color-primary); background: var(--usx-color-primary); }
+.task-list__state--review { border-color: var(--usx-color-warning); }
+.task-list__state--blocked { border-color: var(--usx-color-danger); }
+.task-list__meta { margin-top: 2px; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); }
 
 .task-list__task-title {
   font-size: var(--usx-font-size-base);
@@ -670,10 +773,18 @@ async function handleDrop(targetStatus: string) {
   background: var(--usx-color-surface-variant);
 }
 
+.task-pill--priority-high,
+.task-pill--priority-medium,
+.task-pill--priority-low,
+.task-pill--tag {
+  display: none;
+}
+
 /* Neutral pills */
 .task-pill--board {
   color: var(--usx-color-on-surface-muted);
-  background: var(--usx-color-surface-variant);
+  background: transparent;
+  padding-inline: 0;
 }
 
 .task-pill--tag {
@@ -695,9 +806,10 @@ async function handleDrop(targetStatus: string) {
 }
 
 .kanban-column {
-  background: var(--usx-color-surface);
-  border-radius: var(--usx-radius-lg);
-  border: var(--usx-border-width) solid var(--usx-color-border);
+  background: transparent;
+  border-radius: 0;
+  border: 0;
+  border-top: var(--usx-border-width) solid var(--usx-color-border);
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -758,10 +870,10 @@ async function handleDrop(targetStatus: string) {
 }
 
 .kanban-card {
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-  background: var(--usx-color-background);
-  border-radius: var(--usx-radius-md);
-  border: var(--usx-border-width) solid transparent;
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  background: var(--usx-color-surface);
+  border-radius: var(--usx-radius-sm);
+  border: var(--usx-border-width) solid var(--usx-color-border);
   cursor: pointer;
   min-width: 0;
   transition:
@@ -772,27 +884,24 @@ async function handleDrop(targetStatus: string) {
 }
 
 .kanban-card:hover {
-  border-color: var(--usx-color-primary);
+  background: color-mix(in srgb, var(--usx-color-primary) 5%, transparent);
 }
 
 .kanban-card--selected {
-  border-color: var(--usx-color-primary);
-  background: color-mix(in srgb, var(--usx-color-primary) 6%, transparent);
+  background: color-mix(in srgb, var(--usx-color-primary) 10%, transparent);
 }
 
 .kanban-card-top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--usx-spacing-sm);
-  flex-wrap: wrap;
-  margin-bottom: var(--usx-spacing-sm);
 }
 
 .kanban-card-title {
   min-width: 0;
   font-weight: var(--usx-font-weight-semibold);
-  font-size: var(--usx-font-size-base);
+  font-size: var(--usx-font-size-sm);
   line-height: var(--usx-line-height-tight);
   overflow-wrap: anywhere;
 }

@@ -38,29 +38,39 @@ stores, MCP meshes, or unverified vendor tools.
 
 ## Verification-gated vendor prework
 
-Nanocoder remains at Phase 0. The repository now contains only inert validation
+Nanocoder remains at Phase 0 intake. Its canonical Nano Collective upstream,
+MIT licence, versioned npm package, and ACP editor protocol are now identified.
+The repository still contains only inert validation
 contracts for a pinned HTTPS artifact, Dev Mode/repository preflight request,
 and bounded dry-run request. These contracts deliberately reject arbitrary
 paths, environment injection, write mode, unbounded prompts, and unbounded
 timeouts.
 
-The following work is blocked on canonical upstream provenance and must not be
-simulated:
+The following work remains gated and must not be simulated:
 
-- Externally blocked: confirm the canonical upstream repository, organization, license, and release process.
-- Externally blocked: record a real immutable release URL, version, platform, SHA-256, and license.
-- Planned after provenance: review the pinned artifact in a disposable environment.
+- Record and verify the immutable npm/release artifact, integrity, version,
+  platform support, and dependency audit.
+- Review the pinned artifact in a disposable environment.
 - Decision gate: accept or reject; only acceptance may activate capability requirements.
-- Planned after acceptance: implement a fake-executable dry-run wrapper and audit tests.
-- Planned after wrapper evidence: design the uFlow task-reference/audit handoff.
+- Planned after acceptance: implement a fake ACP server, supervised ACP process
+  adapter, and audit tests.
+- Planned after adapter evidence: implement the uFlow task-reference/audit handoff
+  and Developer Surface Dev Mode operations panel.
 
 No source entry, lock entry, binary path, capability requirement, route, UI
 action, MCP tool, or scheduler registration exists before that decision.
 
 ## Remaining product backlog
 
+The long-form execution sequence is
+`docs/DEV_MODE_LONG_SPRINTS_2026-09.md`. It makes Nanocoder ACP the governed
+construction engine for the Developer Workbench while retaining uCore policy,
+repository, audit, and lifecycle control.
+
 The reconciled frontend task ledger is
-`frontend-vue/src/tasks/bangle-upgrade.tasks.ts`: 48 done and 29 backlog.
+`frontend-vue/src/tasks/bangle-upgrade.tasks.ts`: 76 actual task objects, with
+48 done and 28 backlog. `BANGLE_TASK_SUMMARY` derives these counts from the
+objects so comments and type declarations cannot inflate the total.
 The next product lanes are:
 
 1. Frontmatter editor and enhanced Bangle formatting toolbar.

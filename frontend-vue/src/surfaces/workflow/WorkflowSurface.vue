@@ -27,9 +27,6 @@
         <div v-if="wf.activeTab !== 'editor'" class="workflow-panel">
           <MissionControlPanel v-if="wf.activeTab === 'mission-control'" />
           <TasksPanel v-else-if="wf.activeTab === 'tasks'" />
-          <AutomationPanel v-else-if="wf.activeTab === 'automation'" />
-          <FeedsPanel v-else-if="wf.activeTab === 'feeds'" />
-          <PublishPanel v-else-if="wf.activeTab === 'publish'" />
         </div>
 
         <!-- Editor tab: full-width document workspace -->
@@ -43,7 +40,7 @@
             aria-label="Open workspace files"
             @click="workspaceTreeOpen = true"
           >
-            <UIcon name="folder_open" /> Files
+            <UIcon name="folder_open" :size="20" />
           </button>
           <button
             v-if="workspaceTreeOpen"
@@ -69,9 +66,22 @@
             @update:content="onEditorContentUpdate"
             @update:edit-mode="onEditorModeUpdate"
             @save="onEditorSave"
+            @publish="publishOpen = true"
             @close="wf.closeEditor()"
           />
-          <div v-else class="wf-editor-empty">
+          <Transition name="workflow-publish">
+            <aside v-if="publishOpen && activeEditorItem" class="workflow-publish-drawer">
+              <header class="workflow-publish-drawer__header">
+                <div>
+                  <strong>Publish</strong>
+                  <span>{{ editorTitle }}</span>
+                </div>
+                <button aria-label="Close publishing" @click="publishOpen = false"><UIcon name="close" :size="20" /></button>
+              </header>
+              <PublishPanel :source-title="editorTitle" :source-content="editorContent" embedded />
+            </aside>
+          </Transition>
+          <div v-if="!activeEditorItem" class="wf-editor-empty">
             <UIcon name="diamond" />
             <p>
               Select a file from the User Vault sidebar or a task from Tasks.
@@ -113,7 +123,7 @@
  * @category surfaces
  * @usage Routed at '/workflow?tab=mission-control'
  */
-import { computed, defineAsyncComponent, onMounted, ref, watch } from "vue";
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useWorkflowStore, WORKFLOW_TABS } from "../../stores/workflow";
@@ -125,12 +135,6 @@ import CapabilityRepairPanel from "../../skills/molecules/CapabilityRepairPanel.
 import MissionControlPanel from "./panels/MissionControlPanel.vue";
 const MissionsPanel = defineAsyncComponent(
   () => import("./panels/MissionsPanel.vue"),
-);
-const AutomationPanel = defineAsyncComponent(
-  () => import("./panels/AutomationPanel.vue"),
-);
-const FeedsPanel = defineAsyncComponent(
-  () => import("./panels/FeedsPanel.vue"),
 );
 const TasksPanel = defineAsyncComponent(
   () => import("./panels/TasksPanel.vue"),
@@ -147,6 +151,11 @@ const shell = useShellStore();
 const wf = useWorkflowStore();
 const workspace = useWorkspaceStore();
 const workspaceTreeOpen = ref(false);
+const publishOpen = ref(false);
+
+function toggleWorkspaceFiles() {
+  workspaceTreeOpen.value = !workspaceTreeOpen.value;
+}
 const editorSurface = getEditorSurface();
 const route = useRoute();
 const router = useRouter();
@@ -166,6 +175,7 @@ function asWorkflowTab(tab: string): WorkflowTab | null {
 }
 
 onMounted(() => {
+  window.addEventListener("ucore:workflow-files-toggle", toggleWorkspaceFiles);
   void workspace.loadTree();
   const routeTab = String(route.query.tab || "").trim();
   const safeTab = asWorkflowTab(routeTab);
@@ -181,6 +191,10 @@ onMounted(() => {
   ensureEditorDocument();
 
   void wf.fetchAll();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("ucore:workflow-files-toggle", toggleWorkspaceFiles);
 });
 
 watch(
@@ -199,6 +213,7 @@ watch(
 );
 
 watch(() => workspace.selectedId, () => { workspaceTreeOpen.value = false; });
+watch(() => [wf.selectedTask?.id, wf.selectedFile?.id, workspace.selectedId], () => { publishOpen.value = false; });
 
 watch(
   () => wf.activeTab,
@@ -322,6 +337,26 @@ function onRetryPreflight() {
   flex-direction: column;
 }
 
+.workflow-publish-drawer {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  width: min(28rem, 92vw);
+  min-height: 0;
+  border-left: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-background);
+}
+
+.workflow-panel--editor { position: relative; overflow: hidden; }
+.workflow-publish-drawer__header { display: flex; align-items: center; justify-content: space-between; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-md); border-bottom: var(--usx-border-width) solid var(--usx-color-border); }
+.workflow-publish-drawer__header > div { display: grid; gap: 2px; min-width: 0; }
+.workflow-publish-drawer__header span { overflow: hidden; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); text-overflow: ellipsis; white-space: nowrap; }
+.workflow-publish-drawer__header button { display: inline-flex; align-items: center; justify-content: center; width: var(--usx-control-size-sm); height: var(--usx-control-size-sm); min-height: 0; padding: 0; border: 0; background: transparent; color: var(--usx-color-on-surface-muted); }
+.workflow-publish-enter-active, .workflow-publish-leave-active { transition: transform 160ms ease; }
+.workflow-publish-enter-from, .workflow-publish-leave-to { transform: translateX(100%); }
+
 .workflow-panel > * {
   flex: 1;
   min-height: 0;
@@ -340,16 +375,41 @@ function onRetryPreflight() {
 }
 
 .workflow-workspace-tree {
-  width: min(18rem, 28vw);
-  min-width: 12rem;
-  flex-shrink: 0;
-  min-height: 0;
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: min(20rem, 86vw);
+  min-width: 0;
+  z-index: 41;
+  transform: translateX(-100%);
+  transition: transform 160ms ease;
+  background: var(--usx-color-surface);
 }
 
-.workflow-workspace-toggle,
-.workflow-workspace-close,
-.workflow-workspace-backdrop {
-  display: none;
+.workflow-workspace-tree--open { transform: translateX(0); }
+.workflow-workspace-toggle { display: flex; }
+.workflow-workspace-close { display: flex; position: absolute; z-index: 2; top: var(--usx-spacing-xs); right: var(--usx-spacing-xs); }
+.workflow-workspace-backdrop { display: block; position: fixed; inset: 0; z-index: 40; border: 0; background: rgb(0 0 0 / 45%); }
+
+.workflow-workspace-toggle {
+  position: fixed;
+  z-index: 30;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  min-height: 0;
+  padding: 0;
+  left: var(--usx-spacing-md);
+  bottom: var(--usx-spacing-md);
+  overflow: hidden;
+  color: var(--usx-color-on-surface);
+  font-size: 0;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-full);
+  background: var(--usx-color-surface);
+  box-shadow: var(--usx-shadow-md);
+  font-size: var(--usx-icon-size-md);
+  color: var(--usx-color-primary);
 }
 
 @media (max-width: 767px) {
@@ -368,14 +428,7 @@ function onRetryPreflight() {
     transform: translateX(0);
   }
 
-  .workflow-workspace-toggle {
-    display: flex;
-    position: absolute;
-    z-index: 2;
-    align-items: center;
-    gap: var(--usx-spacing-xs);
-    margin: var(--usx-spacing-sm);
-  }
+  .workflow-workspace-toggle :deep(*) { color: var(--usx-color-on-surface); }
 
   .workflow-workspace-close {
     display: flex;

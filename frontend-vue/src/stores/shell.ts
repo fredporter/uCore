@@ -7,6 +7,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export type ChatMode = 'closed' | 'panel' | 'floating'
+export type ChatPresentation = 'overlay' | 'toast' | 'sidebar' | 'floating'
 export type TabOrientation = 'horizontal' | 'vertical'
 
 export const useShellStore = defineStore('shell', () => {
@@ -14,6 +15,9 @@ export const useShellStore = defineStore('shell', () => {
   const developerSidebarOpen = ref(false)
   const developerSurfaceTab = ref<'code' | 'repository' | 'editor'>('code')
   const chatMode = ref<ChatMode>('closed')
+  const chatPresentation = ref<ChatPresentation>(
+    (localStorage.getItem('ucore-chat-presentation') as ChatPresentation) || 'overlay',
+  )
   const lastSurface = ref<string>('/')
   const tabOrientation = ref<TabOrientation>('horizontal')
   const intelTab = ref<string>('chat')
@@ -47,6 +51,11 @@ export const useShellStore = defineStore('shell', () => {
     chatMode.value = chatMode.value === 'closed' ? 'floating' : 'closed'
   }
 
+  function setChatPresentation(presentation: ChatPresentation) {
+    chatPresentation.value = presentation
+    localStorage.setItem('ucore-chat-presentation', presentation)
+  }
+
   function setLastSurface(route: string) {
     lastSurface.value = route
   }
@@ -68,6 +77,7 @@ export const useShellStore = defineStore('shell', () => {
     developerSidebarOpen,
     developerSurfaceTab,
     chatMode,
+    chatPresentation,
     lastSurface,
     tabOrientation,
     intelTab,
@@ -78,6 +88,7 @@ export const useShellStore = defineStore('shell', () => {
     setDeveloperSurfaceTab,
     setChatMode,
     toggleChat,
+    setChatPresentation,
     setLastSurface,
     setIntelTab,
     toggleTabOrientation,

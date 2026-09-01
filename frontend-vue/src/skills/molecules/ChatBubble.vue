@@ -16,7 +16,12 @@
 
     <!-- Overlay + centered stack -->
     <transition name="usx-chat-overlay">
-      <div v-if="chatMode === 'floating'" class="usx-chat-overlay" @click.self="closeChat">
+      <div
+        v-if="chatMode === 'floating'"
+        class="usx-chat-overlay"
+        :class="`usx-chat-overlay--${shell.chatPresentation}`"
+        @click.self="closeChat"
+      >
         <!-- Top-right actions: lane toggle + close -->
         <div class="usx-chat-overlay-actions">
           <slot name="actions" />
@@ -104,12 +109,21 @@ function handleKeyboardShortcut(event: KeyboardEvent) {
   }
 }
 
+function enforceResponsivePresentation() {
+  if (window.matchMedia("(max-width: 768px)").matches && shell.chatPresentation !== "overlay") {
+    shell.setChatPresentation("overlay");
+  }
+}
+
 onMounted(() => {
   window.addEventListener("keydown", handleKeyboardShortcut);
+  window.addEventListener("resize", enforceResponsivePresentation);
+  enforceResponsivePresentation();
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", handleKeyboardShortcut);
+  window.removeEventListener("resize", enforceResponsivePresentation);
 });
 </script>
 

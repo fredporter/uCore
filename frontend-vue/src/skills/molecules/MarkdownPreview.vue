@@ -190,6 +190,17 @@ onMounted(update);
   margin: var(--usx-spacing-xl) 0;
 }
 
+/* In uDOS prose, thematic/page-break markers remain authoring metadata.
+   Story/print renderers retain their own separators and pagination. */
+.md-preview--prose .md-preview__prose hr {
+  display: none;
+}
+
+.md-preview--prose .md-preview__prose h2 {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
 /* ─── Callouts ───────────────────────────────────────────────────── */
 
 .md-callout {
@@ -282,7 +293,7 @@ onMounted(update);
 }
 
 .md-preview__prose {
-  padding: var(--usx-spacing-xl) calc(var(--usx-spacing-2xl) * 1.5);
+  padding: clamp(var(--usx-spacing-md), 4vw, calc(var(--usx-spacing-2xl) * 1.5));
   max-width: 72ch;
   margin: 0 auto;
 }

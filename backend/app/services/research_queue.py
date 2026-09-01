@@ -138,6 +138,15 @@ class ResearchQueue:
         ).fetchone()
         if row is None:
             return None
+        return await self.process_job(row["id"])
+
+    async def process_job(self, job_id: str) -> dict | None:
+        """Process one pending job selected by id."""
+        row = self._conn.execute(
+            "SELECT * FROM jobs WHERE id=? AND state='pending'", (job_id,)
+        ).fetchone()
+        if row is None:
+            return self._refetch(job_id)
         job = ResearchJob(row)
         await self.update_state(job.id, "scraping", progress=10)
 

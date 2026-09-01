@@ -48,7 +48,17 @@ export async function startResearch(url: string, binder: string, tags: string[] 
     body: JSON.stringify({ url, binder, tags, mode }),
     signal: AbortSignal.timeout(5000),
   })
+  if (!res.ok) throw new Error(`Research start failed (HTTP ${res.status})`)
   return res.json()
+}
+
+export async function searchResearch(query: string): Promise<Array<{ title: string; url: string; description: string }>> {
+  const res = await fetch(`${BASE}/api/research/search?q=${encodeURIComponent(query)}`, {
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`Web search failed (HTTP ${res.status})`)
+  const data = await res.json()
+  return data.results || []
 }
 
 export async function getResearchStatus(jobId: string): Promise<ResearchJob> {

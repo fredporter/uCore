@@ -71,6 +71,7 @@
       <div class="chat-panel__composer-actions">
         <button
           v-if="activeLane === 'chat'"
+          type="button"
           class="chat-panel__model-btn"
           @click="modelPickerOpen = !modelPickerOpen"
           :title="currentModelLabel"
@@ -79,6 +80,19 @@
           <span class="chat-panel__model-label">{{ currentModelLabel }}</span>
           <UIcon name="expand_more" class="chat-panel__model-chevron" />
         </button>
+        <label class="chat-panel__presentation">
+          <UIcon name="view_sidebar" />
+          <select
+            :value="shell.chatPresentation"
+            aria-label="Chat presentation"
+            @change="setPresentation"
+          >
+            <option value="overlay">Overlay</option>
+            <option value="toast">Toast</option>
+            <option value="sidebar">Sidebar</option>
+            <option value="floating">Floating</option>
+          </select>
+        </label>
       </div>
 
       <!-- Model picker dropdown -->
@@ -127,6 +141,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from "vue";
 import { useShellStore } from "../../stores/shell";
+import type { ChatPresentation } from "../../stores/shell";
 import { getEditorSurface } from "../../composables/useEditorSurface";
 import { useWorkspaceStore } from "../../stores/workspace";
 import { useToast } from "../../composables/useToast";
@@ -171,6 +186,10 @@ const emit = defineEmits<{
 }>();
 
 const shell = useShellStore();
+
+function setPresentation(event: Event) {
+  shell.setChatPresentation((event.target as HTMLSelectElement).value as ChatPresentation);
+}
 const chatStore = useChatStore();
 const editorSurface = getEditorSurface();
 const ws = useWorkspaceStore();
@@ -599,11 +618,13 @@ async function copyText(content: string) {
 /* ─── Composer (frameless, glass input) ────────────────────────── */
 .chat-panel__composer {
   flex-shrink: 0;
+  position: relative;
 }
 
 .chat-panel__composer-row {
-  display: flex;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--usx-touch-min);
+  align-items: stretch;
   gap: var(--usx-spacing-sm);
   padding: var(--usx-spacing-xs) 0 0;
 }
@@ -624,13 +645,13 @@ async function copyText(content: string) {
   line-height: var(--usx-line-height-tight);
   outline: none;
   resize: none;
-  min-height: 0;
+  min-height: var(--usx-touch-min);
   max-height: 160px;
 }
 
 .chat-panel__input:focus {
   border-color: var(--usx-color-primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--usx-color-primary) 20%, transparent);
+  box-shadow: none;
 }
 .chat-panel__input::placeholder {
   color: var(--usx-color-on-surface-muted);
@@ -643,6 +664,31 @@ async function copyText(content: string) {
   gap: var(--usx-spacing-xs);
   flex-shrink: 0;
   margin-top: var(--usx-spacing-xs);
+  flex-wrap: wrap;
+}
+
+.chat-panel__presentation {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  min-height: var(--usx-control-size-sm);
+  padding: 0 var(--usx-spacing-sm);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-full);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.chat-panel__presentation select {
+  appearance: none;
+  min-width: 5.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
 }
 
 /* Model selector pill */
@@ -651,7 +697,7 @@ async function copyText(content: string) {
   align-items: center;
   gap: var(--usx-spacing-xs);
   padding: 0 var(--usx-spacing-sm);
-  min-height: calc(var(--usx-touch-min-sm) + var(--usx-spacing-xs));
+  min-height: var(--usx-control-size-sm);
   border: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-border) 50%, transparent);
   border-radius: var(--usx-radius-full);
   background: color-mix(in srgb, var(--usx-color-surface) 60%, transparent);
@@ -672,7 +718,7 @@ async function copyText(content: string) {
 }
 
 .chat-panel__model-label {
-  max-width: 80px;
+  max-width: 9rem;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -694,7 +740,7 @@ async function copyText(content: string) {
   background: var(--usx-color-surface);
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-md);
-  box-shadow: var(--usx-shadow-lg);
+  box-shadow: none;
   z-index: 10;
   padding: var(--usx-spacing-xs);
 }
@@ -740,8 +786,9 @@ async function copyText(content: string) {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  width: calc(var(--usx-touch-min-sm) + var(--usx-spacing-xs));
-  height: calc(var(--usx-touch-min-sm) + var(--usx-spacing-xs));
+  width: 100%;
+  height: 100%;
+  min-height: var(--usx-touch-min);
   min-height: 0;
   margin: 0;
   border: none;
@@ -797,8 +844,13 @@ async function copyText(content: string) {
 }
 
 @media (max-width: 640px) {
+  .chat-panel {
+    min-height: 0;
+  }
+
   .chat-panel__header {
-    padding: var(--usx-spacing-xs);
+    min-height: 0;
+    padding: 0;
   }
 
   .chat-panel__composer-row {
@@ -809,5 +861,11 @@ async function copyText(content: string) {
   .chat-panel__msg {
     max-width: 94%;
   }
+
+  .chat-panel__presentation { display: none; }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .chat-panel__presentation { display: none; }
 }
 </style>

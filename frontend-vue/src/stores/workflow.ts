@@ -15,10 +15,7 @@ import { getEditorSurface } from "@/composables/useEditorSurface";
 export type WorkflowTab =
   | "mission-control"
   | "tasks"
-  | "automation"
-  | "feeds"
-  | "editor"
-  | "publish";
+  | "editor";
 
 export interface WorkflowTask {
   id: string;
@@ -140,12 +137,9 @@ export interface WorkflowStatus {
 
 export const WORKFLOW_TABS: { id: WorkflowTab; label: string; icon: string }[] =
   [
-    { id: "mission-control", label: "Workflow", icon: "dashboard" },
+    { id: "mission-control", label: "Workflow", icon: "schedule" },
     { id: "tasks", label: "Tasks", icon: "check" },
-    { id: "automation", label: "Automation", icon: "science" },
-    { id: "feeds", label: "Feeds", icon: "rss_feed" },
     { id: "editor", label: "Editor", icon: "diamond" },
-    { id: "publish", label: "Publish", icon: "publish" },
   ];
 
 import { SNACKBAR_BASE } from "@/api/base";
@@ -670,6 +664,13 @@ export const useWorkflowStore = defineStore("workflow", () => {
       fetchWorkflowDefinitions(),
       fetchWorkflowRuns(),
     ]);
+    // Read-only dashboard hydration is resilient across older uCore backends.
+    // When cached/seeded tasks are available, optional 404s must not replace a
+    // usable workflow with a blocking error banner. Mutations still perform
+    // strict capability preflight in patch/archive/reset actions.
+    if (tasks.value.length > 0 || missions.value.length > 0) {
+      error.value = null;
+    }
   }
 
   async function archiveUserWorkflow(reason = "manual"): Promise<unknown> {

@@ -43,8 +43,8 @@ const props = withDefaults(defineProps<Props>(), {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-sm);
-  padding: 2px var(--usx-spacing-sm);
-  min-height: 22px;
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  min-height: var(--usx-control-size-sm);
   flex-shrink: 0;
   background: var(--usx-color-surface-variant);
   border-top: var(--usx-border-width) solid var(--usx-color-border);

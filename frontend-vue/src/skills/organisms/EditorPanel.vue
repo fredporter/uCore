@@ -37,29 +37,30 @@
              view-research-close toolbar sits right-aligned next to it. -->
         <MarkdownEditor
           v-if="viewMode !== 'preview'"
-          v-model="localContent"
+          v-model="bodyContent"
           :preview="false"
           :read-only="readOnly"
-          :edit-mode="localEditMode"
+          edit-mode="code"
           class="editor-panel__markdown"
           :class="{ 'editor-panel__markdown--split': viewMode === 'split' }"
           @save="handleSave"
           @change="onContentChange"
         >
           <template #toolbar-actions>
-            <EditorToolbar
-              v-if="viewMode === 'edit' || localEditMode === 'code'"
-              right
-              :view-mode="viewMode"
-              :research-open="researchOpen"
-              :edit-mode="localEditMode"
-              :read-only="readOnly"
-              @update:view-mode="onViewModeChange"
-              @toggle-research="researchOpen = !researchOpen"
-              @toggle-edit-mode="toggleEditMode"
-              @save="handleSave"
-              @close="emit('close')"
-            />
+            <div class="editor-panel__pane-actions">
+              <button v-if="viewMode === 'split'" title="Collapse code" aria-label="Collapse code" @click="viewMode = 'preview'">
+                <UIcon name="left_panel_close" :size="20" />
+              </button>
+              <button v-if="viewMode === 'edit'" title="Show prose" aria-label="Show prose" @click="viewMode = 'split'">
+                <UIcon name="visibility" :size="20" />
+              </button>
+              <button title="Save" aria-label="Save" :disabled="readOnly" @click="handleSave">
+                <UIcon name="save" :size="20" />
+              </button>
+              <button title="Publish" aria-label="Publish document" @click="emit('publish')">
+                <UIcon name="publish" :size="20" />
+              </button>
+            </div>
           </template>
         </MarkdownEditor>
 
@@ -69,21 +70,20 @@
           class="editor-panel__prose"
         >
           <div class="editor-panel__prose-bar">
-            <EditorToolbar
-              bare
-              :view-mode="viewMode"
-              :research-open="researchOpen"
-              :edit-mode="localEditMode"
-              :read-only="readOnly"
-              @update:view-mode="onViewModeChange"
-              @toggle-research="researchOpen = !researchOpen"
-              @toggle-edit-mode="toggleEditMode"
-              @save="handleSave"
-              @close="emit('close')"
-            />
+            <div class="editor-panel__pane-actions">
+              <button v-if="viewMode === 'preview'" title="Show code" aria-label="Show code" @click="openCodePane">
+                <UIcon name="edit_note" :size="20" />
+              </button>
+              <button v-else title="Collapse prose" aria-label="Collapse prose" @click="viewMode = 'edit'">
+                <UIcon name="right_panel_close" :size="20" />
+              </button>
+              <button title="Publish" aria-label="Publish document" @click="emit('publish')">
+                <UIcon name="publish" :size="20" />
+              </button>
+            </div>
           </div>
           <MarkdownPreview
-            :content="localContent"
+            :content="bodyContent"
             :filename="currentFilename"
             class="editor-panel__preview"
           />
@@ -119,7 +119,6 @@
 import { ref, watch, computed } from "vue";
 import UIcon from "../atoms/UIcon.vue";
 import MarkdownEditor from "../molecules/editor/MarkdownEditor.vue";
-import EditorToolbar from "../molecules/editor/EditorToolbar.vue";
 import FrontmatterPills from "../molecules/editor/FrontmatterPills.vue";
 import MarkdownPreview from "../molecules/MarkdownPreview.vue";
 import ResearchPanel from "../molecules/editor/ResearchPanel.vue";
@@ -156,6 +155,7 @@ const emit = defineEmits<{
   "update:editMode": [value: "prose" | "code"];
   save: [value: string];
   close: [];
+  publish: [];
   /** Fired when the split button is clicked in singlePane mode. */
   openSplit: [];
 }>();
@@ -163,10 +163,11 @@ const emit = defineEmits<{
 const shell = useShellStore();
 
 // ─── State ───────────────────────────────────────────────────────────
-const localContent = ref(props.content);
+const initialDocument = parseDocument(props.content || "");
+const bodyContent = ref(initialDocument.body);
 const localEditMode = ref<"prose" | "code">(props.editMode);
 const viewMode = ref<"edit" | "preview" | "split">(
-  props.singlePane ? "edit" : "split",
+  props.singlePane ? "edit" : "preview",
 );
 const researchOpen = ref(false);
 
@@ -195,20 +196,21 @@ function onViewModeChange(mode: "edit" | "preview" | "split") {
   viewMode.value = mode;
 }
 
+function openCodePane() {
+  localEditMode.value = "code";
+  emit("update:editMode", "code");
+  viewMode.value = props.singlePane ? "edit" : "split";
+}
+
 // ─── Frontmatter ─────────────────────────────────────────────────────
-const parsed = computed(() => parseDocument(props.content || ""));
-const frontmatter = ref<Frontmatter>(parsed.value.frontmatter);
+const frontmatter = ref<Frontmatter>(initialDocument.frontmatter);
 const hasFrontmatter = computed(
   () => Object.keys(frontmatter.value).length > 0,
 );
 
 function onFrontmatterChange(updated: Frontmatter) {
   frontmatter.value = updated;
-  // Re-serialize document with updated frontmatter
-  const doc = parseDocument(localContent.value);
-  const newMarkdown = serializeDocument(doc.body, updated);
-  localContent.value = newMarkdown;
-  emit("update:content", newMarkdown);
+  emitDocumentUpdate();
 }
 
 /** Add a new frontmatter field (triggered by the header add icon). */
@@ -224,8 +226,8 @@ function handleAddField() {
 watch(
   () => props.content,
   (val) => {
-    localContent.value = val;
     const p = parseDocument(val);
+    bodyContent.value = p.body;
     frontmatter.value = p.frontmatter;
   },
 );
@@ -239,12 +241,16 @@ watch(
 
 // ─── Handlers ────────────────────────────────────────────────────────
 function onContentChange(value: string) {
-  localContent.value = value;
-  emit("update:content", value);
+  bodyContent.value = value;
+  emitDocumentUpdate();
 }
 
 function handleSave() {
-  emit("save", localContent.value);
+  emit("save", serializeDocument(bodyContent.value, frontmatter.value));
+}
+
+function emitDocumentUpdate() {
+  emit("update:content", serializeDocument(bodyContent.value, frontmatter.value));
 }
 
 function toggleEditMode() {
@@ -279,14 +285,47 @@ function toggleEditMode() {
   align-items: center;
   justify-content: flex-start;
   flex-shrink: 0;
-  padding: var(--usx-spacing-sm);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
-  background: var(--usx-color-surface);
+  min-height: var(--usx-control-size-sm);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  border-bottom: 0;
+  background: color-mix(in srgb, var(--usx-color-surface) 58%, transparent);
   overflow-x: auto;
 }
 
 .editor-panel__prose-bar .editor-toolbar {
   flex-shrink: 0;
+}
+
+.editor-panel__pane-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  margin-left: auto;
+}
+
+.editor-panel__pane-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--usx-control-size-sm);
+  height: var(--usx-control-size-sm);
+  min-height: 0;
+  padding: 0;
+  border: var(--usx-border-width) solid transparent;
+  border-radius: var(--usx-radius-md);
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+}
+
+.editor-panel__pane-actions button:hover {
+  background: var(--usx-color-surface-hover);
+  color: var(--usx-color-on-surface);
+}
+
+.editor-panel__pane-actions button:disabled {
+  opacity: .4;
+  cursor: default;
 }
 
 .editor-panel__prose .editor-panel__preview {
@@ -358,11 +397,11 @@ function toggleEditMode() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: var(--usx-control-size-sm);
+  height: var(--usx-control-size-sm);
   min-height: 0;
   padding: 0;
-  border: 1px dashed var(--usx-color-border);
+  border: var(--usx-border-width) dashed var(--usx-color-border);
   border-radius: var(--usx-radius-sm);
   background: transparent;
   color: var(--usx-color-on-surface-muted);

@@ -7,7 +7,11 @@ POST /api/research/process — process next pending job
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+import re
+from html import unescape
+from urllib.parse import parse_qs, quote_plus, unquote, urlparse
 
 from aiohttp import web
 
@@ -15,6 +19,7 @@ from ..services.research_queue import ResearchQueue
 
 log = logging.getLogger("ucore.research_api")
 _queue: ResearchQueue | None = None
+_research_tasks: set[asyncio.Task] = set()
 
 
 def get_queue() -> ResearchQueue:
@@ -41,7 +46,48 @@ async def handle_research_start(request: web.Request) -> web.Response:
 
     q = get_queue()
     job_id = await q.enqueue(url=url, binder=binder, tags=tags, mode=mode)
+    task = asyncio.create_task(q.process_job(job_id))
+    _research_tasks.add(task)
+    task.add_done_callback(_research_tasks.discard)
     return web.json_response({"job_id": job_id, "state": "pending", "binder": binder})
+
+
+async def handle_research_search(request: web.Request) -> web.Response:
+    """Search public sources for URLs that can enter the local research queue."""
+    query = request.query.get("q", "").strip()
+    if not query:
+        return web.json_response({"results": [], "count": 0})
+    try:
+        import aiohttp
+        timeout = aiohttp.ClientTimeout(total=12)
+        headers = {"User-Agent": "Mozilla/5.0 (compatible; uCore-Research/1.0)"}
+        url = f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
+        async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
+            async with session.get(url) as response:
+                if not response.ok:
+                    raise RuntimeError(f"Search HTTP {response.status}")
+                html = await response.text(errors="replace")
+        results = []
+        pattern = re.compile(
+            r'<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>(.*?)</a>',
+            re.IGNORECASE | re.DOTALL,
+        )
+        for href, title_html in pattern.findall(html):
+            target = unescape(href)
+            parsed = urlparse(target)
+            if parsed.netloc.endswith("duckduckgo.com"):
+                target = unquote(parse_qs(parsed.query).get("uddg", [target])[0])
+            title = unescape(re.sub(r"<[^>]+>", "", title_html)).strip()
+            if target.startswith(("http://", "https://")) and title:
+                results.append({"title": title, "url": target, "description": f"Web result for {query}"})
+            if len(results) >= 10:
+                break
+        return web.json_response({"results": results, "count": len(results), "query": query})
+    except Exception as exc:
+        log.warning("Web research search failed: %s", exc)
+        return web.json_response(
+            {"results": [], "count": 0, "query": query, "error": str(exc)}, status=502
+        )
 
 
 async def handle_research_status(request: web.Request) -> web.Response:
@@ -224,5 +270,3 @@ async def handle_vault_scan(request: web.Request) -> web.Response:
                     pass
     gaps.sort(key=lambda g: {"high": 0, "medium": 1, "low": 2}[g["priority"]])
     return web.json_response({"gaps": gaps, "count": len(gaps)})
-
-

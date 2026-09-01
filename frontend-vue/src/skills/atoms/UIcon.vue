@@ -2,6 +2,7 @@
   <span
     class="u-icon"
     :class="[{ 'u-icon--spin': spin }]"
+    :style="iconStyle"
     :title="title"
     role="img"
     :aria-label="title || name"
@@ -46,11 +47,18 @@ interface Props {
   name: string
   spin?: boolean
   title?: string
+  size?: number | string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   spin: false,
   title: '',
+  size: undefined,
+})
+
+const iconStyle = computed(() => {
+  if (props.size == null || props.size === '') return undefined
+  return { fontSize: typeof props.size === 'number' ? `${props.size}px` : props.size }
 })
 
 const isIconify = computed(() => props.name.includes(':'))
@@ -67,7 +75,7 @@ const ALIAS_MAP: Record<string, string> = {
   'globe': 'public',
   'wrench': 'build',
   'migration': 'import_export',
-  'workflow': 'account_tree',
+  'workflow': 'schedule',
 }
 
 function resolveAlias(name: string): string {

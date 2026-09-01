@@ -1,86 +1,66 @@
 <template>
-  <div class="wf-panel">
-    <div class="surface__panel">
-      <div class="wf-panel-header">
-        <h3 class="surface__panel-title">Workflow</h3>
-        <div class="wf-panel-badges">
-          <UBadge type="info" size="sm">User Workflow</UBadge>
-          <UBadge
-            :type="wf.workflowStatus?.vault?.ready ? 'success' : 'warning'"
-            size="sm"
-          >
-            Vault
-            {{ wf.workflowStatus?.vault?.ready ? "Ready" : "Setup needed" }}
-          </UBadge>
-        </div>
+  <div class="wf-panel wf-panel--zen wf-zen-surface">
+    <header class="wf-zen-header">
+      <div>
+        <p class="wf-zen-kicker">User Workflow</p>
+        <h2>What needs your attention?</h2>
+        <p>{{ wf.inProgressCount }} in progress · {{ wf.activeTasks.length }} open</p>
       </div>
-      <p class="surface__panel-description">
-        Track progress across your missions and keep markdown first.
-      </p>
-      <div class="wf-actions-row">
-        <UButton
-          size="sm"
-          variant="secondary"
-          icon="archive"
-          :disabled="!!busyAction"
-          @click="archiveState"
-        >
-          {{ busyAction === "archive" ? "Archiving..." : "Archive State" }}
-        </UButton>
-        <UButton
-          size="sm"
-          variant="secondary"
-          icon="add"
-          :disabled="!!busyAction"
-          @click="seedState"
-        >
-          {{ busyAction === "seed" ? "Seeding..." : "Seed User Tasks" }}
-        </UButton>
-        <UButton
-          size="sm"
-          variant="primary"
-          icon="refresh"
-          class="wf-button-warning"
-          :disabled="!!busyAction"
-          @click="resetState"
-        >
-          {{ busyAction === "reset" ? "Resetting..." : "Reset + Seed" }}
-        </UButton>
-      </div>
-      <div v-if="lastActionMessage" class="wf-action-message">
-        {{ lastActionMessage }}
-      </div>
+      <button class="wf-zen-primary" type="button" @click="openTasks">
+        <UIcon name="add" /> New or open task
+      </button>
+    </header>
+
+    <div v-if="wf.loading" class="wf-loading"><UIcon name="sync" /> Loading workflow…</div>
+    <div
+      v-else-if="wf.error && !wf.tasks.length && !wf.missions.length"
+      class="wf-error"
+    >
+      <UIcon name="error" /> {{ wf.error }}
+      <button type="button" @click="wf.fetchAll()">Retry</button>
     </div>
 
-    <!-- Stats cards -->
-    <div class="wf-stats">
-      <div class="wf-stat">
-        <span class="wf-stat-value">{{ wf.totalTasks }}</span>
-        <span class="wf-stat-label">Total Tasks</span>
+    <section v-if="currentTasks.length" class="wf-zen-section">
+      <div class="wf-zen-section__heading">
+        <h3>Now</h3><span>{{ currentTasks.length }}</span>
       </div>
-      <div class="wf-stat">
-        <span class="wf-stat-value wf-stat-value--info">{{
-          wf.inProgressCount
-        }}</span>
-        <span class="wf-stat-label">In Progress</span>
+      <div class="task-list wf-now-list">
+        <button
+          v-for="task in currentTasks"
+          :key="task.id"
+          class="task-list__row"
+          type="button"
+          @click="openTask(task)"
+        >
+          <span class="task-list__main">
+            <span class="task-list__state" :class="`task-list__state--${task.status}`" />
+            <span class="task-list__copy">
+              <strong class="task-list__task-title">{{ task.title }}</strong>
+              <small class="task-list__meta">{{ task.board || task.binder || "Workflow" }} · {{ task.status }}</small>
+            </span>
+          </span>
+          <span class="task-list__editor-btn" :title="task.status === 'todo' ? 'Start task' : 'Continue task'"><UIcon name="view_sidebar" /></span>
+        </button>
       </div>
-      <div class="wf-stat">
-        <span class="wf-stat-value wf-stat-value--success">{{
-          wf.completedCount
-        }}</span>
-        <span class="wf-stat-label">Completed</span>
-      </div>
-      <div class="wf-stat">
-        <span class="wf-stat-value wf-stat-value--warning">{{
-          wf.missions.length
-        }}</span>
-        <span class="wf-stat-label">Missions</span>
-      </div>
-    </div>
+    </section>
 
-    <!-- Quick Binder Launchpad — drop & go -->
-    <div class="wf-section">
-      <h4 class="wf-section-title">Start here</h4>
+    <section class="wf-zen-section">
+      <div class="wf-zen-section__heading">
+        <h3>Missions</h3><span>{{ wf.missions.length }}</span>
+      </div>
+      <div class="wf-mission-cards">
+        <button v-for="mission in wf.missions" :key="mission.id" class="wf-mission-row" type="button" @click="openMission(mission.taskIds)">
+          <UIcon name="flag" />
+          <span class="wf-mission-row__copy"><strong>{{ mission.title }}</strong><small>{{ mission.taskIds.length }} tasks · {{ mission.status }}</small></span>
+          <UIcon name="arrow_forward" />
+        </button>
+      </div>
+      <p v-if="!wf.missions.length && !wf.loading" class="wf-zen-empty">No missions yet. Add a task to begin.</p>
+    </section>
+
+    <div class="wf-dashboard-actions">
+    <details class="wf-zen-details wf-prompt-card">
+      <summary>Compile files into a Binder</summary>
       <div
         class="wf-launchpad-drop"
         :class="{ 'wf-launchpad-drop--active': isDragging }"
@@ -89,178 +69,38 @@
         @drop.prevent="onDrop"
       >
         <UIcon name="publish" />
-        <span class="wf-launchpad-prompt"
-          >Drop files to compile into a Binder</span
-        >
-        <span class="wf-launchpad-hint">.md .yaml .json .py — drag here</span>
-        <div v-if="launchpadFiles.length > 0" class="wf-launchpad-files">
-          <div
-            v-for="(file, idx) in launchpadFiles"
-            :key="idx"
-            class="wf-launchpad-file"
-          >
-            <UIcon name="description" />
+        <span>Drop Markdown, YAML, JSON or code here</span>
+        <div v-if="launchpadFiles.length" class="wf-launchpad-files">
+          <div v-for="(file, idx) in launchpadFiles" :key="idx" class="wf-launchpad-file">
             <span>{{ file.name }}</span>
-            <button
-              class="wf-launchpad-remove"
-              @click="removeFile(idx)"
-              title="Remove"
-            >
-              <UIcon name="close" />
-            </button>
+            <button type="button" title="Remove" @click="removeFile(idx)"><UIcon name="close" /></button>
           </div>
-        </div>
-        <button
-          v-if="launchpadFiles.length > 0"
-          class="usx-button usx-btn--primary"
-          @click="compileBinder"
-        >
-          <UIcon name="build" /> Compile Binder
-        </button>
-      </div>
-    </div>
-
-    <!-- Loading / Error -->
-    <div v-if="wf.loading" class="wf-loading">
-      <UIcon name="sync" /> Loading workflow data...
-    </div>
-    <div v-else-if="wf.error" class="wf-error">
-      <UIcon name="error" />
-      {{ wf.error }}
-      <UButton
-        size="sm"
-        variant="secondary"
-        icon="refresh"
-        @click="wf.fetchAll()"
-        >Retry</UButton
-      >
-    </div>
-
-    <!-- Tasker Boards from backend -->
-    <div v-if="wf.workflowStatus?.tasker?.boards" class="wf-section">
-      <h4 class="wf-section-title">Tasker Boards</h4>
-      <div class="wf-board-grid">
-        <div
-          v-for="board in wf.workflowStatus.tasker.boards"
-          :key="board.name"
-          class="wf-board-card"
-        >
-          <div class="wf-board-card-header">
-            <UIcon name="view_kanban" />
-            <span>{{ board.name }}</span>
-            <UBadge type="info" size="sm" circle>{{ board.count }}</UBadge>
-          </div>
+          <button class="wf-zen-primary" type="button" @click="compileBinder">Compile Binder</button>
         </div>
       </div>
-    </div>
+    </details>
 
-    <div v-if="wf.workflowStatus?.next_actions?.length" class="wf-section">
-      <h4 class="wf-section-title">Next Actions</h4>
-      <ul class="wf-next-actions">
-        <li v-for="(item, idx) in wf.workflowStatus.next_actions" :key="idx">
-          {{ item }}
-        </li>
-      </ul>
-    </div>
-
-    <!-- Missions card grid (Dashboard-style) -->
-    <div class="wf-section">
-      <h4 class="wf-section-title">Active Missions</h4>
-      <div class="wf-mission-grid">
-        <div
-          v-for="mission in wf.missions"
-          :key="mission.id"
-          class="wf-mission-card"
-        >
-          <div class="wf-mission-card-icon">
-            <UIcon name="flag" />
-          </div>
-          <div class="wf-mission-card-content">
-            <h4 class="wf-mission-card-title">{{ mission.title }}</h4>
-            <p class="wf-mission-card-desc">{{ mission.description }}</p>
-            <div class="wf-mission-card-badges">
-              <UBadge
-                :type="
-                  mission.status === 'active'
-                    ? 'success'
-                    : mission.status === 'completed'
-                      ? 'info'
-                      : 'warning'
-                "
-                size="sm"
-              >
-                {{ mission.status }}
-              </UBadge>
-              <UBadge
-                :type="
-                  mission.priority === 'high'
-                    ? 'error'
-                    : mission.priority === 'medium'
-                      ? 'warning'
-                      : 'info'
-                "
-                size="sm"
-              >
-                {{ mission.priority }}
-              </UBadge>
-              <span class="wf-mission-task-count"
-                >{{ mission.taskIds.length }} tasks</span
-              >
-            </div>
-          </div>
-        </div>
+    <details class="wf-zen-details wf-prompt-card">
+      <summary>Workflow settings and history</summary>
+      <div class="wf-actions-row">
+        <UButton size="sm" variant="secondary" icon="archive" :disabled="!!busyAction" @click="archiveState">Archive</UButton>
+        <UButton size="sm" variant="secondary" icon="add" :disabled="!!busyAction" @click="seedState">Seed tasks</UButton>
+        <UButton size="sm" variant="secondary" icon="refresh" :disabled="!!busyAction" @click="resetState">Reset + seed</UButton>
       </div>
-    </div>
-
-    <!-- Recent runs from backend — card style matching mission cards -->
-    <div v-if="wf.workflowRuns.length > 0" class="wf-section">
-      <h4 class="wf-section-title">Recent Workflow Runs</h4>
-      <div class="wf-run-grid">
-        <div
-          v-for="run in wf.workflowRuns.slice(0, 5)"
-          :key="run.run_id"
-          class="wf-run-card"
-        >
-          <div class="wf-run-card-icon">
-            <UIcon
-              :name="
-                run.status === 'completed'
-                  ? 'check_circle'
-                  : run.status === 'failed'
-                    ? 'error'
-                    : 'schedule'
-              "
-            />
-          </div>
-          <div class="wf-run-card-content">
-            <span class="wf-run-card-name">{{
-              run.workflow_name || run.workflow_id
-            }}</span>
-            <span class="wf-run-card-time">{{
-              formatTime(run.started_at)
-            }}</span>
-          </div>
-          <UBadge
-            :type="
-              run.status === 'completed'
-                ? 'success'
-                : run.status === 'failed'
-                  ? 'error'
-                  : 'warning'
-            "
-            size="sm"
-            pill
-          >
-            {{ run.status }}
-          </UBadge>
-        </div>
+      <p v-if="lastActionMessage" class="wf-action-message">{{ lastActionMessage }}</p>
+      <div v-if="wf.workflowRuns.length" class="wf-zen-history">
+        <span v-for="run in wf.workflowRuns.slice(0, 5)" :key="run.run_id">
+          {{ run.workflow_name || run.workflow_id }} · {{ run.status }} · {{ formatTime(run.started_at) }}
+        </span>
       </div>
+    </details>
     </div>
   </div>
+<!-- legacy dashboard retained temporarily as an unreachable migration reference -->
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 import UBadge from "../../../skills/atoms/UBadge.vue";
@@ -271,6 +111,32 @@ const wf = useWorkflowStore();
 const router = useRouter();
 const busyAction = ref("");
 const lastActionMessage = ref("");
+
+const currentTasks = computed(() =>
+  [...wf.activeTasks]
+    .sort((a, b) => {
+      const rank: Record<string, number> = { "in-progress": 0, review: 1, blocked: 2, todo: 3 };
+      return (rank[a.status] ?? 9) - (rank[b.status] ?? 9);
+    })
+    .slice(0, 7),
+);
+
+function openTasks() {
+  wf.setTab("tasks");
+}
+
+function openTask(task: (typeof wf.tasks)[number]) {
+  wf.selectTask(task, true);
+  wf.setTab("editor");
+}
+
+function openMission(taskIds: string[]) {
+  const next = taskIds
+    .map((id) => wf.tasks.find((task) => task.id === id))
+    .find((task) => task && task.status !== "completed");
+  if (next) openTask(next);
+  else openTasks();
+}
 
 // ── Launchpad (moved from Binder tab) ─────────────────────────────
 interface LaunchpadFile {
@@ -396,6 +262,98 @@ onMounted(() => {
     color-mix(in srgb, var(--usx-color-primary) 3%, transparent) 0%,
     transparent 20%
   );
+}
+
+.wf-panel--zen {
+  width: min(100%, 60rem);
+  margin: 0 auto;
+  padding: clamp(var(--usx-spacing-md), 3vw, var(--usx-spacing-xl));
+  background: none;
+}
+
+.wf-zen-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--usx-spacing-lg);
+  padding-block: var(--usx-spacing-sm) var(--usx-spacing-lg);
+}
+
+.wf-zen-header h2,
+.wf-zen-header p { margin: 0; }
+.wf-zen-header h2 { font-size: clamp(1.65rem, 5vw, 2.5rem); }
+.wf-zen-header p { color: var(--usx-color-on-surface-muted); }
+.wf-zen-kicker { font-size: var(--usx-font-size-sm); text-transform: uppercase; letter-spacing: .08em; }
+
+.wf-zen-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--usx-spacing-xs);
+  min-height: 2.5rem;
+  padding: 0 var(--usx-spacing-lg);
+  border: var(--usx-border-width) solid var(--usx-color-primary);
+  border-radius: var(--usx-radius-full);
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
+  color: var(--usx-color-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: var(--usx-font-size-sm);
+  font-weight: var(--usx-font-weight-medium);
+}
+
+.wf-zen-primary:hover {
+  background: var(--usx-color-primary);
+  color: var(--usx-color-on-primary);
+}
+
+.wf-zen-section { border-top: 1px solid var(--usx-color-border); }
+.wf-zen-section__heading { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-md) var(--usx-spacing-xs) var(--usx-spacing-xs); }
+.wf-zen-section__heading h3 { margin: 0; font-size: var(--usx-font-size-base); }
+.wf-zen-section__heading span { color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-sm); }
+
+.wf-task-row,
+.wf-mission-row {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-md);
+  width: 100%;
+  min-height: 3.25rem;
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  border: 0;
+  border-radius: var(--usx-radius-sm);
+  background: transparent;
+  color: var(--usx-color-on-surface);
+  text-align: left;
+  cursor: pointer;
+}
+.wf-task-row:hover, .wf-mission-row:hover { background: var(--usx-color-surface-hover); }
+.wf-task-row { border-radius: 0; }
+.wf-task-row:not(:last-child) { border-bottom: var(--usx-border-width) solid var(--usx-color-border); }
+.wf-mission-row { border-radius: 0; }
+.wf-mission-row:not(:last-child) { border-bottom: var(--usx-border-width) solid var(--usx-color-border); }
+.wf-mission-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--usx-spacing-sm); padding-top: var(--usx-spacing-sm); }
+.wf-mission-cards .wf-mission-row { min-height: 7rem; padding: var(--usx-spacing-md); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); }
+.wf-dashboard-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--usx-spacing-sm); }
+.wf-dashboard-actions .wf-prompt-card { min-height: 3.5rem; padding: var(--usx-spacing-md); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); }
+.wf-task-row__state { width: .7rem; height: .7rem; border: 2px solid var(--usx-color-border); border-radius: 50%; flex: 0 0 auto; }
+.wf-task-row__state--in-progress { border-color: var(--usx-color-primary); background: var(--usx-color-primary); }
+.wf-task-row__state--review { border-color: var(--usx-color-warning); }
+.wf-task-row__state--blocked { border-color: var(--usx-color-danger); }
+.wf-task-row__content, .wf-mission-row__copy { display: flex; flex: 1; min-width: 0; flex-direction: column; }
+.wf-mission-row > :deep(.u-icon) { width: var(--usx-icon-size-md); height: var(--usx-icon-size-md); flex: 0 0 var(--usx-icon-size-md); font-size: var(--usx-icon-size-md); }
+.wf-task-row small, .wf-mission-row small { color: var(--usx-color-on-surface-muted); }
+.wf-task-row__action { display: inline-flex !important; flex: 0 0 auto !important; flex-direction: row !important; align-items: center; gap: 4px; color: var(--usx-color-primary); }
+.wf-zen-empty { padding: var(--usx-spacing-lg); color: var(--usx-color-on-surface-muted); }
+
+.wf-zen-details { border-top: 1px solid var(--usx-color-border); padding: var(--usx-spacing-md) var(--usx-spacing-xs); }
+.wf-zen-details summary { cursor: pointer; color: var(--usx-color-on-surface-muted); }
+.wf-zen-history { display: flex; flex-direction: column; gap: var(--usx-spacing-xs); margin-top: var(--usx-spacing-md); font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); }
+
+@media (max-width: 600px) {
+  .wf-zen-header { align-items: stretch; flex-direction: column; }
+  .wf-task-row__action { font-size: 0; }
+  .wf-dashboard-actions { grid-template-columns: 1fr; }
 }
 
 .wf-panel-header {
