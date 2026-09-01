@@ -113,7 +113,7 @@
   --gridcore-sidebar-char-input-size: 20px;
 
   --gridcore-action-size: var(--usx-touch-min, 32px);
-  --gridcore-touch-target: 44px;
+  --gridcore-touch-target: var(--usx-touch-min);
   --gridcore-prose-width: var(--usx-prose-width, 72ch);
   --gridcore-prose-heading-size: var(--usx-font-size-2xl, 24px);
 

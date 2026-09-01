@@ -45,6 +45,7 @@
           <button
             v-if="workspaceTreeOpen"
             class="workflow-workspace-backdrop"
+            type="button"
             aria-label="Close workspace files"
             @click="workspaceTreeOpen = false"
           />
@@ -52,7 +53,7 @@
             class="workflow-workspace-tree"
             :class="{ 'workflow-workspace-tree--open': workspaceTreeOpen }"
           >
-            <button class="workflow-workspace-close" aria-label="Close workspace files" @click="workspaceTreeOpen = false">
+            <button class="workflow-workspace-close" type="button" aria-label="Close workspace files" @click="workspaceTreeOpen = false">
               <UIcon name="close" />
             </button>
             <WorkspaceTree />
@@ -444,7 +445,7 @@ function onRetryPreflight() {
     inset: 0;
     z-index: 40;
     border: 0;
-    background: rgb(0 0 0 / 45%);
+    background: color-mix(in srgb, var(--usx-color-on-surface) 45%, transparent);
   }
 }
 

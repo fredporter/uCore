@@ -66,6 +66,17 @@ describe("workspace store", () => {
     expect(localStorage.getItem("ucore-workspace-save-queue")).toBeNull();
   });
 
+  it("does not queue a non-retryable rejected save", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ error: "path is invalid" }), { status: 400 }),
+    ));
+    const store = useWorkspaceStore();
+
+    await expect(store.saveFile("/bad", "Rejected update")).rejects.toThrow("path is invalid");
+    expect(store.error).toBe("path is invalid");
+    expect(localStorage.getItem("ucore-workspace-save-queue")).toBeNull();
+  });
+
   it("replays an offline save with its original version", async () => {
     localStorage.setItem("ucore-workspace-save-queue", JSON.stringify([
       { path: "/Today.md", content: "Queued", version: "original-version" },

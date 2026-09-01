@@ -178,7 +178,7 @@ onMounted(load);
 </script>
 
 <style scoped>
-.wf-feeds { max-width: 60rem; margin: 0 auto; padding: clamp(var(--usx-spacing-md), 4vw, var(--usx-spacing-2xl)); }
+.wf-feeds { max-width: var(--usx-prose-width); margin: 0 auto; padding: clamp(var(--usx-spacing-md), 4vw, var(--usx-spacing-2xl)); }
 .wf-feeds__header { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--usx-spacing-sm); align-items: start; }
 .wf-feeds__header h2, .wf-feed-card h3 { margin: 0; }
 .wf-feeds__header p { margin: var(--usx-spacing-xs) 0 0; color: var(--usx-color-on-surface-muted); }
