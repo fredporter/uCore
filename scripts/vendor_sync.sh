@@ -104,11 +104,17 @@ for name in sorted(sources):
     subpath = str(src.get("subpath", ""))
     if subpath:
         module["subpath"] = subpath
+    for key in ("package", "integrity", "sha256", "license", "engines_node"):
+        value = str(src.get(key, ""))
+        if value:
+            module[key] = value
 
     resolved_ref = ""
     url = module["url"]
     ref = module["ref"]
-    if url and url.startswith("https://"):
+    if module["type"] == "npm":
+        resolved_ref = ref
+    elif url and url.startswith("https://"):
         try:
             out = subprocess.check_output(
                 ["git", "ls-remote", url, ref],
@@ -174,7 +180,10 @@ for name, src in sorted(sources.items()):
         errors.append(f"missing module in lock: {name}")
         continue
     lm = lock[name] or {}
-    for key in ("type", "url", "ref"):
+    keys = ["type", "url", "ref"]
+    if str(src.get("type", "")) == "npm":
+        keys.extend(["package", "integrity", "sha256", "license", "engines_node"])
+    for key in keys:
         if str(src.get(key, "")) != str(lm.get(key, "")):
             errors.append(
                 f"{name}: mismatch for {key} (sources={src.get(key)} lock={lm.get(key)})"

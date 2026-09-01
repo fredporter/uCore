@@ -38,13 +38,12 @@ stores, MCP meshes, or unverified vendor tools.
 
 ## Verification-gated vendor prework
 
-Nanocoder remains at Phase 0 intake. Its canonical Nano Collective upstream,
-MIT licence, versioned npm package, and ACP editor protocol are now identified.
-The repository still contains only inert validation
-contracts for a pinned HTTPS artifact, Dev Mode/repository preflight request,
-and bounded dry-run request. These contracts deliberately reject arbitrary
-paths, environment injection, write mode, unbounded prompts, and unbounded
-timeouts.
+Nanocoder has passed Phase 0 intake. Its canonical Nano Collective upstream,
+MIT licence, pinned npm package, integrity, dependency audit, and ACP editor
+protocol are verified. The repository contains inert validation contracts and a
+route-independent supervised ACP transport. These contracts reject arbitrary
+paths, environment injection, write mode, unbounded prompts, unbounded timeouts,
+non-loopback initial providers, and launch while Dev Mode is off.
 
 The following work remains gated and must not be simulated:
 

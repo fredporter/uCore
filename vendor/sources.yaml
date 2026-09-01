@@ -2,6 +2,17 @@
 # Used by DistributionSystem and PackageManager
 
 sources:
+  nanocoder:
+    type: npm
+    url: https://registry.npmjs.org/@nanocollective/nanocoder/-/nanocoder-1.30.0.tgz
+    ref: 1.30.0
+    package: "@nanocollective/nanocoder"
+    integrity: sha512-QCZt7fo2fvazmo/nC2wjU/lfBCRdUfMdmX3rQ8saXPT4Lu/9S0vczcsdOfr3npT6AIcXW9w5Zx517KrE9KnYSg==
+    sha256: ba9323207bd2d2b4d5ac9d7c77f08f7c2405415d73e8fe0b8929e7366df6dccc
+    license: MIT
+    engines_node: ">=22"
+    description: Optional NanoCoder ACP construction engine for governed Dev Mode
+
   ucore-core:
     type: github
     url: https://github.com/uDosGo/uCore.git

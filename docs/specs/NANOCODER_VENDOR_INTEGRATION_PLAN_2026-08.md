@@ -15,10 +15,12 @@ Developer Surface.
 
 The canonical upstream is `https://github.com/Nano-Collective/nanocoder` and the
 project publishes `@nanocollective/nanocoder`. The upstream repository identifies
-an MIT licence and publishes versioned releases; `v1.30.0` was current when this
-plan was reconciled on 2026-09-01. Immutable package integrity, dependency audit,
-supported-host verification, and the exact lock record remain required before
-installation or runtime registration.
+an MIT licence and publishes versioned releases. Intake pins `v1.30.0`, which
+requires Node 22 or newer, with npm integrity
+`sha512-QCZt7fo2fvazmo/nC2wjU/lfBCRdUfMdmX3rQ8saXPT4Lu/9S0vczcsdOfr3npT6AIcXW9w5Zx517KrE9KnYSg==`
+and independently computed tarball SHA-256
+`ba9323207bd2d2b4d5ac9d7c77f08f7c2405415d73e8fe0b8929e7366df6dccc`.
+Dependency audit and supported-host execution remain required before activation.
 
 ## Non-negotiable boundaries
 
@@ -172,14 +174,27 @@ confirmation, and audit acceptance tests pass.
       write mode, and environment injection fail closed.
 - Verified: canonical upstream, package identity, versioned releases, ACP support,
   and MIT licence.
-- Pending before installation: immutable artifact integrity, dependency/security
-  audit, platform verification, and approved lock entry.
-- Planned after intake: fake ACP server, supervised process adapter, audit, and
-  uFlow handoff.
+- [x] Immutable npm artifact, integrity, SHA-256, Node requirement, licence, and
+      approved optional lock entry recorded without installing it.
+- [x] Fake ACP server and supervised process adapter cover initialize, session,
+      stream, default-deny permission, cancel, containment, invalid output, and
+      shutdown behavior.
+- [x] Registry audit of the pinned graph reports 0 known vulnerabilities across
+      361 resolved production/optional dependencies on 2026-09-01.
+- [x] Real `v1.30.0` ACP initialize succeeds with a generated loopback-only
+      Ollama policy; the no-policy smoke test fails closed without discovering
+      home-directory configuration.
+- [x] Real-binary testing discovered an upstream `.nanocoder/tasks.json` write.
+      The deterministic installer now applies one version-pinned patch adding
+      `NANOCODER_TASKS_DIR`; the supervisor routes it beneath `UDOS_HOME`, and a
+      repeated initialize handshake leaves the repository clean.
+- Pending before activation: live Server model/budget resolution, runtime audit,
+  session persistence, permission UI, and uFlow handoff.
 
-The schemas live in `backend/app/services/vendor_tool_contracts.py` and are not
-imported by runtime routes. No capability, binary discovery, installation,
-execution, UI, MCP, or scheduler behavior has been activated.
+The schemas live in `backend/app/services/vendor_tool_contracts.py`; the inert
+transport lives in `backend/app/services/nanocoder_acp.py`. Neither is imported
+by runtime routes. No capability, binary discovery, installation, execution,
+UI, MCP, or scheduler behavior has been activated.
 
 ## Dev Mode foundation completed
 

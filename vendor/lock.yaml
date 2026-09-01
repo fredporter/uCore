@@ -10,6 +10,16 @@ modules:
     resolved_ref: 999637883ce34d3944c614f38f32cfbe0bc9062d
     type: pip
     url: https://github.com/BerriAI/litellm.git
+  nanocoder:
+    engines_node: '>=22'
+    integrity: sha512-QCZt7fo2fvazmo/nC2wjU/lfBCRdUfMdmX3rQ8saXPT4Lu/9S0vczcsdOfr3npT6AIcXW9w5Zx517KrE9KnYSg==
+    license: MIT
+    package: '@nanocollective/nanocoder'
+    ref: 1.30.0
+    resolved_ref: 1.30.0
+    sha256: ba9323207bd2d2b4d5ac9d7c77f08f7c2405415d73e8fe0b8929e7366df6dccc
+    type: npm
+    url: https://registry.npmjs.org/@nanocollective/nanocoder/-/nanocoder-1.30.0.tgz
   snackmachine:
     ref: main
     resolved_ref: c0e00619a2992101622a17abb06a90a097d2cab2

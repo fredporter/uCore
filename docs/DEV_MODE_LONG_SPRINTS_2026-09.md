@@ -52,6 +52,13 @@ work returns to the backlog rather than silently rolling into the next sprint.
 
 ## Sprint 1 — Nanocoder intake and ACP engine boundary (4 weeks)
 
+Progress on 2026-09-01: immutable npm intake, dependency audit, isolated config,
+loopback provider policy, fake ACP contract suite, and real initialize handshake
+are complete. The handshake exposed an upstream repository-local task-store
+write; the pinned installer patch and `NANOCODER_TASKS_DIR` supervisor policy
+now redirect it to `UDOS_HOME`, with a clean repeated smoke test. Activation
+remains gated on Server runtime policy/audit and the Developer operations UI.
+
 ### Scope
 
 1. Complete immutable intake for `Nano-Collective/nanocoder`: pin release,
