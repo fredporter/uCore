@@ -1,0 +1,24 @@
+--- a/node_modules/@nanocollective/nanocoder/dist/tools/tasks/storage.js
++++ b/node_modules/@nanocollective/nanocoder/dist/tools/tasks/storage.js
+@@ -2,8 +2,11 @@
+ import { mkdir, readFile, writeFile } from 'node:fs/promises';
+ import { join } from 'node:path';
+ const TASKS_DIR = '.nanocoder';
+ const TASKS_FILE = 'tasks.json';
++function getTasksDir() {
++    return process.env.NANOCODER_TASKS_DIR || join(process.cwd(), TASKS_DIR);
++}
+ export function getTasksPath() {
+-    return join(process.cwd(), TASKS_DIR, TASKS_FILE);
++    return join(getTasksDir(), TASKS_FILE);
+ }
+ export async function loadTasks() {
+@@ -17,7 +20,7 @@
+     }
+ }
+ export async function saveTasks(tasks) {
+-    const dirPath = join(process.cwd(), TASKS_DIR);
++    const dirPath = getTasksDir();
+     await mkdir(dirPath, { recursive: true });
+     const path = getTasksPath();
+     await writeFile(path, JSON.stringify(tasks, null, 2), 'utf-8');
