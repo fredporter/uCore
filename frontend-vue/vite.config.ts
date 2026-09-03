@@ -1,6 +1,7 @@
 import vue from "@vitejs/plugin-vue";
 import path from "path";
 import { defineConfig } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 const PORT = parseInt(process.env.VITE_PORT || "5175", 10);
 const API_ORIGIN = process.env.VITE_API_ORIGIN || "http://localhost:8484";
@@ -14,6 +15,27 @@ export default defineConfig({
           // Treat iconify-icon as a custom element (not a Vue component)
           isCustomElement: (tag) => tag === "iconify-icon",
         },
+      },
+    }),
+    VitePWA({
+      registerType: "autoUpdate",
+      manifest: {
+        name: "uCore",
+        short_name: "uCore",
+        description: "Local-first uDOS workspace and developer environment",
+        theme_color: "#111318",
+        background_color: "#111318",
+        display: "standalone",
+        start_url: "/",
+      },
+      workbox: {
+        navigateFallback: "/index.html",
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        runtimeCaching: [{
+          urlPattern: ({ url }) => url.pathname.startsWith("/api/workspace") || url.pathname.startsWith("/api/editor/files"),
+          handler: "NetworkFirst",
+          options: { cacheName: "ucore-workspace", networkTimeoutSeconds: 3, expiration: { maxEntries: 100, maxAgeSeconds: 86400 } },
+        }],
       },
     }),
   ],

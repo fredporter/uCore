@@ -1409,7 +1409,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     title: "Service worker + offline-first workspace",
     description: "vite-plugin-pwa with workbox cache strategies",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 4,
     tags: ["sprint-4", "pwa"],
     checklist: [
@@ -1426,7 +1426,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description:
       "useSwipe() composable — swipe right/left for sidebar on touch devices",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 3,
     tags: ["sprint-4", "mobile"],
     checklist: ["useSwipe composable", "Sidebar open/close", "Tab scroll"],
@@ -1438,7 +1438,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description:
       "BangleEditor toolbar → icon-only on < 640px with overflow menu",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["sprint-4", "mobile", "toolbar"],
     checklist: [
@@ -1454,7 +1454,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description:
       "'Add to Home Screen' banner after 30s dwell, remembers preference",
     priority: "low",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["sprint-4", "pwa"],
     checklist: ["beforeinstallprompt", "30s dwell", "Success toast"],

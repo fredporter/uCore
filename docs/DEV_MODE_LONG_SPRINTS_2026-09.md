@@ -242,8 +242,8 @@ until its checklist and focused tests provide evidence.
 | Sprint 4/6 — test evidence | `bangle-test-001`, `bangle-test-002`, `bangle-test-003`, `bangle-test-004`, `bangle-test-005`, `bangle-test-006` | 6 |
 | Sprint 6 — docs and release | `bangle-doc-001`, `bangle-doc-002`, `bangle-deploy-001`, `bangle-deploy-002` | 4 |
 | Sprint 5 — account state | — | 0 |
-| Sprint 5 — offline/mobile | `s4-001`, `s4-002`, `s4-003`, `s4-004` | 4 |
-| **Total** | **All open task objects** | **24** |
+| Sprint 5 — offline/mobile | — | 0 |
+| **Total** | **All open task objects** | **20** |
 
 The current working tree contains partial formatting, research capture, chat,
 responsive, and surface-consolidation work. Those changes remain checkpoint

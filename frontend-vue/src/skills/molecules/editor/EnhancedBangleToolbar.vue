@@ -1,7 +1,10 @@
 <template>
   <div class="enhanced-toolbar" role="toolbar" aria-label="Document formatting">
-    <ToolbarSection label="Text formatting">
+    <ToolbarSection label="Text formatting" :class="{ 'enhanced-toolbar__desktop-extra': mobile }">
       <ToolbarButton v-for="item in textCommands" :key="item.id" v-bind="item" @activate="command(item.id)" />
+    </ToolbarSection>
+    <ToolbarSection v-if="mobile" label="Primary formatting">
+      <ToolbarButton v-for="item in mobilePrimaryCommands" :key="item.id" v-bind="item" @activate="command(item.id)" />
     </ToolbarSection>
     <ToolbarSection label="Block formatting">
       <label class="enhanced-toolbar__heading">
@@ -19,6 +22,9 @@
     <details class="enhanced-toolbar__more">
       <summary aria-label="More editor actions"><UIcon name="more_horiz" /></summary>
       <div class="enhanced-toolbar__menu">
+        <ToolbarSection v-if="mobile" label="More formatting">
+          <ToolbarButton v-for="item in mobileOverflowCommands" :key="item.id" v-bind="item" @activate="command(item.id)" />
+        </ToolbarSection>
         <ToolbarSection label="Research">
           <ToolbarButton v-for="item in researchCommands" :key="item.id" v-bind="item" @activate="command(item.id)" />
         </ToolbarSection>
@@ -38,6 +44,7 @@
 import UIcon from "../../atoms/UIcon.vue";
 import ToolbarButton from "./ToolbarButton.vue";
 import ToolbarSection from "./ToolbarSection.vue";
+import { useBreakpoint } from "../../../composables/useBreakpoint";
 
 export type EditorCommand =
   | "bold" | "italic" | "underline" | "strike" | "code" | "link"
@@ -50,6 +57,7 @@ export type EditorCommand =
 
 interface Item { id: EditorCommand; label: string; icon: string; shortcut?: string }
 const emit = defineEmits<{ command: [command: EditorCommand] }>();
+const mobile = useBreakpoint();
 const item = (id: EditorCommand, label: string, icon: string, shortcut = ""): Item => ({ id, label, icon, shortcut });
 const textCommands = [
   item("bold", "Bold", "format_bold", "⌘B"), item("italic", "Italic", "format_italic", "⌘I"),
@@ -65,6 +73,8 @@ const structureCommands = [item("table", "Table", "table"), item("callout", "Cal
 const researchCommands = [item("scrape", "Capture research", "travel_explore"), item("summarize", "Summarize", "summarize"), item("citation", "Insert citation", "format_quote")];
 const documentCommands = [item("copy-binder", "Copy to Binder", "content_copy"), item("variant", "Create variant", "fork_right"), item("archive", "Archive", "archive")];
 const editCommands = [item("undo", "Undo", "undo", "⌘Z"), item("redo", "Redo", "redo", "⇧⌘Z")];
+const mobilePrimaryCommands = textCommands.slice(0, 4);
+const mobileOverflowCommands = [...textCommands.slice(4), ...blockCommands, ...structureCommands];
 function command(value: EditorCommand) { emit("command", value); }
 function heading(event: Event) {
   const value = (event.target as HTMLSelectElement).value as EditorCommand;
@@ -80,5 +90,5 @@ function heading(event: Event) {
 .enhanced-toolbar__more summary { display: inline-flex; align-items: center; justify-content: center; width: var(--usx-control-size-sm); height: var(--usx-control-size-sm); cursor: pointer; list-style: none; }
 .enhanced-toolbar__menu { position: absolute; z-index: var(--usx-z-index-dropdown); top: 100%; right: 0; display: flex; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); background: var(--usx-color-surface); box-shadow: var(--usx-shadow-md); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
-@media (max-width: 40rem) { .enhanced-toolbar :deep(.toolbar-button) { width: var(--usx-touch-min); height: var(--usx-touch-min); min-width: var(--usx-touch-min); } .enhanced-toolbar__menu { position: fixed; inset-inline: var(--usx-spacing-sm); top: auto; bottom: var(--usx-spacing-sm); flex-wrap: wrap; } }
+@media (max-width: 40rem) { .enhanced-toolbar__desktop-extra, .enhanced-toolbar > :deep(.toolbar-section:nth-of-type(n + 3)) { display: none; } .enhanced-toolbar :deep(.toolbar-button) { width: var(--usx-touch-min); height: var(--usx-touch-min); min-width: var(--usx-touch-min); } .enhanced-toolbar__menu { position: fixed; inset-inline: var(--usx-spacing-sm); top: auto; bottom: var(--usx-spacing-sm); flex-wrap: wrap; } }
 </style>
