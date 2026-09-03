@@ -111,6 +111,12 @@
       @insert="insertSummary"
       @close="summarizeOpen = false"
     />
+    <CitationModal
+      v-if="citationOpen"
+      :frontmatter="frontmatter"
+      @insert="insertCitation"
+      @close="citationOpen = false"
+    />
   </div>
 </template>
 
@@ -138,6 +144,7 @@ import FrontmatterEditor from "../molecules/editor/FrontmatterEditor.vue";
 import MarkdownPreview from "../molecules/MarkdownPreview.vue";
 import ResearchPanel from "../molecules/editor/ResearchPanel.vue";
 import SummarizeModal from "../molecules/editor/SummarizeModal.vue";
+import CitationModal from "../molecules/editor/CitationModal.vue";
 import { useShellStore } from "../../stores/shell";
 import { useToast } from "../../composables/useToast";
 import {
@@ -190,6 +197,7 @@ const viewMode = ref<"edit" | "preview" | "split">(
 const researchOpen = ref(false);
 const frontmatterEditorOpen = ref(false);
 const summarizeOpen = ref(false);
+const citationOpen = ref(false);
 
 const currentFilename = computed(() => props.title || "Untitled.md");
 
@@ -279,6 +287,10 @@ function handleToolbarAction(action: string) {
     researchOpen.value = !researchOpen.value;
     return;
   }
+  if (action === "citation") {
+    citationOpen.value = true;
+    return;
+  }
   toast(`${action.replaceAll("-", " ")} is available through its governed workflow.`, "info");
 }
 
@@ -287,6 +299,13 @@ function insertSummary(summary: string) {
   summarizeOpen.value = false;
   emitDocumentUpdate();
   toast("Summary inserted", "success");
+}
+
+function insertCitation(citation: string) {
+  bodyContent.value = `${bodyContent.value.replace(/\s*$/, "")}\n\n${citation}\n`;
+  citationOpen.value = false;
+  emitDocumentUpdate();
+  toast("Citation inserted", "success");
 }
 
 function emitDocumentUpdate() {
