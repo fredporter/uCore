@@ -54,6 +54,8 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useDevModeStore } from "../stores/devMode";
 import { useShellStore } from "../stores/shell";
 import { useSettingsStore } from "../stores/settings";
+import { useIdentityStore } from "../stores/identity";
+import { useChatStore } from "../stores/chat";
 import { useWorkflowStore } from "../stores/workflow";
 import { useRouter, useRoute } from "vue-router";
 import GlobalToolbar from "../skills/organisms/GlobalToolbar.vue";
@@ -69,6 +71,8 @@ const devMode = useDevModeStore();
 const router = useRouter();
 const route = useRoute();
 const runtimeWarning = ref("");
+const identity = useIdentityStore();
+const chat = useChatStore();
 const RUNTIME_WARNING_KEY = "ucore.runtime.warning";
 const isWorkflowEditor = computed(
   () => route.path === "/workflow" && String(route.query.tab || "") === "editor",
@@ -78,7 +82,7 @@ const globalSidebarOpen = computed(
 );
 
 // Initialize settings store to apply persisted theme (dark mode default)
-useSettingsStore();
+const settings = useSettingsStore();
 
 function syncRuntimeWarningFromSession() {
   if (typeof window === "undefined") return;
@@ -103,6 +107,9 @@ function reloadPage() {
 
 onMounted(() => {
   void devMode.probe();
+  void identity.load();
+  void settings.initialize();
+  void chat.restoreHistory();
   syncRuntimeWarningFromSession();
   if (typeof window !== "undefined") {
     window.addEventListener("ucore:runtime-warning", onRuntimeWarningEvent as EventListener);

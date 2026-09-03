@@ -97,6 +97,16 @@
       >
         <UIcon name="settings" />
       </button>
+      <button
+        type="button"
+        class="global-toolbar__identity"
+        :class="{ 'global-toolbar__identity--offline': !identity.authenticated }"
+        :title="identity.authenticated ? identity.displayName : 'Identity unavailable'"
+        :aria-label="identity.authenticated ? `Signed in as ${identity.displayName}` : 'Identity unavailable'"
+        @click="navigate('/system?tab=identity')"
+      >
+        {{ identity.authenticated ? identity.initials : "?" }}
+      </button>
     </div>
   </header>
 </template>
@@ -114,6 +124,7 @@ import { useRouter, useRoute } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useSettingsStore } from "../../stores/settings";
 import { useDevModeStore } from "../../stores/devMode";
+import { useIdentityStore } from "../../stores/identity";
 import UIcon from "../atoms/UIcon.vue";
 
 interface Props {
@@ -131,6 +142,7 @@ const route = useRoute();
 const shell = useShellStore();
 const settings = useSettingsStore();
 const devMode = useDevModeStore();
+const identity = useIdentityStore();
 
 const isDark = computed(() => settings.themeMode === "dark");
 const sidebarDisabled = computed(
@@ -167,4 +179,24 @@ function navigate(path: string) {
 <style scoped>
 /* GlobalToolbar styles are defined in usx-standard.css under "GLOBAL TOOLBAR" section.
    This ensures consistent tab styling across all surfaces. */
+.global-toolbar__identity {
+  display: inline-grid;
+  place-items: center;
+  width: var(--usx-control-size-sm);
+  height: var(--usx-control-size-sm);
+  min-height: var(--usx-control-size-sm);
+  padding: 0;
+  border: var(--usx-border-width) solid var(--usx-color-primary);
+  border-radius: 50%;
+  background: var(--usx-color-primary);
+  color: var(--usx-color-on-primary);
+  font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-bold);
+  cursor: pointer;
+}
+.global-toolbar__identity--offline {
+  border-color: var(--usx-color-border);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface-muted);
+}
 </style>

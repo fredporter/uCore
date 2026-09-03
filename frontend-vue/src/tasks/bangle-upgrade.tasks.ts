@@ -1328,7 +1328,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     title: "User identity integration",
     description: "GET /api/identity/me → show user in GlobalToolbar",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 3,
     tags: ["sprint-3", "auth"],
     checklist: [
@@ -1360,7 +1360,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description:
       "POST /api/user/preferences — sync theme/font/model between surfaces",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["sprint-3", "settings"],
     checklist: [
@@ -1375,7 +1375,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     title: "Chat history persistence",
     description: "Save chat conversations to backend per user",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["sprint-3", "chat"],
     checklist: [

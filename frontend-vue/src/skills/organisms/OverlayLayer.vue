@@ -177,6 +177,7 @@ const devLoading = ref(false);
 async function sendChat(text: string, mode: "chat" | "plan" | "act" | "workflow") {
   assistChat.setPromptMode(mode);
   await assistChat.sendMessage(text);
+  assistChat.saveCurrentConversation();
 
   const last = assistChat.messages.at(-1);
   if (last?.role === "assistant" && /AI is offline/i.test(last.content)) {

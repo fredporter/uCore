@@ -63,3 +63,16 @@ class SystemSurfaceAPITest(AioHTTPTestCase):
         data = await resp.json()
         assert "user" in data["settings"]
         assert data["settings"]["user"]["displayName"] == "Test User"
+
+    async def test_user_preferences_roundtrip(self):
+        update = await self.client.post(
+            "/api/user/preferences",
+            json={"preferences": {"themeMode": "light", "fontSize": 18, "unknown": "ignored"}},
+        )
+        assert update.status == 200
+        updated = await update.json()
+        assert updated["preferences"]["themeMode"] == "light"
+        assert "unknown" not in updated["preferences"]
+        response = await self.client.get("/api/user/preferences")
+        assert response.status == 200
+        assert (await response.json())["preferences"]["fontSize"] == 18

@@ -3,6 +3,16 @@
     <!-- ── Header (lane toggle moved to overlay top-right) ────── -->
     <div class="chat-panel__header">
       <div class="chat-panel__header-spacer" />
+      <button
+        v-if="activeLane === 'chat' && chatStore.hasMessages"
+        type="button"
+        class="chat-panel__header-action"
+        title="Clear chat history"
+        aria-label="Clear chat history"
+        @click="chatStore.clearHistory()"
+      >
+        <UIcon name="delete_sweep" />
+      </button>
     </div>
 
     <!-- ── Body ──────────────────────────────────────────────── -->
@@ -352,6 +362,26 @@ async function copyText(content: string) {
 
 .chat-panel__header-spacer {
   flex: 1;
+}
+
+.chat-panel__header-action {
+  display: inline-grid;
+  place-items: center;
+  width: var(--usx-control-size-sm);
+  height: var(--usx-control-size-sm);
+  min-height: var(--usx-control-size-sm);
+  padding: 0;
+  border: 0;
+  border-radius: var(--usx-radius-sm);
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+}
+
+.chat-panel__header-action:hover,
+.chat-panel__header-action:focus-visible {
+  background: var(--usx-color-surface-hover);
+  color: var(--usx-color-on-surface);
 }
 
 .chat-panel__lane-icon-toggle {

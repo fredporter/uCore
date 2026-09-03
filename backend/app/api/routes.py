@@ -384,6 +384,15 @@ def register_routes(app: web.Application) -> None:
     except ImportError as e:
         log.debug("Identity routes not available: %s", e)
 
+    # ── Global chat history ──────────────────────────────────────────
+    try:
+        from .chat_history_api import register_chat_history_routes
+
+        register_chat_history_routes(app)
+        log.debug("Chat history routes registered")
+    except ImportError as e:
+        log.debug("Chat history routes not available: %s", e)
+
     # ── Dashboard Surface ──────────────────────────────────────────
     try:
         from ..surfaces.dashboard import DashboardStore, register_dashboard_routes
