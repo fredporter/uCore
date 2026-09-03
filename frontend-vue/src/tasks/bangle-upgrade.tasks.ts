@@ -200,7 +200,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 2,
     component: "FrontmatterEditor.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-2", "component", "modal"],
     checklist: [
