@@ -41,4 +41,20 @@ describe("MarkdownEditor code commands", () => {
     await textarea.trigger("keydown", { key: "b", metaKey: true });
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual(["**shortcut**"]);
   });
+
+  it("inserts validated links and switches editor mode", async () => {
+    const wrapper = mount(MarkdownEditor, {
+      props: { modelValue: "Docs", editMode: "code" },
+      global: { stubs: { Teleport: true } },
+    });
+    const textarea = wrapper.get<HTMLTextAreaElement>("textarea");
+    textarea.element.setSelectionRange(0, 4);
+    await wrapper.get('button[aria-label^="Link"]').trigger("click");
+    const inputs = wrapper.findAll("input");
+    await inputs[1].setValue("https://example.com/docs");
+    await wrapper.find('.markdown-insert-modal__actions button:last-child').trigger("click");
+    expect(String(wrapper.emitted("update:modelValue")?.at(-1)?.[0])).toContain("[Docs](https://example.com/docs)");
+    await wrapper.get('button[aria-label^="Toggle prose/code mode"]').trigger("click");
+    expect(wrapper.emitted("update:editMode")?.at(-1)).toEqual(["prose"]);
+  });
 });

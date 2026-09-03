@@ -36,6 +36,7 @@
     <ToolbarSection label="History">
       <ToolbarButton v-for="item in editCommands" :key="item.id" v-bind="item" @activate="command(item.id)" />
     </ToolbarSection>
+    <ToolbarButton label="Toggle prose/code mode" icon="code_blocks" shortcut="⌘⇧M" @activate="command('mode-toggle')" />
     <slot name="actions" />
   </div>
 </template>
@@ -51,6 +52,7 @@ export type EditorCommand =
   | `heading-${1 | 2 | 3 | 4 | 5 | 6}`
   | "blockquote" | "bullet-list" | "ordered-list" | "code-block" | "horizontal-rule"
   | "table" | "callout" | "footnote" | "outline"
+  | "image" | "mode-toggle"
   | "scrape" | "summarize" | "citation"
   | "copy-binder" | "variant" | "archive"
   | "undo" | "redo";
@@ -70,6 +72,7 @@ const blockCommands = [
   item("horizontal-rule", "Divider", "horizontal_rule"),
 ];
 const structureCommands = [item("table", "Table", "table"), item("callout", "Callout", "campaign"), item("footnote", "Footnote", "footnote"), item("outline", "Outline", "toc")];
+structureCommands.push(item("image", "Image", "image"));
 const researchCommands = [item("scrape", "Capture research", "travel_explore"), item("summarize", "Summarize", "summarize"), item("citation", "Insert citation", "format_quote")];
 const documentCommands = [item("copy-binder", "Copy to Binder", "content_copy"), item("variant", "Create variant", "fork_right"), item("archive", "Archive", "archive")];
 const editCommands = [item("undo", "Undo", "undo", "⌘Z"), item("redo", "Redo", "redo", "⇧⌘Z")];

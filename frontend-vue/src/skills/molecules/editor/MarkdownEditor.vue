@@ -29,11 +29,21 @@
       :class="{ 'markdown-editor__host--readonly': readOnly }"
       @keydown="onEditorKeydown"
     />
+    <Teleport to="body">
+      <div v-if="insertionKind" class="markdown-insert-overlay" @click.self="closeInsertion">
+        <section class="markdown-insert-modal" role="dialog" aria-modal="true" :aria-labelledby="`${insertionKind}-insert-title`">
+          <h2 :id="`${insertionKind}-insert-title`">Insert {{ insertionKind }}</h2>
+          <label>{{ insertionKind === "image" ? "Alt text" : "Link text" }}<input v-model="insertionLabel" /></label>
+          <label>URL<input v-model="insertionUrl" type="url" placeholder="https://…" @keydown.enter.prevent="confirmInsertion" /></label>
+          <div class="markdown-insert-modal__actions"><button type="button" @click="closeInsertion">Cancel</button><button type="button" :disabled="!validInsertionUrl" @click="confirmInsertion">Insert</button></div>
+        </section>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import "@bangle.dev/core/style.css";
 import {
   BangleEditor as MarkdownRuntime,
@@ -91,12 +101,19 @@ const emit = defineEmits<{
   "update:modelValue": [value: string];
   save: [value: string];
   change: [value: string];
+  "update:editMode": [value: "prose" | "code"];
   toolbarAction: [action: "scrape" | "summarize" | "citation" | "copy-binder" | "variant" | "archive" | "outline"];
 }>();
 
 const editorEl = ref<HTMLDivElement | null>(null);
 const codeEl = ref<HTMLTextAreaElement | null>(null);
 const editMode = ref<"prose" | "code">(props.editMode);
+const insertionKind = ref<"link" | "image" | null>(null);
+const insertionLabel = ref("");
+const insertionUrl = ref("");
+const validInsertionUrl = computed(() => {
+  try { return ["http:", "https:"].includes(new URL(insertionUrl.value).protocol); } catch { return false; }
+});
 let editor: MarkdownRuntime | null = null;
 let lastExternalValue = props.modelValue;
 
@@ -175,6 +192,8 @@ function handleToolbarCommand(command: EditorCommand) {
   if (command === "strike") return applyStrike();
   if (command === "code") return applyCode();
   if (command === "link") return applyLink();
+  if (command === "image") return openInsertion("image");
+  if (command === "mode-toggle") return toggleEditMode();
   if (command.startsWith("heading-")) return applyHeadingLevel(Number(command.slice(-1)));
   if (command === "blockquote") return applyBlockquote();
   if (command === "bullet-list") return applyBulletList();
@@ -203,6 +222,8 @@ function onEditorKeydown(event: KeyboardEvent) {
         ? "underline"
         : key === "k"
           ? "link"
+          : key === "m" && event.shiftKey
+            ? "mode-toggle"
           : key === "z" && event.shiftKey
             ? "redo"
             : key === "z"
@@ -221,8 +242,34 @@ function applyStrike() {
 }
 
 function applyLink() {
-  if (editMode.value === "code") return wrapCodeSelection("[", "](https://example.com)", "link text");
-  emit("toolbarAction", "citation");
+  openInsertion("link");
+}
+
+function selectedText() {
+  if (editMode.value === "code" && codeEl.value) return props.modelValue.slice(codeEl.value.selectionStart, codeEl.value.selectionEnd);
+  return "";
+}
+
+function openInsertion(kind: "link" | "image") {
+  insertionKind.value = kind;
+  insertionLabel.value = selectedText() || (kind === "image" ? "Image description" : "Link text");
+  insertionUrl.value = "";
+}
+
+function closeInsertion() { insertionKind.value = null; }
+
+function confirmInsertion() {
+  if (!insertionKind.value || !validInsertionUrl.value) return;
+  const label = insertionLabel.value.trim() || (insertionKind.value === "image" ? "Image" : insertionUrl.value);
+  const snippet = `${insertionKind.value === "image" ? "!" : ""}[${label}](${insertionUrl.value})`;
+  if (editMode.value === "code") insertCodeSnippet(snippet);
+  else insertBlock(snippet);
+  closeInsertion();
+}
+
+function toggleEditMode() {
+  const next = editMode.value === "code" ? "prose" : "code";
+  emit("update:editMode", next);
 }
 
 function applyHeadingLevel(level: number) {
@@ -420,6 +467,10 @@ watch(
   () => props.editMode,
   (value) => {
     editMode.value = value;
+    nextTick(() => {
+      if (value === "prose") instantiateEditor(props.modelValue);
+      else codeEl.value?.focus();
+    });
   },
 );
 
@@ -462,6 +513,9 @@ onBeforeUnmount(() => {
   overflow-x: auto;
   white-space: nowrap;
 }
+.markdown-insert-overlay { position: fixed; inset: 0; z-index: 2200; display: grid; place-items: center; padding: var(--usx-spacing-lg); background: rgb(0 0 0 / 50%); }
+.markdown-insert-modal { display: grid; gap: var(--usx-spacing-md); width: min(28rem, 100%); padding: var(--usx-spacing-lg); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-lg); background: var(--usx-color-surface); }
+.markdown-insert-modal h2 { margin: 0; }.markdown-insert-modal label { display: grid; gap: var(--usx-spacing-xs); }.markdown-insert-modal input { min-height: var(--usx-touch-min); }.markdown-insert-modal__actions { display: flex; justify-content: flex-end; gap: var(--usx-spacing-sm); }
 
 .markdown-editor__host {
   flex: 1;

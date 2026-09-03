@@ -244,7 +244,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 3,
     component: "EnhancedBangleToolbar.vue",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["phase-3", "component", "toolbar"],
     checklist: [
@@ -267,7 +267,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 3,
     component: "ToolbarSection.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 0.5,
     tags: ["phase-3", "component"],
     checklist: [
@@ -285,7 +285,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 3,
     component: "ToolbarButton.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 0.5,
     tags: ["phase-3", "component", "atom"],
     checklist: [
@@ -305,7 +305,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 3,
     component: "BangleEditor.vue",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-3", "implementation"],
     checklist: [
@@ -329,7 +329,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 3,
     component: "BangleEditor.vue",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 0.5,
     tags: ["phase-3", "refactor"],
     checklist: [

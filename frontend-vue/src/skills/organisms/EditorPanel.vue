@@ -47,12 +47,13 @@
           v-model="bodyContent"
           :preview="false"
           :read-only="readOnly"
-          edit-mode="code"
+          :edit-mode="localEditMode"
           class="editor-panel__markdown"
           :class="{ 'editor-panel__markdown--split': viewMode === 'split' }"
           @save="handleSave"
           @change="onContentChange"
           @toolbar-action="handleToolbarAction"
+          @update:edit-mode="onEditorModeChange"
         >
           <template #toolbar-actions>
             <div class="editor-panel__pane-actions">
@@ -228,6 +229,11 @@ function openCodePane() {
   localEditMode.value = "code";
   emit("update:editMode", "code");
   viewMode.value = props.singlePane ? "edit" : "split";
+}
+
+function onEditorModeChange(mode: "prose" | "code") {
+  localEditMode.value = mode;
+  emit("update:editMode", mode);
 }
 
 // ─── Frontmatter ─────────────────────────────────────────────────────
