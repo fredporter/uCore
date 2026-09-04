@@ -10,6 +10,7 @@ from typing import Any
 from aiohttp import web
 
 from app.core.settings import settings
+from app.services.developer_operations import get_developer_operation_manager
 from app.utils.config_loader import load_developer_repo_policy
 
 # ─── File discovery constants (stable, not policy-driven) ────────
@@ -978,6 +979,75 @@ async def handle_commit_repo_files(request: web.Request) -> web.Response:
     except RuntimeError as exc:
         return web.json_response({"error": str(exc)}, status=400)
     return web.json_response(payload)
+
+
+# ─── Governed ACP Developer operations ───────────────────────────
+
+
+async def handle_developer_operation_capabilities(request: web.Request) -> web.Response:
+    return web.json_response(get_developer_operation_manager().capabilities())
+
+
+async def handle_list_developer_operations(request: web.Request) -> web.Response:
+    repository = request.query.get("repository", "").strip()
+    operations = get_developer_operation_manager().list(repository)
+    return web.json_response({"operations": operations, "count": len(operations)})
+
+
+async def handle_create_developer_operation(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+        repository = str(body.get("repository", "")).strip()
+        if not repository:
+            raise ValueError("repository is required")
+        _repo_path(repository)  # apply canonical repository policy before launch
+        operation = get_developer_operation_manager().create(
+            action=str(body.get("action", "")).strip(),
+            repository=repository,
+            prompt=str(body.get("prompt", "")),
+            context=body.get("context") or {},
+        )
+    except FileNotFoundError:
+        return web.json_response({"error": "Repository not found"}, status=404)
+    except PermissionError as exc:
+        return web.json_response({"error": str(exc)}, status=403)
+    except (TypeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(operation.public(), status=202)
+
+
+async def handle_get_developer_operation(request: web.Request) -> web.Response:
+    try:
+        operation = get_developer_operation_manager().get(request.match_info["operation_id"])
+    except KeyError as exc:
+        return web.json_response({"error": str(exc)}, status=404)
+    return web.json_response(operation.public())
+
+
+async def handle_decide_developer_operation(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+        decision = str(body.get("decision", "")).strip().lower()
+        manager = get_developer_operation_manager()
+        if decision == "approve":
+            operation = manager.approve(request.match_info["operation_id"])
+        elif decision == "deny":
+            operation = manager.deny(request.match_info["operation_id"])
+        else:
+            raise ValueError("decision must be approve or deny")
+    except KeyError as exc:
+        return web.json_response({"error": str(exc)}, status=404)
+    except (TypeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(operation.public())
+
+
+async def handle_cancel_developer_operation(request: web.Request) -> web.Response:
+    try:
+        operation = await get_developer_operation_manager().cancel(request.match_info["operation_id"])
+    except KeyError as exc:
+        return web.json_response({"error": str(exc)}, status=404)
+    return web.json_response(operation.public())
 
 
 # ─── Dev Chat ───────────────────────────────────────────────────────

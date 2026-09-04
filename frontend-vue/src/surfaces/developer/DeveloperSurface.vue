@@ -60,6 +60,7 @@
           <div v-else-if="loadingFile" class="dev-loading"><UIcon name="sync" /> Loading...</div>
           <UCodeEditor v-else :file-content="fileContent" :file-name="activePath.split('/').pop() || ''" :file-path="activePath" :file-repo="activeRepo" :diff-original="diffBaseline" :diff-status="diffStatus" :has-repository-diff="hasRepositoryDiff" :save-revision="saveRevision" @update:file-content="fileContent = $event" @save="saveFile" />
         </div>
+        <DeveloperOperationsPanel v-else-if="activeTab==='operations'" :repository="activeRepo" :file="activePath" />
       </div>
     </div>
   </div>
@@ -74,15 +75,18 @@ import UBadge from "../../skills/atoms/UBadge.vue";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import UCodeEditor from "../../skills/molecules/editor/UCodeEditor.vue";
 import ProseCodeReader from "../../skills/molecules/editor/ProseCodeReader.vue";
+import DeveloperOperationsPanel from "./DeveloperOperationsPanel.vue";
 
 const shell = useShellStore();
 const route = useRoute();
 const router = useRouter();
-const activeTab = ref<"code" | "repository" | "editor">("code");
+type DeveloperTab = "code" | "repository" | "editor" | "operations";
+const activeTab = ref<DeveloperTab>("code");
 const DEV_TABS = [
   { id: "code", label: "Code", icon: "folder" },
   { id: "repository", label: "Repository", icon: "description" },
   { id: "editor", label: "Editor", icon: "diamond" },
+  { id: "operations", label: "Operations", icon: "smart_toy" },
 ];
 
 interface Repo { name: string; branch: string; status: string; path: string; changes?: number; kind?: string; }
@@ -256,7 +260,7 @@ watch(activeTab, (tab) => {
   shell.setDeveloperSurfaceTab(tab);
   if (tab === "code") {
     closeSidebar();
-  } else if (tab === "repository" || tab === "editor") {
+  } else if (tab === "repository" || tab === "editor" || tab === "operations") {
     if (!shell.developerSidebarOpen || !sidebarRepo.value || !activePath.value) {
       activeTab.value = "code";
       closeSidebar();
@@ -269,7 +273,7 @@ watch(activeTab, (tab) => {
 watch(
   () => [shell.developerSidebarOpen, activeRepo.value, activePath.value],
   () => {
-    if ((activeTab.value === "repository" || activeTab.value === "editor") && (!shell.developerSidebarOpen || !activeRepo.value || !activePath.value)) {
+    if ((activeTab.value === "repository" || activeTab.value === "editor" || activeTab.value === "operations") && (!shell.developerSidebarOpen || !activeRepo.value || !activePath.value)) {
       activeTab.value = "code";
       closeSidebar();
     }
@@ -286,8 +290,8 @@ watch(repos, (items) => {
 });
 onMounted(() => {
   const routeTab = (route.query.tab as string) || "";
-  if (["code", "repository", "editor"].includes(routeTab)) {
-    activeTab.value = routeTab as "code" | "repository" | "editor";
+  if (["code", "repository", "editor", "operations"].includes(routeTab)) {
+    activeTab.value = routeTab as DeveloperTab;
   }
   shell.setSidebarOpen(false);
   shell.setDeveloperSidebarOpen(false);
@@ -299,8 +303,8 @@ watch(
   () => route.query.tab,
   (tab) => {
     const t = (tab as string) || "";
-    if (["code", "repository", "editor"].includes(t) && activeTab.value !== t) {
-      activeTab.value = t as "code" | "repository" | "editor";
+    if (["code", "repository", "editor", "operations"].includes(t) && activeTab.value !== t) {
+      activeTab.value = t as DeveloperTab;
     }
   },
 );

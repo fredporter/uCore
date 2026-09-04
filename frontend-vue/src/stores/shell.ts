@@ -13,7 +13,7 @@ export type TabOrientation = 'horizontal' | 'vertical'
 export const useShellStore = defineStore('shell', () => {
   const sidebarOpen = ref(false)
   const developerSidebarOpen = ref(false)
-  const developerSurfaceTab = ref<'code' | 'repository' | 'editor'>('code')
+  const developerSurfaceTab = ref<'code' | 'repository' | 'editor' | 'operations'>('code')
   const chatMode = ref<ChatMode>('closed')
   const chatPresentation = ref<ChatPresentation>(
     (localStorage.getItem('ucore-chat-presentation') as ChatPresentation) || 'overlay',
@@ -39,7 +39,7 @@ export const useShellStore = defineStore('shell', () => {
     developerSidebarOpen.value = open
   }
 
-  function setDeveloperSurfaceTab(tab: 'code' | 'repository' | 'editor') {
+  function setDeveloperSurfaceTab(tab: 'code' | 'repository' | 'editor' | 'operations') {
     developerSurfaceTab.value = tab
   }
 

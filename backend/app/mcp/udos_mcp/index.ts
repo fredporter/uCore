@@ -72,6 +72,27 @@ export function createServer(): McpServer {
   );
 
   server.registerTool(
+    "developer.actions.list",
+    {
+      description: "List governed ACP actions and NanoCoder readiness for the Developer Workbench.",
+      inputSchema: z.object({}),
+    },
+    async () => read("/api/developer/operations/capabilities"),
+  );
+
+  server.registerTool(
+    "developer.operations.list",
+    {
+      description: "Read recent governed Developer operations. Execution and approval remain in uCore.",
+      inputSchema: z.object({ repository: z.string().min(1).max(100).optional() }),
+    },
+    async ({ repository }) => {
+      const query = repository ? `?repository=${encodeURIComponent(repository)}` : "";
+      return read(`/api/developer/operations${query}`);
+    },
+  );
+
+  server.registerTool(
     "flow.tasks.list",
     {
       description: "List workflow tasks using the canonical uFlow-backed task store.",

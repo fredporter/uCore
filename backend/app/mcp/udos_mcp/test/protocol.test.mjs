@@ -9,6 +9,8 @@ const fixtures = {
   "/api/health/full": { status: "ok" },
   "/api/developer/repos": { repos: ["uCore"], count: 1 },
   "/api/developer/repos/uCore/status": { repo: "uCore", clean: true },
+  "/api/developer/operations/capabilities": { engine: "nanocoder-acp", actions: [] },
+  "/api/developer/operations?repository=uCore": { operations: [], count: 0 },
   "/api/workflow/tasks?scope=all": { tasks: [], count: 0, scope: "all" },
   "/api/knowledge/search?q=mcp&limit=5": { results: [], count: 0 },
   "/api/gridsmith/tools": { tools: ["grid.create"] },
@@ -44,6 +46,8 @@ test("advertises only the approved read-only surface", async () => {
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(({ name }) => name).sort(), [
     "code.grid.tools.list",
+    "developer.actions.list",
+    "developer.operations.list",
     "developer.repositories.list",
     "developer.repository.status",
     "flow.tasks.list",
@@ -57,6 +61,8 @@ test("calls each backing API with bounded encoded arguments", async () => {
     ["system.health.get", {}],
     ["developer.repositories.list", {}],
     ["developer.repository.status", { repository: "uCore" }],
+    ["developer.actions.list", {}],
+    ["developer.operations.list", { repository: "uCore" }],
     ["flow.tasks.list", { scope: "all" }],
     ["knowledge.search", { query: "mcp", limit: 5 }],
     ["code.grid.tools.list", {}],

@@ -29,12 +29,18 @@ def register_routes(app: web.Application) -> None:
     from .config_api import handle_get_config
     from .containers import register_container_routes
     from .developer_api import (
+        handle_cancel_developer_operation,
         handle_commit_repo_files,
+        handle_create_developer_operation,
+        handle_decide_developer_operation,
         handle_developer_chat,
         handle_developer_chat_stream,
+        handle_developer_operation_capabilities,
         handle_developer_status,
+        handle_get_developer_operation,
         handle_get_repo_file_diff,
         handle_get_repo_file_preview,
+        handle_list_developer_operations,
         handle_list_repo_files,
         handle_list_repo_review,
         handle_list_repos,
@@ -195,6 +201,12 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/developer/stop", handle_stop_developer)
     app.router.add_get("/api/developer/status", handle_developer_status)
     app.router.add_post("/api/developer/workspace", handle_workspace_switch)
+    app.router.add_get("/api/developer/operations/capabilities", handle_developer_operation_capabilities)
+    app.router.add_get("/api/developer/operations", handle_list_developer_operations)
+    app.router.add_post("/api/developer/operations", handle_create_developer_operation)
+    app.router.add_get("/api/developer/operations/{operation_id}", handle_get_developer_operation)
+    app.router.add_post("/api/developer/operations/{operation_id}/decision", handle_decide_developer_operation)
+    app.router.add_post("/api/developer/operations/{operation_id}/cancel", handle_cancel_developer_operation)
     # Dev Chat endpoints
     app.router.add_post("/api/developer/chat", handle_developer_chat)
     app.router.add_get("/api/developer/chat/stream", handle_developer_chat_stream)

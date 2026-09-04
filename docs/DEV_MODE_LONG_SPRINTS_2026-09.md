@@ -84,6 +84,14 @@ remains gated on Server runtime policy/audit and the Developer operations UI.
 
 ## Sprint 2 — Developer Workbench foundation (4 weeks)
 
+Progress on 2026-09-04: the first governed operations slice is implemented. The
+Developer Surface now exposes the bounded ACP action catalogue, repository and
+file context, operation history, lifecycle events, cancellation, and explicit
+approve/deny controls for write-capable actions. NanoCoder availability and
+failure are reported honestly and the editor remains usable without it.
+The canonical MCP gateway exposes read-only action discovery and operation
+status; it cannot execute or approve construction work.
+
 ### Scope
 
 1. Replace the current three-step Code/Repository/Editor journey with a coherent
