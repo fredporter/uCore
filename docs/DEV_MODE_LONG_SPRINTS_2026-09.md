@@ -98,6 +98,11 @@ and contextual staged/unstaged review controls.
 Conflict-safe revision tokens now protect saves and deletes; bounded file
 create/move/delete flows, Python/JSON/YAML diagnostics adapters, and explicit
 staged commit preparation are integrated into the same workbench.
+Repository-declared test/build/lint/check scripts now run through a shell-free,
+allowlisted command supervisor with bounded redacted output, timeout,
+cancellation, duration, and JSONL audit evidence. Developer links reference the
+owning uFlow Tasks and Server Automations/Skills surfaces rather than copying
+their state.
 
 ### Scope
 

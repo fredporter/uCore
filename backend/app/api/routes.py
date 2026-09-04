@@ -29,6 +29,7 @@ def register_routes(app: web.Application) -> None:
     from .config_api import handle_get_config
     from .containers import register_container_routes
     from .developer_api import (
+        handle_cancel_developer_command,
         handle_cancel_developer_operation,
         handle_commit_repo_files,
         handle_create_developer_operation,
@@ -37,12 +38,15 @@ def register_routes(app: web.Application) -> None:
         handle_delete_repo_file,
         handle_developer_chat,
         handle_developer_chat_stream,
+        handle_developer_command_actions,
         handle_developer_operation_capabilities,
         handle_developer_status,
         handle_diagnose_repo_file,
+        handle_get_developer_command_run,
         handle_get_developer_operation,
         handle_get_repo_file_diff,
         handle_get_repo_file_preview,
+        handle_list_developer_command_runs,
         handle_list_developer_operations,
         handle_list_repo_files,
         handle_list_repo_review,
@@ -53,6 +57,7 @@ def register_routes(app: web.Application) -> None:
         handle_search_repo,
         handle_stage_repo_file,
         handle_start_developer,
+        handle_start_developer_command,
         handle_stop_developer,
         handle_unstage_repo_file,
         handle_update_repo_file,
@@ -217,6 +222,11 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/developer/operations/{operation_id}", handle_get_developer_operation)
     app.router.add_post("/api/developer/operations/{operation_id}/decision", handle_decide_developer_operation)
     app.router.add_post("/api/developer/operations/{operation_id}/cancel", handle_cancel_developer_operation)
+    app.router.add_get("/api/developer/repos/{repo_name}/actions", handle_developer_command_actions)
+    app.router.add_post("/api/developer/repos/{repo_name}/actions/run", handle_start_developer_command)
+    app.router.add_get("/api/developer/command-runs", handle_list_developer_command_runs)
+    app.router.add_get("/api/developer/command-runs/{run_id}", handle_get_developer_command_run)
+    app.router.add_post("/api/developer/command-runs/{run_id}/cancel", handle_cancel_developer_command)
     # Dev Chat endpoints
     app.router.add_post("/api/developer/chat", handle_developer_chat)
     app.router.add_get("/api/developer/chat/stream", handle_developer_chat_stream)

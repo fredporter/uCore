@@ -11,6 +11,7 @@ from typing import Any
 from aiohttp import web
 
 from app.core.settings import settings
+from app.services.developer_commands import get_developer_command_manager
 from app.services.developer_operations import get_developer_operation_manager
 from app.utils.config_loader import load_developer_repo_policy
 
@@ -1272,6 +1273,59 @@ async def handle_cancel_developer_operation(request: web.Request) -> web.Respons
     except KeyError as exc:
         return web.json_response({"error": str(exc)}, status=404)
     return web.json_response(operation.public())
+
+
+# ─── Bounded repository commands ─────────────────────────────────
+
+
+async def handle_developer_command_actions(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    try:
+        actions = get_developer_command_manager().discover(repo_name, _repo_path(repo_name))
+    except FileNotFoundError:
+        return web.json_response({"error": f"Repository not found: {repo_name}"}, status=404)
+    return web.json_response({"repo": repo_name, "actions": actions})
+
+
+async def handle_list_developer_command_runs(request: web.Request) -> web.Response:
+    repository = request.query.get("repository", "").strip()
+    runs = get_developer_command_manager().list(repository)
+    return web.json_response({"runs": runs, "count": len(runs), "audit": "developer-actions.jsonl"})
+
+
+async def handle_start_developer_command(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    try:
+        body = await request.json()
+        run = get_developer_command_manager().start(
+            repo_name,
+            _repo_path(repo_name),
+            str(body.get("action", "")).strip(),
+            int(body.get("timeout", 300)),
+        )
+    except FileNotFoundError:
+        return web.json_response({"error": f"Repository not found: {repo_name}"}, status=404)
+    except PermissionError as exc:
+        return web.json_response({"error": str(exc)}, status=403)
+    except (TypeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(run.public(), status=202)
+
+
+async def handle_get_developer_command_run(request: web.Request) -> web.Response:
+    try:
+        run = get_developer_command_manager().get(request.match_info["run_id"])
+    except KeyError as exc:
+        return web.json_response({"error": str(exc)}, status=404)
+    return web.json_response(run.public())
+
+
+async def handle_cancel_developer_command(request: web.Request) -> web.Response:
+    try:
+        run = await get_developer_command_manager().cancel(request.match_info["run_id"])
+    except KeyError as exc:
+        return web.json_response({"error": str(exc)}, status=404)
+    return web.json_response(run.public())
 
 
 # ─── Dev Chat ───────────────────────────────────────────────────────

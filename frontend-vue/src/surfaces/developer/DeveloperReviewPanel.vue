@@ -20,6 +20,7 @@
       <button :disabled="!staged.length || !commitMessage.trim() || committing" @click="commit">Commit {{ staged.length }} staged file{{ staged.length === 1 ? '' : 's' }}</button>
       <p v-if="commitOutput" :class="{ 'review__error': commitFailed }">{{ commitOutput }}</p>
     </div>
+    <DeveloperActionsPanel :repository="repository" />
   </aside>
 </template>
 
@@ -27,6 +28,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import UBadge from "../../skills/atoms/UBadge.vue";
 import UIcon from "../../skills/atoms/UIcon.vue";
+import DeveloperActionsPanel from "./DeveloperActionsPanel.vue";
 
 interface StatusItem { file: string; status: string; staged: boolean }
 const props = defineProps<{ repository: string; revision?: number }>();

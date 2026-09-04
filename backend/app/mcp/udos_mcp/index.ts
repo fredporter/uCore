@@ -110,6 +110,24 @@ export function createServer(): McpServer {
   );
 
   server.registerTool(
+    "developer.commands.list",
+    {
+      description: "List approved repository-defined checks. Execution remains in the Developer Workbench.",
+      inputSchema: z.object({ repository: z.string().min(1).max(100) }),
+    },
+    async ({ repository }) => read(`/api/developer/repos/${encodeURIComponent(repository)}/actions`),
+  );
+
+  server.registerTool(
+    "developer.command-runs.list",
+    {
+      description: "Read recent bounded command status and audit metadata for one repository.",
+      inputSchema: z.object({ repository: z.string().min(1).max(100) }),
+    },
+    async ({ repository }) => read(`/api/developer/command-runs?repository=${encodeURIComponent(repository)}`),
+  );
+
+  server.registerTool(
     "flow.tasks.list",
     {
       description: "List workflow tasks using the canonical uFlow-backed task store.",
