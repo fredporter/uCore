@@ -1408,6 +1408,23 @@ async def handle_cancel_developer_operation(request: web.Request) -> web.Respons
     return web.json_response(operation.public())
 
 
+async def handle_apply_developer_proposal(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+        operation = get_developer_operation_manager().apply_proposal(
+            request.match_info["operation_id"],
+            str(body.get("path", "")),
+            str(body.get("fingerprint", "")),
+        )
+    except KeyError as exc:
+        return web.json_response({"error": str(exc)}, status=404)
+    except (TypeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    except RuntimeError as exc:
+        return web.json_response({"error": str(exc)}, status=409)
+    return web.json_response(operation.public())
+
+
 # ─── Bounded repository commands ─────────────────────────────────
 
 

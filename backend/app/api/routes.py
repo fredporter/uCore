@@ -29,6 +29,7 @@ def register_routes(app: web.Application) -> None:
     from .config_api import handle_get_config
     from .containers import register_container_routes
     from .developer_api import (
+        handle_apply_developer_proposal,
         handle_cancel_developer_command,
         handle_cancel_developer_operation,
         handle_commit_repo_files,
@@ -229,6 +230,10 @@ def register_routes(app: web.Application) -> None:
     )
     app.router.add_post(
         "/api/developer/operations/{operation_id}/cancel", handle_cancel_developer_operation
+    )
+    app.router.add_post(
+        "/api/developer/operations/{operation_id}/proposal/apply",
+        handle_apply_developer_proposal,
     )
     app.router.add_get("/api/developer/repos/{repo_name}/actions", handle_developer_command_actions)
     app.router.add_post(

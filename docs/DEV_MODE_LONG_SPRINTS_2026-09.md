@@ -132,6 +132,8 @@ their state.
 
 ## Sprint 3 — Git review and governed construction (4 weeks)
 
+Status: Complete 2026-09-04
+
 ### Scope
 
 1. Consolidate authoritative diff, staged/unstaged state, review, and commit
@@ -148,11 +150,24 @@ their state.
    propose tests, plan refactor, implement reviewed task, and review working tree.
    Each action sends bounded editor/repository context through the ACP session.
 
-Current checkpoint: repository-wide unstaged diffs are parsed into navigable
+Closure evidence: repository-wide unstaged diffs are parsed into navigable
 file/hunk records. Hunk staging requires the exact reviewed diff fingerprint
 and rejects stale state before applying anything to the index. The operations
 composer carries optional uFlow task references, while ACP lifecycle, approval,
 plan, tool, diff, and message updates render as structured session cards.
+NanoCoder write actions now execute in isolated proposal workspaces: their
+generated file patches require a separate explicit apply decision and a matching
+live-repository fingerprint before entering the working tree. Operation,
+approval, task-reference, ACP-event, proposal, and apply evidence persists
+across backend restarts. Repository actions retain bounded output, cancellation,
+timeout, duration, and redacted JSONL audit records.
+
+Verification on 2026-09-04: all 473 backend tests and all 28 focused Developer
+backend tests passed; all 51 frontend unit/component tests passed; Vue
+type-check and the production PWA build passed. The suites retain six aiohttp
+application-key warnings, while the build retains pre-existing chunk-size and
+mixed static/dynamic CodeMirror import warnings. These are follow-up quality and
+performance work rather than correctness failures.
 
 ### Exit gates
 

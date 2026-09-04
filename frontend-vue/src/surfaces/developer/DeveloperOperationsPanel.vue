@@ -50,6 +50,20 @@
           Stop
         </UButton>
         <p v-if="operation.error" class="ops__error">{{ operation.error }}</p>
+        <section v-if="operation.proposal?.files.length" class="operation__proposal" aria-label="Proposed changes">
+          <h4>Proposed changes</h4>
+          <p>Generated in an isolated workspace. Apply each reviewed file explicitly.</p>
+          <details v-for="fileProposal in operation.proposal.files" :key="fileProposal.fingerprint">
+            <summary>{{ fileProposal.path }}{{ fileProposal.applied ? " · applied" : "" }}</summary>
+            <pre>{{ fileProposal.patch }}</pre>
+            <UButton
+              :disabled="fileProposal.applied || operation.status !== 'completed'"
+              @click="applyProposal(operation.id, fileProposal)"
+            >
+              {{ fileProposal.applied ? "Applied" : "Apply proposed file" }}
+            </UButton>
+          </details>
+        </section>
         <details v-if="operation.events.length">
           <summary>{{ operation.events.length }} event{{ operation.events.length === 1 ? '' : 's' }}</summary>
           <ol class="operation__events">
@@ -73,7 +87,8 @@ import UIcon from "../../skills/atoms/UIcon.vue";
 interface ActionSpec { id: string; label: string; icon: string; write: boolean }
 interface Capabilities { available: boolean; devMode: string; actions: ActionSpec[] }
 interface OperationEvent { type?: string; status?: string; decision?: string; method?: string; update?: Record<string, unknown> }
-interface Operation { id: string; label: string; prompt: string; status: string; context?: Record<string, string>; events: OperationEvent[]; error?: string }
+interface ProposalFile { path: string; patch: string; fingerprint: string; applied: boolean }
+interface Operation { id: string; label: string; prompt: string; status: string; context?: Record<string, string>; events: OperationEvent[]; error?: string; proposal?: { fingerprint: string; files: ProposalFile[] } }
 
 const props = defineProps<{ repository: string; file?: string }>();
 const capabilities = ref<Capabilities | null>(null);
@@ -132,6 +147,19 @@ async function cancel(id: string) {
   await loadOperations();
 }
 
+async function applyProposal(id: string, fileProposal: ProposalFile) {
+  error.value = "";
+  try {
+    const response = await fetch(`/api/developer/operations/${id}/proposal/apply`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: fileProposal.path, fingerprint: fileProposal.fingerprint }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Proposal could not be applied");
+    await loadOperations();
+  } catch (cause) { error.value = cause instanceof Error ? cause.message : "Proposal could not be applied"; }
+}
+
 function statusType(status: string): "success" | "warning" | "info" | "error" {
   if (status === "completed") return "success";
   if (["failed", "denied", "cancelled"].includes(status)) return "error";
@@ -180,6 +208,7 @@ onBeforeUnmount(() => { if (pollTimer) clearInterval(pollTimer); });
 .operation details { font-size: var(--usx-font-size-xs); color: var(--usx-color-on-surface-muted); }
 .operation__task { display: flex; align-items: center; gap: var(--usx-spacing-xs); font-size: var(--usx-font-size-xs); }
 .operation__events { display: grid; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-xs); list-style: none; }.operation__event { display: flex; align-items: flex-start; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-xs); border-left: 3px solid var(--usx-color-border); background: var(--usx-color-surface-variant); }.operation__event span { display: grid; min-width: 0; }.operation__event small { margin-top: .15rem; white-space: pre-wrap; overflow-wrap: anywhere; }.operation__event--plan { border-color: var(--usx-color-info); }.operation__event--tool { border-color: var(--usx-color-warning); }.operation__event--diff { border-color: var(--usx-color-success); }
+.operation__proposal { margin-top: var(--usx-spacing-sm); border-top: var(--usx-border-width) solid var(--usx-color-border); }.operation__proposal h4 { margin-bottom: 0; }.operation__proposal pre { max-height: 18rem; overflow: auto; padding: var(--usx-spacing-sm); background: var(--usx-color-surface-variant); color: var(--usx-color-on-surface); white-space: pre; }
 .ops__error { color: var(--usx-color-error, #d33) !important; }
 .ops__empty { color: var(--usx-color-on-surface-muted); }
 @media (max-width: 760px) { .ops { grid-template-columns: 1fr; } }

@@ -8,8 +8,12 @@ normalizes vendor ACP events before they reach the UI.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import os
 import shutil
+import subprocess
+import tempfile
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -60,6 +64,8 @@ class DeveloperOperation:
     events: list[dict[str, Any]] = field(default_factory=list)
     result: dict[str, Any] | None = None
     error: str | None = None
+    proposal: dict[str, Any] | None = None
+    repository_fingerprint: str = ""
     task: asyncio.Task[None] | None = field(default=None, repr=False)
     client: NanocoderAcpClient | None = field(default=None, repr=False)
 
@@ -79,14 +85,180 @@ class DeveloperOperation:
             "events": self.events[-200:],
             "result": self.result,
             "error": self.error,
+            "proposal": self.proposal,
         }
+
+
+def _git(repo: Path, *args: str, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        input=input_text,
+        capture_output=True,
+        text=True,
+        timeout=15,
+        check=False,
+    )
+
+
+def _repository_fingerprint(repo: Path) -> str:
+    status = _git(repo, "status", "--porcelain=v1", "--untracked-files=all")
+    diff = _git(repo, "diff", "--binary", "HEAD")
+    untracked = _git(repo, "ls-files", "--others", "--exclude-standard", "-z")
+    digest = hashlib.sha256(f"{status.stdout}\0{diff.stdout}".encode())
+    for relative in filter(None, untracked.stdout.split("\0")):
+        candidate = repo / relative
+        digest.update(relative.encode())
+        if candidate.is_file():
+            digest.update(candidate.read_bytes())
+    return digest.hexdigest()
+
+
+def _copy_working_tree(source: Path, destination: Path) -> None:
+    ignored = {".git", "node_modules", ".venv", "dist", "build", "__pycache__"}
+    for child in destination.iterdir():
+        if child.name == ".git":
+            continue
+        if child.is_dir() and not child.is_symlink():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
+    for child in source.iterdir():
+        if child.name in ignored:
+            continue
+        target = destination / child.name
+        if child.is_dir() and not child.is_symlink():
+            shutil.copytree(child, target, ignore=shutil.ignore_patterns(*ignored))
+        elif child.is_file():
+            shutil.copy2(child, target)
+
+
+def _proposal_files(diff_text: str) -> list[dict[str, Any]]:
+    lines = diff_text.splitlines()
+    starts = [index for index, line in enumerate(lines) if line.startswith("diff --git ")]
+    files: list[dict[str, Any]] = []
+    for position, start in enumerate(starts):
+        end = starts[position + 1] if position + 1 < len(starts) else len(lines)
+        section = "\n".join(lines[start:end]) + "\n"
+        path = ""
+        for line in lines[start:end]:
+            if line.startswith("+++ b/"):
+                path = line[6:]
+                break
+            if line.startswith("--- a/"):
+                path = line[6:]
+        if path:
+            files.append(
+                {
+                    "path": path,
+                    "patch": section,
+                    "fingerprint": hashlib.sha256(section.encode()).hexdigest(),
+                    "applied": False,
+                }
+            )
+    return files
+
+
+def _prepare_proposal_workspace(repository: Path) -> tuple[tempfile.TemporaryDirectory[str], Path]:
+    temporary = tempfile.TemporaryDirectory(prefix="ucore-acp-proposal-")
+    workspace = Path(temporary.name) / repository.name
+    clone = subprocess.run(
+        ["git", "clone", "--quiet", "--no-hardlinks", str(repository), str(workspace)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    if clone.returncode != 0:
+        temporary.cleanup()
+        raise RuntimeError(f"Could not create proposal workspace: {clone.stderr.strip()}")
+    _copy_working_tree(repository, workspace)
+    _git(workspace, "add", "-A")
+    baseline = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(workspace),
+            "-c",
+            "user.name=uCore",
+            "-c",
+            "user.email=proposal@localhost",
+            "commit",
+            "--quiet",
+            "--allow-empty",
+            "-m",
+            "uCore proposal baseline",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=15,
+        check=False,
+    )
+    if baseline.returncode != 0:
+        temporary.cleanup()
+        raise RuntimeError(f"Could not seal proposal baseline: {baseline.stderr.strip()}")
+    return temporary, workspace
 
 
 class DeveloperOperationManager:
     """Own and supervise repository-scoped Developer ACP operations."""
 
-    def __init__(self) -> None:
+    def __init__(self, state_path: Path | None = None) -> None:
         self.operations: dict[str, DeveloperOperation] = {}
+        self.state_path = state_path or settings.data_dir / "developer-operations.json"
+        self.audit_path = self.state_path.with_suffix(".jsonl")
+        self._load()
+
+    def _load(self) -> None:
+        if not self.state_path.exists():
+            return
+        try:
+            records = json.loads(self.state_path.read_text(encoding="utf-8"))
+            for record in records[-50:]:
+                status = record.get("status", "failed")
+                if status in {"queued", "running"}:
+                    status = "interrupted"
+                operation = DeveloperOperation(
+                    id=record["id"],
+                    action=record["action"],
+                    repository=record["repository"],
+                    prompt=record["prompt"],
+                    context=record.get("context", {}),
+                    write_capable=bool(record.get("writeCapable")),
+                    status=status,
+                    created_at=int(record.get("createdAt", _now_ms())),
+                    updated_at=int(record.get("updatedAt", _now_ms())),
+                    session_id=record.get("sessionId"),
+                    events=record.get("events", []),
+                    result=record.get("result"),
+                    error=record.get("error"),
+                    proposal=record.get("proposal"),
+                    repository_fingerprint=record.get("repositoryFingerprint", ""),
+                )
+                self.operations[operation.id] = operation
+        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError):
+            self.operations = {}
+
+    def _persist(self, operation: DeveloperOperation, event: str) -> None:
+        self.state_path.parent.mkdir(parents=True, exist_ok=True)
+        records = [
+            item.public() | {"repositoryFingerprint": item.repository_fingerprint}
+            for item in self.operations.values()
+        ]
+        temporary = self.state_path.with_suffix(".tmp")
+        temporary.write_text(json.dumps(records[-50:], indent=2) + "\n", encoding="utf-8")
+        temporary.replace(self.state_path)
+        audit_record = {
+            "at": _now_ms(),
+            "event": event,
+            "operationId": operation.id,
+            "repository": operation.repository,
+            "action": operation.action,
+            "status": operation.status,
+            "taskReference": operation.context.get("taskReference", ""),
+            "proposalFingerprint": (operation.proposal or {}).get("fingerprint", ""),
+        }
+        with self.audit_path.open("a", encoding="utf-8") as audit:
+            audit.write(json.dumps(audit_record, separators=(",", ":")) + "\n")
 
     def capabilities(self) -> dict[str, Any]:
         command = self._command()
@@ -122,6 +294,10 @@ class DeveloperOperationManager:
             {"type": "lifecycle", "status": operation.status, "at": operation.created_at}
         )
         self.operations[operation.id] = operation
+        operation.repository_fingerprint = _repository_fingerprint(
+            (settings.udos_root / repository).resolve(strict=True)
+        )
+        self._persist(operation, "created")
         if not operation.write_capable:
             operation.task = asyncio.create_task(self._run(operation, mode="plan"))
         return operation
@@ -135,6 +311,7 @@ class DeveloperOperationManager:
         operation.events.append(
             {"type": "approval", "decision": "approved", "at": operation.updated_at}
         )
+        self._persist(operation, "approved")
         operation.task = asyncio.create_task(self._run(operation, mode="normal"))
         return operation
 
@@ -147,6 +324,7 @@ class DeveloperOperationManager:
         operation.events.append(
             {"type": "approval", "decision": "denied", "at": operation.updated_at}
         )
+        self._persist(operation, "denied")
         return operation
 
     async def cancel(self, operation_id: str) -> DeveloperOperation:
@@ -162,6 +340,40 @@ class DeveloperOperationManager:
         operation.events.append(
             {"type": "lifecycle", "status": "cancelled", "at": operation.updated_at}
         )
+        self._persist(operation, "cancelled")
+        return operation
+
+    def apply_proposal(self, operation_id: str, path: str, fingerprint: str) -> DeveloperOperation:
+        operation = self.get(operation_id)
+        proposal = operation.proposal or {}
+        files = proposal.get("files") if isinstance(proposal.get("files"), list) else []
+        item = next((entry for entry in files if entry.get("path") == path), None)
+        if item is None or item.get("fingerprint") != fingerprint:
+            raise ValueError("Proposal file or fingerprint is invalid")
+        if item.get("applied"):
+            raise ValueError("Proposal file was already applied")
+        repository = (settings.udos_root / operation.repository).resolve(strict=True)
+        candidate = (repository / path).resolve()
+        if repository not in candidate.parents or candidate == repository:
+            raise ValueError("Proposal path escapes repository root")
+        if _repository_fingerprint(repository) != operation.repository_fingerprint:
+            raise RuntimeError("Repository changed since this proposal was created; review again")
+        result = _git(
+            repository,
+            "apply",
+            "--whitespace=nowarn",
+            "-",
+            input_text=item["patch"],
+        )
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or "Proposal could not be applied")
+        item["applied"] = True
+        operation.repository_fingerprint = _repository_fingerprint(repository)
+        operation.updated_at = _now_ms()
+        operation.events.append(
+            {"type": "proposal", "status": "applied", "path": path, "at": operation.updated_at}
+        )
+        self._persist(operation, "proposal_applied")
         return operation
 
     def get(self, operation_id: str) -> DeveloperOperation:
@@ -184,20 +396,23 @@ class DeveloperOperationManager:
         operation.events.append(
             {"type": "lifecycle", "status": "running", "at": operation.updated_at}
         )
+        temporary: tempfile.TemporaryDirectory[str] | None = None
         try:
             command = self._command()
             if command is None:
                 raise AcpError("NanoCoder is not installed; run scripts/install_nanocoder.sh")
             repository = (settings.udos_root / operation.repository).resolve(strict=True)
+            temporary, proposal_workspace = _prepare_proposal_workspace(repository)
 
             async def on_event(message: dict[str, Any]) -> None:
                 operation.events.append(self._normalize_event(message))
                 operation.updated_at = _now_ms()
+                self._persist(operation, "acp_event")
 
             client = NanocoderAcpClient(
                 command,
-                repository=repository,
-                repositories_root=settings.udos_root,
+                repository=proposal_workspace,
+                repositories_root=proposal_workspace.parent,
                 udos_home=settings.udos_home,
                 dev_mode=True,
                 event_handler=on_event,
@@ -214,6 +429,16 @@ class DeveloperOperationManager:
                 operation.result = await client.prompt(
                     operation.session_id, self._build_prompt(operation)
                 )
+            proposal_diff = _git(proposal_workspace, "diff", "--binary", "HEAD").stdout
+            proposal_files = _proposal_files(proposal_diff)
+            operation.proposal = (
+                {
+                    "fingerprint": hashlib.sha256(proposal_diff.encode()).hexdigest(),
+                    "files": proposal_files,
+                }
+                if proposal_files
+                else None
+            )
             operation.status = "completed"
         except asyncio.CancelledError:
             operation.status = "cancelled"
@@ -221,11 +446,14 @@ class DeveloperOperationManager:
             operation.status = "failed"
             operation.error = str(exc)[:2_000]
         finally:
+            if temporary is not None:
+                temporary.cleanup()
             operation.client = None
             operation.updated_at = _now_ms()
             operation.events.append(
                 {"type": "lifecycle", "status": operation.status, "at": operation.updated_at}
             )
+            self._persist(operation, operation.status)
 
     @staticmethod
     def _bounded_context(context: dict[str, Any]) -> dict[str, Any]:
