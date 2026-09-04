@@ -1,0 +1,16 @@
+<template><Teleport to="body"><div class="scrape-overlay" @click.self="emit('close')"><section class="scrape-modal" role="dialog" aria-modal="true" aria-labelledby="scrape-title"><h2 id="scrape-title">Capture web research</h2><label>URL<input v-model="url" type="url" placeholder="https://…" @keydown.enter.prevent="preview" /></label><div class="scrape-actions"><button type="button" :disabled="loading || !validUrl" @click="preview">{{ loading ? "Loading…" : "Preview" }}</button></div><div v-if="error" role="alert" class="scrape-error">{{ error }}</div><article v-if="scraped"><h3>{{ scraped.title }}</h3><p>{{ scraped.description }}</p><p>{{ scraped.text?.slice(0, 500) }}</p></article><footer><button type="button" @click="emit('close')">Cancel</button><button type="button" :disabled="loading || !validUrl" @click="insert">Insert here</button><button type="button" :disabled="loading || !validUrl" @click="createDocument">Create document</button></footer></section></div></Teleport></template>
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import { useWorkspaceStore } from "../../../stores/workspace";
+import { buildResearchDocument, fetchScrape, type ScrapedContent } from "../../../utils/webScraper";
+const emit = defineEmits<{ close: []; insert: [content: string] }>();
+const ws = useWorkspaceStore();
+const url = ref(""); const loading = ref(false); const error = ref(""); const scraped = ref<ScrapedContent | null>(null);
+const validUrl = computed(() => { try { return ["http:", "https:"].includes(new URL(url.value).protocol); } catch { return false; } });
+async function preview() { if (!validUrl.value) return; loading.value=true;error.value="";try{scraped.value=await fetchScrape(url.value);if(!scraped.value)error.value="Preview unavailable; the URL can still be captured."}finally{loading.value=false} }
+function card(){return{title:scraped.value?.title||new URL(url.value).hostname,description:scraped.value?.description||"",url:url.value}}
+async function ensureScraped(){if(!scraped.value) scraped.value=await fetchScrape(url.value)}
+async function insert(){loading.value=true;try{await ensureScraped();emit("insert",scraped.value?.text||`[${card().title}](${url.value})`);emit("close")}finally{loading.value=false}}
+async function createDocument(){loading.value=true;try{await ensureScraped();const result=buildResearchDocument(card(),scraped.value);const node=await ws.createFile("/research",result.filename);ws.updateFileContent(node.id,result.content);await ws.saveFile(node.path,result.content);emit("close")}catch(exc){error.value=exc instanceof Error?exc.message:"Research document could not be created"}finally{loading.value=false}}
+</script>
+<style scoped>.scrape-overlay{position:fixed;inset:0;z-index:2200;display:grid;place-items:center;padding:var(--usx-spacing-lg);background:rgb(0 0 0 / 50%)}.scrape-modal{display:grid;gap:var(--usx-spacing-md);width:min(36rem,100%);max-height:90vh;overflow:auto;padding:var(--usx-spacing-lg);border:var(--usx-border-width) solid var(--usx-color-border);border-radius:var(--usx-radius-lg);background:var(--usx-color-surface)}h2,h3{margin:0}label{display:grid;gap:var(--usx-spacing-xs)}input{min-height:var(--usx-touch-min)}footer,.scrape-actions{display:flex;justify-content:flex-end;gap:var(--usx-spacing-sm)}.scrape-error{color:var(--usx-color-error)}</style>

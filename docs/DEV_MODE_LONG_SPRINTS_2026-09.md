@@ -238,12 +238,12 @@ until its checklist and focused tests provide evidence.
 | Sprint | Backlog IDs | Count |
 | --- | --- | ---: |
 | Sprint 4 — authoring UI | — | 0 |
-| Sprint 4 — research and renderer | `bangle-p5-003`, `bangle-p6-003`, `bangle-p6-005`, `bangle-p6-006`, `markdown-p9-004` | 5 |
+| Sprint 4 — research and renderer | `bangle-p6-005` | 1 |
 | Sprint 4/6 — test evidence | `bangle-test-001`, `bangle-test-002`, `bangle-test-003`, `bangle-test-004`, `bangle-test-005`, `bangle-test-006` | 6 |
 | Sprint 6 — docs and release | `bangle-doc-001`, `bangle-doc-002`, `bangle-deploy-001`, `bangle-deploy-002` | 4 |
 | Sprint 5 — account state | — | 0 |
 | Sprint 5 — offline/mobile | — | 0 |
-| **Total** | **All open task objects** | **15** |
+| **Total** | **All open task objects** | **11** |
 
 The current working tree contains partial formatting, research capture, chat,
 responsive, and surface-consolidation work. Those changes remain checkpoint

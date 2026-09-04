@@ -8,16 +8,16 @@
         <label>Author<input v-model="author" /></label>
         <label>Format<select v-model="format"><option>APA</option><option>MLA</option><option>Chicago</option></select></label>
         <div class="citation-modal__preview" aria-live="polite">{{ preview }}</div>
-        <footer><button type="button" @click="emit('close')">Cancel</button><button type="button" :disabled="!url.trim()" @click="insert">Insert citation</button></footer>
+        <footer><button type="button" @click="emit('close')">Cancel</button><button type="button" :disabled="!url.trim() || loading" @click="enrich">{{ loading ? "Reading metadata…" : "Read metadata" }}</button><button type="button" :disabled="!url.trim()" @click="insert">Insert citation</button></footer>
       </section>
     </div>
   </Teleport>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import UIcon from "../../atoms/UIcon.vue";
-import { citationGenerator, type CitationFormat } from "../../../utils/citationGenerator";
+import { citationGenerator, generateCitation, type CitationFormat } from "../../../utils/citationGenerator";
 import type { Frontmatter } from "../../../utils/frontmatterParser";
 
 const props = defineProps<{ frontmatter: Frontmatter }>();
@@ -26,8 +26,12 @@ const url = ref(String(props.frontmatter.source || props.frontmatter.url || ""))
 const title = ref(String(props.frontmatter.title || ""));
 const author = ref(String(props.frontmatter.author || ""));
 const format = ref<CitationFormat>("APA");
+const loading = ref(false);
+const enrichedCitation = ref("");
 const metadata = computed(() => ({ url: url.value, title: title.value, author: author.value, site: String(props.frontmatter.site || ""), published: String(props.frontmatter.date || "") }));
-const preview = computed(() => url.value.trim() ? citationGenerator(metadata.value, format.value) : "Add a source URL to preview the citation.");
+const preview = computed(() => enrichedCitation.value || (url.value.trim() ? citationGenerator(metadata.value, format.value) : "Add a source URL to preview the citation."));
+watch([url, title, author, format], () => { enrichedCitation.value = ""; });
+async function enrich() { loading.value = true; try { enrichedCitation.value = await generateCitation(metadata.value, format.value); } finally { loading.value = false; } }
 function insert() { if (url.value.trim()) emit("insert", preview.value); }
 </script>
 

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { citationGenerator, detectPublicationType } from "./citationGenerator";
+import { describe, expect, it, vi } from "vitest";
+import { citationGenerator, detectPublicationType, generateCitation } from "./citationGenerator";
 
 const source = { url: "https://docs.example.com/guide", title: "A Guide", author: "Ada", site: "Example", published: "2026-01-02", accessed: "2026-02-03" };
 
@@ -14,5 +14,10 @@ describe("citationGenerator", () => {
     expect(citation).toContain("Ada");
     expect(citation).toContain("A Guide");
     expect(citation).toContain(source.url);
+  });
+
+  it("enriches missing titles through the governed scraper", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ title: "Scraped title", url: source.url }) }));
+    await expect(generateCitation({ url: source.url, author: "Ada" }, "APA")).resolves.toContain("Scraped title");
   });
 });

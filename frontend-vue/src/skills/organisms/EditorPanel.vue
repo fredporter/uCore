@@ -118,6 +118,7 @@
       @insert="insertCitation"
       @close="citationOpen = false"
     />
+    <ToolbarScrapeModal v-if="scraperOpen" @close="scraperOpen = false" @insert="insertScrapedContent" />
   </div>
 </template>
 
@@ -146,6 +147,7 @@ import MarkdownPreview from "../molecules/MarkdownPreview.vue";
 import ResearchPanel from "../molecules/editor/ResearchPanel.vue";
 import SummarizeModal from "../molecules/editor/SummarizeModal.vue";
 import CitationModal from "../molecules/editor/CitationModal.vue";
+import ToolbarScrapeModal from "../molecules/editor/ToolbarScrapeModal.vue";
 import { useShellStore } from "../../stores/shell";
 import { useToast } from "../../composables/useToast";
 import {
@@ -199,6 +201,7 @@ const researchOpen = ref(false);
 const frontmatterEditorOpen = ref(false);
 const summarizeOpen = ref(false);
 const citationOpen = ref(false);
+const scraperOpen = ref(false);
 
 const currentFilename = computed(() => props.title || "Untitled.md");
 
@@ -285,8 +288,7 @@ function handleToolbarAction(action: string) {
     return;
   }
   if (action === "scrape") {
-    researchOpen.value = true;
-    toast("Choose a captured source from Research, or capture one in BrowserUI.", "info");
+    scraperOpen.value = true;
     return;
   }
   if (action === "outline") {
@@ -312,6 +314,13 @@ function insertCitation(citation: string) {
   citationOpen.value = false;
   emitDocumentUpdate();
   toast("Citation inserted", "success");
+}
+
+function insertScrapedContent(content: string) {
+  bodyContent.value = `${bodyContent.value.replace(/\s*$/, "")}\n\n${content}\n`;
+  scraperOpen.value = false;
+  emitDocumentUpdate();
+  toast("Research inserted", "success");
 }
 
 function emitDocumentUpdate() {

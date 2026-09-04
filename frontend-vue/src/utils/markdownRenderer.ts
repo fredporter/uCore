@@ -91,7 +91,7 @@ async function getMarp() {
   }
 }
 
-async function renderStory(
+export async function renderStory(
   markdown: string,
 ): Promise<{ html: string; slideCount: number }> {
   const marp = await getMarp();

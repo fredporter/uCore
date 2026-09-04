@@ -16,13 +16,14 @@
 
     <!-- Research doc list -->
     <div v-else class="research-panel__list">
-      <button
+      <div
         v-for="file in researchFiles"
         :key="file.id"
         class="research-item"
         :class="{ 'research-item--active': ws.selectedId === file.id }"
-        @click="ws.selectFile(file)"
       >
+        <input v-model="selectedIds" type="checkbox" :value="file.id" :aria-label="`Select ${displayTitle(file)}`" />
+        <button type="button" class="research-item__open" @click="ws.selectFile(file)">
         <div class="research-item__title">{{ displayTitle(file) }}</div>
         <div v-if="fileSource(file)" class="research-item__source">
           <UIcon name="public" />
@@ -31,8 +32,10 @@
         <div v-if="fileDate(file)" class="research-item__date">
           {{ fileDate(file) }}
         </div>
-      </button>
+        </button>
+      </div>
     </div>
+    <button v-if="selectedIds.length >= 2" type="button" class="research-panel__combine" @click="showCombine = true">Combine Research ({{ selectedIds.length }})</button>
 
     <!-- Actions -->
     <div
@@ -62,6 +65,7 @@
       @insert="onInsertSummary"
       @close="showSummarize = false"
     />
+    <CombineResearchModal v-if="showCombine" :sources="selectedSources" @close="showCombine = false" @create="createSynthesis" />
   </div>
 </template>
 
@@ -70,6 +74,7 @@ import { computed, ref } from "vue";
 import UIcon from "../../atoms/UIcon.vue";
 import UBadge from "../../atoms/UBadge.vue";
 import SummarizeModal from "./SummarizeModal.vue";
+import CombineResearchModal from "./CombineResearchModal.vue";
 import { useWorkspaceStore } from "../../../stores/workspace";
 import { getEditorSurface } from "../../../composables/useEditorSurface";
 import { parseDocument } from "../../../utils/frontmatterParser";
@@ -80,6 +85,8 @@ const ws = useWorkspaceStore();
 const editorSurface = getEditorSurface();
 const { toast } = useToast();
 const showSummarize = ref(false);
+const showCombine = ref(false);
+const selectedIds = ref<string[]>([]);
 
 // Files tagged type: research in frontmatter
 const researchFiles = computed(() =>
@@ -99,6 +106,16 @@ const selectedIsResearch = computed(() =>
 const currentContent = computed(
   () => editorSurface.currentFile.value?.content ?? "",
 );
+const selectedSources = computed(() => researchFiles.value.filter((file) => selectedIds.value.includes(file.id)).map((file) => ({ path: file.path, name: file.name, content: file.content ?? "" })));
+
+async function createSynthesis(result: { filename: string; content: string }) {
+  const node = await ws.createFile("/research", result.filename);
+  ws.updateFileContent(node.id, result.content);
+  await ws.saveFile(node.path, result.content);
+  showCombine.value = false;
+  selectedIds.value = [];
+  toast("Research synthesis created", "success");
+}
 
 function displayTitle(file: { name: string; content?: string }): string {
   const { frontmatter } = parseDocument(file.content ?? "");
@@ -215,7 +232,7 @@ async function copyToBinder() {
 .research-item {
   width: 100%;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 2px;
   padding: var(--usx-spacing-sm) var(--usx-spacing-md);
   border: none;
@@ -224,6 +241,8 @@ async function copyToBinder() {
   text-align: left;
   transition: background-color 100ms ease;
 }
+.research-item__open { display:flex;flex:1;min-width:0;flex-direction:column;align-items:flex-start;padding:0;border:0;background:transparent;text-align:left;cursor:pointer; }
+.research-panel__combine { margin:var(--usx-spacing-sm);min-height:var(--usx-touch-min); }
 
 .research-item:hover {
   background-color: color-mix(

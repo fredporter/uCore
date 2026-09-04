@@ -475,7 +475,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 5,
     component: "EnhancedBangleToolbar.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-5", "integration"],
     checklist: [
@@ -538,7 +538,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 6,
     component: "CombineResearchModal.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["phase-6", "feature", "research"],
     checklist: [
@@ -598,7 +598,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 6,
     component: "CitationGenerator.ts",
     priority: "low",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-6", "utility"],
     checklist: [
@@ -1139,7 +1139,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 9,
     component: "StoriesOverlay.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-9", "story", "overlay"],
     checklist: [
