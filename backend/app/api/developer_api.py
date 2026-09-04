@@ -43,6 +43,7 @@ IGNORED_DIRS = {
     ".mypy_cache",
 }
 MAX_PREVIEW_BYTES = 200_000
+MAX_SEARCH_RESULTS = 100
 
 # ─── Policy loader (lazy, cached once loaded) ────────────────────
 
@@ -373,6 +374,44 @@ def _list_repo_files(
             __import__("datetime").datetime.fromtimestamp(file["updatedAt"]).isoformat()
         )
     return files
+
+
+def _search_repo(repo_name: str, query: str, limit: int = 50) -> list[dict[str, Any]]:
+    """Search bounded text files through ripgrep without invoking a shell."""
+    repo_path = _repo_path(repo_name)
+    term = query.strip()
+    if not term or len(term) > 500:
+        raise ValueError("query must contain between 1 and 500 characters")
+    bounded_limit = max(1, min(limit, MAX_SEARCH_RESULTS))
+    command = [
+        "rg", "--line-number", "--column", "--no-heading", "--color", "never",
+        "--fixed-strings", "--max-count", str(bounded_limit), term, ".",
+    ]
+    try:
+        result = subprocess.run(
+            command, cwd=repo_path, capture_output=True, text=True, timeout=8, check=False
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError("Repository search is unavailable") from exc
+    if result.returncode not in {0, 1}:
+        raise RuntimeError((result.stderr or "Repository search failed")[:500])
+    matches: list[dict[str, Any]] = []
+    for line in result.stdout.splitlines():
+        parts = line.split(":", 3)
+        if len(parts) != 4:
+            continue
+        path, line_number, column, preview = parts
+        matches.append(
+            {
+                "path": path.removeprefix("./"),
+                "line": int(line_number),
+                "column": int(column),
+                "preview": preview[:500],
+            }
+        )
+        if len(matches) >= bounded_limit:
+            break
+    return matches
 
 
 def _status_label(code: str) -> str:
@@ -826,6 +865,21 @@ async def handle_list_repo_files(request: web.Request) -> web.Response:
             "include_hidden": include_hidden,
             "include_all_extensions": include_all_extensions,
         }
+    )
+
+
+async def handle_search_repo(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    query = request.query.get("q", "")
+    try:
+        limit = int(request.query.get("limit", "50"))
+        matches = _search_repo(repo_name, query, limit)
+    except FileNotFoundError:
+        return web.json_response({"error": f"Repository not found: {repo_name}"}, status=404)
+    except (RuntimeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(
+        {"repo": repo_name, "query": query, "matches": matches, "count": len(matches)}
     )
 
 

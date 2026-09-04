@@ -46,6 +46,7 @@ def register_routes(app: web.Application) -> None:
         handle_list_repos,
         handle_repo_github_status,
         handle_repo_status,
+        handle_search_repo,
         handle_stage_repo_file,
         handle_start_developer,
         handle_stop_developer,
@@ -190,6 +191,7 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/developer/repos/{repo_name}/diff", handle_get_repo_file_diff)
     app.router.add_get("/api/developer/repos/{repo_name}/review", handle_list_repo_review)
     app.router.add_get("/api/developer/repos/{repo_name}/status", handle_repo_status)
+    app.router.add_get("/api/developer/repos/{repo_name}/search", handle_search_repo)
     app.router.add_get(
         "/api/developer/repos/{repo_name}/github", handle_repo_github_status
     )

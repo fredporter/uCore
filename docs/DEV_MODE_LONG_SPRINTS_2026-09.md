@@ -91,6 +91,10 @@ approve/deny controls for write-capable actions. NanoCoder availability and
 failure are reported honestly and the editor remains usable without it.
 The canonical MCP gateway exposes read-only action discovery and operation
 status; it cannot execute or approve construction work.
+The workbench now preserves repository, active file, open-file references, and
+review-panel state for the browser session; adds a searchable tree, keyboard
+go-to-file palette, bounded repository content search, synchronized editor tabs,
+and contextual staged/unstaged review controls.
 
 ### Scope
 

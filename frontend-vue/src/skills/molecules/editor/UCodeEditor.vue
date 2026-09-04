@@ -139,6 +139,7 @@ const emit = defineEmits<{
   "update:notebookCells": [cells: NotebookCell[]];
   save: [];
   "close-file": [];
+  "select-file": [path: string];
 }>();
 
 // ── Open tabs ─────────────────────────────────────────────────────────
@@ -193,6 +194,8 @@ function openFile(filename: string, path: string, content: string) {
 function selectTab(id: string) {
   activeTabId.value = id;
   isDirty.value = activeTab.value?.dirty ?? false;
+  if (activeTab.value) emit("select-file", activeTab.value.path);
+  emit("update:fileContent", activeContent.value);
 }
 
 function closeTab(id: string) {
@@ -204,6 +207,8 @@ function closeTab(id: string) {
     if (openTabs.value.length > 0) {
       activeTabId.value =
         openTabs.value[Math.min(idx, openTabs.value.length - 1)].id;
+      if (activeTab.value) emit("select-file", activeTab.value.path);
+      emit("update:fileContent", activeContent.value);
     } else {
       activeTabId.value = "";
       emit("close-file");
