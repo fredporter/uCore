@@ -148,6 +148,12 @@ their state.
    propose tests, plan refactor, implement reviewed task, and review working tree.
    Each action sends bounded editor/repository context through the ACP session.
 
+Current checkpoint: repository-wide unstaged diffs are parsed into navigable
+file/hunk records. Hunk staging requires the exact reviewed diff fingerprint
+and rejects stale state before applying anything to the index. The operations
+composer carries optional uFlow task references, while ACP lifecycle, approval,
+plan, tool, diff, and message updates render as structured session cards.
+
 ### Exit gates
 
 - Edit → diff → test → stage → commit-preparation is traceable and recoverable.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -50,6 +51,10 @@ MAX_SEARCH_RESULTS = 100
 
 class FileConflictError(RuntimeError):
     """Raised when a file changed after the editor loaded it."""
+
+
+class DiffConflictError(RuntimeError):
+    """Raised when a reviewed diff changed before a hunk was staged."""
 
 
 # ─── Policy loader (lazy, cached once loaded) ────────────────────
@@ -690,6 +695,106 @@ def _get_repo_file_diff(repo_name: str, relative_path: str) -> dict[str, Any]:
     }
 
 
+def _parse_repo_diff(diff_text: str, staged: bool) -> list[dict[str, Any]]:
+    """Parse a git patch into files and independently applicable hunks."""
+    lines = diff_text.splitlines()
+    starts = [index for index, line in enumerate(lines) if line.startswith("diff --git ")]
+    files: list[dict[str, Any]] = []
+    for position, start in enumerate(starts):
+        end = starts[position + 1] if position + 1 < len(starts) else len(lines)
+        section = lines[start:end]
+        first_hunk = next(
+            (index for index, line in enumerate(section) if line.startswith("@@ ")),
+            len(section),
+        )
+        header = section[:first_hunk]
+        path = ""
+        for line in header:
+            if line.startswith("+++ b/"):
+                path = line[6:]
+                break
+        if not path:
+            marker = next((line for line in header if line.startswith("--- a/")), "")
+            path = marker[6:] if marker else ""
+        if not path:
+            continue
+
+        hunk_starts = [index for index, line in enumerate(section) if line.startswith("@@ ")]
+        hunks: list[dict[str, Any]] = []
+        for hunk_index, hunk_start in enumerate(hunk_starts):
+            hunk_end = (
+                hunk_starts[hunk_index + 1] if hunk_index + 1 < len(hunk_starts) else len(section)
+            )
+            hunk_lines = section[hunk_start:hunk_end]
+            hunks.append(
+                {
+                    "index": hunk_index,
+                    "header": hunk_lines[0],
+                    "lines": hunk_lines[1:],
+                    "patch": "\n".join([*header, *hunk_lines]) + "\n",
+                }
+            )
+        section_text = "\n".join(section) + "\n"
+        status = (
+            "deleted"
+            if any(line.startswith("deleted file mode ") for line in header)
+            else "added"
+            if any(line.startswith("new file mode ") for line in header)
+            else "modified"
+        )
+        files.append(
+            {
+                "path": path,
+                "status": status,
+                "staged": staged,
+                "fingerprint": hashlib.sha256(section_text.encode()).hexdigest(),
+                "hunks": hunks,
+            }
+        )
+    return files
+
+
+def _get_repo_diffs(repo_name: str, staged: bool = False) -> dict[str, Any]:
+    repo_path = _repo_path(repo_name)
+    args = ["diff"]
+    if staged:
+        args.append("--cached")
+    args.extend(["--no-ext-diff", "--unified=3"])
+    diff_text = _git_output(repo_path, *args)
+    return {"repo": repo_name, "staged": staged, "files": _parse_repo_diff(diff_text, staged)}
+
+
+def _stage_repo_hunk(
+    repo_name: str, relative_path: str, hunk_index: int, expected_fingerprint: str
+) -> dict[str, Any]:
+    repo_path = _repo_path(repo_name)
+    _safe_file_path(repo_name, relative_path)
+    current = _get_repo_diffs(repo_name, staged=False)
+    file_diff = next((item for item in current["files"] if item["path"] == relative_path), None)
+    if not file_diff or file_diff["fingerprint"] != expected_fingerprint:
+        raise DiffConflictError("Diff changed since it was reviewed; reload before staging")
+    hunks = file_diff["hunks"]
+    if hunk_index < 0 or hunk_index >= len(hunks):
+        raise ValueError("Hunk index is out of range")
+    result = subprocess.run(
+        ["git", "-C", str(repo_path), "apply", "--cached", "--whitespace=nowarn", "-"],
+        input=hunks[hunk_index]["patch"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"git apply failed: {result.stderr.strip()}")
+    return {
+        "repo": repo_name,
+        "path": relative_path,
+        "hunkIndex": hunk_index,
+        "action": "staged",
+        "success": True,
+    }
+
+
 def _save_repo_file(
     repo_name: str, relative_path: str, content: str, revision: str = ""
 ) -> dict[str, Any]:
@@ -1133,6 +1238,34 @@ async def handle_get_repo_file_diff(request: web.Request) -> web.Response:
     except FileNotFoundError:
         return web.json_response({"error": f"File not found: {relative_path}"}, status=404)
     except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(payload)
+
+
+async def handle_get_repo_diffs(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    try:
+        payload = _get_repo_diffs(repo_name, staged=_to_bool(request.query.get("staged")))
+    except FileNotFoundError:
+        return web.json_response({"error": f"Repository not found: {repo_name}"}, status=404)
+    return web.json_response(payload)
+
+
+async def handle_stage_repo_hunk(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    try:
+        data = await request.json()
+        relative_path = str(data.get("path", "")).strip()
+        fingerprint = str(data.get("fingerprint", "")).strip()
+        hunk_index = int(data.get("hunkIndex", -1))
+        if not relative_path or not fingerprint:
+            raise ValueError("Path and diff fingerprint are required")
+        payload = _stage_repo_hunk(repo_name, relative_path, hunk_index, fingerprint)
+    except DiffConflictError as exc:
+        return web.json_response({"error": str(exc), "conflict": True}, status=409)
+    except FileNotFoundError:
+        return web.json_response({"error": "Repository or file not found"}, status=404)
+    except (TypeError, ValueError, RuntimeError) as exc:
         return web.json_response({"error": str(exc)}, status=400)
     return web.json_response(payload)
 

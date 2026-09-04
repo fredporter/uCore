@@ -19,6 +19,8 @@
       </select>
       <label for="developer-prompt">Request</label>
       <textarea id="developer-prompt" v-model="prompt" rows="4" :placeholder="promptPlaceholder" />
+      <label for="developer-task-reference">uFlow task reference <span class="ops__optional">optional</span></label>
+      <input id="developer-task-reference" v-model="taskReference" placeholder="Task ID or stable reference" />
       <div class="ops__context">
         <span><UIcon name="folder" /> {{ repository }}</span>
         <span v-if="file"><UIcon name="description" /> {{ file }}</span>
@@ -39,6 +41,7 @@
           <UBadge :type="statusType(operation.status)" size="sm">{{ operation.status.replaceAll('_', ' ') }}</UBadge>
         </header>
         <p>{{ operation.prompt }}</p>
+        <p v-if="operation.context?.taskReference" class="operation__task"><UIcon name="task_alt" /> {{ operation.context.taskReference }}</p>
         <div v-if="operation.status === 'awaiting_approval'" class="operation__controls">
           <UButton @click="decide(operation.id, 'approve')">Approve once</UButton>
           <UButton variant="ghost" @click="decide(operation.id, 'deny')">Deny</UButton>
@@ -49,9 +52,10 @@
         <p v-if="operation.error" class="ops__error">{{ operation.error }}</p>
         <details v-if="operation.events.length">
           <summary>{{ operation.events.length }} event{{ operation.events.length === 1 ? '' : 's' }}</summary>
-          <ol>
-            <li v-for="(event, index) in operation.events" :key="index">
-              {{ eventLabel(event) }}
+          <ol class="operation__events">
+            <li v-for="(event, index) in operation.events" :key="index" :class="`operation__event operation__event--${eventCard(event).kind}`">
+              <UIcon :name="eventCard(event).icon" />
+              <span><strong>{{ eventCard(event).title }}</strong><small v-if="eventCard(event).detail">{{ eventCard(event).detail }}</small></span>
             </li>
           </ol>
         </details>
@@ -69,13 +73,14 @@ import UIcon from "../../skills/atoms/UIcon.vue";
 interface ActionSpec { id: string; label: string; icon: string; write: boolean }
 interface Capabilities { available: boolean; devMode: string; actions: ActionSpec[] }
 interface OperationEvent { type?: string; status?: string; decision?: string; method?: string; update?: Record<string, unknown> }
-interface Operation { id: string; label: string; prompt: string; status: string; events: OperationEvent[]; error?: string }
+interface Operation { id: string; label: string; prompt: string; status: string; context?: Record<string, string>; events: OperationEvent[]; error?: string }
 
 const props = defineProps<{ repository: string; file?: string }>();
 const capabilities = ref<Capabilities | null>(null);
 const operations = ref<Operation[]>([]);
 const selectedAction = ref("");
 const prompt = ref("");
+const taskReference = ref("");
 const error = ref("");
 const submitting = ref(false);
 let pollTimer: ReturnType<typeof setInterval> | undefined;
@@ -103,7 +108,10 @@ async function submitOperation() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: selectedAction.value, repository: props.repository, prompt: prompt.value,
-        context: props.file ? { file: props.file } : {},
+        context: {
+          ...(props.file ? { file: props.file } : {}),
+          ...(taskReference.value.trim() ? { taskReference: taskReference.value.trim() } : {}),
+        },
       }),
     });
     const data = await response.json();
@@ -138,6 +146,18 @@ function eventLabel(event: OperationEvent): string {
   return `ACP ${updateType}`;
 }
 
+function eventCard(event: OperationEvent) {
+  if (event.type === "approval") return { kind: "approval", icon: "approval", title: eventLabel(event), detail: "" };
+  if (event.type === "lifecycle") return { kind: "lifecycle", icon: event.status === "completed" ? "check_circle" : "sync", title: eventLabel(event), detail: "" };
+  const updateType = typeof event.update?.sessionUpdate === "string" ? event.update.sessionUpdate : "update";
+  const normalized = updateType.toLowerCase();
+  const kind = normalized.includes("plan") ? "plan" : normalized.includes("tool") ? "tool" : normalized.includes("diff") || normalized.includes("patch") ? "diff" : "message";
+  const icon = { plan: "checklist", tool: "build", diff: "difference", message: "notes" }[kind];
+  const detailSource = event.update?.content ?? event.update?.message ?? event.update?.title ?? event.update?.path ?? "";
+  const detail = typeof detailSource === "string" ? detailSource.slice(0, 500) : "";
+  return { kind, icon, title: `ACP ${updateType.replaceAll("_", " ")}`, detail };
+}
+
 async function refresh() { try { await Promise.all([loadCapabilities(), loadOperations()]); } catch (cause) { error.value = cause instanceof Error ? cause.message : "Operations unavailable"; } }
 watch(() => props.repository, refresh);
 onMounted(() => { refresh(); pollTimer = setInterval(() => { if (operations.value.some((item) => ["queued", "running"].includes(item.status))) loadOperations(); }, 1500); });
@@ -151,12 +171,15 @@ onBeforeUnmount(() => { if (pollTimer) clearInterval(pollTimer); });
 .ops__header p, .operation p { color: var(--usx-color-on-surface-muted); }
 .ops__composer, .operation { border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); background: var(--usx-color-surface); padding: var(--usx-spacing-md); }
 .ops__composer { display: flex; flex-direction: column; gap: var(--usx-spacing-sm); align-self: start; }
-.ops__composer select, .ops__composer textarea { width: 100%; padding: var(--usx-spacing-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-surface-variant); color: var(--usx-color-on-surface); }
+.ops__composer select, .ops__composer textarea, .ops__composer input { width: 100%; padding: var(--usx-spacing-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-surface-variant); color: var(--usx-color-on-surface); }
+.ops__optional { color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); }
 .ops__context, .operation header, .operation__controls { display: flex; align-items: center; gap: var(--usx-spacing-sm); flex-wrap: wrap; }
 .ops__context { font-size: var(--usx-font-size-xs); color: var(--usx-color-on-surface-muted); }
 .ops__history { display: flex; flex-direction: column; gap: var(--usx-spacing-sm); min-width: 0; }
 .operation header { justify-content: space-between; }
 .operation details { font-size: var(--usx-font-size-xs); color: var(--usx-color-on-surface-muted); }
+.operation__task { display: flex; align-items: center; gap: var(--usx-spacing-xs); font-size: var(--usx-font-size-xs); }
+.operation__events { display: grid; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-xs); list-style: none; }.operation__event { display: flex; align-items: flex-start; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-xs); border-left: 3px solid var(--usx-color-border); background: var(--usx-color-surface-variant); }.operation__event span { display: grid; min-width: 0; }.operation__event small { margin-top: .15rem; white-space: pre-wrap; overflow-wrap: anywhere; }.operation__event--plan { border-color: var(--usx-color-info); }.operation__event--tool { border-color: var(--usx-color-warning); }.operation__event--diff { border-color: var(--usx-color-success); }
 .ops__error { color: var(--usx-color-error, #d33) !important; }
 .ops__empty { color: var(--usx-color-on-surface-muted); }
 @media (max-width: 760px) { .ops { grid-template-columns: 1fr; } }
