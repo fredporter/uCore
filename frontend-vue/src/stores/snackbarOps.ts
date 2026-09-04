@@ -47,6 +47,7 @@ export interface UnifiedServiceInfo {
   status: "up" | "degraded" | "down";
   port: number;
   type: string;
+  actions: string[];
   meta: Record<string, unknown>;
 }
 
@@ -290,6 +291,7 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
         status: s.status || "down",
         port: s.port || 0,
         type: s.type || "system",
+        actions: s.actions || [],
         meta: s.meta || {},
       }));
     } catch (e: any) {

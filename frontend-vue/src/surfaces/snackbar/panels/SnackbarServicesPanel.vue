@@ -30,7 +30,7 @@
           }}
           not responding.</strong
         >
-        <span>Restart, repair, or revert to a working release.</span>
+        <span>Restart managed runtimes or open diagnostics for recovery guidance.</span>
       </div>
       <UButton
         variant="secondary"
@@ -88,7 +88,7 @@
               </UBadge>
             </td>
             <td v-if="downServices.length > 0">
-              <div v-if="svc.status !== 'up'" class="crash-inline-actions">
+              <div v-if="svc.status !== 'up' && svc.actions.includes('restart')" class="crash-inline-actions">
                 <button
                   class="crash-btn"
                   title="Restart service"
@@ -97,32 +97,8 @@
                 >
                   <UIcon name="restart_alt" />
                 </button>
-                <button
-                  class="crash-btn"
-                  title="Repair service"
-                  :disabled="actionLoading === svc.name"
-                  @click="doRepair(svc.name)"
-                >
-                  <UIcon name="build" />
-                </button>
-                <button
-                  class="crash-btn crash-btn--danger"
-                  :title="
-                    destroyConfirm === svc.name
-                      ? 'Confirm destroy'
-                      : 'Destroy (revert to release)'
-                  "
-                  :disabled="actionLoading === svc.name"
-                  @click="doDestroy(svc.name)"
-                >
-                  <UIcon
-                    :name="
-                      destroyConfirm === svc.name ? 'warning' : 'delete_forever'
-                    "
-                  />
-                </button>
               </div>
-              <span v-else class="server-muted-text-sm">—</span>
+              <span v-else class="server-muted-text-sm">{{ svc.status === 'up' ? '—' : 'Manual recovery' }}</span>
             </td>
           </tr>
         </tbody>
@@ -143,7 +119,6 @@ const srv = useSnackbarOpsStore();
 const toast = useSnackbarStore();
 
 const actionLoading = ref<string | null>(null);
-const destroyConfirm = ref<string | null>(null);
 
 const downServices = computed(() =>
   srv.unifiedServices.filter((s) => s.status !== "up"),
@@ -156,46 +131,6 @@ async function doRestart(name: string) {
     ok ? `Service "${name}" restarted` : `Failed to restart "${name}"`,
     ok ? "success" : "error",
     4000,
-    "services",
-  );
-  actionLoading.value = null;
-  srv.fetchUnifiedServices();
-}
-
-async function doRepair(name: string) {
-  actionLoading.value = name;
-  const ok = await srv.repairService(name);
-  toast.show(
-    ok ? `Service "${name}" repair initiated` : `Repair failed for "${name}"`,
-    ok ? "info" : "error",
-    4000,
-    "services",
-  );
-  actionLoading.value = null;
-  srv.fetchUnifiedServices();
-}
-
-function doDestroy(name: string) {
-  if (destroyConfirm.value === name) {
-    destroyConfirm.value = null;
-    void destroyService(name);
-  } else {
-    destroyConfirm.value = name;
-    setTimeout(() => {
-      if (destroyConfirm.value === name) destroyConfirm.value = null;
-    }, 5000);
-  }
-}
-
-async function destroyService(name: string) {
-  actionLoading.value = name;
-  const ok = await srv.resetService(name);
-  toast.show(
-    ok
-      ? `Service "${name}" reverted to working release`
-      : `Destroy failed for "${name}"`,
-    ok ? "warning" : "error",
-    5000,
     "services",
   );
   actionLoading.value = null;

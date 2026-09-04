@@ -41,9 +41,11 @@
     <SnackbarHost />
     <!-- Overlay Layer: chat bubble, toasts, alerts, popups, stories -->
     <OverlayLayer />
-    <div v-if="pwa.canInstall" class="app-install-banner" role="status">
-      <span>Install uCore for faster offline access.</span>
-      <button type="button" @click="installPwa">Install</button>
+    <div v-if="pwa.canInstall || pwa.installMessage" class="app-install-banner" role="status">
+      <span>{{ pwa.installMessage || "Install uCore for faster offline access." }}</span>
+      <button v-if="pwa.canInstall" type="button" :disabled="pwa.installing" @click="installPwa">
+        {{ pwa.installing ? "Opening…" : "Install" }}
+      </button>
       <button type="button" @click="pwa.dismissInstall">Not now</button>
     </div>
   </div>
@@ -56,7 +58,7 @@
  * Replaces RootLayout + SurfaceShellContext from React.
  * @category layouts
  */
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useDevModeStore } from "../stores/devMode";
 import { useShellStore } from "../stores/shell";
 import { useSettingsStore } from "../stores/settings";
@@ -82,7 +84,7 @@ const route = useRoute();
 const runtimeWarning = ref("");
 const identity = useIdentityStore();
 const chat = useChatStore();
-const pwa = usePwa();
+const pwa = reactive(usePwa());
 const { toast } = useToast();
 const shellEl = ref<HTMLElement | null>(null);
 useSwipe(shellEl, { right: () => shell.setSidebarOpen(true), left: () => shell.setSidebarOpen(false) });

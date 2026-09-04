@@ -8,6 +8,8 @@ export function usePwa() {
   const online = ref(typeof navigator === "undefined" ? true : navigator.onLine);
   const installEvent = ref<InstallPromptEvent | null>(null);
   const dwellComplete = ref(false);
+  const installing = ref(false);
+  const installMessage = ref("");
   let dwellTimer: ReturnType<typeof setTimeout> | undefined;
   const updateOnline = () => { online.value = navigator.onLine; };
   const captureInstall = (event: Event) => { event.preventDefault(); installEvent.value = event as InstallPromptEvent; };
@@ -15,13 +17,39 @@ export function usePwa() {
 
   async function install() {
     const event = installEvent.value;
-    if (!event) return false;
-    await event.prompt();
-    const accepted = (await event.userChoice).outcome === "accepted";
-    if (accepted) installEvent.value = null;
-    return accepted;
+    if (!event) {
+      installMessage.value = "Installation is not available in this browser. Use its app or site menu to install uCore.";
+      return false;
+    }
+    installing.value = true;
+    installMessage.value = "";
+    try {
+      await event.prompt();
+      const choice = await Promise.race([
+        event.userChoice,
+        new Promise<{ outcome: "dismissed" }>((resolve) =>
+          setTimeout(() => resolve({ outcome: "dismissed" }), 5000),
+        ),
+      ]);
+      const accepted = choice.outcome === "accepted";
+      installEvent.value = null;
+      installMessage.value = accepted
+        ? "uCore was installed."
+        : "The install prompt was dismissed or could not open. Use the browser app menu to install uCore.";
+      return accepted;
+    } catch {
+      installEvent.value = null;
+      installMessage.value = "This browser could not open its install prompt. Use the browser app or site menu to install uCore.";
+      return false;
+    } finally {
+      installing.value = false;
+    }
   }
-  function dismissInstall() { localStorage.setItem(INSTALL_DISMISSED, "true"); installEvent.value = null; }
+  function dismissInstall() {
+    localStorage.setItem(INSTALL_DISMISSED, "true");
+    installEvent.value = null;
+    installMessage.value = "";
+  }
 
   onMounted(() => {
     registerSW({ immediate: true });
@@ -36,5 +64,5 @@ export function usePwa() {
     window.removeEventListener("offline", updateOnline);
     window.removeEventListener("beforeinstallprompt", captureInstall);
   });
-  return { online, canInstall, install, dismissInstall };
+  return { online, canInstall, installing, installMessage, install, dismissInstall };
 }

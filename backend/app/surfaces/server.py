@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import shutil
 from typing import Any
 
 from aiohttp import ClientSession, ClientTimeout, web
@@ -95,15 +96,25 @@ async def _probe_service(svc: dict) -> dict:
     if url is None:
         return {**svc, "status": "down", "uptime": 0}
 
-    accept_status = svc.get("_raw", {}).get(
-        "health", {},
-    ).get("accept_status", 200)
+    accept_status = (
+        svc.get("_raw", {})
+        .get(
+            "health",
+            {},
+        )
+        .get("accept_status", 200)
+    )
     if not isinstance(accept_status, list):
         accept_status = [accept_status]
 
-    timeout = svc.get("_raw", {}).get(
-        "probe", {},
-    ).get("timeout_seconds", 2)
+    timeout = (
+        svc.get("_raw", {})
+        .get(
+            "probe",
+            {},
+        )
+        .get("timeout_seconds", 2)
+    )
 
     try:
         async with ClientSession(
@@ -112,13 +123,17 @@ async def _probe_service(svc: dict) -> dict:
             async with session.get(url) as resp:
                 return {
                     **svc,
-                    "status": (
-                        "up" if resp.status in accept_status else "degraded"
-                    ),
+                    "status": ("up" if resp.status in accept_status else "degraded"),
                     "uptime": 99.0,
+                    "recoveryActions": ["restart"] if svc.get("name") == "ollama" else [],
                 }
     except Exception:
-        return {**svc, "status": "down", "uptime": 0}
+        return {
+            **svc,
+            "status": "down",
+            "uptime": 0,
+            "recoveryActions": ["restart"] if svc.get("name") == "ollama" else [],
+        }
 
 
 async def _probe_all(store: ServerStore) -> list[dict]:
@@ -140,14 +155,16 @@ def register_server_routes(app: web.Application, store: ServerStore) -> None:  #
         degraded = sum(1 for s in services if s["status"] == "degraded")
         down = sum(1 for s in services if s["status"] == "down")
         pct = round((up / max(len(services), 1)) * 100)
-        return web.json_response({
-            "services": services,
-            "count": len(services),
-            "up": up,
-            "degraded": degraded,
-            "down": down,
-            "health_pct": pct,
-        })
+        return web.json_response(
+            {
+                "services": services,
+                "count": len(services),
+                "up": up,
+                "degraded": degraded,
+                "down": down,
+                "health_pct": pct,
+            }
+        )
 
     # ── Services ──────────────────────────────────────────────
     async def handle_list_services(_request: web.Request) -> web.Response:
@@ -170,12 +187,47 @@ def register_server_routes(app: web.Application, store: ServerStore) -> None:  #
         except Exception as e:
             return web.json_response({"error": str(e)}, status=400)
 
+    async def handle_restart_service(request: web.Request) -> web.Response:
+        """Restart a service only when uCore owns a reviewed recovery adapter."""
+        name = request.match_info["name"]
+        if store.get_service(name) is None:
+            return web.json_response({"error": "Service not found"}, status=404)
+        if name != "ollama":
+            return web.json_response(
+                {"error": "This service has no managed restart adapter"}, status=409
+            )
+        brew = shutil.which("brew")
+        if not brew:
+            return web.json_response(
+                {"error": "Homebrew is unavailable; restart Ollama from its host service manager"},
+                status=503,
+            )
+        try:
+            process = await asyncio.create_subprocess_exec(
+                brew,
+                "services",
+                "restart",
+                "ollama",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30)
+        except TimeoutError:
+            return web.json_response({"error": "Ollama restart timed out"}, status=504)
+        output = (stdout or stderr).decode(errors="replace").strip()[:1000]
+        if process.returncode != 0:
+            return web.json_response({"error": output or "Ollama restart failed"}, status=500)
+        return web.json_response(
+            {"service": name, "action": "restart", "success": True, "output": output}
+        )
+
     # ── Logs ──────────────────────────────────────────────────
     async def handle_logs(request: web.Request) -> web.Response:
         raw_limit = request.query.get("limit", "20")
         limit = int(raw_limit)
         try:
             from app.services.spool_reader import read_spool  # noqa: PLC0415
+
             entries = read_spool(max_entries=limit)
             logs = [
                 {
@@ -197,12 +249,8 @@ def register_server_routes(app: web.Application, store: ServerStore) -> None:  #
         models: list[dict] = []
         error: str | None = None
         try:
-            async with aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=5)
-            ) as session:
-                async with session.get(
-                    "http://localhost:11434/api/tags"
-                ) as resp:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
+                async with session.get("http://localhost:11434/api/tags") as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         raw = data.get("models") or []
@@ -211,9 +259,7 @@ def register_server_routes(app: web.Application, store: ServerStore) -> None:  #
                             {
                                 "id": m.get("name", ""),
                                 "name": m.get("name", ""),
-                                "pct": round(
-                                    ((len(raw) - i) / total) * 100
-                                ),
+                                "pct": round(((len(raw) - i) / total) * 100),
                                 "calls": 0,
                             }
                             for i, m in enumerate(raw[:10])
@@ -222,30 +268,29 @@ def register_server_routes(app: web.Application, store: ServerStore) -> None:  #
                         error = f"Ollama returned {resp.status}"
         except Exception as exc:
             error = str(exc)
-        return web.json_response({
-            "models": models,
-            "count": len(models),
-            "error": error,
-        })
+        return web.json_response(
+            {
+                "models": models,
+                "count": len(models),
+                "error": error,
+            }
+        )
 
     # ── Agent list (mirrors /api/agents but flat) ─────────────
     async def handle_server_agents(_request: web.Request) -> web.Response:
         try:
             from app.api.agents import handle_list_agents
+
             resp = await handle_list_agents(_request)
             data = json.loads(resp.body) if hasattr(resp, "body") else {}
-            agents = [
-                a for a in data.get("agents", []) if a.get("kind") == "agent"
-            ]
+            agents = [a for a in data.get("agents", []) if a.get("kind") == "agent"]
             mapped = [
                 {
                     "id": a.get("id", "unknown"),
                     "name": a.get("name", "Agent"),
                     "icon": a.get("icon", "smart_toy"),
                     "active": a.get("status", "offline") != "offline",
-                    "description": ", ".join(
-                        a.get("capabilities", []) or ["general"]
-                    ),
+                    "description": ", ".join(a.get("capabilities", []) or ["general"]),
                 }
                 for a in agents
             ]
@@ -258,8 +303,10 @@ def register_server_routes(app: web.Application, store: ServerStore) -> None:  #
     async def handle_server_budget(request: web.Request) -> web.Response:
         try:
             from app.api.budget_api import handle_budget_status as _budget
+
             resp = await _budget(request)
             import json as _json
+
             if hasattr(resp, "body"):
                 data = _json.loads(resp.body)
             else:
@@ -269,27 +316,32 @@ def register_server_routes(app: web.Application, store: ServerStore) -> None:  #
             limit = float(policy.get("monthly_usd_limit", 50))
             used = float(usage.get("total_cost", 0))
             remaining = max(0, limit - used)
-            return web.json_response({
-                "remaining": round(remaining, 2),
-                "used": round(used, 2),
-                "limit": round(limit, 2),
-                "over_limit": used >= limit,
-            })
+            return web.json_response(
+                {
+                    "remaining": round(remaining, 2),
+                    "used": round(used, 2),
+                    "limit": round(limit, 2),
+                    "over_limit": used >= limit,
+                }
+            )
         except Exception as exc:
             log.warning("Server budget aggregation failed: %s", exc)
-            return web.json_response({
-                "remaining": 50.00,
-                "used": 0.00,
-                "limit": 50.00,
-                "over_limit": False,
-                "error": str(exc),
-            })
+            return web.json_response(
+                {
+                    "remaining": 50.00,
+                    "used": 0.00,
+                    "limit": 50.00,
+                    "over_limit": False,
+                    "error": str(exc),
+                }
+            )
 
     # ── Register routes ───────────────────────────────────────
     app.router.add_get("/api/server/health", handle_health)
     app.router.add_get("/api/server/services", handle_list_services)
     app.router.add_get("/api/server/services/{name}", handle_get_service)
     app.router.add_post("/api/server/services", handle_add_service)
+    app.router.add_post("/api/server/services/{name}/restart", handle_restart_service)
     app.router.add_get("/api/server/logs", handle_logs)
     app.router.add_get("/api/server/models", handle_models)
     app.router.add_get("/api/server/agents", handle_server_agents)

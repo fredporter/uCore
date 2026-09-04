@@ -66,25 +66,6 @@ _DEFAULT_SERVICES: list[dict[str, Any]] = [
         "health": {"path": "/api/tags", "accept_status": [200]},
         "description": "Local LLM inference runtime",
     },
-    {
-        "id": "feed-spool",
-        "name": "Feed Spool",
-        "category": "system",
-        "host": "localhost",
-        "port": 8486,
-        "health": {"path": "/health"},
-        "description": "Feed spooler and transport layer",
-    },
-    {
-        "id": "secret-server",
-        "name": "Secret Server",
-        "category": "user",
-        "host": "localhost",
-        "port": 30001,
-        "health": {"path": "/health", "enabled": True},
-        "tcp_probe": True,
-        "description": "AES-256-GCM encrypted secret vault",
-    },
 ]
 
 _DEFAULT_PROBE = {
@@ -117,7 +98,12 @@ def load_service_registry() -> tuple[list[dict[str, Any]], dict[str, Any]]:
 # ─── Developer Repo Policy ───────────────────────────────────────────────
 
 _DEFAULT_SYSTEM_REPO_NAMES: set[str] = {
-    "ucore", "uflow", "uknowledge", "ucode", "ucode2", "uvector",
+    "ucore",
+    "uflow",
+    "uknowledge",
+    "ucode",
+    "ucode2",
+    "uvector",
 }
 
 _DEFAULT_CORE_REPO_NAMES: set[str] = {
@@ -125,8 +111,13 @@ _DEFAULT_CORE_REPO_NAMES: set[str] = {
 }
 
 _DEFAULT_EXTENSION_REPO_NAMES: set[str] = {
-    "udos-budget", "udos-identity", "udos-google",
-    "udos-dreamscape", "udos-publishing", "udos-agents", "udos-vaults",
+    "udos-budget",
+    "udos-identity",
+    "udos-google",
+    "udos-dreamscape",
+    "udos-publishing",
+    "udos-agents",
+    "udos-vaults",
 }
 
 _DEFAULT_VAULT_DOC_NAME_HINTS: set[str] = {
@@ -149,21 +140,50 @@ _DEFAULT_CODE_MARKER_FILES: set[str] = {
 }
 
 _DEFAULT_CODE_MARKER_DIRS: set[str] = {
-    "src", "backend", "frontend", "frontend-vue", "app", "scripts", "packages",
+    "src",
+    "backend",
+    "frontend",
+    "frontend-vue",
+    "app",
+    "scripts",
+    "packages",
 }
 
 _DEFAULT_DOC_MARKER_DIRS: set[str] = {
-    ".obsidian", "docs", "knowledge", "notes",
+    ".obsidian",
+    "docs",
+    "knowledge",
+    "notes",
 }
 
 _DEFAULT_CODE_FILE_EXTENSIONS: set[str] = {
-    ".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java",
-    ".c", ".cpp", ".h", ".hpp", ".rb", ".php", ".swift", ".kt",
-    ".scala", ".cs", ".sh",
+    ".py",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".go",
+    ".rs",
+    ".java",
+    ".c",
+    ".cpp",
+    ".h",
+    ".hpp",
+    ".rb",
+    ".php",
+    ".swift",
+    ".kt",
+    ".scala",
+    ".cs",
+    ".sh",
 }
 
 _DEFAULT_DOC_FILE_EXTENSIONS: set[str] = {
-    ".md", ".mdx", ".markdown", ".rst", ".txt",
+    ".md",
+    ".mdx",
+    ".markdown",
+    ".rst",
+    ".txt",
 }
 
 _DEFAULT_DOC_ONLY_THRESHOLD: dict[str, int] = {
@@ -207,7 +227,8 @@ def load_developer_repo_policy() -> dict[str, Any]:
     return {
         "code_root": roots.get("code_root", _DEFAULT_CODE_ROOT),
         "vault_non_code_roots": roots.get(
-            "vault_non_code_roots", _DEFAULT_VAULT_NON_CODE_ROOTS,
+            "vault_non_code_roots",
+            _DEFAULT_VAULT_NON_CODE_ROOTS,
         ),
         "system_repos": set(
             data.get("system_repos", list(_DEFAULT_SYSTEM_REPO_NAMES)),
@@ -224,14 +245,16 @@ def load_developer_repo_policy() -> dict[str, Any]:
         "code_marker_files": set(
             _lower_keys(
                 data.get("code_markers", {}).get(
-                    "files", list(_DEFAULT_CODE_MARKER_FILES),
+                    "files",
+                    list(_DEFAULT_CODE_MARKER_FILES),
                 ),
             ),
         ),
         "code_marker_dirs": set(
             _lower_keys(
                 data.get("code_markers", {}).get(
-                    "dirs", list(_DEFAULT_CODE_MARKER_DIRS),
+                    "dirs",
+                    list(_DEFAULT_CODE_MARKER_DIRS),
                 ),
             ),
         ),
@@ -256,10 +279,12 @@ def load_developer_repo_policy() -> dict[str, Any]:
             ),
         ),
         "doc_only_threshold": classification.get(
-            "doc_only_threshold", _DEFAULT_DOC_ONLY_THRESHOLD,
+            "doc_only_threshold",
+            _DEFAULT_DOC_ONLY_THRESHOLD,
         ),
         "scan_limits": classification.get(
-            "scan_limits", _DEFAULT_SCAN_LIMITS,
+            "scan_limits",
+            _DEFAULT_SCAN_LIMITS,
         ),
         "default_scope": policy.get("default_scope", "code"),
         "scopes_allowed": policy.get(
@@ -267,7 +292,8 @@ def load_developer_repo_policy() -> dict[str, Any]:
             ["code", "all", "vault", "system"],
         ),
         "exclude_system_default": policy.get(
-            "exclude_system_default", False,
+            "exclude_system_default",
+            False,
         ),
         "fallback_kind": behavior.get(
             "fallback_kind_when_uncertain",
