@@ -3,6 +3,11 @@
 **Status:** Planned — begins after the Dev Mode release gates
 **Owners:** uCore host, uCode runtime, SonicScrewdriver distribution companion
 
+This pathway consumes the ecosystem-wide specification inventory defined in
+[`ECOSYSTEM_SPEC_INVENTORY.md`](ECOSYSTEM_SPEC_INVENTORY.md). SonicScrewdriver
+and HomeNest retain their focused confirmation gates, while discovery and
+provenance are recorded once in the shared inventory.
+
 ## Product direction
 
 uCore is the installed platform and lifecycle authority. uCode supplies portable

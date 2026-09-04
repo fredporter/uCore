@@ -290,3 +290,8 @@ SonicScrewdriver development is blocked on the pathway's mandatory
 specification-reconciliation gate. That gate must inspect and preserve useful
 concepts from both active and historical SonicScrewdriver plans before scope is
 confirmed.
+
+The continuous ecosystem archaeology process is defined in
+[`ECOSYSTEM_SPEC_INVENTORY.md`](ECOSYSTEM_SPEC_INVENTORY.md). It inventories
+active, archived, and planned repositories and concepts, but does not promote
+recovered ideas into the Dev Mode backlog without explicit confirmation.
