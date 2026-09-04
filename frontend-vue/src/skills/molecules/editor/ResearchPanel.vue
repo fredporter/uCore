@@ -66,6 +66,8 @@
       @close="showSummarize = false"
     />
     <CombineResearchModal v-if="showCombine" :sources="selectedSources" @close="showCombine = false" @create="createSynthesis" />
+    <div v-if="variantParent" class="research-panel__variant"><span>Variant of {{ variantParent.name }}</span><button type="button" @click="syncMetadata">Sync metadata</button><button type="button" @click="showVariantDiff = true">Compare</button></div>
+    <Teleport to="body"><div v-if="showVariantDiff && variantParent" class="variant-diff-overlay" @click.self="showVariantDiff = false"><section role="dialog" aria-modal="true" aria-label="Compare variant" class="variant-diff"><button type="button" @click="showVariantDiff = false">Close</button><DiffEditorPanel :original="variantParent.content || ''" :modified="currentContent" has-repository-diff /></section></div></Teleport>
   </div>
 </template>
 
@@ -75,11 +77,13 @@ import UIcon from "../../atoms/UIcon.vue";
 import UBadge from "../../atoms/UBadge.vue";
 import SummarizeModal from "./SummarizeModal.vue";
 import CombineResearchModal from "./CombineResearchModal.vue";
+import DiffEditorPanel from "./DiffEditorPanel.vue";
 import { useWorkspaceStore } from "../../../stores/workspace";
 import { getEditorSurface } from "../../../composables/useEditorSurface";
 import { parseDocument } from "../../../utils/frontmatterParser";
 import { useToast } from "../../../composables/useToast";
 import { SNACKBAR_BASE } from "../../../api/base";
+import { syncVariantMetadata } from "../../../utils/documentVariant";
 
 const ws = useWorkspaceStore();
 const editorSurface = getEditorSurface();
@@ -87,6 +91,7 @@ const { toast } = useToast();
 const showSummarize = ref(false);
 const showCombine = ref(false);
 const selectedIds = ref<string[]>([]);
+const showVariantDiff = ref(false);
 
 // Files tagged type: research in frontmatter
 const researchFiles = computed(() =>
@@ -107,6 +112,25 @@ const currentContent = computed(
   () => editorSurface.currentFile.value?.content ?? "",
 );
 const selectedSources = computed(() => researchFiles.value.filter((file) => selectedIds.value.includes(file.id)).map((file) => ({ path: file.path, name: file.name, content: file.content ?? "" })));
+const allFiles = computed(() => {
+  const result: typeof ws.tree = [];
+  const visit = (nodes: typeof ws.tree) => nodes.forEach((node) => { if (node.type === "file") result.push(node); if (node.children) visit(node.children); });
+  visit(ws.tree); return result;
+});
+const variantParent = computed(() => {
+  const current = editorSurface.currentFile.value;
+  if (!current) return null;
+  const parentPath = String(parseDocument(current.content).frontmatter.parent || "");
+  return allFiles.value.find((file) => file.path === parentPath) || null;
+});
+async function syncMetadata() {
+  const current = editorSurface.currentFile.value;
+  if (!current || !variantParent.value) return;
+  const content = syncVariantMetadata(variantParent.value.content ?? "", current.content);
+  editorSurface.updateContent(content);
+  await ws.saveFile(current.path, content, current.version);
+  toast("Variant metadata synchronized", "success");
+}
 
 async function createSynthesis(result: { filename: string; content: string }) {
   const node = await ws.createFile("/research", result.filename);
@@ -243,6 +267,7 @@ async function copyToBinder() {
 }
 .research-item__open { display:flex;flex:1;min-width:0;flex-direction:column;align-items:flex-start;padding:0;border:0;background:transparent;text-align:left;cursor:pointer; }
 .research-panel__combine { margin:var(--usx-spacing-sm);min-height:var(--usx-touch-min); }
+.research-panel__variant{display:flex;align-items:center;justify-content:space-between;gap:var(--usx-spacing-sm);padding:var(--usx-spacing-sm);border-top:var(--usx-border-width) solid var(--usx-color-border)}.variant-diff-overlay{position:fixed;inset:0;z-index:2200;display:grid;place-items:center;padding:var(--usx-spacing-lg);background:rgb(0 0 0 / 50%)}.variant-diff{display:flex;flex-direction:column;width:min(70rem,100%);height:min(44rem,90vh);padding:var(--usx-spacing-md);background:var(--usx-color-surface)}
 
 .research-item:hover {
   background-color: color-mix(

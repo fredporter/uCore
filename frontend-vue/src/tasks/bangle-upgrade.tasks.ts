@@ -580,7 +580,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 6,
     component: "Integration",
     priority: "low",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-6", "feature"],
     checklist: [

@@ -150,6 +150,8 @@ import CitationModal from "../molecules/editor/CitationModal.vue";
 import ToolbarScrapeModal from "../molecules/editor/ToolbarScrapeModal.vue";
 import { useShellStore } from "../../stores/shell";
 import { useToast } from "../../composables/useToast";
+import { useWorkspaceStore } from "../../stores/workspace";
+import { createVariantDocument } from "../../utils/documentVariant";
 import {
   parseDocument,
   serializeDocument,
@@ -189,6 +191,7 @@ const emit = defineEmits<{
 
 const shell = useShellStore();
 const { toast } = useToast();
+const workspace = useWorkspaceStore();
 
 // ─── State ───────────────────────────────────────────────────────────
 const initialDocument = parseDocument(props.content || "");
@@ -299,6 +302,10 @@ function handleToolbarAction(action: string) {
     citationOpen.value = true;
     return;
   }
+  if (action === "variant") {
+    void createVariant();
+    return;
+  }
   toast(`${action.replaceAll("-", " ")} is available through its governed workflow.`, "info");
 }
 
@@ -321,6 +328,20 @@ function insertScrapedContent(content: string) {
   scraperOpen.value = false;
   emitDocumentUpdate();
   toast("Research inserted", "success");
+}
+
+async function createVariant() {
+  const parent = workspace.selectedFile;
+  if (!parent) { toast("Save the document before creating a variant.", "warning"); return; }
+  const stem = parent.name.replace(/\.md$/i, "");
+  const variantId = `variant-${Date.now()}`;
+  const filename = `${stem}-${variantId}.md`;
+  const parentFolder = parent.path.slice(0, parent.path.lastIndexOf("/")) || "/";
+  const content = createVariantDocument(serializeDocument(bodyContent.value, frontmatter.value), parent.path, variantId);
+  const node = await workspace.createFile(parentFolder, filename);
+  workspace.updateFileContent(node.id, content);
+  await workspace.saveFile(node.path, content);
+  toast("Variant created", "success");
 }
 
 function emitDocumentUpdate() {
