@@ -14,6 +14,12 @@
         </button>
       </li>
     </ul>
+    <div class="review__commit">
+      <label for="commit-message">Commit preparation</label>
+      <textarea id="commit-message" v-model="commitMessage" rows="3" placeholder="Describe the staged change…" />
+      <button :disabled="!staged.length || !commitMessage.trim() || committing" @click="commit">Commit {{ staged.length }} staged file{{ staged.length === 1 ? '' : 's' }}</button>
+      <p v-if="commitOutput" :class="{ 'review__error': commitFailed }">{{ commitOutput }}</p>
+    </div>
   </aside>
 </template>
 
@@ -28,6 +34,7 @@ const emit = defineEmits<{ select: [path: string] }>();
 const staged = ref<Omit<StatusItem, "staged">[]>([]);
 const unstaged = ref<Omit<StatusItem, "staged">[]>([]);
 const loading = ref(false);
+const commitMessage = ref(""); const commitOutput = ref(""); const commitFailed = ref(false); const committing = ref(false);
 const items = computed(() => [
   ...staged.value.map((item) => ({ ...item, staged: true })),
   ...unstaged.value.filter((item) => !staged.value.some((stagedItem) => stagedItem.file === item.file)).map((item) => ({ ...item, staged: false })),
@@ -45,6 +52,14 @@ async function toggleStage(item: StatusItem) {
   await fetch(`/api/developer/repos/${encodeURIComponent(props.repository)}/${action}?path=${encodeURIComponent(item.file)}`, { method: "POST" });
   await load();
 }
+async function commit() {
+  committing.value = true; commitOutput.value = ""; commitFailed.value = false;
+  try {
+    const response = await fetch(`/api/developer/repos/${encodeURIComponent(props.repository)}/commit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: commitMessage.value }) });
+    const data = await response.json(); commitFailed.value = !response.ok || !data.success; commitOutput.value = data.output || data.error || (data.success ? "Commit created." : "Nothing committed.");
+    if (data.success) { commitMessage.value = ""; await load(); }
+  } finally { committing.value = false; }
+}
 watch(() => [props.repository, props.revision], load);
 onMounted(load);
 </script>
@@ -59,6 +74,10 @@ onMounted(load);
 .review__file { min-width: 0; flex: 1; display: flex; align-items: center; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-xs); background: transparent; border: 0; color: var(--usx-color-on-surface); text-align: left; }
 .review__file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .review__clean, .review > p { display: flex; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-sm); color: var(--usx-color-on-surface-muted); }
+.review__commit { display: flex; flex-direction: column; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-sm); border-top: var(--usx-border-width) solid var(--usx-color-border); }
+.review__commit textarea { resize: vertical; padding: var(--usx-spacing-xs); background: var(--usx-color-background); color: var(--usx-color-on-surface); border: var(--usx-border-width) solid var(--usx-color-border); }
+.review__commit > button { padding: var(--usx-spacing-xs); border: var(--usx-border-width) solid var(--usx-color-primary); border-radius: var(--usx-radius-sm); background: var(--usx-color-primary); color: var(--usx-color-on-primary); }
+.review__commit > button:disabled { opacity: .5; }.review__commit p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--usx-font-size-xs); }.review__error { color: var(--usx-color-danger); }
 @media (max-width: 900px) { .review { width: 14rem; flex-basis: 14rem; } }
 @media (max-width: 700px) { .review { display: none; } }
 </style>

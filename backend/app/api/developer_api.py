@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import subprocess
 from pathlib import Path
@@ -44,6 +45,11 @@ IGNORED_DIRS = {
 }
 MAX_PREVIEW_BYTES = 200_000
 MAX_SEARCH_RESULTS = 100
+
+
+class FileConflictError(RuntimeError):
+    """Raised when a file changed after the editor loaded it."""
+
 
 # ─── Policy loader (lazy, cached once loaded) ────────────────────
 
@@ -292,6 +298,21 @@ def _safe_file_path(repo_name: str, relative_path: str) -> Path:
     return file_path
 
 
+def _safe_new_file_path(repo_name: str, relative_path: str) -> Path:
+    repo_path = _repo_path(repo_name)
+    file_path = (repo_path / relative_path).resolve()
+    if repo_path not in file_path.parents or file_path == repo_path:
+        raise ValueError("Path escapes repository root")
+    if file_path.suffix.lower() not in ALLOWED_EXTENSIONS:
+        raise ValueError("Unsupported file type")
+    return file_path
+
+
+def _file_revision(path: Path) -> str:
+    stat = path.stat()
+    return f"{stat.st_mtime_ns}:{stat.st_size}"
+
+
 def _list_repos(scope: str = "code", exclude_system: bool = False) -> list[dict]:
     repos: list[dict] = []
     root = settings.udos_root.expanduser()
@@ -384,8 +405,17 @@ def _search_repo(repo_name: str, query: str, limit: int = 50) -> list[dict[str, 
         raise ValueError("query must contain between 1 and 500 characters")
     bounded_limit = max(1, min(limit, MAX_SEARCH_RESULTS))
     command = [
-        "rg", "--line-number", "--column", "--no-heading", "--color", "never",
-        "--fixed-strings", "--max-count", str(bounded_limit), term, ".",
+        "rg",
+        "--line-number",
+        "--column",
+        "--no-heading",
+        "--color",
+        "never",
+        "--fixed-strings",
+        "--max-count",
+        str(bounded_limit),
+        term,
+        ".",
     ]
     try:
         result = subprocess.run(
@@ -539,6 +569,77 @@ def _get_repo_file_preview(repo_name: str, relative_path: str) -> dict[str, Any]
         "size": stat.st_size,
         "truncated": truncated,
         "updatedAt": __import__("datetime").datetime.fromtimestamp(stat.st_mtime).isoformat(),
+        "revision": _file_revision(file_path),
+    }
+
+
+def _create_repo_file(repo_name: str, relative_path: str, content: str = "") -> dict[str, Any]:
+    file_path = _safe_new_file_path(repo_name, relative_path)
+    if file_path.exists():
+        raise FileExistsError(relative_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text(content, encoding="utf-8")
+    return _get_repo_file_preview(repo_name, relative_path)
+
+
+def _move_repo_file(repo_name: str, source: str, destination: str) -> dict[str, Any]:
+    source_path = _safe_file_path(repo_name, source)
+    destination_path = _safe_new_file_path(repo_name, destination)
+    if destination_path.exists():
+        raise FileExistsError(destination)
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+    source_path.replace(destination_path)
+    return _get_repo_file_preview(repo_name, destination)
+
+
+def _delete_repo_file(repo_name: str, relative_path: str, revision: str) -> dict[str, Any]:
+    file_path = _safe_file_path(repo_name, relative_path)
+    if not revision or revision != _file_revision(file_path):
+        raise FileConflictError("File changed since it was loaded")
+    file_path.unlink()
+    return {"repo": repo_name, "path": relative_path, "deleted": True}
+
+
+def _diagnose_repo_file(repo_name: str, relative_path: str) -> dict[str, Any]:
+    file_path = _safe_file_path(repo_name, relative_path)
+    text = file_path.read_text(encoding="utf-8", errors="replace")
+    suffix = file_path.suffix.lower()
+    adapter = {".py": "python-ast", ".json": "json", ".yaml": "yaml", ".yml": "yaml"}.get(suffix)
+    if adapter is None:
+        return {
+            "repo": repo_name,
+            "path": relative_path,
+            "supported": False,
+            "adapter": None,
+            "diagnostics": [],
+        }
+    diagnostics: list[dict[str, Any]] = []
+    try:
+        if suffix == ".py":
+            ast.parse(text, filename=relative_path)
+        elif suffix == ".json":
+            json.loads(text)
+        else:
+            import yaml
+
+            yaml.safe_load(text)
+    except (SyntaxError, json.JSONDecodeError) as exc:
+        diagnostics.append(
+            {
+                "severity": "error",
+                "line": getattr(exc, "lineno", 1) or 1,
+                "column": getattr(exc, "offset", 1) or 1,
+                "message": str(exc)[:500],
+            }
+        )
+    except Exception as exc:
+        diagnostics.append({"severity": "error", "line": 1, "column": 1, "message": str(exc)[:500]})
+    return {
+        "repo": repo_name,
+        "path": relative_path,
+        "supported": True,
+        "adapter": adapter,
+        "diagnostics": diagnostics,
     }
 
 
@@ -588,8 +689,12 @@ def _get_repo_file_diff(repo_name: str, relative_path: str) -> dict[str, Any]:
     }
 
 
-def _save_repo_file(repo_name: str, relative_path: str, content: str) -> dict[str, Any]:
+def _save_repo_file(
+    repo_name: str, relative_path: str, content: str, revision: str = ""
+) -> dict[str, Any]:
     file_path = _safe_file_path(repo_name, relative_path)
+    if revision and revision != _file_revision(file_path):
+        raise FileConflictError("File changed since it was loaded")
     file_path.write_text(content, encoding="utf-8")
     return _get_repo_file_preview(repo_name, relative_path)
 
@@ -946,7 +1051,70 @@ async def handle_update_repo_file(request: web.Request) -> web.Response:
         return web.json_response({"error": "Missing string field: content"}, status=400)
 
     try:
-        payload = _save_repo_file(repo_name, relative_path, data["content"])
+        payload = _save_repo_file(
+            repo_name, relative_path, data["content"], str(data.get("revision", ""))
+        )
+    except FileNotFoundError:
+        return web.json_response({"error": f"File not found: {relative_path}"}, status=404)
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    except FileConflictError as exc:
+        return web.json_response({"error": str(exc), "conflict": True}, status=409)
+    return web.json_response(payload)
+
+
+async def handle_create_repo_file(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    try:
+        data = await request.json()
+        payload = _create_repo_file(
+            repo_name, str(data.get("path", "")).strip(), str(data.get("content", ""))
+        )
+    except FileNotFoundError:
+        return web.json_response({"error": f"Repository not found: {repo_name}"}, status=404)
+    except FileExistsError as exc:
+        return web.json_response({"error": f"File already exists: {exc}"}, status=409)
+    except (TypeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(payload, status=201)
+
+
+async def handle_move_repo_file(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    try:
+        data = await request.json()
+        payload = _move_repo_file(
+            repo_name, str(data.get("source", "")).strip(), str(data.get("destination", "")).strip()
+        )
+    except FileNotFoundError as exc:
+        return web.json_response({"error": f"File not found: {exc}"}, status=404)
+    except FileExistsError as exc:
+        return web.json_response({"error": f"File already exists: {exc}"}, status=409)
+    except (TypeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(payload)
+
+
+async def handle_delete_repo_file(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    relative_path = request.query.get("path", "").strip()
+    revision = request.headers.get("If-Match", "").strip()
+    try:
+        payload = _delete_repo_file(repo_name, relative_path, revision)
+    except FileNotFoundError:
+        return web.json_response({"error": f"File not found: {relative_path}"}, status=404)
+    except FileConflictError as exc:
+        return web.json_response({"error": str(exc), "conflict": True}, status=409)
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(payload)
+
+
+async def handle_diagnose_repo_file(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    relative_path = request.query.get("path", "").strip()
+    try:
+        payload = _diagnose_repo_file(repo_name, relative_path)
     except FileNotFoundError:
         return web.json_response({"error": f"File not found: {relative_path}"}, status=404)
     except ValueError as exc:
@@ -1098,7 +1266,9 @@ async def handle_decide_developer_operation(request: web.Request) -> web.Respons
 
 async def handle_cancel_developer_operation(request: web.Request) -> web.Response:
     try:
-        operation = await get_developer_operation_manager().cancel(request.match_info["operation_id"])
+        operation = await get_developer_operation_manager().cancel(
+            request.match_info["operation_id"]
+        )
     except KeyError as exc:
         return web.json_response({"error": str(exc)}, status=404)
     return web.json_response(operation.public())
@@ -1110,7 +1280,10 @@ async def handle_cancel_developer_operation(request: web.Request) -> web.Respons
 def _execute_developer_read_intent(message: str, workspace: str = "") -> str | None:
     """Execute bounded read-only Dev-lane requests before consulting the model."""
     normalized = " ".join(message.lower().split())
-    if any(phrase in normalized for phrase in ("list repos", "list repositories", "show repos", "show repositories")):
+    if any(
+        phrase in normalized
+        for phrase in ("list repos", "list repositories", "show repos", "show repositories")
+    ):
         repos = _list_repos(scope="code")
         if not repos:
             return "No repositories were found in the configured code workspace."
@@ -1120,7 +1293,9 @@ def _execute_developer_read_intent(message: str, workspace: str = "") -> str | N
             state = "dirty" if repo.get("dirty") else "clean"
             lines.append(f"- **{repo['name']}** — `{branch}` ({state})")
         return "\n".join(lines)
-    if workspace and any(phrase in normalized for phrase in ("repo status", "repository status", "git status")):
+    if workspace and any(
+        phrase in normalized for phrase in ("repo status", "repository status", "git status")
+    ):
         status = _list_repo_status(workspace)
         counts = {key: len(value) for key, value in status.items()}
         return (
@@ -1163,14 +1338,16 @@ async def handle_developer_chat(request: web.Request) -> web.Response:
     except (FileNotFoundError, ValueError) as exc:
         return web.json_response({"error": str(exc)}, status=400)
     if executed_response is not None:
-        return web.json_response({
-            "response": executed_response,
-            "lane": lane,
-            "workspace": workspace,
-            "model": "ucore-read-contract",
-            "usage": {},
-            "executed": True,
-        })
+        return web.json_response(
+            {
+                "response": executed_response,
+                "lane": lane,
+                "workspace": workspace,
+                "model": "ucore-read-contract",
+                "usage": {},
+                "executed": True,
+            }
+        )
 
     log = __import__("logging").getLogger("ucore.devchat")
     binder_fp = ""

@@ -58,10 +58,21 @@
             <span><UIcon name="folder" /> {{ activeRepo }}</span>
             <span v-if="activePath"><UIcon name="description" /> {{ activePath }}</span>
             <button title="Go to file (Ctrl/Cmd+P)" @click="paletteOpen=true"><UIcon name="search" /> Go to file <kbd>⌘P</kbd></button>
+            <button title="Create file" @click="openFileDialog('create')"><UIcon name="note_add" /></button>
+            <button :disabled="!activePath" title="Rename or move file" @click="openFileDialog('move')"><UIcon name="drive_file_move" /></button>
+            <button :disabled="!activePath" title="Delete file" @click="openFileDialog('delete')"><UIcon name="delete" /></button>
+            <button :disabled="!activePath" title="Run diagnostics" @click="loadDiagnostics"><UIcon name="problem" /> {{ diagnosticsLabel }}</button>
             <button :class="{active:reviewOpen}" @click="reviewOpen=!reviewOpen"><UIcon name="difference" /> Review</button>
           </div>
           <div class="dev-workbench-main">
           <div class="dev-workbench-content">
+        <div v-if="diagnosticsSupported !== null" class="dev-diagnostics" role="status">
+          <span v-if="diagnosticsSupported === false">No diagnostics adapter for this file type.</span>
+          <span v-else-if="!diagnostics.length"><UIcon name="check_circle" /> No syntax diagnostics.</span>
+          <button v-for="item in diagnostics" v-else :key="`${item.line}:${item.column}:${item.message}`" @click="activeTab='editor'">
+            <UBadge type="error" size="sm">{{ item.line }}:{{ item.column }}</UBadge>{{ item.message }}
+          </button>
+        </div>
         <div v-if="activeTab==='repository'">
           <div v-if="githubStatus" class="dev-github-bar">
             <UIcon name="cloud" />
@@ -89,6 +100,7 @@
       </div>
     </div>
     <DeveloperCommandPalette :open="paletteOpen" :files="fileTree.map(item => item.name)" @close="paletteOpen=false" @select="selectFile" />
+    <DeveloperFileDialog :open="fileDialogOpen" :mode="fileDialogMode" :repository="activeRepo" :path="activePath" :revision="fileRevision" @close="fileDialogOpen=false" @complete="onFileOperation" />
   </div>
 </template>
 
@@ -104,6 +116,7 @@ import ProseCodeReader from "../../skills/molecules/editor/ProseCodeReader.vue";
 import DeveloperOperationsPanel from "./DeveloperOperationsPanel.vue";
 import DeveloperCommandPalette from "./DeveloperCommandPalette.vue";
 import DeveloperReviewPanel from "./DeveloperReviewPanel.vue";
+import DeveloperFileDialog from "./DeveloperFileDialog.vue";
 
 const shell = useShellStore();
 const route = useRoute();
@@ -121,6 +134,7 @@ interface Repo { name: string; branch: string; status: string; path: string; cha
 interface FileItem { name: string; type: string; size?: number; }
 interface TreeNode { name: string; path: string; isDir: boolean; depth: number; }
 interface SearchMatch { path: string; line: number; column: number; preview: string }
+interface Diagnostic { severity: string; line: number; column: number; message: string }
 interface GithubRun { workflowName: string; status: string; conclusion: string; url: string; }
 interface GithubStatus { configured: boolean; repository?: { nameWithOwner: string; url: string }; pull_request?: { number: number; url: string } | null; runs?: GithubRun[]; }
 
@@ -150,6 +164,12 @@ const reviewOpen = ref(true);
 const reviewRevision = ref(0);
 const editor = ref<InstanceType<typeof UCodeEditor> | null>(null);
 const openPaths = ref<string[]>([]);
+const fileRevision = ref("");
+const diagnostics = ref<Diagnostic[]>([]);
+const diagnosticsSupported = ref<boolean | null>(null);
+const fileDialogOpen = ref(false);
+const fileDialogMode = ref<"create" | "move" | "delete">("create");
+const diagnosticsLabel = computed(() => diagnosticsSupported.value === false ? "unsupported" : diagnostics.value.length ? `${diagnostics.value.length} issue${diagnostics.value.length === 1 ? '' : 's'}` : diagnosticsSupported.value ? "clean" : "Diagnostics");
 const SESSION_KEY = "ucore-developer-workbench";
 
 function getLaneForRepo(repo: Repo): "core" | "extension" | "project" {
@@ -257,12 +277,30 @@ async function selectFile(path: string, track = true) {
       const d = await res.json();
       if (activeRepo.value === repo && activePath.value === path) {
         fileContent.value = d.content || "";
+        fileRevision.value = d.revision || "";
+        diagnostics.value = []; diagnosticsSupported.value = null;
         if (track && !openPaths.value.includes(path)) openPaths.value.push(path);
         await refreshFileDiff(repo, path, fileContent.value);
       }
     }
   } catch {}
   loadingFile.value = false;
+}
+
+function openFileDialog(mode: "create" | "move" | "delete") { fileDialogMode.value = mode; fileDialogOpen.value = true; }
+
+async function onFileOperation(path: string, deleted: boolean) {
+  await openSidebarRepo(activeRepo.value);
+  reviewRevision.value++;
+  if (deleted) { openPaths.value = openPaths.value.filter((item) => item !== path); return; }
+  await selectFile(path);
+  activeTab.value = "editor";
+}
+
+async function loadDiagnostics() {
+  if (!activeRepo.value || !activePath.value) return;
+  const response = await fetch(`/api/developer/repos/${encodeURIComponent(activeRepo.value)}/diagnostics?path=${encodeURIComponent(activePath.value)}`);
+  if (response.ok) { const data = await response.json(); diagnosticsSupported.value = data.supported; diagnostics.value = data.diagnostics || []; }
 }
 
 async function searchRepository() {
@@ -298,11 +336,14 @@ async function saveFile() {
   try {
     const repo = activeRepo.value;
     const path = activePath.value;
-    const res = await fetch("/api/developer/repos/" + encodeURIComponent(repo) + "/file-preview?path=" + encodeURIComponent(path), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: fileContent.value }), signal: AbortSignal.timeout(15000) });
+    const res = await fetch("/api/developer/repos/" + encodeURIComponent(repo) + "/file-preview?path=" + encodeURIComponent(path), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: fileContent.value, revision: fileRevision.value }), signal: AbortSignal.timeout(15000) });
     if (res.ok) {
+      const saved = await res.json(); fileRevision.value = saved.revision || fileRevision.value;
       await refreshFileDiff(repo, path, fileContent.value);
       saveRevision.value++;
       reviewRevision.value++;
+    } else if (res.status === 409) {
+      const conflict = await res.json(); window.alert(conflict.error || "File changed outside the editor. Reload before saving.");
     }
   } catch {}
 }
@@ -436,5 +477,7 @@ watch(
 .dev-workbench-bar button.active { border-color: var(--usx-color-primary); color: var(--usx-color-primary); }
 .dev-workbench-main { display: flex; min-height: 0; flex: 1; }
 .dev-workbench-content { min-width: 0; flex: 1; overflow: auto; }
+.dev-diagnostics { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-xs) var(--usx-spacing-sm); background: var(--usx-color-surface); border-bottom: var(--usx-border-width) solid var(--usx-color-border); overflow-x: auto; font-size: var(--usx-font-size-xs); }
+.dev-diagnostics button { display: inline-flex; align-items: center; gap: var(--usx-spacing-xs); white-space: nowrap; border: 0; background: transparent; color: var(--usx-color-on-surface); }
 .dev-loading, .dev-empty { display: flex; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-xl); color: var(--usx-color-on-surface-muted); justify-content: center; font-size: var(--usx-font-size-sm); }
 </style>

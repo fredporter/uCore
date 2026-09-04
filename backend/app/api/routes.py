@@ -32,11 +32,14 @@ def register_routes(app: web.Application) -> None:
         handle_cancel_developer_operation,
         handle_commit_repo_files,
         handle_create_developer_operation,
+        handle_create_repo_file,
         handle_decide_developer_operation,
+        handle_delete_repo_file,
         handle_developer_chat,
         handle_developer_chat_stream,
         handle_developer_operation_capabilities,
         handle_developer_status,
+        handle_diagnose_repo_file,
         handle_get_developer_operation,
         handle_get_repo_file_diff,
         handle_get_repo_file_preview,
@@ -44,6 +47,7 @@ def register_routes(app: web.Application) -> None:
         handle_list_repo_files,
         handle_list_repo_review,
         handle_list_repos,
+        handle_move_repo_file,
         handle_repo_github_status,
         handle_repo_status,
         handle_search_repo,
@@ -184,10 +188,14 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/budget/reload", handle_budget_reload)
     app.router.add_get("/api/developer/repos", handle_list_repos)
     app.router.add_get("/api/developer/repos/{repo_name}/files", handle_list_repo_files)
+    app.router.add_post("/api/developer/repos/{repo_name}/files", handle_create_repo_file)
     app.router.add_get(
         "/api/developer/repos/{repo_name}/file-preview", handle_get_repo_file_preview
     )
     app.router.add_put("/api/developer/repos/{repo_name}/file-preview", handle_update_repo_file)
+    app.router.add_delete("/api/developer/repos/{repo_name}/file-preview", handle_delete_repo_file)
+    app.router.add_post("/api/developer/repos/{repo_name}/file-move", handle_move_repo_file)
+    app.router.add_get("/api/developer/repos/{repo_name}/diagnostics", handle_diagnose_repo_file)
     app.router.add_get("/api/developer/repos/{repo_name}/diff", handle_get_repo_file_diff)
     app.router.add_get("/api/developer/repos/{repo_name}/review", handle_list_repo_review)
     app.router.add_get("/api/developer/repos/{repo_name}/status", handle_repo_status)

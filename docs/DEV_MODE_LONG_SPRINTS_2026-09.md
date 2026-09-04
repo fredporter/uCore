@@ -95,6 +95,9 @@ The workbench now preserves repository, active file, open-file references, and
 review-panel state for the browser session; adds a searchable tree, keyboard
 go-to-file palette, bounded repository content search, synchronized editor tabs,
 and contextual staged/unstaged review controls.
+Conflict-safe revision tokens now protect saves and deletes; bounded file
+create/move/delete flows, Python/JSON/YAML diagnostics adapters, and explicit
+staged commit preparation are integrated into the same workbench.
 
 ### Scope
 
