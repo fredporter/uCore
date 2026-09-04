@@ -280,3 +280,13 @@ evidence only: no backlog status is advanced merely because related code exists.
    implementation selectors where an accessible role exists.
 5. A sprint closes only after runtime proof, command proof, test proof, evidence
    proof, and a clean diff review.
+
+## Post-program pathway — distribution and SonicScrewdriver
+
+After the Dev Mode release gates, continue with the distribution program in
+[`DISTRIBUTION_AND_SONIC_PATHWAY.md`](DISTRIBUTION_AND_SONIC_PATHWAY.md).
+Discovery and evidence gathering may begin during Sprint 6, but new
+SonicScrewdriver development is blocked on the pathway's mandatory
+specification-reconciliation gate. That gate must inspect and preserve useful
+concepts from both active and historical SonicScrewdriver plans before scope is
+confirmed.
