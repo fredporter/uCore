@@ -64,6 +64,36 @@
       >
         <UIcon name="grid_on" class="global-toolbar__icon" />
       </button>
+      <button
+        class="global-toolbar__tab global-toolbar__tab--nav"
+        :class="{
+          'global-toolbar__tab--active': route.path.includes('/dreamscape'),
+        }"
+        @click="navigate('/dreamscape')"
+        title="Dreamscape"
+      >
+        <UIcon name="psychology" class="global-toolbar__icon" />
+      </button>
+      <button
+        class="global-toolbar__tab global-toolbar__tab--nav"
+        :class="{
+          'global-toolbar__tab--active': route.path.includes('/google'),
+        }"
+        @click="navigate('/google')"
+        title="Google Studio"
+      >
+        <UIcon name="cloud" class="global-toolbar__icon" />
+      </button>
+      <button
+        class="global-toolbar__tab global-toolbar__tab--nav"
+        :class="{
+          'global-toolbar__tab--active': route.path.includes('/banana'),
+        }"
+        @click="navigate('/banana')"
+        title="Banana Studio"
+      >
+        <UIcon name="image" class="global-toolbar__icon" />
+      </button>
     </div>
 
     <!-- Middle: always empty — surface tab navigation is now handled by SurfaceTabNav below -->

@@ -109,7 +109,25 @@ const routes: RouteRecordRaw[] = [
     path: "/browserui/:pathMatch(.*)*",
     name: "browserui",
     component: () => import("../surfaces/browserui/BrowserUISurface.vue"),
-    meta: { title: "Browser", icon: "globe", hidden: true },
+    meta: { title: "Browser", icon: "globe" },
+  },
+  {
+    path: "/dreamscape/:pathMatch(.*)*",
+    name: "dreamscape",
+    component: () => import("../surfaces/dreamscape/DreamscapeSurface.vue"),
+    meta: { title: "Dreamscape", icon: "psychology" },
+  },
+  {
+    path: "/google/:pathMatch(.*)*",
+    name: "google",
+    component: () => import("../surfaces/google/GoogleStudioSurface.vue"),
+    meta: { title: "Google Studio", icon: "cloud" },
+  },
+  {
+    path: "/banana/:pathMatch(.*)*",
+    name: "banana",
+    component: () => import("../surfaces/banana/BananaSurface.vue"),
+    meta: { title: "Banana Studio", icon: "image" },
   },
   {
     path: "/documentation/:pathMatch(.*)*",
