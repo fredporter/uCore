@@ -114,6 +114,7 @@ def test_restart_marks_inflight_turn_interrupted(chat):
 async def test_stream_has_cors_before_prepare_and_never_submits(chat, monkeypatch):
     from aiohttp import web
     from aiohttp.test_utils import TestClient, TestServer
+
     from app.api import developer_chat_api
     service, _, _, _ = chat
     service.records['stream-test'] = {
