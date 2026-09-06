@@ -133,8 +133,9 @@ async def test_write_operation_captures_isolated_proposal_and_applies_explicitly
     monkeypatch.setattr(developer_operations.settings, "udos_home", tmp_path / ".udos")
 
     class FakeClient:
-        def __init__(self, *_args, repository, **_kwargs):
+        def __init__(self, *_args, repository, permission_handler, **_kwargs):
             self.repository = repository
+            self.permission = permission_handler
 
         def configure_local_provider(self, **_kwargs):
             pass
@@ -153,7 +154,21 @@ async def test_write_operation_captures_isolated_proposal_and_applies_explicitly
             return "session-write"
 
         async def prompt(self, _session, _prompt):
+            options = [{"optionId": "allow", "kind": "allow_once"}]
+            assert await self.permission({"toolCall": {
+                "title": "read_file: example.py",
+                "locations": [{"path": str((self.repository / "example.py").resolve())}],
+            }, "options": options}) == "allow"
+            assert await self.permission({"toolCall": {
+                "title": "read_file: outside",
+                "locations": [{"path": str(tmp_path / "outside")}],
+            }, "options": options}) is None
+            assert await self.permission({"toolCall": {
+                "title": "execute_bash: echo unsafe",
+                "locations": [{"path": str(self.repository)}],
+            }, "options": options}) is None
             (self.repository / "example.py").write_text("value = 2\n")
+            (self.repository / "new.py").write_text("created = True\n")
             return {"stopReason": "end_turn"}
 
     monkeypatch.setattr(developer_operations, "NanocoderAcpClient", FakeClient)
@@ -169,10 +184,14 @@ async def test_write_operation_captures_isolated_proposal_and_applies_explicitly
     await operation.task
 
     assert (repo / "example.py").read_text() == "value = 1\n"
+    assert len(operation.proposal["files"]) == 2
     proposal_file = operation.proposal["files"][0]
-    manager.apply_proposal(operation.id, proposal_file["path"], proposal_file["fingerprint"])
+    manager.apply_proposal(operation.id, "", operation.proposal["fingerprint"])
     assert (repo / "example.py").read_text() == "value = 2\n"
+    assert (repo / "new.py").read_text() == "created = True\n"
     assert proposal_file["applied"] is True
+    # Reconnect/repeated Apply must not repeat or fail an already applied change set.
+    manager.apply_proposal(operation.id, "", operation.proposal["fingerprint"])
 
     restored = DeveloperOperationManager(tmp_path / "operations.json").get(operation.id)
     assert restored.context["taskReference"] == "UFLOW-42"
@@ -180,6 +199,7 @@ async def test_write_operation_captures_isolated_proposal_and_applies_explicitly
 
 
 def test_proposal_rejects_a_stale_worktree(monkeypatch, tmp_path):
+    enable_dev_mode(monkeypatch)
     repo = tmp_path / "uCore"
     init_repo(repo)
     monkeypatch.setattr(developer_operations.settings, "udos_root", tmp_path)

@@ -176,7 +176,24 @@ performance work rather than correctness failures.
 - Workflow task references and Server runner links preserve their owning APIs.
 - No autonomous commit, push, merge, or task-status-triggered code edit exists.
 
+## Special Sprint 3A — Conversational Dev Mode
+
+Approved 2026-09-06; implementation and verification in progress.
+Contract: [Conversational Dev Mode proposal](DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md).
+
+Close the global chat-to-construction gap before Sprint 4. Deliver one chat UI,
+User/Developer scope, Ask/Plan/Act intent, durable context, real tool activity,
+reviewed proposals, checks, cancellation, and follow-up. Audit Ollama, provider
+routing, Hivemind/Roundtable availability, budgets, agents, skills, and MCP; fix
+faults that block the supported local coding journey. Distinguish absent legacy
+services from verified runtime capabilities. A real installed-engine journey is
+required; tests against fake adapters alone do not close this checkpoint.
+
 ## Sprint 4 — Authoring and research completion (4 weeks)
+
+Architecture direction added 2026-09-06:
+[Zen ecosystem contract](ZEN_ECOSYSTEM_CONTRACT.md). This is an ecosystem-wide
+boundary; Sprint 4 applies it to the surfaces and integrations it touches.
 
 ### Scope
 
@@ -189,6 +206,22 @@ performance work rather than correctness failures.
 5. Align the Workflow editor and Developer editor through shared primitives only;
    keep prose workflow and repository-code behavior distinct.
 6. Complete unit and component coverage for editor utilities and interactions.
+7. Reconcile authoring, research, browser, and Snackbar controls with the Zen
+   contract: contextual defaults, progressive disclosure, and only meaningful
+   user preferences or decisions in the everyday UI.
+8. Inventory host-native and reviewed Vendor capabilities before adding tools.
+   Define macOS/Linux adapters and availability contracts for speech/dictation,
+   notifications, app content exchange, and browser integration. Prefer Safari
+   on macOS and a distraction-free Firefox-based Linux surface; resolve whether
+   the latter uses Zen Browser or a managed Firefox profile during intake.
+9. Restore Snackbar's host-integration boundary: exchange uDOS content with
+   supported Mail, Messages, Notes, Reminders, and equivalent Linux services.
+   Scope a unified messaging view as a subsequent integration based on proven
+   access contracts; do not promise universal source access or replace app stores.
+
+The host integration work begins with capability discovery, reuse decisions, and
+surface simplification. Building every listed integration is not assumed to fit
+this four-week sprint. Record approved follow-on scope in uFlow after intake.
 
 ### Exit gates
 
@@ -196,6 +229,12 @@ performance work rather than correctness failures.
 - Research outputs retain source and citation provenance.
 - Formatting, variants, and renderer routing have focused regression tests.
 - Developer code files never enter the user Binder implicitly.
+- Each new capability names the reused OS tool, ecosystem contract, or reviewed
+  Vendor component and explains any custom integration code.
+- Affected surfaces expose goal/context/progress and required decisions; advanced
+  configuration remains in its owning settings surface.
+- Platform availability is verified or explicitly unavailable; macOS-specific
+  integration assumptions do not silently become Linux requirements.
 
 ## Sprint 5 — Identity, settings, chat history, and offline shell (4 weeks)
 

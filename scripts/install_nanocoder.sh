@@ -37,6 +37,7 @@ mkdir -p "$STAGING"
 cd "$STAGING"
 npm install "$PACKAGE" --ignore-scripts --no-audit --no-fund --save-exact
 patch -p1 < "$PATCH_FILE"
+patch -p1 < "$UCORE_ROOT/vendor/patches/nanocoder-1.30.0-acp-permissions.patch"
 
 INSTALLED_VERSION="$(./node_modules/.bin/nanocoder --version)"
 if [[ "$INSTALLED_VERSION" != "$VERSION" ]]; then

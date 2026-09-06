@@ -19,34 +19,14 @@ from app.tools.registry import list_tools
 
 
 def _load_config_agents() -> list[dict]:
-    """Load specialized agents from agents.yaml config."""
-    config_path = Path(__file__).parent.parent.parent / "config" / "agents.yaml"
-    if not config_path.exists():
-        return []
-    try:
-        with open(config_path) as f:
-            data = yaml.safe_load(f) or {}
-        agents_data = data.get("agents", {})
-        result: list[dict] = []
-        for agent_id, agent in agents_data.items():
-            result.append({
-                "id": agent.get("id", agent_id),
-                "name": agent.get("name", agent_id),
-                "capabilities": agent.get("capabilities", []),
-                "status": "online",
-                "load": "0/1",
-                "costPerTask": agent.get("cost_per_task", 0.0),
-                "avgLatencyMs": 0,
-                "successRate": 1.0,
-                "provider": agent.get("provider", "ollama"),
-                "model": agent.get("model", ""),
-                "description": agent.get("description", ""),
-                "config": True,
-                "kind": "agent",
-            })
-        return result
-    except Exception:
-        return []
+    """Read the canonical agent registry; configuration is not runtime activity."""
+    from app.services.agent_specialization import SpecializedAgentRegistry
+    return [{"id": agent.id, "name": agent.name, "capabilities": agent.capabilities,
+             "status": "configured", "load": None, "costPerTask": agent.cost_per_task,
+             "avgLatencyMs": None, "successRate": None, "provider": agent.provider,
+             "model": agent.model, "description": agent.description,
+             "config": True, "kind": "agent"}
+            for agent in SpecializedAgentRegistry().list_agents()]
 
 
 def _skill_to_agent(skill: dict) -> dict:

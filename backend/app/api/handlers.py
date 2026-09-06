@@ -153,12 +153,14 @@ async def handle_agents_spec_route(request: web.Request) -> web.Response:
 
         router = get_router()
         response = await router.chat(
-            messages=messages,
+            messages=[{"role": "system", "content": active_agent.system_prompt}] + [m for m in messages if isinstance(m, dict) and m.get("role") in {"user", "assistant"}],
             provider=active_agent.provider,
             model=active_agent.model,
             timeout=active_agent.timeout,
         )
 
+        if response.get("error"):
+            return web.json_response({"success": False, "error": response["error"]}, status=502)
         return web.json_response({
             "success": True,
             "agent": {

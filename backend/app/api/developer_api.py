@@ -286,7 +286,12 @@ def _repo_file_count(repo_path: Path, limit: int = 500) -> int:
 
 
 def _repo_path(repo_name: str) -> Path:
-    repo_path = (settings.udos_root.expanduser() / repo_name).resolve()
+    root = settings.udos_root.expanduser().resolve()
+    if not repo_name or repo_name.startswith(".") or Path(repo_name).name != repo_name:
+        raise ValueError("Repository must be a direct child of the code workspace")
+    repo_path = (root / repo_name).resolve()
+    if repo_path.parent != root or (root / repo_name).is_symlink():
+        raise ValueError("Repository escapes the code workspace")
     if not repo_path.exists() or not repo_path.is_dir():
         raise FileNotFoundError(repo_name)
     return repo_path
@@ -420,6 +425,7 @@ def _search_repo(repo_name: str, query: str, limit: int = 50) -> list[dict[str, 
         "--fixed-strings",
         "--max-count",
         str(bounded_limit),
+        "--",
         term,
         ".",
     ]
@@ -1391,6 +1397,8 @@ async def handle_decide_developer_operation(request: web.Request) -> web.Respons
             operation = manager.deny(request.match_info["operation_id"])
         else:
             raise ValueError("decision must be approve or deny")
+    except PermissionError as exc:
+        return web.json_response({"error": str(exc)}, status=403)
     except KeyError as exc:
         return web.json_response({"error": str(exc)}, status=404)
     except (TypeError, ValueError) as exc:
@@ -1416,6 +1424,8 @@ async def handle_apply_developer_proposal(request: web.Request) -> web.Response:
             str(body.get("path", "")),
             str(body.get("fingerprint", "")),
         )
+    except PermissionError as exc:
+        return web.json_response({"error": str(exc)}, status=403)
     except KeyError as exc:
         return web.json_response({"error": str(exc)}, status=404)
     except (TypeError, ValueError) as exc:
@@ -1512,229 +1522,9 @@ def _execute_developer_read_intent(message: str, workspace: str = "") -> str | N
 
 
 async def handle_developer_chat(request: web.Request) -> web.Response:
-    """POST /api/developer/chat — dev-lane chat completion.
-
-    Body: { "message": "...", "history": [...], "lane": "ecosystem|project", "workspace": "..." }
-    Returns: { "response": "...", "model": "...", "usage": {...} }
-    """
-    try:
-        body = await request.json()
-    except Exception:
-        return web.json_response({"error": "Invalid JSON body"}, status=400)
-
-    message = body.get("message", "")
-    if not message:
-        return web.json_response({"error": "message is required"}, status=400)
-
-    lane = body.get("lane", "ecosystem")
-    workspace = body.get("workspace", "")
-    model = body.get("model")
-    binder_context = body.get("binder_context")
-    binder_meta = body.get("binder_meta")
-    binder_summary = _summarize_binder_context(binder_context, binder_meta)
-
-    history = body.get("history") or body.get("messages")
-    if not isinstance(history, list):
-        history = []
-
-    try:
-        executed_response = _execute_developer_read_intent(message, workspace)
-    except (FileNotFoundError, ValueError) as exc:
-        return web.json_response({"error": str(exc)}, status=400)
-    if executed_response is not None:
-        return web.json_response(
-            {
-                "response": executed_response,
-                "lane": lane,
-                "workspace": workspace,
-                "model": "ucore-read-contract",
-                "usage": {},
-                "executed": True,
-            }
-        )
-
-    log = __import__("logging").getLogger("ucore.devchat")
-    binder_fp = ""
-    if isinstance(binder_context, dict):
-        binder_fp = _clean_inline(binder_context.get("fingerprint"), 80)
-    log.info(
-        "Dev chat: lane=%s workspace=%s model=%s binder_fp=%s message=%s...",
-        lane,
-        workspace,
-        model,
-        binder_fp or "none",
-        message[:80],
-    )
-
-    try:
-        from ..services.provider_router import ProviderRouter
-
-        router = ProviderRouter()
-        dev_system = (
-            "You are the uCore Developer Assistant. You work in the Developer Surface "
-            "and have access to these APIs (at http://localhost:8484):\n\n"
-            "**Repos & Code:**\n"
-            "• /api/developer/repos — list code repositories under ~/Code\n"
-            "• /api/developer/repos/{name}/files — list files in a repo\n"
-            "• /api/developer/repos/{name}/review — git status review of changes\n"
-            "• /api/developer/repos/{name}/status — staged/unstaged file status\n"
-            "• /api/developer/repos/{name}/github — GitHub PR and Actions status\n"
-            "• /api/developer/repos/{name}/diff?path=... — view file diff\n"
-            "• /api/developer/repos/{name}/file-preview?path=... — preview file content\n"
-            "• /api/developer/repos/{name}/stage — stage a file (POST)\n"
-            "• /api/developer/repos/{name}/commit — commit staged files (POST)\n\n"
-            "**Skills:**\n"
-            "• /api/skills — list governed built-in skills\n"
-            "• /api/skills/{skill_id}/run — execute a named skill\n\n"
-            "**Health & System:**\n"
-            "• /api/control/status — full ecosystem health (Ollama, Hivemind, providers, etc.)\n"
-            "• /api/ollama/status — Ollama model status\n"
-            "• /api/system — system info\n"
-            "• /api/health — health check\n\n"
-            f"**Current Context:** Lane={lane}, Workspace={workspace or 'not set'}\n"
-            "The Developer Surface has two lanes:\n"
-            "- System lane (ecosystem): uCore/uCode with protection guardrails\n"
-            "- Project lane: non-system repos under ~/Code\n\n"
-            "Be concise and technical. When users ask to review code, check status, "
-            "or manage repos, reference the specific endpoints above. "
-            "Prefer suggesting API calls and skill executions over generic advice. "
-            "You can help with code review, linting, git operations, skill execution, "
-            "MCP server management, service health, and deployment."
-        )
-        if binder_summary:
-            dev_system = f"{dev_system}\n\n{binder_summary}"
-        chat_messages = [{"role": "system", "content": dev_system}]
-        chat_messages.extend(history)
-        chat_messages.append({"role": "user", "content": message})
-        response = await router.chat(messages=chat_messages, model=model)
-        return web.json_response(
-            {
-                "response": response.get("content", ""),
-                "lane": lane,
-                "workspace": workspace,
-                "model": response.get("model", model),
-                "usage": response.get("usage", {}),
-            }
-        )
-    except Exception as e:
-        log.error("Dev chat error: %s", e)
-        return web.json_response(
-            {
-                "error": str(e),
-                "message": "Dev chat request failed",
-            },
-            status=500,
-        )
+    from .developer_chat_api import submit
+    return await submit(request)
 
 
-async def handle_developer_chat_stream(request: web.Request) -> web.StreamResponse:
-    """GET /api/developer/chat/stream?message=...&lane=... — SSE streaming dev chat."""
-    message = request.query.get("message", "").strip()
-    if not message:
-        return web.json_response({"error": "message is required"}, status=400)
-
-    lane = request.query.get("lane", "ecosystem")
-    workspace = request.query.get("workspace", "")
-    model = request.query.get("model")
-    binder_fingerprint = (
-        request.query.get("binder_fingerprint", "").strip()
-        or request.headers.get("X-Binder-Fingerprint", "").strip()
-    )
-    binder_lane = (
-        request.query.get("binder_lane", "").strip()
-        or request.headers.get("X-Binder-Lane", "").strip()
-    )
-    binder_goal = (
-        request.query.get("binder_goal", "").strip()
-        or request.headers.get("X-Binder-Goal", "").strip()
-    )
-    binder_repo = (
-        request.query.get("binder_repo", "").strip()
-        or request.headers.get("X-Binder-Repo", "").strip()
-    )
-    binder_tasks_count = (
-        request.query.get("binder_tasks_count", "").strip()
-        or request.headers.get("X-Binder-Tasks-Count", "").strip()
-    )
-
-    log = __import__("logging").getLogger("ucore.devchat")
-    log.info(
-        "Dev chat stream: lane=%s binder_fp=%s message=%s...",
-        lane,
-        _clean_inline(binder_fingerprint, 80) or "none",
-        message[:80],
-    )
-
-    response = web.StreamResponse(
-        status=200,
-        reason="OK",
-        headers={
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-        },
-    )
-    await response.prepare(request)
-
-    try:
-        from ..services.provider_router import ProviderRouter
-
-        router = ProviderRouter()
-        dev_system = (
-            "You are a developer assistant working in uCore. "
-            f"Current lane: {lane}. Workspace: {workspace or 'not set'}. "
-            "You help with code review, repo management, skills, MCP servers, "
-            "service health, build/deploy, and development workflow. "
-            "Be concise and technical."
-        )
-        stream_context_lines = []
-        if binder_fingerprint:
-            stream_context_lines.append(
-                f"- Fingerprint: {_clean_inline(binder_fingerprint, 80)}",
-            )
-        if binder_lane:
-            stream_context_lines.append(
-                f"- Lane override: {_clean_inline(binder_lane, 80)}",
-            )
-        if binder_repo:
-            stream_context_lines.append(
-                f"- Binder repo: {_clean_inline(binder_repo, 80)}",
-            )
-        if binder_goal:
-            stream_context_lines.append(
-                f"- Goal: {_clean_inline(binder_goal, 220)}",
-            )
-        if binder_tasks_count:
-            stream_context_lines.append(
-                f"- Tasks count: {_clean_inline(binder_tasks_count, 16)}",
-            )
-
-        if stream_context_lines:
-            dev_system = f"{dev_system}\n\nBinder context (stream metadata):\n" + "\n".join(
-                stream_context_lines
-            )
-        chat_messages = [
-            {"role": "system", "content": dev_system},
-            {"role": "user", "content": message},
-        ]
-        full_response = await router.chat(messages=chat_messages, model=model, stream=False)
-
-        content = full_response.get("content", "")
-        # Simulate streaming by sending tokens one at a time
-        import asyncio
-        import json
-
-        words = content.split(" ")
-        for i, word in enumerate(words):
-            token = word + (" " if i < len(words) - 1 else "")
-            await response.write(f"data: {json.dumps({'token': token})}\n\n".encode())
-            await asyncio.sleep(0.01)
-
-        await response.write(b"data: [DONE]\n\n")
-    except Exception as e:
-        log.error("Dev chat stream error: %s", e)
-        await response.write(f'data: {{"error": "{str(e)}"}}\n\n'.encode())
-    finally:
-        await response.write_eof()
-
-    return response
+async def handle_developer_chat_stream(request: web.Request) -> web.Response:
+    return web.json_response({"error": "Submit a conversation turn, then subscribe to its events"}, status=410)

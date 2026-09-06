@@ -113,6 +113,7 @@ import UBadge from "../../skills/atoms/UBadge.vue";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import UCodeEditor from "../../skills/molecules/editor/UCodeEditor.vue";
 import ProseCodeReader from "../../skills/molecules/editor/ProseCodeReader.vue";
+import { useDeveloperChatStore } from "../../stores/developerChat";
 import DeveloperOperationsPanel from "./DeveloperOperationsPanel.vue";
 import DeveloperCommandPalette from "./DeveloperCommandPalette.vue";
 import DeveloperReviewPanel from "./DeveloperReviewPanel.vue";
@@ -142,6 +143,11 @@ const repos = ref<Repo[]>([]);
 const fileTree = ref<FileItem[]>([]);
 const activeRepo = ref("");
 const activePath = ref("");
+const developerChat = useDeveloperChatStore();
+watch([activeRepo, activePath], ([repo, path]) => {
+  developerChat.suggestedRepository = repo;
+  developerChat.suggestedFile = path;
+});
 const fileContent = ref("");
 const diffBaseline = ref("");
 const diffStatus = ref<"clean" | "modified" | "added" | "deleted">("clean");
@@ -392,6 +398,12 @@ function onGlobalKeydown(event: KeyboardEvent) {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "p") { event.preventDefault(); if (activeRepo.value) paletteOpen.value = true; }
   if (event.key === "Escape") paletteOpen.value = false;
 }
+function onProposalApplied(event: Event) {
+  if ((event as CustomEvent).detail?.repository === activeRepo.value) {
+    // Refresh repository review without replacing unsaved editor buffers.
+    reviewRevision.value++;
+  }
+}
 onMounted(() => {
   const routeTab = (route.query.tab as string) || "";
   if (["code", "repository", "editor", "operations"].includes(routeTab)) {
@@ -401,6 +413,7 @@ onMounted(() => {
   shell.setDeveloperSidebarOpen(false);
   shell.setDeveloperSurfaceTab(activeTab.value);
   window.addEventListener("keydown", onGlobalKeydown);
+  window.addEventListener("developer-proposal-applied", onProposalApplied);
   fetchRepos().then(async () => {
     try {
       const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
@@ -420,7 +433,10 @@ onMounted(() => {
     } catch { sessionStorage.removeItem(SESSION_KEY); }
   });
 });
-onBeforeUnmount(() => window.removeEventListener("keydown", onGlobalKeydown));
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onGlobalKeydown);
+  window.removeEventListener("developer-proposal-applied", onProposalApplied);
+});
 
 watch(
   () => route.query.tab,

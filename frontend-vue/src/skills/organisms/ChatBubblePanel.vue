@@ -15,6 +15,27 @@
       </button>
     </div>
 
+    <div v-if="activeLane === 'dev'" class="chat-panel__dev-context">
+      <label v-if="!devChat.repository">Repository
+        <select v-model="devChat.repository" aria-label="Developer repository">
+          <option value="">Select repository</option>
+          <option v-for="repo in devChat.repos" :key="repo.name" :value="repo.name">{{ repo.name }}</option>
+        </select>
+      </label>
+      <details v-else>
+        <summary>{{ devChat.repository }} · Conversation</summary>
+        <button @click="devChat.newConversation()">New conversation</button>
+        <button v-if="!devChat.conversation" @click="devChat.repository = ''">Change repository</button>
+        <label>History <select :value="devChat.conversation?.id || ''" aria-label="Developer history" @change="devChat.select(($event.target as HTMLSelectElement).value)">
+          <option value="" disabled>Select conversation</option>
+          <option v-for="item in devChat.history" :key="item.id" :value="item.id">{{ item.repository }} · {{ item.title }}</option>
+        </select></label>
+        <button v-if="devChat.conversation" @click="devChat.remove()">Delete conversation</button>
+        <button v-if="devChat.suggestedRepository === devChat.repository && devChat.suggestedFile" @click="devChat.useSelection()">Attach selected file</button>
+        <p>{{ devChat.runtime?.available ? `Construction: ${devChat.runtime.provider} / ${devChat.runtime.model}` : 'Construction engine unavailable' }}</p>
+      </details>
+      <button v-if="devChat.file" @click="devChat.file = ''" :aria-label="`Remove ${devChat.file} context`">{{ devChat.file }} ×</button>
+    </div>
     <!-- ── Body ──────────────────────────────────────────────── -->
     <div class="chat-panel__body">
       <div v-if="activeMessages.length === 0" class="chat-panel__empty" />
@@ -30,10 +51,10 @@
             <div class="chat-panel__msg-body" v-html="renderMsgContent(msg.content)" />
           </div>
           <div v-if="msg.role === 'assistant'" class="chat-panel__msg-actions">
-            <button class="chat-panel__msg-action" title="Append to current document" @click="appendToDoc(msg.content)">
+            <button v-if="activeLane === 'chat'" class="chat-panel__msg-action" title="Append to current document" @click="appendToDoc(msg.content)">
               <UIcon name="note_add" />
             </button>
-            <button class="chat-panel__msg-action" title="New note" @click="newNote(msg.content)">
+            <button v-if="activeLane === 'chat'" class="chat-panel__msg-action" title="New note" @click="newNote(msg.content)">
               <UIcon name="post_add" />
             </button>
             <button class="chat-panel__msg-action" title="Copy to clipboard" @click="copyText(msg.content)">
@@ -48,6 +69,7 @@
           <span class="chat-panel__dot" />
         </div>
       </div>
+      <DeveloperChatActivity v-if="activeLane === 'dev'" />
     </div>
 
     <!-- ── Composer: input + send row, model switcher below ───── -->
@@ -59,7 +81,7 @@
           class="chat-panel__input"
           :placeholder="
             activeLane === 'dev'
-              ? 'Dev command or question… (/ for shortcuts)'
+              ? 'Describe what you want to understand or change…'
               : inputPlaceholder
           "
           rows="2"
@@ -79,17 +101,7 @@
       </div>
 
       <div class="chat-panel__composer-actions">
-        <button
-          v-if="activeLane === 'chat'"
-          type="button"
-          class="chat-panel__model-btn"
-          @click="modelPickerOpen = !modelPickerOpen"
-          :title="currentModelLabel"
-        >
-          <UIcon name="smart_toy" />
-          <span class="chat-panel__model-label">{{ currentModelLabel }}</span>
-          <UIcon name="expand_more" class="chat-panel__model-chevron" />
-        </button>
+        <a href="/server">Runtime settings</a>
         <label class="chat-panel__presentation">
           <UIcon name="view_sidebar" />
           <select
@@ -105,20 +117,6 @@
         </label>
       </div>
 
-      <!-- Model picker dropdown -->
-      <div v-if="modelPickerOpen" class="chat-panel__model-dropdown">
-        <button
-          v-for="model in availableModels"
-          :key="model.id"
-          class="chat-panel__model-option"
-          :class="{ 'chat-panel__model-option--active': model.id === selectedModelId }"
-          @click="selectModel(model.id)"
-        >
-          <span class="chat-panel__model-provider">{{ model.provider }}</span>
-          <span class="chat-panel__model-name">{{ model.name }}</span>
-          <UIcon v-if="model.id === selectedModelId" name="check" />
-        </button>
-      </div>
     </div>
 
     <!-- ── Footer: context + mode tabs ────────────────────────── -->
@@ -131,7 +129,7 @@
         <span class="chat-panel__context-text">{{ contextLabel }}</span>
       </span>
 
-      <div v-if="activeLane === 'chat'" class="chat-panel__mode-toggle" role="tablist" aria-label="Assistant mode">
+      <div class="chat-panel__mode-toggle" role="tablist" aria-label="Assistant mode">
         <button
           v-for="mode in CHAT_MODES"
           :key="mode.id"
@@ -158,6 +156,9 @@ import { useToast } from "../../composables/useToast";
 import { useChatStore } from "../../stores/chat";
 import { renderMarkdown } from "../../composables/useMarkdown";
 import UIcon from "../atoms/UIcon.vue";
+import { useDeveloperChatStore } from "../../stores/developerChat";
+import type { ChatIntent } from "../../stores/developerChat";
+import DeveloperChatActivity from "../../surfaces/developer/DeveloperChatActivity.vue";
 
 interface Message {
   role: "user" | "assistant";
@@ -189,7 +190,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   "send-chat": [message: string, mode: "chat" | "plan" | "act" | "workflow"];
-  "send-dev": [message: string];
+  "send-dev": [message: string, mode: ChatIntent];
   "toggle-dev-mode": [];
   "update:activeLane": [lane: "chat" | "dev"];
   close: [];
@@ -201,6 +202,7 @@ function setPresentation(event: Event) {
   shell.setChatPresentation((event.target as HTMLSelectElement).value as ChatPresentation);
 }
 const chatStore = useChatStore();
+const devChat = useDeveloperChatStore();
 const editorSurface = getEditorSurface();
 const ws = useWorkspaceStore();
 const { toast } = useToast();
@@ -209,15 +211,21 @@ const activeLane = computed<"chat" | "dev">({
   get: () => props.activeLane,
   set: (v: "chat" | "dev") => emit("update:activeLane", v),
 });
-const activeChatMode = ref<"chat" | "plan" | "act" | "workflow">("chat");
+const activeChatMode = computed({
+  get: () => activeLane.value === 'dev' ? (devChat.intent === 'ask' ? 'chat' : devChat.intent) : (chatStore.promptMode === 'workflow' ? 'plan' : chatStore.promptMode),
+  set: (mode: "chat" | "plan" | "act" | "workflow") => {
+    if (activeLane.value === 'dev') devChat.intent = mode === 'chat' ? 'ask' : mode === 'workflow' ? 'plan' : mode;
+    else chatStore.setPromptMode(mode);
+  },
+});
 const messagesEl = ref<HTMLDivElement | null>(null);
 const inputEl = ref<HTMLTextAreaElement | null>(null);
 const modelPickerOpen = ref(false);
 const selectedModelId = ref(chatStore.selectedModel);
 
 const inputText = computed({
-  get: () => chatStore.input,
-  set: (v: string) => { chatStore.input = v; },
+  get: () => activeLane.value === 'dev' ? devChat.input : chatStore.input,
+  set: (v: string) => { if (activeLane.value === 'dev') devChat.input = v; else chatStore.input = v; },
 });
 
 // ─── Dynamic composer placeholder (matches Intelligence surface) ──
@@ -225,14 +233,13 @@ const inputPlaceholder = computed(() => {
   switch (activeChatMode.value) {
     case "plan": return "What should we research?";
     case "act": return "What should we do?";
-    case "workflow": return "What workflow should we plan?";
     default: return "What would you like to do today?";
   }
 });
 
 function setMode(id: "chat" | "plan" | "act" | "workflow") {
   activeChatMode.value = id;
-  chatStore.setPromptMode(id);
+
 }
 
 // ─── Model selector ──────────────────────────────────────────
@@ -261,10 +268,9 @@ function renderMsgContent(content: string): string {
 }
 
 const CHAT_MODES = [
-  { id: "chat", label: "Chat" },
-  { id: "plan", label: "Research" },
+  { id: "chat", label: "Ask" },
+  { id: "plan", label: "Plan" },
   { id: "act", label: "Act" },
-  { id: "workflow", label: "Workflow" },
 ] as const;
 
 const activeMessages = computed(() =>
@@ -283,14 +289,14 @@ watch(
 );
 
 function sendMessage() {
-  const text = chatStore.input.trim();
+  const text = inputText.value.trim();
   if (!text || props.loading) return;
   if (activeLane.value === "dev") {
-    emit("send-dev", text);
+    emit("send-dev", text, devChat.intent);
   } else {
     emit("send-chat", text, activeChatMode.value);
   }
-  chatStore.input = "";
+  inputText.value = "";
 }
 
 function toggleLane() {
@@ -898,4 +904,9 @@ async function copyText(content: string) {
 @media (min-width: 641px) and (max-width: 768px) {
   .chat-panel__presentation { display: none; }
 }
+</style>
+
+<style scoped>
+.chat-panel__dev-context { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; font-size: 12px; }
+.chat-panel__dev-context select { max-width: 220px; }
 </style>

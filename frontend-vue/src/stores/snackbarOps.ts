@@ -61,11 +61,12 @@ export interface LogEntry {
 export interface ModelUsage {
   id: string;
   name: string;
-  pct: number;
-  calls: number;
+  pct: number | null;
+  calls: number | null;
 }
 
 export interface AgentInfo {
+  status?: string;
   id: string;
   name: string;
   icon: string;

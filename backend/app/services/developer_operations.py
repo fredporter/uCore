@@ -127,7 +127,9 @@ def _copy_working_tree(source: Path, destination: Path) -> None:
             continue
         target = destination / child.name
         if child.is_dir() and not child.is_symlink():
-            shutil.copytree(child, target, ignore=shutil.ignore_patterns(*ignored))
+            shutil.copytree(child, target, symlinks=True, ignore=shutil.ignore_patterns(*ignored))
+        elif child.is_symlink():
+            target.symlink_to(os.readlink(child))
         elif child.is_file():
             shutil.copy2(child, target)
 
@@ -160,7 +162,7 @@ def _proposal_files(diff_text: str) -> list[dict[str, Any]]:
 
 def _prepare_proposal_workspace(repository: Path) -> tuple[tempfile.TemporaryDirectory[str], Path]:
     temporary = tempfile.TemporaryDirectory(prefix="ucore-acp-proposal-")
-    workspace = Path(temporary.name) / repository.name
+    workspace = (Path(temporary.name) / repository.name).resolve()
     clone = subprocess.run(
         ["git", "clone", "--quiet", "--no-hardlinks", str(repository), str(workspace)],
         capture_output=True,
@@ -264,6 +266,8 @@ class DeveloperOperationManager:
         command = self._command()
         return {
             "engine": "nanocoder-acp",
+            "model": settings.developer_model,
+            "provider": "ollama",
             "available": command is not None,
             "devMode": get_dev_layer().mode.value,
             "approvalPolicy": "explicit-write",
@@ -273,6 +277,8 @@ class DeveloperOperationManager:
     def create(
         self, *, action: str, repository: str, prompt: str, context: dict[str, Any]
     ) -> DeveloperOperation:
+        from app.api.developer_api import _repo_path
+        _repo_path(repository)
         spec = _ACTIONS.get(action)
         if spec is None:
             raise ValueError("Unsupported Developer action")
@@ -303,6 +309,8 @@ class DeveloperOperationManager:
         return operation
 
     def approve(self, operation_id: str) -> DeveloperOperation:
+        if get_dev_layer().mode is not DevMode.ON:
+            raise PermissionError("Developer operations require Dev Mode on")
         operation = self.get(operation_id)
         if operation.status != "awaiting_approval":
             raise ValueError("Operation is not awaiting approval")
@@ -344,9 +352,33 @@ class DeveloperOperationManager:
         return operation
 
     def apply_proposal(self, operation_id: str, path: str, fingerprint: str) -> DeveloperOperation:
+        if get_dev_layer().mode is not DevMode.ON:
+            raise PermissionError("Developer operations require Dev Mode on")
         operation = self.get(operation_id)
+        if operation.status != "completed":
+            raise ValueError("Proposal construction is not completed")
         proposal = operation.proposal or {}
         files = proposal.get("files") if isinstance(proposal.get("files"), list) else []
+        if not path:
+            if proposal.get("fingerprint") != fingerprint:
+                raise ValueError("Proposal fingerprint is invalid")
+            pending = [entry for entry in files if not entry.get("applied")]
+            if not pending:
+                return operation
+            repository = (settings.udos_root / operation.repository).resolve(strict=True)
+            if _repository_fingerprint(repository) != operation.repository_fingerprint:
+                raise RuntimeError("Repository changed since this proposal was created; review again")
+            patch = "".join(entry["patch"] for entry in pending)
+            # git apply validates the complete patch before modifying any file.
+            result = _git(repository, "apply", "--whitespace=nowarn", "-", input_text=patch)
+            if result.returncode:
+                raise RuntimeError(result.stderr.strip() or "Proposal could not be applied")
+            for entry in pending:
+                entry["applied"] = True
+            operation.repository_fingerprint = _repository_fingerprint(repository)
+            operation.events.append({"type": "proposal", "status": "applied", "at": _now_ms()})
+            self._persist(operation, "proposal_applied")
+            return operation
         item = next((entry for entry in files if entry.get("path") == path), None)
         if item is None or item.get("fingerprint") != fingerprint:
             raise ValueError("Proposal file or fingerprint is invalid")
@@ -409,6 +441,30 @@ class DeveloperOperationManager:
                 operation.updated_at = _now_ms()
                 self._persist(operation, "acp_event")
 
+            async def permission(params: dict[str, Any]) -> str | None:
+                if get_dev_layer().mode is not DevMode.ON:
+                    return None
+                call = params.get("toolCall") or {}
+                title = str(call.get("title", "")).split(":", 1)[0]
+                allowed = {"read_file", "list_directory", "search_file_contents", "find_files"}
+                if operation.write_capable:
+                    allowed |= {"write_file", "string_replace"}
+                if title not in allowed:
+                    return None  # shell, network, agents and mode changes are never delegated
+                locations = call.get("locations") or []
+                if not locations and title in {"search_file_contents", "find_files"}:
+                    locations = [{"path": str(proposal_workspace)}]
+                if not locations:
+                    return None
+                for location in locations:
+                    target = Path(location.get("path", "")).resolve()
+                    if target != proposal_workspace and proposal_workspace not in target.parents:
+                        return None
+                    if ".git" in target.relative_to(proposal_workspace).parts:
+                        return None
+                return next((item["optionId"] for item in params.get("options", [])
+                             if item.get("kind") == "allow_once"), None)
+
             client = NanocoderAcpClient(
                 command,
                 repository=proposal_workspace,
@@ -416,11 +472,12 @@ class DeveloperOperationManager:
                 udos_home=settings.udos_home,
                 dev_mode=True,
                 event_handler=on_event,
+                permission_handler=permission,
             )
             operation.client = client
             client.configure_local_provider(
                 name="ollama",
-                model=settings.ollama_default_model,
+                model=settings.developer_model,
                 base_url=f"{settings.ollama_base_url.rstrip('/')}/v1",
             )
             async with client:
@@ -429,6 +486,7 @@ class DeveloperOperationManager:
                 operation.result = await client.prompt(
                     operation.session_id, self._build_prompt(operation)
                 )
+            _git(proposal_workspace, "add", "-A")
             proposal_diff = _git(proposal_workspace, "diff", "--binary", "HEAD").stdout
             proposal_files = _proposal_files(proposal_diff)
             operation.proposal = (
@@ -439,6 +497,8 @@ class DeveloperOperationManager:
                 if proposal_files
                 else None
             )
+            if operation.write_capable and not proposal_files:
+                raise AcpError("The construction engine returned no file changes. No proposal was applied; refine the request or check the configured model.")
             operation.status = "completed"
         except asyncio.CancelledError:
             operation.status = "cancelled"
@@ -471,7 +531,11 @@ class DeveloperOperationManager:
         lines = [
             f"Developer action: {_ACTIONS[operation.action]['label']}",
             f"Repository: {operation.repository}",
-            "Stay within this repository. Treat changes as proposals until uCore review.",
+            "You are inside an isolated proposal copy. Edit files here now using tools; uCore reviews and applies the resulting diff later.",
+            "A code block or a description does not change files. You must call the editing tools and verify their results.",
+            "Use read_file, list_directory, search_file_contents, find_files, write_file and string_replace only.",
+            "Do not run shell commands, delegate, fetch URLs, change modes, commit or access .git.",
+            "Checks are run separately by uCore after review. Summarize changed files and unverified checks.",
         ]
         for key, value in operation.context.items():
             lines.append(f"{key}: {value}")
@@ -507,6 +571,12 @@ class DeveloperOperationManager:
             candidates.append(Path(located))
         for candidate in candidates:
             if candidate.is_file() and os.access(candidate, os.X_OK):
+                adapter = candidate.resolve().parent / "acp" / "acp-conversation.js"
+                if not adapter.is_file():
+                    continue
+                source = adapter.read_text()
+                if "UCORE_ACP_GOVERNED" not in source:
+                    continue  # unpatched vendor code may bypass scope checks for reads
                 return [str(candidate), "--acp"]
         return None
 

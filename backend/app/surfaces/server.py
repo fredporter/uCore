@@ -18,6 +18,7 @@ from typing import Any
 
 from aiohttp import ClientSession, ClientTimeout, web
 
+from app.core.settings import settings
 from app.utils.config_loader import load_service_registry
 
 log = logging.getLogger("ucore")
@@ -250,19 +251,19 @@ def register_server_routes(app: web.Application, store: ServerStore) -> None:  #
         error: str | None = None
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
-                async with session.get("http://localhost:11434/api/tags") as resp:
+                async with session.get(f"{settings.ollama_base_url.rstrip('/')}/api/tags") as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         raw = data.get("models") or []
-                        total = max(len(raw), 1)
                         models = [
                             {
                                 "id": m.get("name", ""),
                                 "name": m.get("name", ""),
-                                "pct": round(((len(raw) - i) / total) * 100),
-                                "calls": 0,
+                                "pct": None,
+                                "calls": None,
+                                "status": "installed",
                             }
-                            for i, m in enumerate(raw[:10])
+                            for m in raw[:10]
                         ]
                     else:
                         error = f"Ollama returned {resp.status}"
@@ -289,7 +290,8 @@ def register_server_routes(app: web.Application, store: ServerStore) -> None:  #
                     "id": a.get("id", "unknown"),
                     "name": a.get("name", "Agent"),
                     "icon": a.get("icon", "smart_toy"),
-                    "active": a.get("status", "offline") != "offline",
+                    "active": a.get("status") == "running",
+                    "status": a.get("status", "unavailable"),
                     "description": ", ".join(a.get("capabilities", []) or ["general"]),
                 }
                 for a in agents

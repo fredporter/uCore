@@ -94,6 +94,7 @@ class NanocoderAcpClient:
                         "apiKey": "local",
                         "models": [model],
                         "sdkProvider": "openai-compatible",
+                        "disableTools": True,
                     }
                 ],
                 "modeProviders": {"plan": {"provider": name, "model": model}},
@@ -101,6 +102,19 @@ class NanocoderAcpClient:
                 "headless": {"maxTurns": 20},
                 "mcpServers": [],
                 "alwaysAllow": [],
+                "tune": {"enabled": True, "toolMode": "json", "toolProfile": "full"},
+                "disabledTools": ["agent", "ask_user", "execute_bash", "fetch_url", "web_search",
+                                  "lsp_get_diagnostics", "check_skill", "write_tasks", "file_op",
+                                  "diff_edit", "git_add", "git_commit", "git_pr", "git_status",
+                                  "git_diff", "git_log"],
+                "systemPrompt": {"mode": "replace", "content": (
+                    "You implement reviewed code changes in an isolated repository. "
+                    "Read the relevant file with read_file, then actually edit it with "
+                    "string_replace or write_file. Follow the supplied JSON tool-call format. "
+                    "Use relative paths. Do not delegate, run shell commands, or commit. "
+                    "The user has requested implementation, not a plan. "
+                    "After tool execution summarize actual changes. Checks run separately in uCore."
+                )},
             }
         }
         target = config_home / "agents.config.json"
@@ -140,6 +154,7 @@ class NanocoderAcpClient:
                 "NANOCODER_CONFIG_DIR": str(config_home),
                 "NANOCODER_DATA_DIR": str(state_home),
                 "NANOCODER_TASKS_DIR": str(tasks_home),
+                "UCORE_ACP_GOVERNED": "1",
             }
         )
         self._process = await asyncio.create_subprocess_exec(
@@ -175,6 +190,7 @@ class NanocoderAcpClient:
         )
         if not isinstance(result, dict) or not isinstance(result.get("sessionId"), str):
             raise AcpProtocolError("session/new did not return a sessionId")
+        await self.request("session/set_mode", {"sessionId": result["sessionId"], "modeId": mode})
         return result["sessionId"]
 
     async def prompt(self, session_id: str, text: str) -> dict[str, Any]:
