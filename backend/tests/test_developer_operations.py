@@ -136,6 +136,7 @@ async def test_write_operation_captures_isolated_proposal_and_applies_explicitly
         def __init__(self, *_args, repository, permission_handler, **_kwargs):
             self.repository = repository
             self.permission = permission_handler
+            self.turns = 0
 
         def configure_local_provider(self, **_kwargs):
             pass
@@ -154,6 +155,11 @@ async def test_write_operation_captures_isolated_proposal_and_applies_explicitly
             return "session-write"
 
         async def prompt(self, _session, _prompt):
+            self.turns += 1
+            if self.turns == 1:
+                return {"stopReason": "end_turn"}  # prose without edits is not completion
+            assert self.turns == 2
+            assert "No files have changed" in _prompt
             options = [{"optionId": "allow", "kind": "allow_once"}]
             assert await self.permission({"toolCall": {
                 "title": "read_file: example.py",

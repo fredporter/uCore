@@ -2,21 +2,22 @@ from __future__ import annotations
 
 import json
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 from aiohttp import web
 
-from app.services.host_pim import HostPIMService, markdown_to_html
 from app.api.host_api import (
     get_host_pim_service,
-    set_host_pim_service,
     handle_host_capabilities,
-    handle_safari_active,
-    handle_safari_intake,
-    handle_notes_export,
-    handle_reminders_export,
     handle_host_notify,
     handle_host_say,
+    handle_notes_export,
+    handle_reminders_export,
+    handle_safari_active,
+    handle_safari_intake,
+    set_host_pim_service,
 )
+from app.services.host_pim import HostPIMService, markdown_to_html
 
 
 def test_markdown_to_html():

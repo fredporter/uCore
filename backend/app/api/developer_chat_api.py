@@ -4,6 +4,7 @@ import json
 
 from aiohttp import web
 
+from app.core.settings import settings
 from app.services.developer_chat import get_developer_chat
 
 
@@ -57,6 +58,9 @@ async def events(request):
     except KeyError as exc:
         return web.json_response({"error": str(exc)}, status=404)
     response = web.StreamResponse(headers={"Content-Type": "text/event-stream", "Cache-Control": "no-cache"})
+    # Streaming headers are committed before the ordinary middleware returns.
+    if settings.enable_cors:
+        response.headers["Access-Control-Allow-Origin"] = "*"
     await response.prepare(request)
     previous = ""
     try:

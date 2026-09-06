@@ -1,6 +1,8 @@
 # Dev Mode and Product Long Sprints — 2026-09
 
 Status: Canonical execution sequence; baseline reconciled 2026-09-01
+Planning reconciliation: 2026-09-07 — development paused at user request.
+Current next steps: [Next sprint and backlog](NEXT_SPRINT_AND_BACKLOG_2026-09-07.md).
 Owner: uCore
 Related owners: uFlow task authority, uCode runtime authority, uKnowledge research authority
 
@@ -178,8 +180,9 @@ performance work rather than correctness failures.
 
 ## Special Sprint 3A — Conversational Dev Mode
 
-Approved 2026-09-06; implementation and verification in progress.
+Approved 2026-09-06; implementation present, acceptance incomplete; development paused 2026-09-07.
 Contract: [Conversational Dev Mode proposal](DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md).
+Evidence: [Runtime audit and verification](DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md).
 
 Close the global chat-to-construction gap before Sprint 4. Deliver one chat UI,
 User/Developer scope, Ask/Plan/Act intent, durable context, real tool activity,
@@ -189,7 +192,13 @@ faults that block the supported local coding journey. Distinguish absent legacy
 services from verified runtime capabilities. A real installed-engine journey is
 required; tests against fake adapters alone do not close this checkpoint.
 
-## Sprint 4 — Authoring and research completion (4 weeks)
+## Sprint 4 — Zen consolidation, authoring/research verification, and native integration intake (4 weeks)
+
+Not started. Prerequisite: close Sprint 3A's real conversational coding gate.
+The editor ledger now marks its authoring/research feature items done. Treat the
+feature list below as acceptance areas: inspect existing implementation and fix
+demonstrated gaps rather than rebuilding it. Prioritize bounded scope from the
+[2026-09-07 reconciliation](NEXT_SPRINT_AND_BACKLOG_2026-09-07.md).
 
 Architecture direction added 2026-09-06:
 [Zen ecosystem contract](ZEN_ECOSYSTEM_CONTRACT.md). This is an ecosystem-wide
@@ -309,11 +318,13 @@ must not become competing uCore authorities:
 | PWA and mobile enhancements | Sprint 5 |
 | Nanocoder ACP and Developer Surface revamp | Sprints 1–3 |
 
-## Canonical 28-item backlog ledger
+## Editor backlog ledger — 10 open of 76 items
 
-This table is the complete open set derived from
-`BANGLE_UPGRADE_TASKS`. Partial working-tree improvements do not close an item
-until its checklist and focused tests provide evidence.
+This table is the complete open editor set derived from `BANGLE_UPGRADE_TASKS`
+on 2026-09-07: 66 marked done and 10 marked backlog. It is not the complete
+ecosystem backlog. Sprint 3A closure and the Zen/native/backend reconciliation
+work are recorded in the linked next-sprint plan. Recorded done status still
+requires checklist evidence before release acceptance.
 
 | Sprint | Backlog IDs | Count |
 | --- | --- | ---: |
@@ -325,9 +336,9 @@ until its checklist and focused tests provide evidence.
 | Sprint 5 — offline/mobile | — | 0 |
 | **Total** | **All open task objects** | **10** |
 
-The current working tree contains partial formatting, research capture, chat,
-responsive, and surface-consolidation work. Those changes remain checkpoint
-evidence only: no backlog status is advanced merely because related code exists.
+No task status is advanced by this planning reconciliation. Sprint 5 account and
+offline items marked done in this ledger must be checked against ecosystem-wide
+requirements before further implementation is scheduled.
 
 ## Sprint operating rules
 

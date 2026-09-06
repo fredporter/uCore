@@ -108,3 +108,27 @@ def test_restart_marks_inflight_turn_interrupted(chat):
     restored = DeveloperChat(service.path)
     assert restored.get('test')['status'] == 'interrupted'
     assert not restored.tasks
+
+
+@pytest.mark.asyncio
+async def test_stream_has_cors_before_prepare_and_never_submits(chat, monkeypatch):
+    from aiohttp import web
+    from aiohttp.test_utils import TestClient, TestServer
+    from app.api import developer_chat_api
+    service, _, _, _ = chat
+    service.records['stream-test'] = {
+        'id': 'stream-test', 'status': 'completed', 'operations': [],
+        'messages': [], 'events': [], 'revision': 1,
+    }
+    monkeypatch.setattr(developer_chat_api, 'get_developer_chat', lambda: service)
+    monkeypatch.setattr(developer_chat_api.settings, 'enable_cors', True)
+    app = web.Application()
+    developer_chat_api.register(app)
+    async with TestClient(TestServer(app)) as client:
+        response = await client.get('/api/developer/conversations/stream-test/events')
+        assert response.headers['Access-Control-Allow-Origin'] == '*'
+        assert response.headers['Content-Type'] == 'text/event-stream'
+        line = await response.content.readline()
+        assert json.loads(line.removeprefix(b'data: '))['status'] == 'completed'
+        response.close()
+        assert not service.tasks

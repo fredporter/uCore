@@ -1,5 +1,9 @@
 # AssistUI + Developer Chat — Lane Separation & System Prompts
 
+Historical implementation record. Current scope, intent, execution, and history
+behavior is governed by [Sprint 3A](DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md).
+The older completion label below does not certify conversational coding readiness.
+
 **Status:** Complete (2026-07-26)
 **Scope:** Chat surfaces, system prompts, store separation, backend endpoints
 **Files:** 7 modified, 1 created

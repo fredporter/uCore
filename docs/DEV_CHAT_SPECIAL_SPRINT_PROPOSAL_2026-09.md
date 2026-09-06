@@ -1,6 +1,6 @@
 # Special Sprint 3A — Conversational Dev Mode
 
-Status: Approved — 2026-09-06; implementation in progress
+Status: Approved — 2026-09-06; acceptance incomplete, development paused 2026-09-07
 Proposed position: after Sprint 3, before Sprint 4
 Owner: uCore; related authorities: Server runtime policy, uFlow tasks
 
@@ -16,8 +16,9 @@ Chat and advanced Developer Chat. Both use Ask, Plan, and Act. Users should not
 need to choose an agent, know the execution engine, or issue API commands.
 
 This is the approved sprint contract, not a new task store. Execution tasks
-belong in uFlow. Sprint 4's existing scope
-remains unchanged; this proposal adds a readiness checkpoint ahead of it.
+belong in uFlow. This proposal adds a readiness checkpoint ahead of Sprint 4.
+Sprint 4's scope is reconciled in the [next-sprint plan](NEXT_SPRINT_AND_BACKLOG_2026-09-07.md)
+with the subsequently confirmed Zen/native boundaries and current backlog.
 
 ## Evidence and the gap
 
