@@ -15,6 +15,8 @@ log = logging.getLogger("ucore")
 
 def register_routes(app: web.Application) -> None:
     """Register all non-core API routes and surface extensions."""
+    from .developer_chat_api import register as register_developer_chat
+    register_developer_chat(app)
     # ── Extension-driven route registration ─────────────────────────
     # Wave A hard-cut: workflow and knowledge routing are extension-owned.
     from app.extensions.registry import registry
@@ -576,3 +578,12 @@ def register_routes(app: web.Application) -> None:
         log.debug("History API routes registered")
     except ImportError as e:
         log.debug("History API routes not available: %s", e)
+
+    # ── Host PIM & Automation API (macOS Safari / Notes / Reminders) ──
+    try:
+        from .host_api import register_host_routes
+
+        register_host_routes(app)
+        log.debug("Host PIM routes registered")
+    except ImportError as e:
+        log.debug("Host PIM routes not available: %s", e)
