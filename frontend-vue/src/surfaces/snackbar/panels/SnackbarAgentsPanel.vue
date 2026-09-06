@@ -33,7 +33,7 @@
             <td class="server-agent-desc">{{ agent.description }}</td>
             <td>
               <UBadge :type="agent.active ? 'success' : 'info'" size="sm">{{
-                agent.active ? "running" : "idle"
+                agent.status || (agent.active ? "running" : "idle")
               }}</UBadge>
             </td>
           </tr>

@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="usx-flex-between usx-mb-md">
-      <h3 class="surface__panel-title">Model Usage</h3>
+      <h3 class="surface__panel-title">Installed Models</h3>
       <UButton
         variant="secondary"
         size="sm"
@@ -27,11 +27,11 @@
             <td>{{ m.name }}</td>
             <td>
               <div class="model-usage-cell">
-                <progress class="model-usage-bar" :value="m.pct" max="100" />
-                <span class="server-muted-text">{{ m.pct }}%</span>
+                <progress v-if="m.pct !== null" class="model-usage-bar" :value="m.pct" max="100" />
+                <span class="server-muted-text">{{ m.pct === null ? 'Not measured' : `${m.pct}%` }}</span>
               </div>
             </td>
-            <td class="model-calls">{{ m.calls }}</td>
+            <td class="model-calls">{{ m.calls ?? "Not measured" }}</td>
           </tr>
         </tbody>
       </table>

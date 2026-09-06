@@ -200,7 +200,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 2,
     component: "FrontmatterEditor.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-2", "component", "modal"],
     checklist: [
@@ -244,7 +244,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 3,
     component: "EnhancedBangleToolbar.vue",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["phase-3", "component", "toolbar"],
     checklist: [
@@ -267,7 +267,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 3,
     component: "ToolbarSection.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 0.5,
     tags: ["phase-3", "component"],
     checklist: [
@@ -285,7 +285,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 3,
     component: "ToolbarButton.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 0.5,
     tags: ["phase-3", "component", "atom"],
     checklist: [
@@ -305,7 +305,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 3,
     component: "BangleEditor.vue",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-3", "implementation"],
     checklist: [
@@ -329,7 +329,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 3,
     component: "BangleEditor.vue",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 0.5,
     tags: ["phase-3", "refactor"],
     checklist: [
@@ -475,7 +475,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 5,
     component: "EnhancedBangleToolbar.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-5", "integration"],
     checklist: [
@@ -538,7 +538,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 6,
     component: "CombineResearchModal.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["phase-6", "feature", "research"],
     checklist: [
@@ -580,7 +580,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 6,
     component: "Integration",
     priority: "low",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-6", "feature"],
     checklist: [
@@ -598,7 +598,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 6,
     component: "CitationGenerator.ts",
     priority: "low",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["phase-6", "utility"],
     checklist: [
@@ -1139,7 +1139,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     phase: 9,
     component: "StoriesOverlay.vue",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["phase-9", "story", "overlay"],
     checklist: [
@@ -1328,7 +1328,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     title: "User identity integration",
     description: "GET /api/identity/me → show user in GlobalToolbar",
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 3,
     tags: ["sprint-3", "auth"],
     checklist: [
@@ -1360,7 +1360,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description:
       "POST /api/user/preferences — sync theme/font/model between surfaces",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["sprint-3", "settings"],
     checklist: [
@@ -1375,7 +1375,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     title: "Chat history persistence",
     description: "Save chat conversations to backend per user",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["sprint-3", "chat"],
     checklist: [
@@ -1409,7 +1409,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     title: "Service worker + offline-first workspace",
     description: "vite-plugin-pwa with workbox cache strategies",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 4,
     tags: ["sprint-4", "pwa"],
     checklist: [
@@ -1426,7 +1426,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description:
       "useSwipe() composable — swipe right/left for sidebar on touch devices",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 3,
     tags: ["sprint-4", "mobile"],
     checklist: ["useSwipe composable", "Sidebar open/close", "Tab scroll"],
@@ -1438,7 +1438,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description:
       "BangleEditor toolbar → icon-only on < 640px with overflow menu",
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["sprint-4", "mobile", "toolbar"],
     checklist: [
@@ -1454,7 +1454,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description:
       "'Add to Home Screen' banner after 30s dwell, remembers preference",
     priority: "low",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["sprint-4", "pwa"],
     checklist: ["beforeinstallprompt", "30s dwell", "Success toast"],

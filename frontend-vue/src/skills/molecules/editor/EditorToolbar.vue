@@ -93,11 +93,12 @@ withDefaults(defineProps<Props>(), {
   cellsActive: false,
   previewActive: false,
   showDiff: true,
-  showCells: true,
+  showCells: false,
   showPreview: false,
   showCloseSecondary: false,
   showAddTab: false,
 });
+
 
 defineEmits<{
   "select-tab": [id: string];

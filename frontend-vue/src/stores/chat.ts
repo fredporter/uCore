@@ -104,6 +104,7 @@ export const useChatStore = defineStore('chat', () => {
   const activeConversation = ref<string | null>(null)
   const budgetStatus = ref<BudgetStatus>({ ok: true, daily_remaining: null, warning: null })
   const planSteps = ref<PlanStep[]>([])
+  const historySynced = ref(false)
 
   // Computed
   const hasMessages = computed(() => messages.value.length > 1)
@@ -273,6 +274,7 @@ export const useChatStore = defineStore('chat', () => {
       activeConversation.value = newConv.id
     }
     persistConversations(conversations.value)
+    void persistHistory()
   }
 
   function loadConversation(convId: string) {
@@ -285,9 +287,45 @@ export const useChatStore = defineStore('chat', () => {
   function deleteConversation(convId: string) {
     conversations.value = conversations.value.filter(c => c.id !== convId)
     persistConversations(conversations.value)
+    void persistHistory()
     if (activeConversation.value === convId) {
       clearChat()
     }
+  }
+
+  async function restoreHistory() {
+    try {
+      const response = await fetch(`${SNACKBAR_API}/api/chat/history`, { signal: AbortSignal.timeout(3000) })
+      if (!response.ok) throw new Error(`History returned ${response.status}`)
+      const data = await response.json()
+      if (Array.isArray(data.conversations) && data.conversations.length) {
+        conversations.value = data.conversations
+        persistConversations(conversations.value)
+        const latest = [...conversations.value].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]
+        if (latest) loadConversation(latest.id)
+      }
+      historySynced.value = true
+    } catch { /* retain the local offline copy */ }
+  }
+
+  async function persistHistory() {
+    try {
+      const response = await fetch(`${SNACKBAR_API}/api/chat/history`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversations: conversations.value }), signal: AbortSignal.timeout(3000),
+      })
+      historySynced.value = response.ok
+    } catch { historySynced.value = false }
+  }
+
+  async function clearHistory() {
+    conversations.value = []
+    clearChat()
+    persistConversations([])
+    try {
+      const response = await fetch(`${SNACKBAR_API}/api/chat/history`, { method: 'DELETE', signal: AbortSignal.timeout(3000) })
+      historySynced.value = response.ok
+    } catch { historySynced.value = false }
   }
 
   async function checkStatus() {
@@ -386,6 +424,7 @@ export const useChatStore = defineStore('chat', () => {
     activeConversation,
     budgetStatus,
     planSteps,
+    historySynced,
     // Computed
     hasMessages,
     currentModelName,
@@ -398,6 +437,9 @@ export const useChatStore = defineStore('chat', () => {
     saveCurrentConversation,
     loadConversation,
     deleteConversation,
+    restoreHistory,
+    persistHistory,
+    clearHistory,
     checkStatus,
     fetchPrompts,
     fetchModels,

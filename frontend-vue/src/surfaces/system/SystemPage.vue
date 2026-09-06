@@ -110,8 +110,8 @@
         <!-- S500: Service Crash Recovery — live health + restart/repair/destroy -->
         <template v-else-if="isCrashRecoveryPage">
           <p class="system-page-note">
-            Live service health monitor. Restart, repair, or revert crashed
-            services to a working release.
+            Live service health monitor with managed restart actions and honest
+            manual-recovery guidance.
           </p>
 
           <div class="crash-toolbar">
@@ -123,6 +123,7 @@
               {{ crashLoading ? "Checking..." : "Refresh Health" }}
             </button>
             <button
+              v-if="crashServices.some((service) => service.recoveryActions.includes('restart'))"
               class="crash-action crash-action--danger"
               @click="restartAllServices"
               :disabled="crashLoading"
@@ -173,28 +174,14 @@
               </div>
               <div class="crash-service-actions">
                 <button
+                  v-if="svc.recoveryActions.includes('restart')"
                   class="crash-action"
                   @click="restartService(svc.name)"
                   :disabled="actionLoading === svc.name"
                 >
                   {{ actionLoading === svc.name ? "..." : "Restart" }}
                 </button>
-                <button
-                  class="crash-action"
-                  @click="repairService(svc.name)"
-                  :disabled="actionLoading === svc.name"
-                >
-                  Repair
-                </button>
-                <button
-                  class="crash-action crash-action--danger"
-                  @click="confirmDestroy(svc.name)"
-                  :disabled="actionLoading === svc.name"
-                >
-                  {{
-                    destroyConfirm === svc.name ? "Confirm Destroy" : "Destroy"
-                  }}
-                </button>
+                <span v-else>Not managed by uCore. Start this service from its host service manager.</span>
               </div>
             </div>
           </div>
@@ -356,13 +343,13 @@ const crashServices = ref<
     port: number;
     uptime: number;
     description: string;
+    recoveryActions: string[];
   }>
 >([]);
 const crashLoading = ref(false);
 const crashMessage = ref("");
 const crashMessageType = ref<"info" | "success" | "error">("info");
 const actionLoading = ref<string | null>(null);
-const destroyConfirm = ref<string | null>(null);
 
 const isCrashRecoveryPage = computed(() => resolvedPageCode.value === "S500");
 
@@ -373,9 +360,9 @@ async function refreshCrashHealth() {
     const res = await fetch(`${SNACKBAR_BASE}/api/server/services`);
     if (res.ok) {
       const data = await res.json();
-      crashServices.value = (data.services || []).filter(
-        (s: any) => s.status !== "up",
-      );
+      crashServices.value = (data.services || [])
+        .filter((s: any) => s.status !== "up")
+        .map((s: any) => ({ ...s, recoveryActions: s.recoveryActions || [] }));
     }
   } catch {
     crashMessage.value = "Failed to fetch service health.";
@@ -410,72 +397,10 @@ async function restartService(name: string) {
   }
 }
 
-async function repairService(name: string) {
-  actionLoading.value = name;
-  crashMessage.value = "";
-  try {
-    const res = await fetch(
-      `${SNACKBAR_BASE}/api/server/services/${name}/repair`,
-      { method: "POST" },
-    );
-    if (res.ok) {
-      crashMessage.value = `${name} repair initiated.`;
-      crashMessageType.value = "success";
-      toast.show(`${name} repair started`, "info", 4000, "s500");
-    } else {
-      crashMessage.value = `Repair failed for ${name} (HTTP ${res.status}).`;
-      crashMessageType.value = "error";
-    }
-  } catch {
-    crashMessage.value = `Repair request for ${name} failed.`;
-    crashMessageType.value = "error";
-  } finally {
-    actionLoading.value = null;
-    refreshCrashHealth();
-  }
-}
-
-function confirmDestroy(name: string) {
-  if (destroyConfirm.value === name) {
-    destroyService(name);
-  } else {
-    destroyConfirm.value = name;
-    setTimeout(() => {
-      if (destroyConfirm.value === name) destroyConfirm.value = null;
-    }, 5000);
-  }
-}
-
-async function destroyService(name: string) {
-  actionLoading.value = name;
-  destroyConfirm.value = null;
-  crashMessage.value = "";
-  try {
-    const res = await fetch(
-      `${SNACKBAR_BASE}/api/server/services/${name}/reset`,
-      { method: "POST" },
-    );
-    if (res.ok) {
-      crashMessage.value = `${name} reverted to last working release.`;
-      crashMessageType.value = "success";
-      toast.show(`${name} reverted to git release`, "warning", 5000, "s500");
-    } else {
-      crashMessage.value = `Destroy/reset failed for ${name} (HTTP ${res.status}).`;
-      crashMessageType.value = "error";
-    }
-  } catch {
-    crashMessage.value = `Destroy request for ${name} failed.`;
-    crashMessageType.value = "error";
-  } finally {
-    actionLoading.value = null;
-    refreshCrashHealth();
-  }
-}
-
 async function restartAllServices() {
   crashLoading.value = true;
   for (const svc of crashServices.value) {
-    if (svc.status !== "up") await restartService(svc.name);
+    if (svc.status !== "up" && svc.recoveryActions.includes("restart")) await restartService(svc.name);
   }
   await refreshCrashHealth();
 }

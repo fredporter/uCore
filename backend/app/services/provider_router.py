@@ -130,8 +130,8 @@ class ProviderRouter:
             return
         self.providers["ollama"] = ProviderConfig(
             name="ollama", type="ollama",
-            base_url=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),
-            default_model="qwen2.5-coder:3b", priority=1,
+            base_url=os.environ.get("OLLAMA_BASE_URL", settings.ollama_base_url),
+            default_model=settings.ollama_default_model, priority=1,
             models=["qwen2.5-coder:3b", "qwen2.5-coder:7b-instruct-q4_K_M",
                     "llama3.2", "mistral"],
         )
@@ -194,8 +194,8 @@ class ProviderRouter:
     def get_provider_required(self, name: str) -> ProviderConfig:
         """Return provider by name; raise if missing or disabled."""
         prov = self.providers.get(name)
-        if prov is None:
-            raise ValueError(f"Provider '{name}' not found")
+        if prov is None or not prov.enabled:
+            raise ValueError(f"Provider '{name}' not found or disabled")
         return prov
 
     def list_providers(self) -> list[dict[str, Any]]:
@@ -306,11 +306,11 @@ class ProviderRouter:
         """Send chat completion with caching, fallback, and latency tracking."""
         import time
 
-        provider_name = provider or "ollama"
-        model_name = model or self._default_model(provider_name)
+        provider_name = provider or ("openrouter" if model and model.startswith("openrouter/") else "ollama")
+        model_name = model if model and model != "auto" else self._default_model(provider_name)
 
         # Check cache if available
-        if self.cache is not None:
+        if self.cache is not None and not kwargs.get("tools"):
             cached = self.cache.get(
                 provider=provider_name, model=model_name,
                 messages=messages,
@@ -331,7 +331,7 @@ class ProviderRouter:
         # — it already recorded in this same chat() invocation.
 
         # Store in cache if available and successful
-        if self.cache is not None and "error" not in result:
+        if self.cache is not None and not kwargs.get("tools") and "error" not in result:
             self.cache.set(
                 provider=provider_name, model=model_name,
                 messages=messages, response=result,
@@ -350,7 +350,7 @@ class ProviderRouter:
 
         # Get provider config
         try:
-            prov = self.get_provider(provider_name)
+            prov = self.get_provider_required(provider_name)
         except ValueError:
             return {"error": f"Provider '{provider_name}' not available"}
 
@@ -363,20 +363,20 @@ class ProviderRouter:
             # Try OpenRouter, fall back to Ollama on failure
             try:
                 result = await self._chat_openrouter(
-                    prov, messages, model, prov.timeout,
+                    prov, messages, model, prov.timeout, **kwargs,
                 )
                 if "error" not in result:
                     return result
                 # OpenRouter returned an error — try fallback
                 fallback = await self._fallback_ollama(
-                    prov, messages, model, prov.timeout,
+                    prov, messages, model, prov.timeout, **kwargs,
                 )
                 if fallback:
                     return fallback
                 return result
             except Exception as exc:
                 fallback = await self._fallback_ollama(
-                    prov, messages, model, prov.timeout,
+                    prov, messages, model, prov.timeout, **kwargs,
                 )
                 if fallback:
                     fallback.setdefault("fallback", {})["reason"] = str(exc)
@@ -399,13 +399,14 @@ class ProviderRouter:
         self, provider: ProviderConfig,
         messages: list[dict[str, str]],
         model: str, timeout: int = 60,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """Chat via OpenRouter API. Fallback handled by _route_chat."""
         # Check API key
         if not provider.api_key:
             return {"error": "OpenRouter API key not configured"}
 
-        return await self._chat_http(messages, model, provider.name)
+        return await self._chat_http(messages, model, provider.name, **kwargs)
 
     async def _fallback_ollama(
         self,
@@ -413,6 +414,7 @@ class ProviderRouter:
         messages: list[dict[str, str]],
         model: str,
         timeout: int,
+        **kwargs: Any,
     ) -> dict[str, Any] | None:
         """Invoke Ollama fallback and merge fallback metadata."""
         if "ollama" not in self.providers:
@@ -420,7 +422,7 @@ class ProviderRouter:
         ollama = self.providers["ollama"]
         fallback_model = ollama.default_model or model
         result = await self._chat_ollama(
-            ollama, messages, fallback_model, timeout,
+            ollama, messages, fallback_model, timeout, **kwargs,
         )
         result["fallback"] = {
             "used": True,
@@ -463,6 +465,7 @@ class ProviderRouter:
         choice = response.choices[0]
         return {
             "content": choice.message.content,
+            "tool_calls": [call.model_dump() for call in (choice.message.tool_calls or [])],
             "model": response.model,
             "usage": {
                 "prompt_tokens": (
@@ -479,18 +482,15 @@ class ProviderRouter:
         provider: str | None = None, **kwargs: Any,
     ) -> dict[str, Any]:
         import aiohttp
-        is_openrouter = provider == "openrouter"
-        base_url = (
-            "https://openrouter.ai/api/v1" if is_openrouter
-            else "http://localhost:11434"
-        )
-        ollama_model = model.split("/", 1)[-1] if "/" in model else model
+        config = self.get_provider_required(provider or "ollama")
+        is_openrouter = config.type == "openrouter"
+        base_url = config.base_url.rstrip("/")
+        ollama_model = model.removeprefix("openrouter/") if is_openrouter else model.removeprefix("ollama/")
 
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=config.timeout)) as session:
             if is_openrouter:
                 url = f"{base_url}/chat/completions"
-                prov = self.providers.get("openrouter")
-                api_key = prov.api_key if prov else ""
+                api_key = config.api_key or ""
                 headers = {
                     "Authorization": f"Bearer {api_key}",
                     "HTTP-Referer": "http://localhost",
@@ -499,6 +499,8 @@ class ProviderRouter:
                     "model": ollama_model,
                     "messages": messages,
                 }
+                if kwargs.get("tools"):
+                    payload["tools"] = kwargs["tools"]
             else:
                 url = f"{base_url}/api/chat"
                 headers = {}
@@ -507,6 +509,8 @@ class ProviderRouter:
                     "messages": messages,
                     "stream": False,
                 }
+                if kwargs.get("format"):
+                    payload["format"] = kwargs["format"]
                 # Pass tools if provided (Ollama tool calling)
                 tools = kwargs.get("tools")
                 if tools:
@@ -516,6 +520,9 @@ class ProviderRouter:
                 url, json=payload, headers=headers,
             ) as resp:
                 data = await resp.json()
+                if resp.status >= 400 or data.get("error"):
+                    error = data.get("error", f"Provider returned HTTP {resp.status}")
+                    return {"error": error.get("message", str(error)) if isinstance(error, dict) else str(error)}
                 if is_openrouter:
                     if "choices" in data:
                         msg = data["choices"][0]["message"]
@@ -535,15 +542,13 @@ class ProviderRouter:
                     "content": msg.get("content", ""),
                     "tool_calls": msg.get("tool_calls"),
                     "model": model,
-                    "usage": {},
+                    "usage": {"prompt_tokens": data.get("prompt_eval_count", 0),
+                              "completion_tokens": data.get("eval_count", 0)},
                 }
 
     def _default_model(self, provider: str | None = None) -> str:
-        if provider == "openrouter-free":
-            return "cognitivecomputations/dolphin-mixtral-8x7b"
-        if provider == "openrouter":
-            return "cognitivecomputations/dolphin-mixtral-8x7b"
-        return "ollama/qwen2.5-coder:3b"
+        config = self.get_provider_required(provider or "ollama")
+        return config.default_model
 
 
 def get_router() -> ProviderRouter:

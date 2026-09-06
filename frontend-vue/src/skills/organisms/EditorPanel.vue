@@ -11,8 +11,9 @@
         <button
           v-if="!readOnly"
           class="editor-panel__add-field"
-          title="Add frontmatter field"
-          @click="handleAddField"
+          title="Edit document properties"
+          type="button"
+          @click="frontmatterEditorOpen = true"
         >
           <UIcon name="add" />
         </button>
@@ -22,6 +23,12 @@
         v-model="frontmatter"
         :can-edit="!readOnly"
         @update:model-value="onFrontmatterChange"
+      />
+      <FrontmatterEditor
+        :open="frontmatterEditorOpen"
+        :model-value="frontmatter"
+        @close="frontmatterEditorOpen = false"
+        @save="saveFrontmatter"
       />
     </div>
 
@@ -40,24 +47,26 @@
           v-model="bodyContent"
           :preview="false"
           :read-only="readOnly"
-          edit-mode="code"
+          :edit-mode="localEditMode"
           class="editor-panel__markdown"
           :class="{ 'editor-panel__markdown--split': viewMode === 'split' }"
           @save="handleSave"
           @change="onContentChange"
+          @toolbar-action="handleToolbarAction"
+          @update:edit-mode="onEditorModeChange"
         >
           <template #toolbar-actions>
             <div class="editor-panel__pane-actions">
-              <button v-if="viewMode === 'split'" title="Collapse code" aria-label="Collapse code" @click="viewMode = 'preview'">
+              <button v-if="viewMode === 'split'" type="button" title="Collapse code" aria-label="Collapse code" @click="viewMode = 'preview'">
                 <UIcon name="left_panel_close" :size="20" />
               </button>
-              <button v-if="viewMode === 'edit'" title="Show prose" aria-label="Show prose" @click="viewMode = 'split'">
+              <button v-if="viewMode === 'edit'" type="button" title="Show prose" aria-label="Show prose" @click="viewMode = 'split'">
                 <UIcon name="visibility" :size="20" />
               </button>
-              <button title="Save" aria-label="Save" :disabled="readOnly" @click="handleSave">
+              <button type="button" title="Save" aria-label="Save" :disabled="readOnly" @click="handleSave">
                 <UIcon name="save" :size="20" />
               </button>
-              <button title="Publish" aria-label="Publish document" @click="emit('publish')">
+              <button type="button" title="Publish" aria-label="Publish document" @click="emit('publish')">
                 <UIcon name="publish" :size="20" />
               </button>
             </div>
@@ -71,13 +80,13 @@
         >
           <div class="editor-panel__prose-bar">
             <div class="editor-panel__pane-actions">
-              <button v-if="viewMode === 'preview'" title="Show code" aria-label="Show code" @click="openCodePane">
+              <button v-if="viewMode === 'preview'" type="button" title="Show code" aria-label="Show code" @click="openCodePane">
                 <UIcon name="edit_note" :size="20" />
               </button>
-              <button v-else title="Collapse prose" aria-label="Collapse prose" @click="viewMode = 'edit'">
+              <button v-else type="button" title="Collapse prose" aria-label="Collapse prose" @click="viewMode = 'edit'">
                 <UIcon name="right_panel_close" :size="20" />
               </button>
-              <button title="Publish" aria-label="Publish document" @click="emit('publish')">
+              <button type="button" title="Publish" aria-label="Publish document" @click="emit('publish')">
                 <UIcon name="publish" :size="20" />
               </button>
             </div>
@@ -97,6 +106,19 @@
         </div>
       </transition>
     </div>
+    <SummarizeModal
+      v-if="summarizeOpen"
+      :content="bodyContent"
+      @insert="insertSummary"
+      @close="summarizeOpen = false"
+    />
+    <CitationModal
+      v-if="citationOpen"
+      :frontmatter="frontmatter"
+      @insert="insertCitation"
+      @close="citationOpen = false"
+    />
+    <ToolbarScrapeModal v-if="scraperOpen" @close="scraperOpen = false" @insert="insertScrapedContent" />
   </div>
 </template>
 
@@ -120,9 +142,16 @@ import { ref, watch, computed } from "vue";
 import UIcon from "../atoms/UIcon.vue";
 import MarkdownEditor from "../molecules/editor/MarkdownEditor.vue";
 import FrontmatterPills from "../molecules/editor/FrontmatterPills.vue";
+import FrontmatterEditor from "../molecules/editor/FrontmatterEditor.vue";
 import MarkdownPreview from "../molecules/MarkdownPreview.vue";
 import ResearchPanel from "../molecules/editor/ResearchPanel.vue";
+import SummarizeModal from "../molecules/editor/SummarizeModal.vue";
+import CitationModal from "../molecules/editor/CitationModal.vue";
+import ToolbarScrapeModal from "../molecules/editor/ToolbarScrapeModal.vue";
 import { useShellStore } from "../../stores/shell";
+import { useToast } from "../../composables/useToast";
+import { useWorkspaceStore } from "../../stores/workspace";
+import { createVariantDocument } from "../../utils/documentVariant";
 import {
   parseDocument,
   serializeDocument,
@@ -161,6 +190,8 @@ const emit = defineEmits<{
 }>();
 
 const shell = useShellStore();
+const { toast } = useToast();
+const workspace = useWorkspaceStore();
 
 // ─── State ───────────────────────────────────────────────────────────
 const initialDocument = parseDocument(props.content || "");
@@ -170,6 +201,10 @@ const viewMode = ref<"edit" | "preview" | "split">(
   props.singlePane ? "edit" : "preview",
 );
 const researchOpen = ref(false);
+const frontmatterEditorOpen = ref(false);
+const summarizeOpen = ref(false);
+const citationOpen = ref(false);
+const scraperOpen = ref(false);
 
 const currentFilename = computed(() => props.title || "Untitled.md");
 
@@ -202,6 +237,11 @@ function openCodePane() {
   viewMode.value = props.singlePane ? "edit" : "split";
 }
 
+function onEditorModeChange(mode: "prose" | "code") {
+  localEditMode.value = mode;
+  emit("update:editMode", mode);
+}
+
 // ─── Frontmatter ─────────────────────────────────────────────────────
 const frontmatter = ref<Frontmatter>(initialDocument.frontmatter);
 const hasFrontmatter = computed(
@@ -213,13 +253,9 @@ function onFrontmatterChange(updated: Frontmatter) {
   emitDocumentUpdate();
 }
 
-/** Add a new frontmatter field (triggered by the header add icon). */
-function handleAddField() {
-  const key = window.prompt("New field name (e.g. status, author):");
-  if (!key?.trim()) return;
-  const value = window.prompt(`Value for "${key}":`);
-  if (value === null) return;
-  onFrontmatterChange({ ...frontmatter.value, [key.trim()]: value });
+function saveFrontmatter(updated: Frontmatter) {
+  onFrontmatterChange(updated);
+  frontmatterEditorOpen.value = false;
 }
 
 // ─── Sync props ──────────────────────────────────────────────────────
@@ -247,6 +283,65 @@ function onContentChange(value: string) {
 
 function handleSave() {
   emit("save", serializeDocument(bodyContent.value, frontmatter.value));
+}
+
+function handleToolbarAction(action: string) {
+  if (action === "summarize") {
+    summarizeOpen.value = true;
+    return;
+  }
+  if (action === "scrape") {
+    scraperOpen.value = true;
+    return;
+  }
+  if (action === "outline") {
+    researchOpen.value = !researchOpen.value;
+    return;
+  }
+  if (action === "citation") {
+    citationOpen.value = true;
+    return;
+  }
+  if (action === "variant") {
+    void createVariant();
+    return;
+  }
+  toast(`${action.replaceAll("-", " ")} is available through its governed workflow.`, "info");
+}
+
+function insertSummary(summary: string) {
+  bodyContent.value = `${bodyContent.value.replace(/\s*$/, "")}\n\n## Summary\n\n${summary}\n`;
+  summarizeOpen.value = false;
+  emitDocumentUpdate();
+  toast("Summary inserted", "success");
+}
+
+function insertCitation(citation: string) {
+  bodyContent.value = `${bodyContent.value.replace(/\s*$/, "")}\n\n${citation}\n`;
+  citationOpen.value = false;
+  emitDocumentUpdate();
+  toast("Citation inserted", "success");
+}
+
+function insertScrapedContent(content: string) {
+  bodyContent.value = `${bodyContent.value.replace(/\s*$/, "")}\n\n${content}\n`;
+  scraperOpen.value = false;
+  emitDocumentUpdate();
+  toast("Research inserted", "success");
+}
+
+async function createVariant() {
+  const parent = workspace.selectedFile;
+  if (!parent) { toast("Save the document before creating a variant.", "warning"); return; }
+  const stem = parent.name.replace(/\.md$/i, "");
+  const variantId = `variant-${Date.now()}`;
+  const filename = `${stem}-${variantId}.md`;
+  const parentFolder = parent.path.slice(0, parent.path.lastIndexOf("/")) || "/";
+  const content = createVariantDocument(serializeDocument(bodyContent.value, frontmatter.value), parent.path, variantId);
+  const node = await workspace.createFile(parentFolder, filename);
+  workspace.updateFileContent(node.id, content);
+  await workspace.saveFile(node.path, content);
+  toast("Variant created", "success");
 }
 
 function emitDocumentUpdate() {

@@ -332,6 +332,7 @@ async def test_chat_http_uses_ollama_api_chat_endpoint(monkeypatch):
     captured: dict[str, object] = {}
 
     class FakeResponse:
+        status = 200
         async def __aenter__(self):
             return self
 
@@ -409,3 +410,35 @@ async def test_provider_router_stats_include_latency_and_cache(
     assert stats["last_latency_ms"] is not None
     assert stats["average_latency_ms"] >= 0
     assert stats["cache"]["hits"] == 1
+
+
+@pytest.mark.asyncio
+async def test_named_cloud_provider_uses_its_transport_and_credentials(monkeypatch):
+    router = ProviderRouter()
+    router.providers = {"openrouter-free": ProviderConfig(
+        name="openrouter-free", type="openrouter", base_url="https://example.test/v1",
+        api_key="fixture-key", default_model="vendor/model:free",
+    )}
+    captured = {}
+
+    class Response:
+        status = 200
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): return False
+        async def json(self):
+            return {"choices": [{"message": {"content": "ok"}}]}
+
+    class Session:
+        def __init__(self, **kwargs): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): return False
+        def post(self, url, **kwargs):
+            captured.update(url=url, **kwargs)
+            return Response()
+
+    monkeypatch.setattr(aiohttp, "ClientSession", Session)
+    result = await router._chat_http([], "vendor/model:free", provider="openrouter-free")
+    assert result["content"] == "ok"
+    assert captured["url"] == "https://example.test/v1/chat/completions"
+    assert captured["headers"]["Authorization"] == "Bearer fixture-key"
+    assert captured["json"]["model"] == "vendor/model:free"

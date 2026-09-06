@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ast
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -10,6 +12,8 @@ from typing import Any
 from aiohttp import web
 
 from app.core.settings import settings
+from app.services.developer_commands import get_developer_command_manager
+from app.services.developer_operations import get_developer_operation_manager
 from app.utils.config_loader import load_developer_repo_policy
 
 # ─── File discovery constants (stable, not policy-driven) ────────
@@ -42,6 +46,16 @@ IGNORED_DIRS = {
     ".mypy_cache",
 }
 MAX_PREVIEW_BYTES = 200_000
+MAX_SEARCH_RESULTS = 100
+
+
+class FileConflictError(RuntimeError):
+    """Raised when a file changed after the editor loaded it."""
+
+
+class DiffConflictError(RuntimeError):
+    """Raised when a reviewed diff changed before a hunk was staged."""
+
 
 # ─── Policy loader (lazy, cached once loaded) ────────────────────
 
@@ -272,7 +286,12 @@ def _repo_file_count(repo_path: Path, limit: int = 500) -> int:
 
 
 def _repo_path(repo_name: str) -> Path:
-    repo_path = (settings.udos_root.expanduser() / repo_name).resolve()
+    root = settings.udos_root.expanduser().resolve()
+    if not repo_name or repo_name.startswith(".") or Path(repo_name).name != repo_name:
+        raise ValueError("Repository must be a direct child of the code workspace")
+    repo_path = (root / repo_name).resolve()
+    if repo_path.parent != root or (root / repo_name).is_symlink():
+        raise ValueError("Repository escapes the code workspace")
     if not repo_path.exists() or not repo_path.is_dir():
         raise FileNotFoundError(repo_name)
     return repo_path
@@ -288,6 +307,21 @@ def _safe_file_path(repo_name: str, relative_path: str) -> Path:
     if file_path.suffix.lower() not in ALLOWED_EXTENSIONS:
         raise ValueError("Unsupported file type")
     return file_path
+
+
+def _safe_new_file_path(repo_name: str, relative_path: str) -> Path:
+    repo_path = _repo_path(repo_name)
+    file_path = (repo_path / relative_path).resolve()
+    if repo_path not in file_path.parents or file_path == repo_path:
+        raise ValueError("Path escapes repository root")
+    if file_path.suffix.lower() not in ALLOWED_EXTENSIONS:
+        raise ValueError("Unsupported file type")
+    return file_path
+
+
+def _file_revision(path: Path) -> str:
+    stat = path.stat()
+    return f"{stat.st_mtime_ns}:{stat.st_size}"
 
 
 def _list_repos(scope: str = "code", exclude_system: bool = False) -> list[dict]:
@@ -372,6 +406,54 @@ def _list_repo_files(
             __import__("datetime").datetime.fromtimestamp(file["updatedAt"]).isoformat()
         )
     return files
+
+
+def _search_repo(repo_name: str, query: str, limit: int = 50) -> list[dict[str, Any]]:
+    """Search bounded text files through ripgrep without invoking a shell."""
+    repo_path = _repo_path(repo_name)
+    term = query.strip()
+    if not term or len(term) > 500:
+        raise ValueError("query must contain between 1 and 500 characters")
+    bounded_limit = max(1, min(limit, MAX_SEARCH_RESULTS))
+    command = [
+        "rg",
+        "--line-number",
+        "--column",
+        "--no-heading",
+        "--color",
+        "never",
+        "--fixed-strings",
+        "--max-count",
+        str(bounded_limit),
+        "--",
+        term,
+        ".",
+    ]
+    try:
+        result = subprocess.run(
+            command, cwd=repo_path, capture_output=True, text=True, timeout=8, check=False
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError("Repository search is unavailable") from exc
+    if result.returncode not in {0, 1}:
+        raise RuntimeError((result.stderr or "Repository search failed")[:500])
+    matches: list[dict[str, Any]] = []
+    for line in result.stdout.splitlines():
+        parts = line.split(":", 3)
+        if len(parts) != 4:
+            continue
+        path, line_number, column, preview = parts
+        matches.append(
+            {
+                "path": path.removeprefix("./"),
+                "line": int(line_number),
+                "column": int(column),
+                "preview": preview[:500],
+            }
+        )
+        if len(matches) >= bounded_limit:
+            break
+    return matches
 
 
 def _status_label(code: str) -> str:
@@ -499,6 +581,77 @@ def _get_repo_file_preview(repo_name: str, relative_path: str) -> dict[str, Any]
         "size": stat.st_size,
         "truncated": truncated,
         "updatedAt": __import__("datetime").datetime.fromtimestamp(stat.st_mtime).isoformat(),
+        "revision": _file_revision(file_path),
+    }
+
+
+def _create_repo_file(repo_name: str, relative_path: str, content: str = "") -> dict[str, Any]:
+    file_path = _safe_new_file_path(repo_name, relative_path)
+    if file_path.exists():
+        raise FileExistsError(relative_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.write_text(content, encoding="utf-8")
+    return _get_repo_file_preview(repo_name, relative_path)
+
+
+def _move_repo_file(repo_name: str, source: str, destination: str) -> dict[str, Any]:
+    source_path = _safe_file_path(repo_name, source)
+    destination_path = _safe_new_file_path(repo_name, destination)
+    if destination_path.exists():
+        raise FileExistsError(destination)
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+    source_path.replace(destination_path)
+    return _get_repo_file_preview(repo_name, destination)
+
+
+def _delete_repo_file(repo_name: str, relative_path: str, revision: str) -> dict[str, Any]:
+    file_path = _safe_file_path(repo_name, relative_path)
+    if not revision or revision != _file_revision(file_path):
+        raise FileConflictError("File changed since it was loaded")
+    file_path.unlink()
+    return {"repo": repo_name, "path": relative_path, "deleted": True}
+
+
+def _diagnose_repo_file(repo_name: str, relative_path: str) -> dict[str, Any]:
+    file_path = _safe_file_path(repo_name, relative_path)
+    text = file_path.read_text(encoding="utf-8", errors="replace")
+    suffix = file_path.suffix.lower()
+    adapter = {".py": "python-ast", ".json": "json", ".yaml": "yaml", ".yml": "yaml"}.get(suffix)
+    if adapter is None:
+        return {
+            "repo": repo_name,
+            "path": relative_path,
+            "supported": False,
+            "adapter": None,
+            "diagnostics": [],
+        }
+    diagnostics: list[dict[str, Any]] = []
+    try:
+        if suffix == ".py":
+            ast.parse(text, filename=relative_path)
+        elif suffix == ".json":
+            json.loads(text)
+        else:
+            import yaml
+
+            yaml.safe_load(text)
+    except (SyntaxError, json.JSONDecodeError) as exc:
+        diagnostics.append(
+            {
+                "severity": "error",
+                "line": getattr(exc, "lineno", 1) or 1,
+                "column": getattr(exc, "offset", 1) or 1,
+                "message": str(exc)[:500],
+            }
+        )
+    except Exception as exc:
+        diagnostics.append({"severity": "error", "line": 1, "column": 1, "message": str(exc)[:500]})
+    return {
+        "repo": repo_name,
+        "path": relative_path,
+        "supported": True,
+        "adapter": adapter,
+        "diagnostics": diagnostics,
     }
 
 
@@ -548,8 +701,112 @@ def _get_repo_file_diff(repo_name: str, relative_path: str) -> dict[str, Any]:
     }
 
 
-def _save_repo_file(repo_name: str, relative_path: str, content: str) -> dict[str, Any]:
+def _parse_repo_diff(diff_text: str, staged: bool) -> list[dict[str, Any]]:
+    """Parse a git patch into files and independently applicable hunks."""
+    lines = diff_text.splitlines()
+    starts = [index for index, line in enumerate(lines) if line.startswith("diff --git ")]
+    files: list[dict[str, Any]] = []
+    for position, start in enumerate(starts):
+        end = starts[position + 1] if position + 1 < len(starts) else len(lines)
+        section = lines[start:end]
+        first_hunk = next(
+            (index for index, line in enumerate(section) if line.startswith("@@ ")),
+            len(section),
+        )
+        header = section[:first_hunk]
+        path = ""
+        for line in header:
+            if line.startswith("+++ b/"):
+                path = line[6:]
+                break
+        if not path:
+            marker = next((line for line in header if line.startswith("--- a/")), "")
+            path = marker[6:] if marker else ""
+        if not path:
+            continue
+
+        hunk_starts = [index for index, line in enumerate(section) if line.startswith("@@ ")]
+        hunks: list[dict[str, Any]] = []
+        for hunk_index, hunk_start in enumerate(hunk_starts):
+            hunk_end = (
+                hunk_starts[hunk_index + 1] if hunk_index + 1 < len(hunk_starts) else len(section)
+            )
+            hunk_lines = section[hunk_start:hunk_end]
+            hunks.append(
+                {
+                    "index": hunk_index,
+                    "header": hunk_lines[0],
+                    "lines": hunk_lines[1:],
+                    "patch": "\n".join([*header, *hunk_lines]) + "\n",
+                }
+            )
+        section_text = "\n".join(section) + "\n"
+        status = (
+            "deleted"
+            if any(line.startswith("deleted file mode ") for line in header)
+            else "added"
+            if any(line.startswith("new file mode ") for line in header)
+            else "modified"
+        )
+        files.append(
+            {
+                "path": path,
+                "status": status,
+                "staged": staged,
+                "fingerprint": hashlib.sha256(section_text.encode()).hexdigest(),
+                "hunks": hunks,
+            }
+        )
+    return files
+
+
+def _get_repo_diffs(repo_name: str, staged: bool = False) -> dict[str, Any]:
+    repo_path = _repo_path(repo_name)
+    args = ["diff"]
+    if staged:
+        args.append("--cached")
+    args.extend(["--no-ext-diff", "--unified=3"])
+    diff_text = _git_output(repo_path, *args)
+    return {"repo": repo_name, "staged": staged, "files": _parse_repo_diff(diff_text, staged)}
+
+
+def _stage_repo_hunk(
+    repo_name: str, relative_path: str, hunk_index: int, expected_fingerprint: str
+) -> dict[str, Any]:
+    repo_path = _repo_path(repo_name)
+    _safe_file_path(repo_name, relative_path)
+    current = _get_repo_diffs(repo_name, staged=False)
+    file_diff = next((item for item in current["files"] if item["path"] == relative_path), None)
+    if not file_diff or file_diff["fingerprint"] != expected_fingerprint:
+        raise DiffConflictError("Diff changed since it was reviewed; reload before staging")
+    hunks = file_diff["hunks"]
+    if hunk_index < 0 or hunk_index >= len(hunks):
+        raise ValueError("Hunk index is out of range")
+    result = subprocess.run(
+        ["git", "-C", str(repo_path), "apply", "--cached", "--whitespace=nowarn", "-"],
+        input=hunks[hunk_index]["patch"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"git apply failed: {result.stderr.strip()}")
+    return {
+        "repo": repo_name,
+        "path": relative_path,
+        "hunkIndex": hunk_index,
+        "action": "staged",
+        "success": True,
+    }
+
+
+def _save_repo_file(
+    repo_name: str, relative_path: str, content: str, revision: str = ""
+) -> dict[str, Any]:
     file_path = _safe_file_path(repo_name, relative_path)
+    if revision and revision != _file_revision(file_path):
+        raise FileConflictError("File changed since it was loaded")
     file_path.write_text(content, encoding="utf-8")
     return _get_repo_file_preview(repo_name, relative_path)
 
@@ -828,6 +1085,21 @@ async def handle_list_repo_files(request: web.Request) -> web.Response:
     )
 
 
+async def handle_search_repo(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    query = request.query.get("q", "")
+    try:
+        limit = int(request.query.get("limit", "50"))
+        matches = _search_repo(repo_name, query, limit)
+    except FileNotFoundError:
+        return web.json_response({"error": f"Repository not found: {repo_name}"}, status=404)
+    except (RuntimeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(
+        {"repo": repo_name, "query": query, "matches": matches, "count": len(matches)}
+    )
+
+
 async def handle_get_repo_file_preview(request: web.Request) -> web.Response:
     repo_name = request.match_info["repo_name"]
     relative_path = request.query.get("path", "").strip()
@@ -891,7 +1163,70 @@ async def handle_update_repo_file(request: web.Request) -> web.Response:
         return web.json_response({"error": "Missing string field: content"}, status=400)
 
     try:
-        payload = _save_repo_file(repo_name, relative_path, data["content"])
+        payload = _save_repo_file(
+            repo_name, relative_path, data["content"], str(data.get("revision", ""))
+        )
+    except FileNotFoundError:
+        return web.json_response({"error": f"File not found: {relative_path}"}, status=404)
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    except FileConflictError as exc:
+        return web.json_response({"error": str(exc), "conflict": True}, status=409)
+    return web.json_response(payload)
+
+
+async def handle_create_repo_file(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    try:
+        data = await request.json()
+        payload = _create_repo_file(
+            repo_name, str(data.get("path", "")).strip(), str(data.get("content", ""))
+        )
+    except FileNotFoundError:
+        return web.json_response({"error": f"Repository not found: {repo_name}"}, status=404)
+    except FileExistsError as exc:
+        return web.json_response({"error": f"File already exists: {exc}"}, status=409)
+    except (TypeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(payload, status=201)
+
+
+async def handle_move_repo_file(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    try:
+        data = await request.json()
+        payload = _move_repo_file(
+            repo_name, str(data.get("source", "")).strip(), str(data.get("destination", "")).strip()
+        )
+    except FileNotFoundError as exc:
+        return web.json_response({"error": f"File not found: {exc}"}, status=404)
+    except FileExistsError as exc:
+        return web.json_response({"error": f"File already exists: {exc}"}, status=409)
+    except (TypeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(payload)
+
+
+async def handle_delete_repo_file(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    relative_path = request.query.get("path", "").strip()
+    revision = request.headers.get("If-Match", "").strip()
+    try:
+        payload = _delete_repo_file(repo_name, relative_path, revision)
+    except FileNotFoundError:
+        return web.json_response({"error": f"File not found: {relative_path}"}, status=404)
+    except FileConflictError as exc:
+        return web.json_response({"error": str(exc), "conflict": True}, status=409)
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(payload)
+
+
+async def handle_diagnose_repo_file(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    relative_path = request.query.get("path", "").strip()
+    try:
+        payload = _diagnose_repo_file(repo_name, relative_path)
     except FileNotFoundError:
         return web.json_response({"error": f"File not found: {relative_path}"}, status=404)
     except ValueError as exc:
@@ -909,6 +1244,34 @@ async def handle_get_repo_file_diff(request: web.Request) -> web.Response:
     except FileNotFoundError:
         return web.json_response({"error": f"File not found: {relative_path}"}, status=404)
     except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(payload)
+
+
+async def handle_get_repo_diffs(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    try:
+        payload = _get_repo_diffs(repo_name, staged=_to_bool(request.query.get("staged")))
+    except FileNotFoundError:
+        return web.json_response({"error": f"Repository not found: {repo_name}"}, status=404)
+    return web.json_response(payload)
+
+
+async def handle_stage_repo_hunk(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    try:
+        data = await request.json()
+        relative_path = str(data.get("path", "")).strip()
+        fingerprint = str(data.get("fingerprint", "")).strip()
+        hunk_index = int(data.get("hunkIndex", -1))
+        if not relative_path or not fingerprint:
+            raise ValueError("Path and diff fingerprint are required")
+        payload = _stage_repo_hunk(repo_name, relative_path, hunk_index, fingerprint)
+    except DiffConflictError as exc:
+        return web.json_response({"error": str(exc), "conflict": True}, status=409)
+    except FileNotFoundError:
+        return web.json_response({"error": "Repository or file not found"}, status=404)
+    except (TypeError, ValueError, RuntimeError) as exc:
         return web.json_response({"error": str(exc)}, status=400)
     return web.json_response(payload)
 
@@ -980,13 +1343,161 @@ async def handle_commit_repo_files(request: web.Request) -> web.Response:
     return web.json_response(payload)
 
 
+# ─── Governed ACP Developer operations ───────────────────────────
+
+
+async def handle_developer_operation_capabilities(request: web.Request) -> web.Response:
+    return web.json_response(get_developer_operation_manager().capabilities())
+
+
+async def handle_list_developer_operations(request: web.Request) -> web.Response:
+    repository = request.query.get("repository", "").strip()
+    operations = get_developer_operation_manager().list(repository)
+    return web.json_response({"operations": operations, "count": len(operations)})
+
+
+async def handle_create_developer_operation(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+        repository = str(body.get("repository", "")).strip()
+        if not repository:
+            raise ValueError("repository is required")
+        _repo_path(repository)  # apply canonical repository policy before launch
+        operation = get_developer_operation_manager().create(
+            action=str(body.get("action", "")).strip(),
+            repository=repository,
+            prompt=str(body.get("prompt", "")),
+            context=body.get("context") or {},
+        )
+    except FileNotFoundError:
+        return web.json_response({"error": "Repository not found"}, status=404)
+    except PermissionError as exc:
+        return web.json_response({"error": str(exc)}, status=403)
+    except (TypeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(operation.public(), status=202)
+
+
+async def handle_get_developer_operation(request: web.Request) -> web.Response:
+    try:
+        operation = get_developer_operation_manager().get(request.match_info["operation_id"])
+    except KeyError as exc:
+        return web.json_response({"error": str(exc)}, status=404)
+    return web.json_response(operation.public())
+
+
+async def handle_decide_developer_operation(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+        decision = str(body.get("decision", "")).strip().lower()
+        manager = get_developer_operation_manager()
+        if decision == "approve":
+            operation = manager.approve(request.match_info["operation_id"])
+        elif decision == "deny":
+            operation = manager.deny(request.match_info["operation_id"])
+        else:
+            raise ValueError("decision must be approve or deny")
+    except PermissionError as exc:
+        return web.json_response({"error": str(exc)}, status=403)
+    except KeyError as exc:
+        return web.json_response({"error": str(exc)}, status=404)
+    except (TypeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(operation.public())
+
+
+async def handle_cancel_developer_operation(request: web.Request) -> web.Response:
+    try:
+        operation = await get_developer_operation_manager().cancel(
+            request.match_info["operation_id"]
+        )
+    except KeyError as exc:
+        return web.json_response({"error": str(exc)}, status=404)
+    return web.json_response(operation.public())
+
+
+async def handle_apply_developer_proposal(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+        operation = get_developer_operation_manager().apply_proposal(
+            request.match_info["operation_id"],
+            str(body.get("path", "")),
+            str(body.get("fingerprint", "")),
+        )
+    except PermissionError as exc:
+        return web.json_response({"error": str(exc)}, status=403)
+    except KeyError as exc:
+        return web.json_response({"error": str(exc)}, status=404)
+    except (TypeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    except RuntimeError as exc:
+        return web.json_response({"error": str(exc)}, status=409)
+    return web.json_response(operation.public())
+
+
+# ─── Bounded repository commands ─────────────────────────────────
+
+
+async def handle_developer_command_actions(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    try:
+        actions = get_developer_command_manager().discover(repo_name, _repo_path(repo_name))
+    except FileNotFoundError:
+        return web.json_response({"error": f"Repository not found: {repo_name}"}, status=404)
+    return web.json_response({"repo": repo_name, "actions": actions})
+
+
+async def handle_list_developer_command_runs(request: web.Request) -> web.Response:
+    repository = request.query.get("repository", "").strip()
+    runs = get_developer_command_manager().list(repository)
+    return web.json_response({"runs": runs, "count": len(runs), "audit": "developer-actions.jsonl"})
+
+
+async def handle_start_developer_command(request: web.Request) -> web.Response:
+    repo_name = request.match_info["repo_name"]
+    try:
+        body = await request.json()
+        run = get_developer_command_manager().start(
+            repo_name,
+            _repo_path(repo_name),
+            str(body.get("action", "")).strip(),
+            int(body.get("timeout", 300)),
+        )
+    except FileNotFoundError:
+        return web.json_response({"error": f"Repository not found: {repo_name}"}, status=404)
+    except PermissionError as exc:
+        return web.json_response({"error": str(exc)}, status=403)
+    except (TypeError, ValueError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    return web.json_response(run.public(), status=202)
+
+
+async def handle_get_developer_command_run(request: web.Request) -> web.Response:
+    try:
+        run = get_developer_command_manager().get(request.match_info["run_id"])
+    except KeyError as exc:
+        return web.json_response({"error": str(exc)}, status=404)
+    return web.json_response(run.public())
+
+
+async def handle_cancel_developer_command(request: web.Request) -> web.Response:
+    try:
+        run = await get_developer_command_manager().cancel(request.match_info["run_id"])
+    except KeyError as exc:
+        return web.json_response({"error": str(exc)}, status=404)
+    return web.json_response(run.public())
+
+
 # ─── Dev Chat ───────────────────────────────────────────────────────
 
 
 def _execute_developer_read_intent(message: str, workspace: str = "") -> str | None:
     """Execute bounded read-only Dev-lane requests before consulting the model."""
     normalized = " ".join(message.lower().split())
-    if any(phrase in normalized for phrase in ("list repos", "list repositories", "show repos", "show repositories")):
+    if any(
+        phrase in normalized
+        for phrase in ("list repos", "list repositories", "show repos", "show repositories")
+    ):
         repos = _list_repos(scope="code")
         if not repos:
             return "No repositories were found in the configured code workspace."
@@ -996,7 +1507,9 @@ def _execute_developer_read_intent(message: str, workspace: str = "") -> str | N
             state = "dirty" if repo.get("dirty") else "clean"
             lines.append(f"- **{repo['name']}** — `{branch}` ({state})")
         return "\n".join(lines)
-    if workspace and any(phrase in normalized for phrase in ("repo status", "repository status", "git status")):
+    if workspace and any(
+        phrase in normalized for phrase in ("repo status", "repository status", "git status")
+    ):
         status = _list_repo_status(workspace)
         counts = {key: len(value) for key, value in status.items()}
         return (
@@ -1009,227 +1522,9 @@ def _execute_developer_read_intent(message: str, workspace: str = "") -> str | N
 
 
 async def handle_developer_chat(request: web.Request) -> web.Response:
-    """POST /api/developer/chat — dev-lane chat completion.
-
-    Body: { "message": "...", "history": [...], "lane": "ecosystem|project", "workspace": "..." }
-    Returns: { "response": "...", "model": "...", "usage": {...} }
-    """
-    try:
-        body = await request.json()
-    except Exception:
-        return web.json_response({"error": "Invalid JSON body"}, status=400)
-
-    message = body.get("message", "")
-    if not message:
-        return web.json_response({"error": "message is required"}, status=400)
-
-    lane = body.get("lane", "ecosystem")
-    workspace = body.get("workspace", "")
-    model = body.get("model")
-    binder_context = body.get("binder_context")
-    binder_meta = body.get("binder_meta")
-    binder_summary = _summarize_binder_context(binder_context, binder_meta)
-
-    history = body.get("history") or body.get("messages")
-    if not isinstance(history, list):
-        history = []
-
-    try:
-        executed_response = _execute_developer_read_intent(message, workspace)
-    except (FileNotFoundError, ValueError) as exc:
-        return web.json_response({"error": str(exc)}, status=400)
-    if executed_response is not None:
-        return web.json_response({
-            "response": executed_response,
-            "lane": lane,
-            "workspace": workspace,
-            "model": "ucore-read-contract",
-            "usage": {},
-            "executed": True,
-        })
-
-    log = __import__("logging").getLogger("ucore.devchat")
-    binder_fp = ""
-    if isinstance(binder_context, dict):
-        binder_fp = _clean_inline(binder_context.get("fingerprint"), 80)
-    log.info(
-        "Dev chat: lane=%s workspace=%s model=%s binder_fp=%s message=%s...",
-        lane,
-        workspace,
-        model,
-        binder_fp or "none",
-        message[:80],
-    )
-
-    try:
-        from ..services.provider_router import ProviderRouter
-
-        router = ProviderRouter()
-        dev_system = (
-            "You are the uCore Developer Assistant. You work in the Developer Surface "
-            "and have access to these APIs (at http://localhost:8484):\n\n"
-            "**Repos & Code:**\n"
-            "• /api/developer/repos — list code repositories under ~/Code\n"
-            "• /api/developer/repos/{name}/files — list files in a repo\n"
-            "• /api/developer/repos/{name}/review — git status review of changes\n"
-            "• /api/developer/repos/{name}/status — staged/unstaged file status\n"
-            "• /api/developer/repos/{name}/github — GitHub PR and Actions status\n"
-            "• /api/developer/repos/{name}/diff?path=... — view file diff\n"
-            "• /api/developer/repos/{name}/file-preview?path=... — preview file content\n"
-            "• /api/developer/repos/{name}/stage — stage a file (POST)\n"
-            "• /api/developer/repos/{name}/commit — commit staged files (POST)\n\n"
-            "**Skills:**\n"
-            "• /api/skills — list governed built-in skills\n"
-            "• /api/skills/{skill_id}/run — execute a named skill\n\n"
-            "**Health & System:**\n"
-            "• /api/control/status — full ecosystem health (Ollama, Hivemind, providers, etc.)\n"
-            "• /api/ollama/status — Ollama model status\n"
-            "• /api/system — system info\n"
-            "• /api/health — health check\n\n"
-            f"**Current Context:** Lane={lane}, Workspace={workspace or 'not set'}\n"
-            "The Developer Surface has two lanes:\n"
-            "- System lane (ecosystem): uCore/uCode with protection guardrails\n"
-            "- Project lane: non-system repos under ~/Code\n\n"
-            "Be concise and technical. When users ask to review code, check status, "
-            "or manage repos, reference the specific endpoints above. "
-            "Prefer suggesting API calls and skill executions over generic advice. "
-            "You can help with code review, linting, git operations, skill execution, "
-            "MCP server management, service health, and deployment."
-        )
-        if binder_summary:
-            dev_system = f"{dev_system}\n\n{binder_summary}"
-        chat_messages = [{"role": "system", "content": dev_system}]
-        chat_messages.extend(history)
-        chat_messages.append({"role": "user", "content": message})
-        response = await router.chat(messages=chat_messages, model=model)
-        return web.json_response(
-            {
-                "response": response.get("content", ""),
-                "lane": lane,
-                "workspace": workspace,
-                "model": response.get("model", model),
-                "usage": response.get("usage", {}),
-            }
-        )
-    except Exception as e:
-        log.error("Dev chat error: %s", e)
-        return web.json_response(
-            {
-                "error": str(e),
-                "message": "Dev chat request failed",
-            },
-            status=500,
-        )
+    from .developer_chat_api import submit
+    return await submit(request)
 
 
-async def handle_developer_chat_stream(request: web.Request) -> web.StreamResponse:
-    """GET /api/developer/chat/stream?message=...&lane=... — SSE streaming dev chat."""
-    message = request.query.get("message", "").strip()
-    if not message:
-        return web.json_response({"error": "message is required"}, status=400)
-
-    lane = request.query.get("lane", "ecosystem")
-    workspace = request.query.get("workspace", "")
-    model = request.query.get("model")
-    binder_fingerprint = (
-        request.query.get("binder_fingerprint", "").strip()
-        or request.headers.get("X-Binder-Fingerprint", "").strip()
-    )
-    binder_lane = (
-        request.query.get("binder_lane", "").strip()
-        or request.headers.get("X-Binder-Lane", "").strip()
-    )
-    binder_goal = (
-        request.query.get("binder_goal", "").strip()
-        or request.headers.get("X-Binder-Goal", "").strip()
-    )
-    binder_repo = (
-        request.query.get("binder_repo", "").strip()
-        or request.headers.get("X-Binder-Repo", "").strip()
-    )
-    binder_tasks_count = (
-        request.query.get("binder_tasks_count", "").strip()
-        or request.headers.get("X-Binder-Tasks-Count", "").strip()
-    )
-
-    log = __import__("logging").getLogger("ucore.devchat")
-    log.info(
-        "Dev chat stream: lane=%s binder_fp=%s message=%s...",
-        lane,
-        _clean_inline(binder_fingerprint, 80) or "none",
-        message[:80],
-    )
-
-    response = web.StreamResponse(
-        status=200,
-        reason="OK",
-        headers={
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-        },
-    )
-    await response.prepare(request)
-
-    try:
-        from ..services.provider_router import ProviderRouter
-
-        router = ProviderRouter()
-        dev_system = (
-            "You are a developer assistant working in uCore. "
-            f"Current lane: {lane}. Workspace: {workspace or 'not set'}. "
-            "You help with code review, repo management, skills, MCP servers, "
-            "service health, build/deploy, and development workflow. "
-            "Be concise and technical."
-        )
-        stream_context_lines = []
-        if binder_fingerprint:
-            stream_context_lines.append(
-                f"- Fingerprint: {_clean_inline(binder_fingerprint, 80)}",
-            )
-        if binder_lane:
-            stream_context_lines.append(
-                f"- Lane override: {_clean_inline(binder_lane, 80)}",
-            )
-        if binder_repo:
-            stream_context_lines.append(
-                f"- Binder repo: {_clean_inline(binder_repo, 80)}",
-            )
-        if binder_goal:
-            stream_context_lines.append(
-                f"- Goal: {_clean_inline(binder_goal, 220)}",
-            )
-        if binder_tasks_count:
-            stream_context_lines.append(
-                f"- Tasks count: {_clean_inline(binder_tasks_count, 16)}",
-            )
-
-        if stream_context_lines:
-            dev_system = f"{dev_system}\n\nBinder context (stream metadata):\n" + "\n".join(
-                stream_context_lines
-            )
-        chat_messages = [
-            {"role": "system", "content": dev_system},
-            {"role": "user", "content": message},
-        ]
-        full_response = await router.chat(messages=chat_messages, model=model, stream=False)
-
-        content = full_response.get("content", "")
-        # Simulate streaming by sending tokens one at a time
-        import asyncio
-        import json
-
-        words = content.split(" ")
-        for i, word in enumerate(words):
-            token = word + (" " if i < len(words) - 1 else "")
-            await response.write(f"data: {json.dumps({'token': token})}\n\n".encode())
-            await asyncio.sleep(0.01)
-
-        await response.write(b"data: [DONE]\n\n")
-    except Exception as e:
-        log.error("Dev chat stream error: %s", e)
-        await response.write(f'data: {{"error": "{str(e)}"}}\n\n'.encode())
-    finally:
-        await response.write_eof()
-
-    return response
+async def handle_developer_chat_stream(request: web.Request) -> web.Response:
+    return web.json_response({"error": "Submit a conversation turn, then subscribe to its events"}, status=410)

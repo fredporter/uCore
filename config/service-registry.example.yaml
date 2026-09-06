@@ -54,23 +54,5 @@ services:
       accept_status: [200]
     description: Local LLM inference runtime
 
-  - id: feed-spool
-    name: Feed Spool
-    category: system
-    host: localhost
-    port: 8486
-    health:
-      path: /health
-    description: Feed spooler and transport layer
-
-  - id: secret-server
-    name: Secret Server
-    category: user
-    host: localhost
-    port: 30001
-    health:
-      path: /health
-      # If health endpoint is missing, set enabled false and use tcp_probe.
-      enabled: true
-    tcp_probe: true
-    description: Encrypted secret vault service
+# Feed spool and secret storage are embedded Snackbar capabilities, not
+# independently managed network services. Register only real daemons here.

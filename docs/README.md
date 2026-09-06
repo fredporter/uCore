@@ -2,6 +2,8 @@
 
 **Active docs live here.** Historical and superseded docs are in [`docs/archive/`](archive/).
 
+Architecture boundary: [uDOS Zen ecosystem contract](ZEN_ECOSYSTEM_CONTRACT.md).
+
 ## Active Runbooks
 
 | Doc                                                                                      | Purpose                           |
@@ -42,6 +44,8 @@
 | [WORKSTATION_MIGRATION_2026-08-18.md](WORKSTATION_MIGRATION_2026-08-18.md) | Migration record, verification and rollback boundary |
 
 ## Active Developer / Dev Mode Specs
+
+Approved, in progress: [Special Sprint 3A — Conversational Dev Mode](DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md).
 
 | Doc                                                                                                        | Purpose                                                  |
 | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |

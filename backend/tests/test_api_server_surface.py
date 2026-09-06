@@ -1,4 +1,5 @@
 """Integration tests for Server Surface API endpoints."""
+
 from __future__ import annotations
 
 from aiohttp import web
@@ -34,6 +35,8 @@ class ServerSurfaceAPITest(AioHTTPTestCase):
         names = [s["name"] for s in data["services"]]
         assert "snackbar" in names
         assert "ollama" in names
+        assert "feed-spool" not in names
+        assert "secret-server" not in names
 
     async def test_get_service_found(self):
         resp = await self.client.get("/api/server/services/snackbar")
@@ -61,6 +64,12 @@ class ServerSurfaceAPITest(AioHTTPTestCase):
         assert resp.status == 201
         data = await resp.json()
         assert data["status"] == "ok"
+
+    async def test_restart_rejects_service_without_managed_adapter(self):
+        resp = await self.client.post("/api/server/services/snackbar/restart")
+        assert resp.status == 409
+        data = await resp.json()
+        assert "no managed restart adapter" in data["error"]
 
     async def test_logs_endpoint(self):
         resp = await self.client.get("/api/server/logs")

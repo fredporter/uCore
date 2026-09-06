@@ -20,6 +20,23 @@ from app.services.dev_layer import DevMode, get_dev_layer
 log = logging.getLogger("ucore.api.dev_layer")
 
 
+
+async def stop_developer_work():
+    from app.services.developer_chat import get_developer_chat
+    from app.services.developer_commands import get_developer_command_manager
+    from app.services.developer_operations import get_developer_operation_manager
+    chat = get_developer_chat()
+    for ident in list(chat.tasks):
+        if not chat.tasks[ident].done():
+            await chat.cancel(ident)
+    manager = get_developer_operation_manager()
+    for ident in list(manager.operations):
+        if manager.get(ident).status in {"queued", "running", "awaiting_approval"}:
+            await manager.cancel(ident)
+    commands = get_developer_command_manager()
+    for ident in list(commands.runs):
+        await commands.cancel(ident)
+
 async def handle_get_dev_state(request: web.Request) -> web.Response:
     """GET /api/dev-layer/state — get current Dev Mode state."""
     return web.json_response(get_dev_layer().get_status())
@@ -47,6 +64,8 @@ async def handle_set_dev_state(request: web.Request) -> web.Response:
     layer = get_dev_layer()
     layer.mode = DevMode(mode_str)
     layer._save()
+    if layer.mode is not DevMode.ON:
+        await stop_developer_work()
     log.info("Dev Mode → %s (by %s)", mode_str, request.remote or "unknown")
     return web.json_response(layer.get_status())
 
@@ -55,6 +74,8 @@ async def handle_toggle_dev_state(request: web.Request) -> web.Response:
     """POST /api/dev-layer/toggle — cycle dev mode."""
     layer = get_dev_layer()
     new_mode = layer.toggle()
+    if new_mode is not DevMode.ON:
+        await stop_developer_work()
     log.info("Dev Mode toggled → %s (by %s)", new_mode.value, request.remote or "unknown")
     return web.json_response(layer.get_status())
 

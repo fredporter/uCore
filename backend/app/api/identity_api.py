@@ -63,5 +63,6 @@ async def handle_set_codeword(request: web.Request) -> web.Response:
 def register_identity_routes(app: web.Application) -> None:
     """Register identity API routes."""
     app.router.add_get("/api/identity", handle_get_identity)
+    app.router.add_get("/api/identity/me", handle_get_identity)
     app.router.add_post("/api/identity/init", handle_init_identity)
     app.router.add_post("/api/identity/codeword", handle_set_codeword)

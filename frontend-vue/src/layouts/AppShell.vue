@@ -1,5 +1,5 @@
 <template>
-  <div class="app-shell" :class="{ 'sidebar-open': globalSidebarOpen }">
+  <div ref="shellEl" class="app-shell" :class="{ 'sidebar-open': globalSidebarOpen }">
     <GlobalToolbar
       :chat-mode="shell.chatMode"
       :sidebar-open="globalSidebarOpen"
@@ -17,6 +17,7 @@
         </button>
       </div>
     </div>
+    <div v-if="!pwa.online" class="app-offline-indicator" role="status">Offline — workspace saves will sync when reconnected</div>
     <div
       class="app-body"
       :class="{
@@ -40,6 +41,13 @@
     <SnackbarHost />
     <!-- Overlay Layer: chat bubble, toasts, alerts, popups, stories -->
     <OverlayLayer />
+    <div v-if="pwa.canInstall || pwa.installMessage" class="app-install-banner" role="status">
+      <span>{{ pwa.installMessage || "Install uCore for faster offline access." }}</span>
+      <button v-if="pwa.canInstall" type="button" :disabled="pwa.installing" @click="installPwa">
+        {{ pwa.installing ? "Opening…" : "Install" }}
+      </button>
+      <button type="button" @click="pwa.dismissInstall">Not now</button>
+    </div>
   </div>
 </template>
 
@@ -50,10 +58,15 @@
  * Replaces RootLayout + SurfaceShellContext from React.
  * @category layouts
  */
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useDevModeStore } from "../stores/devMode";
 import { useShellStore } from "../stores/shell";
 import { useSettingsStore } from "../stores/settings";
+import { useIdentityStore } from "../stores/identity";
+import { useChatStore } from "../stores/chat";
+import { usePwa } from "../composables/usePwa";
+import { useSwipe } from "../composables/useSwipe";
+import { useToast } from "../composables/useToast";
 import { useWorkflowStore } from "../stores/workflow";
 import { useRouter, useRoute } from "vue-router";
 import GlobalToolbar from "../skills/organisms/GlobalToolbar.vue";
@@ -69,6 +82,12 @@ const devMode = useDevModeStore();
 const router = useRouter();
 const route = useRoute();
 const runtimeWarning = ref("");
+const identity = useIdentityStore();
+const chat = useChatStore();
+const pwa = reactive(usePwa());
+const { toast } = useToast();
+const shellEl = ref<HTMLElement | null>(null);
+useSwipe(shellEl, { right: () => shell.setSidebarOpen(true), left: () => shell.setSidebarOpen(false) });
 const RUNTIME_WARNING_KEY = "ucore.runtime.warning";
 const isWorkflowEditor = computed(
   () => route.path === "/workflow" && String(route.query.tab || "") === "editor",
@@ -78,7 +97,7 @@ const globalSidebarOpen = computed(
 );
 
 // Initialize settings store to apply persisted theme (dark mode default)
-useSettingsStore();
+const settings = useSettingsStore();
 
 function syncRuntimeWarningFromSession() {
   if (typeof window === "undefined") return;
@@ -101,8 +120,15 @@ function reloadPage() {
   window.location.reload();
 }
 
+async function installPwa() {
+  if (await pwa.install()) toast("uCore installed", "success");
+}
+
 onMounted(() => {
   void devMode.probe();
+  void identity.load();
+  void settings.initialize();
+  void chat.restoreHistory();
   syncRuntimeWarningFromSession();
   if (typeof window !== "undefined") {
     window.addEventListener("ucore:runtime-warning", onRuntimeWarningEvent as EventListener);
@@ -210,6 +236,35 @@ async function handleNewFile(binderId: string) {
   await router.push({ path: "/workflow", query: { tab: "editor" } });
 }
 </script>
+
+<style scoped>
+.app-offline-indicator {
+  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
+  background: var(--usx-color-warning);
+  color: var(--usx-color-on-warning);
+  text-align: center;
+  font-size: var(--usx-font-size-sm);
+}
+.app-install-banner {
+  position: fixed;
+  z-index: var(--usx-z-index-toast);
+  inset-inline: var(--usx-spacing-md);
+  bottom: var(--usx-spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-lg);
+  background: var(--usx-color-surface);
+  box-shadow: var(--usx-shadow-lg);
+}
+@media (max-width: 40rem) {
+  .app-install-banner { align-items: stretch; flex-direction: column; }
+  .app-install-banner button { min-height: var(--usx-touch-min); }
+}
+</style>
 
 <style scoped>
 .app-shell {

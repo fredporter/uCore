@@ -1,5 +1,11 @@
 # Developer Surface — uCore
 
+Current chat contract: [Sprint 3A](DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md)
+uses the single global chat with User/Developer scope and Ask/Plan/Act intent.
+Construction activity appears there; repository tools remain supporting surfaces.
+See [verification and audit](DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md) for
+verified behavior and remaining gates.
+
 The Developer Surface is the in-core surface for browsing and editing code
 repositories. It runs at `http://localhost:5175/developer`.
 

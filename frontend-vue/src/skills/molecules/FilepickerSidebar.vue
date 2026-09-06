@@ -12,10 +12,24 @@
         </button>
         <button
           class="filepicker-sidebar__action-btn"
+          title="New notebook"
+          @click="handleNewNotebook"
+        >
+          <UIcon name="auto_stories" />
+        </button>
+        <button
+          class="filepicker-sidebar__action-btn"
           title="New binder"
           @click="handleNewBinder"
         >
           <UIcon name="create_new_folder" />
+        </button>
+        <button
+          class="filepicker-sidebar__action-btn"
+          title="Sync Drive mirror"
+          @click="handleSyncDrive"
+        >
+          <UIcon name="cloud_sync" />
         </button>
         <button
           class="filepicker-sidebar__action-btn"
@@ -25,6 +39,7 @@
           <UIcon name="add_box" />
         </button>
       </div>
+
     </div>
 
     <div v-if="mirrorMessage" class="filepicker-sidebar__mirror-message">
@@ -87,9 +102,10 @@
           @dblclick="handleDoubleClick(row.file)"
         >
           <UIcon
-            :name="getFileIcon(row.file.extension)"
+            :name="getFileIcon(row.file.extension, row.file.filename)"
             class="filepicker-sidebar__item-icon"
           />
+
           <span class="filepicker-sidebar__item-name">{{
             displayName(row.file.filename)
           }}</span>
@@ -193,9 +209,10 @@
               @dblclick="handleDoubleClick(row.file)"
             >
               <UIcon
-                :name="getFileIcon(row.file.extension)"
+                :name="getFileIcon(row.file.extension, row.file.filename)"
                 class="filepicker-sidebar__item-icon"
               />
+
               <span class="filepicker-sidebar__item-name">{{
                 displayName(row.file.filename)
               }}</span>
@@ -247,7 +264,9 @@ import USpinner from "../atoms/USpinner.vue";
 import WorkspacePickerModal from "./WorkspacePickerModal.vue";
 import { ucoreApi } from "../../api/client";
 import { useWorkflowStore } from "../../stores/workflow";
+import { syncGoogleDriveVault } from "../../surfaces/browserui/ApiBridge";
 import type { FileEntry } from "../../types/filepicker";
+
 
 interface Props {
   open?: boolean;
@@ -408,6 +427,70 @@ async function checkIndex() {
 function handleNewFile() {
   emit("newFile", "user");
 }
+
+/** Create a new structured Markdown Notebook with YAML frontmatter. */
+async function handleNewNotebook() {
+  const raw = window.prompt("New notebook title", "Analysis Notebook");
+  const title = (raw || "").trim();
+  if (!title) return;
+  mirrorMessage.value = "";
+  const safeStem =
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "notebook";
+  const now = new Date().toISOString();
+  const initialContent = [
+    "---",
+    `title: "${title}"`,
+    "type: notebook",
+    "runtime: gemini",
+    `created: "${now}"`,
+    "tags: [notebook, research]",
+    "---",
+    "",
+    `# ${title}`,
+    "",
+    "```python",
+    "# Executable Python cell",
+    'print("Notebook initialized.")',
+    "```",
+    "",
+  ].join("\n");
+
+  try {
+    const res = await ucoreApi.userWorkflow.importMarkdown({
+      content: initialContent,
+      source_format: "markdown",
+      title,
+      binder: "user",
+      vault_layer: "user",
+      relative_dir: ".",
+      filename: `${safeStem}.notebook.md`,
+      metadata: {
+        imported_from: "filepicker.new-notebook",
+        type: "notebook",
+      },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    mirrorMessage.value = `Notebook "${title}" created.`;
+    await fetchFiles();
+  } catch (e: any) {
+    mirrorMessage.value = `Notebook create failed: ${e?.message || e}`;
+  }
+}
+
+/** Trigger on-demand sync of local Vault with Google Drive mirror. */
+async function handleSyncDrive() {
+  mirrorMessage.value = "Syncing with Drive mirror...";
+  try {
+    const res = await syncGoogleDriveVault();
+    mirrorMessage.value = `Drive mirrored: ${res.scanned} files (${res.updated} updated).`;
+  } catch (e: any) {
+    mirrorMessage.value = `Drive sync failed: ${e?.message || e}`;
+  }
+}
+
 
 /** Create a new binder (workspace folder) in the User Vault root. */
 async function handleNewBinder() {
@@ -746,8 +829,15 @@ function autoExpandFirstLevel(results: FileEntry[]) {
 }
 
 // ─── Icon mapping ───────────────────────────────────────────────────
-function getFileIcon(ext: string): string {
+function getFileIcon(ext: string, filename?: string): string {
+  if (
+    ext === "ipynb" ||
+    (filename && (filename.endsWith(".notebook.md") || filename.toLowerCase().includes("notebook")))
+  ) {
+    return "auto_stories";
+  }
   const iconMap: Record<string, string> = {
+
     md: "mdi:language-markdown",
     ts: "mdi:language-typescript",
     tsx: "mdi:language-typescript",

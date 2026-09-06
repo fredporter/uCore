@@ -93,10 +93,15 @@ async def cors_middleware(request: web.Request, handler):
 @web.middleware
 async def budget_middleware(request: web.Request, handler):
     """Budget guard for costly API endpoints with usage logging."""
-    manager = request.app.get("budget_manager")
+    manager = request.app.get(BUDGET_MANAGER_KEY) or request.app.get("budget_manager")
     if manager is None:
         return await handler(request)
 
+    from app.services.budget_manager import BudgetManager
+    if isinstance(manager, BudgetManager):
+        # Provider and construction adapters own cost accounting. This middleware
+        # cannot infer model cost from arbitrary client headers or an async 202.
+        return await handler(request)
     path = request.path
     try:
         guarded = manager.policy.guarded_endpoints
@@ -471,7 +476,7 @@ def create_app() -> web.Application:
     try:
         from app.services.budget_manager import BudgetManager
 
-        app[BUDGET_MANAGER_KEY] = BudgetManager()
+        app[BUDGET_MANAGER_KEY] = BudgetManager.get()
         log.debug("Budget manager initialized")
     except Exception as e:
         app[BUDGET_MANAGER_KEY] = None
@@ -527,14 +532,6 @@ def create_app() -> web.Application:
         log.debug("Catalog routes registered")
     except ImportError as e:
         log.debug("Catalog API not yet available: %s", e)
-
-    # ── Budget Manager ──────────────────────────────────────────
-    try:
-        from app.services.budget_manager import BudgetManager
-        app[BUDGET_MANAGER_KEY] = BudgetManager()
-        log.info("✅ Budget manager attached to app")
-    except Exception as exc:
-        log.warning("⚠️  Budget manager init failed: %s", exc)
 
     return app
 
