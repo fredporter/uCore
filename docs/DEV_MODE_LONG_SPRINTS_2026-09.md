@@ -1,7 +1,7 @@
 # Dev Mode and Product Long Sprints — 2026-09
 
 Status: Canonical execution sequence; baseline reconciled 2026-09-01
-Planning reconciliation: 2026-09-07 — development paused at user request.
+Planning reconciliation: 2026-09-07 — Sprint 3A local checkpoint complete; Sprint 4 not started.
 Current next steps: [Next sprint and backlog](NEXT_SPRINT_AND_BACKLOG_2026-09-07.md).
 Owner: uCore
 Related owners: uFlow task authority, uCode runtime authority, uKnowledge research authority
@@ -180,7 +180,7 @@ performance work rather than correctness failures.
 
 ## Special Sprint 3A — Conversational Dev Mode
 
-Approved 2026-09-06; implementation present, acceptance incomplete; development paused 2026-09-07.
+Approved 2026-09-06; local conversational coding checkpoint complete 2026-09-07.
 Contract: [Conversational Dev Mode proposal](DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md).
 Evidence: [Runtime audit and verification](DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md).
 
@@ -194,7 +194,7 @@ required; tests against fake adapters alone do not close this checkpoint.
 
 ## Sprint 4 — Zen consolidation, authoring/research verification, and native integration intake (4 weeks)
 
-Not started. Prerequisite: close Sprint 3A's real conversational coding gate.
+Not started. Sprint 3A's supported local coding gate is complete; review the bounded Sprint 4 scope before starting implementation.
 The editor ledger now marks its authoring/research feature items done. Treat the
 feature list below as acceptance areas: inspect existing implementation and fix
 demonstrated gaps rather than rebuilding it. Prioritize bounded scope from the

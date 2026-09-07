@@ -1,48 +1,35 @@
 # Next sprint and remaining backlog — 2026-09-07
 
-Status: planning only; development paused at user request.
+Status: Sprint 3A local checkpoint complete; Sprint 4 planned, not started.
 Owner: uCore planning; uFlow remains the execution task authority.
 This is a dated reconciliation of the [long-sprint sequence](DEV_MODE_LONG_SPRINTS_2026-09.md),
 not a second task store. No new implementation sprint is started by this document.
 
 ## What happens next
 
-First close the remaining Sprint 3A acceptance gate when development is resumed.
-Then begin **Sprint 4 — Zen consolidation, authoring/research verification, and
+The next planned sprint is **Sprint 4 — Zen consolidation, authoring/research verification, and
 native integration intake**. Keep its four-week timebox, with exact implementation
 scope selected after reviewing the existing work. Do not rebuild capabilities
 already marked done or add another chat, agent selector, or runtime.
 
-## Sprint 3A: remaining prerequisite
+## Sprint 3A: local coding checkpoint complete
 
 The shared User/Developer chat, Ask/Plan/Act controls, durable conversation state,
-review controls, and governed construction plumbing are implemented. Direct local
-NanoCoder execution has produced a correct isolated diff. Browser checks verified
-Ask, Plan, approval, cancellation, restored history, and cross-scope running status.
+review controls, and governed construction plumbing are implemented. The real
+local flow generated a correct diff, applied it through the browser, and ran the
+repository-defined test through a follow-up chat request with exit code 0.
+Ask/Plan context, restored history, cancellation, cross-scope running status,
+and narrow-width review/Apply were also exercised.
 
-The complete conversational coding journey is **not yet certified**. The latest
-chat-created construction attempt ended with no diff; the backend reported failure
-and did not apply anything. Exact-path context improved direct tests but has not
-established reliable conversational construction. Passing mocked tests or one
-direct engine run does not close this gap.
+The key handoff correction carries an actually inspected file into construction.
+Exact repository paths, bounded operation evidence, and one governed continuation
+when an engine stops without edits prevent advisory prose being treated as work.
+Failed attempts remain failed and do not modify the live repository.
 
-Remaining work, in order:
-
-1. Stabilize the real chat-to-construction handoff with bounded, accurate file and
-   task context; require actual tool execution and a reviewable diff.
-2. Record one uninterrupted browser journey: Ask → Plan → Act → construction
-   approval → review → Apply → repository check → follow-up correction. Verify
-   the live fixture changes only at Apply and actual check output is retained.
-3. Verify final context/streaming changes, stale and repeated Apply, failure,
-   cancellation, restart/reconnect, and keyboard/narrow-window behavior. Existing
-   checks cover parts of these gates; collect the missing integrated evidence.
-4. Review the final diff and reconcile the installed runtime with the verified
-   source. The isolated test service is not evidence that the normal installation
-   has been updated. Record the supported model and Vendor installation policy.
-
-Evidence and limits: [Sprint 3A verification](DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md).
-Do not declare the entire Dev backend healthy: paid routing and broader service
-execution require separate evidence.
+Evidence and supported-runtime limits: [Sprint 3A verification](DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md).
+This closes the local coding integration checkpoint. It does not certify all
+models, paid execution, all ecosystem services, or a deployed installation.
+Broader release and service reconciliation remain explicitly scheduled below.
 
 ## Existing editor backlog: 10 open items
 
@@ -115,7 +102,8 @@ Only take work that fits the timebox; retain unselected work in uFlow.
 
 ## Decision boundary
 
-The next development action, once requested, is Sprint 3A closure. Sprint 4 is the
-next planned sprint and begins only after that gate and a review of its bounded
-scope. This update authorizes no new development, service activation, installation,
-paid usage, deployment, or publication.
+Sprint 3A closes with the merged source checkpoint and recorded local-runtime
+acceptance. Sprint 4 is ready for scope review and a clean start; its development
+has not been started by this closure. The user authorized completing 3A, merging
+all open branches into main, committing, and pushing. Native integration expansion,
+paid service activation, and broader deployment are not implied by this checkpoint.

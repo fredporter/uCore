@@ -239,19 +239,23 @@ const visibleSurfaces = computed(() => {
 
 // Active extensions to show as cards below the main surfaces
 const activeExtensions = computed(() => {
-  // Filter out surface/core kinds — only show actual plugins that are enabled/running
+  // Infrastructure stays in Server/Settings. Only launch distinct, running surfaces.
   return extStore.all
     .filter(
       (e) =>
         e.manifest.kind === "plugin" &&
-        (e.status === "running" || e.status === "installed"),
+        Boolean(e.manifest.route) &&
+        !visibleSurfaces.value.some(
+          (card) => card.route.split(/[?#]/)[0] === e.manifest.route?.split(/[?#]/)[0],
+        ) &&
+        e.status === "running",
     )
     .map((e) => ({
       id: e.manifest.id,
       title: e.manifest.name,
       description: e.manifest.description || "Installed extension",
       icon: e.manifest.icon || "extension",
-      route: e.manifest.route || `/snackbar?tab=extensions#${e.manifest.id}`,
+      route: e.manifest.route!,
       color: "var(--usx-color-primary)",
       status: e.status as "running" | "stopped" | "error",
     }));

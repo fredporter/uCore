@@ -1,6 +1,6 @@
 # Special Sprint 3A — Conversational Dev Mode
 
-Status: Approved — 2026-09-06; acceptance incomplete, development paused 2026-09-07
+Status: Local coding checkpoint complete — 2026-09-07; see verification evidence and deferred release scope
 Proposed position: after Sprint 3, before Sprint 4
 Owner: uCore; related authorities: Server runtime policy, uFlow tasks
 

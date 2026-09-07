@@ -59,7 +59,6 @@
       </div>
     </template>
   </ChatBubble>
-  <DevHudPanel v-if="devMode.mode === 'on'" />
 </template>
 
 <script setup lang="ts">
@@ -71,7 +70,6 @@ import PopupOverlay from "./PopupOverlay.vue";
 import StoriesOverlay from "./StoriesOverlay.vue";
 import ChatBubble from "../molecules/ChatBubble.vue";
 import ChatBubblePanel from "./ChatBubblePanel.vue";
-import DevHudPanel from "./DevHudPanel.vue";
 import UIcon from "../atoms/UIcon.vue";
 import { useToast } from "../../composables/useToast";
 import { useFeed } from "../../composables/useFeed";

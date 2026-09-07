@@ -18,6 +18,7 @@
       </div>
     </div>
     <div v-if="!pwa.online" class="app-offline-indicator" role="status">Offline — workspace saves will sync when reconnected</div>
+    <div class="app-workspace">
     <div
       class="app-body"
       :class="{
@@ -36,6 +37,8 @@
       <main class="app-main">
         <router-view />
       </main>
+    </div>
+    <DevHudPanel v-if="devMode.mode === 'on'" />
     </div>
     <!-- Snackbar Host -->
     <SnackbarHost />
@@ -73,6 +76,7 @@ import GlobalToolbar from "../skills/organisms/GlobalToolbar.vue";
 import FilepickerSidebar from "../skills/molecules/FilepickerSidebar.vue";
 import SnackbarHost from "../skills/molecules/SnackbarHost.vue";
 import OverlayLayer from "../skills/organisms/OverlayLayer.vue";
+import DevHudPanel from "../skills/organisms/DevHudPanel.vue";
 import { ucoreApi } from "../api/client";
 import type { FileEntry } from "../types/filepicker";
 
@@ -356,6 +360,7 @@ async function handleNewFile(binderId: string) {
 }
 
 .app-main {
+  min-width: 0;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -363,6 +368,18 @@ async function handleNewFile(binderId: string) {
   padding: 0;
   background: var(--usx-color-background);
   min-height: 0;
+}
+
+.app-workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.app-workspace > .app-body {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ─── Vertical tab layout: tabs become the first column ──────────

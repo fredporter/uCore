@@ -1,13 +1,16 @@
 <template>
-  <div class="devhud" :class="{ 'devhud--minimized': minimized }">
+  <aside class="devhud" aria-label="Developer HUD" :class="{ 'devhud--minimized': minimized }">
     <!-- Minimized: compact toggle -->
     <button
       v-if="minimized"
       class="devhud-min"
       @click="minimized = false"
       title="Dev HUD"
+      aria-label="Open Developer HUD"
+      :aria-expanded="false"
     >
       <span class="material-symbols-outlined">terminal</span>
+      <span class="devhud-min-label">Dev</span>
       <span v-if="taskTotal > 0" class="devhud-badge">{{ taskTotal }}</span>
     </button>
 
@@ -18,7 +21,7 @@
           >terminal</span
         >
         <strong class="devhud-title">Dev HUD</strong>
-        <button class="devhud-close" @click="minimized = true" title="Minimize">
+        <button class="devhud-close" @click="minimized = true" title="Collapse panel" aria-label="Collapse Developer HUD">
           <span class="material-symbols-outlined">remove</span>
         </button>
       </div>
@@ -100,11 +103,11 @@
       <!-- Error -->
       <div v-if="error" class="devhud-error">{{ error }}</div>
     </div>
-  </div>
+  </aside>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onBeforeUnmount, watch } from "vue";
 import { useDevModeStore } from "../../stores/devMode";
 import { SNACKBAR_BASE } from "../../api/base";
 
@@ -201,74 +204,66 @@ watch(
   { immediate: true },
 );
 
-onMounted(() => {
-  if (devMode.mode === "on") {
-    loadHud();
-    interval = setInterval(loadHud, 30000);
-  }
-});
+onBeforeUnmount(() => { if (interval) clearInterval(interval); });
 </script>
 
 <style scoped>
 .devhud {
-  position: fixed;
-  bottom: 80px;
-  right: var(--usx-spacing-lg);
-  z-index: 998;
+  width: min(340px, 42vw);
+  flex-shrink: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--usx-color-border);
+  background: var(--usx-color-surface);
   font-family: var(--usx-font-family-sans);
 }
 
 .devhud--minimized {
-  bottom: 80px;
-  right: var(--usx-spacing-lg);
+  width: 52px;
+  padding-top: var(--usx-spacing-sm);
+  display: flex;
+  justify-content: center;
 }
 
 .devhud-min {
   width: 44px;
-  height: 44px;
-  border-radius: var(--usx-radius-full);
+  min-height: 44px;
+  align-self: flex-start;
+  padding: 8px 4px;
+  border-radius: var(--usx-radius-sm);
   border: 1px solid var(--usx-color-border);
-  background: var(--usx-color-primary);
-  color: var(--usx-color-background);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-primary);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
   cursor: pointer;
-  position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
-.devhud-min span {
-  font-size: 20px;
-}
-
+.devhud-min .material-symbols-outlined { font-size: 20px; }
+.devhud-min-label { font-size: 12px; }
 .devhud-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  background: var(--usx-color-danger);
-  color: white;
-  font-size: 10px;
-  font-weight: var(--usx-font-weight-bold);
-  width: 18px;
-  height: 18px;
-  border-radius: var(--usx-radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  min-width: 24px;
+  padding: 2px 4px;
+  border-radius: var(--usx-radius-sm);
+  text-align: center;
 }
 
 .devhud-card {
-  width: 340px;
-  max-height: 520px;
+  width: 100%;
+  height: 100%;
   overflow-y: auto;
   background: var(--usx-color-surface);
-  border: 1px solid var(--usx-color-border);
-  border-radius: var(--usx-radius-lg);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .devhud-header {
+  position: sticky;
+  top: 0;
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-sm);
@@ -289,6 +284,8 @@ onMounted(() => {
 }
 
 .devhud-close {
+  min-width: 44px;
+  min-height: 44px;
   background: none;
   border: none;
   cursor: pointer;

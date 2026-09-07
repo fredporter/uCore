@@ -1,7 +1,7 @@
 # Dev Chat Sprint 3A verification — 2026-09-06
 
-Status updated 2026-09-07: acceptance incomplete; development paused at user request.
-Next steps: [remaining gate and backlog](NEXT_SPRINT_AND_BACKLOG_2026-09-07.md).
+Status updated 2026-09-07: supported local conversational coding checkpoint complete.
+Next steps: [Sprint 4 and remaining backlog](NEXT_SPRINT_AND_BACKLOG_2026-09-07.md).
 This report distinguishes verified capabilities from remaining ecosystem work.
 The [approved proposal](DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md) remains the
 acceptance contract; the [Zen contract](ZEN_ECOSYSTEM_CONTRACT.md) governs reuse
@@ -55,7 +55,7 @@ implementation or verification is claimed here.
 
 ## Automated evidence
 
-- Full backend suite: 487 passed, 6 warnings before the final streaming fix.
+- Full backend suite: 489 passed, 6 warnings after the conversation and file-context fixes.
 - Focused conversation suite after streaming fix: 6 passed, including real HTTP
   headers and read-only event retrieval.
 - Frontend: 65 tests passed across 20 files.
@@ -74,12 +74,53 @@ port 8486 keep this check separate from the user's running installation.
 Ask correctly identified `add(2, 3) == -1`; Plan retained that context and described
 the operator fix without editing. Conversation survived backend/browser reload.
 Act created awaiting-approval requests, and explicit approval started the isolated
-coding engine. Browser cancellation and cross-scope View/Stop were verified.
-The latest chat-created construction attempt still returned no file changes.
-Direct isolated engine runs produced correct diffs, but this did not establish a
-reliable full conversation journey. No live fixture proposal was applied.
-Apply/check/follow-up acceptance remains open; the sprint is not complete.
+coding engine. Earlier attempts correctly failed without touching the live fixture.
+The final handoff carried `context.file = math.js` from actual read evidence.
+Construction then produced this reviewed change:
 
-Later context/acknowledgement/check-discovery edits are present in source, but
-their final combined runtime acceptance has not been completed. Test counts above
-are dated evidence, not certification of every subsequent edit.
+```diff
+-export function add(a, b) { return a - b; }
++export function add(a, b) { return a + b; }
+```
+
+The live fixture still contained subtraction immediately before Apply. The browser
+then showed `math.js · applied`. A follow-up request, “Run the repository test now
+and tell me the result,” dispatched the repository-defined `test` action:
+
+```text
+npm run test
+> node check.js
+addition passed
+exitCode: 0
+status: passed
+```
+
+Chat visibly reported the passing test. The conversation used ID
+`0a472be080ef441fb7e3f5ba3b5f0cc2`; the verified check was
+`3e1d697462d64d5cb298c813809a8335`. Browser cancellation, restored history,
+cross-scope View/Stop, and review/Apply at 480px width were exercised. Automated
+contracts cover full-set/new-file/repeated/stale Apply and read/write boundaries.
+Temporary fixture artifacts are disposable; this record retains the observed result.
+
+## Closure boundary
+
+This is a supported local integration checkpoint, not certification of every model
+or service. Existing local models can still return failed proposals; the UI must
+show failure and preserve the repository. Paid budget enforcement, service/skill
+execution breadth, full product accessibility/performance audit, and clean-installed
+release verification remain in the next-sprint/release backlog. The normal running
+installation was not restarted as part of this repository merge.
+
+## Branch reconciliation
+
+All existing local and remote branch tips were incorporated into local `main`.
+The stabilization tree exactly matched squash commit `51f1cac`; the runtime/feed
+branch exactly matched the previous main tree. Their ancestry was recorded without
+reapplying old content. The teletext recovery branch is an ancestor of stabilization.
+The current authoring/Dev Mode branch was merged normally. No open pull requests
+were reported by GitHub at reconciliation time. Final push verification is recorded
+in the completion response.
+
+## UI review closure
+
+Dev HUD now docks on the right and collapses to a labelled edge tab with an inline task count. Identity remains in Settings → Identity; its separate toolbar button is removed. Dreamscape, Google Studio and Banana Studio are dashboard cards only. Extension launchers sharing an existing dashboard route are suppressed, including Google Bridge and Dreamscape. Vault Topology is a distinct backend capability, but has no dedicated UI surface. The full Active Extensions audit removes route-less launchers and routes already represented by main cards (including Server/Settings tabs). Budget and Agents resolve to Server → AI; Identity resolves to Settings → Identity. Publishing, Vault Topology and HomeNest remain in the extension catalogue without misleading dashboard launchers. Only running extensions with distinct routes appear in Active Extensions.

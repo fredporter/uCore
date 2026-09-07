@@ -159,6 +159,7 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
   // External udos-* extension manifest entries
   {
     id: "udos-budget",
+    route: "/snackbar?tab=ai",
     name: "uDos Budget",
     kind: "plugin",
     required: false,
@@ -168,6 +169,7 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
   },
   {
     id: "udos-identity",
+    route: "/system?tab=identity",
     name: "uDos Identity",
     kind: "plugin",
     required: false,
@@ -235,6 +237,7 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
   },
   {
     id: "udos-agents",
+    route: "/snackbar?tab=ai",
     name: "uDos Agents",
     kind: "plugin",
     required: false,
