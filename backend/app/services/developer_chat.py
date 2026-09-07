@@ -177,8 +177,19 @@ class DeveloperChat:
             manager = get_developer_operation_manager()
             if not manager.capabilities()["available"]:
                 raise RuntimeError("NanoCoder is unavailable; configure the engine in Server")
+            context = dict(record["context"])
+            # Carry forward a file actually inspected in this conversation when
+            # the requested edit names it; never invent a path in the handoff.
+            if not context.get("file"):
+                inspected = [event.get("result", {}).get("path")
+                             for event in record.get("events", [])
+                             if event.get("name") == "read_file"
+                             and isinstance(event.get("result"), dict)]
+                matches = {item for item in inspected if item and item in args["request"]}
+                if len(matches) == 1:
+                    context["file"] = matches.pop()
             operation = manager.create(action="implement-reviewed-task", repository=repo,
-                prompt=args["request"], context=record["context"])
+                prompt=args["request"], context=context)
             record["operations"].append(operation.id)
             self.save()
             return {"operationId": operation.id, "status": operation.status,

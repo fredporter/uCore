@@ -133,3 +133,16 @@ async def test_stream_has_cors_before_prepare_and_never_submits(chat, monkeypatc
         assert json.loads(line.removeprefix(b'data: '))['status'] == 'completed'
         response.close()
         assert not service.tasks
+
+
+@pytest.mark.asyncio
+async def test_construction_carries_only_inspected_named_file(chat, monkeypatch):
+    service, _, _, manager = chat
+    monkeypatch.setattr(manager, '_command', lambda: ['fake', '--acp'])
+    record = {'repository': 'demo', 'mode': 'act', 'context': {}, 'operations': [],
+              'events': [{'name': 'read_file', 'result': {'path': 'example.py'}}]}
+    result = await service.execute(record, 'propose_changes', {'request': 'Fix example.py'})
+    assert manager.get(result['operationId']).context == {'file': 'example.py'}
+    assert manager.get(result['operationId']).status == 'awaiting_approval'
+    other = await service.execute(record, 'propose_changes', {'request': 'Fix another.py'})
+    assert manager.get(other['operationId']).context == {}
