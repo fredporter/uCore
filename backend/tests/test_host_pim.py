@@ -67,7 +67,8 @@ def test_probe_capabilities_macos(monkeypatch):
     assert caps["capabilities"]["speech_tts"] is True
 
 
-def test_safari_active_tab():
+def test_safari_active_tab(monkeypatch):
+    monkeypatch.setattr(HostPIMService, "is_macos", lambda self: True)
     def mock_runner(cmd: list[str], timeout: float = 10.0) -> str:
         return json.dumps({
             "ok": True,
@@ -85,7 +86,8 @@ def test_safari_active_tab():
     assert tab["title"] == "Apple Developer Documentation"
 
 
-def test_safari_intake_to_research():
+def test_safari_intake_to_research(monkeypatch):
+    monkeypatch.setattr(HostPIMService, "is_macos", lambda self: True)
     def mock_runner(cmd: list[str], timeout: float = 10.0) -> str:
         return json.dumps({
             "ok": True,
@@ -105,7 +107,8 @@ def test_safari_intake_to_research():
     assert res["card"]["notes"] == "Interesting read"
 
 
-def test_export_to_apple_notes():
+def test_export_to_apple_notes(monkeypatch):
+    monkeypatch.setattr(HostPIMService, "is_macos", lambda self: True)
     executed_scripts = []
 
     def mock_runner(cmd: list[str], timeout: float = 10.0) -> str:
@@ -127,7 +130,8 @@ def test_export_to_apple_notes():
     assert 'folder "Work"' in executed_scripts[0][-1]
 
 
-def test_export_to_apple_reminders():
+def test_export_to_apple_reminders(monkeypatch):
+    monkeypatch.setattr(HostPIMService, "is_macos", lambda self: True)
     executed_scripts = []
 
     def mock_runner(cmd: list[str], timeout: float = 10.0) -> str:
@@ -173,7 +177,8 @@ def test_notify_and_say(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_api_handlers():
+async def test_api_handlers(monkeypatch):
+    monkeypatch.setattr(HostPIMService, "is_macos", lambda self: True)
     def mock_runner(cmd: list[str], timeout: float = 10.0) -> str:
         if "Safari" in str(cmd):
             return json.dumps({"ok": True, "running": True, "url": "https://example.com", "title": "Example"})

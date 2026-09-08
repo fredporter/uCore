@@ -124,8 +124,8 @@ const healthClass = computed(() => {
   text-transform: uppercase;
 }
 .health-ring {
-  width: calc(var(--usx-touch-min) + var(--usx-spacing-sm));
-  height: calc(var(--usx-touch-min) + var(--usx-spacing-sm));
+  width: calc(var(--usx-touch-min) + 2 * var(--usx-spacing-md));
+  height: calc(var(--usx-touch-min) + 2 * var(--usx-spacing-md));
   border-radius: 50%;
   border-style: solid;
   border-width: calc(var(--usx-border-width) + var(--usx-border-width-thick));

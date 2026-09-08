@@ -72,9 +72,10 @@
                     type="button"
                     class="dreamscape-rating-pill"
                     :class="{ 'dreamscape-rating-pill--active': beanForm.energy === lvl }"
+                    :aria-label="`Energy ${lvl} of 5`"
+                    :aria-pressed="beanForm.energy === lvl"
                     @click="beanForm.energy = lvl"
                   >
-                    <UIcon :name="lvl >= 4 ? 'battery_charging_full' : lvl >= 3 ? 'battery_5_bar' : 'battery_2_bar'" />
                     <span>{{ lvl }}</span>
                   </button>
                 </div>
@@ -90,9 +91,10 @@
                     type="button"
                     class="dreamscape-rating-pill"
                     :class="{ 'dreamscape-rating-pill--active': beanForm.focus === lvl }"
+                    :aria-label="`Focus ${lvl} of 5`"
+                    :aria-pressed="beanForm.focus === lvl"
                     @click="beanForm.focus = lvl"
                   >
-                    <UIcon :name="lvl >= 4 ? 'center_focus_strong' : 'filter_center_focus'" />
                     <span>{{ lvl }}</span>
                   </button>
                 </div>
@@ -515,37 +517,26 @@ async function handleLaunchMission() {
 }
 
 .dreamscape-nav-pills {
-  display: inline-flex;
-  background: var(--usx-color-surface-variant);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-full);
-  padding: 3px;
-  gap: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-sm);
 }
-
 .dreamscape-nav-pill {
   display: inline-flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
-  border-radius: var(--usx-radius-full);
+  min-height: 44px;
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
   border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
   background: transparent;
   color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-xs);
-  font-weight: var(--usx-font-weight-semibold);
   cursor: pointer;
-  transition: all 0.15s ease;
 }
-
-.dreamscape-nav-pill:hover {
-  color: var(--usx-color-on-surface);
-}
-
 .dreamscape-nav-pill--active {
-  background: var(--usx-color-surface);
   color: var(--usx-color-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-bottom-color: var(--usx-color-primary);
 }
 
 .dreamscape-notice {
@@ -650,7 +641,10 @@ async function handleLaunchMission() {
   align-items: center;
   gap: 4px;
   padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border-radius: var(--usx-radius-full);
+  border-radius: var(--usx-radius-sm);
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
   border: 1px solid var(--usx-color-border);
   background: var(--usx-color-surface-variant);
   color: var(--usx-color-on-surface-muted);

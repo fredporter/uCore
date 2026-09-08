@@ -124,3 +124,5 @@ in the completion response.
 ## UI review closure
 
 Dev HUD now docks on the right and collapses to a labelled edge tab with an inline task count. Identity remains in Settings → Identity; its separate toolbar button is removed. Dreamscape, Google Studio and Banana Studio are dashboard cards only. Extension launchers sharing an existing dashboard route are suppressed, including Google Bridge and Dreamscape. Vault Topology is a distinct backend capability, but has no dedicated UI surface. The full Active Extensions audit removes route-less launchers and routes already represented by main cards (including Server/Settings tabs). Budget and Agents resolve to Server → AI; Identity resolves to Settings → Identity. Publishing, Vault Topology and HomeNest remain in the extension catalogue without misleading dashboard launchers. Only running extensions with distinct routes appear in Active Extensions.
+
+Studio review fixes remove the Amber CRT preset, left-align Banana presets, use shared theme tokens in Banana/Google, and normalize Google navigation icons. The Server health ring has additional spacing around its percentage.

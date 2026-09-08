@@ -16,8 +16,8 @@ import BananaStudio from "../browserui/panels/BananaStudio.vue"
   flex-direction: column;
   height: 100%;
   overflow-y: auto;
-  background: var(--usx-color-surface-bg, #0e1117);
-  color: var(--usx-color-on-surface, #e6edf3);
+  background: var(--usx-color-background);
+  color: var(--usx-color-on-surface);
 }
 
 .banana-surface .surface__content {

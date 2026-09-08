@@ -6,12 +6,12 @@ import BananaStudio from "./BananaStudio.vue"
 
 
 describe("BananaStudio", () => {
-  it("renders the 5 Mono Core style presets", () => {
+  it("renders the 4 Mono Core style presets", () => {
     const wrapper = mount(BananaStudio)
     expect(wrapper.text()).toContain("Nano Banana Asset Studio")
     expect(wrapper.text()).toContain("Ceefax Teletext")
     expect(wrapper.text()).toContain("Architectural Blueprint")
-    expect(wrapper.text()).toContain("Amber CRT Phosphor")
+    expect(wrapper.text()).not.toContain("Amber CRT Phosphor")
     expect(wrapper.text()).toContain("Editorial Linocut Paper")
     expect(wrapper.text()).toContain("16-Color Pixel Grid")
   })

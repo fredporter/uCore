@@ -1,6 +1,6 @@
 /**
  * @component BananaStudio — Nano Banana / Imagen 3 Asset Generation Studio
- * Adheres to Mono Core visual style presets (Teletext, Blueprint, Amber CRT, Linocut Paper).
+ * Adheres to Mono Core visual style presets (Teletext, Blueprint, Linocut Paper).
  */
 <template>
   <div class="banana-studio">
@@ -239,20 +239,6 @@ const PRESETS: PresetDefinition[] = [
     ],
   },
   {
-    id: "mono_amber",
-    name: "Amber CRT Phosphor",
-    description: "Monochrome glowing amber phosphor terminal with scanlines",
-    icon: "terminal",
-    swatchBg: "#120b00",
-    swatchBorder: "#ff8000",
-    swatchColor: "#ffb000",
-    chips: [
-      "Vintage mainframe console monitoring system metrics",
-      "Cybernetic terminal command prompt with amber phosphor glow",
-      "Submarine sonar depth monitor on amber CRT tube",
-    ],
-  },
-  {
     id: "mono_paper",
     name: "Editorial Linocut Paper",
     description: "Deep black woodcut print with stipple shading on archival cream paper",
@@ -436,6 +422,8 @@ function saveToVault() {
 
 .banana-studio__preset-card {
   display: flex;
+  justify-content: flex-start;
+  color: var(--usx-color-on-surface);
   align-items: center;
   gap: var(--usx-spacing-sm);
   padding: var(--usx-spacing-xs) var(--usx-spacing-sm);

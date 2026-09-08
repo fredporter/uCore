@@ -628,7 +628,7 @@ async function handleDrop(targetStatus: string) {
 }
 
 .wf-flowlog-list {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--usx-spacing-sm);
   border-top: 0;
 }
@@ -646,18 +646,6 @@ async function handleDrop(targetStatus: string) {
   .wf-flowlog__header { align-items: flex-start; }
 }
 
-/* 2‑column task list on wide screens */
-@media (min-width: 1100px) {
-  .task-list {
-    column-count: 2;
-    column-gap: 0;
-    column-rule: var(--usx-border-width) solid var(--usx-color-border);
-  }
-
-  .task-list__row {
-    break-inside: avoid;
-  }
-}
 
 .task-list__row {
   display: flex;

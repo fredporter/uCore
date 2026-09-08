@@ -20,7 +20,7 @@
               :class="{ 'google-nav-pill--active': activeTab === 'overview' }"
               @click="activeTab = 'overview'"
             >
-              <UIcon name="hub" /> Overview & Grounding
+              <UIcon name="hub" :size="24" /> Overview & Grounding
             </button>
             <button
               type="button"
@@ -28,7 +28,7 @@
               :class="{ 'google-nav-pill--active': activeTab === 'drive' }"
               @click="activeTab = 'drive'"
             >
-              <UIcon name="folder_sync" /> Drive Mirror Ledger
+              <UIcon name="folder" :size="24" /> Drive Mirror Ledger
             </button>
             <button
               type="button"
@@ -36,7 +36,7 @@
               :class="{ 'google-nav-pill--active': activeTab === 'code' }"
               @click="activeTab = 'code'"
             >
-              <UIcon name="terminal" /> Code Sandbox
+              <UIcon name="terminal" :size="24" /> Code Sandbox
             </button>
           </div>
         </div>
@@ -240,7 +240,7 @@
         <div class="google-card google-code-card">
           <div class="google-card__header">
             <div class="google-card__title">
-              <UIcon name="terminal" />
+              <UIcon name="terminal" :size="24" />
               <h3>Gemini 2.0 Code Execution Console</h3>
             </div>
             <div class="google-card__actions">
@@ -440,8 +440,8 @@ function getFileIcon(filename: string): string {
   flex-direction: column;
   height: 100%;
   overflow-y: auto;
-  background: var(--usx-color-surface-bg, #0e1117);
-  color: var(--usx-color-on-surface, #e6edf3);
+  background: var(--usx-color-background);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .google-surface .surface__content {
@@ -457,8 +457,8 @@ function getFileIcon(filename: string): string {
 /* Header */
 .google-header {
   padding: 1.25rem 1.5rem;
-  background: var(--usx-color-surface-muted, #161b22);
-  border: 1px solid var(--usx-color-border-subtle, #30363d);
+  background: var(--usx-color-surface);
+  border: 1px solid var(--usx-color-border);
   border-radius: 8px;
 }
 
@@ -491,7 +491,7 @@ function getFileIcon(filename: string): string {
 .surface__panel-description {
   margin: 0.25rem 0 0;
   font-size: 0.875rem;
-  color: var(--usx-color-on-surface-muted, #8b949e);
+  color: var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted));
 }
 
 /* Nav pills */
@@ -500,14 +500,16 @@ function getFileIcon(filename: string): string {
   gap: 0.5rem;
 }
 
+.google-nav-pill :deep(.u-icon) { flex-shrink: 0; }
+
 .google-nav-pill {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.875rem;
   background: transparent;
-  border: 1px solid var(--usx-color-border-subtle, #30363d);
-  color: var(--usx-color-on-surface-muted, #8b949e);
+  border: 1px solid var(--usx-color-border);
+  color: var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted));
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
@@ -516,8 +518,8 @@ function getFileIcon(filename: string): string {
 }
 
 .google-nav-pill:hover {
-  background: var(--usx-color-surface-elevated, #21262d);
-  color: var(--usx-color-on-surface, #e6edf3);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .google-nav-pill--active {
@@ -576,8 +578,8 @@ function getFileIcon(filename: string): string {
 }
 
 .google-card {
-  background: var(--usx-color-surface-muted, #161b22);
-  border: 1px solid var(--usx-color-border-subtle, #30363d);
+  background: var(--usx-color-surface);
+  border: 1px solid var(--usx-color-border);
   border-radius: 8px;
   padding: 1.25rem;
   display: flex;
@@ -621,18 +623,18 @@ function getFileIcon(filename: string): string {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--usx-color-on-surface-muted, #8b949e);
+  color: var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted));
 }
 
 .google-card__val {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--usx-color-on-surface, #e6edf3);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .google-card__sub {
   font-size: 0.8rem;
-  color: var(--usx-color-on-surface-muted, #8b949e);
+  color: var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted));
 }
 
 /* Card Header */
@@ -691,12 +693,12 @@ function getFileIcon(filename: string): string {
 
 .google-btn--outline {
   background: transparent;
-  border: 1px solid var(--usx-color-border-subtle, #30363d);
-  color: var(--usx-color-on-surface, #e6edf3);
+  border: 1px solid var(--usx-color-border);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .google-btn--outline:hover:not(:disabled) {
-  background: var(--usx-color-surface-elevated, #21262d);
+  background: var(--usx-color-surface-variant);
 }
 
 .google-badge {
@@ -734,11 +736,11 @@ function getFileIcon(filename: string): string {
 
 .google-input {
   flex: 1;
-  background: var(--usx-color-surface-elevated, #0d1117);
-  border: 1px solid var(--usx-color-border-subtle, #30363d);
+  background: var(--usx-color-surface-variant);
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
-  color: var(--usx-color-on-surface, #e6edf3);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
   font-size: 0.875rem;
 }
 
@@ -750,8 +752,8 @@ function getFileIcon(filename: string): string {
 .google-grounded-results {
   margin-top: 0.75rem;
   padding: 1rem;
-  background: var(--usx-color-surface-elevated, #0d1117);
-  border: 1px solid var(--usx-color-border-subtle, #30363d);
+  background: var(--usx-color-surface-variant);
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
   display: flex;
   flex-direction: column;
@@ -767,19 +769,19 @@ function getFileIcon(filename: string): string {
 .google-model-tag {
   font-size: 0.75rem;
   font-family: monospace;
-  color: var(--usx-color-on-surface-muted, #8b949e);
+  color: var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted));
 }
 
 .google-results-summary {
   font-size: 0.925rem;
   line-height: 1.5;
-  color: var(--usx-color-on-surface, #e6edf3);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .google-citations-heading {
   margin: 0.5rem 0 0.25rem;
   font-size: 0.825rem;
-  color: var(--usx-color-on-surface-muted, #8b949e);
+  color: var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -794,7 +796,7 @@ function getFileIcon(filename: string): string {
   display: flex;
   gap: 0.5rem;
   padding: 0.5rem;
-  background: var(--usx-color-surface-muted, #161b22);
+  background: var(--usx-color-surface);
   border-radius: 4px;
   text-decoration: none;
   color: inherit;
@@ -804,7 +806,7 @@ function getFileIcon(filename: string): string {
 
 .google-citation-item:hover {
   border-color: var(--usx-color-primary, #1f6feb);
-  background: #1c2128;
+  background: var(--usx-color-surface-variant);
 }
 
 .google-citation-index {
@@ -822,13 +824,13 @@ function getFileIcon(filename: string): string {
 
 .google-citation-uri {
   font-size: 0.75rem;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   word-break: break-all;
 }
 
 .google-citation-snippet {
   font-size: 0.775rem;
-  color: #c9d1d9;
+  color: var(--usx-color-on-surface);
   margin-top: 0.2rem;
 }
 
@@ -843,8 +845,8 @@ function getFileIcon(filename: string): string {
   flex: 1;
   min-width: 140px;
   padding: 0.75rem 1rem;
-  background: var(--usx-color-surface-elevated, #0d1117);
-  border: 1px solid var(--usx-color-border-subtle, #30363d);
+  background: var(--usx-color-surface-variant);
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
   display: flex;
   flex-direction: column;
@@ -858,7 +860,7 @@ function getFileIcon(filename: string): string {
 
 .google-stat-lbl {
   font-size: 0.75rem;
-  color: var(--usx-color-on-surface-muted, #8b949e);
+  color: var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted));
   text-transform: uppercase;
 }
 
@@ -869,7 +871,7 @@ function getFileIcon(filename: string): string {
 /* Drive Ledger Table */
 .google-ledger-table-wrap {
   overflow-x: auto;
-  border: 1px solid var(--usx-color-border-subtle, #30363d);
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
 }
 
@@ -883,12 +885,12 @@ function getFileIcon(filename: string): string {
 .google-ledger-table th,
 .google-ledger-table td {
   padding: 0.65rem 0.875rem;
-  border-bottom: 1px solid var(--usx-color-border-subtle, #30363d);
+  border-bottom: 1px solid var(--usx-color-border);
 }
 
 .google-ledger-table th {
-  background: var(--usx-color-surface-elevated, #0d1117);
-  color: var(--usx-color-on-surface-muted, #8b949e);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted));
   font-weight: 600;
 }
 
@@ -909,7 +911,7 @@ function getFileIcon(filename: string): string {
 
 .google-mono-cell {
   font-family: monospace;
-  color: var(--usx-color-on-surface-muted, #8b949e);
+  color: var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted));
 }
 
 .google-sync-badge {
@@ -938,7 +940,7 @@ function getFileIcon(filename: string): string {
 
 .google-empty-row {
   text-align: center;
-  color: var(--usx-color-on-surface-muted, #8b949e);
+  color: var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted));
   padding: 2rem 1rem;
 }
 
@@ -952,15 +954,15 @@ function getFileIcon(filename: string): string {
 
 .google-presets-label {
   font-size: 0.8rem;
-  color: var(--usx-color-on-surface-muted, #8b949e);
+  color: var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted));
 }
 
 .google-preset-btn {
   padding: 0.25rem 0.5rem;
   font-size: 0.775rem;
-  background: var(--usx-color-surface-elevated, #0d1117);
-  border: 1px solid var(--usx-color-border-subtle, #30363d);
-  color: var(--usx-color-on-surface, #e6edf3);
+  background: var(--usx-color-surface-variant);
+  border: 1px solid var(--usx-color-border);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
   border-radius: 4px;
   cursor: pointer;
 }
@@ -970,7 +972,7 @@ function getFileIcon(filename: string): string {
 }
 
 .google-code-editor-wrap {
-  border: 1px solid var(--usx-color-border-subtle, #30363d);
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -978,8 +980,8 @@ function getFileIcon(filename: string): string {
 .google-code-textarea {
   width: 100%;
   box-sizing: border-box;
-  background: #0d1117;
-  color: #79c0ff;
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-primary);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.875rem;
   line-height: 1.5;
@@ -998,8 +1000,8 @@ function getFileIcon(filename: string): string {
 }
 
 .google-terminal {
-  background: #010409;
-  border: 1px solid var(--usx-color-border-subtle, #30363d);
+  background: var(--usx-color-surface);
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -1009,8 +1011,8 @@ function getFileIcon(filename: string): string {
   align-items: center;
   justify-content: space-between;
   padding: 0.4rem 0.75rem;
-  background: #161b22;
-  border-bottom: 1px solid #30363d;
+  background: var(--usx-color-surface-variant);
+  border-bottom: 1px solid var(--usx-color-border);
   font-size: 0.75rem;
 }
 
@@ -1035,7 +1037,7 @@ function getFileIcon(filename: string): string {
   padding: 0.75rem;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.825rem;
-  color: #e6edf3;
+  color: var(--usx-color-on-surface);
   white-space: pre-wrap;
   word-break: break-word;
 }
