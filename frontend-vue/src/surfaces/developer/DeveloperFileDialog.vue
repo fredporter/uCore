@@ -7,10 +7,11 @@
         <label for="file-path">{{ mode === 'create' ? 'New file path' : 'Destination path' }}</label>
         <input id="file-path" v-model="target" placeholder="src/example.ts" @keydown.enter="submit" />
       </template>
+      <p v-if="mode === 'delete' && !revision" role="alert">Reload the file before deleting it; its current revision is unavailable.</p>
       <p v-if="error" class="dialog__error" role="alert">{{ error }}</p>
       <footer>
         <UButton variant="ghost" @click="$emit('close')">Cancel</UButton>
-        <UButton :disabled="busy || (mode !== 'delete' && !target.trim())" @click="submit">{{ mode === 'delete' ? 'Delete file' : 'Apply' }}</UButton>
+        <UButton :disabled="busy || (mode === 'delete' && !revision) || (mode !== 'delete' && !target.trim())" @click="submit">{{ mode === 'delete' ? 'Delete file' : 'Apply' }}</UButton>
       </footer>
     </section>
   </div>
@@ -27,12 +28,13 @@ const target = ref(""); const error = ref(""); const busy = ref(false);
 const title = computed(() => ({ create: "Create file", move: "Rename or move file", delete: "Confirm deletion" })[props.mode]);
 watch(() => [props.open, props.mode, props.path], () => { target.value = props.mode === "move" ? props.path : ""; error.value = ""; });
 async function submit() {
+  if (props.mode === "delete" && !props.revision) { error.value = "Reload the file before deleting it."; return; }
   busy.value = true; error.value = "";
   try {
     let url = `/api/developer/repos/${encodeURIComponent(props.repository)}/files`;
     let init: RequestInit = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: target.value }) };
     if (props.mode === "move") { url = `/api/developer/repos/${encodeURIComponent(props.repository)}/file-move`; init.body = JSON.stringify({ source: props.path, destination: target.value }); }
-    if (props.mode === "delete") { url = `/api/developer/repos/${encodeURIComponent(props.repository)}/file-preview?path=${encodeURIComponent(props.path)}`; init = { method: "DELETE", headers: { "If-Match": props.revision || "" } }; }
+    if (props.mode === "delete") { url = `/api/developer/repos/${encodeURIComponent(props.repository)}/file-preview?path=${encodeURIComponent(props.path)}`; init = { method: "DELETE", headers: { "If-Match": props.revision! } }; }
     const response = await fetch(url, init); const data = await response.json();
     if (!response.ok) throw new Error(data.error || "File operation failed");
     emit("complete", props.mode === "delete" ? props.path : data.path, props.mode === "delete"); emit("close");

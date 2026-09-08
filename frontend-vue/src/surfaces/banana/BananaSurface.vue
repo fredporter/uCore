@@ -21,7 +21,7 @@ import BananaStudio from "../browserui/panels/BananaStudio.vue"
 }
 
 .banana-surface .surface__content {
-  padding: 1.5rem;
+  padding: var(--usx-spacing-lg);
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;

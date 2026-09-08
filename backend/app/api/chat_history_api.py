@@ -42,9 +42,16 @@ async def handle_save_chat_history(request: web.Request) -> web.Response:
     if request.content_length and request.content_length > _MAX_BYTES:
         return web.json_response({"error": "Chat history payload is too large"}, status=413)
     try:
-        body = await request.json()
+        raw = bytearray()
+        async for chunk in request.content.iter_chunked(64 * 1024):
+            raw.extend(chunk)
+            if len(raw) > _MAX_BYTES:
+                return web.json_response({"error": "Chat history payload is too large"}, status=413)
+        body = json.loads(raw)
     except Exception:
         return web.json_response({"error": "Invalid JSON body"}, status=400)
+    if not isinstance(body, dict):
+        return web.json_response({"error": "JSON body must be an object"}, status=400)
     conversations = body.get("conversations")
     if not isinstance(conversations, list) or any(not isinstance(item, dict) for item in conversations):
         return web.json_response({"error": "conversations must be an array of objects"}, status=400)

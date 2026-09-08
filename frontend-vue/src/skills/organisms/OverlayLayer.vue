@@ -89,7 +89,6 @@ const route = useRoute();
 const extStore = useExtensionStore();
 const assistChat = useChatStore();
 const devChat = useDeveloperChatStore();
-void devChat.initialize();
 
 // ─── Dev mode state ─────────────────────────────────────────────
 const devMode = useDevModeStore();
@@ -191,8 +190,9 @@ async function sendDev(text: string, mode: ChatIntent) {
   await devChat.send(text, mode);
 }
 watch(devModeOn, enabled => {
-  if (!enabled) activeLane.value = "chat";
-});
+  if (enabled) void devChat.initialize();
+  else activeLane.value = "chat";
+}, { immediate: true });
 function openDeveloperDiscussion() {
   if (devModeOn.value) {
     activeLane.value = 'dev';

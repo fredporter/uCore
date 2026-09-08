@@ -54,8 +54,8 @@ async function apply(id: string, fingerprint: string) {
 }
 </script>
 <style scoped>
-.dev-chat-activity { padding: var(--usx-space-3, 12px); font-size: var(--usx-text-sm, 13px); }
-.dev-chat-activity article { border-top: 1px solid var(--usx-border, #555); padding-block: 12px; }
+.dev-chat-activity { padding: var(--usx-spacing-md); font-size: var(--usx-font-size-sm); }
+.dev-chat-activity article { border-top: var(--usx-border-width) solid var(--usx-color-border); padding-block: var(--usx-spacing-md); }
 .dev-chat-activity pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; }
 .dev-chat-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .dev-chat-activity button { min-height: 36px; cursor: pointer; margin: 4px; }

@@ -133,8 +133,8 @@ def probe_host_capabilities() -> Dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Probe Zen Host and Ecosystem Capabilities")
-    parser.add_argument("--json", action="store_true", default=True, help="Output JSON format")
-    args = parser.parse_args()
+    parser.add_argument("--json", action="store_true", help="Output JSON (the default; retained for CLI compatibility)")
+    parser.parse_args()
 
     data = probe_host_capabilities()
     print(json.dumps(data, indent=2))
