@@ -179,6 +179,7 @@ def test_notify_and_say(monkeypatch):
 @pytest.mark.asyncio
 async def test_api_handlers(monkeypatch):
     monkeypatch.setattr(HostPIMService, "is_macos", lambda self: True)
+    monkeypatch.setattr("app.services.host_pim.shutil.which", lambda command: f"/usr/bin/{command}")
     def mock_runner(cmd: list[str], timeout: float = 10.0) -> str:
         if "Safari" in str(cmd):
             return json.dumps({"ok": True, "running": True, "url": "https://example.com", "title": "Example"})
