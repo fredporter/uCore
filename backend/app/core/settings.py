@@ -124,6 +124,9 @@ class Settings:
     ollama_default_model: str = os.environ.get(
         "UCORE_OLLAMA_MODEL", "qwen2.5-coder:3b",
     )
+    # Developer construction needs native tool calling; the smaller user-chat
+    # default may emit tool-shaped text without executing a tool.
+    developer_model: str = os.environ.get("UCORE_DEVELOPER_MODEL", "qwen2.5-coder:7b-instruct-q4_K_M")
     ollama_fallback_model: str = os.environ.get(
         "UCORE_OLLAMA_FALLBACK_MODEL", "qwen2.5-coder:7b-instruct-q4_K_M",
     )

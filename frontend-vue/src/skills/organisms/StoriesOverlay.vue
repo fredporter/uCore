@@ -4,6 +4,7 @@
       <div
         v-if="overlay.storiesConfig.value"
         class="stories-overlay"
+        :data-theme="cfg.theme"
         role="dialog"
         aria-modal="true"
         @keydown.escape="overlay.dismiss()"
@@ -22,7 +23,7 @@
         <div class="stories-header">
           <span class="stories-header__title">{{ cfg.title }}</span>
           <div class="stories-header__meta">
-            {{ currentIndex + 1 }} / {{ cfg.slides.length }}
+            {{ currentIndex + 1 }} / {{ renderedSlides.length }}
           </div>
           <button
             class="stories-header__close"
@@ -56,7 +57,7 @@
           </button>
           <div class="stories-nav__dots">
             <button
-              v-for="(_, i) in cfg.slides"
+              v-for="(_, i) in renderedSlides"
               :key="i"
               class="stories-nav__dot"
               :class="{ 'stories-nav__dot--active': i === currentIndex }"
@@ -79,25 +80,40 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import UIcon from "../atoms/UIcon.vue";
 import { useOverlay } from "../../composables/useOverlay";
+import { renderProseFast, renderStory } from "../../utils/markdownRenderer";
 
 const overlay = useOverlay();
 const currentIndex = ref(0);
 const direction = ref<"forward" | "back">("forward");
+const renderedSlides = ref<Array<{ content: string; layout?: "default" | "lead" | "center" }>>([]);
 
 const cfg = computed(() => overlay.storiesConfig.value!);
-const currentSlide = computed(() => cfg.value.slides[currentIndex.value]);
+const currentSlide = computed(() => renderedSlides.value[currentIndex.value] ?? { content: "" });
 const isLast = computed(
-  () => currentIndex.value === cfg.value.slides.length - 1,
+  () => currentIndex.value === renderedSlides.value.length - 1,
 );
 const progressPct = computed(
-  () => ((currentIndex.value + 1) / cfg.value.slides.length) * 100,
+  () => ((currentIndex.value + 1) / Math.max(1, renderedSlides.value.length)) * 100,
 );
 
+watch(() => overlay.storiesConfig.value, async (config) => {
+  currentIndex.value = 0;
+  if (!config) { renderedSlides.value = []; return; }
+  if (typeof config.slides === "string") {
+    const { html } = await renderStory(config.slides);
+    const document = new DOMParser().parseFromString(html, "text/html");
+    renderedSlides.value = [...document.querySelectorAll("section")].map((section) => ({ content: section.innerHTML, layout: section.classList.contains("lead") ? "lead" : "default" }));
+    if (!renderedSlides.value.length) renderedSlides.value = [{ content: renderProseFast(config.slides) }];
+    return;
+  }
+  renderedSlides.value = config.slides.map((slide) => typeof slide === "string" ? { content: renderProseFast(slide) } : { ...slide, content: renderProseFast(slide.content) });
+}, { immediate: true });
+
 function nextSlide() {
-  if (currentIndex.value < cfg.value.slides.length - 1) {
+  if (currentIndex.value < renderedSlides.value.length - 1) {
     direction.value = "forward";
     currentIndex.value++;
   }

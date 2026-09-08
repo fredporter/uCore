@@ -159,6 +159,7 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
   // External udos-* extension manifest entries
   {
     id: "udos-budget",
+    route: "/snackbar?tab=ai",
     name: "uDos Budget",
     kind: "plugin",
     required: false,
@@ -168,6 +169,7 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
   },
   {
     id: "udos-identity",
+    route: "/system?tab=identity",
     name: "uDos Identity",
     kind: "plugin",
     required: false,
@@ -181,6 +183,7 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
     kind: "plugin",
     required: false,
     icon: "cloud",
+    route: "/google",
     activation_required: false,
     description: "Google OAuth, Gemini/Gems, Drive mirror",
   },
@@ -190,8 +193,29 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
     kind: "plugin",
     required: false,
     icon: "psychology",
+    route: "/dreamscape",
     activation_required: false,
     description: "Mission scaffolding & daily briefing",
+  },
+  {
+    id: "uvector",
+    name: "uVector",
+    kind: "plugin",
+    required: false,
+    icon: "manage_search",
+    route: "/browserui",
+    activation_required: false,
+    description: "Vector indexing, semantic search, and web knowledge grounding",
+  },
+  {
+    id: "banana",
+    name: "Banana Studio",
+    kind: "surface",
+    required: false,
+    icon: "image",
+    route: "/banana",
+    activation_required: false,
+    description: "Mono Core visual synthesis and prompt studio",
   },
   {
     id: "udos-publishing",
@@ -213,6 +237,7 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
   },
   {
     id: "udos-agents",
+    route: "/snackbar?tab=ai",
     name: "uDos Agents",
     kind: "plugin",
     required: false,

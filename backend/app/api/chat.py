@@ -474,7 +474,7 @@ _UCORE_CHAT_SYSTEM = (
     "• ~/Shared/ — Shared Vaults (team collaboration)\n"
     "• ~/Public/ — Public Vaults (reference, templates, knowledge bank)\n\n"
     "Note: ~/Code/ is NOT a vault — it is the Developer Lane for system development.\n\n"
-    "Be helpful, proactive, and use your tools. Never say you cannot access data."
+    "Be helpful, proactive, and use your tools. Only claim access when a tool succeeds. Ask is read-only; suggest Continue in Act for changes."
 )
 
 _UCORE_WORKFLOW_SYSTEM = (
@@ -492,7 +492,7 @@ _UCORE_ASK_PLAN_SYSTEM = (
     "execute actions or modify files. "
     "\n\n"
     "## Your Capabilities\n"
-    "- Research: Analyze vault documents, code repositories, and knowledge bases.\n"
+    "- Research: Analyze user vault documents and knowledge bases.\n"
     "- Plan: Produce structured, actionable plans with clear steps.\n"
     "- Synthesize: Combine information from multiple sources into coherent summaries.\n"
     "- Cite: Always reference your sources (vault paths, repo files, skill names).\n"
@@ -502,11 +502,6 @@ _UCORE_ASK_PLAN_SYSTEM = (
     "- ~/Vault/    — User personal vault (documents, notes, binders, journals)\n"
     "- ~/Shared/   — Team shared workspaces\n"
     "- ~/Public/   — Public reference, templates, global knowledge\n"
-    "\n"
-    "### Code Repositories\n"
-    "- ~/Code/uCore/ — Core system (backend, frontend, MCP, skills, snacks)\n"
-    "- ~/Code/uCode/ — Grid runtime, uCode BASIC, terminal, teletext\n"
-    "- ~/Code/*/     — Extension and project repos\n"
     "\n"
     "### Available Skills & Tools\n"
     "- knowledge_search: Search vaults and knowledge base\n"
@@ -524,7 +519,6 @@ _UCORE_ASK_PLAN_SYSTEM = (
     "- [ ] Step 2: Description (tool: tool_name)\\n"
     "## Sources\\n"
     "- Vault: ~/Vault/path/to/doc.md\\n"
-    "- Repo: ~/Code/uCore/backend/app/...\\n"
     "## Notes\\nAdditional context or caveats\\n"
     "```\n"
     "\n"
@@ -702,11 +696,15 @@ async def handle_chat(request: web.Request) -> web.Response:
         return web.json_response({"error": "message is required"}, status=400)
 
     mode = body.get("mode") or body.get("agent", "chat")
+    mode = {"ask": "chat", "workflow": "plan"}.get(mode, mode)
+    if mode not in {"chat", "plan", "act"}:
+        return web.json_response({"error": "Unsupported intent"}, status=400)
     model = body.get("model")
 
     history = body.get("history") or body.get("messages")
     if not isinstance(history, list):
         history = []
+    history = [{"role": m["role"], "content": str(m.get("content", ""))[:16000]} for m in history[-16:] if isinstance(m, dict) and m.get("role") in {"user", "assistant"}]
 
     log.info(
         "Chat: mode=%s len(history)=%d msg=%s...",
@@ -722,42 +720,8 @@ async def handle_chat(request: web.Request) -> web.Response:
         if mode in ("plan", "act"):
             budget_ok, budget_warning = _check_budget_for_mode(mode)
 
-        # Plan mode: direct response, no tool loop
-        if mode == "plan":
-            system_prompt = _UCORE_ASK_PLAN_SYSTEM
-            if not budget_ok and not model:
-                model = "ollama/qwen2.5-coder:3b"
-            if not model:
-                model = "cognitivecomputations/dolphin-mixtral-8x7b"
-            try:
-                plan_messages: list[dict] = [
-                    {"role": "system", "content": system_prompt},
-                ]
-                plan_messages.extend(history)
-                plan_messages.append({"role": "user", "content": message})
-                plan_response = await router.chat(
-                    messages=plan_messages, model=model,
-                    temperature=0.3,
-                )
-                response_text = plan_response.get("content", "")
-                plan_steps = _parse_plan_steps(response_text)
-                return web.json_response({
-                    "response": response_text,
-                    "mode": mode,
-                    "model": plan_response.get("model", model),
-                    "usage": plan_response.get("usage", {}),
-                    "plan_steps": plan_steps,
-                    "budget": {
-                        "ok": budget_ok,
-                        "warning": budget_warning,
-                    },
-                })
-            except Exception as e:
-                log.error("Plan mode error: %s", e, exc_info=True)
-                return web.json_response({
-                    "error": str(e),
-                    "message": "Plan request failed. Is OpenRouter API key configured?",
-                }, status=500)
+        if mode == "act" and not budget_ok:
+            return web.json_response({"error": budget_warning or "Budget exhausted"}, status=429)
 
         system_prompt = _select_system_prompt(mode)
         chat_messages: list[dict] = [
@@ -766,15 +730,20 @@ async def handle_chat(request: web.Request) -> web.Response:
         chat_messages.extend(history)
         chat_messages.append({"role": "user", "content": message})
 
+        write_tools = {"binder_create", "task_create", "scrape_web", "save_to_vault"}
+        allowed_tools = [t for t in _CHAT_TOOLS if mode == "act" or t["function"]["name"] not in write_tools]
+        allowed_names = {t["function"]["name"] for t in allowed_tools}
         # Tool-calling loop (max 3 rounds)
         tool_results: list[dict] = []
         for _round in range(3):
             response = await router.chat(
                 messages=chat_messages,
                 model=model,
-                tools=_CHAT_TOOLS,
+                tools=allowed_tools,
             )
 
+            if response.get("error"):
+                raise RuntimeError(response["error"])
             tool_calls = _normalise_tool_calls(response)
             if not tool_calls:
                 # No more tools — return final response
@@ -784,8 +753,11 @@ async def handle_chat(request: web.Request) -> web.Response:
                     "model": response.get("model", model),
                     "usage": response.get("usage", {}),
                     "tool_results": tool_results if tool_results else None,
+                    "plan_steps": _parse_plan_steps(response.get("content", "")) if mode == "plan" else None,
                 })
 
+            if response.get("error"):
+                raise RuntimeError(response["error"])
             # Execute each tool call
             log.info("Tool calls requested: %d", len(tool_calls))
             chat_messages.append({
@@ -805,7 +777,7 @@ async def handle_chat(request: web.Request) -> web.Response:
                         args = {}
 
                 log.info("Executing tool: %s(%s)", name, args)
-                result_str = await _execute_tool(name, args)
+                result_str = (await _execute_tool(name, args)) if name in allowed_names else json.dumps({"error": "Continue in Act to execute this action"})
                 tool_results.append({
                     "tool": name,
                     "arguments": args,
@@ -820,7 +792,7 @@ async def handle_chat(request: web.Request) -> web.Response:
         final_response = await router.chat(
             messages=chat_messages,
             model=model,
-            tools=_CHAT_TOOLS,
+            tools=allowed_tools,
         )
         return web.json_response({
             "response": final_response.get("content", ""),

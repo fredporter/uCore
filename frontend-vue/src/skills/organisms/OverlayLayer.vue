@@ -8,14 +8,21 @@
       <button
         class="usx-chat-lane-toggle"
         :class="{ 'usx-chat-lane-toggle--dev': activeLane === 'dev' }"
-        :title="activeLane === 'dev' ? 'Switch to Vault lane' : 'Switch to Code lane'"
-        :aria-label="activeLane === 'dev' ? 'Switch to Vault lane' : 'Switch to Code lane'"
+        :title="activeLane === 'dev' ? 'Switch to User Chat' : 'Switch to Developer Chat'"
+        :aria-label="activeLane === 'dev' ? 'Switch to User Chat' : 'Switch to Developer Chat'"
+        :disabled="!devModeOn && activeLane !== 'dev'"
         @click="toggleLane"
       >
-        <UIcon :name="activeLane === 'dev' ? 'folder_open' : 'code'" />
+        <UIcon :name="activeLane === 'dev' ? 'code' : 'chat'" />
+        {{ activeLane === 'dev' ? 'Developer' : 'User' }}
       </button>
     </template>
     <template #above>
+      <div v-if="activeLane === 'chat' && devChat.working" role="status">
+        Developer task running
+        <button @click="activeLane = 'dev'">View</button>
+        <button @click="devChat.stop()">Stop</button>
+      </div>
       <div v-if="showWelcome" class="chat-above-center">
         <div class="chat-above-icon">
           <UIcon name="auto_awesome" />
@@ -52,11 +59,10 @@
       </div>
     </template>
   </ChatBubble>
-  <DevHudPanel v-if="devMode.mode === 'on'" />
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute } from "vue-router";
 import ToastOverlay from "../molecules/ToastOverlay.vue";
 import AlertOverlay from "./AlertOverlay.vue";
@@ -64,7 +70,6 @@ import PopupOverlay from "./PopupOverlay.vue";
 import StoriesOverlay from "./StoriesOverlay.vue";
 import ChatBubble from "../molecules/ChatBubble.vue";
 import ChatBubblePanel from "./ChatBubblePanel.vue";
-import DevHudPanel from "./DevHudPanel.vue";
 import UIcon from "../atoms/UIcon.vue";
 import { useToast } from "../../composables/useToast";
 import { useFeed } from "../../composables/useFeed";
@@ -74,7 +79,8 @@ import { useShellStore } from "../../stores/shell";
 import { useDevModeStore } from "../../stores/devMode";
 import { useWorkflowStore } from "../../stores/workflow";
 import { useChatStore } from "../../stores/chat";
-import { SNACKBAR_BASE } from "../../api/base";
+import { useDeveloperChatStore } from "../../stores/developerChat";
+import type { ChatIntent } from "../../stores/developerChat";
 
 const { toast } = useToast();
 const { events } = useFeed();
@@ -82,11 +88,12 @@ const shell = useShellStore();
 const route = useRoute();
 const extStore = useExtensionStore();
 const assistChat = useChatStore();
+const devChat = useDeveloperChatStore();
 
 // ─── Dev mode state ─────────────────────────────────────────────
 const devMode = useDevModeStore();
 const devModeOn = computed(
-  () => devMode.mode === "on" || devMode.mode === "minimal",
+  () => devMode.mode === "on",
 );
 const toggleDevMode = () => devMode.toggle();
 
@@ -124,6 +131,7 @@ interface Msg {
 const activeLane = ref<"chat" | "dev">("chat");
 
 function toggleLane() {
+  if (activeLane.value === "chat" && !devModeOn.value) return;
   activeLane.value = activeLane.value === "chat" ? "dev" : "chat";
 }
 
@@ -152,7 +160,7 @@ const chatMessages = computed<Msg[]>(() =>
 );
 
 const showWelcome = computed(() =>
-  chatMessages.value.length <= 1 && !assistChat.input.trim(),
+  activeLane.value === "chat" && chatMessages.value.length <= 1 && !assistChat.input.trim(),
 );
 
 const timeGreeting = computed(() => {
@@ -170,49 +178,30 @@ const overlayWelcomeTitle = computed(() => {
     default: return timeGreeting.value;
   }
 });
-const devMessages = ref<Msg[]>([]);
-const chatLoading = computed(() => assistChat.loading || devLoading.value);
-const devLoading = ref(false);
+const devMessages = computed(() => devChat.conversation?.messages || []);
+const chatLoading = computed(() => activeLane.value === "dev" ? devChat.busy : assistChat.loading);
 
 async function sendChat(text: string, mode: "chat" | "plan" | "act" | "workflow") {
   assistChat.setPromptMode(mode);
   await assistChat.sendMessage(text);
-
-  const last = assistChat.messages.at(-1);
-  if (last?.role === "assistant" && /AI is offline/i.test(last.content)) {
-    toast("AssistUI backend unreachable", "warning");
+  assistChat.saveCurrentConversation();
+}
+async function sendDev(text: string, mode: ChatIntent) {
+  await devChat.send(text, mode);
+}
+watch(devModeOn, enabled => {
+  if (enabled) void devChat.initialize();
+  else activeLane.value = "chat";
+}, { immediate: true });
+function openDeveloperDiscussion() {
+  if (devModeOn.value) {
+    activeLane.value = 'dev';
+    devChat.useSelection();
+    shell.setChatMode('panel');
   }
 }
-
-async function sendDev(text: string) {
-  devMessages.value.push({ role: "user", content: text });
-  devLoading.value = true;
-  try {
-    const res = await fetch(`${SNACKBAR_BASE}/api/developer/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: text,
-        history: devMessages.value.slice(-10),
-        context: { surface: contextLabel.value, task: currentTaskTitle.value },
-      }),
-      signal: AbortSignal.timeout(30000),
-    });
-    const data = await res.json();
-    devMessages.value.push({
-      role: "assistant",
-      content: data.response || data.message || "…",
-    });
-  } catch {
-    devMessages.value.push({
-      role: "assistant",
-      content: "Developer backend unavailable.",
-    });
-    toast("Dev chat backend unreachable", "warning");
-  } finally {
-    devLoading.value = false;
-  }
-}
+window.addEventListener('developer-discuss', openDeveloperDiscussion);
+onBeforeUnmount(() => window.removeEventListener('developer-discuss', openDeveloperDiscussion));
 
 // ─── Feed event handlers ─────────────────────────────────────────
 watch(

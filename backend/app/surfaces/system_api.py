@@ -123,6 +123,27 @@ def register_system_api_routes(app: web.Application) -> None:  # noqa: C901
         _save_settings(current)
         return web.json_response({"status": "ok", "settings": current})
 
+    async def handle_get_user_preferences(_request: web.Request) -> web.Response:
+        current = _load_settings()
+        return web.json_response({"preferences": current.get("preferences", {})})
+
+    async def handle_update_user_preferences(request: web.Request) -> web.Response:
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"error": "Invalid JSON body"}, status=400)
+        values = body.get("preferences", body)
+        if not isinstance(values, dict):
+            return web.json_response({"error": "preferences must be an object"}, status=400)
+        allowed = {"themeMode", "fontStyle", "fontSize", "palette", "defaultModel"}
+        current = _load_settings()
+        current["preferences"] = {
+            **current.get("preferences", {}),
+            **{key: value for key, value in values.items() if key in allowed},
+        }
+        _save_settings(current)
+        return web.json_response({"status": "ok", "preferences": current["preferences"]})
+
     # ── Services (dedicated system services endpoint) ──────────
     async def handle_system_services(request: web.Request) -> web.Response:  # noqa: C901
         """Probe known system services from shared registry."""
@@ -191,3 +212,5 @@ def register_system_api_routes(app: web.Application) -> None:  # noqa: C901
     app.router.add_get("/api/system/services", handle_system_services)
     app.router.add_get("/api/system/settings", handle_get_settings)
     app.router.add_post("/api/system/settings", handle_update_settings)
+    app.router.add_get("/api/user/preferences", handle_get_user_preferences)
+    app.router.add_post("/api/user/preferences", handle_update_user_preferences)

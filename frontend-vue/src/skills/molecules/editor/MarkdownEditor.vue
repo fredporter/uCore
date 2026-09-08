@@ -3,65 +3,10 @@
     <!-- Toolbar: formatting buttons (prose + editable only) plus a slot for
          external controls (save, view mode, close) injected by the parent -->
     <div class="markdown-editor__toolbar">
-      <template v-if="!readOnly">
-        <!-- Text formatting -->
-        <button class="markdown-btn" title="Bold (Ctrl+B)" @click="applyBold">
-          <span class="material-symbols-outlined">format_bold</span>
-        </button>
-        <button
-          class="markdown-btn"
-          title="Italic (Ctrl+I)"
-          @click="applyItalic"
-        >
-          <span class="material-symbols-outlined">format_italic</span>
-        </button>
-        <button
-          class="markdown-btn"
-          title="Underline (Ctrl+U)"
-          @click="applyUnderline"
-        >
-          <span class="material-symbols-outlined">format_underlined</span>
-        </button>
-        <button class="markdown-btn" title="Inline code" @click="applyCode">
-          <span class="material-symbols-outlined">code</span>
-        </button>
-        <div class="markdown-separator" />
-        <!-- Block elements -->
-        <button class="markdown-btn" title="Heading 2" @click="applyHeading">
-          <span class="material-symbols-outlined">title</span>
-        </button>
-        <button
-          class="markdown-btn"
-          title="Block quote"
-          @click="applyBlockquote"
-        >
-          <span class="material-symbols-outlined">format_quote</span>
-        </button>
-        <button
-          class="markdown-btn"
-          title="Bullet list"
-          @click="applyBulletList"
-        >
-          <span class="material-symbols-outlined">format_list_bulleted</span>
-        </button>
-        <button
-          class="markdown-btn"
-          title="Ordered list"
-          @click="applyOrderedList"
-        >
-          <span class="material-symbols-outlined">format_list_numbered</span>
-        </button>
-        <div class="markdown-separator" />
-        <!-- Edit controls -->
-        <button class="markdown-btn" title="Undo" @click="undo">
-          <span class="material-symbols-outlined">undo</span>
-        </button>
-        <button class="markdown-btn" title="Redo" @click="redo">
-          <span class="material-symbols-outlined">redo</span>
-        </button>
-      </template>
-      <!-- External controls injected by parent (save, view mode, close, …) -->
-      <slot name="toolbar-actions" />
+      <EnhancedBangleToolbar v-if="!readOnly" @command="handleToolbarCommand">
+        <template #actions><slot name="toolbar-actions" /></template>
+      </EnhancedBangleToolbar>
+      <slot v-else name="toolbar-actions" />
     </div>
 
     <!-- Raw markdown code editor (preserves line breaks) -->
@@ -73,6 +18,7 @@
       :readonly="readOnly"
       spellcheck="false"
       @input="onCodeInput"
+      @keydown="onEditorKeydown"
     />
 
     <!-- ProseMirror WYSIWYG editor -->
@@ -81,12 +27,23 @@
       ref="editorEl"
       class="markdown-editor__host"
       :class="{ 'markdown-editor__host--readonly': readOnly }"
+      @keydown="onEditorKeydown"
     />
+    <Teleport to="body">
+      <div v-if="insertionKind" class="markdown-insert-overlay" @click.self="closeInsertion">
+        <section class="markdown-insert-modal" role="dialog" aria-modal="true" :aria-labelledby="`${insertionKind}-insert-title`">
+          <h2 :id="`${insertionKind}-insert-title`">Insert {{ insertionKind }}</h2>
+          <label>{{ insertionKind === "image" ? "Alt text" : "Link text" }}<input v-model="insertionLabel" /></label>
+          <label>URL<input v-model="insertionUrl" type="url" placeholder="https://…" @keydown.enter.prevent="confirmInsertion" /></label>
+          <div class="markdown-insert-modal__actions"><button type="button" @click="closeInsertion">Cancel</button><button type="button" :disabled="!validInsertionUrl" @click="confirmInsertion">Insert</button></div>
+        </section>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import "@bangle.dev/core/style.css";
 import {
   BangleEditor as MarkdownRuntime,
@@ -116,6 +73,7 @@ import { Plugin } from "@bangle.dev/pm";
 import { defaultMarkdownSerializer } from "prosemirror-markdown";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
+import EnhancedBangleToolbar, { type EditorCommand } from "./EnhancedBangleToolbar.vue";
 
 interface Props {
   modelValue?: string;
@@ -143,11 +101,19 @@ const emit = defineEmits<{
   "update:modelValue": [value: string];
   save: [value: string];
   change: [value: string];
+  "update:editMode": [value: "prose" | "code"];
+  toolbarAction: [action: "scrape" | "summarize" | "citation" | "copy-binder" | "variant" | "archive" | "outline"];
 }>();
 
 const editorEl = ref<HTMLDivElement | null>(null);
 const codeEl = ref<HTMLTextAreaElement | null>(null);
 const editMode = ref<"prose" | "code">(props.editMode);
+const insertionKind = ref<"link" | "image" | null>(null);
+const insertionLabel = ref("");
+const insertionUrl = ref("");
+const validInsertionUrl = computed(() => {
+  try { return ["http:", "https:"].includes(new URL(insertionUrl.value).protocol); } catch { return false; }
+});
 let editor: MarkdownRuntime | null = null;
 let lastExternalValue = props.modelValue;
 
@@ -219,11 +185,114 @@ function applyCode() {
   editor.view.focus();
 }
 
-function applyHeading() {
-  if (editMode.value === "code") return prefixCodeLines("## ");
+function handleToolbarCommand(command: EditorCommand) {
+  if (command === "bold") return applyBold();
+  if (command === "italic") return applyItalic();
+  if (command === "underline") return applyUnderline();
+  if (command === "strike") return applyStrike();
+  if (command === "code") return applyCode();
+  if (command === "link") return applyLink();
+  if (command === "image") return openInsertion("image");
+  if (command === "mode-toggle") return toggleEditMode();
+  if (command.startsWith("heading-")) return applyHeadingLevel(Number(command.slice(-1)));
+  if (command === "blockquote") return applyBlockquote();
+  if (command === "bullet-list") return applyBulletList();
+  if (command === "ordered-list") return applyOrderedList();
+  if (command === "code-block") return insertBlock("```\ncode\n```\n");
+  if (command === "horizontal-rule") return insertBlock("---\n");
+  if (command === "table") return insertBlock("| Column | Value |\n| --- | --- |\n| Item | Value |\n");
+  if (command === "callout") return insertBlock("> [!NOTE]\n> Add a note.\n");
+  if (command === "footnote") return insertBlock("Reference[^1]\n\n[^1]: Source details.\n");
+  if (command === "undo") return undo();
+  if (command === "redo") return redo();
+  emit(
+    "toolbarAction",
+    command as "scrape" | "summarize" | "citation" | "copy-binder" | "variant" | "archive" | "outline",
+  );
+}
+
+function onEditorKeydown(event: KeyboardEvent) {
+  if (props.readOnly || !(event.metaKey || event.ctrlKey)) return;
+  const key = event.key.toLowerCase();
+  const command = key === "b"
+    ? "bold"
+    : key === "i"
+      ? "italic"
+      : key === "u"
+        ? "underline"
+        : key === "k"
+          ? "link"
+          : key === "m" && event.shiftKey
+            ? "mode-toggle"
+          : key === "z" && event.shiftKey
+            ? "redo"
+            : key === "z"
+              ? "undo"
+              : null;
+  if (!command) return;
+  event.preventDefault();
+  handleToolbarCommand(command);
+}
+
+function applyStrike() {
+  if (editMode.value === "code") return wrapCodeSelection("~~", "~~", "struck text");
   if (!editor) return;
-  heading.commands.toggleHeading(2)(editor.view.state, editor.view.dispatch);
+  strike.commands.toggleStrike()(editor.view.state, editor.view.dispatch);
   editor.view.focus();
+}
+
+function applyLink() {
+  openInsertion("link");
+}
+
+function selectedText() {
+  if (editMode.value === "code" && codeEl.value) return props.modelValue.slice(codeEl.value.selectionStart, codeEl.value.selectionEnd);
+  return "";
+}
+
+function openInsertion(kind: "link" | "image") {
+  insertionKind.value = kind;
+  insertionLabel.value = selectedText() || (kind === "image" ? "Image description" : "Link text");
+  insertionUrl.value = "";
+}
+
+function closeInsertion() { insertionKind.value = null; }
+
+function confirmInsertion() {
+  if (!insertionKind.value || !validInsertionUrl.value) return;
+  const label = insertionLabel.value.trim() || (insertionKind.value === "image" ? "Image" : insertionUrl.value);
+  const snippet = `${insertionKind.value === "image" ? "!" : ""}[${label}](${insertionUrl.value})`;
+  if (editMode.value === "code") insertCodeSnippet(snippet);
+  else insertBlock(snippet);
+  closeInsertion();
+}
+
+function toggleEditMode() {
+  const next = editMode.value === "code" ? "prose" : "code";
+  emit("update:editMode", next);
+}
+
+function applyHeadingLevel(level: number) {
+  if (editMode.value === "code") return prefixCodeLines(`${"#".repeat(level)} `);
+  if (!editor) return;
+  heading.commands.toggleHeading(level)(editor.view.state, editor.view.dispatch);
+  editor.view.focus();
+}
+
+function insertBlock(snippet: string) {
+  if (editMode.value === "code") return insertCodeSnippet(snippet);
+  const value = `${currentValue().replace(/\s*$/, "")}\n\n${snippet}`;
+  lastExternalValue = value;
+  emit("update:modelValue", value);
+  emit("change", value);
+}
+
+function insertCodeSnippet(snippet: string) {
+  const el = codeEl.value;
+  if (!el) return;
+  const start = el.selectionStart;
+  const value = `${props.modelValue.slice(0, start)}${snippet}${props.modelValue.slice(el.selectionEnd)}`;
+  commitCodeEdit(value, start, start + snippet.length);
 }
 
 function applyBlockquote() {
@@ -398,6 +467,10 @@ watch(
   () => props.editMode,
   (value) => {
     editMode.value = value;
+    nextTick(() => {
+      if (value === "prose") instantiateEditor(props.modelValue);
+      else codeEl.value?.focus();
+    });
   },
 );
 
@@ -440,57 +513,9 @@ onBeforeUnmount(() => {
   overflow-x: auto;
   white-space: nowrap;
 }
-
-.markdown-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--usx-control-size-sm);
-  height: var(--usx-control-size-sm);
-  min-width: var(--usx-control-size-sm);
-  min-height: var(--usx-control-size-sm);
-  flex: 0 0 var(--usx-control-size-sm);
-  box-sizing: border-box;
-  padding: 0;
-  border: 0;
-  border-radius: var(--usx-radius-sm);
-  background: transparent;
-  color: var(--usx-color-on-surface);
-  cursor: pointer;
-  font-size: var(--usx-font-size-sm);
-  font-weight: var(--usx-font-weight-medium);
-  transition:
-    background var(--usx-transition-fast),
-    color var(--usx-transition-fast),
-    border-color var(--usx-transition-fast);
-}
-
-.markdown-btn .material-symbols-outlined {
-  font-size: 18px;
-  line-height: 1;
-  font-variation-settings:
-    "FILL" 0,
-    "wght" 400,
-    "GRAD" 0,
-    "opsz" 20;
-}
-
-.markdown-btn:hover {
-  background: var(--usx-color-surface-hover);
-  color: var(--usx-color-primary);
-}
-
-.markdown-btn:active {
-  background: var(--usx-color-primary);
-  color: var(--usx-color-on-primary);
-}
-
-.markdown-separator {
-  width: 1px;
-  height: 1.5rem;
-  background: var(--usx-color-border);
-  margin: 0 var(--usx-spacing-xs);
-}
+.markdown-insert-overlay { position: fixed; inset: 0; z-index: 2200; display: grid; place-items: center; padding: var(--usx-spacing-lg); background: rgb(0 0 0 / 50%); }
+.markdown-insert-modal { display: grid; gap: var(--usx-spacing-md); width: min(28rem, 100%); padding: var(--usx-spacing-lg); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-lg); background: var(--usx-color-surface); }
+.markdown-insert-modal h2 { margin: 0; }.markdown-insert-modal label { display: grid; gap: var(--usx-spacing-xs); }.markdown-insert-modal input { min-height: var(--usx-touch-min); }.markdown-insert-modal__actions { display: flex; justify-content: flex-end; gap: var(--usx-spacing-sm); }
 
 .markdown-editor__host {
   flex: 1;

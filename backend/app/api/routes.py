@@ -15,6 +15,8 @@ log = logging.getLogger("ucore")
 
 def register_routes(app: web.Application) -> None:
     """Register all non-core API routes and surface extensions."""
+    from .developer_chat_api import register as register_developer_chat
+    register_developer_chat(app)
     # ── Extension-driven route registration ─────────────────────────
     # Wave A hard-cut: workflow and knowledge routing are extension-owned.
     from app.extensions.registry import registry
@@ -29,19 +31,38 @@ def register_routes(app: web.Application) -> None:
     from .config_api import handle_get_config
     from .containers import register_container_routes
     from .developer_api import (
+        handle_apply_developer_proposal,
+        handle_cancel_developer_command,
+        handle_cancel_developer_operation,
         handle_commit_repo_files,
+        handle_create_developer_operation,
+        handle_create_repo_file,
+        handle_decide_developer_operation,
+        handle_delete_repo_file,
         handle_developer_chat,
         handle_developer_chat_stream,
+        handle_developer_command_actions,
+        handle_developer_operation_capabilities,
         handle_developer_status,
+        handle_diagnose_repo_file,
+        handle_get_developer_command_run,
+        handle_get_developer_operation,
+        handle_get_repo_diffs,
         handle_get_repo_file_diff,
         handle_get_repo_file_preview,
+        handle_list_developer_command_runs,
+        handle_list_developer_operations,
         handle_list_repo_files,
         handle_list_repo_review,
         handle_list_repos,
+        handle_move_repo_file,
         handle_repo_github_status,
         handle_repo_status,
+        handle_search_repo,
         handle_stage_repo_file,
+        handle_stage_repo_hunk,
         handle_start_developer,
+        handle_start_developer_command,
         handle_stop_developer,
         handle_unstage_repo_file,
         handle_update_repo_file,
@@ -177,17 +198,22 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/budget/reload", handle_budget_reload)
     app.router.add_get("/api/developer/repos", handle_list_repos)
     app.router.add_get("/api/developer/repos/{repo_name}/files", handle_list_repo_files)
+    app.router.add_post("/api/developer/repos/{repo_name}/files", handle_create_repo_file)
     app.router.add_get(
         "/api/developer/repos/{repo_name}/file-preview", handle_get_repo_file_preview
     )
     app.router.add_put("/api/developer/repos/{repo_name}/file-preview", handle_update_repo_file)
+    app.router.add_delete("/api/developer/repos/{repo_name}/file-preview", handle_delete_repo_file)
+    app.router.add_post("/api/developer/repos/{repo_name}/file-move", handle_move_repo_file)
+    app.router.add_get("/api/developer/repos/{repo_name}/diagnostics", handle_diagnose_repo_file)
     app.router.add_get("/api/developer/repos/{repo_name}/diff", handle_get_repo_file_diff)
+    app.router.add_get("/api/developer/repos/{repo_name}/diffs", handle_get_repo_diffs)
     app.router.add_get("/api/developer/repos/{repo_name}/review", handle_list_repo_review)
     app.router.add_get("/api/developer/repos/{repo_name}/status", handle_repo_status)
-    app.router.add_get(
-        "/api/developer/repos/{repo_name}/github", handle_repo_github_status
-    )
+    app.router.add_get("/api/developer/repos/{repo_name}/search", handle_search_repo)
+    app.router.add_get("/api/developer/repos/{repo_name}/github", handle_repo_github_status)
     app.router.add_post("/api/developer/repos/{repo_name}/stage", handle_stage_repo_file)
+    app.router.add_post("/api/developer/repos/{repo_name}/stage-hunk", handle_stage_repo_hunk)
     app.router.add_post("/api/developer/repos/{repo_name}/unstage", handle_unstage_repo_file)
     app.router.add_post("/api/developer/repos/{repo_name}/commit", handle_commit_repo_files)
     # DevMode (internal dev ops) endpoints
@@ -195,6 +221,31 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/developer/stop", handle_stop_developer)
     app.router.add_get("/api/developer/status", handle_developer_status)
     app.router.add_post("/api/developer/workspace", handle_workspace_switch)
+    app.router.add_get(
+        "/api/developer/operations/capabilities", handle_developer_operation_capabilities
+    )
+    app.router.add_get("/api/developer/operations", handle_list_developer_operations)
+    app.router.add_post("/api/developer/operations", handle_create_developer_operation)
+    app.router.add_get("/api/developer/operations/{operation_id}", handle_get_developer_operation)
+    app.router.add_post(
+        "/api/developer/operations/{operation_id}/decision", handle_decide_developer_operation
+    )
+    app.router.add_post(
+        "/api/developer/operations/{operation_id}/cancel", handle_cancel_developer_operation
+    )
+    app.router.add_post(
+        "/api/developer/operations/{operation_id}/proposal/apply",
+        handle_apply_developer_proposal,
+    )
+    app.router.add_get("/api/developer/repos/{repo_name}/actions", handle_developer_command_actions)
+    app.router.add_post(
+        "/api/developer/repos/{repo_name}/actions/run", handle_start_developer_command
+    )
+    app.router.add_get("/api/developer/command-runs", handle_list_developer_command_runs)
+    app.router.add_get("/api/developer/command-runs/{run_id}", handle_get_developer_command_run)
+    app.router.add_post(
+        "/api/developer/command-runs/{run_id}/cancel", handle_cancel_developer_command
+    )
     # Dev Chat endpoints
     app.router.add_post("/api/developer/chat", handle_developer_chat)
     app.router.add_get("/api/developer/chat/stream", handle_developer_chat_stream)
@@ -384,6 +435,15 @@ def register_routes(app: web.Application) -> None:
     except ImportError as e:
         log.debug("Identity routes not available: %s", e)
 
+    # ── Global chat history ──────────────────────────────────────────
+    try:
+        from .chat_history_api import register_chat_history_routes
+
+        register_chat_history_routes(app)
+        log.debug("Chat history routes registered")
+    except ImportError as e:
+        log.debug("Chat history routes not available: %s", e)
+
     # ── Dashboard Surface ──────────────────────────────────────────
     try:
         from ..surfaces.dashboard import DashboardStore, register_dashboard_routes
@@ -518,3 +578,12 @@ def register_routes(app: web.Application) -> None:
         log.debug("History API routes registered")
     except ImportError as e:
         log.debug("History API routes not available: %s", e)
+
+    # ── Host PIM & Automation API (macOS Safari / Notes / Reminders) ──
+    try:
+        from .host_api import register_host_routes
+
+        register_host_routes(app)
+        log.debug("Host PIM routes registered")
+    except ImportError as e:
+        log.debug("Host PIM routes not available: %s", e)

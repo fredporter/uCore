@@ -162,9 +162,3 @@ function navigate(path: string) {
   router.push(path);
 }
 </script>
-
-<!-- All styles moved to usx-standard.css for consistency -->
-<style scoped>
-/* GlobalToolbar styles are defined in usx-standard.css under "GLOBAL TOOLBAR" section.
-   This ensures consistent tab styling across all surfaces. */
-</style>

@@ -58,13 +58,11 @@ def _check_imports() -> None:
 
 
 def _check_registry_routes() -> None:
-    from aiohttp import web
-
-    from app.api.routes import register_routes
+    from app.core.snackbar import create_app
     from app.extensions.registry import registry
 
-    app = web.Application()
-    register_routes(app)
+    # Runtime-owned routes are mounted by the host, separately from optional APIs.
+    app = create_app()
 
     status = registry.status()
     ext_by_id = {e["id"]: e for e in status.get("extensions", [])}

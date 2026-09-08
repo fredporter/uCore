@@ -72,6 +72,7 @@ class BudgetManager:
     _instance: "BudgetManager | None" = None
 
     def __init__(self) -> None:
+        self._session_started = datetime.now(UTC)
         DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(DB_PATH))
         self._conn.row_factory = sqlite3.Row
@@ -103,6 +104,8 @@ class BudgetManager:
         task_type: str | None = None,
     ) -> bool:
         """Check if spending is allowed within budget constraints."""
+        if estimated_cost < 0:
+            raise ValueError("Estimated cost cannot be negative")
         if estimated_cost == 0.0:
             return True
 
@@ -165,6 +168,8 @@ class BudgetManager:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         """Record a spending event."""
+        if cost < 0:
+            raise ValueError("Cost cannot be negative")
         now = datetime.now(UTC).isoformat()
         self._conn.execute(
             """
@@ -239,7 +244,7 @@ class BudgetManager:
         now = datetime.now(UTC)
 
         if period == "session":
-            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            start = self._session_started
         elif period == "day":
             start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif period == "month":

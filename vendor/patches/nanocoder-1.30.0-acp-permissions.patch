@@ -1,0 +1,20 @@
+--- a/node_modules/@nanocollective/nanocoder/dist/acp/acp-conversation.js
++++ b/node_modules/@nanocollective/nanocoder/dist/acp/acp-conversation.js
+@@ -222,7 +222,7 @@
+             }
+             // Enrich the call with ACP metadata (kind, file locations, and a diff
+             // for edits) so the client can render rich tool cards and previews.
+-            const meta = await buildToolCallMeta(toolCall);
++            const meta = await buildToolCallMeta(toolCall, { withDiff: process.env.UCORE_ACP_GOVERNED !== '1' });
+             // Notify client about tool call. Already-announced calls get an
+             // update rather than a second tool_call: clients that append on
+             // tool_call (instead of upserting by id) would double-render it.
+@@ -239,7 +239,7 @@
+             // Check if approval is needed. resolveToolApproval is the single
+             // authority shared with the interactive loop and plain shell - it
+             // applies yolo and the alwaysAllow list internally.
+-            const needsApproval = await evaluateNeedsApproval(toolCall, toolManager, nonInteractiveAlwaysAllow, developmentMode);
++            const needsApproval = process.env.UCORE_ACP_GOVERNED === '1' || await evaluateNeedsApproval(toolCall, toolManager, nonInteractiveAlwaysAllow, developmentMode);
+             if (needsApproval) {
+                 const permission = await requestToolPermission(session, toolCall, conn, meta, abortController.signal);
+                 if (permission === 'cancelled') {

@@ -11,18 +11,16 @@ layout. */
       :dirty="isDirty"
       :read-only="readOnly"
       :diff-active="showDiff"
-      :cells-active="showCells"
       :show-diff="activeTabId !== ''"
-      :show-cells="activeTabId !== ''"
       :show-close-secondary="showSecondaryPanel"
       :show-add-tab="showAddTab"
       @select-tab="selectTab"
       @close-tab="closeTab"
       @toggle-diff="toggleDiff"
-      @toggle-cells="toggleCells"
       @close-secondary="closeSecondaryPanel"
       @save="$emit('save')"
     />
+
 
     <!-- Main editor area with optional split -->
     <div
@@ -68,15 +66,6 @@ layout. */
           :has-repository-diff="hasRepositoryDiff"
           @update:modified="onModifiedInDiff"
         />
-        <JupyterCellsPanel
-          v-else-if="showCells"
-          :cells="notebookCells"
-          :default-language="detectedLanguage"
-          @update:cell-source="onCellSourceUpdate"
-          @toggle-cell-type="onCellTypeToggle"
-          @add-cell="onAddCell"
-          @delete-cell="onDeleteCell"
-        />
       </div>
     </div>
 
@@ -94,10 +83,8 @@ layout. */
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import type { EditorTab } from "./EditorToolbar.vue";
-import type { NotebookCell } from "./JupyterCellsPanel.vue";
 import CodeEditorCore from "./CodeEditorCore.vue";
 import DiffEditorPanel from "./DiffEditorPanel.vue";
-import JupyterCellsPanel from "./JupyterCellsPanel.vue";
 import EditorToolbar from "./EditorToolbar.vue";
 import EditorStatusBar from "./EditorStatusBar.vue";
 import ResizableSplitter from "./ResizableSplitter.vue";
@@ -116,7 +103,6 @@ interface Props {
   diffStatus?: "clean" | "modified" | "added" | "deleted";
   hasRepositoryDiff?: boolean;
   saveRevision?: number;
-  notebookCells?: NotebookCell[];
   showAddTab?: boolean;
 }
 
@@ -130,16 +116,16 @@ const props = withDefaults(defineProps<Props>(), {
   diffStatus: "clean",
   hasRepositoryDiff: false,
   saveRevision: 0,
-  notebookCells: () => [],
   showAddTab: false,
 });
 
 const emit = defineEmits<{
   "update:fileContent": [value: string];
-  "update:notebookCells": [cells: NotebookCell[]];
   save: [];
   "close-file": [];
+  "select-file": [path: string];
 }>();
+
 
 // ── Open tabs ─────────────────────────────────────────────────────────
 
@@ -193,6 +179,8 @@ function openFile(filename: string, path: string, content: string) {
 function selectTab(id: string) {
   activeTabId.value = id;
   isDirty.value = activeTab.value?.dirty ?? false;
+  if (activeTab.value) emit("select-file", activeTab.value.path);
+  emit("update:fileContent", activeContent.value);
 }
 
 function closeTab(id: string) {
@@ -204,6 +192,8 @@ function closeTab(id: string) {
     if (openTabs.value.length > 0) {
       activeTabId.value =
         openTabs.value[Math.min(idx, openTabs.value.length - 1)].id;
+      if (activeTab.value) emit("select-file", activeTab.value.path);
+      emit("update:fileContent", activeContent.value);
     } else {
       activeTabId.value = "";
       emit("close-file");
@@ -214,29 +204,16 @@ function closeTab(id: string) {
 // ── Secondary panel ───────────────────────────────────────────────────
 
 const showDiff = ref(false);
-const showCells = ref(false);
 const showSecondaryPanel = ref(false);
 const secondaryPanelWidth = ref(300);
 
 function toggleDiff() {
   showDiff.value = !showDiff.value;
-  if (showDiff.value) {
-    showCells.value = false;
-    showSecondaryPanel.value = true;
-  } else if (!showCells.value) showSecondaryPanel.value = false;
-}
-
-function toggleCells() {
-  showCells.value = !showCells.value;
-  if (showCells.value) {
-    showDiff.value = false;
-    showSecondaryPanel.value = true;
-  } else if (!showDiff.value) showSecondaryPanel.value = false;
+  showSecondaryPanel.value = showDiff.value;
 }
 
 function closeSecondaryPanel() {
   showDiff.value = false;
-  showCells.value = false;
   showSecondaryPanel.value = false;
 }
 
@@ -253,56 +230,8 @@ function onModifiedInDiff(value: string) {
   onContentChange();
 }
 
-// ── Notebook cells ─────────────────────────────────────────────────
-
-const notebookCells = computed({
-  get: () => props.notebookCells,
-  set: (val) => emit("update:notebookCells", val),
-});
-
-function onCellSourceUpdate(idx: number, source: string) {
-  const cells = [...notebookCells.value];
-  if (cells[idx]) {
-    cells[idx] = { ...cells[idx], source };
-    emit("update:notebookCells", cells);
-    isDirty.value = true;
-  }
-}
-
-function onCellTypeToggle(idx: number) {
-  const cells = [...notebookCells.value];
-  if (cells[idx]) {
-    cells[idx] = {
-      ...cells[idx],
-      type: (cells[idx].type === "code" ? "markdown" : "code") as
-        | "code"
-        | "markdown",
-    };
-    emit("update:notebookCells", cells);
-  }
-}
-
-function onAddCell(type: "code" | "markdown") {
-  const cells = [
-    ...notebookCells.value,
-    {
-      id: `cell-${Date.now()}`,
-      type,
-      source: "",
-      language: props.fileName ? languageFor(props.fileName) : "python",
-    },
-  ];
-  emit("update:notebookCells", cells);
-}
-
-function onDeleteCell(idx: number) {
-  emit(
-    "update:notebookCells",
-    notebookCells.value.filter((_, i) => i !== idx),
-  );
-}
-
 // ── Status bar state ───────────────────────────────────────────────
+
 
 const cursorPosition = ref({ line: 1, col: 1 });
 const lineCount = ref(0);
@@ -337,7 +266,6 @@ defineExpose({
   selectTab,
   closeTab,
   toggleDiff,
-  toggleCells,
   showSecondary: () => showSecondaryPanel.value,
 });
 

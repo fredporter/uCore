@@ -1,6 +1,8 @@
 # Dev Mode and Product Long Sprints — 2026-09
 
 Status: Canonical execution sequence; baseline reconciled 2026-09-01
+Planning reconciliation: 2026-09-07 — Sprint 3A local checkpoint complete; Sprint 4 not started.
+Current next steps: [Next sprint and backlog](NEXT_SPRINT_AND_BACKLOG_2026-09-07.md).
 Owner: uCore
 Related owners: uFlow task authority, uCode runtime authority, uKnowledge research authority
 
@@ -84,6 +86,26 @@ remains gated on Server runtime policy/audit and the Developer operations UI.
 
 ## Sprint 2 — Developer Workbench foundation (4 weeks)
 
+Progress on 2026-09-04: the first governed operations slice is implemented. The
+Developer Surface now exposes the bounded ACP action catalogue, repository and
+file context, operation history, lifecycle events, cancellation, and explicit
+approve/deny controls for write-capable actions. NanoCoder availability and
+failure are reported honestly and the editor remains usable without it.
+The canonical MCP gateway exposes read-only action discovery and operation
+status; it cannot execute or approve construction work.
+The workbench now preserves repository, active file, open-file references, and
+review-panel state for the browser session; adds a searchable tree, keyboard
+go-to-file palette, bounded repository content search, synchronized editor tabs,
+and contextual staged/unstaged review controls.
+Conflict-safe revision tokens now protect saves and deletes; bounded file
+create/move/delete flows, Python/JSON/YAML diagnostics adapters, and explicit
+staged commit preparation are integrated into the same workbench.
+Repository-declared test/build/lint/check scripts now run through a shell-free,
+allowlisted command supervisor with bounded redacted output, timeout,
+cancellation, duration, and JSONL audit evidence. Developer links reference the
+owning uFlow Tasks and Server Automations/Skills surfaces rather than copying
+their state.
+
 ### Scope
 
 1. Replace the current three-step Code/Repository/Editor journey with a coherent
@@ -112,6 +134,8 @@ remains gated on Server runtime policy/audit and the Developer operations UI.
 
 ## Sprint 3 — Git review and governed construction (4 weeks)
 
+Status: Complete 2026-09-04
+
 ### Scope
 
 1. Consolidate authoritative diff, staged/unstaged state, review, and commit
@@ -128,6 +152,25 @@ remains gated on Server runtime policy/audit and the Developer operations UI.
    propose tests, plan refactor, implement reviewed task, and review working tree.
    Each action sends bounded editor/repository context through the ACP session.
 
+Closure evidence: repository-wide unstaged diffs are parsed into navigable
+file/hunk records. Hunk staging requires the exact reviewed diff fingerprint
+and rejects stale state before applying anything to the index. The operations
+composer carries optional uFlow task references, while ACP lifecycle, approval,
+plan, tool, diff, and message updates render as structured session cards.
+NanoCoder write actions now execute in isolated proposal workspaces: their
+generated file patches require a separate explicit apply decision and a matching
+live-repository fingerprint before entering the working tree. Operation,
+approval, task-reference, ACP-event, proposal, and apply evidence persists
+across backend restarts. Repository actions retain bounded output, cancellation,
+timeout, duration, and redacted JSONL audit records.
+
+Verification on 2026-09-04: all 473 backend tests and all 28 focused Developer
+backend tests passed; all 51 frontend unit/component tests passed; Vue
+type-check and the production PWA build passed. The suites retain six aiohttp
+application-key warnings, while the build retains pre-existing chunk-size and
+mixed static/dynamic CodeMirror import warnings. These are follow-up quality and
+performance work rather than correctness failures.
+
 ### Exit gates
 
 - Edit → diff → test → stage → commit-preparation is traceable and recoverable.
@@ -135,7 +178,31 @@ remains gated on Server runtime policy/audit and the Developer operations UI.
 - Workflow task references and Server runner links preserve their owning APIs.
 - No autonomous commit, push, merge, or task-status-triggered code edit exists.
 
-## Sprint 4 — Authoring and research completion (4 weeks)
+## Special Sprint 3A — Conversational Dev Mode
+
+Approved 2026-09-06; local conversational coding checkpoint complete 2026-09-07.
+Contract: [Conversational Dev Mode proposal](DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md).
+Evidence: [Runtime audit and verification](DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md).
+
+Close the global chat-to-construction gap before Sprint 4. Deliver one chat UI,
+User/Developer scope, Ask/Plan/Act intent, durable context, real tool activity,
+reviewed proposals, checks, cancellation, and follow-up. Audit Ollama, provider
+routing, Hivemind/Roundtable availability, budgets, agents, skills, and MCP; fix
+faults that block the supported local coding journey. Distinguish absent legacy
+services from verified runtime capabilities. A real installed-engine journey is
+required; tests against fake adapters alone do not close this checkpoint.
+
+## Sprint 4 — Zen consolidation, authoring/research verification, and native integration intake (4 weeks)
+
+Not started. Sprint 3A's supported local coding gate is complete; review the bounded Sprint 4 scope before starting implementation.
+The editor ledger now marks its authoring/research feature items done. Treat the
+feature list below as acceptance areas: inspect existing implementation and fix
+demonstrated gaps rather than rebuilding it. Prioritize bounded scope from the
+[2026-09-07 reconciliation](NEXT_SPRINT_AND_BACKLOG_2026-09-07.md).
+
+Architecture direction added 2026-09-06:
+[Zen ecosystem contract](ZEN_ECOSYSTEM_CONTRACT.md). This is an ecosystem-wide
+boundary; Sprint 4 applies it to the surfaces and integrations it touches.
 
 ### Scope
 
@@ -148,6 +215,22 @@ remains gated on Server runtime policy/audit and the Developer operations UI.
 5. Align the Workflow editor and Developer editor through shared primitives only;
    keep prose workflow and repository-code behavior distinct.
 6. Complete unit and component coverage for editor utilities and interactions.
+7. Reconcile authoring, research, browser, and Snackbar controls with the Zen
+   contract: contextual defaults, progressive disclosure, and only meaningful
+   user preferences or decisions in the everyday UI.
+8. Inventory host-native and reviewed Vendor capabilities before adding tools.
+   Define macOS/Linux adapters and availability contracts for speech/dictation,
+   notifications, app content exchange, and browser integration. Prefer Safari
+   on macOS and a distraction-free Firefox-based Linux surface; resolve whether
+   the latter uses Zen Browser or a managed Firefox profile during intake.
+9. Restore Snackbar's host-integration boundary: exchange uDOS content with
+   supported Mail, Messages, Notes, Reminders, and equivalent Linux services.
+   Scope a unified messaging view as a subsequent integration based on proven
+   access contracts; do not promise universal source access or replace app stores.
+
+The host integration work begins with capability discovery, reuse decisions, and
+surface simplification. Building every listed integration is not assumed to fit
+this four-week sprint. Record approved follow-on scope in uFlow after intake.
 
 ### Exit gates
 
@@ -155,6 +238,12 @@ remains gated on Server runtime policy/audit and the Developer operations UI.
 - Research outputs retain source and citation provenance.
 - Formatting, variants, and renderer routing have focused regression tests.
 - Developer code files never enter the user Binder implicitly.
+- Each new capability names the reused OS tool, ecosystem contract, or reviewed
+  Vendor component and explains any custom integration code.
+- Affected surfaces expose goal/context/progress and required decisions; advanced
+  configuration remains in its owning settings surface.
+- Platform availability is verified or explicitly unavailable; macOS-specific
+  integration assumptions do not silently become Linux requirements.
 
 ## Sprint 5 — Identity, settings, chat history, and offline shell (4 weeks)
 
@@ -229,25 +318,27 @@ must not become competing uCore authorities:
 | PWA and mobile enhancements | Sprint 5 |
 | Nanocoder ACP and Developer Surface revamp | Sprints 1–3 |
 
-## Canonical 28-item backlog ledger
+## Editor backlog ledger — 10 open of 76 items
 
-This table is the complete open set derived from
-`BANGLE_UPGRADE_TASKS`. Partial working-tree improvements do not close an item
-until its checklist and focused tests provide evidence.
+This table is the complete open editor set derived from `BANGLE_UPGRADE_TASKS`
+on 2026-09-07: 66 marked done and 10 marked backlog. It is not the complete
+ecosystem backlog. Sprint 3A closure and the Zen/native/backend reconciliation
+work are recorded in the linked next-sprint plan. Recorded done status still
+requires checklist evidence before release acceptance.
 
 | Sprint | Backlog IDs | Count |
 | --- | --- | ---: |
-| Sprint 4 — authoring UI | `bangle-p2-003`, `bangle-p3-001`, `bangle-p3-002`, `bangle-p3-003`, `bangle-p3-004`, `bangle-p3-005` | 6 |
-| Sprint 4 — research and renderer | `bangle-p5-003`, `bangle-p6-003`, `bangle-p6-005`, `bangle-p6-006`, `markdown-p9-004` | 5 |
+| Sprint 4 — authoring UI | — | 0 |
+| Sprint 4 — research and renderer | — | 0 |
 | Sprint 4/6 — test evidence | `bangle-test-001`, `bangle-test-002`, `bangle-test-003`, `bangle-test-004`, `bangle-test-005`, `bangle-test-006` | 6 |
 | Sprint 6 — docs and release | `bangle-doc-001`, `bangle-doc-002`, `bangle-deploy-001`, `bangle-deploy-002` | 4 |
-| Sprint 5 — account state | `s3-001`, `s3-003`, `s3-004` | 3 |
-| Sprint 5 — offline/mobile | `s4-001`, `s4-002`, `s4-003`, `s4-004` | 4 |
-| **Total** | **All open task objects** | **28** |
+| Sprint 5 — account state | — | 0 |
+| Sprint 5 — offline/mobile | — | 0 |
+| **Total** | **All open task objects** | **10** |
 
-The current working tree contains partial formatting, research capture, chat,
-responsive, and surface-consolidation work. Those changes remain checkpoint
-evidence only: no backlog status is advanced merely because related code exists.
+No task status is advanced by this planning reconciliation. Sprint 5 account and
+offline items marked done in this ledger must be checked against ecosystem-wide
+requirements before further implementation is scheduled.
 
 ## Sprint operating rules
 
@@ -260,3 +351,18 @@ evidence only: no backlog status is advanced merely because related code exists.
    implementation selectors where an accessible role exists.
 5. A sprint closes only after runtime proof, command proof, test proof, evidence
    proof, and a clean diff review.
+
+## Post-program pathway — distribution and SonicScrewdriver
+
+After the Dev Mode release gates, continue with the distribution program in
+[`DISTRIBUTION_AND_SONIC_PATHWAY.md`](DISTRIBUTION_AND_SONIC_PATHWAY.md).
+Discovery and evidence gathering may begin during Sprint 6, but new
+SonicScrewdriver development is blocked on the pathway's mandatory
+specification-reconciliation gate. That gate must inspect and preserve useful
+concepts from both active and historical SonicScrewdriver plans before scope is
+confirmed.
+
+The continuous ecosystem archaeology process is defined in
+[`ECOSYSTEM_SPEC_INVENTORY.md`](ECOSYSTEM_SPEC_INVENTORY.md). It inventories
+active, archived, and planned repositories and concepts, but does not promote
+recovered ideas into the Dev Mode backlog without explicit confirmation.

@@ -13,6 +13,11 @@ export interface ParsedDocument {
   hasFrontmatter: boolean;
 }
 
+export interface YamlValidationResult {
+  value: Frontmatter;
+  errors: string[];
+}
+
 const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
 /** Split markdown into frontmatter object + body content */
@@ -34,7 +39,8 @@ export function serializeDocument(
   frontmatter: Frontmatter,
 ): string {
   if (Object.keys(frontmatter).length === 0) return body;
-  return `---\n${stringifyYaml(frontmatter)}---\n\n${body}`;
+  const normalizedBody = body.replace(/^(?:\r?\n)+/, "");
+  return `---\n${stringifyYaml(frontmatter)}---\n\n${normalizedBody}`;
 }
 
 /** Parse a minimal YAML string into a plain object (no external deps) */
@@ -49,6 +55,43 @@ export function parseYaml(yaml: string): Frontmatter {
     result[key] = parseYamlValue(rawValue);
   }
   return result;
+}
+
+/** Validate the supported frontmatter subset and return actionable line errors. */
+export function validateYaml(yaml: string): YamlValidationResult {
+  const value: Frontmatter = {};
+  const errors: string[] = [];
+  const seen = new Set<string>();
+  yaml.split("\n").forEach((line, index) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) return;
+    const colonIdx = line.indexOf(":");
+    if (colonIdx < 1) {
+      errors.push(`Line ${index + 1}: expected "key: value".`);
+      return;
+    }
+    const key = line.slice(0, colonIdx).trim();
+    const rawValue = line.slice(colonIdx + 1).trim();
+    if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(key)) {
+      errors.push(`Line ${index + 1}: invalid field name "${key}".`);
+      return;
+    }
+    if (seen.has(key)) {
+      errors.push(`Line ${index + 1}: duplicate field "${key}".`);
+      return;
+    }
+    if (
+      (rawValue.startsWith("[") && !rawValue.endsWith("]")) ||
+      (rawValue.startsWith('"') && !rawValue.endsWith('"')) ||
+      (rawValue.startsWith("'") && !rawValue.endsWith("'"))
+    ) {
+      errors.push(`Line ${index + 1}: incomplete value for "${key}".`);
+      return;
+    }
+    seen.add(key);
+    value[key] = parseYamlValue(rawValue);
+  });
+  return { value, errors };
 }
 
 /** Serialize a plain object to YAML lines */

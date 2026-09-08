@@ -59,8 +59,8 @@
     </section>
 
     <div class="wf-dashboard-actions">
-    <details class="wf-zen-details wf-prompt-card">
-      <summary>Compile files into a Binder</summary>
+    <section class="wf-zen-details wf-prompt-card">
+      <h3>Compile files into a Binder</h3>
       <div
         class="wf-launchpad-drop"
         :class="{ 'wf-launchpad-drop--active': isDragging }"
@@ -78,22 +78,23 @@
           <button class="wf-zen-primary" type="button" @click="compileBinder">Compile Binder</button>
         </div>
       </div>
-    </details>
+    </section>
 
-    <details class="wf-zen-details wf-prompt-card">
-      <summary>Workflow settings and history</summary>
+    <section class="wf-zen-details wf-prompt-card">
+      <h3>Workflow settings and history</h3>
       <div class="wf-actions-row">
         <UButton size="sm" variant="secondary" icon="archive" :disabled="!!busyAction" @click="archiveState">Archive</UButton>
         <UButton size="sm" variant="secondary" icon="add" :disabled="!!busyAction" @click="seedState">Seed tasks</UButton>
         <UButton size="sm" variant="secondary" icon="refresh" :disabled="!!busyAction" @click="resetState">Reset + seed</UButton>
       </div>
       <p v-if="lastActionMessage" class="wf-action-message">{{ lastActionMessage }}</p>
-      <div v-if="wf.workflowRuns.length" class="wf-zen-history">
+      <details v-if="wf.workflowRuns.length" class="wf-zen-history">
+        <summary>Recent workflow runs</summary>
         <span v-for="run in wf.workflowRuns.slice(0, 5)" :key="run.run_id">
           {{ run.workflow_name || run.workflow_id }} · {{ run.status }} · {{ formatTime(run.started_at) }}
         </span>
-      </div>
-    </details>
+      </details>
+    </section>
     </div>
   </div>
 <!-- legacy dashboard retained temporarily as an unreachable migration reference -->
@@ -332,9 +333,9 @@ onMounted(() => {
 .wf-task-row:not(:last-child) { border-bottom: var(--usx-border-width) solid var(--usx-color-border); }
 .wf-mission-row { border-radius: 0; }
 .wf-mission-row:not(:last-child) { border-bottom: var(--usx-border-width) solid var(--usx-color-border); }
-.wf-mission-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--usx-spacing-sm); padding-top: var(--usx-spacing-sm); }
+.wf-mission-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--usx-spacing-sm); padding-top: var(--usx-spacing-sm); }
 .wf-mission-cards .wf-mission-row { min-height: 7rem; padding: var(--usx-spacing-md); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); }
-.wf-dashboard-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--usx-spacing-sm); }
+.wf-dashboard-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--usx-spacing-sm); }
 .wf-dashboard-actions .wf-prompt-card { min-height: 3.5rem; padding: var(--usx-spacing-md); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); }
 .wf-task-row__state { width: .7rem; height: .7rem; border: 2px solid var(--usx-color-border); border-radius: 50%; flex: 0 0 auto; }
 .wf-task-row__state--in-progress { border-color: var(--usx-color-primary); background: var(--usx-color-primary); }
@@ -348,7 +349,8 @@ onMounted(() => {
 
 .wf-zen-details { border-top: 1px solid var(--usx-color-border); padding: var(--usx-spacing-md) var(--usx-spacing-xs); }
 .wf-zen-details summary { cursor: pointer; color: var(--usx-color-on-surface-muted); }
-.wf-zen-history { display: flex; flex-direction: column; gap: var(--usx-spacing-xs); margin-top: var(--usx-spacing-md); font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); }
+.wf-zen-history > span { display: block; margin-top: var(--usx-spacing-xs); }
+.wf-zen-history { gap: var(--usx-spacing-xs); margin-top: var(--usx-spacing-md); font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); }
 
 @media (max-width: 600px) {
   .wf-zen-header { align-items: stretch; flex-direction: column; }

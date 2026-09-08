@@ -145,7 +145,7 @@ def gather_chat_context(query: str, mode: str = "plan") -> dict[str, Any]:
         return result
 
     result["vault_docs"] = _scan_vault_for_query(query)
-    result["repo_snippets"] = _scan_repos_for_query(query)
+    # User enrichment never reads core repositories. Developer has scoped tools.
     result["skills"] = _list_available_skills()
 
     parts: list[str] = []

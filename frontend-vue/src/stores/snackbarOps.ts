@@ -47,6 +47,7 @@ export interface UnifiedServiceInfo {
   status: "up" | "degraded" | "down";
   port: number;
   type: string;
+  actions: string[];
   meta: Record<string, unknown>;
 }
 
@@ -60,11 +61,12 @@ export interface LogEntry {
 export interface ModelUsage {
   id: string;
   name: string;
-  pct: number;
-  calls: number;
+  pct: number | null;
+  calls: number | null;
 }
 
 export interface AgentInfo {
+  status?: string;
   id: string;
   name: string;
   icon: string;
@@ -290,6 +292,7 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
         status: s.status || "down",
         port: s.port || 0,
         type: s.type || "system",
+        actions: s.actions || [],
         meta: s.meta || {},
       }));
     } catch (e: any) {

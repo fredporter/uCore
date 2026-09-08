@@ -1,17 +1,53 @@
 <template>
   <div class="surface">
     <div class="surface__content browserui-shell">
+      <div class="browserui-zen__top-nav">
+        <div class="browserui-nav-pills">
+          <button
+            type="button"
+            class="browserui-nav-pill"
+            :class="{ 'browserui-nav-pill--active': activeTab === 'cards' }"
+            @click="activeTab = 'cards'"
+          >
+            <UIcon name="dashboard" /> Research Cards
+          </button>
+          <button
+            type="button"
+            class="browserui-nav-pill"
+            :class="{ 'browserui-nav-pill--active': activeTab === 'studio' }"
+            @click="activeTab = 'studio'"
+          >
+            <UIcon name="palette" /> Banana Studio
+          </button>
+          <button
+            type="button"
+            class="browserui-nav-pill"
+            :class="{ 'browserui-nav-pill--active': activeTab === 'dashboard' }"
+            @click="activeTab = 'dashboard'"
+          >
+            <UIcon name="science" /> Research Queue
+          </button>
+        </div>
+      </div>
+
       <div v-if="activeTab === 'cards'" class="browserui-body">
         <section class="browserui-canvas">
           <header class="browserui-zen">
-            <button class="browserui-zen__research" @click="activeTab = 'dashboard'">
-              <UIcon name="science" /> Research queue
-            </button>
             <div class="browserui-zen__mark"><UIcon name="travel_explore" /></div>
             <h1>What are you exploring?</h1>
             <p>Search your collected sources and shape useful topics.</p>
             <div class="browserui-zen__search">
               <UInput v-model="searchQuery" placeholder="Search vaults, knowledge, and the web…" icon="search" @enter="runResearchSearch" />
+              <button
+                type="button"
+                class="browserui-zen__safari-btn"
+                title="Intake active tab from Safari"
+                :disabled="safariIntaking"
+                @click="intakeFromSafari"
+              >
+                <UIcon :name="safariIntaking ? 'sync' : 'open_in_browser'" />
+                <span>Safari Tab</span>
+              </button>
               <button v-if="hasActiveFilters" class="browserui-zen__clear" @click="resetControls" aria-label="Clear search">
                 <UIcon name="close" />
               </button>
@@ -19,6 +55,47 @@
                 <UIcon :name="researchSearching ? 'sync' : 'arrow_forward'" />
               </button>
             </div>
+
+            <!-- Grounded Research Briefing Box -->
+            <div v-if="groundedResult" class="browserui-grounded-box">
+              <div class="browserui-grounded-header">
+                <div class="browserui-grounded-title">
+                  <UIcon name="auto_awesome" />
+                  <strong>Grounded Synthesis (Gemini 2.0 Flash)</strong>
+                  <span v-if="groundedResult.live_grounded" class="browserui-grounded-live">Verified Grounded</span>
+                </div>
+                <div class="browserui-grounded-actions">
+                  <button
+                    type="button"
+                    class="uxs-btn uxs-btn--sm uxs-btn--secondary"
+                    :disabled="exportingNotes"
+                    @click="exportSynthesisToNotes"
+                  >
+                    <UIcon :name="exportingNotes ? 'sync' : 'note_alt'" />
+                    <span>{{ exportingNotes ? "Exporting…" : "Export to Notes" }}</span>
+                  </button>
+                  <button type="button" class="uxs-btn uxs-btn--sm uxs-btn--primary" @click="saveGroundedToBinder">
+                    <UIcon name="folder_special" /> Save Dossier to Binder
+                  </button>
+                </div>
+              </div>
+              <p class="browserui-grounded-summary">{{ groundedResult.summary }}</p>
+              <div v-if="groundedResult.citations && groundedResult.citations.length" class="browserui-grounded-citations">
+                <span class="browserui-grounded-citations-label">Sources:</span>
+                <a
+                  v-for="cite in groundedResult.citations"
+                  :key="cite.index"
+                  :href="cite.uri"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="browserui-citation-pill"
+                  :title="cite.snippet"
+                >
+                  [{{ cite.index }}] {{ cite.title }}
+                </a>
+              </div>
+            </div>
+
             <p v-if="researchNotice" class="browserui-zen__notice">{{ researchNotice }}</p>
             <div v-if="allTags.length" class="browserui-pillrail" aria-label="Topics">
               <button
@@ -143,6 +220,11 @@
         </aside>
       </div>
 
+
+      <BananaStudio
+        v-if="activeTab === 'studio'"
+      />
+
       <ResearchDashboard
         v-if="activeTab === 'dashboard'"
         :jobs="researchJobs"
@@ -155,6 +237,7 @@
   </div>
 </template>
 
+
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router"
@@ -163,10 +246,22 @@ import UIcon from "../../skills/atoms/UIcon.vue"
 import PreviewTab from "./panels/PreviewTab.vue"
 import EditTab from "./panels/EditTab.vue"
 import ResearchDashboard from "./panels/ResearchDashboard.vue"
+import BananaStudio from "./panels/BananaStudio.vue"
 import { useChatStore } from "../../stores/chat"
 import { useWorkflowStore } from "../../stores/workflow"
-import { addBinder, fetchScrape, listResearchJobs, searchResearch, startResearch } from "./ApiBridge"
+import {
+  addBinder,
+  fetchScrape,
+  listResearchJobs,
+  searchResearch,
+  searchGrounded,
+  startResearch,
+  getActiveSafariTab,
+  exportToAppleNotes,
+  type GroundedSearchResult,
+} from "./ApiBridge"
 import { ucoreApi } from "../../api/client"
+
 
 interface StackItem {
   id: string
@@ -215,10 +310,14 @@ const router = useRouter()
 const wf = useWorkflowStore()
 const chat = useChatStore()
 
-const activeTab = ref<"cards" | "dashboard">("cards")
+const activeTab = ref<"cards" | "dashboard" | "studio">("cards")
 const searchQuery = ref("")
 const researchSearching = ref(false)
 const researchNotice = ref("")
+const groundedResult = ref<GroundedSearchResult | null>(null)
+const safariIntaking = ref(false)
+const exportingNotes = ref(false)
+
 const selectedCard = ref<DisplayCard | null>(null)
 const editorMode = ref<"preview" | "edit">("preview")
 const editorContent = ref("")
@@ -542,7 +641,8 @@ async function runResearchSearch() {
   const query = searchQuery.value.trim()
   if (!query || researchSearching.value) return
   researchSearching.value = true
-  researchNotice.value = "Searching local collections and online sources…"
+  researchNotice.value = "Searching local collections and synthesizing grounded research…"
+  groundedResult.value = null
   try {
     const localResponse = await ucoreApi.knowledge.search(query)
     const localRaw = (((localResponse.data as any)?.results || (localResponse.data as any)?.items || []) as any[])
@@ -553,23 +653,41 @@ async function runResearchSearch() {
       tags: ["#knowledge", normalizeTag(item.vault_layer || item.source || "vault")].filter(Boolean),
       groups: [item.vault_layer || item.source || "User Vault"],
     }))
+
     let webItems: StackItem[] = []
     try {
-      webItems = (await searchResearch(query)).map((item, index) => ({
-        id: `web-${Date.now()}-${index}`,
-        title: item.title,
-        url: item.url,
-        description: item.description,
-        tags: ["#web", normalizeTag(query)],
-        groups: ["Online sources"],
-      }))
+      const grounded = await searchGrounded(query)
+      if (grounded && grounded.summary) {
+        groundedResult.value = grounded
+        webItems = (grounded.citations || []).map((cite) => ({
+          id: `grounded-${Date.now()}-${cite.index}`,
+          title: cite.title,
+          url: cite.uri,
+          description: cite.snippet || grounded.summary.slice(0, 120),
+          tags: ["#grounded", "#web", normalizeTag(query)],
+          groups: ["Grounded Sources"],
+        }))
+      }
     } catch {
-      researchNotice.value = localItems.length ? "Showing offline matches; online search is unavailable." : "Online search is unavailable."
+      // Fall back to standard searchResearch
+      try {
+        webItems = (await searchResearch(query)).map((item, index) => ({
+          id: `web-${Date.now()}-${index}`,
+          title: item.title,
+          url: item.url,
+          description: item.description,
+          tags: ["#web", normalizeTag(query)],
+          groups: ["Online sources"],
+        }))
+      } catch {
+        researchNotice.value = localItems.length ? "Showing offline matches; online search is unavailable." : "Online search is unavailable."
+      }
     }
+
     const retained = stacks.value.filter((stack) => !["search-local", "search-web"].includes(stack.id))
     stacks.value = [
       ...(localItems.length ? [{ id: "search-local", title: "Vault & Knowledge", icon: "folder_managed", items: localItems }] : []),
-      ...(webItems.length ? [{ id: "search-web", title: "Online sources", icon: "public", items: webItems }] : []),
+      ...(webItems.length ? [{ id: "search-web", title: "Grounded & Online Sources", icon: "public", items: webItems }] : []),
       ...retained,
     ]
     researchNotice.value = `${localItems.length} offline · ${webItems.length} online results`
@@ -577,6 +695,102 @@ async function runResearchSearch() {
     researchSearching.value = false
   }
 }
+
+async function saveGroundedToBinder() {
+  if (!groundedResult.value) return
+  const query = groundedResult.value.query || "Research Dossier"
+  const safeTitle = query.replace(/[^a-zA-Z0-9 -]+/g, "").trim() || "Research Dossier"
+  const citationsMd = (groundedResult.value.citations || [])
+    .map((c) => `- [${c.title}](${c.uri}): ${c.snippet}`)
+    .join("\n")
+  const content = [
+    "---",
+    `title: "${safeTitle} Research Dossier"`,
+    "type: notebook",
+    "runtime: gemini",
+    `created: "${new Date().toISOString()}"`,
+    `tags: [research, grounded, ${normalizeTag(query)}]`,
+    "---",
+    "",
+    `# ${safeTitle} — Grounded Research Dossier`,
+    "",
+    "## Executive Synthesis",
+    groundedResult.value.summary,
+    "",
+    "## Verified Sources & Citations",
+    citationsMd,
+    "",
+    "```python",
+    "# Grounded Research Analysis Code",
+    `print("Dossier compiled for: ${safeTitle}")`,
+    "```",
+    "",
+  ].join("\n")
+
+  try {
+    const res = await ucoreApi.userWorkflow.importMarkdown({
+      content,
+      source_format: "markdown",
+      title: `${safeTitle} Research Dossier`,
+      binder: "research",
+      vault_layer: "user",
+      relative_dir: "research",
+      filename: `${safeTitle.toLowerCase().replace(/\s+/g, "-")}.notebook.md`,
+      metadata: {
+        imported_from: "browserui.grounded-search",
+        type: "notebook",
+      },
+    })
+    if (res.ok) {
+      researchNotice.value = `Dossier saved to research binder in User Vault.`
+    }
+  } catch (err: any) {
+    researchNotice.value = `Failed to save dossier: ${err?.message || err}`
+  }
+}
+
+async function intakeFromSafari() {
+  safariIntaking.value = true
+  try {
+    const res = await getActiveSafariTab()
+    if (res.ok && res.url) {
+      searchQuery.value = res.url
+      researchNotice.value = `Intake from Safari: "${res.title || res.url}"`
+      await runResearchSearch()
+    } else {
+      researchNotice.value = res.error || "Could not retrieve active Safari tab. Is Safari open?"
+    }
+  } catch (err: any) {
+    researchNotice.value = `Safari intake error: ${err?.message || err}`
+  } finally {
+    safariIntaking.value = false
+  }
+}
+
+async function exportSynthesisToNotes() {
+  if (!groundedResult.value) return
+  exportingNotes.value = true
+  const query = groundedResult.value.query || "Research Dossier"
+  const title = `${query} — uDOS Grounded Synthesis`
+  const citationsMd = (groundedResult.value.citations || [])
+    .map((c) => `- [${c.title}](${c.uri}): ${c.snippet}`)
+    .join("\n")
+  const md = `# ${title}\n\n## Synthesis\n${groundedResult.value.summary}\n\n## Verified Sources\n${citationsMd}`
+  try {
+    const res = await exportToAppleNotes(title, md)
+    if (res.ok) {
+      researchNotice.value = `Exported dossier to Apple Notes.`
+    } else {
+      researchNotice.value = res.error || "Failed to export to Apple Notes."
+    }
+  } catch (err: any) {
+    researchNotice.value = `Notes export error: ${err?.message || err}`
+  } finally {
+    exportingNotes.value = false
+  }
+}
+
+
 
 async function handleResearchCard(card: DisplayCard | StackItem) {
   try {
@@ -900,10 +1114,38 @@ onMounted(async () => {
   font-size: var(--usx-font-size-lg);
 }
 
-.browserui-zen__clear {
+.browserui-zen__safari-btn {
   position: absolute;
   top: 50%;
   right: calc(var(--usx-control-size-md) + var(--usx-spacing-sm));
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--usx-color-border);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface);
+  border-radius: var(--usx-radius-full);
+  padding: 3px 10px;
+  font-size: var(--usx-font-size-xs);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.browserui-zen__safari-btn:hover:not(:disabled) {
+  background: var(--usx-color-surface);
+  border-color: var(--usx-color-primary);
+  color: var(--usx-color-primary);
+}
+
+.browserui-zen__safari-btn:disabled {
+  opacity: 0.6;
+}
+
+.browserui-zen__clear {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--usx-control-size-md) + 115px);
   transform: translateY(-50%);
   border: 0;
   background: transparent;
@@ -930,6 +1172,133 @@ onMounted(async () => {
 .browserui-zen__submit:disabled { opacity: .45; }
 .browserui-zen__notice { margin: var(--usx-spacing-xs) 0 0 !important; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); }
 
+/* ─── Top Nav Pills ──────────────────────────────────────────────── */
+.browserui-zen__top-nav {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--usx-spacing-md);
+}
+
+.browserui-nav-pills {
+  display: inline-flex;
+  background: var(--usx-color-surface-variant);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-full);
+  padding: 3px;
+  gap: 2px;
+}
+
+.browserui-nav-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
+  border-radius: var(--usx-radius-full);
+  border: 0;
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-semibold);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.browserui-nav-pill:hover {
+  color: var(--usx-color-on-surface);
+}
+
+.browserui-nav-pill--active {
+  background: var(--usx-color-surface);
+  color: var(--usx-color-primary);
+  box-shadow: var(--usx-shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
+}
+
+/* ─── Grounded Research Box ──────────────────────────────────────── */
+.browserui-grounded-box {
+  width: min(840px, 100%);
+  margin: var(--usx-spacing-md) auto 0;
+  padding: var(--usx-spacing-md);
+  background: var(--usx-color-surface);
+  border: 1px solid var(--usx-color-primary);
+  border-radius: var(--usx-radius-md);
+  text-align: left;
+  box-shadow: 0 4px 16px rgba(0, 180, 216, 0.08);
+}
+
+.browserui-grounded-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-xs);
+  margin-bottom: var(--usx-spacing-xs);
+}
+
+.browserui-grounded-title {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  color: var(--usx-color-primary);
+  font-size: var(--usx-font-size-sm);
+}
+
+.browserui-grounded-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+}
+
+.browserui-grounded-live {
+  font-size: 10px;
+  padding: 1px var(--usx-spacing-xs);
+  background: rgba(0, 180, 216, 0.15);
+  border-radius: var(--usx-radius-full);
+  text-transform: uppercase;
+  font-weight: var(--usx-font-weight-bold);
+  letter-spacing: 0.05em;
+}
+
+.browserui-grounded-summary {
+  font-size: var(--usx-font-size-sm);
+  line-height: 1.5;
+  color: var(--usx-color-on-surface);
+  margin: var(--usx-spacing-xs) 0 !important;
+}
+
+.browserui-grounded-citations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  margin-top: var(--usx-spacing-xs);
+  padding-top: var(--usx-spacing-xs);
+  border-top: var(--usx-border-width) solid var(--usx-color-border);
+}
+
+.browserui-grounded-citations-label {
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.browserui-citation-pill {
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-primary);
+  text-decoration: none;
+  background: var(--usx-color-surface-variant);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-full);
+  padding: 1px var(--usx-spacing-xs);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browserui-citation-pill:hover {
+  text-decoration: underline;
+  border-color: var(--usx-color-primary);
+}
+
 .browserui-zen .browserui-pillrail {
   justify-content: center;
   margin-top: var(--usx-spacing-md);
@@ -943,6 +1312,7 @@ onMounted(async () => {
   gap: var(--usx-spacing-sm);
   margin-top: var(--usx-spacing-md);
 }
+
 
 .browserui-kanban--zen {
   display: flex;

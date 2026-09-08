@@ -35,7 +35,8 @@ export interface StorySlide {
 
 export interface StoriesConfig {
   title: string;
-  slides: StorySlide[];
+  slides: StorySlide[] | string[] | string;
+  theme?: "dark" | "light";
   onComplete?: () => void;
 }
 

@@ -169,6 +169,27 @@ const SURFACE_CARD_DATA: Record<
     route: "/workflow?tab=editor",
     color: "var(--usx-color-primary)",
   },
+  dreamscape: {
+    title: "Dreamscape",
+    description: "Dreambeans, Briefing & Scaffolding",
+    icon: "psychology",
+    route: "/dreamscape",
+    color: "var(--usx-color-accent)",
+  },
+  google: {
+    title: "Google Studio",
+    description: "AI Studio, Drive Mirror & Gemini Sandbox",
+    icon: "cloud",
+    route: "/google",
+    color: "var(--usx-color-info)",
+  },
+  banana: {
+    title: "Banana Studio",
+    description: "Visual Generation & Teletext Canvas",
+    icon: "image",
+    route: "/banana",
+    color: "var(--usx-color-warning)",
+  },
 };
 
 const visibleSurfaces = computed(() => {
@@ -197,9 +218,18 @@ const visibleSurfaces = computed(() => {
       seen.add(surface.manifest.id);
     }
   }
-  // Developer is a built-in uCore surface. Guard against catalogue duplicates.
+  // Built-in first-class surfaces: guard against catalogue duplicates
   if (!seen.has("developer")) {
     cards.push({ id: "developer", ...SURFACE_CARD_DATA.developer });
+  }
+  if (!seen.has("dreamscape")) {
+    cards.push({ id: "dreamscape", ...SURFACE_CARD_DATA.dreamscape });
+  }
+  if (!seen.has("google")) {
+    cards.push({ id: "google", ...SURFACE_CARD_DATA.google });
+  }
+  if (!seen.has("banana")) {
+    cards.push({ id: "banana", ...SURFACE_CARD_DATA.banana });
   }
   // Always show Markdown Editor card
   cards.push({ id: "markdown", ...SURFACE_CARD_DATA.markdown });
@@ -209,19 +239,23 @@ const visibleSurfaces = computed(() => {
 
 // Active extensions to show as cards below the main surfaces
 const activeExtensions = computed(() => {
-  // Filter out surface/core kinds — only show actual plugins that are enabled/running
+  // Infrastructure stays in Server/Settings. Only launch distinct, running surfaces.
   return extStore.all
     .filter(
       (e) =>
         e.manifest.kind === "plugin" &&
-        (e.status === "running" || e.status === "installed"),
+        Boolean(e.manifest.route) &&
+        !visibleSurfaces.value.some(
+          (card) => card.route.split(/[?#]/)[0] === e.manifest.route?.split(/[?#]/)[0],
+        ) &&
+        e.status === "running",
     )
     .map((e) => ({
       id: e.manifest.id,
       title: e.manifest.name,
       description: e.manifest.description || "Installed extension",
       icon: e.manifest.icon || "extension",
-      route: `/snackbar?tab=extensions#${e.manifest.id}`,
+      route: e.manifest.route!,
       color: "var(--usx-color-primary)",
       status: e.status as "running" | "stopped" | "error",
     }));
