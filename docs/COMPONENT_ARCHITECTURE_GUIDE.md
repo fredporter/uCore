@@ -115,7 +115,7 @@ src/skills/molecules/editor/
 All backend services run locally under Python (aiohttp) and enforce the strict storage boundary:
 
 - **Storage Location**: All runtime mutable state belongs under `UDOS_HOME` (`settings.data_dir`, default `~/Code/.udos`).
-- **Policy Invariant**: Zero writes to `$HOME` root, `~/.ucore`, or unapproved paths. Checked via `python3 scripts/check_home_path_policy.py`.
+- **Policy Invariant**: Zero writes to `$HOME` root, legacy application state directories, or unapproved paths. Checked via `python3 scripts/check_home_path_policy.py`.
 - **Zero Cloud Spend**: Strictly local models (Ollama/Nanocoder) and local data stores.
 
 ### Endpoints
