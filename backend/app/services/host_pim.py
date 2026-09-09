@@ -149,7 +149,9 @@ class HostPIMService:
             report["capabilities"] = {
                 "browser_intake": app_status.get("safari", {}).get("available", False),
                 "notes_export": app_status.get("notes", {}).get("available", False),
+                "notes_intake": app_status.get("notes", {}).get("available", False),
                 "reminders_export": app_status.get("reminders", {}).get("available", False),
+                "reminders_intake": app_status.get("reminders", {}).get("available", False),
                 "mail_bridge": app_status.get("mail", {}).get("available", False),
                 "notifications": has_osascript,
                 "speech_tts": shutil.which("say") is not None,
@@ -166,7 +168,9 @@ class HostPIMService:
             report["capabilities"] = {
                 "browser_intake": False,
                 "notes_export": False,
+                "notes_intake": False,
                 "reminders_export": False,
+                "reminders_intake": False,
                 "mail_bridge": False,
                 "notifications": shutil.which("notify-send") is not None,
                 "speech_tts": shutil.which("spd-say") is not None,
@@ -344,6 +348,156 @@ class HostPIMService:
                 "ok": False,
                 "error": str(exc),
                 "title": title,
+            }
+
+    def intake_apple_reminders(
+        self,
+        list_name: Optional[str] = None,
+        limit: int = 25,
+        completed: bool = False,
+    ) -> Dict[str, Any]:
+        """Query tasks/reminders from Apple Reminders via JXA."""
+        if not self.is_macos():
+            return {
+                "ok": False,
+                "error": "Apple Reminders intake is only supported on macOS",
+                "items": [],
+            }
+
+        safe_list = (list_name or "").replace("\\", "\\\\").replace('"', '\\"')
+        completed_val = "true" if completed else "false"
+        safe_limit = max(1, min(int(limit), 100))
+
+        script = f"""
+        (() => {{
+            try {{
+                const app = Application("Reminders");
+                let targetList;
+                if ("{safe_list}") {{
+                    const matches = app.lists.whose({{ name: "{safe_list}" }})();
+                    if (!matches || matches.length === 0) {{
+                        return JSON.stringify({{ ok: false, error: 'List not found: {safe_list}', items: [] }});
+                    }}
+                    targetList = matches[0];
+                }} else {{
+                    targetList = app.defaultList();
+                }}
+                const rems = targetList.reminders.whose({{ completed: {completed_val} }})();
+                const limit = {safe_limit};
+                const items = [];
+                for (let i = 0; i < Math.min(rems.length, limit); i++) {{
+                    const r = rems[i];
+                    let dueDateStr = null;
+                    try {{
+                        const d = r.dueDate();
+                        if (d) dueDateStr = d.toISOString();
+                    }} catch (e) {{}}
+                    items.push({{
+                        id: r.id(),
+                        title: r.name() || "",
+                        notes: r.body() || "",
+                        due_date: dueDateStr,
+                        completed: r.completed(),
+                        list: targetList.name()
+                    }});
+                }}
+                return JSON.stringify({{ ok: true, items: items }});
+            }} catch (err) {{
+                return JSON.stringify({{ ok: false, error: String(err), items: [] }});
+            }}
+        }})()
+        """
+        try:
+            raw = self.runner(["osascript", "-l", "JavaScript", "-e", script])
+            data = json.loads(raw or "{}")
+            return data
+        except Exception as exc:
+            log.warning("Apple Reminders intake failed: %s", exc)
+            return {
+                "ok": False,
+                "error": str(exc),
+                "items": [],
+            }
+
+    def intake_apple_notes(
+        self,
+        folder: Optional[str] = None,
+        limit: int = 15,
+        search: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Query notes from Apple Notes via JXA."""
+        if not self.is_macos():
+            return {
+                "ok": False,
+                "error": "Apple Notes intake is only supported on macOS",
+                "items": [],
+            }
+
+        safe_folder = (folder or "").replace("\\", "\\\\").replace('"', '\\"')
+        safe_search = (search or "").replace("\\", "\\\\").replace('"', '\\"').lower()
+        safe_limit = max(1, min(int(limit), 50))
+
+        script = f"""
+        (() => {{
+            try {{
+                const app = Application("Notes");
+                let noteList = [];
+                let folderName = "{safe_folder}";
+                if (folderName) {{
+                    const fMatches = app.folders.whose({{ name: folderName }})();
+                    if (!fMatches || fMatches.length === 0) {{
+                        return JSON.stringify({{ ok: false, error: 'Folder not found: ' + folderName, items: [] }});
+                    }}
+                    noteList = fMatches[0].notes();
+                }} else {{
+                    const acc = app.defaultAccount();
+                    noteList = acc.notes();
+                    folderName = "Default";
+                }}
+                const searchTerm = "{safe_search}";
+                const limit = {safe_limit};
+                const items = [];
+                for (let i = 0; i < noteList.length && items.length < limit; i++) {{
+                    const n = noteList[i];
+                    const name = n.name() || "Untitled Note";
+                    let plain = "";
+                    try {{
+                        plain = n.plaintext() || "";
+                    }} catch (e) {{}}
+                    if (searchTerm) {{
+                        if (!name.toLowerCase().includes(searchTerm) && !plain.toLowerCase().includes(searchTerm)) {{
+                            continue;
+                        }}
+                    }}
+                    let modDate = null;
+                    try {{
+                        const md = n.modificationDate();
+                        if (md) modDate = md.toISOString();
+                    }} catch (e) {{}}
+                    items.push({{
+                        id: n.id(),
+                        title: name,
+                        body: plain.slice(0, 1000),
+                        modification_date: modDate,
+                        folder: folderName
+                    }});
+                }}
+                return JSON.stringify({{ ok: true, items: items }});
+            }} catch (err) {{
+                return JSON.stringify({{ ok: false, error: String(err), items: [] }});
+            }}
+        }})()
+        """
+        try:
+            raw = self.runner(["osascript", "-l", "JavaScript", "-e", script])
+            data = json.loads(raw or "{}")
+            return data
+        except Exception as exc:
+            log.warning("Apple Notes intake failed: %s", exc)
+            return {
+                "ok": False,
+                "error": str(exc),
+                "items": [],
             }
 
     def notify(self, title: str, message: str, subtitle: str = "") -> Dict[str, Any]:

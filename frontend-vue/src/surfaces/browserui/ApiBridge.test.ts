@@ -186,6 +186,64 @@ describe("BrowserUI ApiBridge Google integration", () => {
     expect(res.ok).toBe(true)
     expect(res.list).toBe("Work")
   })
+
+  it("calls /api/host/notes/intake with query parameters", async () => {
+    const mockNotes = {
+      ok: true,
+      items: [
+        {
+          id: "n1",
+          title: "Architecture Brief",
+          body: "Content",
+          folder: "Work",
+          modification_date: "2026-09-09T08:00:00Z",
+        },
+      ],
+    }
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockNotes,
+    } as any)
+
+    const { intakeAppleNotes } = await import("./ApiBridge")
+    const res = await intakeAppleNotes({ folder: "Work", limit: 5 })
+    expect(res.ok).toBe(true)
+    expect(res.items.length).toBe(1)
+    expect(res.items[0].title).toBe("Architecture Brief")
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining("/api/host/notes/intake?folder=Work&limit=5"),
+      expect.anything()
+    )
+  })
+
+  it("calls /api/host/reminders/intake with query parameters", async () => {
+    const mockRem = {
+      ok: true,
+      items: [
+        {
+          id: "r1",
+          title: "Audit Storage",
+          notes: "UDOS_HOME compliance",
+          completed: false,
+          list: "Tasks",
+        },
+      ],
+    }
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockRem,
+    } as any)
+
+    const { intakeAppleReminders } = await import("./ApiBridge")
+    const res = await intakeAppleReminders({ listName: "Tasks", limit: 10, completed: false })
+    expect(res.ok).toBe(true)
+    expect(res.items.length).toBe(1)
+    expect(res.items[0].title).toBe("Audit Storage")
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining("/api/host/reminders/intake?list=Tasks&limit=10&completed=false"),
+      expect.anything()
+    )
+  })
 })
 
 

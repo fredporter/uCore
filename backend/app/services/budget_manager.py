@@ -21,6 +21,7 @@ import json
 import logging
 import sqlite3
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from app.core.settings import settings
@@ -71,18 +72,26 @@ class BudgetManager:
 
     _instance: "BudgetManager | None" = None
 
-    def __init__(self) -> None:
+    def __init__(self, db_path: Path | str | None = None) -> None:
         self._session_started = datetime.now(UTC)
-        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(str(DB_PATH))
+        self._reservations: dict[str, dict[str, Any]] = {}
+        target = str(db_path) if db_path else str(DB_PATH)
+        if target != ":memory:":
+            Path(target).parent.mkdir(parents=True, exist_ok=True)
+        self._conn = sqlite3.connect(target)
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(SCHEMA_SQL)
         self._config = self._load_config()
 
     @classmethod
-    def get(cls) -> "BudgetManager":
+    def get(cls, db_path: Path | str | None = None) -> "BudgetManager":
+        if db_path is not None:
+            return cls(db_path=db_path)
         if cls._instance is None:
-            cls._instance = cls()
+            try:
+                cls._instance = cls()
+            except sqlite3.OperationalError:
+                cls._instance = cls(db_path=":memory:")
         return cls._instance
 
     def _load_config(self) -> dict[str, Any]:
@@ -97,15 +106,28 @@ class BudgetManager:
                 log.warning("Failed to load budget config: %s", e)
         return dict(DEFAULT_CONFIG)
 
+    def total_reserved_spend(self, agent_id: str | None = None) -> float:
+        """Return total actively reserved spend across pending operations."""
+        if agent_id:
+            return sum(r["amount"] for r in self._reservations.values() if r.get("agent_id") == agent_id)
+        return sum(r["amount"] for r in self._reservations.values())
+
     def can_spend(
         self,
         agent_id: str,
         estimated_cost: float,
         task_type: str | None = None,
+        lane: str = "dev",
     ) -> bool:
-        """Check if spending is allowed within budget constraints."""
+        """Check if spending is allowed within budget constraints and execution lane policy."""
         if estimated_cost < 0:
             raise ValueError("Estimated cost cannot be negative")
+
+        # Invariant: User lane has hard-zero paid model allowance
+        if lane == "user" and estimated_cost > 0.0:
+            log.info("User lane has hard-zero paid model allowance; cost $%.4f denied", estimated_cost)
+            return False
+
         if estimated_cost == 0.0:
             return True
 
@@ -118,27 +140,28 @@ class BudgetManager:
             )
             return False
 
+        reserved = self.total_reserved_spend()
         session_spend = self._get_period_spend("session")
         session_budget = self._config.get("session_budget_usd", float("inf"))
-        if session_spend + estimated_cost > session_budget:
+        if session_spend + reserved + estimated_cost > session_budget:
             log.info(
-                "Session budget exhausted: $%.2f / $%.2f",
-                session_spend, session_budget,
+                "Session budget exhausted: $%.2f + $%.2f reserved / $%.2f",
+                session_spend, reserved, session_budget,
             )
             return False
 
         daily_spend = self._get_period_spend("day")
         daily_budget = self._config.get("daily_budget_usd", float("inf"))
-        if daily_spend + estimated_cost > daily_budget:
+        if daily_spend + reserved + estimated_cost > daily_budget:
             log.info(
-                "Daily budget exhausted: $%.2f / $%.2f",
-                daily_spend, daily_budget,
+                "Daily budget exhausted: $%.2f + $%.2f reserved / $%.2f",
+                daily_spend, reserved, daily_budget,
             )
             return False
 
         monthly_spend = self._get_period_spend("month")
         monthly_budget = self._config.get("monthly_budget_usd", float("inf"))
-        if monthly_spend + estimated_cost > monthly_budget:
+        if monthly_spend + reserved + estimated_cost > monthly_budget:
             log.info(
                 "Monthly budget exhausted: $%.2f / $%.2f",
                 monthly_spend, monthly_budget,
@@ -147,15 +170,61 @@ class BudgetManager:
 
         agent_daily = agent_config.get("daily_budget_usd", float("inf"))
         if agent_daily < float("inf"):
+            agent_reserved = self.total_reserved_spend(agent_id)
             agent_spend = self._get_period_spend("day", agent_id=agent_id)
-            if agent_spend + estimated_cost > agent_daily:
+            if agent_spend + agent_reserved + estimated_cost > agent_daily:
                 log.info(
-                    "Agent %s daily exhausted: $%.2f / $%.2f",
-                    agent_id, agent_spend, agent_daily,
+                    "Agent %s daily exhausted: $%.2f + $%.2f reserved / $%.2f",
+                    agent_id, agent_spend, agent_reserved, agent_daily,
                 )
                 return False
 
         return True
+
+    def reserve_spend(
+        self,
+        agent_id: str,
+        reservation_id: str,
+        estimated_cost: float,
+        lane: str = "dev",
+    ) -> bool:
+        """Atomically reserve funds for a task execution."""
+        if not self.can_spend(agent_id, estimated_cost, lane=lane):
+            return False
+        self._reservations[reservation_id] = {
+            "agent_id": agent_id,
+            "amount": estimated_cost,
+            "lane": lane,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+        return True
+
+    def release_reservation(self, reservation_id: str) -> None:
+        """Release a reservation without spending (e.g. cancelled/failed)."""
+        self._reservations.pop(reservation_id, None)
+
+    def reconcile_spend(
+        self,
+        reservation_id: str,
+        actual_cost: float,
+        model: str = "",
+        provider: str = "",
+        task_type: str | None = None,
+        cost_tier: str = "",
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        """Release reservation and record actual spend."""
+        res = self._reservations.pop(reservation_id, None)
+        agent_id = res["agent_id"] if res else "dev"
+        self.record_spend(
+            agent_id=agent_id,
+            cost=actual_cost,
+            model=model,
+            provider=provider,
+            task_type=task_type,
+            cost_tier=cost_tier,
+            metadata=metadata,
+        )
 
     def record_spend(
         self,

@@ -1,6 +1,6 @@
 import { fetchScrape } from "./webScraper";
 
-export type CitationFormat = "APA" | "MLA" | "Chicago";
+export type CitationFormat = "APA" | "MLA" | "Chicago" | "Markdown" | "uKnowledge";
 export type PublicationType = "article" | "blog" | "documentation" | "video" | "webpage";
 
 export interface CitationMetadata {
@@ -40,6 +40,11 @@ export function citationGenerator(metadata: CitationMetadata, format: CitationFo
   const accessed = dateLabel(metadata.accessed || new Date().toISOString());
   if (format === "APA") return `${author}. (${published === "n.d." ? "n.d." : published}). ${title}. ${site}. ${metadata.url}`;
   if (format === "MLA") return `${author}. “${title}.” ${site}, ${published}, ${metadata.url}. Accessed ${accessed}.`;
+  if (format === "Markdown") {
+    const byAuthor = author ? ` by ${author}` : "";
+    return `[^1]: [${title}](${metadata.url})${byAuthor} — ${site}, accessed ${accessed}.`;
+  }
+  if (format === "uKnowledge") return `> [!NOTE] Citation: ${title}\n> Provenance: [${site}](${metadata.url})\n> Author: ${author} | Published: ${published}`;
   return `${author}. “${title}.” ${site}. ${published}. ${metadata.url}.`;
 }
 

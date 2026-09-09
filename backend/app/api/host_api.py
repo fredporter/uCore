@@ -123,6 +123,41 @@ async def handle_reminders_export(request: web.Request) -> web.Response:
     return web.json_response(res, status=200 if res.get("ok") else 500)
 
 
+async def handle_reminders_intake(request: web.Request) -> web.Response:
+    """GET /api/host/reminders/intake — Query reminders from Apple Reminders."""
+    list_name = request.query.get("list")
+    limit_str = request.query.get("limit", "25")
+    completed_str = request.query.get("completed", "false").lower()
+    completed = completed_str in ("true", "1", "yes")
+
+    try:
+        limit = int(limit_str)
+    except ValueError:
+        limit = 25
+
+    svc = get_host_pim_service()
+    res = svc.intake_apple_reminders(list_name=list_name, limit=limit, completed=completed)
+    status = 200 if res.get("ok") else 500
+    return web.json_response(res, status=status)
+
+
+async def handle_notes_intake(request: web.Request) -> web.Response:
+    """GET /api/host/notes/intake — Query notes from Apple Notes."""
+    folder = request.query.get("folder")
+    limit_str = request.query.get("limit", "15")
+    search = request.query.get("search")
+
+    try:
+        limit = int(limit_str)
+    except ValueError:
+        limit = 15
+
+    svc = get_host_pim_service()
+    res = svc.intake_apple_notes(folder=folder, limit=limit, search=search)
+    status = 200 if res.get("ok") else 500
+    return web.json_response(res, status=status)
+
+
 async def handle_host_notify(request: web.Request) -> web.Response:
     """POST /api/host/notify — Dispatch a native host notification."""
     try:
@@ -166,7 +201,10 @@ def register_host_routes(app: web.Application) -> None:
     app.router.add_get("/api/host/safari/active", handle_safari_active)
     app.router.add_post("/api/host/safari/intake", handle_safari_intake)
     app.router.add_post("/api/host/notes/export", handle_notes_export)
+    app.router.add_get("/api/host/notes/intake", handle_notes_intake)
     app.router.add_post("/api/host/reminders/export", handle_reminders_export)
+    app.router.add_get("/api/host/reminders/intake", handle_reminders_intake)
     app.router.add_post("/api/host/notify", handle_host_notify)
     app.router.add_post("/api/host/say", handle_host_say)
     log.info("Host PIM routes registered: capabilities, safari, notes, reminders, notify, say")
+

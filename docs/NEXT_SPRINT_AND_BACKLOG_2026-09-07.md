@@ -55,6 +55,22 @@ acceptance and uFlow references before closing any of these items.
 
 ## Sprint 4: proposed scope
 
+2026-09-09 readiness priority: the [internal Dev Mode source audit](INTERNAL_DEV_READINESS_AUDIT_2026-09-09.md)
+finds a supported local coding loop but no unified enforcement of automatic agent
+selection and ecosystem lanes. Complete its bounded readiness gate before feature
+expansion: server-owned task scope, execution-time policy, eligible automatic
+selection and negative-path acceptance. Keep the existing timebox and defer breadth
+if necessary. This is planning, not a declaration that implementation has started.
+
+2026-09-08 priority update: review the [local-first execution lanes brief](LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md)
+and the [execution enforcement proposal](ECOSYSTEM_EXECUTION_CONTRACT_2026-09-08.md)
+before selecting implementation slices. Server-enforced local/cloud boundaries,
+repeatable Markdown/Binder, uCode/capsule and USX actions take precedence over new
+cloud features. BrowserUI web access and connected Snacks are separate from cloud
+model spending. Reconcile this work within the existing timebox; development has
+not started.
+
+
 1. **Verify existing authoring and research.** Audit frontmatter round-trips,
    formatting, keyboard commands, capture, Combine Research, variants, citations,
    renderer routing, and Notebook/Drive integration against their current code and

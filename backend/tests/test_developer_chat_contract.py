@@ -4,7 +4,7 @@ import json
 import pytest
 
 from app.api import developer_api
-from app.services import developer_chat, developer_operations
+from app.services import dev_layer, developer_chat, developer_operations, executor_selector
 from app.services.dev_layer import DevMode
 from app.services.developer_chat import DeveloperChat
 from tests.test_developer_operations import init_repo
@@ -15,8 +15,11 @@ def chat(monkeypatch, tmp_path):
     repo = tmp_path / 'demo'
     init_repo(repo)
     layer = type('Layer', (), {'mode': DevMode.ON})()
+    monkeypatch.setattr(dev_layer, 'get_dev_layer', lambda: layer)
     monkeypatch.setattr(developer_chat, 'get_dev_layer', lambda: layer)
     monkeypatch.setattr(developer_operations, 'get_dev_layer', lambda: layer)
+    monkeypatch.setattr(executor_selector, 'get_dev_layer', lambda: layer)
+    monkeypatch.setattr(executor_selector.ExecutorSelector, 'check_ollama_health', lambda self: asyncio.sleep(0, result=True))
     monkeypatch.setattr(developer_api.settings, 'udos_root', tmp_path)
     manager = developer_operations.DeveloperOperationManager(tmp_path / 'operations.json')
     monkeypatch.setattr(developer_chat, 'get_developer_operation_manager', lambda: manager)

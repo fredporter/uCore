@@ -190,6 +190,13 @@ const SURFACE_CARD_DATA: Record<
     route: "/banana",
     color: "var(--usx-color-warning)",
   },
+  recipes: {
+    title: "Surfaces & Recipes",
+    description: "USX & GridCore Design System Showcase",
+    icon: "widgets",
+    route: "/recipes",
+    color: "var(--usx-color-primary)",
+  },
 };
 
 const visibleSurfaces = computed(() => {
@@ -230,6 +237,9 @@ const visibleSurfaces = computed(() => {
   }
   if (!seen.has("banana")) {
     cards.push({ id: "banana", ...SURFACE_CARD_DATA.banana });
+  }
+  if (!seen.has("recipes")) {
+    cards.push({ id: "recipes", ...SURFACE_CARD_DATA.recipes });
   }
   // Always show Markdown Editor card
   cards.push({ id: "markdown", ...SURFACE_CARD_DATA.markdown });

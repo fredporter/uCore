@@ -198,6 +198,7 @@ main.usx-main--wide,
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   width: 100%;
   overflow: hidden;
 }
@@ -210,6 +211,7 @@ main.usx-main--wide,
 
 .surface--tab-nav-vertical .surface__content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -244,6 +246,7 @@ main.usx-main--wide,
 
 .surface__content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: var(--usx-surface-content-padding);
   box-sizing: border-box;

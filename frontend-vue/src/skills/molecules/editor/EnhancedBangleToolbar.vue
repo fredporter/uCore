@@ -53,7 +53,7 @@ export type EditorCommand =
   | "blockquote" | "bullet-list" | "ordered-list" | "code-block" | "horizontal-rule"
   | "table" | "callout" | "footnote" | "outline"
   | "image" | "mode-toggle"
-  | "scrape" | "summarize" | "citation"
+  | "scrape" | "summarize" | "citation" | "combine"
   | "copy-binder" | "variant" | "archive"
   | "undo" | "redo";
 
@@ -73,7 +73,12 @@ const blockCommands = [
 ];
 const structureCommands = [item("table", "Table", "table"), item("callout", "Callout", "campaign"), item("footnote", "Footnote", "footnote"), item("outline", "Outline", "toc")];
 structureCommands.push(item("image", "Image", "image"));
-const researchCommands = [item("scrape", "Capture research", "travel_explore"), item("summarize", "Summarize", "summarize"), item("citation", "Insert citation", "format_quote")];
+const researchCommands = [
+  item("scrape", "Capture research", "travel_explore"),
+  item("summarize", "Summarize", "summarize"),
+  item("citation", "Insert citation", "format_quote"),
+  item("combine", "Combine research", "join_inner"),
+];
 const documentCommands = [item("copy-binder", "Copy to Binder", "content_copy"), item("variant", "Create variant", "fork_right"), item("archive", "Archive", "archive")];
 const editCommands = [item("undo", "Undo", "undo", "⌘Z"), item("redo", "Redo", "redo", "⇧⌘Z")];
 const mobilePrimaryCommands = textCommands.slice(0, 4);

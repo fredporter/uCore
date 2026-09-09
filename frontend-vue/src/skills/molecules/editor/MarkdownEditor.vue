@@ -102,7 +102,17 @@ const emit = defineEmits<{
   save: [value: string];
   change: [value: string];
   "update:editMode": [value: "prose" | "code"];
-  toolbarAction: [action: "scrape" | "summarize" | "citation" | "copy-binder" | "variant" | "archive" | "outline"];
+  toolbarAction: [
+    action:
+      | "scrape"
+      | "summarize"
+      | "citation"
+      | "combine"
+      | "copy-binder"
+      | "variant"
+      | "archive"
+      | "outline",
+  ];
 }>();
 
 const editorEl = ref<HTMLDivElement | null>(null);
@@ -207,7 +217,15 @@ function handleToolbarCommand(command: EditorCommand) {
   if (command === "redo") return redo();
   emit(
     "toolbarAction",
-    command as "scrape" | "summarize" | "citation" | "copy-binder" | "variant" | "archive" | "outline",
+    command as
+      | "scrape"
+      | "summarize"
+      | "citation"
+      | "combine"
+      | "copy-binder"
+      | "variant"
+      | "archive"
+      | "outline",
   );
 }
 

@@ -64,6 +64,17 @@
       >
         <UIcon name="grid_on" class="global-toolbar__icon" />
       </button>
+      <button
+        class="global-toolbar__tab global-toolbar__tab--nav"
+        :class="{
+          'global-toolbar__tab--active':
+            route.path.includes('/recipes') || route.path.includes('/surfaces'),
+        }"
+        @click="navigate('/recipes')"
+        title="Surfaces & Recipes"
+      >
+        <UIcon name="widgets" class="global-toolbar__icon" />
+      </button>
     </div>
 
     <!-- Middle: always empty — surface tab navigation is now handled by SurfaceTabNav below -->

@@ -360,6 +360,8 @@ async function handleNewFile(binderId: string) {
 }
 
 .app-main {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   flex: 1;
   overflow-y: auto;
