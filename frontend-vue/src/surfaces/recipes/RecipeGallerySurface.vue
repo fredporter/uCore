@@ -10,6 +10,7 @@ import {
   SAMPLE_ALERTS_SUITE,
   SAMPLE_TELETEXT,
   SAMPLE_TERMINAL,
+  SAMPLE_AUTHORING_WORKBENCH,
   type AnyRecipe,
 } from '../../recipes/recipes'
 
@@ -22,6 +23,7 @@ import SystemPageRecipeView from '../../recipes/components/SystemPageRecipeView.
 import AlertsRecipeView from '../../recipes/components/AlertsRecipeView.vue'
 import TeletextRecipeView from '../../recipes/components/TeletextRecipeView.vue'
 import TerminalRecipeView from '../../recipes/components/TerminalRecipeView.vue'
+import AuthoringRecipeView from '../../recipes/components/AuthoringRecipeView.vue'
 
 // Active recipe state
 const selectedRecipeKey = ref<string>('task-list')
@@ -31,6 +33,7 @@ const showJson = ref<boolean>(false)
 
 const allRecipes: Record<string, AnyRecipe> = {
   'task-list': SAMPLE_TASK_LIST,
+  'authoring-workbench': SAMPLE_AUTHORING_WORKBENCH,
   'prose-document': SAMPLE_PROSE_DOCUMENT,
   'card-matrix': SAMPLE_CARD_MATRIX,
   'settings-form': SAMPLE_SETTINGS_FORM,
@@ -137,6 +140,14 @@ const currentParadigm = computed(() => currentRecipe.value.paradigm)
         </button>
         <button
           class="recipe-tab-btn"
+          :class="{ active: selectedRecipeKey === 'authoring-workbench' }"
+          @click="selectedRecipeKey = 'authoring-workbench'"
+        >
+          <span class="material-symbols-outlined">history_edu</span>
+          <span>Authoring Workbench</span>
+        </button>
+        <button
+          class="recipe-tab-btn"
           :class="{ active: selectedRecipeKey === 'prose-document' }"
           @click="selectedRecipeKey = 'prose-document'"
         >
@@ -221,6 +232,10 @@ const currentParadigm = computed(() => currentRecipe.value.paradigm)
           <!-- Render Selected Component -->
           <TaskListRecipeView
             v-if="selectedRecipeKey === 'task-list'"
+            :recipe="currentRecipe as any"
+          />
+          <AuthoringRecipeView
+            v-else-if="selectedRecipeKey === 'authoring-workbench'"
             :recipe="currentRecipe as any"
           />
           <ProseDocumentRecipeView

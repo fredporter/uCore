@@ -196,6 +196,33 @@ export interface TerminalRecipe extends BaseRecipe {
   }>
 }
 
+// ─── 10. USX: Authoring Workbench (Bangle + uKnowledge) Recipe ────
+export interface CitationSourceItem {
+  id: string
+  title: string
+  author?: string
+  url?: string
+  siteName?: string
+  accessDate?: string
+  publicationDate?: string
+  note?: string
+  provenanceType: 'web' | 'paper' | 'local_file' | 'git_commit'
+}
+
+export interface AuthoringWorkbenchRecipe extends BaseRecipe {
+  recipe: 'authoring-workbench'
+  paradigm: 'usx'
+  document: {
+    id: string
+    title: string
+    frontmatter: Record<string, string | number | boolean>
+    content: string
+  }
+  citations: CitationSourceItem[]
+  activeCitationFormat?: 'APA' | 'MLA' | 'Chicago' | 'Markdown' | 'uKnowledge'
+  toolbarFeatures: string[]
+}
+
 export type AnyRecipe =
   | TaskListRecipe
   | ProseDocumentRecipe
@@ -206,6 +233,7 @@ export type AnyRecipe =
   | AlertsRecipe
   | TeletextRecipe
   | TerminalRecipe
+  | AuthoringWorkbenchRecipe
 
 // ─── Sample Canonical Payloads ─────────────────────────────────────
 
@@ -626,3 +654,81 @@ export const SAMPLE_ALERTS_SUITE: AlertsRecipe = {
     cancelLabel: 'Cancel',
   },
 }
+
+export const SAMPLE_AUTHORING_WORKBENCH: AuthoringWorkbenchRecipe = {
+  id: 'recipe-authoring-workbench-sample',
+  recipe: 'authoring-workbench',
+  paradigm: 'usx',
+  version: 1,
+  title: 'Local-First Sovereign AI Architectures',
+  description: 'Authoring workbench combining Bangle formatting, YAML frontmatter, and uKnowledge citation provenance',
+  document: {
+    id: 'doc-sovereign-ai',
+    title: 'Local-First Sovereign AI Architectures',
+    frontmatter: {
+      type: 'whitepaper',
+      status: 'review',
+      author: 'uCore Systems Team',
+      license: 'Apache-2.0',
+      budget_tier: 'free_local',
+      version: '1.4.0',
+    },
+    content: `# Local-First Sovereign AI Architectures
+
+Modern autonomous agent runtimes require deterministic execution boundaries, reproducible artifact trees, and strict isolation between zero-cost local inference and metered frontier APIs[^1].
+
+> [!NOTE] Citation: Local-First Software: You own your data, in spite of the cloud
+> Provenance: [Ink & Switch](https://www.inkandswitch.com/local-first/)
+> Author: Martin Kleppmann, Adam Wiggins, Peter van Hardenberg, Mark McGranaghan | Published: 2019-04-01
+
+## 1. Storage Boundaries & State Sovereignty
+
+Under the sovereign contract, application mutable state is strictly anchored to \`UDOS_HOME\` (e.g. \`~/Code/.udos\`), eliminating arbitrary dotfile proliferation across user home paths. Documents live permanently in sovereign user vaults.
+
+### Verification and Citation Provenance
+
+Every knowledge synthesis operation tracks original provenance. Combining research fragments produces auditable attribution graphs without cloud leakage[^2].
+
+[^1]: [Local-First Software: You own your data, in spite of the cloud](https://www.inkandswitch.com/local-first/) by Martin Kleppmann et al. — Ink & Switch, accessed 2026-09-09.
+[^2]: [The Small Web Manifesto](https://ar.al/2020/08/07/the-small-web/) by Aral Balkan — ar.al, accessed 2026-09-09.
+`,
+  },
+  citations: [
+    {
+      id: 'cit-1',
+      title: 'Local-First Software: You own your data, in spite of the cloud',
+      author: 'Martin Kleppmann, Adam Wiggins, Peter van Hardenberg, Mark McGranaghan',
+      url: 'https://www.inkandswitch.com/local-first/',
+      siteName: 'Ink & Switch',
+      accessDate: '2026-09-09',
+      publicationDate: '2019-04-01',
+      note: 'Foundational principles for offline-first, user-owned distributed state architectures.',
+      provenanceType: 'paper',
+    },
+    {
+      id: 'cit-2',
+      title: 'The Small Web Manifesto',
+      author: 'Aral Balkan',
+      url: 'https://ar.al/2020/08/07/the-small-web/',
+      siteName: 'ar.al',
+      accessDate: '2026-09-09',
+      publicationDate: '2020-08-07',
+      note: 'Advocacy for non-extractive, independent, sovereign networked personal computing tools.',
+      provenanceType: 'web',
+    },
+    {
+      id: 'cit-3',
+      title: 'uCore Architectural Contract & Security Boundaries',
+      author: 'uCore Core Maintainers',
+      url: 'file:///Users/fredbook/Code/AGENTS.md',
+      siteName: 'AGENTS.md',
+      accessDate: '2026-09-09',
+      publicationDate: '2026-09-01',
+      note: 'Zero-cloud default, $0 budget policy, and safe workspace paths boundary specification.',
+      provenanceType: 'local_file',
+    },
+  ],
+  activeCitationFormat: 'uKnowledge',
+  toolbarFeatures: ['bold', 'italic', 'headings', 'code', 'quote', 'citation', 'combine', 'export'],
+}
+

@@ -6,7 +6,7 @@
         <label>Source URL<input v-model="url" type="url" placeholder="https://…" /></label>
         <label>Title<input v-model="title" /></label>
         <label>Author<input v-model="author" /></label>
-        <label>Format<select v-model="format"><option>APA</option><option>MLA</option><option>Chicago</option></select></label>
+        <label>Format<select v-model="format"><option>APA</option><option>MLA</option><option>Chicago</option><option>Markdown</option><option>uKnowledge</option></select></label>
         <div class="citation-modal__preview" aria-live="polite">{{ preview }}</div>
         <footer><button type="button" @click="emit('close')">Cancel</button><button type="button" :disabled="!url.trim() || loading" @click="enrich">{{ loading ? "Reading metadata…" : "Read metadata" }}</button><button type="button" :disabled="!url.trim()" @click="insert">Insert citation</button></footer>
       </section>

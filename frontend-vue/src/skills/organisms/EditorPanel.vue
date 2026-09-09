@@ -119,6 +119,12 @@
       @close="citationOpen = false"
     />
     <ToolbarScrapeModal v-if="scraperOpen" @close="scraperOpen = false" @insert="insertScrapedContent" />
+    <CombineResearchModal
+      v-if="combineOpen"
+      :sources="availableResearchSources"
+      @create="handleCreateSynthesis"
+      @close="combineOpen = false"
+    />
   </div>
 </template>
 
@@ -148,9 +154,10 @@ import ResearchPanel from "../molecules/editor/ResearchPanel.vue";
 import SummarizeModal from "../molecules/editor/SummarizeModal.vue";
 import CitationModal from "../molecules/editor/CitationModal.vue";
 import ToolbarScrapeModal from "../molecules/editor/ToolbarScrapeModal.vue";
+import CombineResearchModal from "../molecules/editor/CombineResearchModal.vue";
 import { useShellStore } from "../../stores/shell";
 import { useToast } from "../../composables/useToast";
-import { useWorkspaceStore } from "../../stores/workspace";
+import { useWorkspaceStore, type FileNode } from "../../stores/workspace";
 import { createVariantDocument } from "../../utils/documentVariant";
 import {
   parseDocument,
@@ -205,6 +212,7 @@ const frontmatterEditorOpen = ref(false);
 const summarizeOpen = ref(false);
 const citationOpen = ref(false);
 const scraperOpen = ref(false);
+const combineOpen = ref(false);
 
 const currentFilename = computed(() => props.title || "Untitled.md");
 
@@ -302,11 +310,63 @@ function handleToolbarAction(action: string) {
     citationOpen.value = true;
     return;
   }
+  if (action === "combine") {
+    combineOpen.value = true;
+    return;
+  }
   if (action === "variant") {
     void createVariant();
     return;
   }
   toast(`${action.replaceAll("-", " ")} is available through its governed workflow.`, "info");
+}
+
+function collectMarkdownFiles(nodes: FileNode[]): Array<{ path: string; name: string; content: string }> {
+  const result: Array<{ path: string; name: string; content: string }> = [];
+  for (const node of nodes) {
+    if (node.type === "file" && node.name.endsWith(".md")) {
+      result.push({
+        path: node.path,
+        name: node.name,
+        content: node.content || `# ${node.name}\n\nNotes from ${node.name}.`,
+      });
+    }
+    if (node.children?.length) {
+      result.push(...collectMarkdownFiles(node.children));
+    }
+  }
+  return result;
+}
+
+const availableResearchSources = computed(() => {
+  const sources: Array<{ path: string; name: string; content: string }> = [];
+  if (bodyContent.value) {
+    sources.push({
+      path: workspace.selectedFile?.path || "/current.md",
+      name: currentFilename.value,
+      content: serializeDocument(bodyContent.value, frontmatter.value),
+    });
+  }
+  const treeFiles = collectMarkdownFiles(workspace.tree);
+  for (const file of treeFiles) {
+    if (file.name !== currentFilename.value && file.path !== workspace.selectedFile?.path) {
+      sources.push(file);
+    }
+  }
+  return sources;
+});
+
+async function handleCreateSynthesis(result: { filename: string; content: string }) {
+  combineOpen.value = false;
+  const parentFolder =
+    workspace.selectedFile?.path.slice(
+      0,
+      workspace.selectedFile?.path.lastIndexOf("/"),
+    ) || "/";
+  const node = await workspace.createFile(parentFolder, result.filename);
+  workspace.updateFileContent(node.id, result.content);
+  await workspace.saveFile(node.path, result.content);
+  toast("Research synthesis created", "success");
 }
 
 function insertSummary(summary: string) {
