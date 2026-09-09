@@ -1,229 +1,293 @@
 <template>
-  <div>
-    <div class="usx-flex-between usx-mb-md">
-      <div>
-        <h3 class="surface__panel-title">Services</h3>
-        <p class="server-muted-text-sm">
-          {{ srv.unifiedServices.length }} total ({{
-            kindCount("service")
-          }}
-          services &middot; {{ kindCount("tool") }} tools &middot;
-          {{ kindCount("mcp") }} MCP)
-        </p>
-      </div>
-      <UButton
-        variant="secondary"
-        size="sm"
-        icon="refresh"
-        @click="handleRefresh"
-        >Refresh</UButton
-      >
-    </div>
-
-    <!-- Crash recovery banner -->
-    <div v-if="downServices.length > 0" class="crash-banner">
-      <UIcon name="bug_report" class="crash-banner-icon" />
-      <div class="crash-banner-text">
-        <strong
-          >{{ downServices.length }} service{{
-            downServices.length > 1 ? "s" : ""
-          }}
-          not responding.</strong
-        >
-        <span>Restart managed runtimes or open diagnostics for recovery guidance.</span>
-      </div>
-      <UButton
-        variant="secondary"
-        size="sm"
-        icon="medical_services"
-        class="crash-banner-btn"
-        @click="$router.push('/system/s500')"
-      >
-        Open Crash Recovery
-      </UButton>
-    </div>
-
-    <div v-if="srv.unifiedServices.length === 0" class="server-muted-text-sm">
-      No services available.
-    </div>
-    <div v-else class="server-table-wrap">
-      <table class="server-table">
-        <thead>
-          <tr>
-            <th>Service</th>
-            <th>Kind</th>
-            <th>Description</th>
-            <th>Detail</th>
-            <th>Status</th>
-            <th v-if="downServices.length > 0">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="svc in srv.unifiedServices" :key="svc.id">
-            <td>
-              <span class="server-service-name-cell">
-                <UIcon :name="serviceIcon(svc)" />
-                <span>{{ svc.name }}</span>
-              </span>
-            </td>
-            <td>
-              <UBadge :type="kindBadge(svc.kind)" size="sm">{{
-                svc.kind
-              }}</UBadge>
-            </td>
-            <td class="server-muted-text-sm">{{ svc.description }}</td>
-            <td class="server-muted-text-sm">{{ serviceDetail(svc) }}</td>
-            <td>
-              <UBadge
-                :type="
-                  svc.status === 'up'
-                    ? 'success'
-                    : svc.status === 'degraded'
-                      ? 'warning'
-                      : 'error'
-                "
-                size="sm"
-              >
-                {{ svc.status }}
-              </UBadge>
-            </td>
-            <td v-if="downServices.length > 0">
-              <div v-if="svc.status !== 'up' && svc.actions.includes('restart')" class="crash-inline-actions">
-                <button
-                  class="crash-btn"
-                  title="Restart service"
-                  :disabled="actionLoading === svc.name"
-                  @click="doRestart(svc.name)"
-                >
-                  <UIcon name="restart_alt" />
-                </button>
-              </div>
-              <span v-else class="server-muted-text-sm">{{ svc.status === 'up' ? '—' : 'Manual recovery' }}</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Host-Native Integrations (Zen Host / Apple Events) -->
-    <div class="host-pim-card usx-mt-lg">
-      <div class="usx-flex-between usx-mb-sm">
-        <div class="host-pim-title">
-          <UIcon name="laptop_mac" />
-          <strong>Host-Native Integrations (Apple Events / Zen Host)</strong>
+  <div class="services-panel-shell">
+    <!-- Header -->
+    <div class="recipe-header">
+      <div class="header-left">
+        <span class="material-symbols-outlined header-icon">miscellaneous_services</span>
+        <div>
+          <h2 class="recipe-title">Unified Services &amp; Tools</h2>
+          <p class="recipe-desc">
+            {{ srv.unifiedServices.length }} registered ({{ kindCount("service") }} services &middot; {{ kindCount("tool") }} tools &middot; {{ kindCount("mcp") }} MCP)
+          </p>
         </div>
-        <div class="host-pim-actions">
-          <UButton
-            variant="ghost"
-            size="sm"
-            icon="notifications"
+      </div>
+      <div class="header-meta">
+        <button class="m3-button" @click="handleRefresh">
+          <span class="material-symbols-outlined">refresh</span>
+          <span>Refresh</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Crash recovery banner via USX Callout Caution -->
+    <div v-if="downServices.length > 0" class="usx-callout usx-callout-caution">
+      <div class="usx-callout-header">
+        <span class="material-symbols-outlined">bug_report</span>
+        <span>{{ downServices.length }} Service{{ downServices.length > 1 ? "s" : "" }} Not Responding</span>
+      </div>
+      <div class="crash-banner-content">
+        <span>Restart managed runtimes below or open diagnostics for recovery guidance.</span>
+        <button class="m3-button m3-button-danger" @click="$router.push('/system/s500')">
+          <span class="material-symbols-outlined">medical_services</span>
+          <span>Open Crash Recovery</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Unified Services Table in USX Container Card -->
+    <div class="table-container-card">
+      <div v-if="srv.unifiedServices.length === 0" class="server-empty-state">
+        <span class="material-symbols-outlined empty-icon">dns</span>
+        <p>No services registered or discovered.</p>
+      </div>
+      <div v-else class="server-table-wrap">
+        <table class="usx-table">
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Kind</th>
+              <th>Description</th>
+              <th>Detail</th>
+              <th>Status</th>
+              <th v-if="downServices.length > 0">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="svc in srv.unifiedServices" :key="svc.id">
+              <td>
+                <span class="server-service-name-cell">
+                  <span class="service-table-icon">
+                    <span class="material-symbols-outlined">{{ serviceIcon(svc) }}</span>
+                  </span>
+                  <span class="service-name-text">{{ svc.name }}</span>
+                </span>
+              </td>
+              <td>
+                <span class="kind-pill" :class="`kind-pill--${svc.kind}`">{{ svc.kind }}</span>
+              </td>
+              <td class="server-desc-cell">{{ svc.description }}</td>
+              <td class="server-mono-cell">{{ serviceDetail(svc) }}</td>
+              <td>
+                <span
+                  class="status-pill"
+                  :class="`status-pill--${svc.status}`"
+                >
+                  {{ svc.status }}
+                </span>
+              </td>
+              <td v-if="downServices.length > 0">
+                <div v-if="svc.status !== 'up' && svc.actions.includes('restart')" class="crash-inline-actions">
+                  <button
+                    class="crash-btn"
+                    title="Restart service"
+                    :disabled="actionLoading === svc.name"
+                    @click="doRestart(svc.name)"
+                  >
+                    <span class="material-symbols-outlined">restart_alt</span>
+                  </button>
+                </div>
+                <span v-else class="server-mono-cell">{{ svc.status === 'up' ? '—' : 'Manual recovery' }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Host-Native Integrations (Zen Host / Apple Events) - USX Card Matrix -->
+    <div class="host-integrations-section">
+      <div class="recipe-header">
+        <div class="header-left">
+          <span class="material-symbols-outlined header-icon">laptop_mac</span>
+          <div>
+            <h3 class="recipe-title">Host-Native Integrations</h3>
+            <p class="recipe-desc">
+              Level 1 of the Zen reuse hierarchy: Native Apple Events &amp; osascript bridge without heavyweight wrappers.
+            </p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button
+            class="m3-button"
             :disabled="actionLoading === 'notify'"
             @click="testNotification"
           >
-            Test Toast
-          </UButton>
-          <UButton
-            variant="ghost"
-            size="sm"
-            icon="volume_up"
+            <span class="material-symbols-outlined">notifications</span>
+            <span>Test Toast</span>
+          </button>
+          <button
+            class="m3-button"
             :disabled="actionLoading === 'say'"
             @click="testSpeech"
           >
-            Test Speech
-          </UButton>
-          <UButton
-            variant="ghost"
-            size="sm"
-            icon="checklist"
+            <span class="material-symbols-outlined">volume_up</span>
+            <span>Test Speech</span>
+          </button>
+          <button
+            class="m3-button"
             :disabled="actionLoading === 'reminders'"
             @click="testFetchReminders"
           >
-            Fetch Reminders
-          </UButton>
-          <UButton
-            variant="ghost"
-            size="sm"
-            icon="description"
+            <span class="material-symbols-outlined">checklist</span>
+            <span>Fetch Reminders</span>
+          </button>
+          <button
+            class="m3-button"
             :disabled="actionLoading === 'notes'"
             @click="testFetchNotes"
           >
-            Fetch Notes
-          </UButton>
+            <span class="material-symbols-outlined">description</span>
+            <span>Fetch Notes</span>
+          </button>
         </div>
       </div>
-      <p class="server-muted-text-sm usx-mb-sm">
-        Level 1 of the Zen reuse hierarchy: Native OS automation without heavyweight wrappers or background daemons.
-      </p>
 
-      <div class="host-pim-grid">
-        <div class="host-pim-item">
-          <div class="host-pim-item__header">
-            <UIcon name="open_in_browser" />
-            <span>Safari Tab Intake</span>
+      <div class="matrix-grid">
+        <!-- Safari Tab Intake -->
+        <div class="matrix-card">
+          <div class="card-top-row">
+            <div class="icon-avatar">
+              <span class="material-symbols-outlined">open_in_browser</span>
+            </div>
+            <span class="card-tag">Browser</span>
           </div>
-          <UBadge :type="hostCaps?.capabilities?.browser_intake ? 'success' : 'neutral'" size="sm">
-            {{ hostCaps?.capabilities?.browser_intake ? "Available" : "Unavailable" }}
-          </UBadge>
+          <h4 class="card-title">Safari Tab Intake</h4>
+          <p class="card-description">Extract active tab URLs, titles, and text contents via Apple Events.</p>
+          <div class="card-footer">
+            <span
+              class="status-pill"
+              :class="hostCaps?.capabilities?.browser_intake ? 'status-pill--up' : 'status-pill--neutral'"
+            >
+              {{ hostCaps?.capabilities?.browser_intake ? "Available" : "Unavailable" }}
+            </span>
+            <span class="card-subtext">Apple Events</span>
+          </div>
         </div>
 
-        <div class="host-pim-item">
-          <div class="host-pim-item__header">
-            <UIcon name="note_alt" />
-            <span>Apple Notes Export</span>
+        <!-- Apple Notes Export -->
+        <div class="matrix-card">
+          <div class="card-top-row">
+            <div class="icon-avatar">
+              <span class="material-symbols-outlined">note_alt</span>
+            </div>
+            <span class="card-tag">Notes</span>
           </div>
-          <UBadge :type="hostCaps?.capabilities?.notes_export ? 'success' : 'neutral'" size="sm">
-            {{ hostCaps?.capabilities?.notes_export ? "Available" : "Unavailable" }}
-          </UBadge>
+          <h4 class="card-title">Apple Notes Export</h4>
+          <p class="card-description">Export research briefs and notes directly to the macOS Notes application.</p>
+          <div class="card-footer">
+            <span
+              class="status-pill"
+              :class="hostCaps?.capabilities?.notes_export ? 'status-pill--up' : 'status-pill--neutral'"
+            >
+              {{ hostCaps?.capabilities?.notes_export ? "Available" : "Unavailable" }}
+            </span>
+            <span class="card-subtext">ScriptingBridge</span>
+          </div>
         </div>
 
-        <div class="host-pim-item">
-          <div class="host-pim-item__header">
-            <UIcon name="description" />
-            <span>Apple Notes Intake</span>
+        <!-- Apple Notes Intake -->
+        <div class="matrix-card">
+          <div class="card-top-row">
+            <div class="icon-avatar">
+              <span class="material-symbols-outlined">description</span>
+            </div>
+            <span class="card-tag">Notes</span>
           </div>
-          <UBadge :type="hostCaps?.capabilities?.notes_intake ? 'success' : 'neutral'" size="sm">
-            {{ hostCaps?.capabilities?.notes_intake ? "Available" : "Unavailable" }}
-          </UBadge>
+          <h4 class="card-title">Apple Notes Intake</h4>
+          <p class="card-description">Ingest personal notes into uKnowledge citation provenance store.</p>
+          <div class="card-footer">
+            <span
+              class="status-pill"
+              :class="hostCaps?.capabilities?.notes_intake ? 'status-pill--up' : 'status-pill--neutral'"
+            >
+              {{ hostCaps?.capabilities?.notes_intake ? "Available" : "Unavailable" }}
+            </span>
+            <span class="card-subtext">Local Intake</span>
+          </div>
         </div>
 
-        <div class="host-pim-item">
-          <div class="host-pim-item__header">
-            <UIcon name="task_alt" />
-            <span>Apple Reminders Sync</span>
+        <!-- Apple Reminders Sync -->
+        <div class="matrix-card">
+          <div class="card-top-row">
+            <div class="icon-avatar">
+              <span class="material-symbols-outlined">task_alt</span>
+            </div>
+            <span class="card-tag">Reminders</span>
           </div>
-          <UBadge :type="hostCaps?.capabilities?.reminders_export ? 'success' : 'neutral'" size="sm">
-            {{ hostCaps?.capabilities?.reminders_export ? "Available" : "Unavailable" }}
-          </UBadge>
+          <h4 class="card-title">Apple Reminders Sync</h4>
+          <p class="card-description">Write workflow tasks and reminders directly to Apple Reminders.</p>
+          <div class="card-footer">
+            <span
+              class="status-pill"
+              :class="hostCaps?.capabilities?.reminders_export ? 'status-pill--up' : 'status-pill--neutral'"
+            >
+              {{ hostCaps?.capabilities?.reminders_export ? "Available" : "Unavailable" }}
+            </span>
+            <span class="card-subtext">EventKit</span>
+          </div>
         </div>
 
-        <div class="host-pim-item">
-          <div class="host-pim-item__header">
-            <UIcon name="checklist" />
-            <span>Apple Reminders Intake</span>
+        <!-- Apple Reminders Intake -->
+        <div class="matrix-card">
+          <div class="card-top-row">
+            <div class="icon-avatar">
+              <span class="material-symbols-outlined">checklist</span>
+            </div>
+            <span class="card-tag">Reminders</span>
           </div>
-          <UBadge :type="hostCaps?.capabilities?.reminders_intake ? 'success' : 'neutral'" size="sm">
-            {{ hostCaps?.capabilities?.reminders_intake ? "Available" : "Unavailable" }}
-          </UBadge>
+          <h4 class="card-title">Apple Reminders Intake</h4>
+          <p class="card-description">Incorporate active Reminders lists into the daily briefing spool.</p>
+          <div class="card-footer">
+            <span
+              class="status-pill"
+              :class="hostCaps?.capabilities?.reminders_intake ? 'status-pill--up' : 'status-pill--neutral'"
+            >
+              {{ hostCaps?.capabilities?.reminders_intake ? "Available" : "Unavailable" }}
+            </span>
+            <span class="card-subtext">PIM Feed</span>
+          </div>
         </div>
 
-        <div class="host-pim-item">
-          <div class="host-pim-item__header">
-            <UIcon name="notifications" />
-            <span>Desktop Notifications</span>
+        <!-- Desktop Notifications -->
+        <div class="matrix-card">
+          <div class="card-top-row">
+            <div class="icon-avatar">
+              <span class="material-symbols-outlined">notifications</span>
+            </div>
+            <span class="card-tag">System</span>
           </div>
-          <UBadge :type="hostCaps?.capabilities?.notifications ? 'success' : 'neutral'" size="sm">
-            {{ hostCaps?.capabilities?.notifications ? "Available" : "Unavailable" }}
-          </UBadge>
+          <h4 class="card-title">Desktop Notifications</h4>
+          <p class="card-description">Trigger native macOS Notification Center alerts without web notification prompts.</p>
+          <div class="card-footer">
+            <span
+              class="status-pill"
+              :class="hostCaps?.capabilities?.notifications ? 'status-pill--up' : 'status-pill--neutral'"
+            >
+              {{ hostCaps?.capabilities?.notifications ? "Available" : "Unavailable" }}
+            </span>
+            <span class="card-subtext">osascript</span>
+          </div>
         </div>
 
-        <div class="host-pim-item">
-          <div class="host-pim-item__header">
-            <UIcon name="record_voice_over" />
-            <span>Host Speech (/usr/bin/say)</span>
+        <!-- Host Speech -->
+        <div class="matrix-card">
+          <div class="card-top-row">
+            <div class="icon-avatar">
+              <span class="material-symbols-outlined">record_voice_over</span>
+            </div>
+            <span class="card-tag">Audio</span>
           </div>
-          <UBadge :type="hostCaps?.capabilities?.speech_tts ? 'success' : 'neutral'" size="sm">
-            {{ hostCaps?.capabilities?.speech_tts ? "Available" : "Unavailable" }}
-          </UBadge>
+          <h4 class="card-title">Host Speech (say)</h4>
+          <p class="card-description">Zero-latency sovereign text-to-speech synthesis using macOS built-in voices.</p>
+          <div class="card-footer">
+            <span
+              class="status-pill"
+              :class="hostCaps?.capabilities?.speech_tts ? 'status-pill--up' : 'status-pill--neutral'"
+            >
+              {{ hostCaps?.capabilities?.speech_tts ? "Available" : "Unavailable" }}
+            </span>
+            <span class="card-subtext">/usr/bin/say</span>
+          </div>
         </div>
       </div>
     </div>
@@ -420,167 +484,377 @@ async function testFetchNotes() {
 </script>
 
 <style scoped>
-.server-muted-text-sm {
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
+@import '@udos/usx-tokens/usx-prose.css';
+
+.services-panel-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
 }
+
+/* ── Recipe Header ── */
+.recipe-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-icon {
+  font-size: 28px;
+  color: var(--usx-color-primary, #a8c7fa);
+}
+
+.recipe-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--usx-color-on-surface, #e2e2e6);
+}
+
+.recipe-desc {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--usx-color-on-surface-variant, #8e9199);
+}
+
+.header-meta,
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ── M3 Button Pattern ── */
+.m3-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.15));
+  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.04));
+  color: var(--usx-color-on-surface, #e2e2e6);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.m3-button:hover:not(:disabled) {
+  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.08));
+  border-color: var(--usx-color-outline, rgba(255, 255, 255, 0.25));
+}
+
+.m3-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.m3-button .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.m3-button-danger {
+  background: rgba(248, 81, 73, 0.15);
+  border-color: rgba(248, 81, 73, 0.35);
+  color: #f85149;
+}
+
+.m3-button-danger:hover:not(:disabled) {
+  background: rgba(248, 81, 73, 0.25);
+}
+
+/* ── Callout Content ── */
+.crash-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+/* ── Table Container Card ── */
+.table-container-card {
+  border-radius: 12px;
+  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
+  overflow: hidden;
+}
+
+.server-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--usx-color-on-surface-variant, #8e9199);
+}
+
+.empty-icon {
+  font-size: 36px;
+  margin-bottom: 0.5rem;
+  opacity: 0.5;
+}
+
 .server-table-wrap {
   overflow-x: auto;
 }
-.server-table {
+
+.usx-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--usx-font-size-sm);
+  font-size: 0.85rem;
 }
-.server-table th {
+
+.usx-table th {
   text-align: left;
-  font-weight: var(--usx-font-weight-semibold);
-  color: var(--usx-color-on-surface-muted);
-  padding: var(--usx-spacing-sm);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  font-weight: 600;
+  color: var(--usx-color-on-surface-variant, #8e9199);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
+  background: var(--usx-color-surface, #1e2025);
   white-space: nowrap;
 }
-.server-table td {
-  padding: var(--usx-spacing-sm);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+
+.usx-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.05));
   vertical-align: middle;
 }
+
+.usx-table tr:hover {
+  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.03));
+}
+
 .server-service-name-cell {
   display: inline-flex;
   align-items: center;
-  gap: var(--usx-spacing-sm);
-  font-weight: var(--usx-font-weight-semibold);
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.server-subheading {
-  font-size: var(--usx-font-size-base);
-  margin-bottom: var(--usx-spacing-sm);
-  color: var(--usx-color-on-surface);
+  gap: 0.65rem;
+  font-weight: 500;
+  color: var(--usx-color-on-surface, #e2e2e6);
 }
 
-/* ─── Crash recovery banner ──────────────────────────────────── */
-.crash-banner {
-  display: flex;
+.service-table-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(168, 199, 250, 0.12);
+  display: inline-flex;
   align-items: center;
-  gap: var(--usx-spacing-md);
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-  border: var(--usx-border-width) solid
-    color-mix(in srgb, var(--usx-color-danger) 40%, transparent);
-  border-radius: var(--usx-radius-md);
-  background: color-mix(in srgb, var(--usx-color-danger) 8%, transparent);
-  margin-bottom: var(--usx-spacing-md);
+  justify-content: center;
+  color: var(--usx-color-primary, #a8c7fa);
 }
 
-.crash-banner-icon {
-  color: var(--usx-color-danger);
-  font-size: var(--usx-font-size-xl);
-  flex-shrink: 0;
+.service-table-icon .material-symbols-outlined {
+  font-size: 16px;
 }
 
-.crash-banner-text {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  color: var(--usx-color-on-surface);
-  font-size: var(--usx-font-size-base);
+.service-name-text {
+  font-size: 0.88rem;
+  font-weight: 600;
 }
 
-.crash-banner-text span {
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
+.server-desc-cell {
+  font-size: 0.82rem;
+  color: var(--usx-color-on-surface-variant, #8e9199);
+  max-width: 320px;
 }
 
-/* ─── Inline per-service actions ─────────────────────────────── */
+.server-mono-cell {
+  font-family: var(--usx-font-family-mono, monospace);
+  font-size: 0.78rem;
+  color: var(--usx-color-on-surface-variant, #8e9199);
+}
+
+/* ── Pills and Badges ── */
+.kind-pill {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--usx-color-on-surface-variant, #c4c6d0);
+  font-family: var(--usx-font-family-mono, monospace);
+}
+
+.kind-pill--service {
+  background: rgba(168, 199, 250, 0.12);
+  color: #a8c7fa;
+}
+
+.kind-pill--tool {
+  background: rgba(63, 185, 80, 0.12);
+  color: #3fb950;
+}
+
+.kind-pill--mcp {
+  background: rgba(210, 153, 34, 0.12);
+  color: #d29922;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  letter-spacing: 0.03em;
+}
+
+.status-pill--up {
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950;
+}
+
+.status-pill--degraded {
+  background: rgba(210, 153, 34, 0.15);
+  color: #d29922;
+}
+
+.status-pill--down {
+  background: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+}
+
+.status-pill--neutral {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--usx-color-on-surface-variant, #8e9199);
+}
+
 .crash-inline-actions {
   display: flex;
-  gap: var(--usx-spacing-xs);
+  gap: 0.35rem;
 }
 
 .crash-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--usx-spacing-xl);
-  height: var(--usx-spacing-xl);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-sm);
-  background: var(--usx-color-surface);
-  color: var(--usx-color-on-surface-muted);
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.15));
+  border-radius: 6px;
+  background: transparent;
+  color: var(--usx-color-on-surface-variant, #8e9199);
   cursor: pointer;
-  transition:
-    color var(--usx-transition-fast),
-    border-color var(--usx-transition-fast),
-    background var(--usx-transition-fast);
+  transition: all 0.15s ease;
 }
 
 .crash-btn:hover:not(:disabled) {
-  color: var(--usx-color-primary);
-  border-color: var(--usx-color-primary);
-  background: color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
+  color: #f85149;
+  border-color: #f85149;
+  background: rgba(248, 81, 73, 0.12);
 }
 
-.crash-btn--danger:hover:not(:disabled) {
-  color: var(--usx-color-danger);
-  border-color: var(--usx-color-danger);
-  background: color-mix(in srgb, var(--usx-color-danger) 8%, transparent);
+.crash-btn .material-symbols-outlined {
+  font-size: 16px;
 }
 
-.crash-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.crash-banner-btn {
-  flex-shrink: 0;
-}
-
-/* ─── Host-Native PIM Card ─────────────────────────────────────────── */
-.host-pim-card {
-  padding: var(--usx-spacing-md);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  background: var(--usx-color-surface);
-}
-
-.host-pim-title {
+/* ── Host-Native Integrations Section (USX Card Matrix) ── */
+.host-integrations-section {
   display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  color: var(--usx-color-primary);
-  font-size: var(--usx-font-size-base);
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
-.host-pim-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-}
-
-.host-pim-grid {
+.matrix-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--usx-spacing-sm);
-  margin-top: var(--usx-spacing-sm);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  width: 100%;
 }
 
-.host-pim-item {
+.matrix-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.15rem;
+  border-radius: 12px;
+  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.matrix-card:hover {
+  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.06));
+  border-color: var(--usx-color-outline, rgba(255, 255, 255, 0.2));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.card-top-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--usx-spacing-sm);
-  background: var(--usx-color-surface-variant);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-sm);
+  margin-bottom: 0.65rem;
 }
 
-.host-pim-item__header {
+.icon-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(168, 199, 250, 0.12);
   display: flex;
   align-items: center;
-  gap: var(--usx-spacing-xs);
-  font-size: var(--usx-font-size-xs);
-  font-weight: var(--usx-font-weight-medium);
-  color: var(--usx-color-on-surface);
+  justify-content: center;
+  color: var(--usx-color-primary, #a8c7fa);
+}
+
+.icon-avatar .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.card-tag {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--usx-color-on-surface-variant, #c4c6d0);
+  font-weight: 500;
+}
+
+.card-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--usx-color-on-surface, #e2e2e6);
+}
+
+.card-description {
+  margin: 0 0 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--usx-color-on-surface-variant, #9aa0a6);
+  flex: 1;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.06));
+}
+
+.card-subtext {
+  font-size: 0.72rem;
+  color: var(--usx-color-on-surface-variant, #8e9199);
+  font-family: var(--usx-font-family-mono, monospace);
 }
 </style>

@@ -11,16 +11,41 @@
       :orientation="shell.tabOrientation"
       @toggle-orientation="shell.toggleTabOrientation()"
     />
-    <div class="surface__content snackbar-server-content">
-      <section class="surface__panel snackbar-server-header">
-        <div class="snackbar-server-header__row">
-          <h3 class="surface__panel-title">Server</h3>
-          <span class="snackbar-server-header__badge">Runtime Surface</span>
+    <div class="surface__content snackbar-server-content usx-prose">
+      <!-- USX Frontmatter Runtime Metadata Card -->
+      <div class="usx-frontmatter-card">
+        <span class="usx-frontmatter-chip">
+          <span>Runtime:</span>
+          <strong>uCore Zen 4.0.5</strong>
+        </span>
+        <span class="usx-frontmatter-chip">
+          <span>Port:</span>
+          <strong>8484</strong>
+        </span>
+        <span class="usx-frontmatter-chip">
+          <span>Execution Lane:</span>
+          <strong>Free Local (Ollama)</strong>
+        </span>
+        <span class="usx-frontmatter-chip">
+          <span>Storage:</span>
+          <strong>UDOS_HOME</strong>
+        </span>
+        <span class="usx-frontmatter-chip">
+          <span>Services:</span>
+          <strong>{{ srv.upCount }}/{{ srv.services.length }} Online</strong>
+        </span>
+      </div>
+
+      <!-- USX Sovereign Boundary Callout -->
+      <div class="usx-callout usx-callout-note">
+        <div class="usx-callout-header">
+          <span class="material-symbols-outlined">shield</span>
+          <span>Local-First Sovereign Runtime Boundary</span>
         </div>
-        <p class="surface__panel-description">
-          Runtime health, AI configuration, automation, extensions, and logs.
-        </p>
-      </section>
+        <div>
+          Server state and reply spools are anchored strictly under <code>UDOS_HOME</code>. All automated background tasks run local-first with a hard-zero cloud allowance.
+        </div>
+      </div>
 
       <!-- Dashboard -->
       <div v-if="activeTab === 'dashboard'" class="server-tab-shell">
@@ -186,19 +211,21 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+@import '@udos/usx-tokens/usx-prose.css';
+
 .surface__content {
-  padding: var(--usx-spacing-lg);
+  padding: var(--usx-spacing-lg, 1.5rem);
 }
 
 .snackbar-server-content {
   display: grid;
-  gap: var(--usx-spacing-md);
+  gap: var(--usx-spacing-md, 1rem);
 }
 
 .snackbar-server-header {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--usx-color-primary) 4%, transparent) 0%,
+    color-mix(in srgb, var(--usx-color-primary, #a8c7fa) 4%, transparent) 0%,
     transparent 78%
   );
 }
