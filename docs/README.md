@@ -61,6 +61,7 @@ Completed and merged: [Special Sprint 3A — Conversational Dev Mode](DEV_CHAT_S
 | [specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md](specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md)   | Verification-gated optional Nanocoder Dev Mode tool plan |
 | [DEV_MODE_READINESS_2026-08-31.md](DEV_MODE_READINESS_2026-08-31.md)                                     | Current Dev Mode prework, branch disposition, and gates  |
 | [DEV_MODE_LONG_SPRINTS_2026-09.md](DEV_MODE_LONG_SPRINTS_2026-09.md)                                     | Long sprint sequence for the Developer Workbench and product backlog |
+| [SPRINT6_RELEASE_NOTES.md](SPRINT6_RELEASE_NOTES.md)                                                       | Sprint 6 release notes, exit gate audit, and completion record |
 
 ## Task ownership
 
