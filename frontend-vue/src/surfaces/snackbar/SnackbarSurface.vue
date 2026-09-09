@@ -213,12 +213,31 @@ onBeforeUnmount(() => {
 <style scoped>
 @import '@udos/usx-tokens/usx-prose.css';
 
+.surface {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.surface--tab-nav-vertical {
+  flex-direction: row;
+}
+
 .surface__content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: var(--usx-spacing-lg, 1.5rem);
+  box-sizing: border-box;
 }
 
 .snackbar-server-content {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: var(--usx-spacing-md, 1rem);
 }
 

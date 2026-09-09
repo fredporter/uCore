@@ -397,7 +397,8 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
 
 /* Page Layout */
 .gallery-page {
-  min-height: 100vh;
+  min-height: 100%;
+  flex: 1;
   background: var(--usx-color-background, #14161a);
   color: var(--usx-color-on-surface, #e2e2e6);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -408,6 +409,7 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
 
 /* Topbar */
 .gallery-topbar {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -582,6 +584,7 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
 
 /* Recipe Navigation Tabs */
 .recipe-nav-tabs {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 1.5rem;
@@ -668,20 +671,24 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
 /* Inspection Stage */
 .gallery-stage {
   flex: 1;
+  min-height: 0;
   display: flex;
+  justify-content: center;
+  align-items: flex-start;
   position: relative;
   background: var(--usx-color-background, #14161a);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1.5rem 1rem;
+  box-sizing: border-box;
 }
 
 .viewport-frame {
-  flex: 1;
-  margin: 1.5rem auto;
   width: 100%;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  padding: 0 1.5rem;
+  padding: 0 1rem;
   transition: max-width 0.25s ease-in-out;
 }
 
@@ -693,19 +700,26 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   min-height: 520px;
   display: flex;
+  flex-direction: column;
   width: 100%;
   box-sizing: border-box;
-  overflow-y: auto;
 }
 
 /* JSON Drawer */
 .json-inspector-drawer {
   width: 360px;
-  border-left: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
+  flex-shrink: 0;
+  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
   background: var(--usx-color-surface, #1e2025);
   display: flex;
   flex-direction: column;
+  margin-left: 1rem;
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - 160px);
   z-index: 10;
+  overflow: hidden;
 }
 
 .json-drawer-header {
@@ -714,6 +728,7 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
   justify-content: space-between;
   padding: 0.85rem 1.25rem;
   border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
+  flex-shrink: 0;
 }
 
 .json-drawer-header h3 {
@@ -740,7 +755,7 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
   font-size: 0.75rem;
   color: var(--usx-color-on-surface-variant, #8e9199);
   background: var(--usx-color-surface-container, #282a30);
-  overflow: auto;
+  overflow-y: auto;
   line-height: 1.5;
 }
 </style>

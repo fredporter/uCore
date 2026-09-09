@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="recipe-header">
       <div class="header-left">
-        <span class="material-symbols-outlined header-icon">miscellaneous_services</span>
+        <span class="material-symbols-outlined header-icon">dns</span>
         <div>
           <h2 class="recipe-title">Unified Services &amp; Tools</h2>
           <p class="recipe-desc">
