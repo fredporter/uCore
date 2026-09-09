@@ -131,6 +131,24 @@
           >
             Test Speech
           </UButton>
+          <UButton
+            variant="ghost"
+            size="sm"
+            icon="checklist"
+            :disabled="actionLoading === 'reminders'"
+            @click="testFetchReminders"
+          >
+            Fetch Reminders
+          </UButton>
+          <UButton
+            variant="ghost"
+            size="sm"
+            icon="description"
+            :disabled="actionLoading === 'notes'"
+            @click="testFetchNotes"
+          >
+            Fetch Notes
+          </UButton>
         </div>
       </div>
       <p class="server-muted-text-sm usx-mb-sm">
@@ -160,11 +178,31 @@
 
         <div class="host-pim-item">
           <div class="host-pim-item__header">
+            <UIcon name="description" />
+            <span>Apple Notes Intake</span>
+          </div>
+          <UBadge :type="hostCaps?.capabilities?.notes_intake ? 'success' : 'neutral'" size="sm">
+            {{ hostCaps?.capabilities?.notes_intake ? "Available" : "Unavailable" }}
+          </UBadge>
+        </div>
+
+        <div class="host-pim-item">
+          <div class="host-pim-item__header">
             <UIcon name="task_alt" />
             <span>Apple Reminders Sync</span>
           </div>
           <UBadge :type="hostCaps?.capabilities?.reminders_export ? 'success' : 'neutral'" size="sm">
             {{ hostCaps?.capabilities?.reminders_export ? "Available" : "Unavailable" }}
+          </UBadge>
+        </div>
+
+        <div class="host-pim-item">
+          <div class="host-pim-item__header">
+            <UIcon name="checklist" />
+            <span>Apple Reminders Intake</span>
+          </div>
+          <UBadge :type="hostCaps?.capabilities?.reminders_intake ? 'success' : 'neutral'" size="sm">
+            {{ hostCaps?.capabilities?.reminders_intake ? "Available" : "Unavailable" }}
           </UBadge>
         </div>
 
@@ -201,6 +239,8 @@ import UBadge from "../../../skills/atoms/UBadge.vue";
 import UButton from "../../../skills/atoms/UButton.vue";
 import {
   getHostCapabilities,
+  intakeAppleNotes,
+  intakeAppleReminders,
   sendHostNotification,
   sendHostSay,
   type HostCapabilitiesResult,
@@ -331,6 +371,48 @@ async function testSpeech() {
     );
   } catch (err: any) {
     toast.show(`Speech error: ${err?.message || err}`, "error", 3000, "services");
+  } finally {
+    actionLoading.value = null;
+  }
+}
+
+async function testFetchReminders() {
+  actionLoading.value = "reminders";
+  try {
+    const res = await intakeAppleReminders({ limit: 10 });
+    if (res.ok) {
+      toast.show(
+        `Retrieved ${res.items.length} active Apple Reminders`,
+        "success",
+        4000,
+        "services",
+      );
+    } else {
+      toast.show(res.error || "Reminders intake failed", "warning", 4000, "services");
+    }
+  } catch (err: any) {
+    toast.show(`Reminders intake error: ${err?.message || err}`, "error", 4000, "services");
+  } finally {
+    actionLoading.value = null;
+  }
+}
+
+async function testFetchNotes() {
+  actionLoading.value = "notes";
+  try {
+    const res = await intakeAppleNotes({ limit: 10 });
+    if (res.ok) {
+      toast.show(
+        `Retrieved ${res.items.length} Apple Notes`,
+        "success",
+        4000,
+        "services",
+      );
+    } else {
+      toast.show(res.error || "Notes intake failed", "warning", 4000, "services");
+    }
+  } catch (err: any) {
+    toast.show(`Notes intake error: ${err?.message || err}`, "error", 4000, "services");
   } finally {
     actionLoading.value = null;
   }

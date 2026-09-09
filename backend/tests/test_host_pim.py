@@ -12,7 +12,9 @@ from app.api.host_api import (
     handle_host_notify,
     handle_host_say,
     handle_notes_export,
+    handle_notes_intake,
     handle_reminders_export,
+    handle_reminders_intake,
     handle_safari_active,
     handle_safari_intake,
     set_host_pim_service,
@@ -62,7 +64,9 @@ def test_probe_capabilities_macos(monkeypatch):
     assert caps["host_native"]["notes"]["available"] is True
     assert caps["capabilities"]["browser_intake"] is True
     assert caps["capabilities"]["notes_export"] is True
+    assert caps["capabilities"]["notes_intake"] is True
     assert caps["capabilities"]["reminders_export"] is True
+    assert caps["capabilities"]["reminders_intake"] is True
     assert caps["capabilities"]["notifications"] is True
     assert caps["capabilities"]["speech_tts"] is True
 
@@ -153,6 +157,59 @@ def test_export_to_apple_reminders(monkeypatch):
     assert 'list "Tasks"' in executed_scripts[0][-1]
 
 
+def test_intake_apple_reminders(monkeypatch):
+    monkeypatch.setattr(HostPIMService, "is_macos", lambda self: True)
+
+    def mock_runner(cmd: list[str], timeout: float = 10.0) -> str:
+        return json.dumps({
+            "ok": True,
+            "items": [
+                {
+                    "id": "x-apple-reminder://1",
+                    "title": "Review sovereign AI spec",
+                    "notes": "Ensure local-first storage boundaries",
+                    "due_date": "2026-09-10T12:00:00Z",
+                    "completed": False,
+                    "list": "Work",
+                }
+            ],
+        })
+
+    svc = HostPIMService(runner=mock_runner)
+    res = svc.intake_apple_reminders(list_name="Work", limit=10)
+
+    assert res["ok"] is True
+    assert len(res["items"]) == 1
+    assert res["items"][0]["title"] == "Review sovereign AI spec"
+    assert res["items"][0]["list"] == "Work"
+
+
+def test_intake_apple_notes(monkeypatch):
+    monkeypatch.setattr(HostPIMService, "is_macos", lambda self: True)
+
+    def mock_runner(cmd: list[str], timeout: float = 10.0) -> str:
+        return json.dumps({
+            "ok": True,
+            "items": [
+                {
+                    "id": "x-coredata://note/1",
+                    "title": "Architecture Research",
+                    "body": "Foundational notes on local state management.",
+                    "modification_date": "2026-09-09T08:00:00Z",
+                    "folder": "Default",
+                }
+            ],
+        })
+
+    svc = HostPIMService(runner=mock_runner)
+    res = svc.intake_apple_notes(folder="Default", limit=5)
+
+    assert res["ok"] is True
+    assert len(res["items"]) == 1
+    assert res["items"][0]["title"] == "Architecture Research"
+    assert "local state management" in res["items"][0]["body"]
+
+
 def test_notify_and_say(monkeypatch):
     executed = []
 
@@ -181,8 +238,13 @@ async def test_api_handlers(monkeypatch):
     monkeypatch.setattr(HostPIMService, "is_macos", lambda self: True)
     monkeypatch.setattr("app.services.host_pim.shutil.which", lambda command: f"/usr/bin/{command}")
     def mock_runner(cmd: list[str], timeout: float = 10.0) -> str:
-        if "Safari" in str(cmd):
+        cmd_str = str(cmd)
+        if "Safari" in cmd_str:
             return json.dumps({"ok": True, "running": True, "url": "https://example.com", "title": "Example"})
+        if "Reminders" in cmd_str:
+            return json.dumps({"ok": True, "items": [{"id": "r1", "title": "Reminder 1"}]})
+        if "Notes" in cmd_str:
+            return json.dumps({"ok": True, "items": [{"id": "n1", "title": "Note 1"}]})
         return "ok"
 
     svc = HostPIMService(runner=mock_runner)
@@ -208,7 +270,16 @@ async def test_api_handlers(monkeypatch):
     notes_data = json.loads(resp_notes.text)
     assert notes_data["ok"] is True
 
-    # 4. reminders export
+    # 4. notes intake
+    req_notes_in = MagicMock(spec=web.Request)
+    req_notes_in.query = {"folder": "Work", "limit": "5"}
+    resp_notes_in = await handle_notes_intake(req_notes_in)
+    assert resp_notes_in.status == 200
+    notes_in_data = json.loads(resp_notes_in.text)
+    assert notes_in_data["ok"] is True
+    assert len(notes_in_data["items"]) == 1
+
+    # 5. reminders export
     req_rem = MagicMock(spec=web.Request)
     req_rem.json = AsyncMock(return_value={"title": "Test Reminder", "notes": "Do something"})
     resp_rem = await handle_reminders_export(req_rem)
@@ -216,13 +287,22 @@ async def test_api_handlers(monkeypatch):
     rem_data = json.loads(resp_rem.text)
     assert rem_data["ok"] is True
 
-    # 5. notify
+    # 6. reminders intake
+    req_rem_in = MagicMock(spec=web.Request)
+    req_rem_in.query = {"list": "Tasks", "limit": "10"}
+    resp_rem_in = await handle_reminders_intake(req_rem_in)
+    assert resp_rem_in.status == 200
+    rem_in_data = json.loads(resp_rem_in.text)
+    assert rem_in_data["ok"] is True
+    assert len(rem_in_data["items"]) == 1
+
+    # 7. notify
     req_notif = MagicMock(spec=web.Request)
     req_notif.json = AsyncMock(return_value={"title": "Alert", "message": "Notice"})
     resp_notif = await handle_host_notify(req_notif)
     assert resp_notif.status == 200
 
-    # 6. say
+    # 8. say
     req_say = MagicMock(spec=web.Request)
     req_say.json = AsyncMock(return_value={"text": "Speaking"})
     resp_say = await handle_host_say(req_say)

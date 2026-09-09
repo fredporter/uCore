@@ -19,9 +19,10 @@ from pathlib import Path
 from typing import Any
 
 from app.clipboard.clipboard_buffer import add_clipboard_item, copy_text_to_clipboard
+from app.core.settings import settings
 
 SPOOL_PATH = Path(
-    os.getenv("UCORE_SNACKS_REPLIES", "~/.local/share/snackmachine/replies.jsonl"),
+    os.getenv("UCORE_SNACKS_REPLIES", str(settings.udos_home / "snacks" / "replies.jsonl")),
 ).expanduser()
 
 MARKDOWN_SNACK_DIR = Path(__file__).resolve().parents[2] / "tools" / "markdown_snack"

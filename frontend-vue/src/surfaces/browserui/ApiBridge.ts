@@ -208,7 +208,9 @@ export interface HostCapabilitiesResult {
   capabilities: {
     browser_intake?: boolean
     notes_export?: boolean
+    notes_intake?: boolean
     reminders_export?: boolean
+    reminders_intake?: boolean
     mail_bridge?: boolean
     notifications?: boolean
     speech_tts?: boolean
@@ -237,6 +239,35 @@ export interface HostExportResult {
   folder?: string
   list?: string
   app?: string
+  error?: string
+}
+
+export interface HostReminderItem {
+  id: string
+  title: string
+  notes?: string
+  due_date?: string | null
+  completed?: boolean
+  list?: string
+}
+
+export interface HostRemindersIntakeResult {
+  ok: boolean
+  items: HostReminderItem[]
+  error?: string
+}
+
+export interface HostNoteItem {
+  id: string
+  title: string
+  body?: string
+  modification_date?: string | null
+  folder?: string
+}
+
+export interface HostNotesIntakeResult {
+  ok: boolean
+  items: HostNoteItem[]
   error?: string
 }
 
@@ -354,6 +385,42 @@ export async function exportToAppleReminders(
     signal: AbortSignal.timeout(12000),
   })
   if (!res.ok) throw new Error(`Export to Apple Reminders failed (HTTP ${res.status})`)
+  return res.json()
+}
+
+export async function intakeAppleReminders(options?: {
+  listName?: string
+  limit?: number
+  completed?: boolean
+}): Promise<HostRemindersIntakeResult> {
+  const params = new URLSearchParams()
+  if (options?.listName) params.set("list", options.listName)
+  if (options?.limit) params.set("limit", String(options.limit))
+  if (options?.completed !== undefined) params.set("completed", String(options.completed))
+
+  const qs = params.toString() ? `?${params.toString()}` : ""
+  const res = await fetch(`${BASE}/api/host/reminders/intake${qs}`, {
+    signal: AbortSignal.timeout(12000),
+  })
+  if (!res.ok) throw new Error(`Apple Reminders intake failed (HTTP ${res.status})`)
+  return res.json()
+}
+
+export async function intakeAppleNotes(options?: {
+  folder?: string
+  limit?: number
+  search?: string
+}): Promise<HostNotesIntakeResult> {
+  const params = new URLSearchParams()
+  if (options?.folder) params.set("folder", options.folder)
+  if (options?.limit) params.set("limit", String(options.limit))
+  if (options?.search) params.set("search", options.search)
+
+  const qs = params.toString() ? `?${params.toString()}` : ""
+  const res = await fetch(`${BASE}/api/host/notes/intake${qs}`, {
+    signal: AbortSignal.timeout(12000),
+  })
+  if (!res.ok) throw new Error(`Apple Notes intake failed (HTTP ${res.status})`)
   return res.json()
 }
 
