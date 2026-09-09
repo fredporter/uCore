@@ -4,7 +4,8 @@
  * Ported from AssistUISurface.tsx local state (React).
  */
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useIdentityStore } from './identity'
 
 export interface ChatMessage {
   id: string
@@ -67,9 +68,9 @@ function msgId(prefix: string): string {
 
 // ─── Persistence ───────────────────────────────────────────────────
 
-function loadConversations(): Conversation[] {
+function loadConversations(pid: string = 'default'): Conversation[] {
   try {
-    const raw = localStorage.getItem('assistui-conversations')
+    const raw = localStorage.getItem(`assistui-conversations-${pid}`) || (pid === 'default' ? localStorage.getItem('assistui-conversations') : null)
     if (!raw) return []
     return JSON.parse(raw)
   } catch {
@@ -77,13 +78,16 @@ function loadConversations(): Conversation[] {
   }
 }
 
-function persistConversations(convs: Conversation[]) {
-  localStorage.setItem('assistui-conversations', JSON.stringify(convs))
+function persistConversations(convs: Conversation[], pid: string = 'default') {
+  localStorage.setItem(`assistui-conversations-${pid}`, JSON.stringify(convs))
 }
 
 // ─── Store ─────────────────────────────────────────────────────────
 
 export const useChatStore = defineStore('chat', () => {
+  const identityStore = useIdentityStore()
+  const profileId = computed(() => identityStore.activeProfileId || 'default')
+
   // State
   const messages = ref<ChatMessage[]>([welcomeMessage()])
   const input = ref('')
@@ -100,11 +104,17 @@ export const useChatStore = defineStore('chat', () => {
     { id: 'gpt-4o', provider: 'openrouter', name: 'GPT-4o', cost: 'mid-range' },
   ])
   const selectedModel = ref('auto')
-  const conversations = ref<Conversation[]>(loadConversations())
+  const conversations = ref<Conversation[]>(loadConversations(profileId.value))
   const activeConversation = ref<string | null>(null)
   const budgetStatus = ref<BudgetStatus>({ ok: true, daily_remaining: null, warning: null })
   const planSteps = ref<PlanStep[]>([])
   const historySynced = ref(false)
+
+  watch(profileId, () => {
+    activeConversation.value = null
+    clearChat()
+    void restoreHistory()
+  })
 
   // Computed
   const hasMessages = computed(() => messages.value.length > 1)
@@ -273,7 +283,7 @@ export const useChatStore = defineStore('chat', () => {
       conversations.value.push(newConv)
       activeConversation.value = newConv.id
     }
-    persistConversations(conversations.value)
+    persistConversations(conversations.value, profileId.value)
     void persistHistory()
   }
 
@@ -286,7 +296,7 @@ export const useChatStore = defineStore('chat', () => {
 
   function deleteConversation(convId: string) {
     conversations.value = conversations.value.filter(c => c.id !== convId)
-    persistConversations(conversations.value)
+    persistConversations(conversations.value, profileId.value)
     void persistHistory()
     if (activeConversation.value === convId) {
       clearChat()
@@ -294,13 +304,18 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   async function restoreHistory() {
+    const pid = profileId.value
+    conversations.value = loadConversations(pid)
     try {
-      const response = await fetch(`${SNACKBAR_API}/api/chat/history`, { signal: AbortSignal.timeout(3000) })
+      const response = await fetch(`${SNACKBAR_API}/api/chat/history?profile=${encodeURIComponent(pid)}`, {
+        headers: { 'X-Udos-Profile': pid },
+        signal: AbortSignal.timeout(3000),
+      })
       if (!response.ok) throw new Error(`History returned ${response.status}`)
       const data = await response.json()
       if (Array.isArray(data.conversations) && data.conversations.length) {
         conversations.value = data.conversations
-        persistConversations(conversations.value)
+        persistConversations(conversations.value, pid)
         const latest = [...conversations.value].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]
         if (latest) loadConversation(latest.id)
       }
@@ -309,21 +324,32 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   async function persistHistory() {
+    const pid = profileId.value
     try {
-      const response = await fetch(`${SNACKBAR_API}/api/chat/history`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversations: conversations.value }), signal: AbortSignal.timeout(3000),
+      const response = await fetch(`${SNACKBAR_API}/api/chat/history?profile=${encodeURIComponent(pid)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Udos-Profile': pid,
+        },
+        body: JSON.stringify({ conversations: conversations.value }),
+        signal: AbortSignal.timeout(3000),
       })
       historySynced.value = response.ok
     } catch { historySynced.value = false }
   }
 
   async function clearHistory() {
+    const pid = profileId.value
     conversations.value = []
     clearChat()
-    persistConversations([])
+    persistConversations([], pid)
     try {
-      const response = await fetch(`${SNACKBAR_API}/api/chat/history`, { method: 'DELETE', signal: AbortSignal.timeout(3000) })
+      const response = await fetch(`${SNACKBAR_API}/api/chat/history?profile=${encodeURIComponent(pid)}`, {
+        method: 'DELETE',
+        headers: { 'X-Udos-Profile': pid },
+        signal: AbortSignal.timeout(3000),
+      })
       historySynced.value = response.ok
     } catch { historySynced.value = false }
   }

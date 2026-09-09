@@ -13,6 +13,7 @@ import aiohttp
 from aiohttp import ClientTimeout, web
 
 from app.core.settings import settings
+from app.services.settings_manager import get_settings_manager
 from app.utils.config_loader import (
     load_service_registry,
     load_system_pages_registry,
@@ -20,44 +21,15 @@ from app.utils.config_loader import (
 
 log = logging.getLogger("ucore")
 
-# ─── Settings Store Path ──────────────────────────────────────────
-
-_SETTINGS_STORE_DIR = settings.data_dir
-_SETTINGS_STORE_FILE = _SETTINGS_STORE_DIR / "system_settings.json"
-
-
-def _ensure_settings_store() -> None:
-    """Ensure the data directory and default settings store exist."""
-    _SETTINGS_STORE_DIR.mkdir(parents=True, exist_ok=True)
-    if not _SETTINGS_STORE_FILE.exists():
-        defaults = {
-            "global": {
-                "theme": "dark",
-                "fontSize": 16,
-                "palette": "default",
-            },
-            "user": {
-                "displayName": "uDos Developer",
-                "email": "",
-                "defaultModel": "Llama 3.2",
-            },
-        }
-        _SETTINGS_STORE_FILE.write_text(json.dumps(defaults, indent=2))
-
 
 def _load_settings() -> dict:
     """Load system settings from disk."""
-    _ensure_settings_store()
-    try:
-        return json.loads(_SETTINGS_STORE_FILE.read_text())
-    except (json.JSONDecodeError, FileNotFoundError):
-        return {}
+    return get_settings_manager().get_all()
 
 
 def _save_settings(data: dict) -> None:
     """Persist system settings to disk."""
-    _ensure_settings_store()
-    _SETTINGS_STORE_FILE.write_text(json.dumps(data, indent=2))
+    get_settings_manager()._save(data)
 
 
 # ─── S-Pages Registry ──────────────────────────────────────────────
@@ -104,8 +76,9 @@ def register_system_api_routes(app: web.Application) -> None:  # noqa: C901
         )
 
     # ── Settings (disk-persisted) ───────────────────────────────
-    async def handle_get_settings(_request: web.Request) -> web.Response:
-        data = _load_settings()
+    async def handle_get_settings(request: web.Request) -> web.Response:
+        profile_id = request.headers.get("X-Udos-Profile") or request.query.get("profile") or "default"
+        data = get_settings_manager().get_all(profile_id=profile_id)
         return web.json_response({"settings": data})
 
     async def handle_update_settings(request: web.Request) -> web.Response:
@@ -115,17 +88,14 @@ def register_system_api_routes(app: web.Application) -> None:  # noqa: C901
             return web.json_response({"error": "Invalid JSON body"}, status=400)
 
         scope = body.get("scope", "global")
-        current = _load_settings()
-        if scope not in current:
-            current[scope] = {}
-        for key, value in body.get("values", {}).items():
-            current[scope][key] = value
-        _save_settings(current)
-        return web.json_response({"status": "ok", "settings": current})
+        profile_id = request.headers.get("X-Udos-Profile") or request.query.get("profile") or body.get("profile_id") or "default"
+        updated = get_settings_manager().update_scope(scope, body.get("values", {}), profile_id=profile_id)
+        return web.json_response({"status": "ok", "settings": updated})
 
-    async def handle_get_user_preferences(_request: web.Request) -> web.Response:
-        current = _load_settings()
-        return web.json_response({"preferences": current.get("preferences", {})})
+    async def handle_get_user_preferences(request: web.Request) -> web.Response:
+        profile_id = request.headers.get("X-Udos-Profile") or request.query.get("profile") or "default"
+        prefs = get_settings_manager().get_user_preferences(profile_id=profile_id)
+        return web.json_response({"preferences": prefs})
 
     async def handle_update_user_preferences(request: web.Request) -> web.Response:
         try:
@@ -135,14 +105,9 @@ def register_system_api_routes(app: web.Application) -> None:  # noqa: C901
         values = body.get("preferences", body)
         if not isinstance(values, dict):
             return web.json_response({"error": "preferences must be an object"}, status=400)
-        allowed = {"themeMode", "fontStyle", "fontSize", "palette", "defaultModel"}
-        current = _load_settings()
-        current["preferences"] = {
-            **current.get("preferences", {}),
-            **{key: value for key, value in values.items() if key in allowed},
-        }
-        _save_settings(current)
-        return web.json_response({"status": "ok", "preferences": current["preferences"]})
+        profile_id = request.headers.get("X-Udos-Profile") or request.query.get("profile") or body.get("profile_id") or "default"
+        prefs = get_settings_manager().update_user_preferences(values, profile_id=profile_id)
+        return web.json_response({"status": "ok", "preferences": prefs})
 
     # ── Services (dedicated system services endpoint) ──────────
     async def handle_system_services(request: web.Request) -> web.Response:  # noqa: C901

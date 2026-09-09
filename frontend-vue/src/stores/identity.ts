@@ -2,19 +2,37 @@ import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { UCORE_BASE } from "../api/base";
 
+export interface Profile {
+  id: string;
+  name: string;
+  role: string;
+}
+
 export interface UserIdentity {
   user_id: string;
   codeword: string;
   install_id: string;
   session_id: string;
+  authenticated?: boolean;
+  active_profile_id?: string;
+  active_profile?: Profile | null;
+  profiles?: Profile[];
 }
 
 export const useIdentityStore = defineStore("identity", () => {
   const identity = ref<UserIdentity | null>(null);
   const loading = ref(false);
   const error = ref("");
-  const authenticated = computed(() => Boolean(identity.value?.user_id));
-  const displayName = computed(() => identity.value?.codeword || identity.value?.user_id || "Local user");
+
+  const authenticated = computed(
+    () => Boolean(identity.value?.user_id && identity.value?.authenticated !== false),
+  );
+  const activeProfile = computed(() => identity.value?.active_profile || null);
+  const activeProfileId = computed(() => identity.value?.active_profile_id || "");
+  const profiles = computed(() => identity.value?.profiles || []);
+  const displayName = computed(
+    () => identity.value?.active_profile?.name || identity.value?.codeword || identity.value?.user_id || "Local user",
+  );
   const initials = computed(() => displayName.value.slice(0, 2).toUpperCase());
 
   async function load() {
@@ -32,5 +50,84 @@ export const useIdentityStore = defineStore("identity", () => {
     }
   }
 
-  return { identity, loading, error, authenticated, displayName, initials, load };
+  async function switchProfile(profileId: string) {
+    loading.value = true;
+    error.value = "";
+    try {
+      const response = await fetch(`${UCORE_BASE}/api/identity/switch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile_id: profileId }),
+        signal: AbortSignal.timeout(3000),
+      });
+      if (!response.ok) throw new Error(`Switch profile returned ${response.status}`);
+      const data = await response.json();
+      if (data.identity) {
+        identity.value = data.identity;
+      }
+    } catch (exc) {
+      error.value = exc instanceof Error ? exc.message : "Failed to switch profile";
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function logout() {
+    loading.value = true;
+    error.value = "";
+    try {
+      const response = await fetch(`${UCORE_BASE}/api/identity/logout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(3000),
+      });
+      if (!response.ok) throw new Error(`Logout returned ${response.status}`);
+      const data = await response.json();
+      if (data.identity) {
+        identity.value = data.identity;
+      }
+    } catch (exc) {
+      error.value = exc instanceof Error ? exc.message : "Failed to logout";
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function login(profileId = "default") {
+    loading.value = true;
+    error.value = "";
+    try {
+      const response = await fetch(`${UCORE_BASE}/api/identity/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile_id: profileId }),
+        signal: AbortSignal.timeout(3000),
+      });
+      if (!response.ok) throw new Error(`Login returned ${response.status}`);
+      const data = await response.json();
+      if (data.identity) {
+        identity.value = data.identity;
+      }
+    } catch (exc) {
+      error.value = exc instanceof Error ? exc.message : "Failed to login";
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  return {
+    identity,
+    loading,
+    error,
+    authenticated,
+    activeProfile,
+    activeProfileId,
+    profiles,
+    displayName,
+    initials,
+    load,
+    switchProfile,
+    logout,
+    login,
+  };
 });

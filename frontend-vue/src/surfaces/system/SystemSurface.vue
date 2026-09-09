@@ -392,16 +392,57 @@
         </button>
       </div>
 
-      <!-- User Settings -->
+      <!-- User Settings & Identity -->
       <div
         v-if="currentTab === 'identity'"
         class="system-panel system-tab-shell"
       >
-        <h3 class="surface__panel-title">User Settings</h3>
+        <h3 class="surface__panel-title">Sovereign Identity & Profiles</h3>
         <p class="system-muted-copy">
-          Your profile and preferences. Saved server-side.
+          Local device identity, multi-profile isolation, and persistent user preferences.
         </p>
         <div class="system-settings-form">
+          <div class="settings-row">
+            <label>Active Profile</label>
+            <select
+              :value="identityStore.activeProfileId || 'default'"
+              @change="(e) => identityStore.switchProfile((e.target as HTMLSelectElement).value)"
+            >
+              <option
+                v-for="p in identityStore.profiles"
+                :key="p.id"
+                :value="p.id"
+              >
+                {{ p.name }} ({{ p.role }})
+              </option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <label>Authentication</label>
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+              <span :style="{ color: identityStore.authenticated ? 'var(--usx-color-success, #22c55e)' : 'var(--usx-color-danger, #ef4444)', fontWeight: 600 }">
+                {{ identityStore.authenticated ? `Authenticated (${identityStore.activeProfileId})` : 'Unauthenticated (Logged Out)' }}
+              </span>
+              <button
+                v-if="identityStore.authenticated"
+                type="button"
+                class="system-action-btn"
+                style="padding: 4px 12px; font-size: 13px;"
+                @click="identityStore.logout()"
+              >
+                Log Out
+              </button>
+              <button
+                v-else
+                type="button"
+                class="system-action-btn"
+                style="padding: 4px 12px; font-size: 13px;"
+                @click="identityStore.login('default')"
+              >
+                Log In
+              </button>
+            </div>
+          </div>
           <div class="settings-row">
             <label>Display Name</label
             ><input type="text" v-model="userSettings.displayName" />
@@ -448,6 +489,7 @@ export const SYSTEM_TABS: TabDef[] = [
 import { computed, ref, reactive, watch, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useShellStore } from "../../stores/shell";
+import { useIdentityStore } from "../../stores/identity";
 import { SNACKBAR_BASE } from "../../api/base";
 import {
   getCapabilitiesReadiness,
@@ -462,6 +504,7 @@ const API_BASE = SNACKBAR_BASE;
 const route = useRoute();
 const router = useRouter();
 const shell = useShellStore();
+const identityStore = useIdentityStore();
 const VALID_SYSTEM_TABS = new Set(SYSTEM_TABS.map((tab) => tab.id));
 
 const routeTab = String(route.query.tab || "");
@@ -630,11 +673,23 @@ const userSettings = reactive({
 
 async function saveUserSettings() {
   try {
+    const profileId = identityStore.activeProfileId || "default";
     await fetch(`${API_BASE}/api/system/settings`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scope: "user", values: { ...userSettings } }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Udos-Profile": profileId,
+      },
+      body: JSON.stringify({ scope: "user", values: { ...userSettings }, profile_id: profileId }),
     });
+    if (userSettings.displayName) {
+      await fetch(`${API_BASE}/api/identity/profile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile_id: profileId, name: userSettings.displayName }),
+      });
+      await identityStore.load();
+    }
   } catch {}
 }
 
@@ -758,7 +813,9 @@ async function fetchSecrets() {
 
 async function loadSettings() {
   try {
-    const res = await fetch(`${API_BASE}/api/system/settings`, {
+    const profileId = identityStore.activeProfileId || "default";
+    const res = await fetch(`${API_BASE}/api/system/settings?profile=${encodeURIComponent(profileId)}`, {
+      headers: { "X-Udos-Profile": profileId },
       signal: AbortSignal.timeout(3000),
     });
     if (res.ok) {
@@ -771,7 +828,7 @@ async function loadSettings() {
       }
       if (settings.user) {
         userSettings.displayName =
-          settings.user.displayName || "uDos Developer";
+          settings.user.displayName || identityStore.displayName || "uDos Developer";
         userSettings.email = settings.user.email || "";
         userSettings.defaultModel = settings.user.defaultModel || "Llama 3.2";
       }
@@ -791,12 +848,17 @@ onMounted(() => {
       query: { ...route.query, tab: "pages" },
     });
   }
+  identityStore.load();
   fetchPages();
   fetchReadiness();
   fetchVariables();
   fetchModelsConfig();
   fetchAgentsConfig();
   fetchSecrets();
+  loadSettings();
+});
+
+watch(() => identityStore.activeProfileId, () => {
   loadSettings();
 });
 
