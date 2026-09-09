@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from app.core.execution_context import ExecutionContext
 from app.core.settings import settings
 from app.services.dev_layer import DevMode, get_dev_layer
 from app.services.nanocoder_acp import AcpError, NanocoderAcpClient
@@ -359,6 +360,16 @@ class DeveloperOperationManager:
             raise ValueError("Proposal construction is not completed")
         proposal = operation.proposal or {}
         files = proposal.get("files") if isinstance(proposal.get("files"), list) else []
+        permitted = operation.context.get("permittedPaths") or operation.context.get("permitted_paths") or []
+        if permitted:
+            ctx = ExecutionContext(
+                task_id=operation.id,
+                repository=operation.repository,
+                permitted_paths=permitted,
+            )
+            for entry in files:
+                if entry and entry.get("path"):
+                    ctx.validate_path(entry["path"])
         if not path:
             if proposal.get("fingerprint") != fingerprint:
                 raise ValueError("Proposal fingerprint is invalid")

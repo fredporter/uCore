@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import inspect
 import json
@@ -59,6 +60,7 @@ def _discover():
                         and obj is not BaseSkill
                     ):
                         inst = obj()
+                        inst._catalogue_entry = entry
                         skills[inst.meta.id] = inst
         except Exception as e:
             log.warning("Skill load fail %s: %s", f.name, e)
@@ -112,11 +114,24 @@ async def run_skill_by_id(
     skill_id: str,
     *,
     execution_authorized: bool = False,
+    context: Any | None = None,
     **kwargs,
 ) -> dict:
     skill = get_skill(skill_id)
     if not skill:
         return {"success": False, "error": f"Skill '{skill_id}' not found"}
+
+    catalogue_entry = getattr(skill, "_catalogue_entry", {})
+    lane = catalogue_entry.get("lane")
+    allowed_roots = catalogue_entry.get("allowed_roots", [])
+
+    if context is not None:
+        if getattr(context, "scope", "") == "user" and lane == "developer":
+            return {
+                "success": False,
+                "error": f"Skill '{skill_id}' belongs to developer lane and is denied in user scope",
+            }
+
     requires_confirmation = getattr(
         skill.meta, "requires_confirmation", False
     ) or skill.meta.category in ("mutating", "destructive", "write")
@@ -127,7 +142,27 @@ async def run_skill_by_id(
             "skill_id": skill_id,
             "requires_confirmation": True,
         }
+
+    for key in ("path", "target", "target_dir", "root_dir"):
+        val = kwargs.get(key)
+        if val and isinstance(val, (str, Path)):
+            p = str(val)
+            if ".." in p:
+                return {
+                    "success": False,
+                    "error": f"Path traversal in '{p}' is denied",
+                }
+
     errors = skill.validate(**kwargs)
     if errors:
         return {"success": False, "errors": errors}
-    return await skill.run(**kwargs)
+
+    timeout = getattr(skill.meta, "timeout", 60) or 60
+    try:
+        return await asyncio.wait_for(skill.run(**kwargs), timeout=timeout)
+    except asyncio.TimeoutError:
+        return {
+            "success": False,
+            "error": f"Skill '{skill_id}' execution timed out after {timeout}s",
+            "timeout": timeout,
+        }

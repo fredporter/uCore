@@ -13,10 +13,12 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from app.core.execution_context import ExecutionContext
 from app.core.settings import settings
 from app.services.dev_layer import DevMode, get_dev_layer
 from app.services.developer_commands import get_developer_command_manager
 from app.services.developer_operations import get_developer_operation_manager
+from app.services.executor_selector import ExecutorSelector
 
 
 def require_developer() -> None:
@@ -123,7 +125,27 @@ class DeveloperChat:
         file = context.get("file", "")
         if file:
             _safe_file_path(repository, file)
-        record["context"] = {"file": file} if file else {}
+        permitted_paths = context.get("permittedPaths") or context.get("permitted_paths") or []
+        if not isinstance(permitted_paths, list):
+            permitted_paths = []
+        non_goals = context.get("nonGoals") or context.get("non_goals") or []
+        if not isinstance(non_goals, list):
+            non_goals = []
+        ctx_obj = ExecutionContext(
+            task_id=ident,
+            scope=body.get("scope", record.get("scope", "developer")),
+            lane=body.get("lane", record.get("lane", "dev")),
+            repository=repository,
+            permitted_paths=permitted_paths,
+            non_goals=non_goals,
+        )
+        record["execution_context"] = ctx_obj.to_dict()
+        ctx_payload = {"file": file} if file else {}
+        if permitted_paths:
+            ctx_payload["permittedPaths"] = permitted_paths
+        if non_goals:
+            ctx_payload["nonGoals"] = non_goals
+        record["context"] = ctx_payload
         record.setdefault("requests", []).append(request_id)
         record["mode"] = mode
         record["messages"].append({"role": "user", "content": message.strip()})
@@ -159,6 +181,10 @@ class DeveloperChat:
         require_developer()
         repo = record["repository"]
         path = api._repo_path(repo)
+        if name in {"read_file", "file_diff"} and record.get("execution_context"):
+            ctx_data = record["execution_context"]
+            if ctx_data.get("permittedPaths"):
+                ExecutionContext.from_dict(ctx_data).validate_path(args["path"])
         if name == "list_files":
             return api._list_repo_files(repo)
         if name == "read_file":
@@ -213,9 +239,24 @@ class DeveloperChat:
         from app.services.budget_manager import BudgetManager
         from app.services.provider_router import ProviderRouter
         try:
+            exec_ctx = (
+                ExecutionContext.from_dict(record["execution_context"])
+                if record.get("execution_context")
+                else ExecutionContext(task_id=record["id"], repository=record["repository"])
+            )
+            selector = ExecutorSelector.get()
+            selection = await selector.select(exec_ctx, task_type="developer-chat")
+
             budget = BudgetManager.get()
-            if not budget.can_spend("dev", estimated_cost=0.0):
+            reservation_id = None
+            if selection.cost_tier != "free":
+                reservation_id = uuid.uuid4().hex
+                if not budget.reserve_spend("dev", reservation_id, estimated_cost=0.05, lane=exec_ctx.lane):
+                    raise RuntimeError("Developer runtime budget exhausted")
+                exec_ctx.budget_reservation_id = reservation_id
+            elif not budget.can_spend("dev", estimated_cost=0.0, lane=exec_ctx.lane):
                 raise RuntimeError("Developer runtime budget exhausted")
+
             mode = record["mode"]
             tools = READ_TOOLS + (ACT_TOOLS if mode == "act" else [])
             names = {item["function"]["name"] for item in tools}
@@ -246,6 +287,8 @@ class DeveloperChat:
                 messages.append({"role": "system", "content": "Current operation evidence: " +
                                  json.dumps(evidence)[:18000]})
             messages.append({"role": "system", "content": "Selected context: " + json.dumps(record["context"])})
+            if exec_ctx.non_goals:
+                messages.append({"role": "system", "content": "Non-goals: " + json.dumps(exec_ctx.non_goals)})
             messages.extend(record["messages"][-16:])
             tree = await self.execute(record, "list_files", {})
             self.event(record, "tool", name="list_files", status="completed", result=tree[:200])
@@ -271,14 +314,25 @@ class DeveloperChat:
             for _ in range(8):
                 require_developer()
                 response = await asyncio.wait_for(router.chat(messages=messages,
-                    model=f"ollama/{settings.developer_model}",
+                    model=selection.model,
                     format={"type": "object", "properties": {
                         "name": {"type": "string", "enum": ["respond"] if synthesize else sorted(names | {"respond"})},
                         "arguments": {"type": "object"}, "response": {"type": "string"}},
                         "required": ["name", "response"] if synthesize else ["name"]}), timeout=120)
-                budget.record_spend("dev", cost=0.0, model=settings.developer_model,
-                    provider="ollama", task_type="developer-chat", cost_tier="local",
-                    metadata={"conversationId": record["id"], "usage": response.get("usage", {})})
+                if reservation_id:
+                    budget.reconcile_spend(
+                        reservation_id,
+                        actual_cost=0.0,
+                        model=selection.model,
+                        provider=selection.provider,
+                        task_type="developer-chat",
+                        cost_tier=selection.cost_tier,
+                        metadata={"conversationId": record["id"], "usage": response.get("usage", {})},
+                    )
+                else:
+                    budget.record_spend("dev", cost=0.0, model=selection.model,
+                        provider=selection.provider, task_type="developer-chat", cost_tier=selection.cost_tier,
+                        metadata={"conversationId": record["id"], "usage": response.get("usage", {})})
                 if response.get("error"):
                     raise RuntimeError(response["error"])
                 calls = response.get("tool_calls") or []
