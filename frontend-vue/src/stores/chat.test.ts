@@ -26,4 +26,22 @@ describe("chat history persistence", () => {
     expect(store.conversations).toEqual([]);
     expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/chat/history"), expect.objectContaining({ method: "DELETE" }));
   });
+
+  it("isolates history per profile and passes X-Udos-Profile header", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        conversations: [{ id: "alice-1", title: "Alice chat", model: "auto", createdAt: "2026-01-01", updatedAt: "2026-01-02", messages: [] }],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const store = useChatStore();
+    await store.restoreHistory();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/chat/history?profile="),
+      expect.objectContaining({
+        headers: expect.objectContaining({ "X-Udos-Profile": "default" }),
+      }),
+    );
+  });
 });

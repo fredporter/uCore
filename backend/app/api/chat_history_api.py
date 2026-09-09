@@ -1,4 +1,4 @@
-"""Per-install chat history persistence for the single global chat widget."""
+"""Per-install and per-profile chat history persistence for the single global chat widget."""
 from __future__ import annotations
 
 import json
@@ -13,29 +13,51 @@ _MAX_CONVERSATIONS = 100
 _MAX_BYTES = 2_000_000
 
 
-def _history_file() -> Path:
+def _history_file(profile_id: str | None = None) -> Path:
     identity = get_full_identity()
     owner = str(identity.get("user_id") or identity.get("install_id") or "local")
     safe_owner = "".join(char for char in owner if char.isalnum() or char in "-_")[:80] or "local"
-    return settings.data_dir / "chat" / f"{safe_owner}.json"
+    if not profile_id:
+        profile_id = str(identity.get("active_profile_id") or "default")
+    safe_profile = "".join(char for char in profile_id if char.isalnum() or char in "-_")[:40] or "default"
+
+    primary = settings.data_dir / "chat" / f"{safe_owner}_{safe_profile}.json"
+    if not primary.exists() and safe_profile == "default":
+        legacy = settings.data_dir / "chat" / f"{safe_owner}.json"
+        if legacy.exists():
+            return legacy
+    return primary
 
 
-def _read_history() -> list[dict]:
+def _read_history(profile_id: str | None = None) -> list[dict]:
     try:
-        value = json.loads(_history_file().read_text(encoding="utf-8"))
+        try:
+            target = _history_file(profile_id)
+        except TypeError:
+            target = _history_file()  # Support legacy 0-arg mocks
+        value = json.loads(target.read_text(encoding="utf-8"))
         return value if isinstance(value, list) else []
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return []
 
 
-def _write_history(conversations: list[dict]) -> None:
-    target = _history_file()
+def _write_history(conversations: list[dict], profile_id: str | None = None) -> None:
+    try:
+        target = _history_file(profile_id)
+    except TypeError:
+        target = _history_file()  # Support legacy 0-arg mocks
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(conversations[-_MAX_CONVERSATIONS:], indent=2), encoding="utf-8")
+    temp = target.with_suffix(".tmp")
+    temp.write_text(json.dumps(conversations[-_MAX_CONVERSATIONS:], indent=2), encoding="utf-8")
+    temp.replace(target)
 
 
-async def handle_get_chat_history(_request: web.Request) -> web.Response:
-    return web.json_response({"conversations": _read_history()})
+async def handle_get_chat_history(request: web.Request) -> web.Response:
+    identity = get_full_identity()
+    profile_id = request.headers.get("X-Udos-Profile") or request.query.get("profile") or identity.get("active_profile_id")
+    if not identity.get("authenticated") and not request.headers.get("X-Udos-Profile"):
+        return web.json_response({"conversations": []})
+    return web.json_response({"conversations": _read_history(profile_id)})
 
 
 async def handle_save_chat_history(request: web.Request) -> web.Response:
@@ -55,12 +77,22 @@ async def handle_save_chat_history(request: web.Request) -> web.Response:
     conversations = body.get("conversations")
     if not isinstance(conversations, list) or any(not isinstance(item, dict) for item in conversations):
         return web.json_response({"error": "conversations must be an array of objects"}, status=400)
-    _write_history(conversations)
+
+    identity = get_full_identity()
+    if not identity.get("authenticated") and not request.headers.get("X-Udos-Profile"):
+        return web.json_response({"error": "Authentication required to persist chat history"}, status=401)
+
+    profile_id = request.headers.get("X-Udos-Profile") or request.query.get("profile") or identity.get("active_profile_id")
+    _write_history(conversations, profile_id=profile_id)
     return web.json_response({"status": "ok", "count": min(len(conversations), _MAX_CONVERSATIONS)})
 
 
-async def handle_clear_chat_history(_request: web.Request) -> web.Response:
-    _write_history([])
+async def handle_clear_chat_history(request: web.Request) -> web.Response:
+    identity = get_full_identity()
+    if not identity.get("authenticated") and not request.headers.get("X-Udos-Profile"):
+        return web.json_response({"error": "Authentication required to clear chat history"}, status=401)
+    profile_id = request.headers.get("X-Udos-Profile") or request.query.get("profile") or identity.get("active_profile_id")
+    _write_history([], profile_id=profile_id)
     return web.json_response({"status": "ok"})
 
 

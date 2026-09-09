@@ -32,7 +32,12 @@ export default defineConfig({
         navigateFallback: "/index.html",
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         runtimeCaching: [{
-          urlPattern: ({ url }) => url.pathname.startsWith("/api/workspace") || url.pathname.startsWith("/api/editor/files"),
+          urlPattern: ({ url }) =>
+            url.pathname.startsWith("/api/workspace") ||
+            url.pathname.startsWith("/api/editor/files") ||
+            url.pathname.startsWith("/api/system/settings") ||
+            url.pathname.startsWith("/api/user/preferences") ||
+            url.pathname.startsWith("/api/identity"),
           handler: "NetworkFirst",
           options: { cacheName: "ucore-workspace", networkTimeoutSeconds: 3, expiration: { maxEntries: 100, maxAgeSeconds: 86400 } },
         }],
