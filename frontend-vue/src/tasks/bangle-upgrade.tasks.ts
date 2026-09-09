@@ -639,7 +639,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
       "FrontmatterParser, HtmlToMarkdown, WebScraper, CitationGenerator",
     phase: 0, // Cross-phase testing
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["testing", "qa"],
     checklist: [
@@ -657,7 +657,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description: "TreeNode, Pills, Toolbar buttons, modals",
     phase: 0, // Cross-phase testing
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["testing", "qa"],
     checklist: [
@@ -675,7 +675,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description: "Create → Edit → Export workflow",
     phase: 0, // Cross-phase testing
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 2,
     tags: ["testing", "qa"],
     checklist: [
@@ -694,7 +694,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description: "Test all components on mobile devices",
     phase: 0, // Cross-phase testing
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["testing", "qa", "mobile"],
     checklist: [
@@ -713,7 +713,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description: "Verify all components in dark theme",
     phase: 0, // Cross-phase testing
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["testing", "qa", "accessibility"],
     checklist: [
@@ -730,7 +730,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description: "Test full keyboard navigation and shortcuts",
     phase: 0, // Cross-phase testing
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["testing", "qa", "a11y"],
     checklist: [
@@ -752,7 +752,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description: "JSDoc comments for all new components and utilities",
     phase: 0, // Cross-phase documentation
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["documentation"],
     checklist: [
@@ -769,7 +769,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description: "Documentation for users on using new features",
     phase: 0, // Cross-phase documentation
     priority: "low",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1,
     tags: ["documentation", "user-guide"],
     checklist: [
@@ -788,7 +788,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description: "Ensure builds stay under 2 seconds",
     phase: 0, // Cross-phase optimization
     priority: "medium",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["performance", "optimization"],
     checklist: [
@@ -807,7 +807,7 @@ export const BANGLE_UPGRADE_TASKS: SprintTask[] = [
     description: "Comprehensive testing before production",
     phase: 0, // Cross-phase testing
     priority: "high",
-    status: "backlog",
+    status: "done",
     estimatedHours: 1.5,
     tags: ["testing", "qa", "deployment"],
     checklist: [

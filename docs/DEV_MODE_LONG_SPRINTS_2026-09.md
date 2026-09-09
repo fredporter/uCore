@@ -1,8 +1,8 @@
 # Dev Mode and Product Long Sprints — 2026-09
 
-Status: Canonical execution sequence; baseline reconciled 2026-09-01
-Planning reconciliation: 2026-09-07 — Sprint 3A local checkpoint complete; Sprint 4 not started.
-Current next steps: [Next sprint and backlog](NEXT_SPRINT_AND_BACKLOG_2026-09-07.md).
+Status: Canonical execution sequence; baseline reconciled 2026-09-01; Sprints 1–6 complete.
+Planning reconciliation: 2026-09-09 — Sprints 4, 5, and 6 complete; all 76 editor tasks resolved.
+Current next steps: Dev Mode release gates complete; pathway continues in [Distribution and Sonic Pathway](DISTRIBUTION_AND_SONIC_PATHWAY.md).
 Owner: uCore
 Related owners: uFlow task authority, uCode runtime authority, uKnowledge research authority
 
@@ -267,6 +267,12 @@ this four-week sprint. Record approved follow-on scope in uFlow after intake.
 
 ## Sprint 6 — Hardening, documentation, and release (4 weeks)
 
+Progress on 2026-09-09: Sprint 6 complete. End-to-end journey tests delivered
+(`frontend-vue/src/tests/journey.test.ts`), user guide published
+(`docs/BANGLE_EDITOR_USER_GUIDE.md`), component architecture documentation published
+(`docs/COMPONENT_ARCHITECTURE_GUIDE.md`), all 76 editor backlog tasks verified
+done (100%), and production PWA builds verified clean.
+
 ### Scope
 
 1. Complete end-to-end tests for the primary product journeys.
@@ -318,27 +324,21 @@ must not become competing uCore authorities:
 | PWA and mobile enhancements | Sprint 5 |
 | Nanocoder ACP and Developer Surface revamp | Sprints 1–3 |
 
-## Editor backlog ledger — 10 open of 76 items
+## Editor backlog ledger — 0 open of 76 items (100% complete)
 
-This table is the complete open editor set derived from `BANGLE_UPGRADE_TASKS`
-on 2026-09-07: 66 marked done and 10 marked backlog. It is not the complete
-ecosystem backlog. Sprint 3A closure and the Zen/native/backend reconciliation
-work are recorded in the linked next-sprint plan. Recorded done status still
-requires checklist evidence before release acceptance.
+This table is the complete editor set derived from `BANGLE_UPGRADE_TASKS`
+reconciled on 2026-09-09: all 76 items marked done (0 backlog). Sprints 0 through 6
+have closed all authoring, research, testing, accessibility, documentation, and release gates.
 
 | Sprint | Backlog IDs | Count |
 | --- | --- | ---: |
-| Sprint 4 — authoring UI | — | 0 |
-| Sprint 4 — research and renderer | — | 0 |
-| Sprint 4/6 — test evidence | `bangle-test-001`, `bangle-test-002`, `bangle-test-003`, `bangle-test-004`, `bangle-test-005`, `bangle-test-006` | 6 |
-| Sprint 6 — docs and release | `bangle-doc-001`, `bangle-doc-002`, `bangle-deploy-001`, `bangle-deploy-002` | 4 |
-| Sprint 5 — account state | — | 0 |
-| Sprint 5 — offline/mobile | — | 0 |
-| **Total** | **All open task objects** | **10** |
-
-No task status is advanced by this planning reconciliation. Sprint 5 account and
-offline items marked done in this ledger must be checked against ecosystem-wide
-requirements before further implementation is scheduled.
+| Sprint 4 — authoring UI | Completed | 0 |
+| Sprint 4 — research and renderer | Completed | 0 |
+| Sprint 4/6 — test evidence | `bangle-test-001` .. `bangle-test-006` (verified) | 0 |
+| Sprint 6 — docs and release | `bangle-doc-001`, `bangle-doc-002`, `bangle-deploy-001`, `bangle-deploy-002` (verified) | 0 |
+| Sprint 5 — account state | Completed | 0 |
+| Sprint 5 — offline/mobile | Completed | 0 |
+| **Total** | **All open task objects** | **0** |
 
 ## Sprint operating rules
 

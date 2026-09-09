@@ -34,6 +34,8 @@ Architecture boundary: [uDOS Zen ecosystem contract](ZEN_ECOSYSTEM_CONTRACT.md).
 
 | Doc                                                                      | Purpose                       |
 | ------------------------------------------------------------------------ | ----------------------------- |
+| [BANGLE_EDITOR_USER_GUIDE.md](BANGLE_EDITOR_USER_GUIDE.md)               | Bangle markdown authoring user guide |
+| [COMPONENT_ARCHITECTURE_GUIDE.md](COMPONENT_ARCHITECTURE_GUIDE.md)       | Frontend/backend architecture and USX design system |
 | [USX_LAYOUT_SYSTEM_SPEC.md](USX_LAYOUT_SYSTEM_SPEC.md)                   | USX layout system             |
 | [FONT_SIZING_STANDARDS.md](FONT_SIZING_STANDARDS.md)                     | Font sizing standards         |
 | [FILEPICKER_SIDEBAR_SPEC.md](FILEPICKER_SIDEBAR_SPEC.md)                 | Filepicker sidebar            |
