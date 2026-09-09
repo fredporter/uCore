@@ -20,9 +20,9 @@ uCore's user interface is built as a Vue 3 single-page progressive web applicati
                    ▼                               ▼
     ┌─────────────────────────────┐ ┌─────────────────────────────┐
     │      useSettingsStore       │ │        useChatStore         │
-    │  - scoped server sync       │ │  - assistui-conversations-  │
-    │  - themeMode: light | dark  │ │    ${profileId}             │
-    │  - fontSize, palette, model │ │  - partitioned history api  │
+    │  - local & /api/user/prefs  │ │  - assistui-conversations-  │
+    │  - themeMode: dark|light|auto │ │    ${profileId}             │
+    │  - fontStyle, size, palette │ │  - partitioned history api  │
     └─────────────────────────────┘ └─────────────────────────────┘
                    │
                    ▼
@@ -39,9 +39,10 @@ uCore's user interface is built as a Vue 3 single-page progressive web applicati
    - Clears session tokens and sensitive credentials on logout; prevents data bleeding between profiles.
 
 2. **`useSettingsStore` (`src/stores/settings.ts`)**:
-   - Persists user preferences locally with fallback to `/api/system/settings`.
-   - Sends `X-Udos-Profile` header with mutation requests to scope settings per profile.
-   - Enforces strict USX theme modes: `light` or `dark` (no arbitrary color palettes in production USX).
+   - Persists user preferences locally with fallback to `/api/user/preferences`.
+   - Supports theme modes (`dark`, `light`, `auto`), font styles (`inter`, `system`, `mono`), font sizing (12-24px), and palettes (`default`, `ocean`, `forest`, `sunset`).
+   - Debounces synchronization to the backend preference store with a 250ms window.
+   - Profile-scoped system configurations remain managed via `SettingsManager` on `/api/system/settings`.
 
 3. **`useChatStore` (`src/stores/chat.ts`)**:
    - Scopes conversation persistence key by active profile (`assistui-conversations-${profileId}`).

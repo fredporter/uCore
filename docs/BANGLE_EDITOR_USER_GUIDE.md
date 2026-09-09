@@ -107,7 +107,7 @@ Bangle provides citation formatting conforming to academic and sovereign documen
 
 ## 7. Exporting to Binder & Presentations
 
-- **Binder Export**: Bundle the active document, its assets, and referenced variants into a standalone `.binder` package under `~/Vault/Binder` or `UDOS_HOME/binder`.
+- **Binder Export**: Export the active document and its content directly into the user's Binder workspace as a Markdown file under `~/Vault/<binder>` via the backend Binder API (`POST /api/editor/save-to-binder`).
 - **Slide Presentation (Marp)**: Delimit slides with `---` dividers. Bangle renders slides in real time using the Marp renderer for instant full-screen presentations.
 
 ---

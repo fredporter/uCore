@@ -141,11 +141,29 @@ describe("Sprint 6 Product Journey & Release Hardening", () => {
       expect(settingsStore.themeMode).toBe("light");
       expect(settingsStore.fontSize).toBe(20);
       expect(settingsStore.palette).toBe("ocean");
+
+      // Flush debounced save (250ms)
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/user/preferences"),
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('"themeMode":"light"'),
+        }),
+      );
     });
   });
 
   describe("Journey 3: Per-Profile Chat Isolation", () => {
     it("partitions conversations between profiles without data bleeding", async () => {
+      const identityStore = useIdentityStore();
+      identityStore.identity = {
+        user_id: "UDOS-1",
+        codeword: "Owner",
+        install_id: "host-1",
+        session_id: "s-1",
+        active_profile_id: "default",
+      };
       const store = useChatStore();
 
       // Set conversation under profile 1
@@ -174,7 +192,7 @@ describe("Sprint 6 Product Journey & Release Hardening", () => {
       ];
       localStorage.setItem("assistui-conversations-guest", JSON.stringify(convP2));
 
-      // Mock server returning guest profile conversations
+      // Mock server returning profile-partitioned conversations
       vi.stubGlobal(
         "fetch",
         vi.fn().mockImplementation(async (url) => {
@@ -186,10 +204,25 @@ describe("Sprint 6 Product Journey & Release Hardening", () => {
         }),
       );
 
-      // Default profile history
+      // 1. Restore history for default profile
       await store.restoreHistory();
       expect(store.conversations).toHaveLength(1);
       expect(store.conversations[0].id).toBe("conv-owner-1");
+
+      // 2. Switch identity to guest profile and restore
+      identityStore.identity = {
+        ...identityStore.identity!,
+        active_profile_id: "guest",
+      };
+      await store.restoreHistory();
+      expect(store.conversations).toHaveLength(1);
+      expect(store.conversations[0].id).toBe("conv-guest-1");
+
+      // 3. Verify storage keys remain completely isolated
+      const rawP1 = localStorage.getItem("assistui-conversations-default");
+      const rawP2 = localStorage.getItem("assistui-conversations-guest");
+      expect(JSON.parse(rawP1!)[0].id).toBe("conv-owner-1");
+      expect(JSON.parse(rawP2!)[0].id).toBe("conv-guest-1");
     });
   });
 
