@@ -104,3 +104,13 @@ This restores prior direction rather than introducing a separate product vision:
 
 Current priority is macOS. Preserve Linux's platform boundary and historical Zen
 Browser direction, without adding Linux implementation work to Sprint 3A.
+
+## Local-first execution boundary
+
+Normal work uses deterministic Skills/Snacks and local Ollama inference. Cloud
+models and premium APIs are eligible only for explicitly authorized Developer
+work; Dev Mode alone is not a spending grant. BrowserUI may access the web with
+local synthesis, and named Snacks may sync connected services without inheriting
+cloud-model access. See the [execution lanes brief](LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md)
+for the proposed enforcement contract, research interpretation and Sprint 4 slices.
+This boundary is user-directed; runtime enforcement remains implementation work.

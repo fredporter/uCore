@@ -45,7 +45,11 @@ Architecture boundary: [uDOS Zen ecosystem contract](ZEN_ECOSYSTEM_CONTRACT.md).
 
 ## Active Developer / Dev Mode Specs
 
-Approved, in progress: [Special Sprint 3A — Conversational Dev Mode](DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md).
+Receiving-agent entry point: [Gemini / Antigravity handover — 2026-09-09](HANDOVER_GEMINI_ANTIGRAVITY_2026-09-09.md).
+
+Current assessment: [Internal Dev Mode readiness audit — 2026-09-09](INTERNAL_DEV_READINESS_AUDIT_2026-09-09.md).
+
+Completed and merged: [Special Sprint 3A — Conversational Dev Mode](DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md).
 
 | Doc                                                                                                        | Purpose                                                  |
 | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
@@ -63,3 +67,9 @@ Approved, in progress: [Special Sprint 3A — Conversational Dev Mode](DEV_CHAT_
 ## Archive
 
 See [`docs/archive/`](archive/) for completed milestones, deprecated runbooks, and historical handovers.
+
+## Local-first execution planning
+
+[Execution lanes brief — 2026-09-08](LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md): Skills, Snacks, Ollama, cloud eligibility, repeatability and Sprint 4 priorities. Proposed enforcement, not a claim of current runtime restrictions.
+
+[Execution enforcement proposal](ECOSYSTEM_EXECUTION_CONTRACT_2026-09-08.md): strict USX composition, predictable publishing/Actions, harness boundaries and promotion from Dev Mode.
