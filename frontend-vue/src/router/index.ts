@@ -137,6 +137,16 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "Documentation", icon: "help" },
   },
   {
+    path: "/recipes/:pathMatch(.*)*",
+    name: "recipes",
+    component: () => import("../surfaces/recipes/RecipeGallerySurface.vue"),
+    meta: { title: "Recipe Gallery", icon: "style" },
+  },
+  {
+    path: "/surfaces/:pathMatch(.*)*",
+    redirect: "/recipes",
+  },
+  {
     path: "/teletext/:pathMatch(.*)*",
     redirect: "/ucode?tab=teletext",
   },
