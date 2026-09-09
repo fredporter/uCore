@@ -5,6 +5,9 @@ import {
   SAMPLE_PROSE_DOCUMENT,
   SAMPLE_CARD_MATRIX,
   SAMPLE_SETTINGS_FORM,
+  SAMPLE_STORY_FORM,
+  SAMPLE_SYSTEM_PAGE,
+  SAMPLE_ALERTS_SUITE,
   SAMPLE_TELETEXT,
   SAMPLE_TERMINAL,
   type AnyRecipe,
@@ -14,6 +17,9 @@ import TaskListRecipeView from '../../recipes/components/TaskListRecipeView.vue'
 import ProseDocumentRecipeView from '../../recipes/components/ProseDocumentRecipeView.vue'
 import CardMatrixRecipeView from '../../recipes/components/CardMatrixRecipeView.vue'
 import SettingsFormRecipeView from '../../recipes/components/SettingsFormRecipeView.vue'
+import StoryRecipeView from '../../recipes/components/StoryRecipeView.vue'
+import SystemPageRecipeView from '../../recipes/components/SystemPageRecipeView.vue'
+import AlertsRecipeView from '../../recipes/components/AlertsRecipeView.vue'
 import TeletextRecipeView from '../../recipes/components/TeletextRecipeView.vue'
 import TerminalRecipeView from '../../recipes/components/TerminalRecipeView.vue'
 
@@ -28,6 +34,9 @@ const allRecipes: Record<string, AnyRecipe> = {
   'prose-document': SAMPLE_PROSE_DOCUMENT,
   'card-matrix': SAMPLE_CARD_MATRIX,
   'settings-form': SAMPLE_SETTINGS_FORM,
+  'story-form': SAMPLE_STORY_FORM,
+  'system-page': SAMPLE_SYSTEM_PAGE,
+  'alerts-suite': SAMPLE_ALERTS_SUITE,
   'teletext-mode7': SAMPLE_TELETEXT,
   'terminal-ansi': SAMPLE_TERMINAL,
 }
@@ -117,7 +126,7 @@ const currentParadigm = computed(() => currentRecipe.value.paradigm)
     <!-- Recipe Navigation Tabs -->
     <nav class="recipe-nav-tabs">
       <div class="paradigm-group">
-        <span class="paradigm-label">USX (DOM / Material 3 + Prose):</span>
+        <span class="paradigm-label">USX Core Surfaces:</span>
         <button
           class="recipe-tab-btn"
           :class="{ active: selectedRecipeKey === 'task-list' }"
@@ -150,25 +159,53 @@ const currentParadigm = computed(() => currentRecipe.value.paradigm)
           <span class="material-symbols-outlined">tune</span>
           <span>Settings Form</span>
         </button>
+        <button
+          class="recipe-tab-btn"
+          :class="{ active: selectedRecipeKey === 'system-page' }"
+          @click="selectedRecipeKey = 'system-page'"
+        >
+          <span class="material-symbols-outlined">search_off</span>
+          <span>System Page (S100)</span>
+        </button>
       </div>
 
       <div class="paradigm-group">
-        <span class="paradigm-label">GridCore (Matrix / Retro & CLI):</span>
+        <span class="paradigm-label">Intake & Overlays:</span>
         <button
-          class="recipe-tab-btn tab-retro"
-          :class="{ active: selectedRecipeKey === 'teletext-mode7' }"
-          @click="selectedRecipeKey = 'teletext-mode7'"
+          class="recipe-tab-btn"
+          :class="{ active: selectedRecipeKey === 'story-form' }"
+          @click="selectedRecipeKey = 'story-form'"
         >
-          <span class="material-symbols-outlined">tv</span>
-          <span>Teletext Mode 7</span>
+          <span class="material-symbols-outlined">dynamic_form</span>
+          <span>Story Form (Typeform)</span>
         </button>
+        <button
+          class="recipe-tab-btn"
+          :class="{ active: selectedRecipeKey === 'alerts-suite' }"
+          @click="selectedRecipeKey = 'alerts-suite'"
+        >
+          <span class="material-symbols-outlined">notifications_active</span>
+          <span>Alerts & Notifications</span>
+        </button>
+      </div>
+
+      <div class="paradigm-group">
+        <span class="paradigm-label">GridCore (Matrix & CLI):</span>
         <button
           class="recipe-tab-btn tab-retro"
           :class="{ active: selectedRecipeKey === 'terminal-ansi' }"
           @click="selectedRecipeKey = 'terminal-ansi'"
         >
           <span class="material-symbols-outlined">terminal</span>
-          <span>Terminal ANSI</span>
+          <span>Terminal (C64 / ANSI)</span>
+        </button>
+        <button
+          class="recipe-tab-btn tab-retro"
+          :class="{ active: selectedRecipeKey === 'teletext-mode7' }"
+          @click="selectedRecipeKey = 'teletext-mode7'"
+        >
+          <span class="material-symbols-outlined">tv</span>
+          <span>Teletext (Mode 7)</span>
         </button>
       </div>
     </nav>
@@ -198,12 +235,24 @@ const currentParadigm = computed(() => currentRecipe.value.paradigm)
             v-else-if="selectedRecipeKey === 'settings-form'"
             :recipe="currentRecipe as any"
           />
-          <TeletextRecipeView
-            v-else-if="selectedRecipeKey === 'teletext-mode7'"
+          <StoryRecipeView
+            v-else-if="selectedRecipeKey === 'story-form'"
+            :recipe="currentRecipe as any"
+          />
+          <SystemPageRecipeView
+            v-else-if="selectedRecipeKey === 'system-page'"
+            :recipe="currentRecipe as any"
+          />
+          <AlertsRecipeView
+            v-else-if="selectedRecipeKey === 'alerts-suite'"
             :recipe="currentRecipe as any"
           />
           <TerminalRecipeView
             v-else-if="selectedRecipeKey === 'terminal-ansi'"
+            :recipe="currentRecipe as any"
+          />
+          <TeletextRecipeView
+            v-else-if="selectedRecipeKey === 'teletext-mode7'"
             :recipe="currentRecipe as any"
           />
         </div>

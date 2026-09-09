@@ -100,7 +100,79 @@ export interface SettingsFormRecipe extends BaseRecipe {
   sections: SettingsSection[]
 }
 
-// ─── 5. GridCore: Teletext Mode 7 Recipe ──────────────────────────
+// ─── 5. USX: Story Format (Typeform Style) Recipe ────────────────
+export interface StoryOption {
+  id: string
+  label: string
+  shortcut?: string
+  description?: string
+}
+
+export interface StoryQuestion {
+  id: string
+  headline: string
+  subtext?: string
+  type: 'single-choice' | 'multi-choice' | 'text' | 'scale'
+  options?: StoryOption[]
+  placeholder?: string
+  required?: boolean
+}
+
+export interface StoryRecipe extends BaseRecipe {
+  recipe: 'story-form'
+  paradigm: 'usx'
+  questions: StoryQuestion[]
+  submitLabel?: string
+}
+
+// ─── 6. USX: System Page (S100 Diagnostic) Recipe ────────────────
+export interface SystemPageRecipe extends BaseRecipe {
+  recipe: 'system-page'
+  paradigm: 'usx'
+  code: string // e.g. "S100", "S101", "S300", "S500"
+  icon: string
+  heading: string
+  summary: string
+  steps: string[]
+  suggestions: Array<{ label: string; to: string }>
+  actions: Array<{ label: string; variant?: 'primary' | 'secondary' | 'danger'; action: string }>
+  footnote: string
+}
+
+// ─── 7. USX: Alerts & Notification Suite Recipe ──────────────────
+export interface AlertsRecipe extends BaseRecipe {
+  recipe: 'alerts-suite'
+  paradigm: 'usx'
+  curtain: {
+    visible: boolean
+    severity: 'info' | 'warning' | 'critical' | 'success'
+    title: string
+    message: string
+    actionLabel?: string
+    dismissible: boolean
+  }
+  inlineAlerts: Array<{
+    id: string
+    severity: 'info' | 'warning' | 'critical' | 'success'
+    title: string
+    message: string
+  }>
+  toasts: Array<{
+    id: string
+    type: 'info' | 'success' | 'warning' | 'error'
+    message: string
+    actionLabel?: string
+  }>
+  dialog: {
+    type: 'info' | 'warning' | 'critical' | 'success'
+    title: string
+    message: string
+    confirmLabel: string
+    cancelLabel?: string
+  }
+}
+
+// ─── 8. GridCore: Teletext Mode 7 Recipe ──────────────────────────
 export interface TeletextRecipe extends BaseRecipe {
   recipe: 'teletext-mode7'
   paradigm: 'gridcore'
@@ -110,7 +182,7 @@ export interface TeletextRecipe extends BaseRecipe {
   lines: string[] // 24 lines of 40 columns
 }
 
-// ─── 6. GridCore: Terminal ANSI Recipe ────────────────────────────
+// ─── 9. GridCore: Terminal ANSI Recipe ────────────────────────────
 export interface TerminalRecipe extends BaseRecipe {
   recipe: 'terminal-ansi'
   paradigm: 'gridcore'
@@ -129,6 +201,9 @@ export type AnyRecipe =
   | ProseDocumentRecipe
   | CardMatrixRecipe
   | SettingsFormRecipe
+  | StoryRecipe
+  | SystemPageRecipe
+  | AlertsRecipe
   | TeletextRecipe
   | TerminalRecipe
 
@@ -421,4 +496,133 @@ export const SAMPLE_TERMINAL: TerminalRecipe = {
       ],
     },
   ],
+}
+
+export const SAMPLE_STORY_FORM: StoryRecipe = {
+  id: 'recipe-story-sample',
+  recipe: 'story-form',
+  paradigm: 'usx',
+  version: 1,
+  title: 'Mission Intake Questionnaire (Typeform Style)',
+  description: 'High-focus single-question slide layout with keyboard navigation and progress tracking',
+  submitLabel: 'Launch Mission',
+  questions: [
+    {
+      id: 'q1',
+      headline: 'What is the primary target repository for this task?',
+      subtext: 'uDOS boundaries enforce single-repo scope per execution context.',
+      type: 'single-choice',
+      required: true,
+      options: [
+        { id: 'ucore', label: 'uCore', shortcut: '1', description: 'UI & Service Host (Aiohttp + Vue 3)' },
+        { id: 'uflow', label: 'uFlow', shortcut: '2', description: 'Workflow & Task State Authority' },
+        { id: 'ucode', label: 'uCode', shortcut: '3', description: 'GridCore Matrix & BASIC Runtime' },
+        { id: 'uknowledge', label: 'uKnowledge', shortcut: '4', description: 'Local Markdown Knowledge Vault' },
+      ],
+    },
+    {
+      id: 'q2',
+      headline: 'Which execution lane should be assigned?',
+      subtext: 'Lane controls provider eligibility, budget caps, and network boundaries.',
+      type: 'single-choice',
+      required: true,
+      options: [
+        { id: 'everyday', label: 'Everyday (User Scope)', shortcut: 'A', description: 'Hard-zero cloud spend, local Ollama only, offline-safe' },
+        { id: 'dev', label: 'Developer Mode', shortcut: 'B', description: 'Permits atomic budget reservations up to $0.10/task' },
+      ],
+    },
+    {
+      id: 'q3',
+      headline: 'Specify non-goals and explicit boundaries for this execution',
+      subtext: 'These constraints are injected directly into the LLM system prompt to prevent scope creep.',
+      type: 'text',
+      placeholder: 'e.g. Do NOT touch database migrations, do NOT introduce new top-level directories...',
+      required: false,
+    },
+  ],
+}
+
+export const SAMPLE_SYSTEM_PAGE: SystemPageRecipe = {
+  id: 'recipe-system-page-sample',
+  recipe: 'system-page',
+  paradigm: 'usx',
+  version: 1,
+  title: 'S100 System Diagnostic Fallback',
+  description: 'Canonical system error, diagnostic status, and specification sheet pattern',
+  code: 'S100',
+  icon: 'search_off',
+  heading: 'Resource Specification Not Found',
+  summary: 'The requested system capability or route is unavailable in the current runtime state.',
+  steps: [
+    'Confirm the owning service is running under uCore supervision on port 8484.',
+    'Check local-first boundaries: user scope denies external network requests.',
+    'Review recent commits or configuration manifests in the developer workbench.',
+  ],
+  suggestions: [
+    { label: 'System Overview', to: '/system' },
+    { label: 'Developer Workbench', to: '/developer' },
+    { label: 'Service Health Monitor', to: '/system/s500' },
+    { label: 'Surfaces & Recipes', to: '/recipes' },
+  ],
+  actions: [
+    { label: 'Go Back', variant: 'secondary', action: 'back' },
+    { label: 'Retry Diagnosis', variant: 'primary', action: 'retry' },
+    { label: 'Return Home', variant: 'secondary', action: 'home' },
+  ],
+  footnote: 'Error S100. Diagnostic fallback generated locally without network dependencies.',
+}
+
+export const SAMPLE_ALERTS_SUITE: AlertsRecipe = {
+  id: 'recipe-alerts-sample',
+  recipe: 'alerts-suite',
+  paradigm: 'usx',
+  version: 1,
+  title: 'USX Alerts & Notification Suite',
+  description: 'Comprehensive notification patterns: Slide-down Curtain, Toasts, Inline Banners, and Modal Dialogs',
+  curtain: {
+    visible: true,
+    severity: 'warning',
+    title: 'Developer Mode Active',
+    message: 'Local Ollama is operating. Paid frontier models require an active task reservation.',
+    actionLabel: 'Review Budget',
+    dismissible: true,
+  },
+  inlineAlerts: [
+    {
+      id: 'alert-info',
+      severity: 'info',
+      title: 'Local First Invariant',
+      message: 'User scope tasks have a hard-zero cloud allowance and run strictly offline.',
+    },
+    {
+      id: 'alert-success',
+      severity: 'success',
+      title: 'Dev Readiness Gate Cleared',
+      message: 'All 10 boundary tests passed. Path traversal and provider escalation blocked.',
+    },
+    {
+      id: 'alert-warning',
+      severity: 'warning',
+      title: 'Budget Reservation Limit Approaching',
+      message: 'Active session spend is at $0.08 of the $0.10 task cap.',
+    },
+    {
+      id: 'alert-critical',
+      severity: 'critical',
+      title: 'Out-of-Scope Write Attempt Blocked',
+      message: 'Write request outside permittedPaths was intercepted and rejected.',
+    },
+  ],
+  toasts: [
+    { id: 't1', type: 'success', message: 'Recipe changes compiled cleanly', actionLabel: 'View' },
+    { id: 't2', type: 'info', message: 'Vite dev server active on port 5175' },
+    { id: 't3', type: 'warning', message: 'High contrast theme preview enabled' },
+  ],
+  dialog: {
+    type: 'warning',
+    title: 'Confirm Operation Authorization',
+    message: 'Are you sure you want to promote this patch to the main branch? This action cannot be undone.',
+    confirmLabel: 'Apply Proposal',
+    cancelLabel: 'Cancel',
+  },
 }

@@ -1,65 +1,151 @@
-<script setup lang="ts">
-import type { TeletextRecipe } from '../recipes'
-
-defineProps<{
-  recipe: TeletextRecipe
-}>()
-
-// Helper to convert ANSI color codes to styled HTML spans
-function parseAnsi(text: string): string {
-  const colorMap: Record<string, string> = {
-    '30': '#000000',
-    '31': '#ff0000', // Red
-    '32': '#00ff00', // Green
-    '33': '#ffff00', // Yellow
-    '34': '#0000ff', // Blue
-    '35': '#ff00ff', // Magenta
-    '36': '#00ffff', // Cyan
-    '37': '#ffffff', // White
-  }
-
-  let html = text
-  html = html.replace(/\x1b\[3([0-7])m\x1b\[1m(.*?)\x1b\[0m/g, (_, code, content) => {
-    return `<span style="color:${colorMap['3' + code]}; font-weight:bold; font-size:1.15em;">${content}</span>`
-  })
-  html = html.replace(/\x1b\[3([0-7])m(.*?)\x1b\[0m/g, (_, code, content) => {
-    return `<span style="color:${colorMap['3' + code]}">${content}</span>`
-  })
-  return html
-}
-</script>
-
 <template>
   <div class="teletext-recipe-container">
     <div class="teletext-header-meta">
-      <span class="teletext-tag">GridCore Recipe: {{ recipe.recipe }}</span>
-      <span class="teletext-tag">Matrix: 40 × 25 Cell Lattice</span>
-      <span class="teletext-tag">Engine: Ceefax / Mode 7</span>
+      <span class="teletext-tag">GridCore Canvas: &lt;gridui-canvas&gt;</span>
+      <span class="teletext-tag">Matrix: 40 × 25 Mode 7</span>
+      <span class="teletext-tag">Font: Bedstead (SAA5050)</span>
+      <span class="teletext-tag">Palette: BBC Ceefax 8-Colour</span>
     </div>
 
-    <!-- Teletext CRT Bezel & Screen -->
-    <div class="teletext-crt-frame">
-      <div class="teletext-screen">
-        <!-- Top Teletext Header Line -->
-        <div class="teletext-top-bar">
-          <span class="page-num">{{ recipe.pageNumber }}</span>
-          <span class="service-name">{{ recipe.magazine }}</span>
-          <span class="clock-str">100 Wed 09 Sep 17:58/44</span>
-        </div>
-
-        <!-- 24 Rows of 40 Columns Matrix -->
-        <div class="teletext-grid-canvas">
-          <div
-            v-for="(line, idx) in recipe.lines"
-            :key="idx"
-            class="teletext-row"
-            v-html="parseAnsi(line)"
-          ></div>
-        </div>
-      </div>
-    </div>
+    <!-- Authentic GridCore Viewport Container (matching /ucode?tab=teletext) -->
+    <div class="ucode-viewport" ref="containerRef"></div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import type { TeletextRecipe } from '../recipes'
+import { createGridUICanvas, type GridUICanvasElement } from '../../grid-core/gridui-canvas'
+import { createBuffer, writeString } from '../../grid-core/buffer'
+import type { GridBuffer } from '@udos/gridcore/buffer/cell'
+
+const props = defineProps<{
+  recipe: TeletextRecipe
+}>()
+
+const containerRef = ref<HTMLDivElement>()
+let canvasEl: GridUICanvasElement | null = null
+
+function buildTeletextBuffer(): GridBuffer {
+  // 40 columns x 25 rows canonical Ceefax matrix
+  let buf = createBuffer(40, 25)
+
+  // Top header row: P100 CEEFAX 100 Wed 09 Sep 18:45/00
+  buf = writeString(buf, 0, 0, 'P100  ', 3, 4, true)
+  buf = writeString(buf, 6, 0, 'CEEFAX 100', 7, 4, true)
+  buf = writeString(buf, 17, 0, ' Wed 09 Sep ', 3, 4, true)
+  buf = writeString(buf, 30, 0, '18:45/12', 2, 4, true)
+
+  const defaultLines = [
+    '                                        ',
+    ' \x1b[33m\x1b[1muDOS SYSTEM TELEMETRY INDEX\x1b[0m            ',
+    ' \x1b[36m======================================\x1b[0m ',
+    '                                        ',
+    ' \x1b[32m101\x1b[0m \x1b[37mSYSTEM HEALTH & LOCAL RUNTIMES\x1b[0m    ',
+    ' \x1b[32m102\x1b[0m \x1b[37mDEVELOPER WORKBENCH REVISIONS\x1b[0m    ',
+    ' \x1b[32m103\x1b[0m \x1b[37mBUDGET & OLLAMA LOCAL INFERENCE\x1b[0m  ',
+    ' \x1b[32m104\x1b[0m \x1b[37muCODE BASIC & AMOS CAPSULES\x1b[0m     ',
+    '                                        ',
+    ' \x1b[31m[HEADLINE]\x1b[0m                             ',
+    ' \x1b[37mSPRINT 4B SURFACE SYSTEM ONLINE.\x1b[0m       ',
+    ' \x1b[37mPREDICTABLE RECIPES LOCK DESIGN STYLE\x1b[0m  ',
+    ' \x1b[37mACROSS ALL EXTENSIONS & CORE REPOS.\x1b[0m    ',
+    '                                        ',
+    ' \x1b[34m--------------------------------------\x1b[0m ',
+    ' \x1b[33mSTATUS:\x1b[0m \x1b[32mALL CANONICAL REPOS SYNCED\x1b[0m     ',
+    ' \x1b[33mGATE:\x1b[0m   \x1b[32mDEV READINESS ACCEPTED (10/10)\x1b[0m ',
+    '                                        ',
+    ' \x1b[35mSELECT PAGE NUMBER OR PRESS FASTEXT\x1b[0m    ',
+  ]
+
+  const rawLines = props.recipe.lines?.length ? props.recipe.lines : defaultLines
+
+  const colorMap: Record<string, number> = {
+    '30': 0, // black
+    '31': 1, // red
+    '32': 2, // green
+    '33': 3, // yellow
+    '34': 4, // blue
+    '35': 5, // magenta
+    '36': 6, // cyan
+    '37': 7, // white
+  }
+
+  for (let r = 0; r < Math.min(rawLines.length, 23); r++) {
+    const rawLine = rawLines[r]
+    let col = 0
+    let currentFg = 7
+    let currentBg = 0
+    let isBold = false
+    let i = 0
+
+    while (i < rawLine.length && col < 40) {
+      if (rawLine[i] === '\x1b' && rawLine[i + 1] === '[') {
+        const mIdx = rawLine.indexOf('m', i)
+        if (mIdx !== -1) {
+          const code = rawLine.slice(i + 2, mIdx)
+          if (code === '0') {
+            currentFg = 7
+            currentBg = 0
+            isBold = false
+          } else if (code === '1') {
+            isBold = true
+          } else if (colorMap[code] !== undefined) {
+            currentFg = colorMap[code]
+          }
+          i = mIdx + 1
+          continue
+        }
+      }
+      const char = rawLine[i]
+      buf[r + 1][col] = { char, fg: currentFg, bg: currentBg, bold: isBold }
+      col++
+      i++
+    }
+  }
+
+  // Row 24: BBC FastExt color keys
+  buf = writeString(buf, 1, 24, 'INDEX', 7, 1, true)
+  buf = writeString(buf, 11, 24, 'NEXT', 7, 2, true)
+  buf = writeString(buf, 21, 24, 'HELP', 0, 3, true)
+  buf = writeString(buf, 31, 24, 'QUIT', 7, 4, true)
+
+  return buf
+}
+
+function renderCanvas() {
+  if (!containerRef.value) return
+  if (!canvasEl) {
+    canvasEl = createGridUICanvas({
+      cols: 40,
+      rows: 25,
+      font: 'bedstead',
+      cellSize: 20,
+      fitExact: true,
+    })
+    canvasEl.style.flexShrink = '0'
+    containerRef.value.appendChild(canvasEl)
+  }
+  const buf = buildTeletextBuffer()
+  canvasEl.setBuffer(buf)
+  nextTick(() => canvasEl?.refit())
+}
+
+onMounted(() => {
+  renderCanvas()
+})
+
+onUnmounted(() => {
+  if (canvasEl) {
+    canvasEl.remove()
+    canvasEl = null
+  }
+})
+
+watch(() => props.recipe, () => {
+  renderCanvas()
+}, { deep: true })
+</script>
 
 <style scoped>
 .teletext-recipe-container {
@@ -84,47 +170,22 @@ function parseAnsi(text: string): string {
   font-family: var(--usx-font-family-mono, monospace);
 }
 
-.teletext-crt-frame {
-  padding: 1.25rem;
-  background: #0a0a0c;
-  border-radius: 12px;
-  border: 2px solid #222;
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9), 0 8px 24px rgba(0, 0, 0, 0.5);
+.ucode-viewport {
+  flex: 1;
+  min-width: 0;
+  min-height: 520px;
   display: flex;
+  align-items: center;
   justify-content: center;
-}
-
-.teletext-screen {
+  overflow: auto;
+  padding: 2%;
   background: #000000;
-  width: 100%;
-  max-width: 680px;
-  padding: 1rem 1.25rem;
-  font-family: 'Bedstead', 'VT323', 'Courier New', Courier, monospace;
-  font-size: 1.15rem;
-  line-height: 1.22;
-  letter-spacing: 0.05em;
-  color: #ffffff;
+  border-radius: var(--usx-radius-md);
   border: 1px solid #1a1a1a;
-  box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.05);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.95), 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
-.teletext-top-bar {
-  display: flex;
-  justify-content: space-between;
-  color: #ffffff;
-  background: #0000ff;
-  padding: 0.15rem 0.5rem;
-  margin-bottom: 0.5rem;
-  font-weight: bold;
-}
-
-.teletext-grid-canvas {
-  display: flex;
-  flex-direction: column;
-}
-
-.teletext-row {
-  white-space: pre;
-  height: 1.3em;
+.ucode-viewport :deep(gridui-canvas) {
+  flex-shrink: 0;
 }
 </style>
