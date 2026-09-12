@@ -393,7 +393,7 @@ const router = useRouter();
 const TABS = [
   { id: "guide", label: "Guide & Docs", icon: "menu_book" },
   { id: "knowledge", label: "Knowledge", icon: "auto_stories" },
-  { id: "learning", label: "Learning", icon: "school" },
+  { id: "learning", label: "Learn to Code", icon: "school" },
   { id: "developer", label: "Developer & Tooling", icon: "terminal" },
 ];
 const VALID_DOC_TABS = new Set(TABS.map((tab) => tab.id));
