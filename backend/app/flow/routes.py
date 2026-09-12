@@ -14,6 +14,7 @@ log = logging.getLogger("uflow.routes")
 def register_routes(app) -> None:
     """Register workflow routes expected by uCore."""
     from app.api.tasker_api import handle_workflow_tasks, register_tasker_routes
+
     from .workflow_api import (
         handle_board_health,
         handle_create_workflow,

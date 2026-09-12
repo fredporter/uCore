@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from app.services.settings_manager import SettingsManager
 
 
@@ -29,7 +30,7 @@ def test_settings_manager_profile_isolation(tmp_path: Path):
 
     # Set preferences for default profile
     mgr.update_user_preferences({"themeMode": "dark", "fontSize": 14}, profile_id="default")
-    
+
     # Set preferences for Alice profile
     mgr.update_user_preferences({"themeMode": "light", "fontSize": 20}, profile_id="alice")
 
