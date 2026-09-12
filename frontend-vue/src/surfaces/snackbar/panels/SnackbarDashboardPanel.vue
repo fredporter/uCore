@@ -142,6 +142,78 @@
         </div>
       </div>
     </div>
+
+    <!-- Active Product Launchers Matrix -->
+    <div class="services-list-container">
+      <div class="recipe-header">
+        <div class="header-left">
+          <span class="material-symbols-outlined header-icon">rocket_launch</span>
+          <div>
+            <h3 class="recipe-title">Ecosystem &amp; Host Launchers</h3>
+            <p class="recipe-desc">Installed applications discovered on local host (absent products hidden)</p>
+          </div>
+        </div>
+        <div class="header-meta">
+          <span class="recipe-badge">{{ launchers.length }} Active</span>
+        </div>
+      </div>
+
+      <div class="launchers-grid">
+        <div v-for="l in launchers" :key="l.id" class="launcher-card">
+          <div class="launcher-icon">
+            <span class="material-symbols-outlined">{{ l.icon }}</span>
+          </div>
+          <div class="launcher-info">
+            <div class="launcher-name">{{ l.name }}</div>
+            <div class="launcher-desc">{{ l.description }}</div>
+          </div>
+          <span class="launcher-badge">{{ l.category }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Apple Activity & Bounded PIM Sync -->
+    <div class="services-list-container">
+      <div class="recipe-header">
+        <div class="header-left">
+          <span class="material-symbols-outlined header-icon">history_toggle_off</span>
+          <div>
+            <h3 class="recipe-title">Apple Activity &amp; Host PIM Sync</h3>
+            <p class="recipe-desc">Bounded Calendar, Reminders, Notes &amp; Mail feed with anti-drift user annotation preservation</p>
+          </div>
+        </div>
+        <div class="header-meta">
+          <button
+            class="sync-btn"
+            :disabled="syncingActivity"
+            @click="syncActivity"
+          >
+            <span class="material-symbols-outlined" :class="{ spinning: syncingActivity }">sync</span>
+            {{ syncingActivity ? 'Syncing...' : 'Sync Activity' }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="syncMessage" class="sync-message">
+        {{ syncMessage }}
+      </div>
+
+      <div v-if="activity && activity.events && activity.events.length" class="activity-events-list">
+        <div v-for="ev in activity.events.slice(0, 8)" :key="ev.external_id" class="activity-row">
+          <span class="activity-tag" :class="`activity-tag--${ev.source}`">{{ ev.source }}</span>
+          <div class="activity-details">
+            <strong>{{ ev.title }}</strong>
+            <span class="activity-time">{{ ev.timestamp ? ev.timestamp.slice(0, 16).replace('T', ' ') : '' }}</span>
+          </div>
+        </div>
+        <div class="activity-footer-note">
+          Synced events recorded in <code>~/Vault/Activity/events.jsonl</code> · View <code>~/Vault/Activity/Daily_Activity.md</code>
+        </div>
+      </div>
+      <div v-else class="activity-empty">
+        <p>No activity events synced yet. Click "Sync Activity" to ingest local events into ~/Vault/Activity/.</p>
+      </div>
+    </div>
   </div>
 
   <div v-else class="server-loading">
@@ -151,10 +223,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useSnackbarOpsStore } from "../../../stores/snackbarOps";
 
 const srv = useSnackbarOpsStore();
+const launchers = ref<any[]>([]);
+const activity = ref<any>(null);
+const syncingActivity = ref(false);
+const syncMessage = ref("");
 
 const healthClass = computed(() => {
   const pct = srv.healthPct;
@@ -163,6 +239,57 @@ const healthClass = computed(() => {
     : pct >= 50
       ? "warning"
       : "danger";
+});
+
+async function fetchLaunchers() {
+  try {
+    const res = await fetch("/api/snackbar/launchers");
+    if (res.ok) {
+      const data = await res.json();
+      launchers.value = data.launchers || [];
+    }
+  } catch (e) {
+    // Non-blocking
+  }
+}
+
+async function fetchActivity() {
+  try {
+    const res = await fetch("/api/snackbar/activity");
+    if (res.ok) {
+      activity.value = await res.json();
+    }
+  } catch (e) {
+    // Non-blocking
+  }
+}
+
+async function syncActivity() {
+  syncingActivity.value = true;
+  syncMessage.value = "";
+  try {
+    const res = await fetch("/api/snackbar/activity/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sources: ["calendar", "mail"] }),
+    });
+    if (res.ok) {
+      syncMessage.value = "Apple Activity synchronized cleanly into ~/Vault/Activity/Daily_Activity.md (user notes preserved).";
+      await fetchActivity();
+      setTimeout(() => { syncMessage.value = ""; }, 4000);
+    } else {
+      syncMessage.value = "Activity sync failed or permissions not granted.";
+    }
+  } catch (e: any) {
+    syncMessage.value = `Sync error: ${e.message || e}`;
+  } finally {
+    syncingActivity.value = false;
+  }
+}
+
+onMounted(() => {
+  void fetchLaunchers();
+  void fetchActivity();
 });
 </script>
 
@@ -488,5 +615,155 @@ const healthClass = computed(() => {
 .task-timestamp {
   color: var(--usx-color-on-surface-variant, #6e7681);
   font-size: 0.75rem;
+}
+
+/* ── Launchers Grid ── */
+.launchers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.85rem;
+  padding: 0.5rem 0;
+}
+
+.launcher-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.launcher-card:hover {
+  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.06));
+  border-color: var(--usx-color-primary, #a8c7fa);
+}
+
+.launcher-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: rgba(168, 199, 250, 0.12);
+  color: var(--usx-color-primary, #a8c7fa);
+}
+
+.launcher-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.launcher-name {
+  font-weight: 500;
+  font-size: 0.88rem;
+  color: var(--usx-color-on-surface, #e2e2e6);
+}
+
+.launcher-desc {
+  font-size: 0.75rem;
+  color: var(--usx-color-on-surface-variant, #8e9199);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.launcher-badge {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--usx-color-on-surface-variant, #8e9199);
+}
+
+/* ── Activity Feed ── */
+.sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--usx-color-primary, #a8c7fa);
+  color: #0f172a;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sync-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sync-message {
+  padding: 0.6rem 0.85rem;
+  background: rgba(63, 185, 80, 0.12);
+  border: 1px solid rgba(63, 185, 80, 0.3);
+  color: #3fb950;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  margin-top: 0.5rem;
+}
+
+.activity-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.06));
+  border-radius: 6px;
+}
+
+.activity-tag {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.activity-tag--calendar { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+.activity-tag--reminders { background: rgba(234, 179, 8, 0.15); color: #eab308; }
+.activity-tag--mail { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+.activity-tag--notes { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+
+.activity-details {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.activity-time {
+  font-size: 0.75rem;
+  color: var(--usx-color-on-surface-variant, #8e9199);
+}
+
+.activity-footer-note {
+  font-size: 0.75rem;
+  color: var(--usx-color-on-surface-variant, #8e9199);
+  padding: 0.5rem 0;
+  font-style: italic;
+}
+
+.activity-empty {
+  padding: 1.5rem 0;
+  text-align: center;
+  color: var(--usx-color-on-surface-variant, #8e9199);
+  font-size: 0.85rem;
 }
 </style>

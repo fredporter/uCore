@@ -25,82 +25,92 @@ STATE_FILE = settings.data_dir / "extension_state.json"
 
 KNOWN_EXTERNAL: list[dict] = [
     {
-        "id": "udos-budget",
-        "name": "uDos Budget",
-        "kind": "plugin",
-        "icon": "savings",
-        "description": "Budget policy & status plugin",
-        "repo": "udos-budget",
+        "id": "ucode",
+        "name": "uCode Studio",
+        "kind": "application",
+        "icon": "terminal",
+        "description": "GridCore 2D BASIC runtime & Amiga NetHack pod",
+        "repo": "uCode",
         "manifest_path": "ucore-extension.json",
         "deps": [],
     },
     {
-        "id": "udos-identity",
-        "name": "uDos Identity",
-        "kind": "plugin",
-        "icon": "fingerprint",
-        "description": "Identity profile & session plugin",
-        "repo": "udos-identity",
-        "manifest_path": "ucore-extension.json",
-        "deps": [],
-    },
-    {
-        "id": "udos-google",
-        "name": "Google Bridge",
-        "kind": "plugin",
-        "icon": "cloud",
-        "description": "Google OAuth, Gemini/Gems, Drive mirror",
-        "repo": "udos-google",
-        "manifest_path": "ucore-extension.json",
-        "deps": [],
-    },
-    {
-        "id": "udos-dreamscape",
-        "name": "Dreamscape",
-        "kind": "plugin",
-        "icon": "psychology",
-        "description": "Mission scaffolding & daily briefing",
-        "repo": "udos-dreamscape",
+        "id": "ucode2",
+        "name": "uCode 2 (Spatial)",
+        "kind": "application",
+        "icon": "view_in_ar",
+        "description": "3D spatial scene interpreter & Minecraft voxel lifter",
+        "repo": "uCode2",
         "manifest_path": "ucore-extension.json",
         "deps": [],
     },
     {
         "id": "udos-publishing",
-        "name": "Publishing",
-        "kind": "plugin",
+        "name": "Publishing Compiler",
+        "kind": "compiler",
         "icon": "publish",
-        "description": "Cloud mirror for udo.guide/udo.place",
+        "description": "Clean edition static compiler and WordPress cloud publisher",
         "repo": "udos-publishing",
-        "manifest_path": "ucore-extension.json",
-        "deps": [],
-    },
-    {
-        "id": "udos-vaults",
-        "name": "Vault Topology",
-        "kind": "plugin",
-        "icon": "folder_special",
-        "description": "Vault topology & library index",
-        "repo": "udos-vaults",
-        "manifest_path": "ucore-extension.json",
-        "deps": [],
-    },
-    {
-        "id": "udos-agents",
-        "name": "uDos Agents",
-        "kind": "plugin",
-        "icon": "smart_toy",
-        "description": "Specialized agent scaffolding",
-        "repo": "udos-agents",
         "manifest_path": "ucore-extension.json",
         "deps": [],
     },
     {
         "id": "homenest",
         "name": "HomeNest",
-        "kind": "plugin",
-        "icon": "home",
-        "description": "Home stream server — Jellyfin + Home Assistant bridge",
+        "kind": "application",
+        "icon": "tv",
+        "description": "Home media server & living-room controller UI",
         "repo": "HomeNest",
+        "manifest_path": "ucore-extension.json",
+        "deps": [],
+    },
+    {
+        "id": "uvector",
+        "name": "uVector Studio",
+        "kind": "tool",
+        "icon": "draw",
+        "description": "Vector illustration & SVG optimization engine",
+        "repo": "uVector",
+        "manifest_path": "ucore-extension.json",
+        "deps": [],
+    },
+    {
+        "id": "groovebox",
+        "name": "Groovebox",
+        "kind": "tool",
+        "icon": "music_note",
+        "description": "Standalone pattern music synthesis suite",
+        "repo": "Groovebox",
+        "manifest_path": "ucore-extension.json",
+        "deps": [],
+    },
+    {
+        "id": "sonicscrewdriver",
+        "name": "Sonic Screwdriver",
+        "kind": "tool",
+        "icon": "build",
+        "description": "Hardware diagnostics, device revival, and provisioning",
+        "repo": "SonicScrewdriver",
+        "manifest_path": "ucore-extension.json",
+        "deps": [],
+    },
+    {
+        "id": "ucore-google",
+        "name": "uCore-Google Bridge",
+        "kind": "plugin",
+        "icon": "cloud",
+        "description": "Google Workspace OAuth, Drive mirror, and DreamBeans morning briefing",
+        "repo": "uCore-Google",
+        "manifest_path": "ucore-extension.json",
+        "deps": [],
+    },
+    {
+        "id": "snackmachine",
+        "name": "SnackMachine",
+        "kind": "tool",
+        "icon": "fastfood",
+        "description": "Standalone action runner and Apple activity capture",
+        "repo": "SnackMachine",
         "manifest_path": "ucore-extension.json",
         "deps": [],
     },
@@ -296,16 +306,20 @@ async def handle_extensions_catalogue(request: web.Request) -> web.Response:
     """GET /api/extensions/catalogue — full extension catalogue with filesystem status."""
     state = _load_state()
     catalogue = []
+    hide_absent = request.query.get("hide_absent", "true").lower() in ("true", "1")
     for ext in KNOWN_EXTERNAL:
         entry = _probe_extension(ext)
         ext_state = state.get(entry["id"], {})
         entry["enabled"] = ext_state.get("enabled", entry["is_installed"])
         entry["status"] = _derive_status(entry)
+        if hide_absent and not entry["is_installed"]:
+            continue
         catalogue.append(entry)
 
     return web.json_response({
         "extensions": catalogue,
         "total": len(catalogue),
+        "absent_hidden": hide_absent,
     })
 
 
