@@ -435,6 +435,14 @@ def register_routes(app: web.Application) -> None:
     register_snack_routes(app)
     register_container_routes(app)
 
+    # ── Snackbar Launchers & Activity ──────────────────────────────
+    try:
+        from app.snackbar.modules.launchers import register as register_launcher_routes
+
+        register_launcher_routes(app)
+    except Exception as e:
+        log.debug("Launcher routes registration note: %s", e)
+
     # ── Spool / Activity Feed ───────────────────────────────────────
     try:
         from .spool import register_spool_routes

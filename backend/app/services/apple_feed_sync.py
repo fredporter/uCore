@@ -153,4 +153,24 @@ class AppleFeedSync:
                 # Feed persistence is authoritative; spool projection is best-effort.
                 pass
             imported += 1
+
+        # Mirror to ~/Vault/Activity/events.jsonl and Daily_Activity.md
+        try:
+            from app.services.activity_markdown import append_activity_events, update_daily_activity_markdown
+            act_events = [
+                {
+                    "external_id": str(r.get("external_id") or hashlib.sha256(json.dumps(r, sort_keys=True, default=str).encode()).hexdigest()[:24]),
+                    "source": source,
+                    "title": str(r.get("title") or item.label),
+                    "content": str(r.get("content") or ""),
+                    "timestamp": str(r.get("timestamp") or ""),
+                    "privacy": "private",
+                }
+                for r in rows[:limit]
+            ]
+            append_activity_events(act_events)
+            update_daily_activity_markdown()
+        except Exception:
+            pass
+
         return {"ok": True, "source": source, "state": "synced", "imported": imported}
