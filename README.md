@@ -25,6 +25,7 @@ Independent domain products (`SonicScrewdriver`, `Groovebox`, `uVector`, `HomeNe
 - **User Documents:** `~/Vault` (User), `~/Shared` (Shared), and `~/Public` (Public)
 - **External Engineering:** Antigravity IDE, `agy` CLI, and standard MCP servers (`mcp-server-git`, `mcp-filesystem`).
 - **Policy Enforcement:** Run `python3 scripts/check_home_path_policy.py` before committing.
+- **Fail-Closed Governance:** Capabilities are registered explicitly and fail closed; loose runtime scripts, fake users, compatibility shims and duplicated MCP facades are unsupported.
 
 ## Development & Running
 
