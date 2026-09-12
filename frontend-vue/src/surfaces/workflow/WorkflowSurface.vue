@@ -27,6 +27,7 @@
         <div v-if="wf.activeTab !== 'editor'" class="workflow-panel">
           <MissionControlPanel v-if="wf.activeTab === 'mission-control'" />
           <TasksPanel v-else-if="wf.activeTab === 'tasks'" />
+          <NotebookBinderPanel v-else-if="wf.activeTab === 'binder'" />
         </div>
 
         <!-- Editor tab: full-width document workspace -->
@@ -142,6 +143,9 @@ const TasksPanel = defineAsyncComponent(
 );
 const PublishPanel = defineAsyncComponent(
   () => import("./panels/PublishPanel.vue"),
+);
+const NotebookBinderPanel = defineAsyncComponent(
+  () => import("./panels/NotebookBinderPanel.vue"),
 );
 import { EditorPanel } from "../../skills";
 import UIcon from "../../skills/atoms/UIcon.vue";
