@@ -83,18 +83,6 @@
     <!-- Right: explicit global mode + display controls -->
     <div class="global-toolbar__right">
       <button
-        class="global-toolbar__dev-toggle"
-        :class="{ 'global-toolbar__dev-toggle--on': devMode.mode !== 'off' }"
-        :aria-pressed="devMode.mode !== 'off'"
-        :aria-label="`Developer mode ${devMode.mode === 'off' ? 'off' : 'on'}`"
-        :title="`Developer mode: ${devMode.mode === 'off' ? 'off' : 'on'}`"
-        @click="devMode.setMode(devMode.mode === 'off' ? 'on' : 'off')"
-      >
-        <span class="global-toolbar__dev-switch" aria-hidden="true">
-          <span class="global-toolbar__dev-thumb"></span>
-        </span>
-      </button>
-      <button
         class="global-toolbar__icon-only global-toolbar__theme-toggle"
         :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
         @click="toggleTheme"
@@ -124,7 +112,6 @@ import { computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useSettingsStore } from "../../stores/settings";
-import { useDevModeStore } from "../../stores/devMode";
 import UIcon from "../atoms/UIcon.vue";
 
 interface Props {
@@ -141,27 +128,12 @@ const router = useRouter();
 const route = useRoute();
 const shell = useShellStore();
 const settings = useSettingsStore();
-const devMode = useDevModeStore();
 
 const isDark = computed(() => settings.themeMode === "dark");
-const sidebarDisabled = computed(
-  () => route.path === "/developer" && shell.developerSurfaceTab === "code",
-);
-const sidebarTitle = computed(() => {
-  if (route.path === "/developer") {
-    if (sidebarDisabled.value) {
-      return "Repository sidebar unavailable on Code tab";
-    }
-    return shell.developerSidebarOpen ? "Hide repo sidebar" : "Show repo sidebar";
-  }
-  return "Finder";
-});
+const sidebarDisabled = computed(() => false);
+const sidebarTitle = computed(() => "Finder");
 
 function handleSidebarToggle() {
-  if (route.path === "/developer") {
-    shell.toggleDeveloperSidebar();
-    return;
-  }
   emit("toggle-sidebar");
 }
 

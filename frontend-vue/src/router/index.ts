@@ -58,10 +58,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/developer/:pathMatch(.*)*",
-    name: "developer",
-    component: () =>
-      import("../surfaces/developer/DeveloperSurface.vue"),
-    meta: { title: "Developer", icon: "code" },
+    redirect: "/documentation?tab=developer",
   },
   {
     path: "/workflow/:pathMatch(.*)*",
@@ -87,7 +84,7 @@ const routes: RouteRecordRaw[] = [
       const tab = String(to.query.tab || "snacks");
       if (tab === "workflows") return "/workflow?tab=publish";
       if (tab === "vault") return "/workflow?tab=binder";
-      if (tab === "mcp") return "/developer";
+      if (tab === "mcp") return "/documentation?tab=developer";
       if (tab === "variables") return "/system?tab=configuration";
       if (tab === "scheduler") return "/snackbar?tab=dashboard";
       return "/snackbar?tab=automation";
@@ -110,12 +107,6 @@ const routes: RouteRecordRaw[] = [
     name: "homenest",
     component: () => import("../surfaces/homenest/HomeNestSurface.vue"),
     meta: { title: "HomeNest Console", icon: "tv" },
-  },
-  {
-    path: "/home-assistant/:pathMatch(.*)*",
-    name: "homeassistant",
-    component: () => import("../surfaces/homeassistant/HomeAssistantSurface.vue"),
-    meta: { title: "Home Assistant", icon: "home" },
   },
   {
     path: "/browserui/:pathMatch(.*)*",

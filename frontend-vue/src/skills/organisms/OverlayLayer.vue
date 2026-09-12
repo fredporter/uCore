@@ -4,25 +4,7 @@
   <PopupOverlay />
   <StoriesOverlay />
   <ChatBubble v-if="!hideChatBubble">
-    <template #actions>
-      <button
-        class="usx-chat-lane-toggle"
-        :class="{ 'usx-chat-lane-toggle--dev': activeLane === 'dev' }"
-        :title="activeLane === 'dev' ? 'Switch to User Chat' : 'Switch to Developer Chat'"
-        :aria-label="activeLane === 'dev' ? 'Switch to User Chat' : 'Switch to Developer Chat'"
-        :disabled="!devModeOn && activeLane !== 'dev'"
-        @click="toggleLane"
-      >
-        <UIcon :name="activeLane === 'dev' ? 'code' : 'chat'" />
-        {{ activeLane === 'dev' ? 'Developer' : 'User' }}
-      </button>
-    </template>
     <template #above>
-      <div v-if="activeLane === 'chat' && devChat.working" role="status">
-        Developer task running
-        <button @click="activeLane = 'dev'">View</button>
-        <button @click="devChat.stop()">Stop</button>
-      </div>
       <div v-if="showWelcome" class="chat-above-center">
         <div class="chat-above-icon">
           <UIcon name="auto_awesome" />
@@ -33,17 +15,15 @@
 
     <ChatBubblePanel
       :chat-messages="chatMessages"
-      :dev-messages="devMessages"
-      :loading="chatLoading"
-      :dev-available="true"
-      :dev-mode-on="devModeOn"
+      :dev-messages="[]"
+      :loading="assistChat.loading"
+      :dev-available="false"
+      :dev-mode-on="false"
       :context-label="contextLabel"
       :current-task="currentTaskTitle"
-      :active-lane="activeLane"
+      :active-lane="'chat'"
       @send-chat="sendChat"
-      @send-dev="sendDev"
-      @toggle-dev-mode="toggleDevMode"
-      @update:active-lane="activeLane = $event"
+      @update:active-lane="activeLane = 'chat'"
     />
 
     <template #below>
@@ -76,11 +56,8 @@ import { useFeed } from "../../composables/useFeed";
 import { useOverlay } from "../../composables/useOverlay";
 import { useExtensionStore } from "../../stores/extensions";
 import { useShellStore } from "../../stores/shell";
-import { useDevModeStore } from "../../stores/devMode";
 import { useWorkflowStore } from "../../stores/workflow";
 import { useChatStore } from "../../stores/chat";
-import { useDeveloperChatStore } from "../../stores/developerChat";
-import type { ChatIntent } from "../../stores/developerChat";
 
 const { toast } = useToast();
 const { events } = useFeed();
@@ -88,14 +65,6 @@ const shell = useShellStore();
 const route = useRoute();
 const extStore = useExtensionStore();
 const assistChat = useChatStore();
-const devChat = useDeveloperChatStore();
-
-// ─── Dev mode state ─────────────────────────────────────────────
-const devMode = useDevModeStore();
-const devModeOn = computed(
-  () => devMode.mode === "on",
-);
-const toggleDevMode = () => devMode.toggle();
 
 // Chat has one global entry point: the bottom bubble.
 const hideChatBubble = computed(() => false);
@@ -107,7 +76,6 @@ const contextLabel = computed(() => {
   if (path.includes("/browserui")) return "Browser";
   if (path.includes("/snackbar")) return "Snackbar";
   if (path.includes("/system")) return "System";
-  if (path.includes("/developer")) return "Developer";
   if (path.includes("/ucode")) return "uCode";
   return "Dashboard";
 });
@@ -128,12 +96,7 @@ interface Msg {
   content: string;
 }
 
-const activeLane = ref<"chat" | "dev">("chat");
-
-function toggleLane() {
-  if (activeLane.value === "chat" && !devModeOn.value) return;
-  activeLane.value = activeLane.value === "chat" ? "dev" : "chat";
-}
+const activeLane = ref<"chat">("chat");
 
 interface PromptCard {
   label: string;
@@ -178,30 +141,11 @@ const overlayWelcomeTitle = computed(() => {
     default: return timeGreeting.value;
   }
 });
-const devMessages = computed(() => devChat.conversation?.messages || []);
-const chatLoading = computed(() => activeLane.value === "dev" ? devChat.busy : assistChat.loading);
-
 async function sendChat(text: string, mode: "chat" | "plan" | "act" | "workflow") {
   assistChat.setPromptMode(mode);
   await assistChat.sendMessage(text);
   assistChat.saveCurrentConversation();
 }
-async function sendDev(text: string, mode: ChatIntent) {
-  await devChat.send(text, mode);
-}
-watch(devModeOn, enabled => {
-  if (enabled) void devChat.initialize();
-  else activeLane.value = "chat";
-}, { immediate: true });
-function openDeveloperDiscussion() {
-  if (devModeOn.value) {
-    activeLane.value = 'dev';
-    devChat.useSelection();
-    shell.setChatMode('panel');
-  }
-}
-window.addEventListener('developer-discuss', openDeveloperDiscussion);
-onBeforeUnmount(() => window.removeEventListener('developer-discuss', openDeveloperDiscussion));
 
 // ─── Feed event handlers ─────────────────────────────────────────
 watch(

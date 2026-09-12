@@ -1,8 +1,8 @@
 <template>
   <aside class="review" aria-labelledby="review-title">
-    <header><h3 id="review-title">Working tree</h3><button title="Refresh review" @click="load"><UIcon name="refresh" /></button></header>
+    <header><h3 id="review-title">Document &amp; Edition Review</h3><button title="Refresh review" @click="load"><UIcon name="refresh" /></button></header>
     <p v-if="loading">Loading review…</p>
-    <p v-else-if="!items.length" class="review__clean"><UIcon name="check_circle" /> Working tree clean</p>
+    <p v-else-if="!items.length" class="review__clean"><UIcon name="check_circle" /> All vault documents and editions up to date</p>
     <ul v-else>
       <li v-for="item in items" :key="`${item.staged}-${item.file}`">
         <div class="review__file-row">
@@ -26,12 +26,12 @@
     </ul>
     <p v-if="reviewError" class="review__error" role="alert">{{ reviewError }}</p>
     <div class="review__commit">
-      <label for="commit-message">Commit preparation</label>
-      <textarea id="commit-message" v-model="commitMessage" rows="3" placeholder="Describe the staged change…" />
-      <button :disabled="!staged.length || !commitMessage.trim() || committing" @click="commit">Commit {{ staged.length }} staged file{{ staged.length === 1 ? '' : 's' }}</button>
+      <label for="commit-message">Edition Release Preparation</label>
+      <textarea id="commit-message" v-model="commitMessage" rows="3" placeholder="Describe the edition or document revision…" />
+      <button :disabled="!staged.length || !commitMessage.trim() || committing" @click="commit">Approve {{ staged.length }} staged document{{ staged.length === 1 ? '' : 's' }}</button>
       <p v-if="commitOutput" :class="{ 'review__error': commitFailed }">{{ commitOutput }}</p>
     </div>
-    <DeveloperActionsPanel :repository="repository" />
+    <DeveloperActionsPanel v-if="repository" :repository="repository" />
   </aside>
 </template>
 

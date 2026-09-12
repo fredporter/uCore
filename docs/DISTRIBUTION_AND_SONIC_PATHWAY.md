@@ -1,3 +1,5 @@
+> Direction update — 12 September 2026: the [product refactor plan](UDOS_PRODUCT_REFACTOR_PLAN_2026-09-12.md) and [Gemini handover](HANDOVER_GEMINI_PRODUCT_REFACTOR_2026-09-12.md) govern future work. Preserve useful features, UI and historical evidence below. Internal IDE/Dev Mode priorities and requirements to finish that program before independent product releases are superseded; current implementation descriptions are not target architecture or new release certification.
+
 # uCore Distribution and SonicScrewdriver Pathway
 
 **Status:** Planned — begins after the Dev Mode release gates

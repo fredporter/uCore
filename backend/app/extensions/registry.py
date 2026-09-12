@@ -145,7 +145,7 @@ class ExtensionRegistry:
                 "optional": True,
                 "api_prefix": "/api/tools",
             },
-            # Workflow — declared here, routes owned by uFlow
+            # Workflow — internal app.flow subsystem
             {
                 "id": "uflow",
                 "name": "Workflow Engine",
@@ -153,10 +153,10 @@ class ExtensionRegistry:
                 "description": "Workflow definitions, runs, logs, task orchestration",
                 "optional": False,
                 "api_prefix": "/api/workflows",
-                "entrypoint": "uflow.setup",
-                "route_registrar": "uflow.routes.register_routes",
+                "entrypoint": "app.flow.setup",
+                "route_registrar": "app.flow.routes.register_routes",
             },
-            # Knowledge — declared here, routes owned by uKnowledge
+            # Knowledge — internal app.knowledge subsystem
             {
                 "id": "uknowledge",
                 "name": "Knowledge Bridge",
@@ -164,8 +164,8 @@ class ExtensionRegistry:
                 "description": "Vault search, semantic search, knowledge layer, vault indexing",
                 "optional": False,
                 "api_prefix": "/api/knowledge",
-                "entrypoint": "uknowledge.setup",
-                "route_registrar": "uknowledge.routes.register_routes",
+                "entrypoint": "app.knowledge.setup",
+                "route_registrar": "app.knowledge.routes.register_routes",
             },
         ]
         for raw in builtins:

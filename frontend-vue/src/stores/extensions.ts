@@ -255,16 +255,6 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
     activation_required: false,
     description: "Standalone media player and Steam living-room console",
   },
-  {
-    id: "udos-home-assistant",
-    name: "Home Assistant",
-    kind: "surface",
-    required: false,
-    icon: "home",
-    route: "/home-assistant",
-    activation_required: false,
-    description: "Home Assistant entity status, allowlisted controls, and scenes",
-  },
 ];
 
 // ─── Store ───────────────────────────────────────────────────────

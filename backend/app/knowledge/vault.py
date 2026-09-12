@@ -5,7 +5,7 @@ these names here avoids breaking existing uCore chat, MCP, and skill callers
 while preventing a second implementation from drifting.
 """
 
-from uknowledge.library import (
+from .library import (
     get_document,
     get_document_content,
     list_documents,

@@ -38,7 +38,6 @@
         <router-view />
       </main>
     </div>
-    <DevHudPanel v-if="devMode.mode === 'on'" />
     </div>
     <!-- Snackbar Host -->
     <SnackbarHost />
@@ -62,7 +61,6 @@
  * @category layouts
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { useDevModeStore } from "../stores/devMode";
 import { useShellStore } from "../stores/shell";
 import { useSettingsStore } from "../stores/settings";
 import { useIdentityStore } from "../stores/identity";
@@ -76,13 +74,11 @@ import GlobalToolbar from "../skills/organisms/GlobalToolbar.vue";
 import FilepickerSidebar from "../skills/molecules/FilepickerSidebar.vue";
 import SnackbarHost from "../skills/molecules/SnackbarHost.vue";
 import OverlayLayer from "../skills/organisms/OverlayLayer.vue";
-import DevHudPanel from "../skills/organisms/DevHudPanel.vue";
 import { ucoreApi } from "../api/client";
 import type { FileEntry } from "../types/filepicker";
 
 const shell = useShellStore();
 const workflow = useWorkflowStore();
-const devMode = useDevModeStore();
 const router = useRouter();
 const route = useRoute();
 const runtimeWarning = ref("");
@@ -129,7 +125,6 @@ async function installPwa() {
 }
 
 onMounted(() => {
-  void devMode.probe();
   void identity.load();
   void settings.initialize();
   void chat.restoreHistory();
