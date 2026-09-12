@@ -167,6 +167,17 @@ class ExtensionRegistry:
                 "entrypoint": "app.knowledge.setup",
                 "route_registrar": "app.knowledge.routes.register_routes",
             },
+            # Identity — internal app.identity subsystem
+            {
+                "id": "uidentity",
+                "name": "Identity & Profile System",
+                "kind": ExtensionKind.CORE,
+                "description": "Sovereign profiles, story progression, privacy policy, and WordPress RBAC mapping",
+                "optional": False,
+                "api_prefix": "/api/identity",
+                "entrypoint": "app.identity.setup",
+                "route_registrar": "app.identity.routes.register_routes",
+            },
         ]
         for raw in builtins:
             manifest = ExtensionManifest.from_dict(raw)

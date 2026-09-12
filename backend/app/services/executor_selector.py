@@ -111,7 +111,7 @@ class ExecutorSelector:
 
             # If task is normal complexity or only Ollama is eligible, use Ollama
             cloud_eligible = any(p in context.provider_eligibility for p in ("openrouter", "gemini", "anthropic"))
-            
+
             if complexity != "high" or not cloud_eligible:
                 if ollama_eligible and ollama_healthy:
                     return ExecutorSelection(

@@ -23,6 +23,8 @@ def register_routes(app: web.Application) -> None:
 
     from .agents import handle_agents_stats, handle_list_agents
     from .budget_api import (
+        handle_budget_plugin_ping,
+        handle_budget_plugin_status,
         handle_budget_reload,
         handle_budget_status,
         handle_budget_usage,
@@ -196,6 +198,8 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/budget/status", handle_budget_status)
     app.router.add_get("/api/budget/usage", handle_budget_usage)
     app.router.add_post("/api/budget/reload", handle_budget_reload)
+    app.router.add_get("/api/budget/plugin/status", handle_budget_plugin_status)
+    app.router.add_get("/api/budget/plugin/ping", handle_budget_plugin_ping)
     app.router.add_get("/api/developer/repos", handle_list_repos)
     app.router.add_get("/api/developer/repos/{repo_name}/files", handle_list_repo_files)
     app.router.add_post("/api/developer/repos/{repo_name}/files", handle_create_repo_file)

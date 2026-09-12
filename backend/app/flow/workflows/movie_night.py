@@ -8,9 +8,9 @@ Enforces idempotency: scenes are never activated twice on retry.
 from __future__ import annotations
 
 import asyncio
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
-import uuid
 
 from pydantic import BaseModel, ConfigDict, Field
 

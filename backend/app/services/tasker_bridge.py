@@ -1,6 +1,6 @@
 """Compatibility exports for uFlow-owned Markdown task primitives."""
 
-from uflow.task_store import (
+from app.flow.task_store import (
     export_rows_to_tasker,
     normalize_priority,
     normalize_status,

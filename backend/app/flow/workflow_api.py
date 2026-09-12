@@ -13,13 +13,14 @@ from typing import Any
 from aiohttp import web
 
 from .task_store import (
+    default_tasker_dir,
     normalize_priority,
     normalize_status,
     normalize_tags,
     render_task_markdown,
+    scan_tasker_boards,
     slugify,
 )
-from .task_store import default_tasker_dir, scan_tasker_boards
 
 log = logging.getLogger("ucore.api.workflows")
 

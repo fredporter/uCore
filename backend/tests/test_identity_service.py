@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
@@ -28,7 +29,7 @@ def test_ensure_identity_initializes(tmp_path: Path, monkeypatch):
 def test_multi_profile_isolation_and_switching(tmp_path: Path, monkeypatch):
     data_dir = tmp_path / "data"
     monkeypatch.setattr(identity.settings, "data_dir", data_dir)
-    
+
     # Initialize
     ident = identity.ensure_identity()
     assert ident.active_profile.id == "default"

@@ -23,7 +23,7 @@ def test_chat_history_is_bounded(tmp_path: Path, monkeypatch):
 def test_chat_history_per_profile_isolation(tmp_path: Path, monkeypatch):
     chat_dir = tmp_path / "chat"
     monkeypatch.setattr(chat_history_api.settings, "data_dir", tmp_path)
-    
+
     # User 1 writes
     chat_history_api._write_history([{"id": "conv-user1", "title": "User 1"}], profile_id="user1")
     # User 2 writes

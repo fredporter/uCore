@@ -68,3 +68,21 @@ async def handle_budget_reload(request: web.Request) -> web.Response:
             },
         },
     )
+
+
+async def handle_budget_plugin_status(request: web.Request) -> web.Response:
+    """GET /api/budget/plugin/status."""
+    manager = _get_manager(request)
+    status = manager.get_status()
+    return web.json_response(
+        {
+            "plugin": "udos-budget",
+            "status": status,
+        }
+    )
+
+
+async def handle_budget_plugin_ping(_request: web.Request) -> web.Response:
+    """GET /api/budget/plugin/ping."""
+    return web.json_response({"ok": True, "plugin": "udos-budget"})
+

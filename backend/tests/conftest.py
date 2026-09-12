@@ -7,10 +7,13 @@ from pathlib import Path
 
 import pytest
 
-# Ensure backend/ is on sys.path so `from app import ...` works
+# Ensure backend/ and repo root are on sys.path
 BACKEND_DIR = Path(__file__).resolve().parent.parent
+REPO_ROOT = BACKEND_DIR.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 
 @pytest.fixture(scope="session", autouse=True)

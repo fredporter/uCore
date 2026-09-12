@@ -12,21 +12,21 @@ Verifies:
 from __future__ import annotations
 
 import asyncio
-import pytest
 from pathlib import Path
+
+import pytest
 
 from app.core.execution_context import (
     ExecutionContext,
+    NetworkAccessViolation,
     PathAccessViolation,
     ProviderAccessViolation,
-    NetworkAccessViolation,
 )
+from app.services.budget_manager import BudgetManager
 from app.services.dev_layer import DevMode, get_dev_layer
 from app.services.executor_selector import ExecutorSelector, NoEligibleExecutorError
-from app.services.budget_manager import BudgetManager
 from app.skills import registry
 from app.skills.base import BaseSkill, SkillMeta
-
 
 # --- Scenario 1: Missing or Unresponsive Ollama ---
 
