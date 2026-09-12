@@ -197,6 +197,20 @@ const SURFACE_CARD_DATA: Record<
     route: "/recipes",
     color: "var(--usx-color-primary)",
   },
+  homenest: {
+    title: "HomeNest",
+    description: "Media & Living-Room Steam Console",
+    icon: "tv",
+    route: "/homenest",
+    color: "var(--usx-color-info)",
+  },
+  "udos-home-assistant": {
+    title: "Home Assistant",
+    description: "Home Automation, Matter & Scenes",
+    icon: "home",
+    route: "/home-assistant",
+    color: "var(--usx-color-primary)",
+  },
 };
 
 const visibleSurfaces = computed(() => {
@@ -240,6 +254,15 @@ const visibleSurfaces = computed(() => {
   }
   if (!seen.has("recipes")) {
     cards.push({ id: "recipes", ...SURFACE_CARD_DATA.recipes });
+  }
+  if (!seen.has("sonic")) {
+    cards.push({ id: "sonic", ...SURFACE_CARD_DATA.sonic });
+  }
+  if (!seen.has("homenest")) {
+    cards.push({ id: "homenest", ...SURFACE_CARD_DATA.homenest });
+  }
+  if (!seen.has("udos-home-assistant")) {
+    cards.push({ id: "udos-home-assistant", ...SURFACE_CARD_DATA["udos-home-assistant"] });
   }
   // Always show Markdown Editor card
   cards.push({ id: "markdown", ...SURFACE_CARD_DATA.markdown });

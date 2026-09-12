@@ -106,6 +106,18 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "SonicScrewdriver", icon: "usb" },
   },
   {
+    path: "/homenest/:pathMatch(.*)*",
+    name: "homenest",
+    component: () => import("../surfaces/homenest/HomeNestSurface.vue"),
+    meta: { title: "HomeNest Console", icon: "tv" },
+  },
+  {
+    path: "/home-assistant/:pathMatch(.*)*",
+    name: "homeassistant",
+    component: () => import("../surfaces/homeassistant/HomeAssistantSurface.vue"),
+    meta: { title: "Home Assistant", icon: "home" },
+  },
+  {
     path: "/browserui/:pathMatch(.*)*",
     name: "browserui",
     component: () => import("../surfaces/browserui/BrowserUISurface.vue"),

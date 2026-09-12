@@ -248,11 +248,22 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
   {
     id: "homenest",
     name: "HomeNest",
-    kind: "plugin",
+    kind: "surface",
+    required: false,
+    icon: "tv",
+    route: "/homenest",
+    activation_required: false,
+    description: "Standalone media player and Steam living-room console",
+  },
+  {
+    id: "udos-home-assistant",
+    name: "Home Assistant",
+    kind: "surface",
     required: false,
     icon: "home",
+    route: "/home-assistant",
     activation_required: false,
-    description: "Home stream server — Jellyfin + Home Assistant bridge",
+    description: "Home Assistant entity status, allowlisted controls, and scenes",
   },
 ];
 
