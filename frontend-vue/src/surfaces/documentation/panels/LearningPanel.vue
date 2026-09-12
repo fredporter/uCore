@@ -1,11 +1,31 @@
 <template>
   <div class="wf-panel">
+    <div class="learning-hero">
+      <div class="learning-hero__icon">
+        <UIcon name="terminal" />
+      </div>
+      <div class="learning-hero__content">
+        <h3 class="learning-hero__title">Learn to Code with uCode</h3>
+        <p class="learning-hero__desc">
+          The official BBC Micro-inspired computing curriculum: BBC BASIC foundations, Mode 7 Teletext graphics, GridCore 2D spatial algebra, native Capsule Pods, and the LENS memory bridge.
+        </p>
+        <div class="learning-hero__actions">
+          <button v-if="manualIntro" class="learning-hero__btn" @click="emit('open', manualIntro)">
+            User Guide Overview
+          </button>
+          <button v-if="firstChapter" class="learning-hero__btn learning-hero__btn--secondary" @click="emit('open', firstChapter)">
+            Part 1: First Steps
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="wf-toolbar">
       <span class="wf-toolbar__count">
         <UIcon name="school" />
-        Learning
+        Curriculum & Courses
       </span>
-      <span class="wf-toolbar__count">{{ courses.length }} courses</span>
+      <span class="wf-toolbar__count">{{ courses.length }} modules</span>
     </div>
 
     <div v-if="loading" class="wf-loading">
@@ -18,7 +38,7 @@
 
     <div v-else class="learning-grid">
       <div
-        v-for="course in courses"
+        v-for="course in sortedCourses"
         :key="course.path"
         class="learning-card"
         role="button"
@@ -55,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 
 interface Course {
@@ -72,6 +92,31 @@ const emit = defineEmits<{ (e: "open", course: Course): void }>();
 
 const courses = ref<Course[]>([]);
 const loading = ref(true);
+
+const manualIntro = computed(() =>
+  courses.value.find((c) => c.source === "manual" && c.path.includes("README")),
+);
+
+const firstChapter = computed(() =>
+  courses.value.find(
+    (c) => c.source === "manual" && c.path.includes("01-first-steps"),
+  ),
+);
+
+const sortedCourses = computed(() => {
+  return [...courses.value].sort((a, b) => {
+    const aManual = a.source === "manual";
+    const bManual = b.source === "manual";
+    if (aManual && !bManual) return -1;
+    if (!aManual && bManual) return 1;
+    if (aManual && bManual) {
+      if (a.path.includes("README")) return -1;
+      if (b.path.includes("README")) return 1;
+      return a.path.localeCompare(b.path);
+    }
+    return (b.relevance || 0) - (a.relevance || 0);
+  });
+});
 
 function levelIcon(level: string): string {
   if (level === "advanced") return "stars";
@@ -108,6 +153,70 @@ onMounted(loadCourses);
   display: flex;
   flex-direction: column;
   gap: var(--usx-spacing-md);
+}
+
+.learning-hero {
+  display: flex;
+  gap: var(--usx-spacing-md);
+  padding: var(--usx-spacing-md);
+  background: var(--usx-color-surface-variant);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  align-items: flex-start;
+}
+
+.learning-hero__icon {
+  font-size: 2rem;
+  color: var(--usx-color-primary);
+  flex-shrink: 0;
+}
+
+.learning-hero__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-xs);
+}
+
+.learning-hero__title {
+  margin: 0;
+  font-size: var(--usx-font-size-md);
+  font-weight: var(--usx-font-weight-semibold);
+}
+
+.learning-hero__desc {
+  margin: 0;
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
+  line-height: 1.5;
+}
+
+.learning-hero__actions {
+  display: flex;
+  gap: var(--usx-spacing-sm);
+  margin-top: var(--usx-spacing-xs);
+}
+
+.learning-hero__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  border-radius: var(--usx-radius-sm);
+  border: var(--usx-border-width) solid var(--usx-color-primary);
+  background: var(--usx-color-primary);
+  color: var(--usx-color-on-primary, #fff);
+  font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-medium);
+  cursor: pointer;
+  transition: opacity var(--usx-transition-fast);
+}
+
+.learning-hero__btn:hover {
+  opacity: 0.9;
+}
+
+.learning-hero__btn--secondary {
+  background: transparent;
+  color: var(--usx-color-primary);
 }
 
 .wf-loading,

@@ -96,11 +96,12 @@ def _extract_frontmatter(markdown: str) -> dict[str, Any]:
 
 
 def _list_courses() -> list[dict[str, Any]]:
-    """Scan learning, vault, and archived docs for course/guide markdown."""
+    """Scan learning, uCode manual, vault, and archived docs for course/guide markdown."""
     roots: dict[str, Path] = {
+        "manual": settings.udos_root / "uCode" / "docs" / "manual",
         "learning": LEARNING_ROOT,
         "vault": Path.home() / "Vault",
-        "archive": Path.home() / "Code" / "uCore" / "docs" / "archive",
+        "archive": settings.udos_root / "uCore" / "docs" / "archive",
     }
 
     courses: list[dict[str, Any]] = []
@@ -487,6 +488,7 @@ async def handle_docs_publish_status(_request: web.Request) -> web.Response:
 
 _CONTENT_ROOTS: dict[str, Path] = {
     "learning": LEARNING_ROOT,
+    "manual": settings.udos_root / "uCode" / "docs" / "manual",
     "vault": Path.home() / "Vault",
     "knowledge": GLOBAL_KNOWLEDGE_ROOT,
     "archive": settings.udos_root / "uCore" / "docs" / "archive",
