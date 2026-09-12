@@ -177,12 +177,44 @@ function removeFile(idx: number) {
 async function compileBinder(): Promise<void> {
   if (launchpadFiles.value.length === 0) return;
   wf.loading = true;
+  lastActionMessage.value = "";
   try {
-    for (const f of launchpadFiles.value) {
-      const text = await f.raw.text();
-      console.log("[Launchpad] file:", f.name, text.slice(0, 80));
+    const binderId = "mission-binder";
+    // Ensure binder exists
+    try {
+      await fetch("/api/binder/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: binderId,
+          title: "Mission Launchpad Binder",
+          outcome: "Durable compilation of mission files into verified draft",
+        }),
+      });
+    } catch {
+      // Binder may already exist, proceed
     }
-    lastActionMessage.value = `Compiled ${launchpadFiles.value.length} files`;
+
+    for (const f of launchpadFiles.value) {
+      const formData = new FormData();
+      formData.append("file", f.raw, f.name);
+      formData.append("author", "MissionControl");
+      const res = await fetch(`/api/binder/${encodeURIComponent(binderId)}/intake`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || `Failed intake for ${f.name}`);
+      }
+    }
+
+    // Run bounded assembly
+    await fetch(`/api/binder/${encodeURIComponent(binderId)}/run`, {
+      method: "POST",
+    });
+
+    lastActionMessage.value = `Compiled ${launchpadFiles.value.length} files into durable Binder with SHA-256 provenance.`;
     launchpadFiles.value = [];
   } catch (e: any) {
     lastActionMessage.value = `Binder compile failed: ${e.message || e}`;

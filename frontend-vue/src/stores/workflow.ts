@@ -15,6 +15,7 @@ import { getEditorSurface } from "@/composables/useEditorSurface";
 export type WorkflowTab =
   | "mission-control"
   | "tasks"
+  | "binder"
   | "editor";
 
 export interface WorkflowTask {
@@ -139,6 +140,7 @@ export const WORKFLOW_TABS: { id: WorkflowTab; label: string; icon: string }[] =
   [
     { id: "mission-control", label: "Workflow", icon: "schedule" },
     { id: "tasks", label: "Tasks", icon: "check" },
+    { id: "binder", label: "Binder", icon: "book" },
     { id: "editor", label: "Editor", icon: "diamond" },
   ];
 
