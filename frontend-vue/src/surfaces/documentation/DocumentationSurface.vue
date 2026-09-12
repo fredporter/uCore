@@ -227,6 +227,71 @@
             </div>
           </div>
         </div>
+
+        <!-- Developer & Engineering Tooling Tab -->
+        <div v-if="activeTab === 'developer'" class="doc-section doc-developer-section">
+          <div class="doc-hero-banner">
+            <UIcon name="terminal" class="doc-hero-icon" />
+            <div class="doc-hero-text">
+              <h3 style="margin: 0 0 0.5rem 0;">External Engineering & Ecosystem Architecture</h3>
+              <p style="margin: 0; color: var(--usx-color-on-surface-muted);">
+                In accordance with the sovereign architecture contract (AGENTS.md), in-browser development mode is retired.
+                All software engineering, testing, and agent workflows belong in external developer tooling (Antigravity IDE, agy CLI, and Codex).
+                uCore acts as the sovereign user runtime host, document binder manager, and execution bridge.
+              </p>
+            </div>
+          </div>
+
+          <div class="doc-tool-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--usx-spacing-md); margin-top: var(--usx-spacing-md);">
+            <div class="doc-tool-card" style="padding: var(--usx-spacing-md); background: var(--usx-color-surface-variant); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md);">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <UIcon name="computer" />
+                <h4 style="margin: 0;">Antigravity IDE & Codex</h4>
+              </div>
+              <p style="font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); margin-bottom: 0.75rem;">External desktop IDE with pair programming, architectural planning, multi-repository intelligence, and visual artifacts.</p>
+              <div><code style="font-size: var(--usx-font-size-xs);">AGENTS.md contract compliant</code></div>
+            </div>
+
+            <div class="doc-tool-card" style="padding: var(--usx-spacing-md); background: var(--usx-color-surface-variant); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md);">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <UIcon name="code" />
+                <h4 style="margin: 0;">Antigravity CLI (agy)</h4>
+              </div>
+              <p style="font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); margin-bottom: 0.75rem;">CLI execution environment for autonomous tasks, cron schedules, background workers, and subagent orchestration.</p>
+              <div><code style="font-size: var(--usx-font-size-xs);">agy run / agy agent</code></div>
+            </div>
+
+            <div class="doc-tool-card" style="padding: var(--usx-spacing-md); background: var(--usx-color-surface-variant); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md);">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <UIcon name="hub" />
+                <h4 style="margin: 0;">Model Context Protocol (MCP)</h4>
+              </div>
+              <p style="font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); margin-bottom: 0.75rem;">Standardized integration protocols connecting external IDEs and agents directly to uCore APIs, vaults, and repositories.</p>
+              <div><code style="font-size: var(--usx-font-size-xs);">mcp-server-git / mcp-filesystem</code></div>
+            </div>
+
+            <div class="doc-tool-card" style="padding: var(--usx-spacing-md); background: var(--usx-color-surface-variant); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md);">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <UIcon name="article" />
+                <h4 style="margin: 0;">Obsidian Baseline Authoring</h4>
+              </div>
+              <p style="font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); margin-bottom: 0.75rem;">Obsidian is the primary user authoring standard for notes, binders, and canvases. Filesystem authority with zero database lock-in.</p>
+              <div><code style="font-size: var(--usx-font-size-xs);">~/Vault · ~/Shared · ~/Public</code></div>
+            </div>
+          </div>
+
+          <div class="doc-section doc-section--spaced" style="margin-top: var(--usx-spacing-lg);">
+            <h4 class="doc-section-title">Ecosystem Workspace Boundary (AGENTS.md)</h4>
+            <div style="padding: var(--usx-spacing-md); background: var(--usx-color-surface-variant); border-left: 4px solid var(--usx-color-primary); border-radius: var(--usx-radius-sm);">
+              <ul style="margin: 0; padding-left: 1.25rem; font-size: var(--usx-font-size-sm);">
+                <li><strong>Repository Source:</strong> All repos belong under <code>~/Code/&lt;repo&gt;</code>.</li>
+                <li><strong>Mutable State:</strong> Owned by <code>UDOS_HOME</code> (default <code>~/Code/.udos</code>). Never write state directly to <code>$HOME</code>.</li>
+                <li><strong>User Documents:</strong> Pure UTF-8 markdown in <code>~/Vault</code>, <code>~/Shared</code>, and <code>~/Public</code>.</li>
+                <li><strong>Validation:</strong> Run <code>python3 scripts/check_home_path_policy.py</code> before committing path changes.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -315,7 +380,6 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
-import { useDevModeStore } from "../../stores/devMode";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import UBadge from "../../skills/atoms/UBadge.vue";
 import UButton from "../../skills/atoms/UButton.vue";
@@ -323,7 +387,6 @@ import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import LearningPanel from "./panels/LearningPanel.vue";
 
 const shell = useShellStore();
-const devMode = useDevModeStore();
 const route = useRoute();
 const router = useRouter();
 
@@ -331,6 +394,7 @@ const TABS = [
   { id: "guide", label: "Guide & Docs", icon: "menu_book" },
   { id: "knowledge", label: "Knowledge", icon: "auto_stories" },
   { id: "learning", label: "Learning", icon: "school" },
+  { id: "developer", label: "Developer & Tooling", icon: "terminal" },
 ];
 const VALID_DOC_TABS = new Set(TABS.map((tab) => tab.id));
 const routeTab = String(route.query.tab || "");
@@ -403,7 +467,6 @@ const editingDoc = ref(false);
 const draftContent = ref("");
 const savingDoc = ref(false);
 const saveError = ref<string | null>(null);
-const isDevMode = computed(() => devMode.showDevContent);
 const lastExportAt = ref<string | null>(null);
 
 const docSites = ref<DocSite[]>([]);
@@ -547,11 +610,7 @@ function onLearningOpen(course: {
 }
 
 function canEditDoc(): boolean {
-  return (
-    isDevMode.value &&
-    viewingDoc.value?.source === "mirror" &&
-    !viewingDoc.value?.listing
-  );
+  return false;
 }
 
 function startEdit() {
@@ -672,7 +731,6 @@ function statusText(status: ApiStatus): string {
 }
 
 onMounted(() => {
-  devMode.probe();
   fetchDocSites();
   fetchKnowledgeSections();
   probeExportEndpoint();

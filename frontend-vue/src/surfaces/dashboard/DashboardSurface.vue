@@ -156,11 +156,11 @@ const SURFACE_CARD_DATA: Record<
     color: "var(--usx-color-success)",
   },
   developer: {
-    title: "Developer",
-    description: "Repositories, Code Review & Editing",
-    icon: "code",
-    route: "/developer",
-    color: "var(--usx-color-danger)",
+    title: "Engineering",
+    description: "External Antigravity IDE, agy CLI & Architecture",
+    icon: "terminal",
+    route: "/documentation?tab=developer",
+    color: "var(--usx-color-primary)",
   },
   markdown: {
     title: "Editor",
@@ -196,6 +196,13 @@ const SURFACE_CARD_DATA: Record<
     icon: "widgets",
     route: "/recipes",
     color: "var(--usx-color-primary)",
+  },
+  homenest: {
+    title: "HomeNest",
+    description: "Media & Living-Room Steam Console",
+    icon: "tv",
+    route: "/homenest",
+    color: "var(--usx-color-info)",
   },
 };
 
@@ -240,6 +247,12 @@ const visibleSurfaces = computed(() => {
   }
   if (!seen.has("recipes")) {
     cards.push({ id: "recipes", ...SURFACE_CARD_DATA.recipes });
+  }
+  if (!seen.has("sonic")) {
+    cards.push({ id: "sonic", ...SURFACE_CARD_DATA.sonic });
+  }
+  if (!seen.has("homenest")) {
+    cards.push({ id: "homenest", ...SURFACE_CARD_DATA.homenest });
   }
   // Always show Markdown Editor card
   cards.push({ id: "markdown", ...SURFACE_CARD_DATA.markdown });

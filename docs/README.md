@@ -2,7 +2,7 @@
 
 **Active docs live here.** Historical and superseded docs are in [`docs/archive/`](archive/).
 
-Architecture boundary: [uDOS Zen ecosystem contract](ZEN_ECOSYSTEM_CONTRACT.md).
+Target product authority: [September 12 refactor plan](UDOS_PRODUCT_REFACTOR_PLAN_2026-09-12.md). Existing [Zen contract](ZEN_ECOSYSTEM_CONTRACT.md) is retained with a supersession scope notice.
 
 ## Active Runbooks
 
@@ -45,23 +45,15 @@ Architecture boundary: [uDOS Zen ecosystem contract](ZEN_ECOSYSTEM_CONTRACT.md).
 | [ECOSYSTEM_STORAGE_ARCHITECTURE.md](ECOSYSTEM_STORAGE_ARCHITECTURE.md)   | Canonical storage, credentials and drift controls |
 | [WORKSTATION_MIGRATION_2026-08-18.md](WORKSTATION_MIGRATION_2026-08-18.md) | Migration record, verification and rollback boundary |
 
-## Active Developer / Dev Mode Specs
+## Product refactor and Gemini handover
 
-Receiving-agent entry point: [Gemini / Antigravity handover — 2026-09-09](HANDOVER_GEMINI_ANTIGRAVITY_2026-09-09.md).
+Start with the [Gemini handover — 12 September 2026](HANDOVER_GEMINI_PRODUCT_REFACTOR_2026-09-12.md) and [complete product refactor plan](UDOS_PRODUCT_REFACTOR_PLAN_2026-09-12.md).
 
-Current assessment: [Internal Dev Mode readiness audit — 2026-09-09](INTERNAL_DEV_READINESS_AUDIT_2026-09-09.md).
+This is separation and completion of existing products, not another rebuild. Preserve useful features and the emerging UI. After a fresh Code-folder assessment, develop and release from individual repositories. Groovebox is a music production suite; uVector generates/standardises coherent illustrations; HomeNest can optionally expose existing Home Assistant controls.
 
-Completed and merged: [Special Sprint 3A — Conversational Dev Mode](DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md).
+Internal IDE/Dev Mode plans are superseded. Their preserved evidence is indexed in the [development archive](archive/superseded-development-2026-09-12/README.md). Existing architecture/runbook documents describe the current implementation unless reconciled with the new plan; they do not authorize resuming the old development program.
 
-| Doc                                                                                                        | Purpose                                                  |
-| ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| [DEVELOPER_SURFACE.md](DEVELOPER_SURFACE.md)                                                               | Current Developer Surface UX, lanes, controls, and APIs  |
-| [DOCLANG_BRIDGE_EXPORT_SPEC.md](DOCLANG_BRIDGE_EXPORT_SPEC.md)                                             | DocLang bridge export                                    |
-| [TERMINAL_TELETEXT_GRID_WORK_TAG.md](TERMINAL_TELETEXT_GRID_WORK_TAG.md)                                   | Terminal/teletext grid work tag                          |
-| [specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md](specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md)   | Verification-gated optional Nanocoder Dev Mode tool plan |
-| [DEV_MODE_READINESS_2026-08-31.md](DEV_MODE_READINESS_2026-08-31.md)                                     | Current Dev Mode prework, branch disposition, and gates  |
-| [DEV_MODE_LONG_SPRINTS_2026-09.md](DEV_MODE_LONG_SPRINTS_2026-09.md)                                     | Long sprint sequence for the Developer Workbench and product backlog |
-| [SPRINT6_RELEASE_NOTES.md](SPRINT6_RELEASE_NOTES.md)                                                       | Sprint 6 release notes, exit gate audit, and completion record |
+Retained integration references: [DocLang export](DOCLANG_BRIDGE_EXPORT_SPEC.md) and [terminal/teletext work tag](TERMINAL_TELETEXT_GRID_WORK_TAG.md).
 
 ## Task ownership
 
@@ -73,6 +65,4 @@ See [`docs/archive/`](archive/) for completed milestones, deprecated runbooks, a
 
 ## Local-first execution planning
 
-[Execution lanes brief — 2026-09-08](LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md): Skills, Snacks, Ollama, cloud eligibility, repeatability and Sprint 4 priorities. Proposed enforcement, not a claim of current runtime restrictions.
-
-[Execution enforcement proposal](ECOSYSTEM_EXECUTION_CONTRACT_2026-09-08.md): strict USX composition, predictable publishing/Actions, harness boundaries and promotion from Dev Mode.
+The [product refactor plan](UDOS_PRODUCT_REFACTOR_PLAN_2026-09-12.md) owns the future local-first, bounded-execution and publishing direction. Earlier execution proposals are preserved in the [development archive](archive/superseded-development-2026-09-12/README.md) for reusable safeguards and evidence, not as active Dev Mode policy.

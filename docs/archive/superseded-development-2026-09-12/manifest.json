@@ -1,0 +1,259 @@
+{
+  "date": "2026-09-12",
+  "purpose": "Superseded development direction; preserve feature and test evidence",
+  "documents": [
+    {
+      "original_path": "HANDOVER_GEMINI_ANTIGRAVITY_2026-09-09.md",
+      "archive_path": "HANDOVER_GEMINI_ANTIGRAVITY_2026-09-09.md",
+      "original_sha256": "21f6d55e33a8a04cfbf8419055d86b4d1fb8b67be895b007761140e38d35a08f",
+      "archived_sha256": "af686150a7d9eb7f5bc5a5634ab3fde0b91c1a711f91e849b1beb354acd5820a",
+      "transformation": "Added supersession banner and rebased relative Markdown links; body verified reconstructable byte-for-byte",
+      "link_rebases": [
+        {
+          "original": "INTERNAL_DEV_READINESS_AUDIT_2026-09-09.md",
+          "archived": "../../INTERNAL_DEV_READINESS_AUDIT_2026-09-09.md"
+        },
+        {
+          "original": "LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md",
+          "archived": "../../LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md"
+        },
+        {
+          "original": "ECOSYSTEM_EXECUTION_CONTRACT_2026-09-08.md",
+          "archived": "../../ECOSYSTEM_EXECUTION_CONTRACT_2026-09-08.md"
+        },
+        {
+          "original": "NEXT_SPRINT_AND_BACKLOG_2026-09-07.md",
+          "archived": "../../NEXT_SPRINT_AND_BACKLOG_2026-09-07.md"
+        },
+        {
+          "original": "DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md",
+          "archived": "../../DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md"
+        },
+        {
+          "original": "ZEN_ECOSYSTEM_CONTRACT.md",
+          "archived": "../../ZEN_ECOSYSTEM_CONTRACT.md"
+        },
+        {
+          "original": "SURFACE_OWNERSHIP.md",
+          "archived": "../../SURFACE_OWNERSHIP.md"
+        }
+      ]
+    },
+    {
+      "original_path": "INTERNAL_DEV_READINESS_AUDIT_2026-09-09.md",
+      "archive_path": "INTERNAL_DEV_READINESS_AUDIT_2026-09-09.md",
+      "original_sha256": "58733ec29810c1124e09c5f29bcef7ecabac69e496e58bde15e280536f894686",
+      "archived_sha256": "6c199bf209c1a4d4dba77f6d252552b1dad3773288d9ef7bd8481d429aca9ed5",
+      "transformation": "Added supersession banner and rebased relative Markdown links; body verified reconstructable byte-for-byte",
+      "link_rebases": [
+        {
+          "original": "DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md",
+          "archived": "../../DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md"
+        },
+        {
+          "original": "LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md",
+          "archived": "../../LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md"
+        },
+        {
+          "original": "ECOSYSTEM_EXECUTION_CONTRACT_2026-09-08.md",
+          "archived": "../../ECOSYSTEM_EXECUTION_CONTRACT_2026-09-08.md"
+        },
+        {
+          "original": "NEXT_SPRINT_AND_BACKLOG_2026-09-07.md",
+          "archived": "../../NEXT_SPRINT_AND_BACKLOG_2026-09-07.md"
+        }
+      ]
+    },
+    {
+      "original_path": "DEV_MODE_LONG_SPRINTS_2026-09.md",
+      "archive_path": "DEV_MODE_LONG_SPRINTS_2026-09.md",
+      "original_sha256": "e8c7c784b189f174cfa5a51cca61a80fae6388ca5296cdd935e91e1493fe447a",
+      "archived_sha256": "46a3936dab99befe290ec053fb59a4337a5c8cc72c126faa6a67dac3bdfddca6",
+      "transformation": "Added supersession banner and rebased relative Markdown links; body verified reconstructable byte-for-byte",
+      "link_rebases": [
+        {
+          "original": "DISTRIBUTION_AND_SONIC_PATHWAY.md",
+          "archived": "../../DISTRIBUTION_AND_SONIC_PATHWAY.md"
+        },
+        {
+          "original": "DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md",
+          "archived": "../../DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md"
+        },
+        {
+          "original": "DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md",
+          "archived": "../../DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md"
+        },
+        {
+          "original": "NEXT_SPRINT_AND_BACKLOG_2026-09-07.md",
+          "archived": "../../NEXT_SPRINT_AND_BACKLOG_2026-09-07.md"
+        },
+        {
+          "original": "ZEN_ECOSYSTEM_CONTRACT.md",
+          "archived": "../../ZEN_ECOSYSTEM_CONTRACT.md"
+        },
+        {
+          "original": "DISTRIBUTION_AND_SONIC_PATHWAY.md",
+          "archived": "../../DISTRIBUTION_AND_SONIC_PATHWAY.md"
+        },
+        {
+          "original": "ECOSYSTEM_SPEC_INVENTORY.md",
+          "archived": "../../ECOSYSTEM_SPEC_INVENTORY.md"
+        }
+      ]
+    },
+    {
+      "original_path": "DEV_MODE_READINESS_2026-08-31.md",
+      "archive_path": "DEV_MODE_READINESS_2026-08-31.md",
+      "original_sha256": "467daad301c7bf6c6070066ae9b1209e0b0e10ec4c61ab0559c0d31e53cd47b9",
+      "archived_sha256": "a19e5ef28a519ff0fea4882dd250b0981c178b5dc5cd13afb990324157cab0c3",
+      "transformation": "Added supersession banner and rebased relative Markdown links; body verified reconstructable byte-for-byte",
+      "link_rebases": []
+    },
+    {
+      "original_path": "DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md",
+      "archive_path": "DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md",
+      "original_sha256": "3a26724894799adbd34854f0d103c44c1c58ab9ef0b82420f68a8284cd88ec8a",
+      "archived_sha256": "e6d44d7a32850e4bb66effcf717aa6e86046017bd7f4806b0213a9c74ec52d98",
+      "transformation": "Added supersession banner and rebased relative Markdown links; body verified reconstructable byte-for-byte",
+      "link_rebases": [
+        {
+          "original": "NEXT_SPRINT_AND_BACKLOG_2026-09-07.md",
+          "archived": "../../NEXT_SPRINT_AND_BACKLOG_2026-09-07.md"
+        },
+        {
+          "original": "DEV_MODE_LONG_SPRINTS_2026-09.md",
+          "archived": "../../DEV_MODE_LONG_SPRINTS_2026-09.md"
+        },
+        {
+          "original": "DEVELOPER_SURFACE.md",
+          "archived": "../../DEVELOPER_SURFACE.md"
+        },
+        {
+          "original": "FEATURE_SPEC_ASSISTUI_DEVELOPER_CHAT_LANE_SEPARATION.md",
+          "archived": "../../FEATURE_SPEC_ASSISTUI_DEVELOPER_CHAT_LANE_SEPARATION.md"
+        },
+        {
+          "original": "FEATURE_SPEC_OPENROUTER_ASK_PLAN_ACT.md",
+          "archived": "../../FEATURE_SPEC_OPENROUTER_ASK_PLAN_ACT.md"
+        },
+        {
+          "original": "ZEN_ECOSYSTEM_CONTRACT.md",
+          "archived": "../../ZEN_ECOSYSTEM_CONTRACT.md"
+        }
+      ]
+    },
+    {
+      "original_path": "NEXT_SPRINT_AND_BACKLOG_2026-09-07.md",
+      "archive_path": "NEXT_SPRINT_AND_BACKLOG_2026-09-07.md",
+      "original_sha256": "63ed897bd7e30489672f9014397a0ad0f651f2397be577193e708954f2a0dfcc",
+      "archived_sha256": "9c4f3747bd67048985142ee5517ba2bf34b5f6720b8fe7146b77ae23d03aaf1f",
+      "transformation": "Added supersession banner and rebased relative Markdown links; body verified reconstructable byte-for-byte",
+      "link_rebases": [
+        {
+          "original": "DEV_MODE_LONG_SPRINTS_2026-09.md",
+          "archived": "../../DEV_MODE_LONG_SPRINTS_2026-09.md"
+        },
+        {
+          "original": "DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md",
+          "archived": "../../DEV_CHAT_SPRINT3A_VERIFICATION_2026-09-06.md"
+        },
+        {
+          "original": "INTERNAL_DEV_READINESS_AUDIT_2026-09-09.md",
+          "archived": "../../INTERNAL_DEV_READINESS_AUDIT_2026-09-09.md"
+        },
+        {
+          "original": "LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md",
+          "archived": "../../LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md"
+        },
+        {
+          "original": "ECOSYSTEM_EXECUTION_CONTRACT_2026-09-08.md",
+          "archived": "../../ECOSYSTEM_EXECUTION_CONTRACT_2026-09-08.md"
+        }
+      ]
+    },
+    {
+      "original_path": "LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md",
+      "archive_path": "LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md",
+      "original_sha256": "8b15abd61b646740c978a416632a6260049c0b785360ed16855395461c56cc88",
+      "archived_sha256": "1ad2850ba68ca887c5f3425524b0507e6759dd6b37e3c3ca4a42bb478229c2b0",
+      "transformation": "Added supersession banner and rebased relative Markdown links; body verified reconstructable byte-for-byte",
+      "link_rebases": [
+        {
+          "original": "ECOSYSTEM_EXECUTION_CONTRACT_2026-09-08.md",
+          "archived": "../../ECOSYSTEM_EXECUTION_CONTRACT_2026-09-08.md"
+        }
+      ]
+    },
+    {
+      "original_path": "ECOSYSTEM_EXECUTION_CONTRACT_2026-09-08.md",
+      "archive_path": "ECOSYSTEM_EXECUTION_CONTRACT_2026-09-08.md",
+      "original_sha256": "205b6a528e108a32f24d09e5898528cdba208b8a6aa4600333b359cb49dde327",
+      "archived_sha256": "93c942d8d7f2d3986187e074c3f9e756b91e457659f95586dab9de91864e68e2",
+      "transformation": "Added supersession banner and rebased relative Markdown links; body verified reconstructable byte-for-byte",
+      "link_rebases": [
+        {
+          "original": "LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md",
+          "archived": "../../LOCAL_FIRST_EXECUTION_LANES_BRIEF_2026-09-08.md"
+        }
+      ]
+    },
+    {
+      "original_path": "specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md",
+      "archive_path": "specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md",
+      "original_sha256": "3d3d9c114747263a52fe239cac11ccd9ed5bef1f36f654f4757b0606853c932f",
+      "archived_sha256": "577b8f5df843dab99286658f22053833c949175cb9752dc8f64adbbb24e783e0",
+      "transformation": "Added supersession banner and rebased relative Markdown links; body verified reconstructable byte-for-byte",
+      "link_rebases": []
+    },
+    {
+      "original_path": "FEATURE_SPEC_ASSISTUI_DEVELOPER_CHAT_LANE_SEPARATION.md",
+      "archive_path": "FEATURE_SPEC_ASSISTUI_DEVELOPER_CHAT_LANE_SEPARATION.md",
+      "original_sha256": "448b8492f01735ac297e32dea55acd1000540c5ac813a0bdb21c597c12c581ae",
+      "archived_sha256": "38d6538862e393945f8d9f0e01e23814ea69c2378e8568f1eb0176b24280cb1f",
+      "transformation": "Added supersession banner and rebased relative Markdown links; body verified reconstructable byte-for-byte",
+      "link_rebases": [
+        {
+          "original": "DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md",
+          "archived": "../../DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md"
+        }
+      ]
+    },
+    {
+      "original_path": "SPRINT6_RELEASE_NOTES.md",
+      "archive_path": "SPRINT6_RELEASE_NOTES.md",
+      "original_sha256": "672a2121a471691ca5d435a296c1c3a2f038cc5239decf750076f7d86869d82a",
+      "archived_sha256": "144f1d1bcf2d7c642b8644505d1375897111b902e28f155c5252808ba9a3aa3e",
+      "transformation": "Added supersession banner and rebased relative Markdown links; body verified reconstructable byte-for-byte",
+      "link_rebases": [
+        {
+          "original": "DEV_MODE_LONG_SPRINTS_2026-09.md",
+          "archived": "../../DEV_MODE_LONG_SPRINTS_2026-09.md"
+        },
+        {
+          "original": "DISTRIBUTION_AND_SONIC_PATHWAY.md",
+          "archived": "../../DISTRIBUTION_AND_SONIC_PATHWAY.md"
+        },
+        {
+          "original": "BANGLE_EDITOR_USER_GUIDE.md",
+          "archived": "../../BANGLE_EDITOR_USER_GUIDE.md"
+        },
+        {
+          "original": "COMPONENT_ARCHITECTURE_GUIDE.md",
+          "archived": "../../COMPONENT_ARCHITECTURE_GUIDE.md"
+        },
+        {
+          "original": "DEV_MODE_LONG_SPRINTS_2026-09.md",
+          "archived": "../../DEV_MODE_LONG_SPRINTS_2026-09.md"
+        },
+        {
+          "original": "DISTRIBUTION_AND_SONIC_PATHWAY.md",
+          "archived": "../../DISTRIBUTION_AND_SONIC_PATHWAY.md"
+        },
+        {
+          "original": "README.md",
+          "archived": "../../README.md"
+        }
+      ]
+    }
+  ]
+}
