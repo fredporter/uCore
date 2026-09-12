@@ -613,3 +613,12 @@ def register_routes(app: web.Application) -> None:
         log.debug("Host PIM routes registered")
     except ImportError as e:
         log.debug("Host PIM routes not available: %s", e)
+
+    # ── Runtime Device Delivery & Capsule Governance API ──────────────
+    try:
+        from .runtime_device_api import register_runtime_device_routes
+
+        register_runtime_device_routes(app)
+        log.debug("Runtime Device Delivery routes registered")
+    except ImportError as e:
+        log.debug("Runtime Device Delivery routes not available: %s", e)
