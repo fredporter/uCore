@@ -112,13 +112,23 @@ async def handle_inspect_device(request: web.Request) -> web.Response:
         report = inspect_hardware_compatibility(device_info)
     except Exception as e:
         log.warning("Falling back for inspect: %s", e)
+        ram = int(device_info.get("ram_mb", 0))
+        cinnamon_ok = ram >= 4096
+        xfce_ok = ram >= 2048
+        preferred = "cinnamon-full" if cinnamon_ok else ("xfce-light" if xfce_ok else None)
         report = {
             "device": device_info,
-            "safety_gate": "inspect (read-only)",
-            "profiles": {
-                "cinnamon-full": {"compatible": device_info.get("ram_mb", 0) >= 4096},
-                "xfce-light": {"compatible": device_info.get("ram_mb", 0) >= 2048},
+            "hardware_tier": {
+                "id": "pc-x86_64",
+                "name": "Standard PC x86-64",
             },
+            "safety_gate": "inspect (read-only, non-destructive)",
+            "profiles": {
+                "cinnamon-full": {"compatible": cinnamon_ok, "status": "COMPATIBLE" if cinnamon_ok else "INCOMPATIBLE"},
+                "xfce-light": {"compatible": xfce_ok, "status": "COMPATIBLE" if xfce_ok else "INCOMPATIBLE"},
+            },
+            "preferred_profile": preferred,
+            "warnings": [],
         }
 
     return web.json_response({"status": "ok", "assessment": report})
