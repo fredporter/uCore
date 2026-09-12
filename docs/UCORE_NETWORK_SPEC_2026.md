@@ -96,3 +96,31 @@ BitChat provides private, real-time messaging between household members or co-lo
   - Separate VLANs/SSIDs for **Main LAN**, **Guest Wi-Fi**, and **IoT Devices**.
   - **Guest Wi-Fi**: Granted WAN internet access and read-only access to the public uCore portal; strictly blocked from internal file shares, vaults, and camera streams.
   - Provisioning recipes authored in Sonic for compatible router hardware.
+
+---
+
+## 5. HomeNest Media & Steam Decentralized Node Protocol
+
+### Mission
+Eliminate cloud-first media streaming and game delivery delays. A designated local machine (e.g. Steam PC, media server, or Mac Mini) acts as the local media host and game transfer cache for all household clients (tablets, laptops, living-room TV).
+
+### Protocol & Service Registration
+All decentralized nodes announce their roles on the LAN via mDNS / ZeroConf:
+
+| Service Type | Port | Purpose | Transport |
+| :--- | :--- | :--- | :--- |
+| `_homenest-media._tcp.local.` | 8096 | Local media library (films, music, audiobooks) via Jellyfin / uDOS media player | HTTP / WebSocket |
+| `_homenest-steam._tcp.local.` | 27036 | Steam Big Picture console, In-Home Streaming, and Local Network Game Transfers | UDP / TCP |
+| `_sonic-depot._tcp.local.` | 8088 | Decentralized distro/ISO cache, patch repository, and uCode capsules | HTTP |
+| `_udos-portal._tcp.local.` | 8080 | Local Headless WordPress user RBAC, permission store, and document portal | HTTP / REST |
+| `_bitchat._tcp.local.` | 8085 | Private LAN P2P messaging and living-room notifications | WebSocket |
+
+### Local Caching & Bandwidth Preservation
+1. **Steam Local Network Transfers**:
+   - HomeNest operates as a local Steam repository node.
+   - When a game or update is downloaded to the HomeNest console, any other PC, laptop, or Steam Deck on the local network pulls game files directly from the HomeNest node over gigabit LAN, requiring zero external internet download.
+2. **Local Media & Retro Game Capsules**:
+   - Audio, video, and uCode retro game capsules (`.ucapsule`) stream directly from local storage to the living-room display or mobile clients.
+   - Preserves complete functionality when the internet connection is offline or degraded.
+3. **Controller & Thin-Client Operation**:
+   - Thin clients (laptops, phones) can discover the HomeNest node and either trigger playback locally or act as remote controller surfaces via WebSocket events.
