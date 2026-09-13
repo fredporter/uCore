@@ -12,7 +12,19 @@
       @toggle-orientation="shell.toggleTabOrientation()"
     />
     <div class="documentation-content-inner">
-      <div class="documentation-content">
+      <!-- 1. Local Wikipedia Tab (Default Serene View) -->
+      <div v-if="activeTab === 'wiki'" class="doc-wiki-wrapper">
+        <LocalWikiReader />
+      </div>
+
+      <!-- 2. Learning Curriculum Tab -->
+      <div v-else-if="activeTab === 'learning'" class="doc-learning-wrapper">
+        <LearningPanel @open="onLearningOpen" />
+      </div>
+
+      <!-- 3. Developer & Engineering Tooling Tab -->
+      <div v-else-if="activeTab === 'developer'" class="documentation-content">
+        <!-- Diagnostic & Health strip inside Developer tab -->
         <div class="doc-health-strip">
           <div class="doc-health-item">
             <span class="doc-health-label">Sites API</span>
@@ -45,191 +57,8 @@
           <span>Last export: {{ lastExportAt }}</span>
         </div>
 
-        <!-- Guide Tab -->
-        <div v-if="activeTab === 'guide'">
-          <div v-if="loading" class="doc-loading">
-            <UIcon name="sync" /> Loading doc sites...
-          </div>
-          <div v-else-if="docSites.length > 0">
-            <div class="doc-site-grid">
-              <div
-                v-for="site in docSites"
-                :key="site.id"
-                class="doc-site-hero"
-                @click="viewingSite = site.id"
-              >
-                <div class="doc-site-hero-icon">
-                  <UIcon name="menu_book" />
-                </div>
-                <div class="doc-site-hero-content">
-                  <h4 class="doc-site-hero-title">{{ site.name }}</h4>
-                  <p v-if="site.description" class="doc-site-hero-desc">
-                    {{ site.description }}
-                  </p>
-                </div>
-                <UBadge :type="site.built ? 'success' : 'warning'" size="sm">
-                  {{ site.built ? "built" : "not built" }}
-                </UBadge>
-              </div>
-            </div>
-            <div v-if="viewingSite" class="doc-viewer">
-              <div class="doc-viewer-bar">
-                <span class="doc-viewer-label">{{ viewingSite }}</span>
-                <UButton
-                  size="sm"
-                  variant="secondary"
-                  icon="close"
-                  @click="viewingSite = null"
-                  >Close</UButton
-                >
-              </div>
-              <iframe
-                :src="`/api/docs/serve/${viewingSite}/`"
-                :title="viewingSite"
-                class="doc-frame"
-              />
-            </div>
-          </div>
-          <div v-else class="doc-empty">
-            No doc sites found in ~/Public/doc-sites/.
-          </div>
-
-          <!-- Component Docs (mirror of in-repo docs/) -->
-          <div class="doc-section doc-section--spaced">
-            <h4 class="doc-section-title">Component Docs</h4>
-            <div v-if="repoDocsLoading" class="doc-loading">
-              <UIcon name="sync" /> Loading component docs...
-            </div>
-            <div v-else-if="repoDocs.length > 0">
-              <div class="doc-section" v-for="repo in repoDocs" :key="repo.repo">
-                <h4 class="doc-repo-title">
-                  <UIcon name="code" />
-                  {{ repo.repo }} — {{ repo.count }} docs
-                </h4>
-                <div class="doc-repo-list">
-                  <div
-                    v-for="doc in repo.docs"
-                    :key="doc.path"
-                    class="doc-repo-row"
-                    role="button"
-                    tabindex="0"
-                    @click="openDoc('mirror', `${repo.repo}/${doc.path}`, doc.name)"
-                    @keydown.enter="openDoc('mirror', `${repo.repo}/${doc.path}`, doc.name)"
-                  >
-                    <UIcon name="description" />
-                    <span class="doc-repo-name">{{ doc.name }}</span>
-                    <code class="doc-mono">{{ doc.path }}</code>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div v-else class="doc-empty">No component docs found.</div>
-          </div>
-        </div>
-
-        <!-- Knowledge Tab -->
-        <div v-else-if="activeTab === 'knowledge'">
-          <div v-if="knowledgeLoading" class="doc-loading">
-            <UIcon name="sync" /> Loading knowledge library...
-          </div>
-          <div v-else-if="knowledgeSections.length > 0">
-            <div class="doc-knowledge-grid">
-              <div
-                v-for="section in knowledgeSections"
-                :key="section.id"
-                class="doc-knowledge-card"
-                role="button"
-                tabindex="0"
-                @click="openDoc('knowledge', section.id, section.name)"
-                @keydown.enter="openDoc('knowledge', section.id, section.name)"
-              >
-                <div class="doc-knowledge-card-icon">
-                  <UIcon name="book_2" />
-                </div>
-                <div class="doc-knowledge-card-content">
-                  <h4 class="doc-knowledge-card-title">{{ section.name }}</h4>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-else class="doc-empty">
-            Knowledge library not found at ~/Public/global-knowledge/.
-          </div>
-        </div>
-
-        <!-- Learning Tab -->
-        <div v-else-if="activeTab === 'learning'">
-          <LearningPanel @open="onLearningOpen" />
-        </div>
-
-        <!-- Publishing Tab -->
-        <div v-else-if="activeTab === 'publish'">
-          <div class="doc-section">
-            <h4 class="doc-section-title">Export Vault</h4>
-            <UButton
-              size="sm"
-              variant="primary"
-              icon="publish"
-              :disabled="exportRunning"
-              @click="runExport"
-            >
-              {{ exportRunning ? "Exporting..." : "Export Vault to DocLang" }}
-            </UButton>
-            <div v-if="exportResult" class="doc-export-msg">
-              <UBadge
-                :type="exportResult.error ? 'error' : 'success'"
-                size="sm"
-              />
-              <span>{{
-                exportResult.error ? exportResult.error : exportResult.message
-              }}</span>
-            </div>
-          </div>
-
-          <div class="doc-section doc-section--spaced">
-            <h4 class="doc-section-title">Publish Docs Site</h4>
-            <p v-if="publishStatus?.built_at" class="doc-export-msg">
-              Last built: {{ publishStatus.built_at }} ·
-              {{ publishStatus.total_files }} files
-            </p>
-            <div class="doc-actions">
-              <UButton
-                size="sm"
-                variant="primary"
-                icon="publish"
-                :disabled="publishing"
-                @click="runPublish(false)"
-              >
-                {{ publishing ? "Building..." : "Build Docs Site" }}
-              </UButton>
-              <UButton
-                size="sm"
-                variant="secondary"
-                icon="upload"
-                :disabled="publishing"
-                @click="runPublish(true)"
-              >
-                Build + Deploy
-              </UButton>
-            </div>
-            <div v-if="publishResult" class="doc-export-msg">
-              <UBadge
-                :type="publishResult.status === 'error' ? 'error' : 'success'"
-                size="sm"
-              />
-              <span>{{
-                publishResult.status === "error"
-                  ? publishResult.error || "Publish failed"
-                  : "Published " +
-                    (publishResult.build?.rendered_pages ?? 0) +
-                    " pages"
-              }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Developer & Engineering Tooling Tab -->
-        <div v-if="activeTab === 'developer'" class="doc-section doc-developer-section">
+        <!-- Developer & Engineering Tooling Content -->
+        <div class="doc-section doc-developer-section">
           <div class="doc-hero-banner">
             <UIcon name="terminal" class="doc-hero-icon" />
             <div class="doc-hero-text">
@@ -385,20 +214,27 @@ import UBadge from "../../skills/atoms/UBadge.vue";
 import UButton from "../../skills/atoms/UButton.vue";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import LearningPanel from "./panels/LearningPanel.vue";
+import LocalWikiReader from "./LocalWikiReader.vue";
 
 const shell = useShellStore();
 const route = useRoute();
 const router = useRouter();
 
 const TABS = [
-  { id: "guide", label: "Guide & Docs", icon: "menu_book" },
-  { id: "knowledge", label: "Knowledge", icon: "auto_stories" },
+  { id: "wiki", label: "Local Wikipedia", icon: "auto_stories" },
   { id: "learning", label: "Learn to Code", icon: "school" },
   { id: "developer", label: "Developer & Tooling", icon: "terminal" },
 ];
 const VALID_DOC_TABS = new Set(TABS.map((tab) => tab.id));
 const routeTab = String(route.query.tab || "");
-const activeTab = ref(VALID_DOC_TABS.has(routeTab) ? routeTab : "guide");
+
+function normalizeDocTab(tab: string): string {
+  if (tab === "guide" || tab === "knowledge") return "wiki";
+  if (VALID_DOC_TABS.has(tab)) return tab;
+  return "wiki";
+}
+
+const activeTab = ref(normalizeDocTab(routeTab));
 
 if (routeTab === "publish") {
   router.replace({ path: "/workflow", query: { tab: "publish" } });
@@ -413,12 +249,12 @@ watch(activeTab, (tab) => {
 watch(
   () => route.query.tab,
   (tab) => {
-    const normalized = String(tab || "guide");
-    if (normalized === "publish") {
+    const normalized = normalizeDocTab(String(tab || "wiki"));
+    if (String(tab || "") === "publish") {
       router.replace({ path: "/workflow", query: { tab: "publish" } });
       return;
     }
-    if (VALID_DOC_TABS.has(normalized)) activeTab.value = normalized;
+    activeTab.value = normalized;
   },
 );
 
@@ -1207,5 +1043,20 @@ onMounted(() => {
 .doc-sidepanel-enter-from,
 .doc-sidepanel-leave-to {
   transform: translateX(100%);
+}
+
+.doc-wiki-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.doc-learning-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--usx-spacing-md);
 }
 </style>

@@ -291,7 +291,15 @@ Runtime dependencies install as verified versioned artifacts, not live sibling c
 
 Sonic retains diagnostics, hardware-model records, qualified provisioning, device libraries and boot/toolkit roles. It consumes uCode/uKnowledge only as required. Keep read-only inspection, disk writes and firmware flashing separate gates. Exact device/firmware support, recovery and physical tests are required before advertising a write operation.
 
-Classic Modern has two profiles: Cinnamon/full and Xfce/light. Pin the latest qualified Mint release and maintain one common profile specification with limited desktop differences. Test reversible install/uninstall, live USB versus installed OS, offline setup, sleep/wake, network, display/input/audio and recovery. Track PC x86-64, older Intel Mac and ARM support separately. No universal "old hardware" claim or Windows/macOS binary compatibility promise.
+Classic Modern has two profiles: Cinnamon/full and Xfce/light. Pin the latest qualified Mint release and maintain one common profile specification with limited desktop differences. Test reversible install/uninstall, live USB versus installed OS, offline setup, sleep/wake, network, display/input/audio and recovery. Track PC x86-64, older Intel Mac, recycled POS/kiosks, and ARM support separately. No universal "old hardware" claim or Windows/macOS binary compatibility promise.
+
+**Hardware & Universal OS Doctrine**:
+- Modern Apple Silicon Macs (M-series M1/M2/M3/M4): Run uDos and uCore natively directly on top of macOS. Linux installation on Apple Silicon is neither supported nor needed.
+- Older machines and non-Mac hardware (PCs, recycled POS terminals, kiosks, older Intel Macs): A Sonic Screwdriver prepared bootable USB flash drive preconfigured with Linux/CMMint is the preferred universal OS method.
+- Non-destructive universal layer: uDos is a universal layer on top of hardware that does not necessarily scrub what was there before. Live USB persistence and non-destructive deployment preserve existing host systems.
+- Universal Standards & Offline Datasets: GridCore characters/mosaics/sprites/mapping, USX design tokens/palettes/image presets, and Prose typography rules are canonical and single-sourced in `~/Public/global-knowledge/standards/`. Offline datasets for mapping, metrics, timezones, and planetary/universe parameters live in `~/Public/global-knowledge/datasets/`. The host system clock and GPS/location serve as the sovereign point of reference without duplicate NTP daemons.
+- Educational pathways: Consolidate beginner programming (traditional BBC BASIC & physical computing) into `uCode`, and hardware rebirth/recycled tech into `SonicScrewdriver`. The "uDos way" is the universal standard across all documentation and learning streams.
+
 
 ## 12. Portal, access and future networking
 

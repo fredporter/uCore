@@ -27,6 +27,14 @@
           >
             <UIcon name="science" /> Research Queue
           </button>
+          <button
+            type="button"
+            class="browserui-nav-pill browserui-nav-pill--wiki"
+            title="Read scraped and compiled notes in the offline Local Wikipedia"
+            @click="navigateToWiki"
+          >
+            <UIcon name="auto_stories" /> Read in Local Wiki
+          </button>
         </div>
       </div>
 
@@ -35,7 +43,7 @@
           <header class="browserui-zen">
             <div class="browserui-zen__mark"><UIcon name="travel_explore" /></div>
             <h1>What are you exploring?</h1>
-            <p>Search your collected sources and shape useful topics.</p>
+            <p>Web intake, scraping, and vault enhancement engine. Ingest web knowledge to compile your offline collection.</p>
             <div class="browserui-zen__search">
               <UInput v-model="searchQuery" placeholder="Search vaults, knowledge, and the web…" icon="search" @enter="runResearchSearch" />
               <button
@@ -313,6 +321,10 @@ const chat = useChatStore()
 const activeTab = ref<"cards" | "dashboard" | "studio">("cards")
 const searchQuery = ref("")
 const researchSearching = ref(false)
+
+function navigateToWiki() {
+  router.push({ path: "/docs", query: { tab: "wiki" } })
+}
 const researchNotice = ref("")
 const groundedResult = ref<GroundedSearchResult | null>(null)
 const safariIntaking = ref(false)

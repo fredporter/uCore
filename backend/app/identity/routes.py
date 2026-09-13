@@ -164,6 +164,141 @@ async def handle_wordpress_map_inbound(request: web.Request) -> web.Response:
     return web.json_response({"identity": mapping})
 
 
+async def handle_roles_list(_request: web.Request) -> web.Response:
+    """GET /api/identity/roles."""
+    from .wordpress_rbac import ROLE_CAPABILITIES
+    roles = [
+        {"role": role, "capabilities": sorted(caps)}
+        for role, caps in ROLE_CAPABILITIES.items()
+    ]
+    return web.json_response({"roles": roles})
+
+
+async def handle_users_list(request: web.Request) -> web.Response:
+    """GET /api/identity/users."""
+    from .wordpress_rbac import get_current_user, get_user_store
+    current_user = get_current_user(request)
+    store = get_user_store()
+    role_filter = request.query.get("role")
+
+    if not store.has_capability(current_user, "manage_users"):
+        users = store.list_users(role=role_filter)
+        safe_users = [
+            {"id": u["id"], "username": u["username"], "display_name": u["display_name"], "role": u["role"]}
+            for u in users
+        ]
+        return web.json_response({"users": safe_users})
+
+    users = store.list_users(role=role_filter)
+    return web.json_response({"users": users})
+
+
+async def handle_users_create(request: web.Request) -> web.Response:
+    """POST /api/identity/users."""
+    from .wordpress_rbac import get_current_user, get_user_store
+    current_user = get_current_user(request)
+    store = get_user_store()
+    if not store.has_capability(current_user, "manage_users"):
+        raise web.HTTPForbidden(reason="manage_users capability required")
+
+    payload = await _json_object(request)
+    username = str(payload.get("username", "")).strip()
+    if not username:
+        raise web.HTTPBadRequest(reason="username is required")
+    display_name = str(payload.get("display_name", "")).strip() or username
+    email = str(payload.get("email", "")).strip()
+    role = str(payload.get("role", "subscriber")).strip()
+    meta = payload.get("meta") or {}
+
+    user = store.create_user(
+        username=username,
+        display_name=display_name,
+        email=email,
+        role=role,
+        meta=meta,
+    )
+    return web.json_response({"user": user}, status=201)
+
+
+async def handle_user_get(request: web.Request) -> web.Response:
+    """GET /api/identity/users/{user_id}."""
+    from .wordpress_rbac import get_current_user, get_user_store
+    current_user = get_current_user(request)
+    store = get_user_store()
+    target_id = request.match_info["user_id"]
+    user = store.get_user(target_id)
+    if user is None:
+        raise web.HTTPNotFound(reason="User not found")
+    if current_user.get("id") != target_id and not store.has_capability(current_user, "manage_users"):
+        return web.json_response({
+            "user": {
+                "id": user["id"],
+                "username": user["username"],
+                "display_name": user["display_name"],
+                "role": user["role"],
+            }
+        })
+    return web.json_response({"user": user})
+
+
+async def handle_user_update(request: web.Request) -> web.Response:
+    """PATCH /api/identity/users/{user_id}."""
+    from .wordpress_rbac import get_current_user, get_user_store
+    current_user = get_current_user(request)
+    store = get_user_store()
+    target_id = request.match_info["user_id"]
+    is_self = current_user.get("id") == target_id
+    is_admin = store.has_capability(current_user, "manage_users")
+    if not (is_self or is_admin):
+        raise web.HTTPForbidden(reason="Permission denied")
+
+    payload = await _json_object(request)
+    role = payload.get("role")
+    if role is not None and not is_admin:
+        raise web.HTTPForbidden(reason="Changing role requires manage_users capability")
+
+    display_name = payload.get("display_name")
+    email = payload.get("email")
+    meta = payload.get("meta")
+
+    updated = store.update_user(
+        target_id,
+        display_name=display_name,
+        email=email,
+        role=role,
+        meta=meta,
+    )
+    if updated is None:
+        raise web.HTTPNotFound(reason="User not found")
+    return web.json_response({"user": updated})
+
+
+async def handle_user_delete(request: web.Request) -> web.Response:
+    """DELETE /api/identity/users/{user_id}."""
+    from .wordpress_rbac import get_current_user, get_user_store
+    current_user = get_current_user(request)
+    store = get_user_store()
+    if not store.has_capability(current_user, "manage_users"):
+        raise web.HTTPForbidden(reason="manage_users capability required")
+
+    target_id = request.match_info["user_id"]
+    deleted = store.delete_user(target_id)
+    if not deleted:
+        raise web.HTTPBadRequest(reason="Cannot delete user (user not found or sovereign owner)")
+    return web.json_response({"success": True, "deleted": target_id})
+
+
+async def handle_user_capabilities(request: web.Request) -> web.Response:
+    """GET /api/identity/users/me/capabilities."""
+    from .wordpress_rbac import get_current_user
+    current_user = get_current_user(request)
+    return web.json_response({
+        "user_id": current_user.get("id"),
+        "role": current_user.get("role"),
+        "capabilities": current_user.get("capabilities", []),
+    })
+
+
 def register_routes(app: web.Application) -> None:
     """Register identity subsystem routes."""
     app.router.add_get("/api/identity/plugin/profile", handle_identity_plugin_profile)
@@ -183,3 +318,13 @@ def register_routes(app: web.Application) -> None:
         "/api/identity/wordpress/map-inbound",
         handle_wordpress_map_inbound,
     )
+
+    # Sovereign WordPress RBAC & User Management (Milestone P8)
+    app.router.add_get("/api/identity/roles", handle_roles_list)
+    app.router.add_get("/api/identity/users", handle_users_list)
+    app.router.add_post("/api/identity/users", handle_users_create)
+    app.router.add_get("/api/identity/users/me/capabilities", handle_user_capabilities)
+    app.router.add_get("/api/identity/users/{user_id}", handle_user_get)
+    app.router.add_patch("/api/identity/users/{user_id}", handle_user_update)
+    app.router.add_delete("/api/identity/users/{user_id}", handle_user_delete)
+

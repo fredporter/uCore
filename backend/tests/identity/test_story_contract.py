@@ -23,6 +23,13 @@ EXPECTED_ROUTES = {
     ("PUT", "/api/identity/privacy/{resource_id}"),
     ("POST", "/api/identity/wordpress/map-outbound"),
     ("POST", "/api/identity/wordpress/map-inbound"),
+    ("GET", "/api/identity/roles"),
+    ("GET", "/api/identity/users"),
+    ("POST", "/api/identity/users"),
+    ("GET", "/api/identity/users/me/capabilities"),
+    ("GET", "/api/identity/users/{user_id}"),
+    ("PATCH", "/api/identity/users/{user_id}"),
+    ("DELETE", "/api/identity/users/{user_id}"),
 }
 
 

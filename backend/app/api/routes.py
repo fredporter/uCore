@@ -528,6 +528,15 @@ def register_routes(app: web.Application) -> None:
     except ImportError as e:
         log.debug("Vault topology routes not available: %s", e)
 
+    # ── Sovereign Portal & Headless WordPress (Milestone P8) ────────
+    try:
+        from ..portal.routes import register_routes as register_portal_routes
+
+        register_portal_routes(app)
+        log.debug("Portal routes registered")
+    except ImportError as e:
+        log.debug("Portal routes not available: %s", e)
+
     # ── Catalog Service (skills, MCP servers, LLMs) ──────────────────
     try:
         from .catalog import setup_routes as setup_catalog_routes
