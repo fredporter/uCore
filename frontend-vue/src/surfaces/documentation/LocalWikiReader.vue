@@ -191,6 +191,7 @@
 
           <!-- Rendered HTML Document Body -->
           <div
+            ref="wikiProseRef"
             class="wiki-prose prose-measure"
             v-html="renderedHtml"
             @click="handleProseClick"
@@ -333,9 +334,9 @@
 
 <script setup lang="ts">
 import { computed, h, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
 import UIcon from "../../skills/atoms/UIcon.vue";
+import { renderProseFast, sanitize } from "../../utils/markdownRenderer";
+import { hydrateDiagrams } from "../../utils/diagramHydrator";
 
 interface TreeItem {
   name: string;
@@ -587,6 +588,8 @@ function scrollToHeading(id: string) {
 }
 
 // ── Markdown Transformation & External Link Neutralization ────────────
+const wikiProseRef = ref<HTMLElement | null>(null);
+
 const renderedHtml = computed(() => {
   if (!rawMarkdown.value) return "";
 
@@ -598,8 +601,8 @@ const renderedHtml = computed(() => {
     return `[${label}](#wiki:${encodeURIComponent(target)})`;
   });
 
-  // 2. Parse Markdown
-  const rawHtml = marked.parse(processed) as string;
+  // 2. Parse Markdown via unified renderer (supports callouts, diagrams, charts, math)
+  const rawHtml = renderProseFast(processed);
 
   // 3. Post-process HTML to:
   //    a) Add IDs to headings for TOC navigation
@@ -642,10 +645,16 @@ const renderedHtml = computed(() => {
     }
   });
 
-  return DOMPurify.sanitize(doc.body.innerHTML, {
-    ALLOWED_ATTR: ["id", "class", "data-wiki-target", "title", "href"],
-  });
+  return sanitize(doc.body.innerHTML);
 });
+
+// Hydrate diagrams and charts whenever rendered wiki content changes
+watch(renderedHtml, async () => {
+  await nextTick();
+  if (wikiProseRef.value) {
+    await hydrateDiagrams(wikiProseRef.value);
+  }
+}, { immediate: true });
 
 // ── Internal Link Click Interception ──────────────────────────────────
 function handleProseClick(event: MouseEvent) {

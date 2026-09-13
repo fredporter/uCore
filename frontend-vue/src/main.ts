@@ -22,6 +22,7 @@ import "@fontsource/merriweather/700.css";
 import "@fontsource/press-start-2p/400.css";
 import "@fontsource/vt323/400.css";
 import "material-symbols/outlined.css";
+import "katex/dist/katex.min.css";
 
 // USX Design System - Import in correct order
 // Core tokens come from the shared @udos/usx-tokens package

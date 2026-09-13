@@ -1,5 +1,5 @@
 <template>
-  <div class="md-preview" :class="`md-preview--${format}`">
+  <div ref="rootRef" class="md-preview" :class="`md-preview--${format}`">
     <!-- Story format: slide viewer with navigation -->
     <template v-if="format === 'story' && slides.length > 1">
       <div class="md-preview__slide-bar">
@@ -38,19 +38,22 @@
 <script setup lang="ts">
 /**
  * @component MarkdownPreview
- * @description Renders markdown as HTML via markdownRenderer. Supports prose and story formats.
+ * @description Renders markdown as HTML via markdownRenderer. Supports prose and story formats,
+ * diagrams (Mermaid, declarative SVG charts), Teletext character grids, and KaTeX math.
  */
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, nextTick } from "vue";
 import {
   renderDocument,
   type MarkdownFormat,
 } from "../../utils/markdownRenderer";
+import { hydrateDiagrams } from "../../utils/diagramHydrator";
 
 const props = defineProps<{
   content: string;
   filename?: string;
 }>();
 
+const rootRef = ref<HTMLElement | null>(null);
 const html = ref("");
 const format = ref<MarkdownFormat>("prose");
 const slides = ref<string[]>([]);
@@ -85,7 +88,19 @@ async function update() {
   } finally {
     loading.value = false;
   }
+
+  await nextTick();
+  if (rootRef.value) {
+    await hydrateDiagrams(rootRef.value);
+  }
 }
+
+watch(currentSlide, async () => {
+  await nextTick();
+  if (rootRef.value) {
+    await hydrateDiagrams(rootRef.value);
+  }
+});
 
 watch(() => props.content, update, { immediate: false });
 onMounted(update);
@@ -364,5 +379,121 @@ onMounted(update);
 .md-preview::-webkit-scrollbar-thumb {
   background-color: var(--usx-color-border);
   border-radius: 3px;
+}
+
+/* ─── Diagram & Chart containers ───────────────────────────────── */
+
+.md-diagram {
+  margin: var(--usx-spacing-lg) 0;
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface, #0b1120);
+  border: 1px solid var(--usx-color-border, #334155);
+  overflow: hidden;
+  position: relative;
+}
+
+.md-diagram__viewport {
+  padding: var(--usx-spacing-md);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: auto;
+}
+
+.md-diagram__viewport svg,
+.md-diagram--chart svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.md-diagram__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--usx-color-surface-variant, #1e293b);
+  border-bottom: 1px solid var(--usx-color-border, #334155);
+  font-size: 11px;
+  font-family: var(--usx-font-family-mono, monospace);
+}
+
+.md-diagram__label {
+  color: var(--usx-color-primary, #00e5ff);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.md-diagram__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.md-diagram__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--usx-radius-sm, 4px);
+  background: transparent;
+  border: 1px solid var(--usx-color-border, #334155);
+  color: var(--usx-color-text-muted, #94a3b8);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.md-diagram__btn:hover {
+  background: var(--usx-color-surface-hover, #334155);
+  color: var(--usx-color-text, #f8fafc);
+  border-color: var(--usx-color-primary, #00e5ff);
+}
+
+.md-diagram__source {
+  padding: var(--usx-spacing-sm);
+  border-top: 1px solid var(--usx-color-border, #334155);
+  background: #0b1120;
+}
+
+.md-diagram__source pre {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.md-diagram__error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--usx-spacing-sm);
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  font-size: 12px;
+}
+
+/* ─── Teletext Screen Display ──────────────────────────────────── */
+
+.teletext-screen {
+  background: #000000 !important;
+  color: #ffffff !important;
+  font-family: "VT323", "Press Start 2P", monospace !important;
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.05em;
+  padding: var(--usx-spacing-md) !important;
+  border: 2px solid #334155;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+/* ─── KaTeX Math Display ───────────────────────────────────────── */
+
+.katex-display {
+  margin: var(--usx-spacing-md) 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: var(--usx-spacing-xs) 0;
 }
 </style>
