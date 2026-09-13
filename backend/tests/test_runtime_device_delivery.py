@@ -6,9 +6,11 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
+
 from aiohttp import web
 from aiohttp.test_utils import AioHTTPTestCase
 
+from app.api import runtime_device_api
 from app.api.runtime_device_api import (
     handle_authorize_capsule,
     handle_get_profiles,
@@ -17,7 +19,6 @@ from app.api.runtime_device_api import (
     handle_revoke_capsule,
     register_runtime_device_routes,
 )
-from app.api import runtime_device_api
 
 
 class RuntimeDeviceDeliveryAPITest(AioHTTPTestCase):

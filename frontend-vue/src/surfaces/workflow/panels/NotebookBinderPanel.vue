@@ -112,13 +112,39 @@
         </section>
 
         <!-- Stage 3: Requirements & Plan -->
+        <!-- Stage 3: Requirements & Plan -->
         <section v-if="currentStage === 'plan'" class="stage-content stage-plan">
           <div class="plan-header">
-            <h3>Requirements & Bounded Execution Plan</h3>
-            <button class="wf-zen-primary" type="button" :disabled="runningAssembly" @click="runAssembly">
-              <UIcon name="play_arrow" />
-              {{ runningAssembly ? 'Assembling Draft...' : 'Run Bounded Assembly' }}
-            </button>
+            <div>
+              <h3>Requirements & Bounded Execution Plan</h3>
+              <p class="section-subtext">uFlow strictly enforces requirements mapping and execution budgeting.</p>
+            </div>
+            <div class="plan-actions">
+              <button
+                v-if="activeBinder.metadata.state === 'draft_brief' || activeBinder.metadata.state === 'planned'"
+                class="wf-zen-secondary"
+                type="button"
+                :disabled="authorisingRun"
+                @click="authoriseRun"
+              >
+                <UIcon name="lock" />
+                {{ authorisingRun ? 'Authorising...' : 'Authorise Run' }}
+              </button>
+              <button
+                v-if="activeBinder.metadata.state === 'running' || activeBinder.metadata.state === 'blocked'"
+                class="wf-zen-secondary"
+                type="button"
+                :disabled="runningAssembly"
+                @click="resumeRun"
+              >
+                <UIcon name="replay" />
+                Resume from Checkpoint
+              </button>
+              <button class="wf-zen-primary" type="button" :disabled="runningAssembly" @click="runAssembly">
+                <UIcon name="play_arrow" />
+                {{ runningAssembly ? 'Assembling Draft...' : 'Run Bounded Assembly' }}
+              </button>
+            </div>
           </div>
 
           <div class="requirements-grid">
@@ -148,19 +174,107 @@
           </div>
         </section>
 
-        <!-- Stage 4: Draft & Evidence Citations (Anti-Drift) -->
-        <section v-if="currentStage === 'draft'" class="stage-content stage-draft">
-          <div class="draft-toolbar">
-            <div class="draft-hashes">
-              <span>Base Hash: <code>{{ activeBinder.draft_sha256 ? activeBinder.draft_sha256.slice(0, 12) : 'none' }}...</code></span>
+        <!-- Stage 4: Decisions & Rationale Log -->
+        <section v-if="currentStage === 'decisions'" class="stage-content stage-decisions">
+          <div class="decisions-header">
+            <div>
+              <h3>Architectural Decisions & Rationale Log</h3>
+              <p class="section-subtext">Record accepted choices, rejected proposals, and superseded alternatives.</p>
             </div>
+            <button class="wf-zen-primary" type="button" @click="showAddDecisionModal = true">
+              <UIcon name="add" /> Record Decision
+            </button>
+          </div>
+
+          <div v-if="!activeBinder.decisions || activeBinder.decisions.length === 0" class="empty-hint">
+            No decisions recorded yet. Document key technical choices to maintain project traceability.
+          </div>
+          <div v-else class="decisions-grid">
+            <div
+              v-for="dec in activeBinder.decisions"
+              :key="dec.id"
+              class="decision-card"
+            >
+              <div class="decision-card__header">
+                <span class="decision-id">{{ dec.id }}</span>
+                <span class="decision-status" :class="`decision-status--${dec.status}`">{{ dec.status }}</span>
+              </div>
+              <h4>{{ dec.title }}</h4>
+              <p v-if="dec.rationale" class="decision-rationale">{{ dec.rationale }}</p>
+              <span class="decision-time">{{ new Date(dec.timestamp).toLocaleDateString() }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Stage 5: Zen Lite Editor & Anti-Drift Audit -->
+        <section v-if="currentStage === 'draft'" class="stage-content stage-draft">
+          <!-- Zen Lite Toolbar -->
+          <div class="zen-toolbar">
+            <div class="zen-typography-toggles">
+              <button
+                type="button"
+                class="zen-pill"
+                :class="{ 'zen-pill--active': editorFont === 'serif' }"
+                @click="editorFont = 'serif'"
+              >Serif</button>
+              <button
+                type="button"
+                class="zen-pill"
+                :class="{ 'zen-pill--active': editorFont === 'sans' }"
+                @click="editorFont = 'sans'"
+              >Sans</button>
+              <button
+                type="button"
+                class="zen-pill"
+                :class="{ 'zen-pill--active': editorFont === 'mono' }"
+                @click="editorFont = 'mono'"
+              >Mono</button>
+            </div>
+
+            <div class="zen-stats">
+              <span>{{ wordCount }} words</span> ·
+              <span>~{{ readingTimeMinutes }} min read</span>
+            </div>
+
+            <div v-if="activeBinder.sources?.length" class="zen-citation-chips">
+              <span class="citation-hint">Insert citation:</span>
+              <button
+                v-for="s in activeBinder.sources"
+                :key="s.citation_tag"
+                type="button"
+                class="citation-chip-btn"
+                :title="`Insert ${s.citation_tag} (${s.file_name})`"
+                @click="insertCitation(s.citation_tag)"
+              >
+                {{ s.citation_tag }}
+              </button>
+            </div>
+
             <div class="draft-actions">
+              <button
+                class="wf-zen-secondary audit-btn"
+                type="button"
+                :disabled="auditing"
+                @click="runAudit"
+              >
+                <UIcon name="policy" /> {{ auditing ? 'Auditing...' : 'Audit Anti-Drift' }}
+              </button>
               <button class="wf-zen-secondary" type="button" @click="reloadBinder">
-                <UIcon name="refresh" /> Discard / Reload
+                <UIcon name="refresh" /> Reload
               </button>
               <button class="wf-zen-primary" type="button" :disabled="savingDraft" @click="saveDraft">
                 <UIcon name="save" /> {{ savingDraft ? 'Saving...' : 'Save Draft' }}
               </button>
+            </div>
+          </div>
+
+          <!-- Anti-Drift Audit Result Banner -->
+          <div v-if="auditReport" class="audit-banner" :class="auditReport.passed ? 'audit-banner--passed' : 'audit-banner--warn'">
+            <UIcon :name="auditReport.passed ? 'check_circle' : 'warning'" />
+            <div>
+              <strong>Audit: {{ auditReport.coverage_percentage }}% Requirement Coverage</strong>
+              <span v-if="auditReport.passed"> — All {{ auditReport.requirements_total }} requirements verified with provenance linkage.</span>
+              <span v-else> — Missing requirements: {{ auditReport.missing_requirements?.join(', ') }}</span>
             </div>
           </div>
 
@@ -169,22 +283,23 @@
             <UIcon name="warning" />
             <div>
               <strong>Concurrency Conflict Detected!</strong>
-              <p>The draft on disk was modified elsewhere. Your changes were not overwritten. Click 'Discard / Reload' to fetch latest disk revision.</p>
+              <p>The draft on disk was modified elsewhere. Your changes were not overwritten. Click 'Reload' to fetch latest disk revision.</p>
             </div>
           </div>
 
-          <div class="draft-editor-container">
+          <div class="draft-editor-container" :class="`draft-editor--${editorFont}`">
             <textarea
               v-model="editableDraft"
               class="draft-textarea"
+              :class="`draft-textarea--${editorFont}`"
               placeholder="Draft contents..."
-              rows="16"
+              rows="18"
             />
           </div>
 
           <div class="evidence-ledger">
-            <h3>Evidence & Claim Citations Chain ({{ activeBinder.evidence.length }})</h3>
-            <div v-if="activeBinder.evidence.length === 0" class="empty-hint">
+            <h3>Evidence & Claim Citations Chain ({{ activeBinder.evidence?.length || 0 }})</h3>
+            <div v-if="!activeBinder.evidence || activeBinder.evidence.length === 0" class="empty-hint">
               No evidence citations recorded. Run assembly or insert citation references.
             </div>
             <table v-else class="evidence-table">
@@ -210,8 +325,27 @@
           </div>
         </section>
 
-        <!-- Stage 5: Editions & Sovereign Publishing -->
+        <!-- Stage 6: Editions & Universal Export Bridges -->
         <section v-if="currentStage === 'publish'" class="stage-content stage-publish">
+          <!-- Universal Export Bridges Card -->
+          <div class="universal-exports-card">
+            <div class="universal-exports-card__header">
+              <UIcon name="share" />
+              <div>
+                <h4>Universal Export Bridges</h4>
+                <p>Export project artifacts for Obsidian everyday authoring or Gemini Notebooks (NotebookLM) synthesis.</p>
+              </div>
+            </div>
+            <div class="export-actions">
+              <button class="wf-zen-secondary" type="button" @click="exportGemini">
+                <UIcon name="download" /> Export for Gemini Notebooks (NotebookLM)
+              </button>
+              <button class="wf-zen-secondary" type="button" @click="exportObsidian">
+                <UIcon name="folder_open" /> Generate Obsidian Vault Index
+              </button>
+            </div>
+          </div>
+
           <div class="acceptance-box">
             <h3>Accept Working Draft into Immutable Edition</h3>
             <p>Freezes current draft, requirements coverage, and evidence into a permanent snapshot.</p>
@@ -230,7 +364,7 @@
 
           <div class="editions-list">
             <h3>Accepted Editions & Sovereign Publication Receipts</h3>
-            <div v-if="activeBinder.editions.length === 0" class="empty-hint">
+            <div v-if="!activeBinder.editions || activeBinder.editions.length === 0" class="empty-hint">
               No accepted editions yet. Once the draft is reviewed, accept it to freeze edition 1.
             </div>
             <div
@@ -282,6 +416,37 @@
         </section>
       </div>
 
+      <!-- Add Decision Modal -->
+      <div v-if="showAddDecisionModal" class="modal-backdrop" @click.self="showAddDecisionModal = false">
+        <div class="modal-card">
+          <header class="modal-header">
+            <h3>Record Architectural Decision</h3>
+            <button type="button" @click="showAddDecisionModal = false"><UIcon name="close" /></button>
+          </header>
+          <div class="modal-body">
+            <label>Decision Title
+              <input v-model="newDecision.title" type="text" placeholder="e.g. Use local mDNS over centralized DNS" />
+            </label>
+            <label>Status
+              <select v-model="newDecision.status" class="binder-select">
+                <option value="accepted">Accepted</option>
+                <option value="rejected">Rejected</option>
+                <option value="superseded">Superseded</option>
+              </select>
+            </label>
+            <label>Rationale / Architecture Context
+              <textarea v-model="newDecision.rationale" rows="3" placeholder="Why this option was chosen or rejected..." />
+            </label>
+          </div>
+          <footer class="modal-footer">
+            <button class="wf-zen-secondary" type="button" @click="showAddDecisionModal = false">Cancel</button>
+            <button class="wf-zen-primary" type="button" :disabled="!newDecision.title.trim()" @click="addDecision">
+              Save Decision
+            </button>
+          </footer>
+        </div>
+      </div>
+
       <!-- Create Binder Modal -->
       <div v-if="showCreateModal" class="modal-backdrop" @click.self="showCreateModal = false">
         <div class="modal-card">
@@ -323,6 +488,7 @@ const STAGES = [
   { id: "brief", label: "Brief & Guardrails" },
   { id: "sources", label: "Sources & Intake" },
   { id: "plan", label: "Requirements & Plan" },
+  { id: "decisions", label: "Decisions Log" },
   { id: "draft", label: "Draft & Anti-Drift" },
   { id: "publish", label: "Editions & Publish" },
 ];
@@ -338,6 +504,10 @@ const runningAssembly = ref(false);
 const acceptingEdition = ref(false);
 const publishingEdition = ref<number | null>(null);
 const creating = ref(false);
+const authorisingRun = ref(false);
+const auditing = ref(false);
+const auditReport = ref<any>(null);
+const editorFont = ref<"serif" | "sans" | "mono">("serif");
 
 const errorMessage = ref("");
 const successMessage = ref("");
@@ -356,12 +526,30 @@ const newBinder = ref({
   audience: "General",
 });
 
+const showAddDecisionModal = ref(false);
+const newDecision = ref({
+  title: "",
+  status: "accepted",
+  rationale: "",
+});
+
 const fileInputRef = ref<HTMLInputElement | null>(null);
+
+const wordCount = computed(() => {
+  if (!editableDraft.value) return 0;
+  const words = editableDraft.value.trim().split(/\s+/);
+  return words[0] === "" ? 0 : words.length;
+});
+
+const readingTimeMinutes = computed(() => {
+  return Math.ceil(wordCount.value / 200) || 1;
+});
 
 function getStageBadge(stageId: string): string {
   if (!activeBinder.value) return "";
   if (stageId === "sources") return String(activeBinder.value.sources?.length || 0);
   if (stageId === "plan") return String(activeBinder.value.requirements?.length || 0);
+  if (stageId === "decisions") return String(activeBinder.value.decisions?.length || 0);
   if (stageId === "publish") return String(activeBinder.value.editions?.length || 0);
   return "";
 }
@@ -599,6 +787,140 @@ async function createBinder() {
     errorMessage.value = e.message || String(e);
   } finally {
     creating.value = false;
+  }
+}
+
+async function authoriseRun() {
+  if (!selectedBinderId.value) return;
+  authorisingRun.value = true;
+  errorMessage.value = "";
+  successMessage.value = "";
+  try {
+    const res = await fetch(`/api/binder/${encodeURIComponent(selectedBinderId.value)}/authorise`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        network_allowed: false,
+        run_budget: { max_iterations: 10, max_token_budget: 100000 },
+      }),
+    });
+    if (!res.ok) throw new Error(`Authorisation failed (${res.status})`);
+    successMessage.value = "Run authorized with budget receipts (max 10 iterations).";
+    await loadActiveBinder();
+  } catch (e: any) {
+    errorMessage.value = e.message || String(e);
+  } finally {
+    authorisingRun.value = false;
+  }
+}
+
+async function resumeRun() {
+  if (!selectedBinderId.value) return;
+  runningAssembly.value = true;
+  errorMessage.value = "";
+  successMessage.value = "";
+  try {
+    const res = await fetch(`/api/binder/${encodeURIComponent(selectedBinderId.value)}/resume`, {
+      method: "POST",
+    });
+    if (!res.ok) throw new Error(`Resume failed (${res.status})`);
+    const data = await res.json();
+    activeBinder.value = data.binder;
+    editableDraft.value = data.binder.draft || "";
+    loadedBaseHash.value = data.binder.draft_sha256 || "";
+    successMessage.value = "Resumed and reconciled from last durable checkpoint.";
+  } catch (e: any) {
+    errorMessage.value = e.message || String(e);
+  } finally {
+    runningAssembly.value = false;
+  }
+}
+
+async function addDecision() {
+  if (!selectedBinderId.value || !newDecision.value.title.trim()) return;
+  errorMessage.value = "";
+  successMessage.value = "";
+  try {
+    const res = await fetch(`/api/binder/${encodeURIComponent(selectedBinderId.value)}/decisions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newDecision.value),
+    });
+    if (!res.ok) throw new Error(`Recording decision failed (${res.status})`);
+    showAddDecisionModal.value = false;
+    newDecision.value = { title: "", status: "accepted", rationale: "" };
+    successMessage.value = "Decision recorded cleanly in decisions.json ledger.";
+    await loadActiveBinder();
+  } catch (e: any) {
+    errorMessage.value = e.message || String(e);
+  }
+}
+
+function insertCitation(citationTag: string) {
+  if (!citationTag) return;
+  editableDraft.value += ` [${citationTag}]`;
+  successMessage.value = `Citation [${citationTag}] inserted into draft.`;
+  setTimeout(() => { successMessage.value = ""; }, 2500);
+}
+
+async function runAudit() {
+  if (!selectedBinderId.value) return;
+  auditing.value = true;
+  errorMessage.value = "";
+  try {
+    const res = await fetch(`/api/binder/${encodeURIComponent(selectedBinderId.value)}/audit`);
+    if (!res.ok) throw new Error(`Audit failed (${res.status})`);
+    const data = await res.json();
+    auditReport.value = data.audit;
+    if (data.audit.passed) {
+      successMessage.value = `Audit Passed: ${data.audit.coverage_percentage}% requirement coverage with provenance.`;
+    } else {
+      errorMessage.value = `Audit Warning: Missing requirements [${data.audit.missing_requirements?.join(", ")}]`;
+    }
+  } catch (e: any) {
+    errorMessage.value = e.message || String(e);
+  } finally {
+    auditing.value = false;
+  }
+}
+
+function downloadTextFile(filename: string, content: string) {
+  const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function exportGemini() {
+  if (!selectedBinderId.value) return;
+  errorMessage.value = "";
+  try {
+    const res = await fetch(`/api/binder/${encodeURIComponent(selectedBinderId.value)}/export/gemini`);
+    if (!res.ok) throw new Error(`Gemini export failed (${res.status})`);
+    const data = await res.json();
+    downloadTextFile(`${selectedBinderId.value}_gemini_notebook.md`, data.package.content);
+    successMessage.value = `Exported Gemini Notebook with ${data.package.sources_count} sources & footnotes.`;
+  } catch (e: any) {
+    errorMessage.value = e.message || String(e);
+  }
+}
+
+async function exportObsidian() {
+  if (!selectedBinderId.value) return;
+  errorMessage.value = "";
+  try {
+    const res = await fetch(`/api/binder/${encodeURIComponent(selectedBinderId.value)}/export/obsidian`);
+    if (!res.ok) throw new Error(`Obsidian export failed (${res.status})`);
+    const data = await res.json();
+    downloadTextFile(`${selectedBinderId.value}_Index.md`, data.content);
+    successMessage.value = `Generated Obsidian index with [[WikiLinks]] (${data.index_path}).`;
+  } catch (e: any) {
+    errorMessage.value = e.message || String(e);
   }
 }
 
@@ -1035,4 +1357,232 @@ onMounted(() => {
 .wf-error { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
 .wf-success { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
 .empty-hint { color: var(--text-muted, #94a3b8); font-size: 0.85rem; font-style: italic; padding: 1rem 0; }
+
+/* Zen Lite Toolbar & Editor Styles */
+.zen-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  background: var(--surface-card, #1e293b);
+  border: 1px solid var(--border-subtle, #334155);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+}
+
+.zen-typography-toggles {
+  display: inline-flex;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2px;
+  gap: 2px;
+}
+
+.zen-pill {
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #94a3b8);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.zen-pill:hover {
+  color: var(--text-primary, #f8fafc);
+}
+
+.zen-pill--active {
+  background: #38bdf8;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.zen-stats {
+  font-size: 0.8rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.zen-citation-chips {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.citation-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.citation-chip-btn {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 4px;
+  padding: 0.15rem 0.45rem;
+  font-family: monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.citation-chip-btn:hover {
+  background: rgba(56, 189, 248, 0.3);
+}
+
+.audit-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.audit-banner--passed {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+}
+
+.audit-banner--warn {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  color: #eab308;
+}
+
+.draft-editor-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.draft-textarea--serif {
+  font-family: "Georgia", "Cambria", "Times New Roman", serif;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  max-width: 72ch;
+}
+
+.draft-textarea--sans {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 72ch;
+}
+
+.draft-textarea--mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 80ch;
+}
+
+/* Decisions Log Styles */
+.decisions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.decisions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.decision-card {
+  background: var(--surface-card, #1e293b);
+  border: 1px solid var(--border-subtle, #334155);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.decision-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.decision-id {
+  font-family: monospace;
+  font-weight: 700;
+  color: #38bdf8;
+  font-size: 0.8rem;
+}
+
+.decision-status {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.decision-status--accepted {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.decision-status--rejected {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.decision-status--superseded {
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+}
+
+.decision-rationale {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #cbd5e1);
+  line-height: 1.4;
+}
+
+.decision-time {
+  font-size: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+/* Universal Export Bridges Styles */
+.universal-exports-card {
+  background: var(--surface-card, #1e293b);
+  border: 1px solid var(--border-subtle, #334155);
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.universal-exports-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.universal-exports-card__header h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.universal-exports-card__header p {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.export-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
 </style>

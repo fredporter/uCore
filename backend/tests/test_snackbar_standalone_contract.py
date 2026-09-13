@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+
+import pytest
 from aiohttp import web
 from aiohttp.test_utils import AioHTTPTestCase
-import pytest
 
 from app.services.activity_markdown import (
     append_activity_events,
