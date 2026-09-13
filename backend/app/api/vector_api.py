@@ -570,22 +570,65 @@ async def handle_vector_convert(request: web.Request) -> web.Response:
     if not svg:
         return web.json_response({"error": "svg is required"}, status=400)
 
+    # 1. Try headless Rust engine if available
+    if target in ("ascii", "teletext", "gridcore", "celx", "describe"):
+        uvcore_bin = (
+            Path(__file__).resolve().parents[4] / "uVector" / "target" / "debug" / "uvcore"
+        )
+        if not uvcore_bin.exists():
+            uvcore_release = (
+                Path(__file__).resolve().parents[4] / "uVector" / "target" / "release" / "uvcore"
+            )
+            if uvcore_release.exists():
+                uvcore_bin = uvcore_release
+
+        if uvcore_bin.exists():
+            import tempfile
+            tmp_path = None
+            try:
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".svg", delete=False) as tmp:
+                    tmp.write(svg)
+                    tmp_path = tmp.name
+
+                fmt_arg = "teletext" if target in ("teletext", "gridcore") else target
+                res = subprocess.run(
+                    [str(uvcore_bin), tmp_path, "--format", fmt_arg],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                if res.returncode == 0:
+                    return web.json_response({
+                        "format": target,
+                        "content": res.stdout,
+                        "engine": "uvcore_rust",
+                    })
+            except Exception as e:
+                log.warning("uvcore conversion failed, falling back to local: %s", e)
+            finally:
+                if tmp_path:
+                    try:
+                        os.unlink(tmp_path)
+                    except OSError:
+                        pass
+
+    # 2. Local fallback generators
     if target == "ascii":
         output = _generate_ascii_art("Converted Vector")
-        return web.json_response({"format": "ascii", "content": output})
+        return web.json_response({"format": "ascii", "content": output, "engine": "fallback"})
     elif target in ("teletext", "gridcore"):
         output = _generate_teletext_grid("Converted Vector", "mono_teletext")
-        return web.json_response({"format": "teletext", "content": output})
+        return web.json_response({"format": "teletext", "content": output, "engine": "fallback"})
     elif target == "celx":
         output = "CELX 40 25\nLAYER 0\nRECT 0 0 40 25 black\n"
-        return web.json_response({"format": "celx", "content": output})
+        return web.json_response({"format": "celx", "content": output, "engine": "fallback"})
     elif target == "describe":
         rects = len(re.findall(r"<rect", svg))
         circles = len(re.findall(r"<circle", svg))
         lines = len(re.findall(r"<line", svg))
         paths = len(re.findall(r"<path", svg))
         desc = f"Vector Document: {rects} rectangles, {circles} circles, {lines} lines, {paths} paths."
-        return web.json_response({"format": "describe", "content": desc})
+        return web.json_response({"format": "describe", "content": desc, "engine": "fallback"})
     else:
         return web.json_response({"error": f"Unsupported target format: {target}"}, status=400)
 

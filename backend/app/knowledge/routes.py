@@ -216,7 +216,7 @@ async def handle_search(request: web.Request) -> web.Response:
 
 async def handle_knowledge_status(_request: web.Request) -> web.Response:
     """GET /api/knowledge/status — offline knowledge engine status."""
-    from app.services.library_index import get_stats, INDEX_DB
+    from app.services.library_index import INDEX_DB, get_stats
     stats = get_stats()
     return web.json_response({
         "status": "online" if stats.get("total_entries", 0) > 0 else "ready",
@@ -247,6 +247,7 @@ async def handle_index_rebuild(_request: web.Request) -> web.Response:
     """POST /api/knowledge/index/rebuild — trigger unified index rebuild."""
     import asyncio
     from datetime import datetime, timezone
+
     from app.services.library_index import build_index
     result = await asyncio.to_thread(build_index)
     return web.json_response({
@@ -261,6 +262,7 @@ async def handle_index_rebuild(_request: web.Request) -> web.Response:
 async def handle_index_coverage(_request: web.Request) -> web.Response:
     """GET /api/knowledge/index/coverage — knowledge coverage across zones."""
     from app.services.library_index import get_stats
+
     from .library import list_workspaces
     stats = get_stats()
     workspaces = list_workspaces()

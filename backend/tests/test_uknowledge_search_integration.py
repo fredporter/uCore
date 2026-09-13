@@ -25,9 +25,9 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
 from app.knowledge.routes import register_routes
-from app.services.library_index import build_index, get_stats, search as library_search
+from app.services.library_index import build_index, get_stats
+from app.services.library_index import search as library_search
 from app.surfaces.documentation_api import register_documentation_routes
-
 
 # ─── 1. Library Index FTS5 Ranking & Snippet Tests ─────────────────────────
 
