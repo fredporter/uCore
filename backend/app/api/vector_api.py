@@ -104,7 +104,7 @@ def _load_palettes() -> Dict[str, Any]:
             "teletext_ceefax": {
                 "id": "teletext_ceefax",
                 "name": "Teletext Ceefax",
-                "base_preset": true,
+                "base_preset": True,
                 "colors": [
                     {"name": "black", "hex": "#000000", "ansi": 30},
                     {"name": "red", "hex": "#E6193C", "ansi": 31},
@@ -119,7 +119,7 @@ def _load_palettes() -> Dict[str, Any]:
             "architectural_blueprint": {
                 "id": "architectural_blueprint",
                 "name": "Architectural Blueprint",
-                "base_preset": true,
+                "base_preset": True,
                 "colors": [
                     {"name": "prussian_blue", "hex": "#0A2342"},
                     {"name": "electric_cyan", "hex": "#00E5FF"},
@@ -130,7 +130,7 @@ def _load_palettes() -> Dict[str, Any]:
             "editorial_linocut": {
                 "id": "editorial_linocut",
                 "name": "Editorial Linocut Paper",
-                "base_preset": true,
+                "base_preset": True,
                 "colors": [
                     {"name": "archival_cream", "hex": "#FAF8F5"},
                     {"name": "carbon_ink", "hex": "#111111"},
@@ -141,7 +141,7 @@ def _load_palettes() -> Dict[str, Any]:
             "pixel_16": {
                 "id": "pixel_16",
                 "name": "16-Color Pixel Grid",
-                "base_preset": true,
+                "base_preset": True,
                 "colors": [
                     {"name": "black", "hex": "#141013"},
                     {"name": "deep_blue", "hex": "#2C1B4D"},
@@ -154,7 +154,7 @@ def _load_palettes() -> Dict[str, Any]:
             "minimal_line": {
                 "id": "minimal_line",
                 "name": "Minimal Technical Line Art",
-                "base_preset": true,
+                "base_preset": True,
                 "colors": [
                     {"name": "ink", "hex": "#000000"},
                     {"name": "paper", "hex": "#FFFFFF"},

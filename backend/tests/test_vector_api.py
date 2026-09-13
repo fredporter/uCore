@@ -93,6 +93,19 @@ async def test_vector_palettes(vector_client):
 
 
 @pytest.mark.asyncio
+async def test_vector_palettes_fallback(vector_client, monkeypatch):
+    """GET /api/vector/palettes works when canonical palettes file is absent (CI fallback)."""
+    monkeypatch.setattr("app.api.vector_api.CANONICAL_PALETTES_PATH", Path("/nonexistent/palettes.json"))
+    resp = await vector_client.get("/api/vector/palettes")
+    assert resp.status == 200
+    data = await resp.json()
+    assert "palettes" in data
+    assert "teletext_ceefax" in data["palettes"]
+    assert "architectural_blueprint" in data["palettes"]
+    assert "mono_amber" not in data["palettes"]
+
+
+@pytest.mark.asyncio
 async def test_vector_generate_requires_prompt(vector_client):
     """POST /api/vector/generate requires a prompt."""
     resp = await vector_client.post("/api/vector/generate", json={})
