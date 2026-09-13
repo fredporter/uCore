@@ -39,6 +39,8 @@ async def handle_create_dispatch(request: web.Request) -> web.Response:
     burn_after_read = bool(data.get("burn_after_read", False))
     expires_in = data.get("expires_in_seconds")
     mode_default = data.get("mode_default", "card")
+    binder_id = data.get("binder_id")
+    hero_gif_name = data.get("hero_gif_name")
 
     hero_gif_bytes = None
     if data.get("hero_gif_base64"):
@@ -52,9 +54,11 @@ async def handle_create_dispatch(request: web.Request) -> web.Response:
         story_markdown=story_md,
         lead_text=lead_text,
         hero_gif_bytes=hero_gif_bytes,
+        hero_gif_name=hero_gif_name,
         expires_in_seconds=int(expires_in) if expires_in else None,
         burn_after_read=burn_after_read,
         mode_default=mode_default,
+        binder_id=binder_id,
     )
 
     return web.json_response({
@@ -173,6 +177,33 @@ async def handle_serve_asset(request: web.Request) -> web.Response:
     return web.Response(body=target_file.read_bytes(), content_type=content_type)
 
 
+async def handle_get_catalog(request: web.Request) -> web.Response:
+    catalog = dispatch_store.load_catalog()
+    return web.json_response(catalog)
+
+
+async def handle_get_by_binder(request: web.Request) -> web.Response:
+    binder_id = request.match_info.get("binder_id", "").strip()
+    dispatches = dispatch_store.get_dispatches_by_binder(binder_id)
+    return web.json_response({"binder_id": binder_id, "dispatches": dispatches})
+
+
+async def handle_serve_catalog_asset(request: web.Request) -> web.Response:
+    filename = request.match_info.get("file", "").strip()
+    if ".." in filename or "/" in filename or "\\" in filename:
+        return web.Response(text="Forbidden", status=403)
+
+    from app.core.settings import settings
+    target_file = settings.public_vault_root / "global-knowledge" / "elements" / filename
+    if not target_file.exists() or not target_file.is_file():
+        # Fallback 1x1 transparent gif if asset not present
+        transparent_gif_1x1 = b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+        return web.Response(body=transparent_gif_1x1, content_type="image/gif")
+
+    content_type = "image/gif" if filename.endswith(".gif") else "image/svg+xml"
+    return web.Response(body=target_file.read_bytes(), content_type=content_type)
+
+
 def register_dispatch_routes(app: web.Application) -> None:
     """Register all dispatch and device capability routes."""
     app.router.add_post("/api/dispatch/create", handle_create_dispatch)
@@ -183,3 +214,7 @@ def register_dispatch_routes(app: web.Application) -> None:
     app.router.add_post("/api/dispatch/calculate-display", handle_calculate_display)
     app.router.add_post("/api/dispatch/calculate-storage", handle_calculate_storage)
     app.router.add_get("/api/dispatch/asset/{id}/{file}", handle_serve_asset)
+    app.router.add_get("/api/dispatch/catalog", handle_get_catalog)
+    app.router.add_get("/api/dispatch/catalog/asset/{file}", handle_serve_catalog_asset)
+    app.router.add_get("/api/dispatch/by-binder/{binder_id}", handle_get_by_binder)
+

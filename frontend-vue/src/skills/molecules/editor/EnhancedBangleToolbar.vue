@@ -53,6 +53,7 @@ export type EditorCommand =
   | "blockquote" | "bullet-list" | "ordered-list" | "code-block" | "horizontal-rule"
   | "table" | "callout" | "footnote" | "outline"
   | "image" | "mode-toggle"
+  | "insert-quantum" | "insert-question" | "insert-prompt" | "insert-bob"
   | "scrape" | "summarize" | "citation" | "combine"
   | "copy-binder" | "variant" | "archive"
   | "undo" | "redo";
@@ -71,8 +72,16 @@ const blockCommands = [
   item("ordered-list", "Ordered list", "format_list_numbered"), item("code-block", "Code block", "data_object"),
   item("horizontal-rule", "Divider", "horizontal_rule"),
 ];
-const structureCommands = [item("table", "Table", "table"), item("callout", "Callout", "campaign"), item("footnote", "Footnote", "footnote"), item("outline", "Outline", "toc")];
-structureCommands.push(item("image", "Image", "image"));
+const structureCommands = [
+  item("table", "Table", "table"),
+  item("callout", "Callout", "campaign"),
+  item("footnote", "Footnote", "footnote"),
+  item("insert-quantum", "Card Break", "crop_portrait"),
+  item("insert-question", "Choice Question", "quiz"),
+  item("insert-prompt", "Text Prompt", "edit_note"),
+  item("insert-bob", "Curated BOB", "animation"),
+  item("image", "Image", "image"),
+];
 const researchCommands = [
   item("scrape", "Capture research", "travel_explore"),
   item("summarize", "Summarize", "summarize"),

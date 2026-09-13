@@ -346,6 +346,201 @@
             </div>
           </div>
 
+          <!-- Sovereign Dispatch & Interactive Invitation Studio Card -->
+          <div class="dispatch-studio-card">
+            <div class="dispatch-studio-card__header">
+              <div class="dispatch-studio-title">
+                <UIcon name="send" />
+                <div>
+                  <h4>Sovereign Dispatch &amp; Interactive Invitation Studio</h4>
+                  <p>Publish an ephemeral, tracked-free interactive story or greeting card dispatch directly from this binder's content.</p>
+                </div>
+              </div>
+              <button class="wf-zen-secondary" type="button" @click="showDispatchCreator = !showDispatchCreator">
+                <UIcon :name="showDispatchCreator ? 'expand_less' : 'add'" />
+                {{ showDispatchCreator ? 'Close Studio' : 'New Dispatch' }}
+              </button>
+            </div>
+
+            <!-- Dispatch Creation Form Panel -->
+            <div v-if="showDispatchCreator" class="dispatch-form">
+              <div class="dispatch-form__grid">
+                <div class="dispatch-form__col">
+                  <label>Dispatch Title
+                    <input v-model="dispatchForm.title" type="text" placeholder="e.g. Project Odyssey: Invitation to Collaborate" />
+                  </label>
+                  <label>Lead / Subtitle
+                    <input v-model="dispatchForm.lead_text" type="text" placeholder="A calm, sovereign interactive dispatch..." />
+                  </label>
+                  <div class="form-row">
+                    <label>Initial Viewport Mode
+                      <select v-model="dispatchForm.mode_default">
+                        <option value="card">[Card] Focused Step-by-Step Flow</option>
+                        <option value="deck">[Deck] 10-Foot Lean-back Slide Deck</option>
+                        <option value="prose">[Prose] 70ch Continuous Document</option>
+                      </select>
+                    </label>
+                    <label>Expiration
+                      <select v-model="dispatchForm.expires_in_hours">
+                        <option :value="1">1 Hour</option>
+                        <option :value="24">24 Hours (1 Day)</option>
+                        <option :value="72">72 Hours (3 Days)</option>
+                        <option :value="168">7 Days</option>
+                        <option :value="0">Permanent (No expiry)</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label class="checkbox-label">
+                    <input v-model="dispatchForm.burn_after_read" type="checkbox" />
+                    <span>Burn after read (dissolve into ether on first view or RSVP submission)</span>
+                  </label>
+                </div>
+
+                <!-- Hero Animated BOB / Element Picker -->
+                <div class="dispatch-form__col">
+                  <label>Hero Animated BOB / Element</label>
+                  <div class="bob-picker">
+                    <div
+                      class="bob-option"
+                      :class="{ 'bob-option--selected': !dispatchForm.hero_gif_name }"
+                      @click="dispatchForm.hero_gif_name = ''"
+                    >
+                      <div class="bob-placeholder">None</div>
+                      <span class="bob-label">No Hero</span>
+                    </div>
+                    <div
+                      v-for="bob in catalogBobs"
+                      :key="bob.id"
+                      class="bob-option"
+                      :class="{ 'bob-option--selected': dispatchForm.hero_gif_name === bob.asset_path }"
+                      @click="dispatchForm.hero_gif_name = bob.asset_path"
+                    >
+                      <img :src="bob.preview_url || ('/api/dispatch/catalog/asset/' + bob.asset_path)" :alt="bob.name" class="bob-thumb" />
+                      <span class="bob-label">{{ bob.name }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dispatch Markdown Content Preview / Edit -->
+              <div class="dispatch-content-field">
+                <div class="field-header">
+                  <label>Dispatch Story Markdown (defaults to active binder draft)</label>
+                  <button class="wf-zen-subtle" type="button" @click="dispatchForm.story_markdown = editableDraft">
+                    <UIcon name="refresh" /> Reset from Current Draft
+                  </button>
+                </div>
+                <textarea
+                  v-model="dispatchForm.story_markdown"
+                  rows="6"
+                  class="dispatch-textarea"
+                  placeholder="Enter story markdown with --- card breaks and ? [ ] RSVP choice blocks..."
+                />
+              </div>
+
+              <div class="dispatch-actions">
+                <button
+                  class="wf-zen-primary"
+                  type="button"
+                  :disabled="creatingDispatch || !dispatchForm.title.trim()"
+                  @click="createBinderDispatch"
+                >
+                  <UIcon name="send" />
+                  {{ creatingDispatch ? 'Creating Dispatch...' : 'Generate Sovereign Dispatch Token' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Existing Dispatches for this Binder -->
+            <div class="binder-dispatches-list">
+              <div class="dispatches-header">
+                <h5>Active Sovereign Dispatches for this Binder ({{ binderDispatches.length }})</h5>
+                <button class="wf-zen-subtle" type="button" @click="loadBinderDispatches">
+                  <UIcon name="refresh" /> Refresh
+                </button>
+              </div>
+
+              <div v-if="binderDispatches.length === 0" class="empty-hint">
+                No interactive dispatches published for this binder yet. Click "New Dispatch" above to generate a shareable token.
+              </div>
+
+              <div v-for="disp in binderDispatches" :key="disp.id" class="dispatch-item-card">
+                <div class="dispatch-item-main">
+                  <div class="dispatch-item-info">
+                    <div class="dispatch-item-title-row">
+                      <strong>{{ disp.title }}</strong>
+                      <span class="dispatch-mode-tag">Mode: {{ disp.mode_default }}</span>
+                      <span v-if="disp.burn_after_read" class="dispatch-burn-tag">🔥 Burn After Read</span>
+                      <span v-if="disp.is_expired" class="dispatch-expired-tag">Expired</span>
+                    </div>
+                    <div class="dispatch-item-meta">
+                      <span>Token: <code>{{ disp.token }}</code></span>
+                      <span>Created: {{ new Date(disp.created_at).toLocaleDateString() }}</span>
+                      <span v-if="disp.expires_at">Expires: {{ new Date(disp.expires_at).toLocaleDateString() }}</span>
+                      <span>Views: {{ disp.views_count || 0 }}</span>
+                    </div>
+                  </div>
+
+                  <div class="dispatch-item-actions">
+                    <a :href="'/p/' + disp.token" target="_blank" class="wf-zen-secondary action-btn" title="Open Guest Interactive Story">
+                      <UIcon name="open_in_new" /> Open Story (/p/{{ disp.token }})
+                    </a>
+                    <a :href="'/api/dispatch/preview-email/' + disp.id" target="_blank" class="wf-zen-secondary action-btn" title="View Prose HTML Email">
+                      <UIcon name="mail" /> Preview Email
+                    </a>
+                    <button
+                      class="wf-zen-secondary action-btn"
+                      type="button"
+                      @click="toggleResponsesLedger(disp.id)"
+                    >
+                      <UIcon name="ballot" />
+                      RSVPs ({{ (disp.responses && disp.responses.length) || (responsesByDispatch[disp.id] && responsesByDispatch[disp.id].length) || 0 }})
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Responses Ledger Drawer -->
+                <div v-if="activeResponseDispatchId === disp.id" class="responses-ledger">
+                  <h6>RSVP &amp; Response Ledger ({{ responsesByDispatch[disp.id]?.length || 0 }} submissions)</h6>
+                  <div v-if="!responsesByDispatch[disp.id] || responsesByDispatch[disp.id].length === 0" class="empty-hint">
+                    No responses or RSVP submissions received yet.
+                  </div>
+                  <table v-else class="responses-table">
+                    <thead>
+                      <tr>
+                        <th>Respondent / Attendee</th>
+                        <th>Status</th>
+                        <th>Email / Note</th>
+                        <th>Form Responses</th>
+                        <th>Timestamp</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(resp, rIdx) in responsesByDispatch[disp.id]" :key="rIdx">
+                        <td><strong>{{ resp.name || resp.attendee_name || 'Anonymous' }}</strong></td>
+                        <td>
+                          <span class="status-pill" :class="'status-' + (resp.status || 'received')">
+                            {{ resp.status || 'Received' }}
+                          </span>
+                        </td>
+                        <td>{{ resp.email || resp.notes || '-' }}</td>
+                        <td>
+                          <div v-if="resp.answers" class="answers-summary">
+                            <span v-for="(val, q) in resp.answers" :key="q" class="answer-item">
+                              <code>{{ q }}</code>: {{ val }}
+                            </span>
+                          </div>
+                          <span v-else>-</span>
+                        </td>
+                        <td class="time-col">{{ new Date(resp.timestamp || resp.created_at || Date.now()).toLocaleTimeString() }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="acceptance-box">
             <h3>Accept Working Draft into Immutable Edition</h3>
             <p>Freezes current draft, requirements coverage, and evidence into a permanent snapshot.</p>
@@ -518,6 +713,22 @@ const loadedBaseHash = ref("");
 const reviewerNotes = ref("");
 const publicationReceipt = ref<any>(null);
 
+const showDispatchCreator = ref(false);
+const creatingDispatch = ref(false);
+const catalogBobs = ref<any[]>([]);
+const binderDispatches = ref<any[]>([]);
+const responsesByDispatch = ref<Record<string, any[]>>({});
+const activeResponseDispatchId = ref<string | null>(null);
+const dispatchForm = ref({
+  title: "",
+  lead_text: "",
+  story_markdown: "",
+  hero_gif_name: "",
+  mode_default: "card",
+  expires_in_hours: 24,
+  burn_after_read: false,
+});
+
 const showCreateModal = ref(false);
 const newBinder = ref({
   id: "",
@@ -598,7 +809,11 @@ async function loadActiveBinder() {
     const data = await res.json();
     activeBinder.value = data.binder;
     editableDraft.value = data.binder.draft || "";
+    if (!dispatchForm.value.story_markdown) {
+      dispatchForm.value.story_markdown = editableDraft.value;
+    }
     loadedBaseHash.value = data.binder.draft_sha256 || "";
+    await loadBinderDispatches();
   } catch (e: any) {
     errorMessage.value = e.message || String(e);
   } finally {
@@ -924,8 +1139,98 @@ async function exportObsidian() {
   }
 }
 
+async function loadElementCatalog() {
+  try {
+    const res = await fetch("/api/dispatch/catalog");
+    if (!res.ok) return;
+    const data = await res.json();
+    catalogBobs.value = data.bobs || [];
+  } catch (e) {
+    // Non-critical background catalog load
+  }
+}
+
+async function loadBinderDispatches() {
+  if (!selectedBinderId.value) {
+    binderDispatches.value = [];
+    return;
+  }
+  try {
+    const res = await fetch(`/api/dispatch/by-binder/${encodeURIComponent(selectedBinderId.value)}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    binderDispatches.value = data.dispatches || [];
+  } catch (e) {
+    // Non-critical background load
+  }
+}
+
+async function createBinderDispatch() {
+  if (!dispatchForm.value.title.trim() || !selectedBinderId.value) return;
+  creatingDispatch.value = true;
+  errorMessage.value = "";
+  try {
+    const payload = {
+      binder_id: selectedBinderId.value,
+      title: dispatchForm.value.title.trim(),
+      lead_text: dispatchForm.value.lead_text.trim(),
+      story_markdown: dispatchForm.value.story_markdown || editableDraft.value,
+      hero_gif_name: dispatchForm.value.hero_gif_name || null,
+      mode_default: dispatchForm.value.mode_default,
+      burn_after_read: dispatchForm.value.burn_after_read,
+      expires_in_seconds: dispatchForm.value.expires_in_hours > 0 ? dispatchForm.value.expires_in_hours * 3600 : null,
+    };
+    const res = await fetch("/api/dispatch/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || `Dispatch creation failed (${res.status})`);
+    }
+    const data = await res.json();
+    successMessage.value = `Sovereign dispatch staged! Story URL: ${data.story_url}`;
+    showDispatchCreator.value = false;
+    dispatchForm.value = {
+      title: "",
+      lead_text: "",
+      story_markdown: editableDraft.value,
+      hero_gif_name: "",
+      mode_default: "card",
+      expires_in_hours: 24,
+      burn_after_read: false,
+    };
+    await loadBinderDispatches();
+  } catch (e: any) {
+    errorMessage.value = e.message || String(e);
+  } finally {
+    creatingDispatch.value = false;
+  }
+}
+
+async function toggleResponsesLedger(dispatchId: string) {
+  if (activeResponseDispatchId.value === dispatchId) {
+    activeResponseDispatchId.value = null;
+    return;
+  }
+  activeResponseDispatchId.value = dispatchId;
+  try {
+    const res = await fetch(`/api/dispatch/responses/${encodeURIComponent(dispatchId)}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    responsesByDispatch.value = {
+      ...responsesByDispatch.value,
+      [dispatchId]: data.responses || [],
+    };
+  } catch (e) {
+    // Non-critical
+  }
+}
+
 onMounted(() => {
   void fetchBinders();
+  void loadElementCatalog();
 });
 </script>
 
@@ -1584,5 +1889,381 @@ onMounted(() => {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+/* Sovereign Dispatch Studio Styles */
+.dispatch-studio-card {
+  background: var(--surface-card, #1e293b);
+  border: 1px solid var(--border-subtle, #334155);
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dispatch-studio-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.dispatch-studio-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dispatch-studio-title h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary, #f8fafc);
+}
+
+.dispatch-studio-title p {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.dispatch-form {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle, #334155);
+  border-radius: 6px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dispatch-form__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .dispatch-form__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dispatch-form__col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dispatch-form__col label {
+  font-size: 0.8rem;
+  color: var(--text-muted, #94a3b8);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dispatch-form__col input[type="text"],
+.dispatch-form__col select {
+  background: var(--surface-card, #1e293b);
+  border: 1px solid var(--border-subtle, #334155);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  color: var(--text-primary, #f8fafc);
+  font-size: 0.875rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.form-row > * {
+  flex: 1;
+}
+
+.checkbox-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text-secondary, #cbd5e1);
+  margin-top: 0.25rem;
+}
+
+.bob-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 0.5rem;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: var(--surface-card, #1e293b);
+  border: 1px solid var(--border-subtle, #334155);
+  border-radius: 6px;
+}
+
+.bob-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.15s ease;
+}
+
+.bob-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.bob-option--selected {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.bob-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.bob-placeholder {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.bob-label {
+  font-size: 0.7rem;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 72px;
+  color: var(--text-secondary, #cbd5e1);
+}
+
+.dispatch-content-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dispatch-content-field .field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dispatch-content-field label {
+  font-size: 0.8rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.dispatch-textarea {
+  background: var(--surface-card, #1e293b);
+  border: 1px solid var(--border-subtle, #334155);
+  border-radius: 4px;
+  padding: 0.6rem;
+  color: var(--text-primary, #f8fafc);
+  font-family: monospace;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.dispatch-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.binder-dispatches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.dispatches-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dispatches-header h5 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-primary, #f8fafc);
+}
+
+.dispatch-item-card {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid var(--border-subtle, #334155);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dispatch-item-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.dispatch-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dispatch-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.dispatch-mode-tag, .dispatch-burn-tag, .dispatch-expired-tag {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.dispatch-mode-tag {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+}
+
+.dispatch-burn-tag {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.dispatch-expired-tag {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+}
+
+.dispatch-item-meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.dispatch-item-meta code {
+  color: #38bdf8;
+}
+
+.dispatch-item-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dispatch-item-actions .action-btn {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.65rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.responses-ledger {
+  border-top: 1px solid var(--border-subtle, #334155);
+  padding-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.responses-ledger h6 {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #cbd5e1);
+}
+
+.responses-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.responses-table th, .responses-table td {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+.responses-table th {
+  color: var(--text-muted, #94a3b8);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.status-pill {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-accepted, .status-yes, .status-attending {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.status-declined, .status-no {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.status-maybe, .status-received {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+}
+
+.answers-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.answer-item {
+  font-size: 0.75rem;
+}
+
+.answer-item code {
+  color: var(--text-muted, #94a3b8);
+}
+
+.time-col {
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.75rem;
+  white-space: nowrap;
 }
 </style>

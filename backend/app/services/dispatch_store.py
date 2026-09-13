@@ -51,9 +51,11 @@ class DispatchStore:
         story_markdown: str,
         lead_text: str = "",
         hero_gif_bytes: Optional[bytes] = None,
+        hero_gif_name: Optional[str] = None,
         expires_in_seconds: Optional[int] = None,
         burn_after_read: bool = False,
         mode_default: str = "card",
+        binder_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create a new dispatch, generate an ephemeral token, and preserve originals."""
         timestamp = int(time.time())
@@ -73,6 +75,8 @@ class DispatchStore:
             hero_file = originals_dir / "hero.gif"
             hero_file.write_bytes(hero_gif_bytes)
             hero_rel_path = f"/api/dispatch/asset/{dispatch_id}/hero.gif"
+        elif hero_gif_name:
+            hero_rel_path = f"/api/dispatch/catalog/asset/{hero_gif_name}"
 
         expires_at: Optional[int] = None
         if expires_in_seconds and expires_in_seconds > 0:
@@ -89,6 +93,7 @@ class DispatchStore:
             "burn_after_read": bool(burn_after_read),
             "mode_default": mode_default,
             "hero_asset": hero_rel_path,
+            "binder_id": binder_id,
             "view_count": 0,
             "status": "active",
         }
@@ -197,6 +202,46 @@ class DispatchStore:
         except Exception:
             return []
 
+    def get_dispatches_by_binder(self, binder_id: str) -> List[Dict[str, Any]]:
+        """Find all dispatches associated with a specific binder."""
+        results: List[Dict[str, Any]] = []
+        if not self.root_dir.exists():
+            return results
+
+        for child in self.root_dir.iterdir():
+            if child.is_dir():
+                manifest_path = child / "dispatch.json"
+                if manifest_path.exists():
+                    try:
+                        m = json.loads(manifest_path.read_text(encoding="utf-8"))
+                        if m.get("binder_id") == binder_id:
+                            # Attach response count
+                            resps = self.get_responses(m["id"])
+                            m["response_count"] = len(resps)
+                            results.append(m)
+                    except Exception:
+                        pass
+        # Sort newest first
+        results.sort(key=lambda x: x.get("created_at", 0), reverse=True)
+        return results
+
+    def load_catalog(self) -> Dict[str, Any]:
+        """Load curated standard element library from global-knowledge."""
+        catalog_path = settings.public_vault_root / "global-knowledge" / "elements" / "catalog.json"
+        if catalog_path.exists():
+            try:
+                return json.loads(catalog_path.read_text(encoding="utf-8"))
+            except Exception as exc:
+                log.warning("Could not read element catalog: %s", exc)
+
+        # Fallback empty catalog
+        return {
+            "title": "uDos Curated Standard Element Library",
+            "version": "1.0.0",
+            "categories": {"cards": [], "bobs": [], "dividers": []},
+        }
+
 
 # Global singleton
 dispatch_store = DispatchStore()
+
