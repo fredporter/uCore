@@ -89,13 +89,13 @@ def get_active_launchers(include_absent: bool = False) -> List[Dict[str, Any]]:
             "launch_command": ["python3", "-m", "ucode2.cli", "lift"],
         },
         {
-            "id": "udos-publishing",
-            "name": "Publishing Compiler",
+            "id": "ucore-publish",
+            "name": "uCore Publish",
             "category": "ecosystem",
             "icon": "publish",
-            "description": "Clean edition static compiler and WordPress publisher",
+            "description": "Clean edition static compiler and publication pipeline",
             "type": "repo",
-            "repo_path": code_root / "udos-publishing",
+            "repo_path": code_root / "uCore-Publish" if (code_root / "uCore-Publish").exists() else code_root / "udos-publishing",
         },
         {
             "id": "homenest",

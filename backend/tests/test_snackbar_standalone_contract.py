@@ -31,7 +31,7 @@ def test_launcher_discovery_hides_absent(tmp_path):
     # Every item returned must be installed
     for item in launchers:
         assert item["installed"] is True
-        assert item["id"] in ("obsidian", "ucore", "ucode", "ucode2", "udos-publishing",
+        assert item["id"] in ("obsidian", "ucore", "ucode", "ucode2", "udos-publishing", "ucore-publish",
                               "homenest", "uvector", "groovebox", "sonicscrewdriver",
                               "snackmachine", "apple-notes", "apple-reminders", "apple-calendar", "apple-mail")
 
