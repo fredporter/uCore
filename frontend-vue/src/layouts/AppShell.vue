@@ -1,5 +1,8 @@
 <template>
-  <div ref="shellEl" class="app-shell" :class="{ 'sidebar-open': globalSidebarOpen }">
+  <div v-if="isStandalone" class="app-shell app-shell--standalone">
+    <router-view />
+  </div>
+  <div v-else ref="shellEl" class="app-shell" :class="{ 'sidebar-open': globalSidebarOpen }">
     <GlobalToolbar
       :chat-mode="shell.chatMode"
       :sidebar-open="globalSidebarOpen"
@@ -92,8 +95,11 @@ const RUNTIME_WARNING_KEY = "ucore.runtime.warning";
 const isWorkflowEditor = computed(
   () => route.path === "/workflow" && String(route.query.tab || "") === "editor",
 );
+const isStandalone = computed(
+  () => route.meta.layout === "standalone" || route.path.startsWith("/p/"),
+);
 const globalSidebarOpen = computed(
-  () => shell.sidebarOpen && !isWorkflowEditor.value,
+  () => shell.sidebarOpen && !isWorkflowEditor.value && !isStandalone.value,
 );
 
 // Initialize settings store to apply persisted theme (dark mode default)
