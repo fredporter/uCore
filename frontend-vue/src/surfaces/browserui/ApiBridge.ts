@@ -169,6 +169,16 @@ export interface BananaAssetResult {
   local_path?: string
   mock?: boolean
   bytes_base64?: string
+  svg?: string
+  element_count?: number
+  teletext?: string
+  ascii?: string
+  width?: number
+  height?: number
+  vault_path?: string
+  markdown_embed?: string
+  citation_token?: string
+  offline?: boolean
   error?: string
 }
 
@@ -282,19 +292,89 @@ export async function searchGrounded(query: string, sessionId = "browserui"): Pr
   return res.json()
 }
 
+export async function generateVectorAsset(
+  prompt: string,
+  stylePreset = "mono_blueprint",
+  aspectRatio = "16:9"
+): Promise<BananaAssetResult> {
+  const res = await fetch(`${BASE}/api/vector/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, style: stylePreset, aspect_ratio: aspectRatio }),
+    signal: AbortSignal.timeout(30000),
+  })
+  if (!res.ok) throw new Error(`Vector generation failed (HTTP ${res.status})`)
+  const data = await res.json()
+  return {
+    ...data,
+    style_preset: data.style,
+  }
+}
+
+export async function traceVectorAsset(
+  imageData: string,
+  stylePreset = "mono_blueprint",
+  threshold = 128
+): Promise<BananaAssetResult> {
+  const res = await fetch(`${BASE}/api/vector/trace`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image_data: imageData, style: stylePreset, threshold }),
+    signal: AbortSignal.timeout(30000),
+  })
+  if (!res.ok) throw new Error(`Vector tracing failed (HTTP ${res.status})`)
+  const data = await res.json()
+  return {
+    ...data,
+    style_preset: data.style,
+    model: "uvector-tracer",
+    prompt: "Traced Bitmap Asset",
+  }
+}
+
+export async function saveVectorAsset(
+  assetId: string,
+  svg: string,
+  prompt: string,
+  style: string,
+  aspectRatio = "16:9",
+  binderId?: string
+): Promise<{ success: boolean; asset_id: string; vault_path: string; markdown_embed: string; citation_token: string }> {
+  const res = await fetch(`${BASE}/api/vector/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      asset_id: assetId,
+      svg,
+      prompt,
+      style,
+      aspect_ratio: aspectRatio,
+      binder_id: binderId,
+    }),
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`Vector save failed (HTTP ${res.status})`)
+  return res.json()
+}
+
 export async function generateBananaAsset(
   prompt: string,
   stylePreset = "mono_teletext",
   aspectRatio = "1:1"
 ): Promise<BananaAssetResult> {
-  const res = await fetch(`${BASE}/api/google/image/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, style_preset: stylePreset, aspect_ratio: aspectRatio }),
-    signal: AbortSignal.timeout(30000),
-  })
-  if (!res.ok) throw new Error(`Banana asset generation failed (HTTP ${res.status})`)
-  return res.json()
+  try {
+    return await generateVectorAsset(prompt, stylePreset, aspectRatio)
+  } catch (err) {
+    // Fallback to google image generation if vector endpoint unavailable
+    const res = await fetch(`${BASE}/api/google/image/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, style_preset: stylePreset, aspect_ratio: aspectRatio }),
+      signal: AbortSignal.timeout(30000),
+    })
+    if (!res.ok) throw new Error(`Banana asset generation failed (HTTP ${res.status})`)
+    return res.json()
+  }
 }
 
 export async function syncGoogleDriveVault(vaultPath?: string): Promise<DriveVaultSyncResult> {

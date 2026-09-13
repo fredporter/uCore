@@ -647,3 +647,12 @@ def register_routes(app: web.Application) -> None:
         log.debug("Runtime Device Delivery routes registered")
     except ImportError as e:
         log.debug("Runtime Device Delivery routes not available: %s", e)
+
+    # ── uVector API (Vector Illustration & GridCore Engine) ───────────
+    try:
+        from .vector_api import register_vector_routes
+
+        register_vector_routes(app)
+        log.debug("uVector API routes registered")
+    except ImportError as e:
+        log.debug("uVector API routes not available: %s", e)
