@@ -299,6 +299,10 @@ Classic Modern has two profiles: Cinnamon/full and Xfce/light. Pin the latest qu
 - Non-destructive universal layer: uDos is a universal layer on top of hardware that does not necessarily scrub what was there before. Live USB persistence and non-destructive deployment preserve existing host systems.
 - Universal Standards & Offline Datasets: GridCore characters/mosaics/sprites/mapping, USX design tokens/palettes/image presets, and Prose typography rules are canonical and single-sourced in `~/Public/global-knowledge/standards/`. Offline datasets for mapping, metrics, timezones, and planetary/universe parameters live in `~/Public/global-knowledge/datasets/`. The host system clock and GPS/location serve as the sovereign point of reference without duplicate NTP daemons.
 - Educational pathways: Consolidate beginner programming (traditional BBC BASIC & physical computing) into `uCode`, and hardware rebirth/recycled tech into `SonicScrewdriver`. The "uDos way" is the universal standard across all documentation and learning streams.
+- **Wizard Authority, Knowledge Layering & Federation Doctrine**:
+  - The Wizard (system architect) maintains canonical base knowledge (`~/Public/global-knowledge/`) and default datasets externally via Antigravity IDE, `agy` CLI, and set Skills/Recipes running frontier models (Claude, Gemini, GPT via OpenRouter) plus local models (Ollama). No in-app "Dev Mode" is needed inside uCore for dataset or standards development.
+  - Sovereign users cannot corrupt or overwrite the canonical baseline; they customize and layer data *over top* using a cascading filter approach (Layer 2 Personal `~/Vault/` ➔ Layer 1 Shared `~/Shared/` ➔ Layer 0 Base Canon `~/Public/global-knowledge/`).
+  - Proprietary cloud roadmap introduces a GitHub-style PR / Wikipedia-style submission pipeline where users bundle vaults or proposed global knowledge diffs for automated AI linting and Wizard review/approval before merging to canon.
 
 
 ## 12. Portal, access and future networking
