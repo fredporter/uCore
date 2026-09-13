@@ -14,6 +14,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
 from aiohttp import web
 
 log = logging.getLogger("ucore.runtime_device")
@@ -197,7 +198,7 @@ async def handle_authorize_capsule(request: web.Request) -> web.Response:
             sys.path.insert(0, str(ucode_path))
         from ucode_runtime.capsule_package import CapsulePackage
         auth_state = CapsulePackage.authorize_capsule(capsule_path, authorized_by="user")
-    except Exception as e:
+    except Exception:
         # Fallback state file write
         state_file = capsule_path / ".capsule_state.json"
         auth_state = {"capsule_id": capsule_id, "authorized": True, "authorized_by": "user"}

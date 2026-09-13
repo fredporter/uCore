@@ -156,7 +156,10 @@ class AppleFeedSync:
 
         # Mirror to ~/Vault/Activity/events.jsonl and Daily_Activity.md
         try:
-            from app.services.activity_markdown import append_activity_events, update_daily_activity_markdown
+            from app.services.activity_markdown import (
+                append_activity_events,
+                update_daily_activity_markdown,
+            )
             act_events = [
                 {
                     "external_id": str(r.get("external_id") or hashlib.sha256(json.dumps(r, sort_keys=True, default=str).encode()).hexdigest()[:24]),

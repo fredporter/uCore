@@ -408,14 +408,22 @@ def register_routes(app: web.Application) -> None:
     from .binder_api import (
         handle_binder_accept,
         handle_binder_add,
+        handle_binder_audit,
+        handle_binder_authorise,
         handle_binder_create,
+        handle_binder_decisions_get,
+        handle_binder_decisions_post,
         handle_binder_draft_update,
+        handle_binder_export_gemini,
+        handle_binder_export_obsidian,
         handle_binder_get,
         handle_binder_intake,
         handle_binder_list,
         handle_binder_publish,
+        handle_binder_resume,
         handle_binder_run,
         handle_binder_score,
+        handle_binder_section_update,
         handle_binder_update,
     )
 
@@ -424,10 +432,18 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/binder/add", handle_binder_add)
     app.router.add_get("/api/binder/{binder_id}", handle_binder_get)
     app.router.add_post("/api/binder/{binder_id}/intake", handle_binder_intake)
+    app.router.add_post("/api/binder/{binder_id}/authorise", handle_binder_authorise)
     app.router.add_post("/api/binder/{binder_id}/run", handle_binder_run)
+    app.router.add_post("/api/binder/{binder_id}/resume", handle_binder_resume)
+    app.router.add_get("/api/binder/{binder_id}/audit", handle_binder_audit)
+    app.router.add_get("/api/binder/{binder_id}/decisions", handle_binder_decisions_get)
+    app.router.add_post("/api/binder/{binder_id}/decisions", handle_binder_decisions_post)
     app.router.add_patch("/api/binder/{binder_id}/draft", handle_binder_draft_update)
+    app.router.add_patch("/api/binder/{binder_id}/section/{req_id}", handle_binder_section_update)
     app.router.add_post("/api/binder/{binder_id}/accept", handle_binder_accept)
     app.router.add_post("/api/binder/{binder_id}/publish", handle_binder_publish)
+    app.router.add_get("/api/binder/{binder_id}/export/gemini", handle_binder_export_gemini)
+    app.router.add_get("/api/binder/{binder_id}/export/obsidian", handle_binder_export_obsidian)
     app.router.add_patch("/api/binder/update", handle_binder_update)
     app.router.add_patch("/api/binder/score", handle_binder_score)
 
