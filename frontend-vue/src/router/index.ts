@@ -133,6 +133,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "Banana Studio", icon: "image" },
   },
   {
+    path: "/vector/:pathMatch(.*)*",
+    name: "vector",
+    component: () => import("../surfaces/banana/BananaSurface.vue"),
+    meta: { title: "uVector Studio", icon: "draw" },
+  },
+  {
     path: "/documentation/:pathMatch(.*)*",
     name: "documentation",
     component: () =>

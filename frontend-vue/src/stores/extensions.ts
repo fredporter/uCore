@@ -200,12 +200,12 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
   {
     id: "uvector",
     name: "uVector",
-    kind: "plugin",
+    kind: "surface",
     required: false,
-    icon: "manage_search",
-    route: "/browserui",
+    icon: "draw",
+    route: "/vector",
     activation_required: false,
-    description: "Vector indexing, semantic search, and web knowledge grounding",
+    description: "Universal Vector Core — technical drawings, SVG vector engine & GridCore presets",
   },
   {
     id: "banana",
