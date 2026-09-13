@@ -28,11 +28,22 @@ log = logging.getLogger("ucore.library_index")
 INDEX_DIR = settings.udos_home / "indices"
 INDEX_DB = INDEX_DIR / "library.db"
 
-VAULT_PATHS = {
-    "user": Path.home() / "Vault",
-    "shared": Path.home() / "Shared",
-    "public": Path.home() / "Public",
-}
+def get_default_vault_paths() -> dict[str, Path]:
+    paths = {
+        "user": Path.home() / "Vault",
+        "shared": Path.home() / "Shared",
+        "public": Path.home() / "Public",
+    }
+    # Add educational & revival manuals if present
+    ucode_manual = settings.udos_root / "uCode" / "docs" / "manual"
+    if ucode_manual.exists():
+        paths["manual"] = ucode_manual
+    sonic_manual = settings.udos_root / "SonicScrewdriver" / "docs" / "manual"
+    if sonic_manual.exists():
+        paths["sonic"] = sonic_manual
+    return paths
+
+VAULT_PATHS = get_default_vault_paths()
 
 SUPPORTED_EXTENSIONS = {
     ".md", ".yaml", ".yml", ".json", ".txt", ".csv", ".py",
@@ -292,6 +303,7 @@ USING fts5(
     filename,
     title,
     preview,
+    body,
     tags,
     source UNINDEXED,
     path UNINDEXED
@@ -395,10 +407,13 @@ def _scan_source(source: str, base_path: Path) -> list[dict[str, Any]]:
             # Public vault contents are read-only
             is_readonly = (source == "public")
 
+            title = fm.get("title") or fpath.stem.replace("-", " ").replace("_", " ").title()
+
             entries.append({
                 "id": entry_id,
                 "path": str(fpath),
                 "filename": fpath.name,
+                "title": title,
                 "source": source,
                 "vault_layer": source_layer,
                 "binder": (
@@ -421,6 +436,7 @@ def _scan_source(source: str, base_path: Path) -> list[dict[str, Any]]:
                 "is_published": source == "public",
                 "frontmatter": fm,
                 "preview": _get_preview(body),
+                "body": body[:500000],
             })
 
     log.info("Scanned %s: %d files", source, len(entries))
@@ -430,8 +446,32 @@ def _scan_source(source: str, base_path: Path) -> list[dict[str, Any]]:
 # Index Builder ------------------------------------------------------
 
 def _ensure_schema(conn: sqlite3.Connection) -> None:
-    """Create tables if missing."""
+    """Create tables if missing, and ensure library_fts includes body column."""
     conn.executescript(SCHEMA_SQL)
+    try:
+        row = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='library_fts'",
+        ).fetchone()
+        if row and "body" not in row[0]:
+            log.info("Migrating library_fts schema to include body column")
+            conn.execute("DROP TABLE IF EXISTS library_fts")
+            conn.execute(
+                """
+                CREATE VIRTUAL TABLE library_fts
+                USING fts5(
+                    id UNINDEXED,
+                    filename,
+                    title,
+                    preview,
+                    body,
+                    tags,
+                    source UNINDEXED,
+                    path UNINDEXED
+                )
+                """,
+            )
+    except Exception as e:
+        log.warning("FTS schema check: %s", e)
 
 
 def _upsert_entry(
@@ -503,12 +543,13 @@ def _upsert_entry(
     conn.execute(
         """
         INSERT INTO library_fts
-        (id, filename, title, preview, tags, source, path)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (id, filename, title, preview, body, tags, source, path)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             entry["id"], entry["filename"], title,
-            entry["preview"], " ".join(entry["tags"]),
+            entry["preview"], entry.get("body", ""),
+            " ".join(entry["tags"]),
             entry["source"], entry["path"],
         ),
     )
@@ -589,20 +630,33 @@ def build_index(
 
 # Search -------------------------------------------------------------
 
+def _format_fts_query(raw_query: str) -> str:
+    """Format raw query into safe FTS5 query with prefix matching on the last term."""
+    words = re.findall(r"[\w\-]+", raw_query)
+    if not words:
+        return ""
+    if len(words) == 1:
+        return f'"{words[0]}"*'
+    terms = [f'"{w}"' for w in words[:-1]]
+    terms.append(f'"{words[-1]}"*')
+    return " ".join(terms)
+
+
 def search(
     query: str,
     source: str | None = None,
     limit: int = 50,
 ) -> list[dict[str, Any]]:
-    """Full-text search across the unified library index."""
+    """Full-text search across the unified library index with multi-tier ranking and highlighting."""
     if not INDEX_DB.exists():
         return []
 
     conn = sqlite3.connect(str(INDEX_DB))
     conn.row_factory = sqlite3.Row
 
-    rows: list[sqlite3.Row]
-    if query.strip() in {"", "*"}:
+    rows: list[sqlite3.Row] = []
+    clean_q = query.strip()
+    if clean_q in {"", "*"}:
         if source:
             sql = """
                 SELECT * FROM library_entries
@@ -618,32 +672,83 @@ def search(
                 LIMIT ?
             """
             rows = conn.execute(sql, (limit,)).fetchall()
-    elif source:
-        sql = """
-            SELECT le.* FROM library_entries le
-            JOIN library_fts fts ON le.id = fts.id
-            WHERE library_fts MATCH ?
-              AND le.source = ?
-            ORDER BY rank
-            LIMIT ?
-        """
-        rows = conn.execute(sql, (query, source, limit)).fetchall()
     else:
-        sql = """
-            SELECT le.* FROM library_entries le
-            JOIN library_fts fts ON le.id = fts.id
-            WHERE library_fts MATCH ?
-            ORDER BY rank
-            LIMIT ?
-        """
-        rows = conn.execute(sql, (query, limit)).fetchall()
+        match_query = _format_fts_query(clean_q)
+        if not match_query:
+            conn.close()
+            return []
+
+        try:
+            sql = """
+                SELECT le.*,
+                       fts.title as fts_title,
+                       snippet(library_fts, -1, '<mark>', '</mark>', '...', 18) as snippet_html
+                FROM library_entries le
+                JOIN library_fts fts ON le.id = fts.id
+                WHERE library_fts MATCH ?
+            """
+            params: list[Any] = [match_query]
+            if source:
+                sql += " AND le.source = ?"
+                params.append(source)
+
+            sql += """
+                ORDER BY
+                    CASE
+                        WHEN lower(fts.title) = lower(?) THEN 1
+                        WHEN lower(le.filename) = lower(?) THEN 2
+                        WHEN lower(fts.title) LIKE ? || '%' THEN 3
+                        WHEN lower(fts.title) LIKE '%' || ? || '%' THEN 4
+                        ELSE 5
+                    END,
+                    rank
+                LIMIT ?
+            """
+            params.extend([clean_q, clean_q, clean_q, clean_q, limit])
+            rows = conn.execute(sql, params).fetchall()
+        except sqlite3.OperationalError:
+            # Fallback to direct MATCH without snippet/rank if old table schema
+            fallback_sql = """
+                SELECT le.* FROM library_entries le
+                JOIN library_fts fts ON le.id = fts.id
+                WHERE library_fts MATCH ?
+            """
+            fparams: list[Any] = [match_query]
+            if source:
+                fallback_sql += " AND le.source = ?"
+                fparams.append(source)
+            fallback_sql += " LIMIT ?"
+            fparams.append(limit)
+            try:
+                rows = conn.execute(fallback_sql, fparams).fetchall()
+            except Exception:
+                rows = []
 
     results = []
     for row in rows:
+        title = ""
+        if "frontmatter_json" in row.keys() and row["frontmatter_json"]:
+            try:
+                fm = json.loads(row["frontmatter_json"])
+                title = fm.get("title") or ""
+            except Exception:
+                pass
+        if not title and "fts_title" in row.keys() and row["fts_title"]:
+            title = row["fts_title"]
+        if not title:
+            title = Path(row["filename"]).stem.replace("-", " ").replace("_", " ").title()
+
+        snippet = (
+            row["snippet_html"]
+            if "snippet_html" in row.keys() and row["snippet_html"]
+            else row["preview"]
+        )
+
         results.append({
             "id": row["id"],
             "path": row["path"],
             "filename": row["filename"],
+            "title": title,
             "source": row["source"],
             "vault_layer": row["vault_layer"],
             "binder": row["binder"],
@@ -653,6 +758,7 @@ def search(
             "size": row["size"],
             "modified_at": row["modified_at"],
             "preview": row["preview"],
+            "snippet": snippet,
         })
 
     conn.close()
@@ -668,6 +774,10 @@ def get_stats() -> dict[str, Any]:
             "status": "not-built",
             "index_path": str(INDEX_DB),
             "total_entries": 0,
+            "db_size_bytes": 0,
+            "by_source": {},
+            "last_build": None,
+            "last_indexed": None,
         }
 
     conn = sqlite3.connect(str(INDEX_DB))
@@ -690,10 +800,15 @@ def get_stats() -> dict[str, Any]:
 
     conn.close()
 
+    db_size = INDEX_DB.stat().st_size if INDEX_DB.exists() else 0
+    last_val = last_build[0] if last_build else None
+
     return {
         "status": "ok",
         "index_path": str(INDEX_DB),
         "total_entries": total,
+        "db_size_bytes": db_size,
         "by_source": by_source,
-        "last_build": last_build[0] if last_build else None,
+        "last_build": last_val,
+        "last_indexed": last_val,
     }

@@ -625,6 +625,86 @@ async def handle_docs_wiki_tree(_request: web.Request) -> web.Response:
     return web.json_response({"vaults": vaults})
 
 
+async def handle_docs_wiki_search(request: web.Request) -> web.Response:
+    """GET /api/docs/wiki/search?q=...&vault=...&limit=... — full-text search across Local Wikipedia."""
+    query = request.query.get("q", "").strip()
+    if not query:
+        return web.json_response({"error": "q parameter required", "results": [], "count": 0}, status=400)
+
+    vault_filter = request.query.get("vault", "").strip().lower()
+    source_map = {
+        "personal": "user",
+        "vault": "user",
+        "user": "user",
+        "shared": "shared",
+        "public": "public",
+        "manuals": "manual",
+        "manual": "manual",
+        "sonic": "sonic",
+    }
+    source = source_map.get(vault_filter) if vault_filter else None
+
+    try:
+        limit = min(int(request.query.get("limit", 20)), 100)
+    except ValueError:
+        limit = 20
+
+    from app.services.library_index import search as fts_search
+    results = await asyncio.to_thread(fts_search, query=query, source=source, limit=limit)
+
+    formatted = []
+    for r in results:
+        src = r.get("source", "")
+        if src == "user":
+            source_key = "vault"
+            badge = "~/Vault"
+        elif src == "shared":
+            source_key = "shared"
+            badge = "~/Shared"
+        elif src == "public":
+            source_key = "public"
+            badge = "~/Public"
+        elif src == "manual":
+            source_key = "manual"
+            badge = "uCode Manual"
+        elif src == "sonic":
+            source_key = "sonic"
+            badge = "Sonic Screwdriver"
+        else:
+            source_key = src
+            badge = src.title()
+
+        root = _CONTENT_ROOTS.get(source_key)
+        rel_path = r["filename"]
+        if root:
+            try:
+                rel_path = str(Path(r["path"]).resolve().relative_to(root.resolve()))
+            except Exception:
+                rel_path = r["filename"]
+
+        title = r.get("title") or Path(r["filename"]).stem.replace("-", " ").replace("_", " ").title()
+
+        formatted.append({
+            "id": r["id"],
+            "title": title,
+            "filename": r["filename"],
+            "path": r["path"],
+            "rel_path": rel_path,
+            "source": source_key,
+            "badge": badge,
+            "snippet": r.get("snippet") or r.get("preview", ""),
+            "size": r.get("size", 0),
+            "modified_at": r.get("modified_at", ""),
+            "tags": r.get("tags", []),
+        })
+
+    return web.json_response({
+        "query": query,
+        "count": len(formatted),
+        "results": formatted,
+    })
+
+
 
 def _read_doc_content(source: str, path: str) -> dict[str, Any]:
     """Read markdown content from a doc source for the side-panel viewer."""
@@ -717,6 +797,7 @@ def register_documentation_routes(app: web.Application) -> None:
     )
     app.router.add_get("/api/docs/content", handle_docs_content)
     app.router.add_get("/api/docs/wiki/tree", handle_docs_wiki_tree)
+    app.router.add_get("/api/docs/wiki/search", handle_docs_wiki_search)
     app.router.add_post("/api/docs/publish", handle_docs_publish)
     app.router.add_get("/api/docs/publish/status", handle_docs_publish_status)
     log.debug("Documentation API routes registered")

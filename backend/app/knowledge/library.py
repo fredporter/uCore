@@ -163,6 +163,27 @@ def get_document_content(object_id: str, workspace_id: str | None = None) -> str
         return None
 
 
+def _extract_snippet(content: str, terms: list[str], max_chars: int = 200) -> str:
+    """Extract snippet with highlighted <mark> tags around search terms."""
+    if not content or not terms:
+        return ""
+    lower_content = content.lower()
+    first_pos = min((lower_content.find(t) for t in terms if t in lower_content), default=-1)
+    if first_pos == -1:
+        return content[:max_chars]
+    start = max(0, first_pos - 40)
+    end = min(len(content), first_pos + max_chars)
+    excerpt = content[start:end]
+    if start > 0:
+        excerpt = "..." + excerpt
+    if end < len(content):
+        excerpt = excerpt + "..."
+    for t in terms:
+        pattern = re.compile(re.escape(t), re.IGNORECASE)
+        excerpt = pattern.sub(lambda m: f"<mark>{m.group(0)}</mark>", excerpt)
+    return excerpt
+
+
 def search(query: str, workspace_id: str | None = None, limit: int = 10) -> list[dict[str, Any]]:
     terms = _WORDS.findall(query.lower())
     if not terms:
@@ -177,9 +198,11 @@ def search(query: str, workspace_id: str | None = None, limit: int = 10) -> list
         body = content.lower()
         if not all(term in title or term in body for term in terms):
             continue
+        # Title matches are weighted 10x higher
         score = sum(title.count(term) * 10 + body.count(term) for term in terms)
         row = _metadata(workspace, path, relative_path)
-        row.update({"content": content[:500], "score": score})
+        snip = _extract_snippet(content, terms)
+        row.update({"content": content[:500], "snippet": snip, "score": score})
         ranked.append((score, row))
     ranked.sort(key=lambda item: (-item[0], str(item[1]["rel_path"])))
     return [row for _, row in ranked[: max(1, min(limit, 100))]]
