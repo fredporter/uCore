@@ -99,6 +99,7 @@ def _list_courses() -> list[dict[str, Any]]:
     """Scan learning, uCode manual, vault, and archived docs for course/guide markdown."""
     roots: dict[str, Path] = {
         "manual": settings.udos_root / "uCode" / "docs" / "manual",
+        "sonic": settings.udos_root / "SonicScrewdriver" / "docs" / "manual",
         "learning": LEARNING_ROOT,
         "vault": Path.home() / "Vault",
         "archive": settings.udos_root / "uCore" / "docs" / "archive",
@@ -489,11 +490,140 @@ async def handle_docs_publish_status(_request: web.Request) -> web.Response:
 _CONTENT_ROOTS: dict[str, Path] = {
     "learning": LEARNING_ROOT,
     "manual": settings.udos_root / "uCode" / "docs" / "manual",
+    "sonic": settings.udos_root / "SonicScrewdriver" / "docs" / "manual",
     "vault": Path.home() / "Vault",
+    "shared": Path.home() / "Shared",
+    "public": Path.home() / "Public",
     "knowledge": GLOBAL_KNOWLEDGE_ROOT,
     "archive": settings.udos_root / "uCore" / "docs" / "archive",
     "mirror": settings.udos_home / "docs-mirror",
 }
+
+
+def _build_dir_tree(root: Path, source: str, current_depth: int = 0, max_depth: int = 4) -> list[dict[str, Any]]:
+    if not root.exists() or not root.is_dir() or current_depth > max_depth:
+        return []
+    items: list[dict[str, Any]] = []
+    base_root = _CONTENT_ROOTS.get(source, root)
+    try:
+        entries = sorted(root.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
+    except (OSError, PermissionError):
+        return []
+
+    for entry in entries:
+        if entry.name.startswith(".") or entry.name in ("node_modules", "__pycache__", ".git"):
+            continue
+        if entry.is_dir():
+            children = _build_dir_tree(entry, source, current_depth + 1, max_depth)
+            if children:
+                try:
+                    rel_path = str(entry.relative_to(base_root))
+                except ValueError:
+                    rel_path = entry.name
+                items.append({
+                    "name": entry.name.replace("-", " ").replace("_", " ").title(),
+                    "path": rel_path,
+                    "source": source,
+                    "is_dir": True,
+                    "children": children,
+                })
+        elif entry.is_file() and entry.suffix.lower() in (".md", ".markdown", ".txt"):
+            title = entry.stem.replace("-", " ").replace("_", " ").title()
+            try:
+                rel_path = str(entry.relative_to(base_root))
+            except ValueError:
+                rel_path = entry.name
+            items.append({
+                "name": entry.name,
+                "title": title,
+                "path": rel_path,
+                "source": source,
+                "is_dir": False,
+                "size": entry.stat().st_size,
+            })
+    return items
+
+
+async def handle_docs_wiki_tree(_request: web.Request) -> web.Response:
+    """GET /api/docs/wiki/tree — multi-vault hierarchical tree for Local Wikipedia."""
+    vaults: list[dict[str, Any]] = []
+
+    # 1. Personal Vault (~/Vault)
+    vault_root = Path.home() / "Vault"
+    vault_items = await asyncio.to_thread(_build_dir_tree, vault_root, "vault")
+    vaults.append({
+        "id": "personal",
+        "name": "Personal Vault",
+        "badge": "~/Vault",
+        "source": "vault",
+        "exists": vault_root.exists(),
+        "items": vault_items,
+        "count": len(vault_items),
+    })
+
+    # 2. Shared Vaults (~/Shared)
+    shared_root = Path.home() / "Shared"
+    shared_items = await asyncio.to_thread(_build_dir_tree, shared_root, "shared")
+    vaults.append({
+        "id": "shared",
+        "name": "Shared Vaults",
+        "badge": "~/Shared",
+        "source": "shared",
+        "exists": shared_root.exists(),
+        "items": shared_items,
+        "count": len(shared_items),
+    })
+
+    # 3. Public Knowledge (~/Public)
+    public_root = Path.home() / "Public"
+    public_items = await asyncio.to_thread(_build_dir_tree, public_root, "public")
+    vaults.append({
+        "id": "public",
+        "name": "Public Knowledge",
+        "badge": "~/Public",
+        "source": "public",
+        "exists": public_root.exists(),
+        "items": public_items,
+        "count": len(public_items),
+    })
+
+    # 4. Universal Curriculum & Manuals (uCode & Sonic)
+    manual_items: list[dict[str, Any]] = []
+    ucode_manual = settings.udos_root / "uCode" / "docs" / "manual"
+    if ucode_manual.exists():
+        ucode_children = await asyncio.to_thread(_build_dir_tree, ucode_manual, "manual")
+        manual_items.append({
+            "name": "uCode Beginner Manual",
+            "title": "uCode BBC BASIC & Physical Computing",
+            "path": "",
+            "source": "manual",
+            "is_dir": True,
+            "children": ucode_children,
+        })
+    sonic_manual = settings.udos_root / "SonicScrewdriver" / "docs" / "manual"
+    if sonic_manual.exists():
+        sonic_children = await asyncio.to_thread(_build_dir_tree, sonic_manual, "sonic")
+        manual_items.append({
+            "name": "Sonic Hardware Revival",
+            "title": "Sonic Screwdriver Hardware Rebirth",
+            "path": "",
+            "source": "sonic",
+            "is_dir": True,
+            "children": sonic_children,
+        })
+
+    vaults.append({
+        "id": "manuals",
+        "name": "Universal Curriculum & Manuals",
+        "badge": "The uDos Way",
+        "source": "manual",
+        "exists": bool(manual_items),
+        "items": manual_items,
+        "count": len(manual_items),
+    })
+
+    return web.json_response({"vaults": vaults})
+
 
 
 def _read_doc_content(source: str, path: str) -> dict[str, Any]:
@@ -586,6 +716,7 @@ def register_documentation_routes(app: web.Application) -> None:
         handle_docs_mirror_diff,
     )
     app.router.add_get("/api/docs/content", handle_docs_content)
+    app.router.add_get("/api/docs/wiki/tree", handle_docs_wiki_tree)
     app.router.add_post("/api/docs/publish", handle_docs_publish)
     app.router.add_get("/api/docs/publish/status", handle_docs_publish_status)
     log.debug("Documentation API routes registered")

@@ -35,16 +35,16 @@
     "secrets": ["OPENROUTER_API_KEY"]
   },
   "identity_gateway": {
-    "extensions": ["udos-identity"],
+    "extensions": ["uidentity"],
     "tools": [],
-    "repos": ["udos-identity"],
+    "repos": [],
     "variables": [],
     "secrets": []
   },
   "wordpress_gateway": {
-    "extensions": ["udos-identity"],
+    "extensions": ["uidentity"],
     "tools": [],
-    "repos": ["udos-identity"],
+    "repos": [],
     "variables": [],
     "secrets": []
   },

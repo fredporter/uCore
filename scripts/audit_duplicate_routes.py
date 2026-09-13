@@ -12,7 +12,12 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCAN_DIRS = [ROOT / "backend" / "app" / "api", ROOT / "backend" / "app" / "extensions"]
+SCAN_DIRS = [
+    ROOT / "backend" / "app" / "api",
+    ROOT / "backend" / "app" / "extensions",
+    ROOT / "backend" / "app" / "identity",
+    ROOT / "backend" / "app" / "portal",
+]
 
 PATTERN = re.compile(
     r"app\.router\.add_(get|post|put|delete|patch)\(\s*\"([^\"]+)\"",

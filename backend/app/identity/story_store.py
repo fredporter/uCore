@@ -16,11 +16,9 @@ def _default_data_file() -> Path:
         return Path(override).expanduser()
     udos_home = os.environ.get("UDOS_HOME", "").strip()
     if udos_home:
-        return Path(udos_home).expanduser() / "identity-story.json"
+        return Path(udos_home).expanduser() / "identity" / "identity-story.json"
     default_udos = Path.home() / "Code" / ".udos"
-    if default_udos.exists():
-        return default_udos / "identity-story.json"
-    return Path.home() / ".local" / "share" / "udos" / "identity-story.json"
+    return default_udos / "identity" / "identity-story.json"
 
 
 class IdentityStoryStore:
