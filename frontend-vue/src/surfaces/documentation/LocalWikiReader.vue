@@ -45,23 +45,16 @@
       </div>
 
       <div class="wiki-toolbar__right">
-        <div class="wiki-search-box">
+        <button
+          type="button"
+          class="wiki-search-trigger"
+          title="Search Local Wikipedia (⌘K)"
+          @click="openSearchModal"
+        >
           <UIcon name="search" size="xs" />
-          <input
-            v-model="filterQuery"
-            type="text"
-            placeholder="Filter local articles…"
-            class="wiki-search-input"
-          />
-          <button
-            v-if="filterQuery"
-            type="button"
-            class="wiki-search-clear"
-            @click="filterQuery = ''"
-          >
-            <UIcon name="close" size="xs" />
-          </button>
-        </div>
+          <span class="wiki-search-trigger__text">Search Wikipedia…</span>
+          <kbd class="wiki-kbd">⌘K</kbd>
+        </button>
 
         <button
           type="button"
@@ -81,6 +74,24 @@
         <div class="wiki-sidebar__header">
           <span class="wiki-sidebar__title">Local Vaults & Manuals</span>
           <span class="wiki-badge wiki-badge--offline">Offline Wikipedia</span>
+        </div>
+
+        <div class="wiki-tree-filter">
+          <UIcon name="filter_list" size="xs" />
+          <input
+            v-model="filterQuery"
+            type="text"
+            placeholder="Filter tree..."
+            class="wiki-tree-filter-input"
+          />
+          <button
+            v-if="filterQuery"
+            type="button"
+            class="wiki-search-clear"
+            @click="filterQuery = ''"
+          >
+            <UIcon name="close" size="xs" />
+          </button>
         </div>
 
         <div v-if="loadingTree" class="wiki-loading">
@@ -187,11 +198,141 @@
         </article>
       </main>
     </div>
+
+    <!-- Offline Search Modal (Cmd+K) -->
+    <div v-if="showSearchModal" class="wiki-modal-backdrop" @click.self="closeSearchModal">
+      <div class="wiki-search-modal" role="dialog" aria-label="Search Local Wikipedia">
+        <header class="wiki-search-modal__header">
+          <UIcon name="search" class="wiki-search-modal__icon" />
+          <input
+            ref="searchInputRef"
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search all local vaults, manuals, and datasets..."
+            class="wiki-search-modal__input"
+            @keydown.down.prevent="navigateResults(1)"
+            @keydown.up.prevent="navigateResults(-1)"
+            @keydown.enter.prevent="selectCurrentResult"
+            @keydown.esc="closeSearchModal"
+          />
+          <button
+            v-if="searchQuery"
+            type="button"
+            class="wiki-search-clear"
+            @click="searchQuery = ''; searchResults = []"
+          >
+            <UIcon name="close" size="xs" />
+          </button>
+          <kbd class="wiki-kbd">ESC</kbd>
+        </header>
+
+        <!-- Zone filter pills -->
+        <div class="wiki-search-modal__filters">
+          <button
+            type="button"
+            class="wiki-filter-pill"
+            :class="{ 'wiki-filter-pill--active': searchZone === 'all' }"
+            @click="setSearchZone('all')"
+          >
+            All Zones
+          </button>
+          <button
+            type="button"
+            class="wiki-filter-pill"
+            :class="{ 'wiki-filter-pill--active': searchZone === 'personal' }"
+            @click="setSearchZone('personal')"
+          >
+            Personal (~/Vault)
+          </button>
+          <button
+            type="button"
+            class="wiki-filter-pill"
+            :class="{ 'wiki-filter-pill--active': searchZone === 'public' }"
+            @click="setSearchZone('public')"
+          >
+            Public Canon (~/Public)
+          </button>
+          <button
+            type="button"
+            class="wiki-filter-pill"
+            :class="{ 'wiki-filter-pill--active': searchZone === 'manuals' }"
+            @click="setSearchZone('manuals')"
+          >
+            Curriculum & Manuals
+          </button>
+          <button
+            type="button"
+            class="wiki-filter-pill"
+            :class="{ 'wiki-filter-pill--active': searchZone === 'shared' }"
+            @click="setSearchZone('shared')"
+          >
+            Shared (~/Shared)
+          </button>
+        </div>
+
+        <!-- Results list -->
+        <div class="wiki-search-modal__results">
+          <div v-if="searching" class="wiki-search-loading">
+            <UIcon name="sync" /> Searching local FTS index...
+          </div>
+          <div v-else-if="searchQuery && searchResults.length === 0" class="wiki-search-empty">
+            <UIcon name="search_off" :size="32" />
+            <p>No matches found for "<strong>{{ searchQuery }}</strong>"</p>
+            <span class="subtext">Search covers ~/Vault, ~/Shared, ~/Public, offline datasets, and manuals.</span>
+          </div>
+          <div v-else-if="!searchQuery" class="wiki-search-hint">
+            <p>Type to search offline articles, canonical datasets (world parameters, coordinates), USX design tokens, and manuals.</p>
+            <div class="wiki-search-quick-tags">
+              <span class="subtext">Try searching:</span>
+              <button type="button" class="quick-tag" @click="runQuickSearch('world parameters')">world parameters</button>
+              <button type="button" class="quick-tag" @click="runQuickSearch('BBC BASIC')">BBC BASIC</button>
+              <button type="button" class="quick-tag" @click="runQuickSearch('USX tokens')">USX tokens</button>
+              <button type="button" class="quick-tag" @click="runQuickSearch('hardware revival')">hardware revival</button>
+            </div>
+          </div>
+          <ul v-else class="wiki-results-list">
+            <li
+              v-for="(item, idx) in searchResults"
+              :key="item.id || item.path"
+              class="wiki-result-item"
+              :class="{ 'wiki-result-item--selected': selectedResultIndex === idx }"
+              @mouseenter="selectedResultIndex = idx"
+              @click="chooseSearchResult(item)"
+            >
+              <div class="wiki-result-item__top">
+                <span class="wiki-result-item__title" v-html="highlightSearchTerm(item.title, searchQuery)" />
+                <span class="wiki-result-item__badge">{{ item.badge }}</span>
+              </div>
+              <p class="wiki-result-item__snippet" v-html="item.snippet" />
+              <div class="wiki-result-item__meta">
+                <span class="wiki-result-item__path">{{ item.rel_path }}</span>
+                <span v-if="item.modified_at" class="wiki-result-item__date">
+                  {{ new Date(item.modified_at).toLocaleDateString() }}
+                </span>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Modal Footer -->
+        <footer class="wiki-search-modal__footer">
+          <div class="footer-left">
+            <UIcon name="cloud_off" size="xs" />
+            <span>100% Offline · SQLite FTS5 · Zero Telemetry</span>
+          </div>
+          <div class="footer-right">
+            <span><kbd class="wiki-kbd-mini">↑</kbd><kbd class="wiki-kbd-mini">↓</kbd> Navigate</span>
+            <span><kbd class="wiki-kbd-mini">↵</kbd> Open</span>
+            <span><kbd class="wiki-kbd-mini">ESC</kbd> Close</span>
+          </div>
+        </footer>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, ref, watch } from "vue";
+import { computed, h, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import UIcon from "../../skills/atoms/UIcon.vue";
@@ -594,8 +735,117 @@ async function selectDocument(source: string, path: string, title?: string) {
   }
 }
 
+const showSearchModal = ref(false);
+const searchQuery = ref("");
+const searchZone = ref<"all" | "personal" | "public" | "manuals" | "shared">("all");
+const searchResults = ref<any[]>([]);
+const searching = ref(false);
+const selectedResultIndex = ref(0);
+const searchInputRef = ref<HTMLInputElement | null>(null);
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+function openSearchModal() {
+  showSearchModal.value = true;
+  selectedResultIndex.value = 0;
+  nextTick(() => {
+    searchInputRef.value?.focus();
+  });
+}
+
+function closeSearchModal() {
+  showSearchModal.value = false;
+}
+
+function setSearchZone(zone: "all" | "personal" | "public" | "manuals" | "shared") {
+  searchZone.value = zone;
+  runSearch();
+}
+
+function runQuickSearch(query: string) {
+  searchQuery.value = query;
+  runSearch();
+}
+
+function navigateResults(delta: number) {
+  if (searchResults.value.length === 0) return;
+  const newIndex = selectedResultIndex.value + delta;
+  if (newIndex >= 0 && newIndex < searchResults.value.length) {
+    selectedResultIndex.value = newIndex;
+  }
+}
+
+function selectCurrentResult() {
+  if (searchResults.value.length > 0 && selectedResultIndex.value < searchResults.value.length) {
+    chooseSearchResult(searchResults.value[selectedResultIndex.value]);
+  }
+}
+
+function chooseSearchResult(item: any) {
+  closeSearchModal();
+  selectDocument(item.source, item.rel_path, item.title);
+}
+
+function highlightSearchTerm(text: string, term: string): string {
+  if (!text || !term.trim()) return text || "";
+  const escaped = term.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return text.replace(new RegExp(`(${escaped})`, "gi"), "<mark>$1</mark>");
+}
+
+async function runSearch() {
+  const q = searchQuery.value.trim();
+  if (!q) {
+    searchResults.value = [];
+    searching.value = false;
+    return;
+  }
+
+  searching.value = true;
+  try {
+    let url = `/api/docs/wiki/search?q=${encodeURIComponent(q)}&limit=25`;
+    if (searchZone.value !== "all") {
+      url += `&vault=${encodeURIComponent(searchZone.value)}`;
+    }
+    const resp = await fetch(url);
+    if (resp.ok) {
+      const data = await resp.json();
+      searchResults.value = data.results || [];
+      selectedResultIndex.value = 0;
+    }
+  } catch (err) {
+    console.error("Search failed:", err);
+  } finally {
+    searching.value = false;
+  }
+}
+
+watch(searchQuery, () => {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    runSearch();
+  }, 150);
+});
+
+function onKeydown(e: KeyboardEvent) {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+    e.preventDefault();
+    if (showSearchModal.value) {
+      closeSearchModal();
+    } else {
+      openSearchModal();
+    }
+  } else if (e.key === "Escape" && showSearchModal.value) {
+    closeSearchModal();
+  }
+}
+
 onMounted(() => {
+  window.addEventListener("keydown", onKeydown);
   loadTree();
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keydown", onKeydown);
 });
 </script>
 
@@ -1097,5 +1347,305 @@ onMounted(() => {
   text-align: center;
   color: #8b949e;
   font-size: 13px;
+}
+
+/* ── Search Trigger & Sidebar Tree Filter ────────────────────────── */
+.wiki-search-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--usx-color-surface-variant, #161b22);
+  color: var(--usx-color-text-muted, #8b949e);
+  border: 1px solid var(--usx-color-border, #30363d);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wiki-search-trigger:hover {
+  background: var(--usx-color-surface, #21262d);
+  border-color: #58a6ff;
+  color: var(--usx-color-text, #c9d1d9);
+}
+
+.wiki-search-trigger__text {
+  font-size: 12px;
+}
+
+.wiki-kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-family: inherit;
+  font-weight: 600;
+  color: #8b949e;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.wiki-tree-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: 8px 12px;
+}
+
+.wiki-tree-filter-input {
+  background: transparent;
+  border: none;
+  color: #c9d1d9;
+  font-size: 12px;
+  width: 100%;
+  outline: none;
+}
+
+/* ── Offline Search Modal (Cmd+K) ────────────────────────────────── */
+.wiki-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+  z-index: 1000;
+}
+
+.wiki-search-modal {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 680px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wiki-search-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #30363d;
+  background: #0d1117;
+}
+
+.wiki-search-modal__icon {
+  color: #58a6ff;
+  font-size: 20px;
+}
+
+.wiki-search-modal__input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #f0f6fc;
+  font-size: 16px;
+  outline: none;
+}
+
+.wiki-search-modal__filters {
+  display: flex;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #0d1117;
+  border-bottom: 1px solid #21262d;
+  overflow-x: auto;
+}
+
+.wiki-filter-pill {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #8b949e;
+  border-radius: 14px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.wiki-filter-pill:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #c9d1d9;
+}
+
+.wiki-filter-pill--active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.wiki-search-modal__results {
+  max-height: 420px;
+  min-height: 180px;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.wiki-search-loading,
+.wiki-search-empty,
+.wiki-search-hint {
+  padding: 32px 24px;
+  text-align: center;
+  color: #8b949e;
+}
+
+.wiki-search-empty p {
+  margin: 8px 0 4px;
+  color: #c9d1d9;
+  font-size: 14px;
+}
+
+.wiki-search-hint p {
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #8b949e;
+  line-height: 1.5;
+}
+
+.wiki-search-quick-tags {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.quick-tag {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #58a6ff;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.quick-tag:hover {
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.wiki-results-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.wiki-result-item {
+  padding: 10px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.12s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wiki-result-item:hover,
+.wiki-result-item--selected {
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.wiki-result-item__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wiki-result-item__title {
+  font-weight: 600;
+  color: #f0f6fc;
+  font-size: 14px;
+}
+
+.wiki-result-item__title :deep(mark),
+.wiki-result-item__snippet :deep(mark) {
+  background: rgba(56, 189, 248, 0.35);
+  color: #f0f6fc;
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+.wiki-result-item__badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #21262d;
+  color: #8b949e;
+  border: 1px solid #30363d;
+  text-transform: uppercase;
+}
+
+.wiki-result-item__snippet {
+  margin: 0;
+  font-size: 12px;
+  color: #8b949e;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.wiki-result-item__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6e7681;
+}
+
+.wiki-result-item__path {
+  font-family: monospace;
+}
+
+.wiki-search-modal__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 18px;
+  background: #0d1117;
+  border-top: 1px solid #30363d;
+  font-size: 11px;
+  color: #8b949e;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #3fb950;
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wiki-kbd-mini {
+  display: inline-block;
+  padding: 1px 4px;
+  font-size: 9px;
+  font-family: inherit;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  margin-right: 4px;
 }
 </style>
