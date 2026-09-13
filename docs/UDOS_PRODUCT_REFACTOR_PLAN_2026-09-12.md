@@ -170,6 +170,8 @@ Human task content lives in portable Markdown. uFlow owns scheduling, dependenci
 
 Preserve `~/Vault`, `~/Shared`, `~/Public` and the current UDOS_HOME contract unless a separately reviewed migration is necessary. Never create new home-root state directories. Do not move credentials from OS/application-owned stores. Do not store originals or secrets in a publication repo or its Git history.
 
+Open box / look under the hood: do not use `.local` or dot/hidden folders to conceal user-accessible data. Filesystem structures under `~/Code`, `~/Vault`, `~/Shared`, and `~/Public` remain completely transparent and inspectable in standard file managers and shell sessions. The uCore file browser excludes internal runtime files, lockfiles, and raw intake archives (`Originals/`) at the UI presentation layer, leaving them unhidden on disk. Maintain space transparency to educate users on disk consumption and avoid bloat; keep shared caches (e.g. `Code/Vendor/01-RAW`, Sonic Depot) explicitly visible; and enforce product-specific, gitignored Python virtual environments (`<repo>/.venv/`) rather than a fragile monolithic `.venv`.
+
 ### Intake pipeline
 
 Receive → preserve/checksum original → extract → normalise → review → compile → publish.
