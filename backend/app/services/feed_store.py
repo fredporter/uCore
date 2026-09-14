@@ -289,3 +289,48 @@ class FeedServer:
             "activity_id": activity_id,
             "link_type": link_type,
         }
+
+    def resolve_activity(
+        self,
+        activity_id: int,
+        note: str = "",
+        archived: bool = True,
+    ) -> dict[str, Any]:
+        """Resolve/archive a feed activity, marking it processed and serene."""
+        cursor = self._conn.cursor()
+        cursor.execute("SELECT id, metadata FROM user_activity WHERE id = ?", (activity_id,))
+        row = cursor.fetchone()
+        if not row:
+            return {"ok": False, "error": f"Activity {activity_id} not found"}
+
+        try:
+            meta = json.loads(row["metadata"] or "{}")
+        except Exception:
+            meta = {}
+
+        import time
+        meta["resolved_at"] = int(time.time())
+        meta["resolution_note"] = note
+        meta["archived"] = bool(archived)
+
+        cursor.execute(
+            "UPDATE user_activity SET processed = 1, metadata = ? WHERE id = ?",
+            (json.dumps(meta), activity_id),
+        )
+        self._conn.commit()
+        log.info("Feed resolved: id=%s note=%s", activity_id, note)
+        return {"ok": True, "activity_id": activity_id, "processed": 1, "archived": archived}
+
+    def bulk_resolve(
+        self,
+        activity_ids: list[int],
+        note: str = "",
+    ) -> dict[str, Any]:
+        """Bulk resolve multiple feed activities."""
+        resolved = []
+        for aid in activity_ids:
+            res = self.resolve_activity(aid, note=note)
+            if res.get("ok"):
+                resolved.append(aid)
+        return {"ok": True, "resolved_count": len(resolved), "resolved_ids": resolved}
+

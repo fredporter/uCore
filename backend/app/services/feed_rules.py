@@ -1,6 +1,7 @@
 """Small, auditable rules engine for turning Feed signals into workflow proposals."""
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,10 @@ class FeedRule:
     board: str
     priority: str
     binder: str
+    require_flagged: bool = False
+    require_vip: bool = False
+    sync_reminders: bool = False
+    archive_mail: bool = False
 
     def matches(self, activity: dict[str, Any]) -> bool:
         source = str(activity.get("source") or "").lower()
@@ -31,6 +36,19 @@ class FeedRule:
             return False
         if float(activity.get("importance") or 0) < self.min_importance:
             return False
+
+        meta = activity.get("metadata") or {}
+        if isinstance(meta, str):
+            try:
+                meta = json.loads(meta)
+            except Exception:
+                meta = {}
+
+        if self.require_flagged and not meta.get("is_flagged"):
+            return False
+        if self.require_vip and not meta.get("vip"):
+            return False
+
         haystack = " ".join(
             str(activity.get(key) or "") for key in ("title", "content", "type")
         ).lower()
@@ -53,10 +71,14 @@ def load_feed_rules(path: Path | None = None) -> tuple[list[FeedRule], dict[str,
                 sources=tuple(str(value).lower() for value in match.get("sources") or []),
                 contains=tuple(str(value).lower() for value in match.get("contains") or []),
                 min_importance=float(match.get("min_importance", 0)),
+                require_flagged=bool(match.get("flagged", False)),
+                require_vip=bool(match.get("vip", False)),
                 action=str(action.get("type") or "propose-task"),
                 board=str(action.get("board") or "inbox"),
                 priority=str(action.get("priority") or "medium"),
                 binder=str(action.get("binder") or "Sandbox"),
+                sync_reminders=bool(action.get("sync_reminders", False)),
+                archive_mail=bool(action.get("archive_mail", False)),
             )
         )
     return rules, {
@@ -81,6 +103,8 @@ def evaluate_feed_rules(
                     "board": rule.board,
                     "priority": rule.priority,
                     "binder": rule.binder,
+                    "sync_reminders": rule.sync_reminders,
+                    "archive_mail": rule.archive_mail,
                     "title": str(activity.get("title") or activity.get("type") or "Feed item"),
                 }
             )

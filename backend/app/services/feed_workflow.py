@@ -15,7 +15,11 @@ def promote_activity_to_task(
     board: str = "inbox",
     priority: str = "medium",
     binder: str = "Sandbox",
+    mission: str | None = None,
+    due_date: str | None = None,
     rule_id: str | None = None,
+    sync_apple_reminders: bool = False,
+    archive_source_mail: bool = False,
 ) -> dict[str, Any]:
     activity_id = int(activity["id"])
     task_title = str(title or activity.get("title") or "Feed item").strip()
@@ -27,6 +31,45 @@ def promote_activity_to_task(
     tags = ["user", "feed", source]
     if rule_id:
         tags.append(f"rule-{slugify(rule_id)}")
+
+    metadata: dict[str, Any] = {
+        "priority": priority,
+        "binder": binder,
+        "tags": tags,
+    }
+    if mission:
+        metadata["mission"] = mission
+    if due_date:
+        metadata["due"] = due_date
+
+    reminders_result = None
+    if sync_apple_reminders:
+        try:
+            from app.services.apple_feed_sync import AppleFeedSync
+
+            target_list = binder if binder and binder != "Sandbox" else "uDos"
+            reminders_result = AppleFeedSync().export_reminder(
+                title=task_title,
+                notes=str(activity.get("content") or ""),
+                list_name=target_list,
+                due_date=due_date,
+            )
+            if reminders_result.get("ok"):
+                tags.append("synced:apple-reminders")
+        except Exception:
+            pass
+
+    mail_archived_result = None
+    if archive_source_mail and source == "mail":
+        try:
+            from app.services.apple_feed_sync import AppleFeedSync
+
+            ext_id = str(activity.get("external_id") or "")
+            if ext_id:
+                mail_archived_result = AppleFeedSync().archive_email(ext_id)
+        except Exception:
+            pass
+
     target.write_text(
         render_task_markdown(
             title=task_title,
@@ -34,8 +77,13 @@ def promote_activity_to_task(
             source_id=str(activity_id),
             status="todo",
             body=str(activity.get("content") or ""),
-            metadata={"priority": priority, "binder": binder, "tags": tags},
+            metadata=metadata,
         ),
         encoding="utf-8",
     )
-    return {"task_id": target.stem, "path": str(target)}
+    return {
+        "task_id": target.stem,
+        "path": str(target),
+        "reminders_sync": reminders_result,
+        "mail_archived": mail_archived_result,
+    }

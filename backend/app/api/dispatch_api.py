@@ -297,6 +297,42 @@ async def handle_export_offline(request: web.Request) -> web.Response:
         return web.json_response({"error": str(exc)}, status=400)
 
 
+async def handle_convert_rsvp_task(request: web.Request) -> web.Response:
+    """POST /api/dispatch/{id}/rsvp/{index}/task — Convert RSVP submission into a task."""
+    dispatch_id = request.match_info.get("id", "").strip()
+    index_str = request.match_info.get("index", "0").strip()
+    try:
+        rsvp_index = int(index_str)
+    except ValueError:
+        return web.json_response({"error": "Index must be an integer"}, status=400)
+
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        body = {}
+
+    board = str(body.get("board") or "inbox")
+    priority = str(body.get("priority") or "medium")
+    binder = body.get("binder")
+    mission = body.get("mission")
+    due_date = body.get("due_date")
+    sync_apple_reminders = bool(body.get("sync_apple_reminders", False))
+
+    res = dispatch_store.convert_rsvp_to_task(
+        dispatch_id=dispatch_id,
+        rsvp_index=rsvp_index,
+        board=board,
+        priority=priority,
+        binder=binder,
+        mission=mission,
+        due_date=due_date,
+        sync_apple_reminders=sync_apple_reminders,
+    )
+    if res.get("status") == "not_found":
+        return web.json_response(res, status=404)
+    return web.json_response(res)
+
+
 def register_dispatch_routes(app: web.Application) -> None:
     """Register all dispatch, feed, and device capability routes."""
     app.router.add_post("/api/dispatch/create", handle_create_dispatch)
@@ -316,5 +352,6 @@ def register_dispatch_routes(app: web.Application) -> None:
     app.router.add_post("/api/dispatch/generate-bob", handle_generate_bob)
     app.router.add_post("/api/dispatch/inbox/ingest", handle_ingest_inbound)
     app.router.add_post("/api/dispatch/export-offline/{id}", handle_export_offline)
+    app.router.add_post("/api/dispatch/{id}/rsvp/{index}/task", handle_convert_rsvp_task)
 
 

@@ -252,6 +252,103 @@ class DispatchStore:
         except Exception:
             return []
 
+    def convert_rsvp_to_task(
+        self,
+        dispatch_id: str,
+        rsvp_index: int,
+        board: str = "inbox",
+        priority: str = "medium",
+        binder: Optional[str] = None,
+        mission: Optional[str] = None,
+        due_date: Optional[str] = None,
+        sync_apple_reminders: bool = False,
+    ) -> Dict[str, Any]:
+        """Convert a collected RSVP submission into a sovereign .tasker task."""
+        dispatch_dir = self.root_dir / dispatch_id
+        responses_path = dispatch_dir / "responses.json"
+        manifest_path = dispatch_dir / "dispatch.json"
+
+        if not responses_path.exists() or not manifest_path.exists():
+            return {"status": "not_found", "error": "Dispatch or responses not found"}
+
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        responses = json.loads(responses_path.read_text(encoding="utf-8"))
+
+        if rsvp_index < 0 or rsvp_index >= len(responses):
+            return {"status": "not_found", "error": f"RSVP index {rsvp_index} out of range"}
+
+        entry = responses[rsvp_index]
+        payload = entry.get("data") or {}
+        contact_name = payload.get("name") or payload.get("contact_name") or payload.get("attendee_name") or "Anonymous Guest"
+        answers = payload.get("answers") or {}
+        answers_str = "\n".join(f"- **{k}**: {v}" for k, v in answers.items()) if answers else ""
+        notes = payload.get("notes") or payload.get("email") or ""
+
+        target_binder = binder or manifest.get("binder_id") or "Sandbox"
+        dispatch_title = manifest.get("title") or dispatch_id
+        task_title = f"RSVP Follow-up: {contact_name} ({dispatch_title})"
+
+        body_lines = [
+            f"RSVP submission for dispatch **{dispatch_title}** (`{dispatch_id}`).",
+            f"- **Respondent**: {contact_name}",
+            f"- **Submitted**: {entry.get('submitted_iso', '')}",
+        ]
+        if notes:
+            body_lines.append(f"- **Notes/Email**: {notes}")
+        if answers_str:
+            body_lines.append("\n### Form Responses\n" + answers_str)
+
+        body_content = "\n".join(body_lines)
+
+        from app.services.feed_workflow import promote_activity_to_task
+        mock_activity = {
+            "id": int(time.time()),
+            "source": "dispatch",
+            "title": task_title,
+            "content": body_content,
+        }
+        promoted = promote_activity_to_task(
+            mock_activity,
+            title=task_title,
+            board=board,
+            priority=priority,
+            binder=target_binder,
+            mission=mission,
+            due_date=due_date,
+            sync_apple_reminders=sync_apple_reminders,
+        )
+
+        task_id = promoted["task_id"]
+        entry["task_id"] = task_id
+        responses_path.write_text(json.dumps(responses, indent=2), encoding="utf-8")
+
+        # Link in Activity Pod if possible
+        try:
+            from app.services.feed_store import FeedServer
+            feed = FeedServer()
+            ext_id = f"{dispatch_id}_rsvp_{rsvp_index + 1}"
+            rows = feed._conn.execute(
+                "SELECT id FROM user_activity WHERE source = 'dispatch' AND external_id = ?",
+                (ext_id,),
+            ).fetchall()
+            if rows:
+                act_id = rows[0]["id"]
+                feed._conn.execute(
+                    "INSERT INTO task_activity_links (task_id, activity_id, link_type) VALUES (?, ?, 'dispatch_rsvp')",
+                    (task_id, act_id),
+                )
+                feed._conn.execute("UPDATE user_activity SET processed = 1 WHERE id = ?", (act_id,))
+                feed._conn.commit()
+        except Exception as exc:
+            log.debug("Could not link task in activity pod: %s", exc)
+
+        return {
+            "status": "ok",
+            "task_id": task_id,
+            "path": promoted["path"],
+            "reminders_sync": promoted.get("reminders_sync"),
+        }
+
     def get_dispatches_by_binder(self, binder_id: str) -> List[Dict[str, Any]]:
         """Find all dispatches associated with a specific binder."""
         results: List[Dict[str, Any]] = []

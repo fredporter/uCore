@@ -548,10 +548,16 @@
                 <div v-if="activeResponseDispatchId === disp.id" class="responses-ledger">
                   <div class="ledger-header-row">
                     <h6>RSVP &amp; Response Ledger ({{ responsesByDispatch[disp.id]?.length || 0 }} submissions)</h6>
-                    <label class="wf-zen-subtle ingest-file-btn" title="Ingest offline response JSON file into Activity Pod">
-                      <UIcon name="file_upload" /> Ingest Offline File
-                      <input type="file" accept=".json" @change="handleUploadResponseFile($event, disp.id)" style="display:none;" />
-                    </label>
+                    <div class="ledger-header-actions">
+                      <label class="sync-reminders-checkbox" title="Automatically push converted task to Apple Reminders under this Binder's list">
+                        <input type="checkbox" v-model="syncToRemindersOnTaskCreation" />
+                        <span>Apple Reminders Sync</span>
+                      </label>
+                      <label class="wf-zen-subtle ingest-file-btn" title="Ingest offline response JSON file into Activity Pod">
+                        <UIcon name="file_upload" /> Ingest Offline File
+                        <input type="file" accept=".json" @change="handleUploadResponseFile($event, disp.id)" style="display:none;" />
+                      </label>
+                    </div>
                   </div>
                   <div v-if="!responsesByDispatch[disp.id] || responsesByDispatch[disp.id].length === 0" class="empty-hint">
                     No responses or RSVP submissions received yet.
@@ -564,6 +570,7 @@
                         <th>Email / Note</th>
                         <th>Form Responses</th>
                         <th>Timestamp</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -584,6 +591,21 @@
                           <span v-else>-</span>
                         </td>
                         <td class="time-col">{{ new Date(resp.timestamp || resp.created_at || Date.now()).toLocaleTimeString() }}</td>
+                        <td class="action-col">
+                          <span v-if="resp.task_id" class="task-badge" :title="'Linked Sovereign Task: ' + resp.task_id">
+                            <UIcon name="task_alt" /> Linked
+                          </span>
+                          <button
+                            v-else
+                            class="wf-zen-subtle create-task-btn"
+                            :disabled="creatingTaskIndex === `${disp.id}-${rIdx}`"
+                            @click="convertRsvpToTask(disp.id, rIdx)"
+                            title="Convert RSVP into sovereign .tasker task &amp; optionally sync to Apple Reminders"
+                          >
+                            <UIcon name="add_task" />
+                            {{ creatingTaskIndex === `${disp.id}-${rIdx}` ? 'Converting...' : 'Create Task' }}
+                          </button>
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -775,6 +797,8 @@ const selectedMotif = ref("zen_envelope");
 const selectedMotifPalette = ref("teletext_ceefax");
 const generatingBob = ref(false);
 const exportingOfflineId = ref<string | null>(null);
+const syncToRemindersOnTaskCreation = ref(true);
+const creatingTaskIndex = ref<string | null>(null);
 const dispatchForm = ref({
   title: "",
   lead_text: "",
@@ -1364,6 +1388,34 @@ async function handleUploadResponseFile(event: Event, dispatchId: string) {
     errorMessage.value = `Failed to ingest response file: ${e.message || e}`;
   } finally {
     target.value = "";
+  }
+}
+
+async function convertRsvpToTask(dispatchId: string, rsvpIndex: number) {
+  creatingTaskIndex.value = `${dispatchId}-${rsvpIndex}`;
+  errorMessage.value = "";
+  try {
+    const res = await fetch(`/api/dispatch/${encodeURIComponent(dispatchId)}/rsvp/${rsvpIndex}/task`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        binder: activeBinder.value?.name || "Sandbox",
+        sync_apple_reminders: syncToRemindersOnTaskCreation.value,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to convert RSVP to task");
+    }
+    const data = await res.json();
+    if (responsesByDispatch.value[dispatchId] && responsesByDispatch.value[dispatchId][rsvpIndex]) {
+      responsesByDispatch.value[dispatchId][rsvpIndex].task_id = data.task_id;
+    }
+    successMessage.value = `Created sovereign task: ${data.task_id}${data.reminders_sync?.ok ? ' & synced to Apple Reminders' : ''}`;
+  } catch (e: any) {
+    errorMessage.value = e.message || String(e);
+  } finally {
+    creatingTaskIndex.value = null;
   }
 }
 
@@ -2404,6 +2456,51 @@ onMounted(() => {
   color: var(--text-muted, #94a3b8);
   font-size: 0.75rem;
   white-space: nowrap;
+}
+
+.ledger-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sync-reminders-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  user-select: none;
+}
+
+.sync-reminders-checkbox input {
+  cursor: pointer;
+  accent-color: #38bdf8;
+}
+
+.action-col {
+  white-space: nowrap;
+}
+
+.task-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.create-task-btn {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .dispatch-header-actions {
