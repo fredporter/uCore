@@ -25,10 +25,11 @@ from typing import Any, Callable, Dict, Optional
 log = logging.getLogger("ucore.services.host_pim")
 
 
-def _default_runner(cmd: list[str], timeout: float = 10.0) -> str:
+def _default_runner(cmd: list[str], timeout: float = 10.0, input_data: Optional[str] = None) -> str:
     """Default command runner executing osascript or host CLI binaries."""
     proc = subprocess.run(
         cmd,
+        input=input_data,
         capture_output=True,
         text=True,
         timeout=timeout,
@@ -145,6 +146,11 @@ class HostPIMService:
                         "automation": "no_osascript",
                     }
 
+            has_shortcuts = shutil.which("shortcuts") is not None
+            app_status["shortcuts"] = {
+                "available": has_shortcuts,
+                "automation": "cli" if has_shortcuts else "none",
+            }
             report["host_native"] = app_status
             report["capabilities"] = {
                 "browser_intake": app_status.get("safari", {}).get("available", False),
@@ -153,6 +159,7 @@ class HostPIMService:
                 "reminders_export": app_status.get("reminders", {}).get("available", False),
                 "reminders_intake": app_status.get("reminders", {}).get("available", False),
                 "mail_bridge": app_status.get("mail", {}).get("available", False),
+                "shortcuts": has_shortcuts,
                 "notifications": has_osascript,
                 "speech_tts": shutil.which("say") is not None,
             }
@@ -172,6 +179,7 @@ class HostPIMService:
                 "reminders_export": False,
                 "reminders_intake": False,
                 "mail_bridge": False,
+                "shortcuts": False,
                 "notifications": shutil.which("notify-send") is not None,
                 "speech_tts": shutil.which("spd-say") is not None,
             }
@@ -321,14 +329,20 @@ class HostPIMService:
         safe_notes = notes.replace("\\", "\\\\").replace('"', '\\"')
 
         if list_name:
-            target_clause = f'list "{list_name.replace("\"", "\\\"")}"'
+            safe_list = list_name.replace("\\", "\\\\").replace('"', '\\"')
+            target_clause = f'list "{safe_list}"'
+            ensure_list_clause = f"""if not (exists list "{safe_list}") then
+                make new list with properties {{name:"{safe_list}"}}
+            end if"""
         else:
             target_clause = "default list"
+            ensure_list_clause = ""
 
         due_clause = f', due date:date "{due_date}"' if due_date else ""
 
         script = f"""
         tell application "Reminders"
+            {ensure_list_clause}
             set targetList to {target_clause}
             make new reminder at targetList with properties {{name:"{safe_title}", body:"{safe_notes}"{due_clause}}}
         end tell
@@ -542,3 +556,109 @@ class HostPIMService:
             except Exception as exc:
                 return {"ok": False, "error": str(exc)}
         return {"ok": False, "error": "Speech synthesizer not available"}
+
+    def list_shortcuts(self) -> list[str]:
+        """List available shortcuts on macOS non-invasively."""
+        if not self.is_macos() or not shutil.which("shortcuts"):
+            return []
+        try:
+            raw = self.runner(["shortcuts", "list"])
+            return [line.strip() for line in raw.splitlines() if line.strip()]
+        except Exception as exc:
+            log.debug("Could not list shortcuts: %s", exc)
+            return []
+
+    def run_shortcut(self, name: str, input_text: str = "") -> Dict[str, Any]:
+        """Execute a macOS shortcut with optional input text."""
+        if not self.is_macos() or not shutil.which("shortcuts"):
+            return {
+                "ok": False,
+                "error": "macOS Shortcuts CLI not available",
+            }
+        cmd = ["shortcuts", "run", name]
+        try:
+            try:
+                out = self.runner(cmd, input_data=input_text)
+            except TypeError:
+                out = self.runner(cmd)
+            return {
+                "ok": True,
+                "shortcut": name,
+                "output": out,
+            }
+        except Exception as exc:
+            log.warning("Running shortcut '%s' failed: %s", name, exc)
+            return {
+                "ok": False,
+                "shortcut": name,
+                "error": str(exc),
+            }
+
+    def archive_apple_mail(self, message_id: str) -> Dict[str, Any]:
+        """Mark an email as read and move to archive in Apple Mail."""
+        if not self.is_macos():
+            return {"ok": False, "error": "Apple Mail is only supported on macOS"}
+        safe_id = message_id.replace("\\", "\\\\").replace('"', '\\"')
+        script = f"""
+        (() => {{
+            try {{
+                const app = Application("Mail");
+                const matches = app.inbox.messages.whose({{messageId: "{safe_id}"}})();
+                if (matches.length > 0) {{
+                    for (const m of matches) {{
+                        m.readStatus = true;
+                        try {{
+                            const acc = m.mailbox().account();
+                            if (acc && acc.archiveMailbox()) {{
+                                m.mailbox = acc.archiveMailbox();
+                            }}
+                        }} catch (e) {{}}
+                    }}
+                    return JSON.stringify({{ ok: true, count: matches.length, archived: true }});
+                }}
+                return JSON.stringify({{ ok: false, error: "Message not found in inbox", archived: false }});
+            }} catch (err) {{
+                return JSON.stringify({{ ok: false, error: String(err), archived: false }});
+            }}
+        }})()
+        """
+        try:
+            raw = self.runner(["osascript", "-l", "JavaScript", "-e", script])
+            data = json.loads(raw or "{}")
+            return data
+        except Exception as exc:
+            log.warning("Apple Mail archive failed: %s", exc)
+            return {"ok": False, "error": str(exc), "archived": False}
+
+    def flag_apple_mail(self, message_id: str, flag_index: int = 0) -> Dict[str, Any]:
+        """Flag an email in Apple Mail (0=Red, 1=Orange, 2=Yellow, 3=Green, 4=Blue, 5=Purple, 6=Gray, -1=clear)."""
+        if not self.is_macos():
+            return {"ok": False, "error": "Apple Mail is only supported on macOS"}
+        safe_id = message_id.replace("\\", "\\\\").replace('"', '\\"')
+        flag_status = "true" if flag_index >= 0 else "false"
+        set_flag_clause = f"m.flagIndex = {flag_index};" if flag_index >= 0 else ""
+        script = f"""
+        (() => {{
+            try {{
+                const app = Application("Mail");
+                const matches = app.inbox.messages.whose({{messageId: "{safe_id}"}})();
+                if (matches.length > 0) {{
+                    for (const m of matches) {{
+                        m.flaggedStatus = {flag_status};
+                        {set_flag_clause}
+                    }}
+                    return JSON.stringify({{ ok: true, count: matches.length, flag_index: {flag_index} }});
+                }}
+                return JSON.stringify({{ ok: false, error: "Message not found in inbox" }});
+            }} catch (err) {{
+                return JSON.stringify({{ ok: false, error: String(err) }});
+            }}
+        }})()
+        """
+        try:
+            raw = self.runner(["osascript", "-l", "JavaScript", "-e", script])
+            data = json.loads(raw or "{}")
+            return data
+        except Exception as exc:
+            log.warning("Apple Mail flag failed: %s", exc)
+            return {"ok": False, "error": str(exc)}

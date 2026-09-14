@@ -210,6 +210,10 @@ function handleToolbarCommand(command: EditorCommand) {
   if (command === "ordered-list") return applyOrderedList();
   if (command === "code-block") return insertBlock("```\ncode\n```\n");
   if (command === "horizontal-rule") return insertBlock("---\n");
+  if (command === "insert-quantum") return insertBlock("\n---\n\n");
+  if (command === "insert-question") return insertBlock("\n? [ ] Attend / Yes / No\n");
+  if (command === "insert-prompt") return insertBlock("\n? (Dietary Requirements): [text]\n");
+  if (command === "insert-bob") return insertBlock("\n![Hero BOB](/api/dispatch/catalog/asset/pulsing_radar.gif)\n");
   if (command === "table") return insertBlock("| Column | Value |\n| --- | --- |\n| Item | Value |\n");
   if (command === "callout") return insertBlock("> [!NOTE]\n> Add a note.\n");
   if (command === "footnote") return insertBlock("Reference[^1]\n\n[^1]: Source details.\n");

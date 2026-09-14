@@ -204,6 +204,13 @@ const SURFACE_CARD_DATA: Record<
     route: "/homenest",
     color: "var(--usx-color-info)",
   },
+  bitchat: {
+    title: "BitChat",
+    description: "Decentralized Local Mesh Transport & Chat",
+    icon: "forum",
+    route: "/bitchat",
+    color: "var(--usx-color-success)",
+  },
 };
 
 const visibleSurfaces = computed(() => {
@@ -253,6 +260,9 @@ const visibleSurfaces = computed(() => {
   }
   if (!seen.has("homenest")) {
     cards.push({ id: "homenest", ...SURFACE_CARD_DATA.homenest });
+  }
+  if (!seen.has("bitchat")) {
+    cards.push({ id: "bitchat", ...SURFACE_CARD_DATA.bitchat });
   }
   // Always show Markdown Editor card
   cards.push({ id: "markdown", ...SURFACE_CARD_DATA.markdown });

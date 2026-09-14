@@ -11,6 +11,10 @@ from app.api.host_api import (
     handle_host_capabilities,
     handle_host_notify,
     handle_host_say,
+    handle_host_shortcuts,
+    handle_host_shortcuts_run,
+    handle_mail_archive,
+    handle_mail_flag,
     handle_notes_export,
     handle_notes_intake,
     handle_reminders_export,
@@ -307,3 +311,67 @@ async def test_api_handlers(monkeypatch):
     req_say.json = AsyncMock(return_value={"text": "Speaking"})
     resp_say = await handle_host_say(req_say)
     assert resp_say.status == 200
+
+    # 9. shortcuts list
+    req_sc = MagicMock(spec=web.Request)
+    monkeypatch.setattr(svc, "list_shortcuts", lambda: ["Shortcut A", "Shortcut B"])
+    resp_sc = await handle_host_shortcuts(req_sc)
+    assert resp_sc.status == 200
+    sc_data = json.loads(resp_sc.text)
+    assert sc_data["ok"] is True
+    assert len(sc_data["shortcuts"]) == 2
+
+    # 10. shortcuts run
+    req_sc_run = MagicMock(spec=web.Request)
+    req_sc_run.json = AsyncMock(return_value={"name": "Shortcut A", "input": "text"})
+    monkeypatch.setattr(svc, "run_shortcut", lambda name, input_text="": {"ok": True, "output": "done"})
+    resp_sc_run = await handle_host_shortcuts_run(req_sc_run)
+    assert resp_sc_run.status == 200
+    sc_run_data = json.loads(resp_sc_run.text)
+    assert sc_run_data["ok"] is True
+
+    # 11. mail archive
+    req_mail_arch = MagicMock(spec=web.Request)
+    req_mail_arch.json = AsyncMock(return_value={"message_id": "msg-123"})
+    monkeypatch.setattr(svc, "archive_apple_mail", lambda message_id: {"ok": True, "archived": True})
+    resp_mail_arch = await handle_mail_archive(req_mail_arch)
+    assert resp_mail_arch.status == 200
+
+    # 12. mail flag
+    req_mail_flag = MagicMock(spec=web.Request)
+    req_mail_flag.json = AsyncMock(return_value={"message_id": "msg-123", "flag_index": 2})
+    monkeypatch.setattr(svc, "flag_apple_mail", lambda message_id, flag_index: {"ok": True, "flag_index": flag_index})
+    resp_mail_flag = await handle_mail_flag(req_mail_flag)
+    assert resp_mail_flag.status == 200
+
+
+def test_shortcuts_and_mail_service(monkeypatch):
+    executed = []
+
+    def mock_runner(cmd: list[str], timeout: float = 10.0, input_data: str | None = None) -> str:
+        executed.append((cmd, input_data))
+        if cmd == ["shortcuts", "list"]:
+            return "Summarize Text\nCreate Task\n"
+        if cmd[:2] == ["shortcuts", "run"]:
+            return "Summary result"
+        if "Mail" in str(cmd):
+            return json.dumps({"ok": True, "count": 1, "archived": True})
+        return "ok"
+
+    svc = HostPIMService(runner=mock_runner)
+    monkeypatch.setattr(svc, "is_macos", lambda: True)
+    monkeypatch.setattr("shutil.which", lambda _: "/usr/bin/shortcuts")
+
+    shortcuts = svc.list_shortcuts()
+    assert shortcuts == ["Summarize Text", "Create Task"]
+
+    run_res = svc.run_shortcut("Summarize Text", input_text="Long text")
+    assert run_res["ok"] is True
+    assert run_res["output"] == "Summary result"
+
+    arch_res = svc.archive_apple_mail("msg-999")
+    assert arch_res["ok"] is True
+    assert arch_res["archived"] is True
+
+    flag_res = svc.flag_apple_mail("msg-999", flag_index=3)
+    assert flag_res["ok"] is True

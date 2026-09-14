@@ -67,6 +67,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "Workflow", icon: "workflow" },
   },
   {
+    path: "/p/:token",
+    name: "dispatch-story",
+    component: () => import("../surfaces/dispatch/DispatchStoryView.vue"),
+    meta: { title: "Dispatch", public: true, layout: "standalone" },
+  },
+  {
     path: "/system/:pageId(s\\d{3}|p\\d{3})",
     name: "systempage",
     component: () => import("../surfaces/system/SystemPage.vue"),
@@ -107,6 +113,12 @@ const routes: RouteRecordRaw[] = [
     name: "homenest",
     component: () => import("../surfaces/homenest/HomeNestSurface.vue"),
     meta: { title: "HomeNest Console", icon: "tv" },
+  },
+  {
+    path: "/bitchat/:pathMatch(.*)*",
+    name: "bitchat",
+    component: () => import("../surfaces/bitchat/BitChatSurface.vue"),
+    meta: { title: "BitChat", icon: "forum" },
   },
   {
     path: "/browserui/:pathMatch(.*)*",

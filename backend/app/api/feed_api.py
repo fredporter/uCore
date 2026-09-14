@@ -164,6 +164,10 @@ async def handle_feed_promote(request: web.Request) -> web.Response:
         board=str(body.get("board") or "inbox"),
         priority=str(body.get("priority") or "medium"),
         binder=str(body.get("binder") or "Sandbox"),
+        mission=body.get("mission"),
+        due_date=body.get("due_date") or body.get("due"),
+        sync_apple_reminders=bool(body.get("sync_apple_reminders", False)),
+        archive_source_mail=bool(body.get("archive_source_mail", False)),
     )
     await server.link_task_to_activity(task_id=promoted["task_id"], activity_id=activity_id)
     return web.json_response({"ok": True, **promoted})
@@ -202,9 +206,29 @@ async def handle_feed_rules_apply(request: web.Request) -> web.Response:
     for proposal in proposals:
         if proposal["activity_id"] in handled:
             continue
-        if proposal["action"] not in {"propose-task", "create-task"}:
+
+        if proposal["action"] in {"auto-archive", "resolve"}:
+            res = server.resolve_activity(
+                proposal["activity_id"], note=f"Auto-resolved by rule {proposal['rule_id']}"
+            )
+            if proposal.get("archive_mail") and by_id[proposal["activity_id"]].get("source") == "mail":
+                ext_id = by_id[proposal["activity_id"]].get("external_id")
+                if ext_id:
+                    try:
+                        from app.services.apple_feed_sync import AppleFeedSync
+
+                        AppleFeedSync().archive_email(ext_id)
+                    except Exception:
+                        pass
+            created.append({**proposal, "resolved": True})
+            handled.add(proposal["activity_id"])
             continue
+
+        if proposal["action"] not in {"propose-task", "create-task", "sync-apple-reminders"}:
+            continue
+
         activity = by_id[proposal["activity_id"]]
+        sync_rem = proposal["action"] == "sync-apple-reminders" or bool(proposal.get("sync_reminders", False))
         promoted = promote_activity_to_task(
             activity,
             title=proposal["title"],
@@ -212,6 +236,8 @@ async def handle_feed_rules_apply(request: web.Request) -> web.Response:
             priority=proposal["priority"],
             binder=proposal["binder"],
             rule_id=proposal["rule_id"],
+            sync_apple_reminders=sync_rem,
+            archive_source_mail=bool(proposal.get("archive_mail", False)),
         )
         await server.link_task_to_activity(
             task_id=promoted["task_id"], activity_id=proposal["activity_id"], link_type="rule"
@@ -247,6 +273,102 @@ async def handle_feed_runtime(request: web.Request) -> web.Response:
     )
 
 
+async def handle_feed_resolve(request: web.Request) -> web.Response:
+    """POST /api/feed/resolve/{id} — Resolve/archive a feed activity."""
+    activity_id_str = request.match_info.get("id", "").strip()
+    try:
+        activity_id = int(activity_id_str)
+    except ValueError:
+        return web.json_response({"error": "id must be an integer"}, status=400)
+
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        body = {}
+
+    note = str(body.get("note") or "")
+    archived = bool(body.get("archived", True))
+    archive_mail = bool(body.get("archive_mail", False))
+
+    server = _get_feed_server()
+    res = server.resolve_activity(activity_id=activity_id, note=note, archived=archived)
+    if not res.get("ok"):
+        return web.json_response(res, status=404)
+
+    if archive_mail:
+        rows = await server.query_feed(limit=100)
+        item = next((r for r in rows if int(r["id"]) == activity_id), None)
+        if item and item.get("source") == "mail" and item.get("external_id"):
+            try:
+                from app.services.apple_feed_sync import AppleFeedSync
+
+                AppleFeedSync().archive_email(item["external_id"])
+            except Exception:
+                pass
+
+    return web.json_response(res)
+
+
+async def handle_feed_bulk_resolve(request: web.Request) -> web.Response:
+    """POST /api/feed/bulk-resolve — Bulk resolve multiple activities."""
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    activity_ids = body.get("activity_ids") or []
+    note = str(body.get("note") or "")
+    if not isinstance(activity_ids, list):
+        return web.json_response({"error": "activity_ids must be a list"}, status=400)
+
+    server = _get_feed_server()
+    res = server.bulk_resolve(activity_ids=[int(aid) for aid in activity_ids], note=note)
+    return web.json_response(res)
+
+
+async def handle_feed_export_reminders(request: web.Request) -> web.Response:
+    """POST /api/feed/export/reminders — Export an item or activity to Apple Reminders."""
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    title = body.get("title", "").strip()
+    if not title:
+        return web.json_response({"error": "title is required"}, status=400)
+
+    notes = body.get("notes", "")
+    list_name = body.get("list_name") or body.get("binder") or "uDos"
+    due_date = body.get("due_date") or body.get("due")
+
+    from app.services.apple_feed_sync import AppleFeedSync
+
+    sync_svc = AppleFeedSync(_get_feed_server())
+    res = sync_svc.export_reminder(title=title, notes=notes, list_name=list_name, due_date=due_date)
+    return web.json_response(res, status=200 if res.get("ok") else 500)
+
+
+async def handle_feed_export_notes(request: web.Request) -> web.Response:
+    """POST /api/feed/export/notes — Export an item to Apple Notes."""
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    title = body.get("title", "").strip()
+    if not title:
+        return web.json_response({"error": "title is required"}, status=400)
+
+    body_text = body.get("body", "")
+    folder = body.get("folder") or "uDos"
+
+    from app.services.apple_feed_sync import AppleFeedSync
+
+    sync_svc = AppleFeedSync(_get_feed_server())
+    res = sync_svc.export_note(title=title, body_markdown=body_text, folder=folder)
+    return web.json_response(res, status=200 if res.get("ok") else 500)
+
+
 def register_feed_routes(app: web.Application) -> None:
     """Register Feed API routes."""
     app.router.add_post("/api/feed/ingest", handle_feed_ingest)
@@ -259,7 +381,11 @@ def register_feed_routes(app: web.Application) -> None:
     app.router.add_get("/api/feed/runtime", handle_feed_runtime)
     app.router.add_get("/api/feed/sources", handle_feed_sources)
     app.router.add_post("/api/feed/sources/{source}/sync", handle_feed_source_sync)
-    log.info("Feed API routes registered: ingest, query, suggest, link")
+    app.router.add_post("/api/feed/resolve/{id}", handle_feed_resolve)
+    app.router.add_post("/api/feed/bulk-resolve", handle_feed_bulk_resolve)
+    app.router.add_post("/api/feed/export/reminders", handle_feed_export_reminders)
+    app.router.add_post("/api/feed/export/notes", handle_feed_export_notes)
+    log.info("Feed API routes registered: ingest, query, suggest, link, promote, rules, resolve, export")
 
 
 async def handle_feed_sources(request: web.Request) -> web.Response:

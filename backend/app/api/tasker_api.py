@@ -502,8 +502,47 @@ async def handle_update_task(request: web.Request) -> web.Response:
     })
 
 
+async def handle_execute_task_action(request: web.Request) -> web.Response:
+    """POST /api/workflow/tasks/{task_id}/execute-action — Execute approved automation."""
+    task_id = request.match_info.get("task_id", "").strip()
+    if not task_id:
+        return web.json_response({"error": "task_id required"}, status=400)
+
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    action_type = body.get("action_type", "shortcut")
+    payload = body.get("payload") or body
+
+    from app.services.task_action_bridge import TaskActionBridge
+
+    bridge = TaskActionBridge()
+    result = bridge.execute_action(task_id=task_id, action_type=action_type, payload=payload)
+    return web.json_response(result, status=200 if result.get("ok") else 500)
+
+
+async def handle_sync_task_reminders(request: web.Request) -> web.Response:
+    """POST /api/workflow/tasks/{task_id}/sync-reminders — Push task to Apple Reminders."""
+    task_id = request.match_info.get("task_id", "").strip()
+    if not task_id:
+        return web.json_response({"error": "task_id required"}, status=400)
+
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        body = {}
+
+    from app.services.task_action_bridge import TaskActionBridge
+
+    bridge = TaskActionBridge()
+    result = bridge.execute_action(task_id=task_id, action_type="apple_reminders", payload=body)
+    return web.json_response(result, status=200 if result.get("ok") else 500)
+
+
 def register_tasker_routes(app: web.Application) -> None:
-    """Register tasker API routes under /api/developer/tasker/."""
+    """Register tasker API routes under /api/developer/tasker/ and /api/workflow/."""
     app.router.add_get("/api/developer/tasker/boards", handle_list_boards)
     app.router.add_get(
         "/api/developer/tasker/board/{board_name}",
@@ -516,3 +555,5 @@ def register_tasker_routes(app: web.Application) -> None:
     )
     app.router.add_get("/api/developer/tasker/summary", handle_tasker_summary)
     app.router.add_patch("/api/workflow/tasks/{task_id}", handle_update_task)
+    app.router.add_post("/api/workflow/tasks/{task_id}/execute-action", handle_execute_task_action)
+    app.router.add_post("/api/workflow/tasks/{task_id}/sync-reminders", handle_sync_task_reminders)

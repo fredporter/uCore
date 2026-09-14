@@ -195,6 +195,63 @@ async def handle_host_say(request: web.Request) -> web.Response:
     return web.json_response(res, status=200 if res.get("ok") else 500)
 
 
+async def handle_host_shortcuts(request: web.Request) -> web.Response:
+    """GET /api/host/shortcuts — List available host shortcuts."""
+    svc = get_host_pim_service()
+    shortcuts = svc.list_shortcuts()
+    return web.json_response({"ok": True, "shortcuts": shortcuts, "count": len(shortcuts)})
+
+
+async def handle_host_shortcuts_run(request: web.Request) -> web.Response:
+    """POST /api/host/shortcuts/run — Execute a host shortcut."""
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+
+    name = body.get("name", "").strip()
+    if not name:
+        return web.json_response({"ok": False, "error": "Shortcut name is required"}, status=400)
+
+    input_text = body.get("input", "")
+    svc = get_host_pim_service()
+    res = svc.run_shortcut(name=name, input_text=input_text)
+    return web.json_response(res, status=200 if res.get("ok") else 500)
+
+
+async def handle_mail_archive(request: web.Request) -> web.Response:
+    """POST /api/host/mail/archive — Archive an email in Apple Mail."""
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+
+    message_id = body.get("message_id", "").strip()
+    if not message_id:
+        return web.json_response({"ok": False, "error": "message_id is required"}, status=400)
+
+    svc = get_host_pim_service()
+    res = svc.archive_apple_mail(message_id=message_id)
+    return web.json_response(res, status=200 if res.get("ok") else 500)
+
+
+async def handle_mail_flag(request: web.Request) -> web.Response:
+    """POST /api/host/mail/flag — Flag an email in Apple Mail."""
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+
+    message_id = body.get("message_id", "").strip()
+    flag_index = int(body.get("flag_index", 0))
+    if not message_id:
+        return web.json_response({"ok": False, "error": "message_id is required"}, status=400)
+
+    svc = get_host_pim_service()
+    res = svc.flag_apple_mail(message_id=message_id, flag_index=flag_index)
+    return web.json_response(res, status=200 if res.get("ok") else 500)
+
+
 def register_host_routes(app: web.Application) -> None:
     """Register all host PIM and automation routes."""
     app.router.add_get("/api/host/capabilities", handle_host_capabilities)
@@ -206,5 +263,9 @@ def register_host_routes(app: web.Application) -> None:
     app.router.add_get("/api/host/reminders/intake", handle_reminders_intake)
     app.router.add_post("/api/host/notify", handle_host_notify)
     app.router.add_post("/api/host/say", handle_host_say)
-    log.info("Host PIM routes registered: capabilities, safari, notes, reminders, notify, say")
+    app.router.add_get("/api/host/shortcuts", handle_host_shortcuts)
+    app.router.add_post("/api/host/shortcuts/run", handle_host_shortcuts_run)
+    app.router.add_post("/api/host/mail/archive", handle_mail_archive)
+    app.router.add_post("/api/host/mail/flag", handle_mail_flag)
+    log.info("Host PIM routes registered: capabilities, safari, notes, reminders, notify, say, shortcuts, mail")
 

@@ -25,3 +25,29 @@ rules:
       board: planning
       priority: medium
       binder: Sandbox
+
+  - id: dispatch-rsvp-followup
+    enabled: true
+    match:
+      sources: [dispatch]
+      contains: [rsvp, answer, attending, dietary, menu, note]
+      min_importance: 0.5
+    action:
+      type: propose-task
+      board: inbox
+      priority: high
+      binder: Sandbox
+      sync_reminders: true
+
+  - id: vip-flagged-mail
+    enabled: true
+    match:
+      sources: [mail]
+      flagged: true
+      min_importance: 0.7
+    action:
+      type: propose-task
+      board: inbox
+      priority: high
+      binder: Sandbox
+      archive_mail: false
