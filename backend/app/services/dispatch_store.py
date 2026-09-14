@@ -106,6 +106,34 @@ class DispatchStore:
         tokens[token] = dispatch_id
         self._save_tokens(tokens)
 
+        # Ingest into Feed Activity Pod (Snackbar)
+        try:
+            from app.services.feed_store import FeedServer
+            FeedServer().ingest_activity_sync(
+                source="dispatch",
+                external_id=dispatch_id,
+                type="dispatch_published",
+                title=f"Published: {title}",
+                content=lead_text or title,
+                url=f"/p/{token}",
+                importance=0.6,
+                metadata={
+                    "dispatch_id": dispatch_id,
+                    "token": token,
+                    "binder_id": binder_id,
+                    "mode_default": mode_default,
+                },
+            )
+        except Exception as exc:
+            log.warning("Could not ingest dispatch creation into feed: %s", exc)
+
+        # Update syndicated feeds in ~/Vault/feeds/
+        try:
+            from app.services.dispatch_feed import dispatch_feed_service
+            dispatch_feed_service.sync_to_vault()
+        except Exception as exc:
+            log.warning("Could not sync feeds: %s", exc)
+
         return manifest
 
     def get_dispatch_by_token(self, token: str, record_view: bool = True) -> Dict[str, Any]:
@@ -186,6 +214,28 @@ class DispatchStore:
             manifest["status"] = "burned"
             (dispatch_dir / "dispatch.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
+        # Ingest RSVP into Feed Activity Pod (notifies Snackbar)
+        contact_name = payload.get("name") or payload.get("contact_name") or "Anonymous Sovereign Guest"
+        try:
+            from app.services.feed_store import FeedServer
+            FeedServer().ingest_activity_sync(
+                source="dispatch",
+                external_id=f"{dispatch_id}_rsvp_{len(responses)}",
+                type="dispatch_rsvp_received",
+                title=f"RSVP Received: {manifest.get('title')}",
+                content=f"Response from {contact_name}",
+                url=f"/p/{token}",
+                contact_name=contact_name,
+                importance=0.8,
+                metadata={
+                    "dispatch_id": dispatch_id,
+                    "binder_id": manifest.get("binder_id"),
+                    "submission": payload,
+                },
+            )
+        except Exception as exc:
+            log.warning("Could not ingest RSVP into feed: %s", exc)
+
         return {
             "status": "success",
             "message": "Response recorded peacefully",
@@ -224,6 +274,43 @@ class DispatchStore:
         # Sort newest first
         results.sort(key=lambda x: x.get("created_at", 0), reverse=True)
         return results
+
+    def list_dispatches(self) -> List[Dict[str, Any]]:
+        """List all dispatches sorted newest first."""
+        results: List[Dict[str, Any]] = []
+        if not self.root_dir.exists():
+            return results
+
+        for child in self.root_dir.iterdir():
+            if child.is_dir():
+                manifest_path = child / "dispatch.json"
+                if manifest_path.exists():
+                    try:
+                        m = json.loads(manifest_path.read_text(encoding="utf-8"))
+                        resps = self.get_responses(m["id"])
+                        m["response_count"] = len(resps)
+                        results.append(m)
+                    except Exception:
+                        pass
+        results.sort(key=lambda x: x.get("created_at", 0), reverse=True)
+        return results
+
+    def get_dispatch(self, dispatch_id: str) -> Optional[Dict[str, Any]]:
+        """Get dispatch record and source markdown by dispatch ID."""
+        dispatch_dir = self.root_dir / dispatch_id
+        manifest_path = dispatch_dir / "dispatch.json"
+        if not manifest_path.exists():
+            return None
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            story_path = dispatch_dir / "originals" / "source.story.md"
+            story_md = story_path.read_text(encoding="utf-8") if story_path.exists() else ""
+            return {
+                "dispatch": manifest,
+                "story_markdown": story_md,
+            }
+        except Exception:
+            return None
 
     def load_catalog(self) -> Dict[str, Any]:
         """Load curated standard element library from global-knowledge."""

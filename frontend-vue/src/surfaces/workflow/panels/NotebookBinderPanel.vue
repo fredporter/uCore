@@ -356,10 +356,15 @@
                   <p>Publish an ephemeral, tracked-free interactive story or greeting card dispatch directly from this binder's content.</p>
                 </div>
               </div>
-              <button class="wf-zen-secondary" type="button" @click="showDispatchCreator = !showDispatchCreator">
-                <UIcon :name="showDispatchCreator ? 'expand_less' : 'add'" />
-                {{ showDispatchCreator ? 'Close Studio' : 'New Dispatch' }}
-              </button>
+              <div class="dispatch-header-actions">
+                <a href="/api/dispatch/feed.xml" target="_blank" class="wf-zen-subtle action-btn" title="Open Syndicated RSS 2.0 Feed with GIF enclosures">
+                  <UIcon name="rss_feed" /> Syndicated RSS
+                </a>
+                <button class="wf-zen-secondary" type="button" @click="showDispatchCreator = !showDispatchCreator">
+                  <UIcon :name="showDispatchCreator ? 'expand_less' : 'add'" />
+                  {{ showDispatchCreator ? 'Close Studio' : 'New Dispatch' }}
+                </button>
+              </div>
             </div>
 
             <!-- Dispatch Creation Form Panel -->
@@ -398,7 +403,37 @@
 
                 <!-- Hero Animated BOB / Element Picker -->
                 <div class="dispatch-form__col">
-                  <label>Hero Animated BOB / Element</label>
+                  <div class="bob-header-row">
+                    <label>Hero Animated BOB / Element</label>
+                    <button class="wf-zen-subtle motif-toggle-btn" type="button" @click="showMotifGenerator = !showMotifGenerator">
+                      <UIcon name="palette" /> {{ showMotifGenerator ? 'Hide Vector Generator' : 'Generate Vector Motif' }}
+                    </button>
+                  </div>
+
+                  <!-- Vector Motif Generator Drawer -->
+                  <div v-if="showMotifGenerator" class="motif-generator-box">
+                    <span class="motif-box-title">Dot Lattice Vector Generator</span>
+                    <div class="form-row">
+                      <label>Motif
+                        <select v-model="selectedMotif">
+                          <option value="zen_envelope">Zen Sovereign Envelope</option>
+                          <option value="teletext_pulse">Teletext Diamond Pulse</option>
+                          <option value="cosmic_orbiter">Cosmic Celestial Orbiter</option>
+                          <option value="signal_beacon">Sovereign Signal Beacon</option>
+                        </select>
+                      </label>
+                      <label>Palette
+                        <select v-model="selectedMotifPalette">
+                          <option value="teletext_ceefax">Teletext Ceefax (8 Colors)</option>
+                          <option value="terminal_green">Terminal Green</option>
+                        </select>
+                      </label>
+                    </div>
+                    <button class="wf-zen-primary motif-gen-btn" type="button" :disabled="generatingBob" @click="generateVectorBob">
+                      <UIcon name="auto_awesome" /> {{ generatingBob ? 'Quantizing...' : 'Generate &amp; Set as Hero' }}
+                    </button>
+                  </div>
+
                   <div class="bob-picker">
                     <div
                       class="bob-option"
@@ -491,6 +526,16 @@
                     <button
                       class="wf-zen-secondary action-btn"
                       type="button"
+                      :disabled="exportingOfflineId === disp.id"
+                      @click="exportOffline(disp.id)"
+                      title="Export Standalone Offline HTML and signed .capsule"
+                    >
+                      <UIcon name="download" />
+                      {{ exportingOfflineId === disp.id ? 'Exporting...' : 'Export Offline' }}
+                    </button>
+                    <button
+                      class="wf-zen-secondary action-btn"
+                      type="button"
                       @click="toggleResponsesLedger(disp.id)"
                     >
                       <UIcon name="ballot" />
@@ -501,7 +546,13 @@
 
                 <!-- Responses Ledger Drawer -->
                 <div v-if="activeResponseDispatchId === disp.id" class="responses-ledger">
-                  <h6>RSVP &amp; Response Ledger ({{ responsesByDispatch[disp.id]?.length || 0 }} submissions)</h6>
+                  <div class="ledger-header-row">
+                    <h6>RSVP &amp; Response Ledger ({{ responsesByDispatch[disp.id]?.length || 0 }} submissions)</h6>
+                    <label class="wf-zen-subtle ingest-file-btn" title="Ingest offline response JSON file into Activity Pod">
+                      <UIcon name="file_upload" /> Ingest Offline File
+                      <input type="file" accept=".json" @change="handleUploadResponseFile($event, disp.id)" style="display:none;" />
+                    </label>
+                  </div>
                   <div v-if="!responsesByDispatch[disp.id] || responsesByDispatch[disp.id].length === 0" class="empty-hint">
                     No responses or RSVP submissions received yet.
                   </div>
@@ -719,6 +770,11 @@ const catalogBobs = ref<any[]>([]);
 const binderDispatches = ref<any[]>([]);
 const responsesByDispatch = ref<Record<string, any[]>>({});
 const activeResponseDispatchId = ref<string | null>(null);
+const showMotifGenerator = ref(false);
+const selectedMotif = ref("zen_envelope");
+const selectedMotifPalette = ref("teletext_ceefax");
+const generatingBob = ref(false);
+const exportingOfflineId = ref<string | null>(null);
 const dispatchForm = ref({
   title: "",
   lead_text: "",
@@ -1225,6 +1281,89 @@ async function toggleResponsesLedger(dispatchId: string) {
     };
   } catch (e) {
     // Non-critical
+  }
+}
+
+async function generateVectorBob() {
+  generatingBob.value = true;
+  errorMessage.value = "";
+  try {
+    const res = await fetch("/api/dispatch/generate-bob", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        motif: selectedMotif.value,
+        palette_id: selectedMotifPalette.value,
+        steps: 4,
+        delay_ms: 100,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || `BOB generation failed (${res.status})`);
+    }
+    const data = await res.json();
+    dispatchForm.value.hero_gif_name = data.asset_name;
+    // Add to catalog items if not present
+    if (!catalogBobs.value.some((b: any) => b.asset_path === data.asset_name)) {
+      catalogBobs.value.unshift({
+        id: data.asset_name,
+        name: data.asset_name,
+        asset_path: data.asset_name,
+        preview_url: data.asset_url,
+      });
+    }
+    successMessage.value = `Vector BOB generated on 4×4 dot lattice: ${data.asset_name} (${data.gif_size_bytes} bytes)`;
+    showMotifGenerator.value = false;
+  } catch (e: any) {
+    errorMessage.value = e.message || String(e);
+  } finally {
+    generatingBob.value = false;
+  }
+}
+
+async function exportOffline(dispatchId: string) {
+  exportingOfflineId.value = dispatchId;
+  errorMessage.value = "";
+  try {
+    const res = await fetch(`/api/dispatch/export-offline/${encodeURIComponent(dispatchId)}`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || `Offline export failed (${res.status})`);
+    }
+    const data = await res.json();
+    successMessage.value = `Offline bundle ready: ${data.standalone_html_path}`;
+  } catch (e: any) {
+    errorMessage.value = e.message || String(e);
+  } finally {
+    exportingOfflineId.value = null;
+  }
+}
+
+async function handleUploadResponseFile(event: Event, dispatchId: string) {
+  const target = event.target as HTMLInputElement;
+  if (!target.files || target.files.length === 0) return;
+  const file = target.files[0];
+  try {
+    const text = await file.text();
+    const payload = JSON.parse(text);
+    const res = await fetch("/api/dispatch/inbox/ingest", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || `Ingestion failed (${res.status})`);
+    }
+    successMessage.value = `Offline response from ${payload.name || 'guest'} ingested peacefully into Activity Pod & ledger!`;
+    await toggleResponsesLedger(dispatchId);
+  } catch (e: any) {
+    errorMessage.value = `Failed to ingest response file: ${e.message || e}`;
+  } finally {
+    target.value = "";
   }
 }
 
@@ -2265,5 +2404,67 @@ onMounted(() => {
   color: var(--text-muted, #94a3b8);
   font-size: 0.75rem;
   white-space: nowrap;
+}
+
+.dispatch-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bob-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.motif-toggle-btn {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+}
+
+.motif-generator-box {
+  background: rgba(88, 166, 255, 0.06);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.motif-box-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent, #58a6ff);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.motif-gen-btn {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.ledger-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.ingest-file-btn {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px dashed var(--border, #30363d);
+}
+
+.ingest-file-btn:hover {
+  border-color: var(--accent, #58a6ff);
+  color: var(--accent, #58a6ff);
 }
 </style>

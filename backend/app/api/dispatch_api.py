@@ -204,8 +204,101 @@ async def handle_serve_catalog_asset(request: web.Request) -> web.Response:
     return web.Response(body=target_file.read_bytes(), content_type=content_type)
 
 
+async def handle_get_feed_rss(request: web.Request) -> web.Response:
+    host_url = f"{request.scheme}://{request.host}"
+    from app.services.dispatch_feed import dispatch_feed_service
+    rss_xml = dispatch_feed_service.generate_rss_2_0(host_url)
+    return web.Response(text=rss_xml, content_type="application/rss+xml")
+
+
+async def handle_get_feed_json(request: web.Request) -> web.Response:
+    host_url = f"{request.scheme}://{request.host}"
+    from app.services.dispatch_feed import dispatch_feed_service
+    json_feed = dispatch_feed_service.generate_json_feed(host_url)
+    return web.json_response(json_feed)
+
+
+async def handle_get_motifs(request: web.Request) -> web.Response:
+    import sys
+    uvector_py = Path(__file__).resolve().parents[4] / "uVector" / "python"
+    if uvector_py.exists() and str(uvector_py) not in sys.path:
+        sys.path.insert(0, str(uvector_py))
+
+    try:
+        from uvector_bob import MOTIF_PRESETS
+        return web.json_response({"status": "ok", "motifs": MOTIF_PRESETS})
+    except Exception as exc:
+        log.warning("Could not load uVector motifs: %s", exc)
+        return web.json_response({"status": "ok", "motifs": {}})
+
+
+async def handle_generate_bob(request: web.Request) -> web.Response:
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    motif = data.get("motif", "zen_envelope")
+    palette_id = data.get("palette_id", "teletext_ceefax")
+    steps = int(data.get("steps", 4))
+    delay_ms = int(data.get("delay_ms", 100))
+
+    import sys
+    uvector_py = Path(__file__).resolve().parents[4] / "uVector" / "python"
+    if uvector_py.exists() and str(uvector_py) not in sys.path:
+        sys.path.insert(0, str(uvector_py))
+
+    try:
+        from uvector_bob import compile_svg_to_bob, compile_svgs_to_gif, generate_vector_motif
+        frames = generate_vector_motif(motif, palette_id=palette_id, steps=steps)
+        gif_bytes = compile_svgs_to_gif(frames, delay_ms=delay_ms, palette_id=palette_id)
+        bob_def = compile_svg_to_bob(frames[0], id=f"bob_{motif}", name=f"{motif.title()} BOB", palette_id=palette_id)
+
+        from app.core.settings import settings
+        asset_name = f"bob-{motif}-{palette_id}.gif"
+        elements_dir = settings.public_vault_root / "global-knowledge" / "elements"
+        elements_dir.mkdir(parents=True, exist_ok=True)
+        (elements_dir / asset_name).write_bytes(gif_bytes)
+
+        return web.json_response({
+            "status": "ok",
+            "asset_name": asset_name,
+            "asset_url": f"/api/dispatch/catalog/asset/{asset_name}",
+            "gif_size_bytes": len(gif_bytes),
+            "bob_definition": bob_def,
+        })
+    except Exception as exc:
+        log.error("Failed to generate BOB: %s", exc)
+        return web.json_response({"error": str(exc)}, status=500)
+
+
+async def handle_ingest_inbound(request: web.Request) -> web.Response:
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    token = data.get("token")
+    if not token:
+        return web.json_response({"error": "Token is required in response payload"}, status=400)
+
+    res = dispatch_store.submit_rsvp(token, data)
+    return web.json_response(res)
+
+
+async def handle_export_offline(request: web.Request) -> web.Response:
+    dispatch_id = request.match_info.get("id", "").strip()
+    from app.services.dispatch_offline import export_offline_bundle
+    try:
+        result = export_offline_bundle(dispatch_id)
+        return web.json_response(result)
+    except Exception as exc:
+        log.error("Offline export failed for %s: %s", dispatch_id, exc)
+        return web.json_response({"error": str(exc)}, status=400)
+
+
 def register_dispatch_routes(app: web.Application) -> None:
-    """Register all dispatch and device capability routes."""
+    """Register all dispatch, feed, and device capability routes."""
     app.router.add_post("/api/dispatch/create", handle_create_dispatch)
     app.router.add_get("/api/dispatch/token/{token}", handle_get_by_token)
     app.router.add_post("/api/dispatch/rsvp/{token}", handle_submit_rsvp)
@@ -217,4 +310,11 @@ def register_dispatch_routes(app: web.Application) -> None:
     app.router.add_get("/api/dispatch/catalog", handle_get_catalog)
     app.router.add_get("/api/dispatch/catalog/asset/{file}", handle_serve_catalog_asset)
     app.router.add_get("/api/dispatch/by-binder/{binder_id}", handle_get_by_binder)
+    app.router.add_get("/api/dispatch/feed.xml", handle_get_feed_rss)
+    app.router.add_get("/api/dispatch/feed.json", handle_get_feed_json)
+    app.router.add_get("/api/dispatch/motifs", handle_get_motifs)
+    app.router.add_post("/api/dispatch/generate-bob", handle_generate_bob)
+    app.router.add_post("/api/dispatch/inbox/ingest", handle_ingest_inbound)
+    app.router.add_post("/api/dispatch/export-offline/{id}", handle_export_offline)
+
 

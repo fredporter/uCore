@@ -68,7 +68,7 @@ class FeedServer:
 
     # ── Activity ingestion ────────────────────────────────────────
 
-    async def ingest_activity(
+    def ingest_activity_sync(
         self,
         source: str,
         type: str,
@@ -80,7 +80,7 @@ class FeedServer:
         metadata: dict[str, Any] | None = None,
         external_id: str | None = None,
     ) -> dict[str, Any]:
-        """Insert a user activity event into the Feed Pod."""
+        """Insert a user activity event synchronously into the Feed Pod."""
         cursor = self._conn.cursor()
         cursor.execute(
             """INSERT INTO user_activity
@@ -115,6 +115,31 @@ class FeedServer:
             row_id, source, type, title,
         )
         return {"id": row_id, "message": "Activity ingested"}
+
+    async def ingest_activity(
+        self,
+        source: str,
+        type: str,
+        title: str = "",
+        content: str = "",
+        url: str = "",
+        contact_name: str = "",
+        importance: float = 0.5,
+        metadata: dict[str, Any] | None = None,
+        external_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Insert a user activity event into the Feed Pod."""
+        return self.ingest_activity_sync(
+            source=source,
+            type=type,
+            title=title,
+            content=content,
+            url=url,
+            contact_name=contact_name,
+            importance=importance,
+            metadata=metadata,
+            external_id=external_id,
+        )
 
     # ── Activity query ────────────────────────────────────────────
 
