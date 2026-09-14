@@ -58,20 +58,21 @@ Lanes Replaced: Former Portal / Beacon / MeshCore research
 
 ---
 
-## 3. BitChat: Local-First Private Communication
+## 3. BitChat: Local-First Private Communication (Implemented)
 
 ### Purpose
 BitChat provides private, real-time messaging between household members or co-located teams without relying on third-party servers, telephone numbers, or cloud accounts.
 
 ### Protocol & Discovery
-1. **Discovery**: Devices on the same subnet discover the uCore BitChat endpoint via **mDNS / Bonjour** service advertisement (`_bitchat._tcp.local.`).
-2. **Transport**: Lightweight WebSocket connection (`/api/network/bitchat/ws`).
+1. **Discovery**: Devices on the same subnet discover the uCore BitChat endpoint via **mDNS / Bonjour** service advertisement (`_bitchat._tcp.local.`) and standard library UDP broadcast beacons on port `53535` (`backend/app/services/mesh_transport.py`).
+2. **Transport**: Lightweight WebSocket connection (`/api/network/bitchat/ws`) and fallback REST endpoints (`/api/network/bitchat/send`, `/api/network/bitchat/messages`).
 3. **Identity**: Ephemeral or profile-based public-key identity (derived from `app.identity`).
 4. **Encryption**: End-to-end encrypted message frames using standardlibs (NaCl / TweetNaCl / AES-GCM).
 
-### uDos Integration: "Save to Binder"
-* Discussions regarding project briefs, decisions, or research can be saved with one click.
-* The selected chat thread is formatted as Markdown evidence and committed to the active binder under `evidence/chats/YYYY-MM-DD-thread.md`.
+### uDos Integration: "Save to Binder" & "Convert to Task"
+* **Save to Binder**: Discussions regarding project briefs, decisions, or research can be saved with one click. The selected chat thread is formatted as Markdown evidence and committed to the active binder under `~/Vault/binders/<binder>/evidence/chats/YYYY-MM-DD-thread.md`.
+* **Convert to Task**: Chat action items can be promoted directly to sovereign `.tasker` markdown tasks in `~/Vault/tasks/inbox/` with optional Apple Reminders synchronization.
+* **Surface**: Live interactive UI available at `/bitchat` (`frontend-vue/src/surfaces/bitchat/BitChatSurface.vue`).
 
 ---
 

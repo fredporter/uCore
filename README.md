@@ -13,7 +13,8 @@ It provides a calm Vue 3 UI shell, governed backend APIs, native Obsidian vault 
 | **uFlow Engine** | `backend/app/flow/` | Built-in durable missions, tasks, daily routines, autonomy, and execution evidence |
 | **uKnowledge Library** | `backend/app/knowledge/` | Built-in filesystem-first vault discovery, indexing, search, and Obsidian baseline (`~/Vault`, `~/Shared`, `~/Public`) |
 | **Sovereign Identity** | `backend/app/identity/` | Local profiles, keys, and headless WordPress RBAC mapping (`wordpress_mapper.py`) |
-| **Network & Privacy** | `uCore-Network` | Spec: Offline local portals, BitChat LAN P2P chat, and home privacy stack |
+| **Sovereign Dispatch** | `backend/app/services/dispatch_*` | Ephemeral stories (`/p/:token`), Tri-Mode player, bulletproof email, and offline capsules |
+| **Network & BitChat** | `backend/app/services/mesh_*`, `bitchat_*` | Local LAN subnet beacon discovery, zero-cloud BitChat P2P messaging, and binder bridges |
 | **Google & DreamBeans** | `uCore-Google` | Google Workspace bridge + DreamBeans autonomous morning briefing integration |
 
 Independent domain products (`SonicScrewdriver`, `Groovebox`, `uVector`, `HomeNest`) follow an uncoupled, independent release path.
