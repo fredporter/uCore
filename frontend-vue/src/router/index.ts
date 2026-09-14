@@ -115,6 +115,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "HomeNest Console", icon: "tv" },
   },
   {
+    path: "/bitchat/:pathMatch(.*)*",
+    name: "bitchat",
+    component: () => import("../surfaces/bitchat/BitChatSurface.vue"),
+    meta: { title: "BitChat", icon: "forum" },
+  },
+  {
     path: "/browserui/:pathMatch(.*)*",
     name: "browserui",
     component: () => import("../surfaces/browserui/BrowserUISurface.vue"),

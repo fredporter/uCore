@@ -665,3 +665,12 @@ def register_routes(app: web.Application) -> None:
         log.debug("Dispatch API routes registered")
     except ImportError as e:
         log.debug("Dispatch API routes not available: %s", e)
+
+    # ── BitChat & Decentralized Mesh Transport API ───────────────────
+    try:
+        from .bitchat_api import register_bitchat_routes
+
+        register_bitchat_routes(app)
+        log.debug("BitChat & Mesh Transport API routes registered")
+    except ImportError as e:
+        log.debug("BitChat API routes not available: %s", e)
