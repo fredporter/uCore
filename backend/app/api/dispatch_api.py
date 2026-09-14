@@ -219,17 +219,20 @@ async def handle_get_feed_json(request: web.Request) -> web.Response:
 
 
 async def handle_get_motifs(request: web.Request) -> web.Response:
-    import sys
-    uvector_py = Path(__file__).resolve().parents[4] / "uVector" / "python"
-    if uvector_py.exists() and str(uvector_py) not in sys.path:
-        sys.path.insert(0, str(uvector_py))
-
     try:
-        from uvector_bob import MOTIF_PRESETS
+        from app.services.uvector_bob import MOTIF_PRESETS
         return web.json_response({"status": "ok", "motifs": MOTIF_PRESETS})
-    except Exception as exc:
-        log.warning("Could not load uVector motifs: %s", exc)
-        return web.json_response({"status": "ok", "motifs": {}})
+    except Exception:
+        import sys
+        uvector_py = Path(__file__).resolve().parents[4] / "uVector" / "python"
+        if uvector_py.exists() and str(uvector_py) not in sys.path:
+            sys.path.insert(0, str(uvector_py))
+        try:
+            from uvector_bob import MOTIF_PRESETS
+            return web.json_response({"status": "ok", "motifs": MOTIF_PRESETS})
+        except Exception as exc:
+            log.warning("Could not load uVector motifs: %s", exc)
+            return web.json_response({"status": "ok", "motifs": {}})
 
 
 async def handle_generate_bob(request: web.Request) -> web.Response:
@@ -243,13 +246,16 @@ async def handle_generate_bob(request: web.Request) -> web.Response:
     steps = int(data.get("steps", 4))
     delay_ms = int(data.get("delay_ms", 100))
 
-    import sys
-    uvector_py = Path(__file__).resolve().parents[4] / "uVector" / "python"
-    if uvector_py.exists() and str(uvector_py) not in sys.path:
-        sys.path.insert(0, str(uvector_py))
+    try:
+        from app.services.uvector_bob import compile_svg_to_bob, compile_svgs_to_gif, generate_vector_motif
+    except Exception:
+        import sys
+        uvector_py = Path(__file__).resolve().parents[4] / "uVector" / "python"
+        if uvector_py.exists() and str(uvector_py) not in sys.path:
+            sys.path.insert(0, str(uvector_py))
+        from uvector_bob import compile_svg_to_bob, compile_svgs_to_gif, generate_vector_motif
 
     try:
-        from uvector_bob import compile_svg_to_bob, compile_svgs_to_gif, generate_vector_motif
         frames = generate_vector_motif(motif, palette_id=palette_id, steps=steps)
         gif_bytes = compile_svgs_to_gif(frames, delay_ms=delay_ms, palette_id=palette_id)
         bob_def = compile_svg_to_bob(frames[0], id=f"bob_{motif}", name=f"{motif.title()} BOB", palette_id=palette_id)
