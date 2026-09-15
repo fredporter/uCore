@@ -768,7 +768,34 @@ async def handle_docs_content(request: web.Request) -> web.Response:
     """GET /api/docs/content?source=...&path=... - markdown for the viewer."""
     source = request.query.get("source", "learning")
     path = request.query.get("path", "")
+    prefer_canon = request.query.get("canonical", "").lower() in ("true", "1", "yes")
     result = await asyncio.to_thread(_read_doc_content, source, path)
+
+    # If document from public, vault, shared, or knowledge, attach overlay resolution metadata
+    if isinstance(result, dict) and "content" in result and source in ("public", "knowledge", "vault", "shared"):
+        try:
+            from app.api.federation_api import get_resolver
+
+            resolver = get_resolver()
+            resolved = resolver.resolve(path, prefer_canon=prefer_canon)
+            if resolved.get("found"):
+                if prefer_canon and resolved.get("canon_exists"):
+                    canon_path_obj = Path(resolved["canon_path"]) if resolved.get("canon_path") else None
+                    if canon_path_obj and canon_path_obj.is_file():
+                        result["content"] = canon_path_obj.read_text(encoding="utf-8", errors="replace")
+                result["overlay"] = {
+                    "is_overlaid": resolved.get("is_overlaid", False),
+                    "effective_layer": resolved.get("effective_layer"),
+                    "effective_layer_name": resolved.get("effective_layer_name"),
+                    "canon_exists": resolved.get("canon_exists", False),
+                    "has_diff": resolved.get("has_diff", False),
+                    "diff_from_canon": resolved.get("diff_from_canon", ""),
+                    "diff_stats": resolved.get("diff_stats", {"additions": 0, "deletions": 0}),
+                    "rel_path": resolved.get("rel_path"),
+                }
+        except Exception as e:
+            log.debug("Overlay resolution error for %s: %s", path, e)
+
     return web.json_response(result)
 
 
