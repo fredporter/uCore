@@ -16,11 +16,13 @@ from __future__ import annotations
 import html
 import json
 import logging
+from pathlib import Path
 import platform
 import re
 import shutil
 import subprocess
-from typing import Any, Callable, Dict, Optional
+from datetime import datetime, timezone
+from typing import Any, Callable, Dict, List, Optional
 
 log = logging.getLogger("ucore.services.host_pim")
 
@@ -662,3 +664,236 @@ class HostPIMService:
         except Exception as exc:
             log.warning("Apple Mail flag failed: %s", exc)
             return {"ok": False, "error": str(exc)}
+
+    def intake_apple_mail(self, limit: int = 25, unread_only: bool = True) -> Dict[str, Any]:
+        """Query messages from Apple Mail via JXA."""
+        if not self.is_macos():
+            return {
+                "ok": False,
+                "error": "Apple Mail is only supported on macOS",
+                "items": [],
+                "count": 0,
+            }
+        safe_limit = max(1, min(int(limit), 100))
+        unread_clause = "if (!m.readStatus())" if unread_only else "if (true)"
+        script = f"""
+        (() => {{
+            try {{
+                const app = Application("Mail");
+                const items = app.inbox.messages();
+                const limit = {safe_limit};
+                const rows = [];
+                for (let i = 0; i < items.length && rows.length < limit; i++) {{
+                    const m = items[i];
+                    {unread_clause} {{
+                        let flagged = false;
+                        let flagIdx = -1;
+                        try {{
+                            flagged = Boolean(m.flaggedStatus());
+                            flagIdx = flagged ? m.flagIndex() : -1;
+                        }} catch(e) {{}}
+                        let dateStr = null;
+                        try {{
+                            const d = m.dateReceived();
+                            if (d) dateStr = d.toISOString();
+                        }} catch(e) {{}}
+                        let contentSnippet = "";
+                        try {{
+                            contentSnippet = (m.content() || "").slice(0, 500);
+                        }} catch(e) {{}}
+                        rows.push({{
+                            id: String(m.messageId() || ""),
+                            subject: String(m.subject() || "(No Subject)"),
+                            sender: String(m.sender() || ""),
+                            date: dateStr,
+                            read: Boolean(m.readStatus()),
+                            flagged: flagged,
+                            flag_index: flagIdx,
+                            snippet: contentSnippet
+                        }});
+                    }}
+                }}
+                return JSON.stringify({{ ok: true, items: rows, count: rows.length }});
+            }} catch(err) {{
+                return JSON.stringify({{ ok: false, error: String(err), items: [], count: 0 }});
+            }}
+        }})()
+        """
+        try:
+            raw = self.runner(["osascript", "-l", "JavaScript", "-e", script])
+            data = json.loads(raw or "{}")
+            return data
+        except Exception as exc:
+            log.warning("Apple Mail intake failed: %s", exc)
+            return {"ok": False, "error": str(exc), "items": [], "count": 0}
+
+    def intake_imessage(self, limit: int = 25) -> Dict[str, Any]:
+        """Query active chats / recent messages from Apple Messages via JXA."""
+        if not self.is_macos():
+            return {
+                "ok": False,
+                "error": "Apple Messages is only supported on macOS",
+                "items": [],
+                "count": 0,
+            }
+        safe_limit = max(1, min(int(limit), 100))
+        script = f"""
+        (() => {{
+            try {{
+                const app = Application("Messages");
+                const chats = app.chats();
+                const limit = {safe_limit};
+                const rows = [];
+                for (let i = 0; i < chats.length && rows.length < limit; i++) {{
+                    const c = chats[i];
+                    const name = String(c.name() || c.id() || "Chat");
+                    let lastMsg = "";
+                    let dateStr = null;
+                    try {{
+                        const msgs = c.messages();
+                        if (msgs && msgs.length > 0) {{
+                            const last = msgs[msgs.length - 1];
+                            lastMsg = String(last.text() || "");
+                            const d = last.date();
+                            if (d) dateStr = d.toISOString();
+                        }}
+                    }} catch(e) {{}}
+                    rows.push({{
+                        id: String(c.id() || ""),
+                        name: name,
+                        last_message: lastMsg,
+                        date: dateStr
+                    }});
+                }}
+                return JSON.stringify({{ ok: true, items: rows, count: rows.length }});
+            }} catch(err) {{
+                return JSON.stringify({{ ok: false, error: String(err), items: [], count: 0 }});
+            }}
+        }})()
+        """
+        try:
+            raw = self.runner(["osascript", "-l", "JavaScript", "-e", script])
+            data = json.loads(raw or "{}")
+            return data
+        except Exception as exc:
+            log.warning("Apple Messages intake failed: %s", exc)
+            return {"ok": False, "error": str(exc), "items": [], "count": 0}
+
+    def sync_apple_reminders_outbound(
+        self,
+        tasks: List[Dict[str, Any]],
+        default_list: str = "uDos",
+    ) -> Dict[str, Any]:
+        """Export a collection of tasks / action items to Apple Reminders."""
+        if not self.is_macos():
+            return {
+                "ok": False,
+                "error": "Apple Reminders export is only supported on macOS",
+                "synced_count": 0,
+                "items": [],
+            }
+
+        synced: List[Dict[str, Any]] = []
+        errors: List[Dict[str, Any]] = []
+
+        for task in tasks:
+            title = str(task.get("title") or task.get("name") or "").strip()
+            if not title:
+                continue
+            notes = str(task.get("notes") or task.get("description") or "")
+            list_name = str(task.get("list_name") or task.get("list") or task.get("binder") or default_list)
+            due_date = task.get("due_date") or task.get("due") or task.get("deadline")
+            res = self.export_to_apple_reminders(
+                title=title,
+                notes=notes,
+                list_name=list_name,
+                due_date=str(due_date) if due_date else None,
+            )
+            if res.get("ok"):
+                synced.append({
+                    "id": task.get("id"),
+                    "title": title,
+                    "list": list_name,
+                    "due_date": due_date,
+                    "status": "exported",
+                })
+            else:
+                errors.append({
+                    "id": task.get("id"),
+                    "title": title,
+                    "error": res.get("error", "Unknown error"),
+                })
+
+        return {
+            "ok": len(errors) == 0 or len(synced) > 0,
+            "synced_count": len(synced),
+            "items": synced,
+            "errors": errors,
+        }
+
+    def get_sync_status(self) -> Dict[str, Any]:
+        """Aggregate sync status across Apple PIM, Google Drive mirror, and BitChat mesh."""
+        now_iso = datetime.now(timezone.utc).isoformat()
+        caps = self.probe_capabilities()
+        host_native = caps.get("host_native", {})
+
+        # Google Drive status
+        vault_path = Path.home() / "Vault"
+        gdrive_configured = vault_path.exists() and (
+            (vault_path / ".sync").exists() or (vault_path / "GoogleDrive").exists()
+        )
+        gdrive_cloud_storage = Path.home() / "Library" / "CloudStorage"
+        has_gdrive_mount = False
+        if gdrive_cloud_storage.exists():
+            try:
+                has_gdrive_mount = any("GoogleDrive" in p.name for p in gdrive_cloud_storage.iterdir())
+            except Exception:
+                has_gdrive_mount = False
+
+        # BitChat mesh status
+        peer_count = 0
+        local_peer_id = None
+        try:
+            from app.services.mesh_transport import get_mesh_registry
+            reg = get_mesh_registry()
+            local_peer_id = reg.local_peer_id
+            peers = reg.get_peers()
+            peer_count = len([p for p in peers if p.get("status") == "online"])
+        except Exception:
+            pass
+
+        return {
+            "ok": True,
+            "timestamp": now_iso,
+            "platform": platform.system().lower(),
+            "apple_sync": {
+                "reminders": {
+                    "available": host_native.get("reminders", {}).get("available", False),
+                    "bidirectional": True,
+                },
+                "notes": {
+                    "available": host_native.get("notes", {}).get("available", False),
+                    "bidirectional": True,
+                },
+                "mail": {
+                    "available": host_native.get("mail", {}).get("available", False),
+                    "bidirectional": True,
+                },
+                "messages": {
+                    "available": host_native.get("messages", {}).get("available", False),
+                    "bidirectional": False,
+                },
+            },
+            "google_drive": {
+                "configured": gdrive_configured or has_gdrive_mount,
+                "vault_path": str(vault_path),
+                "vault_exists": vault_path.exists(),
+                "cloud_storage_detected": has_gdrive_mount,
+            },
+            "bitchat_mesh": {
+                "active": True,
+                "local_peer_id": local_peer_id,
+                "online_peers": peer_count,
+            },
+        }
+

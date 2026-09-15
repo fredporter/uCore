@@ -36,6 +36,21 @@
         >
           {{ wf.flowLogTasks.length }} done
         </span>
+        <div class="wf-toolbar__actions">
+          <button
+            class="wf-toolbar__btn wf-toolbar__sync-btn"
+            :disabled="syncingReminders"
+            title="Sync with Apple Reminders (Bidirectional)"
+            @click="triggerRemindersSync"
+          >
+            <UIcon :name="syncingReminders ? 'sync' : 'alarm'" :class="{ 'wf-spin': syncingReminders }" />
+            <span class="wf-toolbar__btn-label">{{ syncingReminders ? "Syncing..." : "Sync Reminders" }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div v-if="syncFeedback" class="wf-feedback-banner font-mono">
+        <UIcon name="info" /> {{ syncFeedback }}
       </div>
 
       <div v-if="wf.loading" class="wf-loading">
@@ -171,13 +186,39 @@
             <UIcon name="arrow_back" />
           </button>
           <span class="wf-code-editor__title">{{ activeCodeTask.title }}</span>
-          <button
-            class="wf-editor-open-tab-btn"
-            title="Open in Editor tab (side-by-side)"
-            @click="openInEditorTab(activeCodeTask)"
-          >
-            <UIcon name="view_sidebar" />
-          </button>
+          <div class="wf-code-editor__actions">
+            <button
+              v-if="activeCodeTask.action_type && activeCodeTask.approval_status === 'pending_approval'"
+              class="wf-btn-action-approve"
+              :disabled="executingAction"
+              title="Approve & Execute Action"
+              @click="handleApproveAction(activeCodeTask)"
+            >
+              <UIcon name="check_circle" />
+              Approve {{ activeCodeTask.action_type }}
+            </button>
+            <span
+              v-else-if="activeCodeTask.approval_status === 'executed'"
+              class="wf-action-executed-badge font-mono"
+            >
+              <UIcon name="done" /> Executed
+            </span>
+            <button
+              class="wf-editor-sync-rem-btn"
+              :disabled="syncingSingleRem"
+              title="Sync this task to Apple Reminders"
+              @click="handleSyncTaskToReminders(activeCodeTask)"
+            >
+              <UIcon name="alarm" />
+            </button>
+            <button
+              class="wf-editor-open-tab-btn"
+              title="Open in Editor tab (side-by-side)"
+              @click="openInEditorTab(activeCodeTask)"
+            >
+              <UIcon name="view_sidebar" />
+            </button>
+          </div>
         </div>
         <div class="wf-code-editor__body">
           <EditorPanel
@@ -204,6 +245,12 @@ import UBadge from "../../../skills/atoms/UBadge.vue";
 import { EditorPanel } from "../../../skills";
 import { useWorkflowStore, type WorkflowTask } from "../../../stores/workflow";
 import { toTaskMarkdownLine } from "../../../utils/taskMarkdown";
+import {
+  approveTaskAction,
+  syncAppleRemindersInbound,
+  syncAppleRemindersOutbound,
+  syncTaskReminders,
+} from "../../browserui/ApiBridge";
 
 const wf = useWorkflowStore();
 const viewMode = ref<"list" | "kanban">("list");
@@ -211,6 +258,12 @@ const statuses = ["todo", "in-progress", "review", "blocked"];
 const dragTaskId = ref<string | null>(null);
 const dragFromStatus = ref<string | null>(null);
 const dragError = ref<string | null>(null);
+
+// ── Reminders & Autonomy state ────────────────────────────────────
+const syncingReminders = ref(false);
+const syncingSingleRem = ref(false);
+const executingAction = ref(false);
+const syncFeedback = ref<string | null>(null);
 
 // ── Inline code editor state ──────────────────────────────────────
 const showCodeEditor = ref(false);
@@ -339,6 +392,64 @@ async function handleDrop(targetStatus: string) {
   } catch (err: any) {
     wf.updateTaskStatus(taskId, previous);
     dragError.value = err?.message || "Failed to persist task move";
+  }
+}
+
+async function triggerRemindersSync() {
+  syncingReminders.value = true;
+  syncFeedback.value = null;
+  try {
+    const inRes = await syncAppleRemindersInbound();
+    const outRes = await syncAppleRemindersOutbound();
+    syncFeedback.value = `Reminders synced (In: ${inRes.imported_count || 0}, Out: ${outRes.synced_count || 0})`;
+    await wf.fetchTasks();
+  } catch (err: any) {
+    syncFeedback.value = `Sync error: ${err?.message || "Unknown error"}`;
+  } finally {
+    syncingReminders.value = false;
+    setTimeout(() => {
+      syncFeedback.value = null;
+    }, 5000);
+  }
+}
+
+async function handleSyncTaskToReminders(task: WorkflowTask) {
+  syncingSingleRem.value = true;
+  try {
+    await syncTaskReminders(task.id, {
+      title: task.title,
+      notes: task.description || "",
+      due_date: task.due,
+      list_name: task.binder || "uDos",
+    });
+    syncFeedback.value = `Pushed "${task.title}" to Apple Reminders`;
+  } catch (err: any) {
+    syncFeedback.value = `Reminders sync error: ${err?.message || "Failed"}`;
+  } finally {
+    syncingSingleRem.value = false;
+    setTimeout(() => {
+      syncFeedback.value = null;
+    }, 5000);
+  }
+}
+
+async function handleApproveAction(task: WorkflowTask) {
+  executingAction.value = true;
+  try {
+    const res = await approveTaskAction(task.id, true);
+    if (res.ok) {
+      task.approval_status = "executed";
+      syncFeedback.value = `Action executed successfully`;
+    } else {
+      syncFeedback.value = `Action failed: ${res.error || "Unknown error"}`;
+    }
+  } catch (err: any) {
+    syncFeedback.value = `Action execution error: ${err?.message || "Failed"}`;
+  } finally {
+    executingAction.value = false;
+    setTimeout(() => {
+      syncFeedback.value = null;
+    }, 5000);
   }
 }
 </script>
@@ -940,5 +1051,106 @@ async function handleDrop(targetStatus: string) {
   color: var(--usx-color-primary);
   border-color: var(--usx-color-primary);
   background: color-mix(in srgb, var(--usx-color-primary) 8%, transparent);
+}
+
+.wf-toolbar__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+}
+
+.wf-toolbar__sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 0.25rem);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: var(--usx-radius-sm, 4px);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
+  cursor: pointer;
+}
+
+.wf-toolbar__sync-btn:hover:not(:disabled) {
+  border-color: var(--usx-color-primary);
+  color: var(--usx-color-primary);
+}
+
+.wf-feedback-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  padding: 0.35rem 0.75rem;
+  margin-bottom: var(--space-2, 0.5rem);
+  font-size: 0.75rem;
+  border-radius: var(--usx-radius-sm, 4px);
+  background: color-mix(in srgb, #10b981 12%, transparent);
+  color: #10b981;
+  border: 1px solid color-mix(in srgb, #10b981 30%, transparent);
+}
+
+.wf-code-editor__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+}
+
+.wf-btn-action-approve {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--usx-radius-sm, 4px);
+  border: 1px solid #10b981;
+  background: #10b981;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.wf-btn-action-approve:hover:not(:disabled) {
+  background: #059669;
+}
+
+.wf-action-executed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--usx-radius-sm, 4px);
+  background: color-mix(in srgb, #10b981 15%, transparent);
+  color: #10b981;
+}
+
+.wf-editor-sync-rem-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--usx-touch-min) * 0.75);
+  height: calc(var(--usx-touch-min) * 0.75);
+  border-radius: var(--usx-radius-sm, 4px);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.wf-editor-sync-rem-btn:hover:not(:disabled) {
+  color: var(--usx-color-primary);
+  border-color: var(--usx-color-primary);
+}
+
+.wf-spin {
+  animation: wf-spin 1s linear infinite;
+}
+
+@keyframes wf-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>
