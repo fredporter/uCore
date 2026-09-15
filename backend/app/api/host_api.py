@@ -252,6 +252,60 @@ async def handle_mail_flag(request: web.Request) -> web.Response:
     return web.json_response(res, status=200 if res.get("ok") else 500)
 
 
+async def handle_mail_intake(request: web.Request) -> web.Response:
+    """POST /api/host/mail/intake — Intake messages from Apple Mail."""
+    try:
+        body = await request.json() if request.can_read_body else {}
+    except Exception:
+        body = {}
+
+    limit = int(body.get("limit", 25))
+    unread_only = bool(body.get("unread_only", True))
+
+    svc = get_host_pim_service()
+    res = svc.intake_apple_mail(limit=limit, unread_only=unread_only)
+    return web.json_response(res, status=200 if res.get("ok") else 500)
+
+
+async def handle_imessage_intake(request: web.Request) -> web.Response:
+    """POST /api/host/imessage/intake — Intake recent chats from Apple Messages."""
+    try:
+        body = await request.json() if request.can_read_body else {}
+    except Exception:
+        body = {}
+
+    limit = int(body.get("limit", 25))
+
+    svc = get_host_pim_service()
+    res = svc.intake_imessage(limit=limit)
+    return web.json_response(res, status=200 if res.get("ok") else 500)
+
+
+async def handle_reminders_sync_outbound(request: web.Request) -> web.Response:
+    """POST /api/host/reminders/sync-outbound — Export/sync tasks out to Apple Reminders."""
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"ok": False, "error": "Invalid JSON body"}, status=400)
+
+    tasks = body.get("tasks", [])
+    if not isinstance(tasks, list):
+        return web.json_response({"ok": False, "error": "tasks must be a list"}, status=400)
+
+    default_list = body.get("default_list", "uDos")
+
+    svc = get_host_pim_service()
+    res = svc.sync_apple_reminders_outbound(tasks=tasks, default_list=default_list)
+    return web.json_response(res, status=200 if res.get("ok") else 500)
+
+
+async def handle_sync_status(request: web.Request) -> web.Response:
+    """GET /api/host/sync/status — Aggregate sync status for Apple PIM, Drive, BitChat mesh."""
+    svc = get_host_pim_service()
+    res = svc.get_sync_status()
+    return web.json_response(res)
+
+
 def register_host_routes(app: web.Application) -> None:
     """Register all host PIM and automation routes."""
     app.router.add_get("/api/host/capabilities", handle_host_capabilities)
@@ -261,11 +315,16 @@ def register_host_routes(app: web.Application) -> None:
     app.router.add_get("/api/host/notes/intake", handle_notes_intake)
     app.router.add_post("/api/host/reminders/export", handle_reminders_export)
     app.router.add_get("/api/host/reminders/intake", handle_reminders_intake)
+    app.router.add_post("/api/host/reminders/sync-outbound", handle_reminders_sync_outbound)
     app.router.add_post("/api/host/notify", handle_host_notify)
     app.router.add_post("/api/host/say", handle_host_say)
     app.router.add_get("/api/host/shortcuts", handle_host_shortcuts)
     app.router.add_post("/api/host/shortcuts/run", handle_host_shortcuts_run)
     app.router.add_post("/api/host/mail/archive", handle_mail_archive)
     app.router.add_post("/api/host/mail/flag", handle_mail_flag)
-    log.info("Host PIM routes registered: capabilities, safari, notes, reminders, notify, say, shortcuts, mail")
+    app.router.add_post("/api/host/mail/intake", handle_mail_intake)
+    app.router.add_post("/api/host/imessage/intake", handle_imessage_intake)
+    app.router.add_get("/api/host/sync/status", handle_sync_status)
+    log.info("Host PIM routes registered: capabilities, safari, notes, reminders, notify, say, shortcuts, mail, imessage, sync-status")
+
 

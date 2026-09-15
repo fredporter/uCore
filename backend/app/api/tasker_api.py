@@ -197,6 +197,9 @@ _META_ALIASES: dict[str, str] = {
     "label": "tags",
     "labels": "tags",
     "tag": "tags",
+    "action": "action_type",
+    "approval": "approval_status",
+    "deadline": "due",
 }
 
 
@@ -383,6 +386,9 @@ def _task_metadata_from_record(task: dict[str, Any]) -> dict[str, Any]:
         "binder": task.get("binder") or "",
         "tags": task.get("tags") or [],
     }
+    for k in ("action_type", "action_payload", "approval_status", "due", "rejection_reason"):
+        if k in task and task[k] not in (None, ""):
+            metadata[k] = task[k]
     return metadata
 
 
@@ -426,6 +432,9 @@ def _update_task_file(
     metadata = _task_metadata_from_record(current)
     metadata["priority"] = new_priority
     metadata["tags"] = new_tags
+    for k in ("action_type", "action_payload", "approval_status", "due", "rejection_reason"):
+        if k in patch:
+            metadata[k] = patch[k]
 
     target_dir = base / new_board
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -541,6 +550,129 @@ async def handle_sync_task_reminders(request: web.Request) -> web.Response:
     return web.json_response(result, status=200 if result.get("ok") else 500)
 
 
+async def handle_action_to_task(request: web.Request) -> web.Response:
+    """POST /api/workflow/tasks/action-to-task — Ingest an activity/event into a .tasker task."""
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    activity = body.get("activity") or body
+    board = str(body.get("board") or "inbox")
+    suggested_action = body.get("suggested_action")
+
+    from app.services.task_action_bridge import TaskActionBridge
+
+    bridge = TaskActionBridge()
+    result = bridge.action_to_task(activity_event=activity, board=board, suggested_action=suggested_action)
+    return web.json_response(result, status=200 if result.get("ok") else 500)
+
+
+async def handle_link_task_action(request: web.Request) -> web.Response:
+    """POST /api/workflow/tasks/{task_id}/actions — Link an automation action to a task."""
+    task_id = request.match_info.get("task_id", "").strip()
+    if not task_id:
+        return web.json_response({"error": "task_id required"}, status=400)
+
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    action_type = str(body.get("action_type") or "").strip()
+    if not action_type:
+        return web.json_response({"error": "action_type required"}, status=400)
+
+    payload = body.get("payload") or {}
+    requires_approval = bool(body.get("requires_approval", True))
+
+    from app.services.task_action_bridge import TaskActionBridge
+
+    bridge = TaskActionBridge()
+    result = bridge.link_action_to_task(
+        task_id=task_id,
+        action_type=action_type,
+        payload=payload,
+        requires_approval=requires_approval,
+    )
+    return web.json_response(result, status=200 if result.get("ok") else 404)
+
+
+async def handle_approve_task_action(request: web.Request) -> web.Response:
+    """POST /api/workflow/tasks/{task_id}/approve — Approve and optionally execute a task action."""
+    task_id = request.match_info.get("task_id", "").strip()
+    if not task_id:
+        return web.json_response({"error": "task_id required"}, status=400)
+
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        body = {}
+
+    execute_now = bool(body.get("execute_now", True))
+
+    from app.services.task_action_bridge import TaskActionBridge
+
+    bridge = TaskActionBridge()
+    result = bridge.approve_task_action(task_id=task_id, execute_now=execute_now)
+    return web.json_response(result, status=200 if result.get("ok") else 500)
+
+
+async def handle_reject_task_action(request: web.Request) -> web.Response:
+    """POST /api/workflow/tasks/{task_id}/reject — Reject a pending task action."""
+    task_id = request.match_info.get("task_id", "").strip()
+    if not task_id:
+        return web.json_response({"error": "task_id required"}, status=400)
+
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        body = {}
+
+    reason = str(body.get("reason", ""))
+
+    from app.services.task_action_bridge import TaskActionBridge
+
+    bridge = TaskActionBridge()
+    result = bridge.reject_task_action(task_id=task_id, reason=reason)
+    return web.json_response(result, status=200 if result.get("ok") else 404)
+
+
+async def handle_sync_reminders_inbound(request: web.Request) -> web.Response:
+    """POST /api/workflow/sync/apple-reminders/inbound — Inbound sync from Apple Reminders into Tasker."""
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        body = {}
+
+    list_name = body.get("list_name")
+    limit = int(body.get("limit", 50))
+    default_board = str(body.get("board") or "inbox")
+
+    from app.services.task_action_bridge import TaskActionBridge
+
+    bridge = TaskActionBridge()
+    result = bridge.sync_inbound_reminders(list_name=list_name, limit=limit, default_board=default_board)
+    return web.json_response(result, status=200 if result.get("ok") else 500)
+
+
+async def handle_sync_reminders_outbound(request: web.Request) -> web.Response:
+    """POST /api/workflow/sync/apple-reminders/outbound — Outbound sync from Tasker binder to Apple Reminders."""
+    try:
+        body = await request.json() if request.body_exists else {}
+    except Exception:
+        body = {}
+
+    binder = str(body.get("binder") or "uDos")
+    list_name = body.get("list_name")
+
+    from app.services.task_action_bridge import TaskActionBridge
+
+    bridge = TaskActionBridge()
+    result = bridge.sync_outbound_binder(binder=binder, list_name=list_name)
+    return web.json_response(result, status=200 if result.get("ok") else 500)
+
+
 def register_tasker_routes(app: web.Application) -> None:
     """Register tasker API routes under /api/developer/tasker/ and /api/workflow/."""
     app.router.add_get("/api/developer/tasker/boards", handle_list_boards)
@@ -555,5 +687,12 @@ def register_tasker_routes(app: web.Application) -> None:
     )
     app.router.add_get("/api/developer/tasker/summary", handle_tasker_summary)
     app.router.add_patch("/api/workflow/tasks/{task_id}", handle_update_task)
+    app.router.add_post("/api/workflow/tasks/action-to-task", handle_action_to_task)
+    app.router.add_post("/api/workflow/tasks/{task_id}/actions", handle_link_task_action)
+    app.router.add_post("/api/workflow/tasks/{task_id}/approve", handle_approve_task_action)
+    app.router.add_post("/api/workflow/tasks/{task_id}/reject", handle_reject_task_action)
     app.router.add_post("/api/workflow/tasks/{task_id}/execute-action", handle_execute_task_action)
     app.router.add_post("/api/workflow/tasks/{task_id}/sync-reminders", handle_sync_task_reminders)
+    app.router.add_post("/api/workflow/sync/apple-reminders/inbound", handle_sync_reminders_inbound)
+    app.router.add_post("/api/workflow/sync/apple-reminders/outbound", handle_sync_reminders_outbound)
+

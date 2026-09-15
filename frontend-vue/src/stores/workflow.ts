@@ -34,6 +34,10 @@ export interface WorkflowTask {
   assetPaths?: string[];
   steps?: WorkflowStep[];
   completedAt?: string | null;
+  action_type?: string;
+  action_payload?: Record<string, any>;
+  approval_status?: string;
+  due?: string;
 }
 
 export type WorkflowStepStatus =

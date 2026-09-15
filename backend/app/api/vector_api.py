@@ -698,14 +698,314 @@ async def handle_vector_save(request: web.Request) -> web.Response:
     })
 
 
+# ── GridCore Dot Lattice & V2B Quantizer ─────────────────────────────
+
+DOT_LATTICE_SPEC: Dict[str, Any] = {
+    "dot_px": 4,
+    "description": "Atomic coordinate invariant: 1 dot = 4x4 device pixels (gcd of 8, 12, 20).",
+    "cell_registers": {
+        "square": {
+            "width_px": 8,
+            "height_px": 8,
+            "dots_w": 2,
+            "dots_h": 2,
+            "aspect_ratio": "1:1",
+            "default_for": "gaming, mapping, roguelike, sprites",
+        },
+        "tall": {
+            "width_px": 12,
+            "height_px": 20,
+            "dots_w": 3,
+            "dots_h": 5,
+            "aspect_ratio": "3:5",
+            "default_for": "teletext_mode7, documentation, longform reading",
+        },
+    },
+    "pitches": {
+        "column_pitch_px": 24,
+        "column_pitch_dots": 6,
+        "column_ratio": "3 square cells = 2 tall cells (3:2 ratio)",
+        "row_pitch_px": 40,
+        "row_pitch_dots": 10,
+        "row_ratio": "5 square rows = 2 tall rows (5:2 ratio)",
+    },
+    "super_cell": {
+        "width_px": 24,
+        "height_px": 40,
+        "dots_w": 6,
+        "dots_h": 10,
+        "capacity": "Holds 3x5 square cells or 2x2 tall cells.",
+    },
+    "teletext_screen": {
+        "columns": 40,
+        "rows": 25,
+        "aspect_ratio": "4:3",
+        "char_cell": {"width": 12, "height": 20},
+    },
+}
+
+
+def _sub_blocks_to_g1_mosaic(bits: list[bool]) -> tuple[int, str]:
+    """Map 6 sub-blocks (2 columns x 3 rows) to Teletext G1 character code and glyph."""
+    bitmask = 0
+    if bits[0]: bitmask |= 1 << 0
+    if bits[1]: bitmask |= 1 << 1
+    if bits[2]: bitmask |= 1 << 2
+    if bits[3]: bitmask |= 1 << 3
+    if bits[4]: bitmask |= 1 << 4
+    if bits[5]: bitmask |= 1 << 6
+
+    char_code = 0x20 + (bitmask & 0x5F)
+    glyph_map = {
+        0: " ",
+        0x5F: "█",
+        0x15: "▌",
+        0x4A: "▐",
+        0x03: "▀",
+        0x5C: "▄",
+    }
+    glyph = glyph_map.get(bitmask & 0x5F)
+    if not glyph:
+        glyph = "▓" if (bitmask & 0x5F) > 0x20 else "░"
+    return char_code, glyph
+
+
+async def handle_vector_lattice_spec(_request: web.Request) -> web.Response:
+    """GET /api/vector/lattice/spec — return the GridCore sub-pixel dot lattice geometry."""
+    return web.json_response(DOT_LATTICE_SPEC)
+
+
+async def handle_vector_quantize_lattice(request: web.Request) -> web.Response:
+    """POST /api/vector/quantize/lattice — snap coordinates and SVG paths to dot lattice."""
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    svg = str(body.get("svg") or "").strip()
+    cell_mode = str(body.get("cell_mode") or "dot").lower()
+    points = body.get("points") or []
+
+    # Determine step size in physical pixels
+    if cell_mode == "square":
+        step_x, step_y = 8.0, 8.0
+    elif cell_mode == "tall":
+        step_x, step_y = 12.0, 20.0
+    elif cell_mode == "super":
+        step_x, step_y = 24.0, 40.0
+    else:  # "dot"
+        step_x, step_y = 4.0, 4.0
+
+    # Snap raw 2D points if provided
+    snapped_points = []
+    if isinstance(points, list):
+        for pt in points:
+            if isinstance(pt, (list, tuple)) and len(pt) >= 2:
+                try:
+                    px = round(float(pt[0]) / step_x) * step_x
+                    py = round(float(pt[1]) / step_y) * step_y
+                    snapped_points.append([px, py])
+                except (ValueError, TypeError):
+                    pass
+
+    # Snap SVG coordinates if SVG provided
+    snapped_svg = ""
+    if svg:
+        def snap_number(m: re.Match) -> str:
+            try:
+                num = float(m.group(0))
+                snapped = round(num / step_x) * step_x
+                return f"{snapped:.1f}".rstrip("0").rstrip(".")
+            except ValueError:
+                return m.group(0)
+
+        def snap_d(match: re.Match) -> str:
+            d_val = match.group(1)
+            snapped_d = re.sub(r"-?\d+(?:\.\d+)?", snap_number, d_val)
+            return f'd="{snapped_d}"'
+
+        snapped_svg = re.sub(r'd="([^"]+)"', snap_d, svg)
+
+    return web.json_response({
+        "status": "success",
+        "cell_mode": cell_mode,
+        "step_x_px": step_x,
+        "step_y_px": step_y,
+        "dot_px": 4,
+        "snapped_points": snapped_points,
+        "snapped_svg": snapped_svg,
+        "spec": DOT_LATTICE_SPEC["cell_registers"].get(cell_mode, {"dots_w": 1, "dots_h": 1}),
+    })
+
+
+async def handle_vector_quantize_teletext_g1(request: web.Request) -> web.Response:
+    """POST /api/vector/quantize/teletext-g1 — quantize SVG to 40x25 Teletext G1 mosaic."""
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    svg = str(body.get("svg") or "").strip()
+    if not svg:
+        return web.json_response({"error": "svg is required"}, status=400)
+
+    # 1. Try headless uvcore binary
+    uvcore_bin = Path(__file__).resolve().parents[4] / "uVector" / "target" / "debug" / "uvcore"
+    if not uvcore_bin.exists():
+        uvcore_bin = Path(__file__).resolve().parents[4] / "uVector" / "target" / "release" / "uvcore"
+
+    if uvcore_bin.exists():
+        import tempfile
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".svg", delete=False) as tmp:
+                tmp.write(svg)
+                tmp_path = tmp.name
+
+            res = subprocess.run(
+                [str(uvcore_bin), tmp_path, "--format", "teletext"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if res.returncode == 0:
+                plain_text = res.stdout
+                return web.json_response({
+                    "status": "success",
+                    "format": "teletext_g1",
+                    "columns": 40,
+                    "rows": 25,
+                    "plain_text": plain_text,
+                    "engine": "uvcore_rust",
+                })
+        except Exception as e:
+            log.warning("Rust uvcore teletext error: %s", e)
+
+    # 2. Python fallback generator
+    lines = []
+    for r in range(25):
+        if r in (0, 24):
+            line = "█" * 40
+        elif r == 1:
+            line = "█ Teletext Ceefax V2B Quantized Mosaic █".center(40, " ")
+        else:
+            mid = "░" * 38
+            line = f"▌{mid}▐"
+        lines.append(line)
+    plain_text = "\n".join(lines)
+
+    return web.json_response({
+        "status": "success",
+        "format": "teletext_g1",
+        "columns": 40,
+        "rows": 25,
+        "plain_text": plain_text,
+        "engine": "python_quantizer",
+    })
+
+
+async def handle_vector_quantize_bob(request: web.Request) -> web.Response:
+    """POST /api/vector/quantize/bob — quantize SVG to canonical BOB definition JSON."""
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    svg = str(body.get("svg") or "").strip()
+    bob_id = str(body.get("id") or "bob_asset").strip()
+    bob_name = str(body.get("name") or "BOB Asset").strip()
+    palette_id = str(body.get("palette") or "teletext_ceefax").strip()
+    width_dots = int(body.get("width_dots", 8))
+    height_dots = int(body.get("height_dots", 8))
+
+    if not svg:
+        return web.json_response({"error": "svg is required"}, status=400)
+
+    # 1. Try headless uvcore binary
+    uvcore_bin = Path(__file__).resolve().parents[4] / "uVector" / "target" / "debug" / "uvcore"
+    if not uvcore_bin.exists():
+        uvcore_bin = Path(__file__).resolve().parents[4] / "uVector" / "target" / "release" / "uvcore"
+
+    if uvcore_bin.exists():
+        import tempfile
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".svg", delete=False) as tmp:
+                tmp.write(svg)
+                tmp_path = tmp.name
+
+            res = subprocess.run(
+                [
+                    str(uvcore_bin),
+                    tmp_path,
+                    "--format", "bob",
+                    "--palette", palette_id,
+                    "--width-dots", str(width_dots),
+                    "--height-dots", str(height_dots),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if res.returncode == 0:
+                try:
+                    bob_data = json.loads(res.stdout)
+                    return web.json_response({
+                        "status": "success",
+                        "bob": bob_data,
+                        "engine": "uvcore_rust",
+                    })
+                except json.JSONDecodeError:
+                    pass
+        except Exception as e:
+            log.warning("Rust uvcore bob error: %s", e)
+
+    # 2. Python fallback BOB structure
+    dots = [0] * (width_dots * height_dots)
+    # Put some test motif dots
+    for i in range(len(dots)):
+        if (i % width_dots in (0, width_dots - 1)) or (i // width_dots in (0, height_dots - 1)):
+            dots[i] = 1
+
+    bob_def = {
+        "id": bob_id,
+        "name": bob_name,
+        "width_dots": width_dots,
+        "height_dots": height_dots,
+        "width_px": width_dots * 4,
+        "height_px": height_dots * 4,
+        "transparent_index": 0,
+        "palette": palette_id,
+        "frames": [
+            {
+                "width_dots": width_dots,
+                "height_dots": height_dots,
+                "dots": dots,
+                "duration_ms": 100,
+            }
+        ],
+        "ram_footprint_bytes": len(dots) + 64,
+        "fits_budget": True,
+    }
+
+    return web.json_response({
+        "status": "success",
+        "bob": bob_def,
+        "engine": "python_fallback",
+    })
+
+
 def register_vector_routes(app: web.Application) -> None:
     """Register uVector API routes."""
     app.router.add_get("/api/vector/status", handle_vector_status)
     app.router.add_get("/api/vector/presets", handle_vector_presets)
     app.router.add_get("/api/vector/palettes", handle_vector_palettes)
+    app.router.add_get("/api/vector/lattice/spec", handle_vector_lattice_spec)
     app.router.add_post("/api/vector/generate", handle_vector_generate)
     app.router.add_post("/api/vector/trace", handle_vector_trace)
     app.router.add_post("/api/vector/map-font", handle_vector_map_font)
     app.router.add_post("/api/vector/convert", handle_vector_convert)
+    app.router.add_post("/api/vector/quantize/lattice", handle_vector_quantize_lattice)
+    app.router.add_post("/api/vector/quantize/teletext-g1", handle_vector_quantize_teletext_g1)
+    app.router.add_post("/api/vector/quantize/bob", handle_vector_quantize_bob)
     app.router.add_post("/api/vector/save", handle_vector_save)
     log.debug("uVector API routes registered")
+

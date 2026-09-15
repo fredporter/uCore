@@ -533,6 +533,80 @@ export async function sendHostSay(
   return res.json()
 }
 
+// ── Sovereign Tasker & Task-to-Action Autonomy ───────────────────────
+
+export async function executeTaskAction(
+  taskId: string,
+  actionType: string,
+  payload?: Record<string, any>
+): Promise<{ ok: boolean; result?: any; error?: string }> {
+  const res = await fetch(`${BASE}/api/workflow/tasks/${encodeURIComponent(taskId)}/execute-action`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action_type: actionType, payload }),
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`Execute task action failed (HTTP ${res.status})`)
+  return res.json()
+}
+
+export async function approveTaskAction(
+  taskId: string,
+  executeNow = true
+): Promise<{ ok: boolean; approval_status?: string; error?: string }> {
+  const res = await fetch(`${BASE}/api/workflow/tasks/${encodeURIComponent(taskId)}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ execute_now: executeNow }),
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`Approve task action failed (HTTP ${res.status})`)
+  return res.json()
+}
+
+export async function syncTaskReminders(
+  taskId: string,
+  payload?: Record<string, any>
+): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch(`${BASE}/api/workflow/tasks/${encodeURIComponent(taskId)}/sync-reminders`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {}),
+    signal: AbortSignal.timeout(12000),
+  })
+  if (!res.ok) throw new Error(`Sync task to Apple Reminders failed (HTTP ${res.status})`)
+  return res.json()
+}
+
+export async function syncAppleRemindersInbound(
+  listName?: string,
+  limit = 50,
+  board = "inbox"
+): Promise<{ ok: boolean; imported_count?: number; error?: string }> {
+  const res = await fetch(`${BASE}/api/workflow/sync/apple-reminders/inbound`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ list_name: listName, limit, board }),
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`Inbound Apple Reminders sync failed (HTTP ${res.status})`)
+  return res.json()
+}
+
+export async function syncAppleRemindersOutbound(
+  binder = "uDos",
+  listName?: string
+): Promise<{ ok: boolean; synced_count?: number; error?: string }> {
+  const res = await fetch(`${BASE}/api/workflow/sync/apple-reminders/outbound`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ binder, list_name: listName }),
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`Outbound Apple Reminders sync failed (HTTP ${res.status})`)
+  return res.json()
+}
+
 // ── Dreamscape & Dreambeans API ───────────────────────────────────────
 
 export interface DreamBeanPayload {
