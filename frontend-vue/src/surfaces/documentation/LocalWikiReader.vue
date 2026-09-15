@@ -59,6 +59,16 @@
         <button
           type="button"
           class="wiki-btn wiki-btn--icon"
+          title="Knowledge Federation (Layers & Submissions)"
+          @click="openFederationOverviewModal"
+        >
+          <UIcon name="hub" />
+          <span class="wiki-btn__text">Federation</span>
+        </button>
+
+        <button
+          type="button"
+          class="wiki-btn wiki-btn--icon"
           title="Refresh Vaults Tree"
           :disabled="loadingTree"
           @click="loadTree"
@@ -166,9 +176,101 @@
               <span class="wiki-breadcrumb__path">{{ activePath }}</span>
             </div>
             <div class="wiki-article__tags">
+              <span
+                v-if="activeOverlay && activeOverlay.effective_layer !== null"
+                class="wiki-chip"
+                :class="layerChipClass(activeOverlay.effective_layer, activeOverlay.is_overlaid)"
+                :title="activeOverlay.is_overlaid ? 'Overlaid with local edits' : 'Pristine base'"
+              >
+                <UIcon :name="layerIcon(activeOverlay.effective_layer)" size="xs" />
+                {{ layerBadgeLabel(activeOverlay.effective_layer, activeOverlay.is_overlaid) }}
+              </span>
               <span class="wiki-chip wiki-chip--offline">
                 <UIcon name="cloud_off" size="xs" /> 100% Offline
               </span>
+            </div>
+          </div>
+
+          <!-- Knowledge Federation Action Strip -->
+          <div v-if="activeOverlay && activeOverlay.effective_layer !== null" class="wiki-federation-toolbar">
+            <div class="wiki-fed-actions">
+              <!-- Compare vs Canon (if diff available) -->
+              <button
+                v-if="activeOverlay.canon_exists && activeOverlay.has_diff"
+                type="button"
+                class="wiki-btn wiki-btn--xs wiki-btn--diff"
+                title="View unified diff against canonical Layer 0"
+                @click="openDiffModal"
+              >
+                <UIcon name="difference" size="xs" />
+                <span>Compare vs Canon</span>
+                <span class="wiki-fed-diff-stats">
+                  +{{ activeOverlay.diff_stats?.additions || 0 }} -{{ activeOverlay.diff_stats?.deletions || 0 }}
+                </span>
+              </button>
+
+              <!-- Toggle Canon baseline view -->
+              <button
+                v-if="activeOverlay.is_overlaid && activeOverlay.canon_exists"
+                type="button"
+                class="wiki-btn wiki-btn--xs"
+                :class="{ 'wiki-btn--active': showingCanonOnly }"
+                title="Toggle between personal overlay and canonical baseline"
+                @click="toggleCanonOnly"
+              >
+                <UIcon :name="showingCanonOnly ? 'visibility_off' : 'visibility'" size="xs" />
+                <span>{{ showingCanonOnly ? 'Showing Canon Baseline' : 'Show Canon Baseline' }}</span>
+              </button>
+
+              <!-- Revert to Canon (Layer 2) -->
+              <button
+                v-if="activeOverlay.effective_layer === 2 && activeOverlay.canon_exists"
+                type="button"
+                class="wiki-btn wiki-btn--xs wiki-btn--revert"
+                :disabled="revertingOverlay"
+                title="Revert personal overlay and restore pristine canonical baseline"
+                @click="confirmRevertToCanon"
+              >
+                <UIcon name="undo" size="xs" />
+                <span>{{ revertingOverlay ? 'Reverting...' : 'Revert to Canon' }}</span>
+              </button>
+
+              <!-- Customize in Vault (Layer 0 or 1) -->
+              <button
+                v-if="activeOverlay.effective_layer !== 2"
+                type="button"
+                class="wiki-btn wiki-btn--xs wiki-btn--fork"
+                title="Fork into ~/Vault/knowledge for personal sovereign customization"
+                :disabled="customizingOverlay"
+                @click="customizeInVault"
+              >
+                <UIcon name="edit_note" size="xs" />
+                <span>{{ customizingOverlay ? 'Forking...' : 'Customize in Vault' }}</span>
+              </button>
+
+              <!-- Export Submission Package (Layer 2) -->
+              <button
+                v-if="activeOverlay.effective_layer === 2"
+                type="button"
+                class="wiki-btn wiki-btn--xs wiki-btn--export"
+                title="Bundle personal changes into cryptographic submission package"
+                @click="openSubmissionModal"
+              >
+                <UIcon name="send" size="xs" />
+                <span>Export Submission</span>
+              </button>
+            </div>
+
+            <div class="wiki-fed-status-link">
+              <button
+                type="button"
+                class="wiki-btn wiki-btn--xs wiki-btn--ghost"
+                title="Open Federation Layer Overview"
+                @click="openFederationOverviewModal"
+              >
+                <UIcon name="info" size="xs" />
+                <span>Layer Info</span>
+              </button>
             </div>
           </div>
 
@@ -326,6 +428,301 @@
             <span><kbd class="wiki-kbd-mini">↵</kbd> Open</span>
             <span><kbd class="wiki-kbd-mini">ESC</kbd> Close</span>
           </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- 1. Unified Diff vs Canon Modal -->
+    <div v-if="showDiffModal && activeOverlay" class="wiki-modal-backdrop" @click.self="showDiffModal = false">
+      <div class="wiki-fed-modal" role="dialog" aria-label="Compare vs Canon Diff">
+        <header class="wiki-fed-modal__header">
+          <div class="wiki-fed-modal__title-row">
+            <UIcon name="difference" class="wiki-fed-modal__icon" />
+            <h3 class="wiki-fed-modal__title">Diff vs Canon Baseline</h3>
+            <span class="wiki-fed-diff-stats">
+              +{{ activeOverlay.diff_stats?.additions || 0 }} -{{ activeOverlay.diff_stats?.deletions || 0 }}
+            </span>
+          </div>
+          <button type="button" class="wiki-search-clear" @click="showDiffModal = false">
+            <UIcon name="close" size="xs" />
+          </button>
+        </header>
+
+        <div class="wiki-fed-modal__body">
+          <div class="wiki-fed-diff-meta">
+            <div><strong>Document:</strong> <code>{{ activeOverlay.rel_path }}</code></div>
+            <div><strong>Baseline:</strong> Layer 0 Canon (<code>~/Public/global-knowledge</code>)</div>
+            <div><strong>Active Layer:</strong> Layer {{ activeOverlay.effective_layer }} ({{ activeOverlay.effective_layer_name }})</div>
+          </div>
+          <div class="wiki-fed-diff-viewer">
+            <div v-for="(line, idx) in formattedDiffLines" :key="idx" :class="['wiki-diff-line', line.type]">
+              <span class="wiki-diff-line-num">{{ line.num }}</span>
+              <span class="wiki-diff-line-content">{{ line.content }}</span>
+            </div>
+          </div>
+        </div>
+
+        <footer class="wiki-fed-modal__footer">
+          <button type="button" class="wiki-btn wiki-btn--secondary" @click="showDiffModal = false">
+            Close
+          </button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- 2. Export Contribution Submission Modal -->
+    <div v-if="showSubmissionModal && activeOverlay" class="wiki-modal-backdrop" @click.self="showSubmissionModal = false">
+      <div class="wiki-fed-modal" role="dialog" aria-label="Export Contribution Package">
+        <header class="wiki-fed-modal__header">
+          <div class="wiki-fed-modal__title-row">
+            <UIcon name="send" class="wiki-fed-modal__icon" />
+            <h3 class="wiki-fed-modal__title">Export Contribution Submission Bundle</h3>
+          </div>
+          <button type="button" class="wiki-search-clear" @click="showSubmissionModal = false">
+            <UIcon name="close" size="xs" />
+          </button>
+        </header>
+
+        <div class="wiki-fed-modal__body">
+          <!-- Submission success -->
+          <div v-if="submissionSuccess" class="wiki-submission-success">
+            <div class="wiki-success-title">
+              <UIcon name="check_circle" /> Submission Bundle Generated
+            </div>
+            <p>Cryptographic package saved plainly to disk (AGENTS.md compliant):</p>
+            <code>{{ submissionSuccess.package_path }}</code>
+            <div class="wiki-checksum-row">
+              <span>SHA-256 Checksum:</span>
+              <code>{{ submissionSuccess.diff_checksum }}</code>
+            </div>
+            <div class="wiki-submission-actions">
+              <button type="button" class="wiki-btn wiki-btn--primary" @click="showSubmissionModal = false">
+                Done
+              </button>
+            </div>
+          </div>
+
+          <div v-else class="wiki-submission-form">
+            <p class="wiki-fed-modal__desc">
+              Package your sovereign personal modifications into a signed bundle for community sharing or Wizard canon review.
+            </p>
+
+            <div class="wiki-form-group">
+              <label>Target Article</label>
+              <input type="text" :value="activeOverlay.rel_path" readonly class="wiki-input wiki-input--readonly" />
+            </div>
+
+            <div class="wiki-form-group">
+              <label>Author / Pseudonym</label>
+              <input v-model="submissionAuthor" type="text" placeholder="e.g. sovereign-explorer" class="wiki-input" />
+            </div>
+
+            <div class="wiki-form-group">
+              <label>Contribution Notes / Research Justification</label>
+              <textarea v-model="submissionNotes" rows="3" placeholder="Describe field-tested updates or citations..." class="wiki-textarea" />
+            </div>
+
+            <!-- Preflight checklist -->
+            <div class="wiki-preflight-panel">
+              <div class="wiki-preflight-title">
+                <UIcon name="verified_user" size="xs" />
+                <span>Automated AI Preflight Linter</span>
+                <span v-if="preflightResult" :class="['wiki-status-tag', preflightResult.passed ? 'tag--pass' : 'tag--fail']">
+                  {{ preflightResult.passed ? 'PASSED' : 'ACTION REQUIRED' }}
+                </span>
+              </div>
+
+              <div v-if="!preflightResult" class="wiki-preflight-loading">
+                <UIcon name="sync" /> Running privacy & standards checks...
+              </div>
+
+              <div v-else class="wiki-preflight-checks">
+                <div class="wiki-check-item" :class="{ 'check--ok': preflightResult.checks?.privacy_clean, 'check--fail': !preflightResult.checks?.privacy_clean }">
+                  <UIcon :name="preflightResult.checks?.privacy_clean ? 'check' : 'error'" size="xs" />
+                  <span>Privacy Leak Scanner: Zero local home paths (/Users/...)</span>
+                </div>
+                <div class="wiki-check-item" :class="{ 'check--ok': preflightResult.checks?.credentials_clean, 'check--fail': !preflightResult.checks?.credentials_clean }">
+                  <UIcon :name="preflightResult.checks?.credentials_clean ? 'check' : 'error'" size="xs" />
+                  <span>Credential Scanner: Zero API keys or tokens</span>
+                </div>
+                <div class="wiki-check-item" :class="{ 'check--ok': preflightResult.checks?.prose_compliant, 'check--warn': !preflightResult.checks?.prose_compliant }">
+                  <UIcon :name="preflightResult.checks?.prose_compliant ? 'check' : 'warning'" size="xs" />
+                  <span>Prose Standards: Sentence-case typography</span>
+                </div>
+                <div class="wiki-check-item" :class="{ 'check--ok': preflightResult.checks?.assets_offline, 'check--warn': !preflightResult.checks?.assets_offline }">
+                  <UIcon :name="preflightResult.checks?.assets_offline ? 'check' : 'warning'" size="xs" />
+                  <span>Offline First: Relative & local asset paths</span>
+                </div>
+
+                <div v-if="preflightResult.errors && preflightResult.errors.length > 0" class="wiki-preflight-errors">
+                  <div v-for="(err, i) in preflightResult.errors" :key="i" class="preflight-err-msg">
+                    ✗ {{ err }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <footer class="wiki-fed-modal__footer">
+              <button type="button" class="wiki-btn wiki-btn--secondary" @click="showSubmissionModal = false">
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="wiki-btn wiki-btn--primary"
+                :disabled="packagingSubmission || (preflightResult && !preflightResult.passed)"
+                @click="submitPackage"
+              >
+                <UIcon :name="packagingSubmission ? 'sync' : 'send'" />
+                <span>{{ packagingSubmission ? 'Packaging...' : 'Create Submission Bundle' }}</span>
+              </button>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Knowledge Federation Overview Modal -->
+    <div v-if="showFederationModal" class="wiki-modal-backdrop" @click.self="showFederationModal = false">
+      <div class="wiki-fed-modal wiki-fed-modal--wide" role="dialog" aria-label="Knowledge Federation Overview">
+        <header class="wiki-fed-modal__header">
+          <div class="wiki-fed-modal__title-row">
+            <UIcon name="hub" class="wiki-fed-modal__icon" />
+            <h3 class="wiki-fed-modal__title">Sovereign Knowledge Federation Architecture</h3>
+          </div>
+          <button type="button" class="wiki-search-clear" @click="showFederationModal = false">
+            <UIcon name="close" size="xs" />
+          </button>
+        </header>
+
+        <div class="wiki-fed-modal__body">
+          <div class="wiki-fed-tier-grid">
+            <div class="wiki-fed-tier-card tier--personal">
+              <div class="tier-card__header">
+                <span class="tier-badge">Layer 2</span>
+                <h4>Sovereign Personal</h4>
+              </div>
+              <p class="tier-path"><code>~/Vault/knowledge/</code></p>
+              <div class="tier-stat">
+                <span class="stat-number">{{ fedSummary?.layers?.layer_2_personal?.articles_count || 0 }}</span>
+                <span class="stat-label">articles</span>
+              </div>
+              <p class="tier-desc">User private notes, custom clips, sovereign overrides. Full precedence.</p>
+            </div>
+
+            <div class="wiki-fed-tier-card tier--community">
+              <div class="tier-card__header">
+                <span class="tier-badge">Layer 1</span>
+                <h4>Community & Shared</h4>
+              </div>
+              <p class="tier-path"><code>~/Shared/knowledge/</code></p>
+              <div class="tier-stat">
+                <span class="stat-number">{{ fedSummary?.layers?.layer_1_shared?.articles_count || 0 }}</span>
+                <span class="stat-label">articles</span>
+              </div>
+              <p class="tier-desc">Household vaults, shared team guides, peer datasets. Filter overlay.</p>
+            </div>
+
+            <div class="wiki-fed-tier-card tier--canon">
+              <div class="tier-card__header">
+                <span class="tier-badge">Layer 0</span>
+                <h4>Base Canon</h4>
+              </div>
+              <p class="tier-path"><code>~/Public/global-knowledge/</code></p>
+              <div class="tier-stat">
+                <span class="stat-number">{{ fedSummary?.layers?.layer_0_canon?.articles_count || 0 }}</span>
+                <span class="stat-label">articles</span>
+              </div>
+              <p class="tier-desc">Universal standards (USX, GridCore, Prose). Immutable baseline, curated by Wizard.</p>
+            </div>
+          </div>
+
+          <!-- Active Overlays Section -->
+          <div class="wiki-fed-section">
+            <h4 class="wiki-fed-section-title">
+              Active Overlays ({{ fedOverlays.length }})
+            </h4>
+            <div v-if="fedOverlays.length === 0" class="wiki-fed-empty">
+              No active personal or shared overlays. All articles currently resolve to pristine Layer 0 canon.
+            </div>
+            <div v-else class="wiki-fed-table-wrapper">
+              <table class="wiki-fed-table">
+                <thead>
+                  <tr>
+                    <th>Article</th>
+                    <th>Layer</th>
+                    <th>Status</th>
+                    <th>Diff</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in fedOverlays" :key="item.rel_path">
+                    <td><code>{{ item.rel_path }}</code></td>
+                    <td>
+                      <span class="wiki-chip" :class="layerChipClass(item.layer, item.is_overlaid)">
+                        {{ layerBadgeLabel(item.layer, item.is_overlaid) }}
+                      </span>
+                    </td>
+                    <td>
+                      <span v-if="item.canon_exists" class="wiki-tag--overlaid">Overlays Canon</span>
+                      <span v-else class="wiki-tag--new">New Article</span>
+                    </td>
+                    <td>
+                      <span v-if="item.has_diff" class="wiki-fed-diff-stats">
+                        +{{ item.diff_stats?.additions || 0 }} -{{ item.diff_stats?.deletions || 0 }}
+                      </span>
+                      <span v-else class="wiki-muted-text">Identical</span>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        class="wiki-btn wiki-btn--xs wiki-btn--ghost"
+                        @click="selectDocument(item.layer === 2 ? 'vault' : 'shared', item.path, item.rel_path); showFederationModal = false"
+                      >
+                        Open
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Submissions Section -->
+          <div class="wiki-fed-section">
+            <h4 class="wiki-fed-section-title">
+              Exported Contribution Bundles ({{ fedSubmissions.length }})
+            </h4>
+            <div v-if="fedSubmissions.length === 0" class="wiki-fed-empty">
+              No contribution bundles exported yet. Bundles are saved in <code>~/Vault/dispatches/submissions/</code>.
+            </div>
+            <div v-else class="wiki-fed-table-wrapper">
+              <table class="wiki-fed-table">
+                <thead>
+                  <tr>
+                    <th>Submission ID</th>
+                    <th>Target</th>
+                    <th>Author</th>
+                    <th>Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="sub in fedSubmissions" :key="sub.submission_id">
+                    <td><code>{{ sub.submission_id }}</code></td>
+                    <td><code>{{ sub.manifest?.rel_path }}</code></td>
+                    <td>{{ sub.manifest?.author }}</td>
+                    <td>{{ new Date(sub.manifest?.created_at).toLocaleString() }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <footer class="wiki-fed-modal__footer">
+          <button type="button" class="wiki-btn wiki-btn--secondary" @click="showFederationModal = false">
+            Close
+          </button>
         </footer>
       </div>
     </div>
@@ -721,26 +1118,248 @@ async function loadTree() {
   }
 }
 
-async function selectDocument(source: string, path: string, title?: string) {
+interface ActiveOverlayInfo {
+  is_overlaid: boolean;
+  effective_layer: number | null;
+  effective_layer_name: string | null;
+  canon_exists: boolean;
+  has_diff: boolean;
+  diff_from_canon: string;
+  diff_stats: { additions: number; deletions: number };
+  rel_path: string;
+}
+
+const activeOverlay = ref<ActiveOverlayInfo | null>(null);
+const showingCanonOnly = ref(false);
+const revertingOverlay = ref(false);
+const customizingOverlay = ref(false);
+
+const showDiffModal = ref(false);
+const showSubmissionModal = ref(false);
+const showFederationModal = ref(false);
+
+const fedSummary = ref<any>(null);
+const fedOverlays = ref<any[]>([]);
+const fedSubmissions = ref<any[]>([]);
+const loadingFed = ref(false);
+
+const submissionAuthor = ref("sovereign-user");
+const submissionNotes = ref("");
+const submissionType = ref("canonical_patch");
+const preflightResult = ref<any>(null);
+const packagingSubmission = ref(false);
+const submissionSuccess = ref<any>(null);
+
+const formattedDiffLines = computed(() => {
+  if (!activeOverlay.value || !activeOverlay.value.diff_from_canon) {
+    return [];
+  }
+  const lines = activeOverlay.value.diff_from_canon.split("\n");
+  return lines.map((line, idx) => {
+    let type = "diff-ctx";
+    if (line.startsWith("+") && !line.startsWith("+++")) type = "diff-add";
+    else if (line.startsWith("-") && !line.startsWith("---")) type = "diff-del";
+    else if (line.startsWith("@@")) type = "diff-hdr";
+    return {
+      num: idx + 1,
+      type,
+      content: line,
+    };
+  });
+});
+
+function layerChipClass(layer: number | null, isOverlaid: boolean) {
+  if (isOverlaid) return "wiki-chip--overlaid";
+  if (layer === 0) return "wiki-chip--canon";
+  if (layer === 1) return "wiki-chip--community";
+  if (layer === 2) return "wiki-chip--personal";
+  return "";
+}
+
+function layerIcon(layer: number | null) {
+  if (layer === 0) return "verified";
+  if (layer === 1) return "groups";
+  if (layer === 2) return "person";
+  return "description";
+}
+
+function layerBadgeLabel(layer: number | null, isOverlaid: boolean) {
+  if (isOverlaid && layer === 2) return "Personal Overlay";
+  if (isOverlaid && layer === 1) return "Community Overlay";
+  if (layer === 0) return "Base Canon";
+  if (layer === 1) return "Community";
+  if (layer === 2) return "Personal";
+  return "Document";
+}
+
+async function selectDocument(
+  source: string,
+  path: string,
+  title?: string,
+  forceCanon: boolean = false
+) {
   activeSource.value = source;
   activePath.value = path;
   activeTitle.value = title || path.split("/").pop() || "Untitled";
   loadingContent.value = true;
+  showingCanonOnly.value = forceCanon;
 
   try {
-    const resp = await fetch(
-      `/api/docs/content?source=${encodeURIComponent(source)}&path=${encodeURIComponent(path)}`
-    );
+    const url = `/api/docs/content?source=${encodeURIComponent(source)}&path=${encodeURIComponent(path)}${forceCanon ? "&canonical=true" : ""}`;
+    const resp = await fetch(url);
     if (resp.ok) {
       const data = await resp.json();
       rawMarkdown.value = data.content || "";
+      activeOverlay.value = data.overlay || null;
     } else {
       rawMarkdown.value = `# Unable to load document\n\nPath: \`${path}\``;
+      activeOverlay.value = null;
     }
   } catch (err) {
     rawMarkdown.value = `# Network Error\n\nCould not fetch document \`${path}\`.`;
+    activeOverlay.value = null;
   } finally {
     loadingContent.value = false;
+  }
+}
+
+async function toggleCanonOnly() {
+  const nextState = !showingCanonOnly.value;
+  await selectDocument(activeSource.value, activePath.value, activeTitle.value, nextState);
+}
+
+function openDiffModal() {
+  showDiffModal.value = true;
+}
+
+async function customizeInVault() {
+  if (!activeOverlay.value) return;
+  customizingOverlay.value = true;
+  try {
+    const resp = await fetch("/api/knowledge/federation/overlay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        path: activeOverlay.value.rel_path,
+        content: rawMarkdown.value,
+        layer: 2,
+      }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      activeOverlay.value = data.overlay || activeOverlay.value;
+      activeSource.value = "vault";
+    }
+  } catch (err) {
+    console.error("Customize error:", err);
+  } finally {
+    customizingOverlay.value = false;
+  }
+}
+
+async function confirmRevertToCanon() {
+  if (!activeOverlay.value) return;
+  if (!confirm(`Revert personal changes for "${activeTitle.value}" and restore pristine canonical baseline?`)) {
+    return;
+  }
+  revertingOverlay.value = true;
+  try {
+    const resp = await fetch("/api/knowledge/federation/revert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        path: activeOverlay.value.rel_path,
+        layer: 2,
+      }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      activeOverlay.value = data.resolved || null;
+      await selectDocument(activeSource.value, activePath.value, activeTitle.value, false);
+    }
+  } catch (err) {
+    console.error("Revert error:", err);
+  } finally {
+    revertingOverlay.value = false;
+  }
+}
+
+async function runPreflight() {
+  if (!activeOverlay.value) return;
+  try {
+    const resp = await fetch("/api/knowledge/federation/preflight", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: rawMarkdown.value,
+        path: activeOverlay.value.rel_path,
+      }),
+    });
+    if (resp.ok) {
+      preflightResult.value = await resp.json();
+    }
+  } catch (err) {
+    console.error("Preflight check error:", err);
+  }
+}
+
+async function openSubmissionModal() {
+  showSubmissionModal.value = true;
+  submissionSuccess.value = null;
+  submissionNotes.value = "";
+  await runPreflight();
+}
+
+async function submitPackage() {
+  if (!activeOverlay.value) return;
+  packagingSubmission.value = true;
+  try {
+    const resp = await fetch("/api/knowledge/federation/export-submission", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        path: activeOverlay.value.rel_path,
+        author: submissionAuthor.value,
+        notes: submissionNotes.value,
+        submission_type: submissionType.value,
+      }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      submissionSuccess.value = data.package;
+    } else {
+      const err = await resp.json();
+      alert(`Submission export failed: ${err.error || "Unknown error"}`);
+    }
+  } catch (err) {
+    console.error("Submission export error:", err);
+  } finally {
+    packagingSubmission.value = false;
+  }
+}
+
+async function openFederationOverviewModal() {
+  showFederationModal.value = true;
+  loadingFed.value = true;
+  try {
+    const [summaryResp, overlaysResp, subsResp] = await Promise.all([
+      fetch("/api/knowledge/federation/summary"),
+      fetch("/api/knowledge/federation/overlays"),
+      fetch("/api/knowledge/federation/submissions"),
+    ]);
+    if (summaryResp.ok) fedSummary.value = await summaryResp.json();
+    if (overlaysResp.ok) {
+      const oData = await overlaysResp.json();
+      fedOverlays.value = oData.overlays || [];
+    }
+    if (subsResp.ok) {
+      const sData = await subsResp.json();
+      fedSubmissions.value = sData.submissions || [];
+    }
+  } catch (err) {
+    console.error("Load federation data error:", err);
+  } finally {
+    loadingFed.value = false;
   }
 }
 
@@ -1153,6 +1772,512 @@ onUnmounted(() => {
   border: 1px solid #30363d;
   border-radius: 12px;
   color: #3fb950;
+}
+
+.wiki-chip--canon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgba(88, 166, 255, 0.1);
+  border: 1px solid rgba(88, 166, 255, 0.3);
+  border-radius: 12px;
+  color: #58a6ff;
+}
+
+.wiki-chip--community {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgba(188, 140, 255, 0.1);
+  border: 1px solid rgba(188, 140, 255, 0.3);
+  border-radius: 12px;
+  color: #bc8cff;
+}
+
+.wiki-chip--personal {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgba(210, 153, 34, 0.1);
+  border: 1px solid rgba(210, 153, 34, 0.3);
+  border-radius: 12px;
+  color: #d29922;
+}
+
+.wiki-chip--overlaid {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgba(240, 136, 62, 0.1);
+  border: 1px solid rgba(240, 136, 62, 0.3);
+  border-radius: 12px;
+  color: #f0883e;
+}
+
+/* ── Knowledge Federation Action Strip ────────────────────────────── */
+.wiki-federation-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 8px 12px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  gap: 8px;
+}
+
+.wiki-fed-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wiki-btn--xs {
+  font-size: 11px;
+  padding: 4px 10px;
+  gap: 4px;
+  height: 28px;
+}
+
+.wiki-btn--diff {
+  background: rgba(88, 166, 255, 0.12);
+  border-color: #388bfd;
+  color: #58a6ff;
+}
+
+.wiki-btn--revert {
+  background: rgba(248, 81, 73, 0.1);
+  border-color: rgba(248, 81, 73, 0.4);
+  color: #f85149;
+}
+
+.wiki-btn--fork {
+  background: rgba(46, 160, 67, 0.12);
+  border-color: #2ea043;
+  color: #3fb950;
+}
+
+.wiki-btn--export {
+  background: rgba(210, 153, 34, 0.12);
+  border-color: #d29922;
+  color: #d29922;
+}
+
+.wiki-btn--ghost {
+  background: transparent;
+  border-color: #30363d;
+  color: #8b949e;
+}
+
+.wiki-fed-diff-stats {
+  font-family: var(--usx-font-family-mono, monospace);
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 4px;
+}
+
+/* ── Federation Modals ────────────────────────────────────────────── */
+.wiki-fed-modal {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 680px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 85vh;
+}
+
+.wiki-fed-modal--wide {
+  max-width: 860px;
+}
+
+.wiki-fed-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid #30363d;
+  background: #0d1117;
+}
+
+.wiki-fed-modal__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wiki-fed-modal__icon {
+  color: #58a6ff;
+}
+
+.wiki-fed-modal__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #f0f6fc;
+}
+
+.wiki-fed-modal__body {
+  padding: 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wiki-fed-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid #30363d;
+  background: #0d1117;
+}
+
+.wiki-fed-diff-meta {
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #8b949e;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wiki-fed-diff-viewer {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  font-family: var(--usx-font-family-mono, monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 400px;
+}
+
+.wiki-diff-line {
+  display: flex;
+  padding: 1px 8px;
+}
+
+.wiki-diff-line-num {
+  width: 32px;
+  color: #484f58;
+  user-select: none;
+  text-align: right;
+  padding-right: 8px;
+}
+
+.wiki-diff-line-content {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.wiki-diff-line.diff-add {
+  background: rgba(46, 160, 67, 0.15);
+  color: #3fb950;
+}
+
+.wiki-diff-line.diff-del {
+  background: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+}
+
+.wiki-diff-line.diff-hdr {
+  background: rgba(88, 166, 255, 0.1);
+  color: #58a6ff;
+  font-weight: 600;
+}
+
+/* Submission form styles */
+.wiki-fed-modal__desc {
+  font-size: 13px;
+  color: #8b949e;
+  margin: 0;
+}
+
+.wiki-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wiki-form-group label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #c9d1d9;
+}
+
+.wiki-input, .wiki-textarea {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #f0f6fc;
+  font-size: 13px;
+  outline: none;
+}
+
+.wiki-input--readonly {
+  color: #8b949e;
+  font-family: var(--usx-font-family-mono, monospace);
+  background: #161b22;
+}
+
+.wiki-preflight-panel {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wiki-preflight-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #f0f6fc;
+}
+
+.wiki-status-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.tag--pass {
+  background: rgba(46, 160, 67, 0.2);
+  color: #3fb950;
+  border: 1px solid #2ea043;
+}
+
+.tag--fail {
+  background: rgba(248, 81, 73, 0.2);
+  color: #f85149;
+  border: 1px solid #da3633;
+}
+
+.wiki-check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.check--ok {
+  color: #3fb950;
+}
+
+.check--fail {
+  color: #f85149;
+}
+
+.check--warn {
+  color: #d29922;
+}
+
+.wiki-preflight-errors {
+  margin-top: 6px;
+  padding: 8px;
+  background: rgba(248, 81, 73, 0.1);
+  border-radius: 4px;
+  font-size: 12px;
+  color: #f85149;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wiki-submission-success {
+  padding: 16px;
+  background: rgba(46, 160, 67, 0.1);
+  border: 1px solid #2ea043;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wiki-success-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #3fb950;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wiki-checksum-row {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: #8b949e;
+}
+
+/* 3-Tier Grid */
+.wiki-fed-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.wiki-fed-tier-card {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tier-card__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tier-card__header h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #f0f6fc;
+}
+
+.tier-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.tier--personal .tier-badge {
+  background: rgba(210, 153, 34, 0.2);
+  color: #d29922;
+}
+
+.tier--community .tier-badge {
+  background: rgba(188, 140, 255, 0.2);
+  color: #bc8cff;
+}
+
+.tier--canon .tier-badge {
+  background: rgba(88, 166, 255, 0.2);
+  color: #58a6ff;
+}
+
+.tier-path code {
+  font-size: 11px;
+  color: #8b949e;
+}
+
+.tier-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.stat-number {
+  font-size: 22px;
+  font-weight: 700;
+  color: #f0f6fc;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #8b949e;
+}
+
+.tier-desc {
+  font-size: 11px;
+  color: #8b949e;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.wiki-fed-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wiki-fed-section-title {
+  margin: 0;
+  font-size: 13px;
+  color: #f0f6fc;
+  font-weight: 600;
+}
+
+.wiki-fed-empty {
+  font-size: 12px;
+  color: #8b949e;
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.wiki-fed-table-wrapper {
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.wiki-fed-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.wiki-fed-table th {
+  background: #0d1117;
+  padding: 8px 12px;
+  text-align: left;
+  color: #8b949e;
+  font-weight: 500;
+  border-bottom: 1px solid #30363d;
+}
+
+.wiki-fed-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #21262d;
+  color: #c9d1d9;
+}
+
+.wiki-tag--overlaid {
+  color: #f0883e;
+  font-size: 11px;
+}
+
+.wiki-tag--new {
+  color: #3fb950;
+  font-size: 11px;
+}
+
+.wiki-muted-text {
+  color: #6e7681;
+  font-size: 11px;
 }
 
 /* ── Table of Contents ─────────────────────────────────────────────── */

@@ -674,3 +674,13 @@ def register_routes(app: web.Application) -> None:
         log.debug("BitChat & Mesh Transport API routes registered")
     except ImportError as e:
         log.debug("BitChat API routes not available: %s", e)
+
+    # ── Knowledge Federation & Overlay Engine API ────────────────────
+    try:
+        from .federation_api import register_federation_routes
+
+        register_federation_routes(app)
+        log.debug("Knowledge Federation API routes registered")
+    except ImportError as e:
+        log.debug("Knowledge Federation routes not available: %s", e)
+
