@@ -31,6 +31,16 @@ class CapabilitiesPreflightAPITest(AioHTTPTestCase):
         )
         return app
 
+    async def test_capability_requirements_consolidated_repos_contract(self):
+        from app.api.extensions_api import _load_capability_requirements, CONSOLIDATED_REPOS
+        reqs, _ = _load_capability_requirements()
+        assert reqs["workflow.run"]["repos"] == []
+        assert reqs["knowledge.search"]["repos"] == []
+        assert reqs["developer.guided"]["repos"] == ["uCore", "uCode"]
+        for cap, spec in reqs.items():
+            repos = spec.get("repos", [])
+            assert not (CONSOLIDATED_REPOS & set(repos)), f"{cap} must not require consolidated repos: {repos}"
+
     async def test_workflow_run_preflight_ready(self):
         resp = await self.client.get("/api/capabilities/workflow.run/preflight")
         assert resp.status == 200
@@ -99,3 +109,33 @@ class CapabilitiesPreflightAPITest(AioHTTPTestCase):
             item.get("kind") == "config" and item.get("id") == "capability_requirements"
             for item in data["repair"]
         )
+
+    async def test_legacy_user_override_filters_consolidated_repos(self):
+        import json
+
+        with tempfile.TemporaryDirectory() as td:
+            cfg_dir = Path(td)
+            override_file = cfg_dir / "capability_requirements.json"
+            # Simulate legacy override file containing obsolete uFlow / uKnowledge repo requirements
+            override_file.write_text(
+                json.dumps(
+                    {
+                        "workflow.run": {
+                            "extensions": ["uflow"],
+                            "tools": ["git"],
+                            "repos": ["uFlow"],
+                            "variables": [],
+                            "secrets": [],
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with patch.object(settings, "config_dir", cfg_dir):
+                resp = await self.client.get("/api/capabilities/workflow.run/preflight")
+                assert resp.status == 200
+                data = await resp.json()
+                assert data["ready"] is True
+                assert data["repair_required"] is False
+                assert data["repair"] == []
+
