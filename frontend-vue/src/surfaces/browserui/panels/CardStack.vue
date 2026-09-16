@@ -40,8 +40,8 @@
           <span v-for="t in card.tags" :key="t" class="card-stack__tag">{{ t }}</span>
         </div>
         <div class="card-stack__actions">
-          <button class="uxs-btn uxs-btn--sm" @click.stop="$emit('research', card)">Research</button>
-          <button class="uxs-btn uxs-btn--sm" @click.stop="$emit('enhance', card)">Enhance</button>
+          <button class="usx-btn usx-btn--sm" @click.stop="$emit('research', card)">Research</button>
+          <button class="usx-btn usx-btn--sm" @click.stop="$emit('enhance', card)">Enhance</button>
         </div>
       </div>
     </div>
@@ -159,13 +159,14 @@ function scoreClass(s: number | undefined): string {
   color: var(--usx-color-on-surface-muted);
 }
 .card-stack__actions { display: flex; gap: var(--usx-spacing-xs); }
-.uxs-btn {
+.usx-btn {
   display: inline-flex; align-items: center; gap: var(--usx-spacing-xs);
-  border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-sm);
+  border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md);
   padding: 4px var(--usx-spacing-sm); cursor: pointer;
   background: var(--usx-color-surface); font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface); white-space: nowrap;
+  transition: all var(--usx-transition-base);
 }
-.uxs-btn:hover { background: var(--usx-color-surface-hover); }
-.uxs-btn--sm { font-size: var(--usx-font-size-xs); padding: 3px var(--usx-spacing-sm); }
+.usx-btn:hover { background: var(--usx-color-surface-hover); border-color: var(--usx-color-primary); }
+.usx-btn--sm { font-size: var(--usx-font-size-xs); padding: 3px var(--usx-spacing-sm); }
 </style>

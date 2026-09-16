@@ -1,24 +1,22 @@
 <template>
   <div class="sonic-surface-wrapper">
-    <div class="sonic-surface-toolbar">
-      <button
-        class="sonic-surface-back"
-        @click="router.push('/')"
-        title="Back to Dashboard"
-      >
-        ← Dashboard
-      </button>
-      <span class="sonic-surface-label">SonicScrewdriver</span>
-      <span class="sonic-surface-badge">USB Bootloader & Device Toolkit</span>
-      <a
-        class="sonic-surface-external"
-        href="https://github.com/uDosGo/SonicScrewdriver"
-        target="_blank"
-        title="Open SonicScrewdriver on GitHub"
-      >
-        GitHub ↗
-      </a>
-    </div>
+    <header class="sonic-header">
+      <div class="sonic-header__title-group">
+        <h1 class="sonic-header__title">SonicScrewdriver</h1>
+        <UBadge type="info" size="sm">USB Bootloader & Device Toolkit</UBadge>
+      </div>
+      <div class="sonic-header__actions">
+        <a
+          class="usx-btn usx-btn--sm usx-btn--secondary"
+          href="https://github.com/uDosGo/SonicScrewdriver"
+          target="_blank"
+          title="Open SonicScrewdriver on GitHub"
+        >
+          <UIcon name="open_in_new" />
+          <span>GitHub</span>
+        </a>
+      </div>
+    </header>
 
     <div class="sonic-surface-body">
       <!-- Stats Summary -->
@@ -45,11 +43,14 @@
       <div class="sonic-card">
         <div class="sonic-card-header">
           <h2>Recent Spool Events</h2>
-          <button class="sonic-btn" @click="refresh">Refresh</button>
+          <button class="usx-btn usx-btn--sm usx-btn--secondary" @click="refresh">
+            <UIcon name="refresh" />
+            <span>Refresh</span>
+          </button>
         </div>
         <div class="sonic-event-list">
           <div v-for="(event, i) in events" :key="i" class="sonic-event-row">
-            <span class="sonic-event-time">{{ event.timestamp.slice(0, 19) }}</span>
+            <span class="sonic-event-time font-mono">{{ event.timestamp.slice(0, 19) }}</span>
             <span :class="['sonic-badge', eventBadgeClass(event.level)]">{{ event.level }}</span>
             <span class="sonic-event-msg">{{ event.message }}</span>
             <span class="sonic-event-tags">
@@ -83,8 +84,9 @@
           <h2>Quick Actions</h2>
         </div>
         <div class="sonic-actions">
-          <a href="https://github.com/uDosGo/SonicScrewdriver" target="_blank" class="sonic-btn">
-            GitHub Repo ↗
+          <a href="https://github.com/uDosGo/SonicScrewdriver" target="_blank" class="usx-btn usx-btn--primary">
+            <UIcon name="open_in_new" />
+            <span>GitHub Repository</span>
           </a>
           <span class="sonic-actions-hint">
             Full CLI tools available at <code>~/Code/SonicScrewdriver/cli/</code>
@@ -103,9 +105,8 @@
  * @usage Routed at '/sonic'
  */
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
+import UIcon from '../../skills/atoms/UIcon.vue'
+import UBadge from '../../skills/atoms/UBadge.vue'
 
 interface SpoolEvent {
   timestamp: string
@@ -161,59 +162,33 @@ function refresh() {
   overflow: hidden;
 }
 
-.sonic-surface-toolbar {
+.sonic-header {
   display: flex;
   align-items: center;
-  gap: var(--usx-spacing-md);
+  justify-content: space-between;
   padding: var(--usx-spacing-sm) var(--usx-spacing-md);
   background: var(--usx-color-surface);
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
   flex-shrink: 0;
-  min-height: var(--usx-touch-min);
 }
 
-.sonic-surface-back {
-  background: none;
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-sm);
-  color: var(--usx-color-on-surface-muted);
-  cursor: pointer;
-  font-size: var(--usx-font-size-sm);
-  font-family: inherit;
-  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
+.sonic-header__title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
 }
 
-.sonic-surface-back:hover {
-  background: var(--usx-color-surface-hover);
+.sonic-header__title {
+  font-size: var(--usx-font-size-xl);
+  font-weight: 600;
+  margin: 0;
   color: var(--usx-color-on-surface);
-  border-color: var(--usx-color-primary);
 }
 
-.sonic-surface-label {
-  flex: 1;
-  font-weight: var(--usx-font-weight-semibold);
-  font-size: var(--usx-font-size-sm);
-}
-
-.sonic-surface-badge {
-  font-size: var(--usx-font-size-xs);
-  color: var(--usx-color-on-surface-muted);
-  background: var(--usx-color-surface-variant);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border-radius: var(--usx-radius-full);
-}
-
-.sonic-surface-external {
-  color: var(--usx-color-on-surface-muted);
-  text-decoration: none;
-  font-size: var(--usx-font-size-sm);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border-radius: var(--usx-radius-sm);
-}
-
-.sonic-surface-external:hover {
-  color: var(--usx-color-primary);
-  background: var(--usx-color-surface-hover);
+.sonic-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
 }
 
 .sonic-surface-body {

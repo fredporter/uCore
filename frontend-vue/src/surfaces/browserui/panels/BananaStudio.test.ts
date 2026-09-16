@@ -30,9 +30,10 @@ describe("BananaStudio / VectorStudio", () => {
   it("renders the studio mode tabs", () => {
     const wrapper = mount(BananaStudio)
     const modeTabs = wrapper.findAll(".banana-studio__mode-tab")
-    expect(modeTabs.length).toBe(3)
+    expect(modeTabs.length).toBe(4)
     expect(wrapper.text()).toContain("Text-to-Vector")
     expect(wrapper.text()).toContain("Bitmap Tracing")
     expect(wrapper.text()).toContain("GridCore Font & Icon Map")
+    expect(wrapper.text()).toContain("V2B & BOB Quantizer")
   })
 })

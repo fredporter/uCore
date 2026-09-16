@@ -83,6 +83,14 @@
     <!-- Right: explicit global mode + display controls -->
     <div class="global-toolbar__right">
       <button
+        class="global-toolbar__icon-only global-toolbar__sync-btn"
+        title="Host Ecosystem Sync Active (Dashboard)"
+        @click="navigate('/')"
+      >
+        <span class="global-toolbar__sync-dot" />
+        <UIcon name="sync" />
+      </button>
+      <button
         class="global-toolbar__icon-only global-toolbar__theme-toggle"
         :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
         @click="toggleTheme"
@@ -145,3 +153,20 @@ function navigate(path: string) {
   router.push(path);
 }
 </script>
+
+<style scoped>
+.global-toolbar__sync-btn {
+  position: relative;
+}
+
+.global-toolbar__sync-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--usx-color-success);
+  pointer-events: none;
+}
+</style>

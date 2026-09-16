@@ -177,6 +177,57 @@ export const ucoreApi = {
         body: JSON.stringify(source ? { source } : {}),
       }),
   },
+  host: {
+    syncStatus: () => request(`${UCORE_API}/api/host/sync/status`),
+    mailIntake: (body?: { limit?: number; unread_only?: boolean }) =>
+      request(`${UCORE_API}/api/host/mail/intake`, {
+        method: "POST",
+        body: JSON.stringify(body || {}),
+      }),
+    imessageIntake: (body?: { limit?: number }) =>
+      request(`${UCORE_API}/api/host/imessage/intake`, {
+        method: "POST",
+        body: JSON.stringify(body || {}),
+      }),
+    mailArchive: (messageId: string) =>
+      request(`${UCORE_API}/api/host/mail/archive`, {
+        method: "POST",
+        body: JSON.stringify({ message_id: messageId }),
+      }),
+    mailFlag: (messageId: string, flagIndex: number = 0) =>
+      request(`${UCORE_API}/api/host/mail/flag`, {
+        method: "POST",
+        body: JSON.stringify({ message_id: messageId, flag_index: flagIndex }),
+      }),
+  },
+  workflow: {
+    actionToTask: (body: {
+      text: string;
+      source?: string;
+      source_ref?: string;
+      priority?: string;
+      sender?: string;
+    }) =>
+      request(`${UCORE_API}/api/workflow/tasks/action-to-task`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    approveTask: (id: string) =>
+      request(
+        `${UCORE_API}/api/workflow/tasks/${encodeURIComponent(id)}/approve`,
+        {
+          method: "POST",
+        },
+      ),
+    rejectTask: (id: string, reason?: string) =>
+      request(
+        `${UCORE_API}/api/workflow/tasks/${encodeURIComponent(id)}/reject`,
+        {
+          method: "POST",
+          body: JSON.stringify({ reason }),
+        },
+      ),
+  },
 };
 
 /**

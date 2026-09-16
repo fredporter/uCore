@@ -1,32 +1,30 @@
 <template>
   <div class="groovebox-surface-wrapper">
-    <div class="groovebox-surface-toolbar">
-      <button
-        class="groovebox-surface-back"
-        @click="router.push('/')"
-        title="Back to Dashboard"
-      >
-        &#x2190; Dashboard
-      </button>
-      <span class="groovebox-surface-label">Groovebox</span>
-      <span
-        class="groovebox-surface-status"
-        :class="`is-${connectionStatus}`"
-        role="status"
-        aria-live="polite"
-      >
-        <span class="groovebox-surface-status-dot" aria-hidden="true" />
-        {{ connectionStatusLabel }}
-      </span>
-      <a
-        class="groovebox-surface-external"
-        :href="grooveboxUrl"
-        target="_blank"
-        title="Open in new tab"
-      >
-        &#x2197;
-      </a>
-    </div>
+    <header class="groovebox-header">
+      <div class="groovebox-header__title-group">
+        <h1 class="groovebox-header__title">Groovebox</h1>
+        <span
+          class="groovebox-surface-status"
+          :class="`is-${connectionStatus}`"
+          role="status"
+          aria-live="polite"
+        >
+          <span class="groovebox-surface-status-dot" aria-hidden="true" />
+          {{ connectionStatusLabel }}
+        </span>
+      </div>
+      <div class="groovebox-header__actions">
+        <a
+          class="usx-btn usx-btn--sm usx-btn--secondary"
+          :href="grooveboxUrl"
+          target="_blank"
+          title="Open Groovebox in new tab"
+        >
+          <UIcon name="open_in_new" />
+          <span>External</span>
+        </a>
+      </div>
+    </header>
     <iframe
       :key="iframeKey"
       ref="iframeRef"
@@ -49,16 +47,19 @@
       <div class="groovebox-surface-error-title">Groovebox is unavailable</div>
       <div class="groovebox-surface-error-body">{{ loadError }}</div>
       <div class="groovebox-surface-error-actions">
-        <button class="groovebox-surface-retry" @click="retryLoad">
-          Retry
+        <button class="usx-btn usx-btn--sm usx-btn--primary" @click="retryLoad">
+          <UIcon name="refresh" />
+          <span>Retry</span>
         </button>
         <a
-          class="groovebox-surface-open"
+          class="usx-btn usx-btn--sm usx-btn--secondary"
           :href="grooveboxUrl"
           target="_blank"
           rel="noopener"
-          >Open directly</a
         >
+          <UIcon name="open_in_new" />
+          <span>Open directly</span>
+        </a>
       </div>
     </div>
   </div>
@@ -73,9 +74,7 @@
  * @usage Routed at '/groovebox'
  */
 import { computed, ref, onBeforeUnmount, onMounted } from "vue";
-import { useRouter } from "vue-router";
-
-const router = useRouter();
+import UIcon from "../../skills/atoms/UIcon.vue";
 const iframeRef = ref<HTMLIFrameElement | null>(null);
 const loading = ref(true);
 const loadError = ref<string | null>(null);
@@ -153,40 +152,33 @@ onBeforeUnmount(() => {
   position: relative;
 }
 
-.groovebox-surface-toolbar {
+.groovebox-header {
   display: flex;
   align-items: center;
-  gap: var(--usx-spacing-md);
+  justify-content: space-between;
   padding: var(--usx-spacing-sm) var(--usx-spacing-md);
   background: var(--usx-color-surface);
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
   flex-shrink: 0;
-  min-height: var(--usx-touch-min);
 }
 
-.groovebox-surface-back {
-  background: none;
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-sm);
-  color: var(--usx-color-on-surface-muted);
-  cursor: pointer;
-  font-size: var(--usx-font-size-sm);
-  font-family: inherit;
-  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
-  transition: background var(--usx-transition-fast), border-color var(--usx-transition-fast), color var(--usx-transition-fast);
+.groovebox-header__title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-md);
 }
 
-.groovebox-surface-back:hover {
-  background: var(--usx-color-surface-hover);
+.groovebox-header__title {
+  font-size: var(--usx-font-size-xl);
+  font-weight: 600;
+  margin: 0;
   color: var(--usx-color-on-surface);
-  border-color: var(--usx-color-primary);
 }
 
-.groovebox-surface-label {
-  flex: 1;
-  font-weight: var(--usx-font-weight-semibold);
-  color: var(--usx-color-on-surface);
-  font-size: var(--usx-font-size-sm);
+.groovebox-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
 }
 
 .groovebox-surface-status {
@@ -229,20 +221,6 @@ onBeforeUnmount(() => {
 .groovebox-surface-status.is-loading {
   border-color: var(--usx-color-warning);
   color: var(--usx-color-warning);
-}
-
-.groovebox-surface-external {
-  color: var(--usx-color-on-surface-muted);
-  text-decoration: none;
-  font-size: var(--usx-font-size-lg);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border-radius: var(--usx-radius-sm);
-  transition: background var(--usx-transition-fast), color var(--usx-transition-fast);
-}
-
-.groovebox-surface-external:hover {
-  color: var(--usx-color-primary);
-  background: var(--usx-color-surface-hover);
 }
 
 .groovebox-surface-iframe {

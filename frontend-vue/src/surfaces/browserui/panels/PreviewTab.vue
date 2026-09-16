@@ -4,8 +4,8 @@
 <template>
   <div class="preview-tab">
     <div class="preview-tab__toolbar">
-      <button class="uxs-btn" @click="$emit('edit')">Edit</button>
-      <button class="uxs-btn" @click="$emit('chatui')">Send to ChatUI</button>
+      <button class="usx-btn" @click="$emit('edit')">Edit</button>
+      <button class="usx-btn" @click="$emit('chatui')">Send to ChatUI</button>
     </div>
     <div class="preview-tab__meta" v-if="meta?.source">
       <span>Source: <a :href="meta?.source" target="_blank">{{ sourceLabel }}</a></span>
@@ -61,6 +61,6 @@ const rendered = computed(() => {
 .prose :deep(code) { background: var(--usx-color-surface-variant); padding: 0 var(--usx-spacing-xs); border-radius: var(--usx-radius-sm); font-size: var(--usx-font-size-xs); }
 .preview-tab__tags { display: flex; gap: var(--usx-spacing-xs); margin-top: var(--usx-spacing-md); }
 .preview-tab__tag { font-size: var(--usx-font-size-xs); min-height: calc(var(--usx-touch-target-compact) - var(--usx-spacing-sm)); padding: 0 var(--usx-spacing-sm); border-radius: var(--usx-radius-full); background: var(--usx-color-surface-variant); display: inline-flex; align-items: center; }
-.uxs-btn { border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); min-height: var(--usx-touch-target-compact); padding: 0 var(--usx-spacing-sm); cursor: pointer; background: var(--usx-color-surface); font-size: var(--usx-font-size-xs); }
-.uxs-btn:hover { background: var(--usx-color-surface-hover); }
+.usx-btn { border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); min-height: var(--usx-control-size-sm); padding: 0 var(--usx-spacing-sm); cursor: pointer; background: var(--usx-color-surface); font-size: var(--usx-font-size-xs); transition: all var(--usx-transition-base); }
+.usx-btn:hover { background: var(--usx-color-surface-hover); border-color: var(--usx-color-primary); }
 </style>
