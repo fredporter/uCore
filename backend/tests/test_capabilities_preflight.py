@@ -1,6 +1,10 @@
 """Integration tests for Capabilities Preflight and Readiness API endpoints."""
 from __future__ import annotations
 
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+
 from aiohttp import web
 from aiohttp.test_utils import AioHTTPTestCase
 
@@ -8,6 +12,7 @@ from app.api.extensions_api import (
     handle_capabilities_readiness,
     handle_capability_preflight,
 )
+from app.core.settings import settings
 from app.extensions.registry import registry
 
 
@@ -44,30 +49,45 @@ class CapabilitiesPreflightAPITest(AioHTTPTestCase):
         assert data["repair_required"] is False
         assert data["repair"] == []
 
-    async def test_developer_guided_preflight_ready(self):
+    async def test_developer_guided_preflight_excludes_uflow_and_uknowledge(self):
         resp = await self.client.get("/api/capabilities/developer.guided/preflight")
-        assert resp.status == 200
         data = await resp.json()
         assert data["capability"] == "developer.guided"
-        assert data["ready"] is True
-        assert data["repair_required"] is False
-        assert data["repair"] == []
+        repair_ids = [item.get("id") for item in data.get("repair", [])]
+        assert "uFlow" not in repair_ids
+        assert "uKnowledge" not in repair_ids
+
+    async def test_developer_guided_preflight_ready_when_prereqs_met(self):
+        async def fake_check_tool(tool_id: str):
+            return {"installed": True, "ok": True}
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "uCore").mkdir()
+            (root / "uCode").mkdir()
+            with patch.object(settings, "udos_root", root), \
+                 patch("app.api.extensions_api.check_tool", side_effect=fake_check_tool):
+                resp = await self.client.get("/api/capabilities/developer.guided/preflight")
+                assert resp.status == 200
+                data = await resp.json()
+                assert data["capability"] == "developer.guided"
+                assert data["ready"] is True
+                assert data["repair_required"] is False
+                assert data["repair"] == []
 
     async def test_capabilities_readiness_batch_ready(self):
         resp = await self.client.get(
-            "/api/capabilities/readiness?capabilities=workflow.run,knowledge.search,developer.guided"
+            "/api/capabilities/readiness?capabilities=workflow.run,knowledge.search"
         )
         assert resp.status == 200
         data = await resp.json()
         assert data["ready"] is True
-        assert data["count"] == 3
+        assert data["count"] == 2
         caps = {c["capability"]: c for c in data["capabilities"]}
         assert "workflow.run" in caps
         assert caps["workflow.run"]["ready"] is True
         assert "knowledge.search" in caps
         assert caps["knowledge.search"]["ready"] is True
-        assert "developer.guided" in caps
-        assert caps["developer.guided"]["ready"] is True
 
     async def test_unknown_capability_preflight_missing(self):
         resp = await self.client.get("/api/capabilities/nonexistent.capability/preflight")
