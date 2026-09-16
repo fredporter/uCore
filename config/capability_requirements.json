@@ -2,14 +2,14 @@
   "workflow.run": {
     "extensions": ["uflow"],
     "tools": ["git"],
-    "repos": ["uFlow"],
+    "repos": [],
     "variables": [],
     "secrets": []
   },
   "knowledge.search": {
     "extensions": ["uknowledge"],
     "tools": [],
-    "repos": ["uKnowledge"],
+    "repos": [],
     "variables": [],
     "secrets": []
   },
@@ -23,7 +23,7 @@
   "developer.guided": {
     "extensions": [],
     "tools": ["git", "node", "python"],
-    "repos": ["uCore", "uFlow", "uKnowledge", "uCode"],
+    "repos": ["uCore", "uCode"],
     "variables": [],
     "secrets": []
   },

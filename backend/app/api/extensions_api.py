@@ -32,6 +32,9 @@ def _load_user_vars() -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+CONSOLIDATED_REPOS: frozenset[str] = frozenset({"uFlow", "uKnowledge"})
+
+
 def _load_capability_requirements() -> tuple[dict[str, Any], str]:
     override = settings.config_dir / "capability_requirements.json"
     source = override if override.exists() else _DEFAULT_CAPABILITY_REQ_FILE
@@ -43,6 +46,10 @@ def _load_capability_requirements() -> tuple[dict[str, Any], str]:
         return {}, str(source)
     if not isinstance(data, dict):
         return {}, str(source)
+    # Automatically migrate/clean up consolidated repos from requirements (including user overrides)
+    for spec in data.values():
+        if isinstance(spec, dict) and isinstance(spec.get("repos"), list):
+            spec["repos"] = [r for r in spec["repos"] if str(r) not in CONSOLIDATED_REPOS]
     return data, str(source)
 
 
