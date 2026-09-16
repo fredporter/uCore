@@ -52,6 +52,14 @@
       >
         <UIcon name="grid_on" /> GridCore Font & Icon Map
       </button>
+      <button
+        type="button"
+        class="banana-studio__mode-tab"
+        :class="{ 'banana-studio__mode-tab--active': activeMode === 'quantize' }"
+        @click="activeMode = 'quantize'"
+      >
+        <UIcon name="grain" /> V2B & BOB Quantizer
+      </button>
     </div>
 
     <div class="banana-studio__workspace">
@@ -128,7 +136,7 @@
           <div class="banana-studio__actions">
             <button
               type="button"
-              class="uxs-btn uxs-btn--primary banana-studio__gen-btn"
+              class="usx-btn usx-btn--primary banana-studio__gen-btn"
               :disabled="generating || !promptText.trim()"
               @click="handleGenerate"
             >
@@ -173,7 +181,7 @@
           <div class="banana-studio__actions">
             <button
               type="button"
-              class="uxs-btn uxs-btn--primary banana-studio__gen-btn"
+              class="usx-btn usx-btn--primary banana-studio__gen-btn"
               :disabled="generating"
               @click="handleTrace"
             >
@@ -201,11 +209,102 @@
           <div class="banana-studio__actions">
             <button
               type="button"
-              class="uxs-btn uxs-btn--primary banana-studio__gen-btn"
+              class="usx-btn usx-btn--primary banana-studio__gen-btn"
               :disabled="generating"
               @click="handleMapFont"
             >
               <UIcon name="grid_on" /> Map to GridCore Character Blocks
+            </button>
+          </div>
+        </div>
+
+        <!-- MODE 4: V2B & BOB Quantizer -->
+        <div v-else-if="activeMode === 'quantize'" class="banana-studio__mode-section">
+          <h3 class="banana-studio__section-title">Vector-to-Bitmap Quantizer (uvcore)</h3>
+          <p class="banana-studio__mode-desc">
+            Quantize scalable vectors to native dot matrices, PAL Teletext G1 character blocks, or planar Amiga BOB blitter objects.
+          </p>
+
+          <div class="banana-studio__prompt-wrap">
+            <label class="banana-studio__option-label">Source SVG (or leave blank to use active asset)</label>
+            <textarea
+              v-model="quantizeSourceSvg"
+              class="banana-studio__textarea font-mono"
+              rows="3"
+              placeholder="Paste SVG markup or leave blank to quantize current vector..."
+              :disabled="generating"
+            />
+          </div>
+
+          <div class="banana-studio__options-row">
+            <div>
+              <label class="banana-studio__option-label">Target Width</label>
+              <input
+                v-model.number="quantizeWidth"
+                type="number"
+                class="banana-studio__text-input"
+                min="16"
+                max="1024"
+                step="16"
+              />
+            </div>
+            <div>
+              <label class="banana-studio__option-label">Target Height</label>
+              <input
+                v-model.number="quantizeHeight"
+                type="number"
+                class="banana-studio__text-input"
+                min="16"
+                max="1024"
+                step="16"
+              />
+            </div>
+            <div>
+              <label class="banana-studio__option-label">Threshold (0–255)</label>
+              <input
+                v-model.number="quantizeThreshold"
+                type="number"
+                class="banana-studio__text-input"
+                min="1"
+                max="255"
+              />
+            </div>
+            <div>
+              <label class="banana-studio__option-label">Bitplanes (BOB)</label>
+              <input
+                v-model.number="quantizePlanes"
+                type="number"
+                class="banana-studio__text-input"
+                min="1"
+                max="5"
+              />
+            </div>
+          </div>
+
+          <div class="banana-studio__actions flex gap-2 flex-wrap">
+            <button
+              type="button"
+              class="usx-btn usx-btn--primary"
+              :disabled="generating"
+              @click="handleQuantizeLattice"
+            >
+              <UIcon :name="generating ? 'sync' : 'grain'" /> Dot Lattice Quantize
+            </button>
+            <button
+              type="button"
+              class="usx-btn usx-btn--secondary"
+              :disabled="generating"
+              @click="handleQuantizeTeletext"
+            >
+              <UIcon name="grid_on" /> Teletext G1 Mosaic
+            </button>
+            <button
+              type="button"
+              class="usx-btn usx-btn--secondary"
+              :disabled="generating"
+              @click="handleQuantizeBob"
+            >
+              <UIcon name="memory" /> Amiga BOB Blitter
             </button>
           </div>
         </div>
@@ -235,6 +334,22 @@
               @click="previewTab = 'teletext'"
             >
               Teletext (40×25)
+            </button>
+            <button
+              type="button"
+              class="banana-studio__tab-btn"
+              :class="{ 'banana-studio__tab-btn--active': previewTab === 'lattice' }"
+              @click="previewTab = 'lattice'"
+            >
+              Dot Lattice
+            </button>
+            <button
+              type="button"
+              class="banana-studio__tab-btn"
+              :class="{ 'banana-studio__tab-btn--active': previewTab === 'bob' }"
+              @click="previewTab = 'bob'"
+            >
+              BOB Inspector
             </button>
             <button
               type="button"
@@ -295,6 +410,60 @@
             <pre class="banana-studio__teletext-pre">{{ activeAsset.teletext || "No teletext grid available." }}</pre>
           </div>
 
+          <!-- View Tab: Dot Lattice Matrix Preview -->
+          <div v-else-if="previewTab === 'lattice'" class="banana-studio__lattice-wrapper">
+            <div v-if="activeAsset.lattice" class="banana-studio__lattice-content">
+              <div class="banana-studio__lattice-stats font-mono">
+                <span>Resolution: {{ activeAsset.lattice.width }}×{{ activeAsset.lattice.height }}</span>
+                <span>Active Dots: {{ activeAsset.lattice.active_points }} / {{ activeAsset.lattice.total_points }}</span>
+                <span>Fill: {{ Math.round(activeAsset.lattice.fill_ratio * 100) }}%</span>
+              </div>
+              <div class="banana-studio__lattice-matrix font-mono">
+                <div v-for="(row, idx) in activeAsset.lattice.rows.slice(0, 48)" :key="idx" class="banana-studio__lattice-row">
+                  {{ row }}
+                </div>
+                <div v-if="activeAsset.lattice.rows.length > 48" class="banana-studio__lattice-more font-mono text-xs text-zinc-500">
+                  ... ({{ activeAsset.lattice.rows.length - 48 }} more rows)
+                </div>
+              </div>
+            </div>
+            <div v-else class="banana-studio__preview-empty">
+              <p>No dot lattice data generated yet. Click "Dot Lattice Quantize".</p>
+            </div>
+          </div>
+
+          <!-- View Tab: BOB Blitter Inspector -->
+          <div v-else-if="previewTab === 'bob'" class="banana-studio__bob-wrapper">
+            <div v-if="activeAsset.bob" class="banana-studio__bob-content">
+              <div class="banana-studio__meta-row">
+                <span class="banana-studio__meta-key">Dimensions:</span>
+                <span class="banana-studio__meta-val font-mono">{{ activeAsset.bob.width }} × {{ activeAsset.bob.height }} px</span>
+              </div>
+              <div class="banana-studio__meta-row">
+                <span class="banana-studio__meta-key">Bitplanes:</span>
+                <span class="banana-studio__meta-val font-mono">{{ activeAsset.bob.planes }} planes ({{ Math.pow(2, activeAsset.bob.planes) }} colors max)</span>
+              </div>
+              <div class="banana-studio__meta-row">
+                <span class="banana-studio__meta-key">Row Stride:</span>
+                <span class="banana-studio__meta-val font-mono">{{ activeAsset.bob.bytes_per_row }} bytes/row</span>
+              </div>
+              <div class="banana-studio__meta-row">
+                <span class="banana-studio__meta-key">Plane Footprint:</span>
+                <span class="banana-studio__meta-val font-mono">{{ activeAsset.bob.plane_size_bytes }} bytes/plane (Total: {{ activeAsset.bob.total_bytes }} bytes)</span>
+              </div>
+              <div class="banana-studio__bob-hex-card">
+                <div class="banana-studio__bob-hex-header">
+                  <span>Planar Byte Stream</span>
+                  <button type="button" class="usx-btn usx-btn--sm" @click="copyBobHex">Copy Hex</button>
+                </div>
+                <pre class="banana-studio__bob-hex font-mono">{{ activeAsset.bob.data_hex.slice(0, 512) }}{{ activeAsset.bob.data_hex.length > 512 ? '...' : '' }}</pre>
+              </div>
+            </div>
+            <div v-else class="banana-studio__preview-empty">
+              <p>No BOB blitter object data generated yet. Click "Amiga BOB Blitter".</p>
+            </div>
+          </div>
+
           <!-- View Tab 3: ASCII Art -->
           <div v-else-if="previewTab === 'ascii'" class="banana-studio__ascii-wrapper">
             <pre class="banana-studio__ascii-pre">{{ activeAsset.ascii || "No ASCII output available." }}</pre>
@@ -336,16 +505,16 @@
             </div>
 
             <div class="banana-studio__asset-actions">
-              <button type="button" class="uxs-btn" @click="copySvg">
+              <button type="button" class="usx-btn" @click="copySvg">
                 <UIcon name="code" /> Copy SVG
               </button>
-              <button type="button" class="uxs-btn" @click="copyMarkdown">
+              <button type="button" class="usx-btn" @click="copyMarkdown">
                 <UIcon name="content_copy" /> Copy Markdown Embed
               </button>
-              <button type="button" class="uxs-btn" @click="downloadSvg">
+              <button type="button" class="usx-btn" @click="downloadSvg">
                 <UIcon name="download" /> Download SVG
               </button>
-              <button type="button" class="uxs-btn uxs-btn--primary" @click="saveToVault">
+              <button type="button" class="usx-btn usx-btn--primary" @click="saveToVault">
                 <UIcon name="save" /> Save to Vault
               </button>
             </div>
@@ -381,6 +550,9 @@ import {
   generateVectorAsset,
   traceVectorAsset,
   saveVectorAsset,
+  quantizeVectorToLattice,
+  quantizeVectorToTeletext,
+  quantizeVectorToBob,
   type BananaAssetResult,
 } from "../ApiBridge"
 
@@ -445,33 +617,33 @@ const PRESETS: PresetDefinition[] = [
     icon: "sports_esports",
     swatchBg: "#1e1e2e",
     swatchBorder: "#f38ba8",
-    swatchColor: "#a6e3a1",
+    swatchColor: "#f9e2af",
     chips: [
-      "16-bit cybernetic warrior sprite on pixel grid",
-      "Retro isometric game room with CRT television and console",
-      "Pixel art mountain fortress under a starry night sky",
+      "16-color pixel art space rover on martian regolith terrain",
+      "Retro 8-bit laboratory workstation computer console",
+      "Isometric game sprite fantasy potion workshop",
     ],
   },
   {
     id: "line_art",
-    name: "Technical Line Art",
-    description: "Clean monochrome vector geometry with dimensions and precision guides",
+    name: "Monochrome Technical Line Art",
+    description: "Crisp black on white vector CAD line art and mechanical schematic",
     icon: "draw",
     swatchBg: "#ffffff",
     swatchBorder: "#000000",
     swatchColor: "#000000",
     chips: [
-      "Microprocessor internal bus architecture and registers",
-      "Exploded view assembly of mechanical escapement gear",
-      "Concentric optics lens ray tracing technical schematic",
+      "Exploded view mechanical gearbox assembly line drawing",
+      "Aeronautical jet engine cross-section technical diagram",
+      "Vintage botanical microscope specimen pen-and-ink diagram",
     ],
   },
 ]
 
 const ASPECT_RATIOS = ["16:9", "4:3", "1:1", "2:1", "3:4"]
 
-const activeMode = ref<"generate" | "trace" | "font_map">("generate")
-const previewTab = ref<"svg" | "teletext" | "ascii" | "inspector">("svg")
+const activeMode = ref<"generate" | "trace" | "font_map" | "quantize">("generate")
+const previewTab = ref<"svg" | "teletext" | "lattice" | "bob" | "ascii" | "inspector">("svg")
 const selectedPreset = ref("mono_blueprint")
 const selectedAspect = ref("16:9")
 const promptText = ref("")
@@ -481,6 +653,13 @@ const generating = ref(false)
 const statusMessage = ref("")
 const activeAsset = ref<BananaAssetResult | null>(null)
 const history = ref<BananaAssetResult[]>([])
+
+// Quantizer state
+const quantizeWidth = ref<number>(320)
+const quantizeHeight = ref<number>(256)
+const quantizePlanes = ref<number>(2)
+const quantizeThreshold = ref<number>(128)
+const quantizeSourceSvg = ref<string>("")
 
 const activePresetMeta = computed(() =>
   PRESETS.find((p) => p.id === (activeAsset.value?.style_preset || selectedPreset.value))
@@ -555,6 +734,163 @@ async function handleMapFont() {
   } finally {
     generating.value = false
   }
+}
+
+async function handleQuantizeLattice() {
+  const svg = quantizeSourceSvg.value.trim() || activeAsset.value?.svg
+  if (!svg) {
+    statusMessage.value = "Please provide an SVG or generate a vector asset first."
+    return
+  }
+  generating.value = true
+  statusMessage.value = "Quantizing vector to GridCore dot lattice..."
+  try {
+    const res = await quantizeVectorToLattice({
+      svg,
+      target_width: quantizeWidth.value,
+      target_height: quantizeHeight.value,
+      threshold: quantizeThreshold.value,
+    })
+    if (res.ok) {
+      if (!activeAsset.value) {
+        activeAsset.value = {
+          status: "success",
+          model: "uvcore-lattice",
+          style_preset: "mono_teletext",
+          asset_id: `lattice-${Date.now()}`,
+          prompt: `Quantized Dot Lattice (${res.width}×${res.height})`,
+          svg,
+          lattice: {
+            width: res.width,
+            height: res.height,
+            active_points: res.active_points,
+            total_points: res.total_points,
+            fill_ratio: res.fill_ratio,
+            rows: res.rows,
+          },
+        }
+        history.value.unshift(activeAsset.value)
+      } else {
+        activeAsset.value.lattice = {
+          width: res.width,
+          height: res.height,
+          active_points: res.active_points,
+          total_points: res.total_points,
+          fill_ratio: res.fill_ratio,
+          rows: res.rows,
+        }
+      }
+      previewTab.value = "lattice"
+      statusMessage.value = `Lattice quantized: ${res.active_points}/${res.total_points} dots active (${Math.round(res.fill_ratio * 100)}% fill)`
+    } else {
+      statusMessage.value = `Lattice error: ${res.error}`
+    }
+  } catch (err: any) {
+    statusMessage.value = `Lattice quantization error: ${err?.message || err}`
+  } finally {
+    generating.value = false
+  }
+}
+
+async function handleQuantizeTeletext() {
+  const svg = quantizeSourceSvg.value.trim() || activeAsset.value?.svg
+  if (!svg) {
+    statusMessage.value = "Please provide an SVG or generate a vector asset first."
+    return
+  }
+  generating.value = true
+  statusMessage.value = "Quantizing vector to Teletext G1 mosaic..."
+  try {
+    const res = await quantizeVectorToTeletext({ svg })
+    if (res.ok) {
+      if (!activeAsset.value) {
+        activeAsset.value = {
+          status: "success",
+          model: "uvcore-teletext",
+          style_preset: "mono_teletext",
+          asset_id: `teletext-${Date.now()}`,
+          prompt: "Teletext G1 Mosaic",
+          svg,
+          teletext: res.teletext,
+        }
+        history.value.unshift(activeAsset.value)
+      } else {
+        activeAsset.value.teletext = res.teletext
+      }
+      previewTab.value = "teletext"
+      statusMessage.value = `Teletext G1 mosaic generated (${res.columns}×${res.rows})`
+    } else {
+      statusMessage.value = `Teletext error: ${res.error}`
+    }
+  } catch (err: any) {
+    statusMessage.value = `Teletext error: ${err?.message || err}`
+  } finally {
+    generating.value = false
+  }
+}
+
+async function handleQuantizeBob() {
+  const svg = quantizeSourceSvg.value.trim() || activeAsset.value?.svg
+  if (!svg) {
+    statusMessage.value = "Please provide an SVG or generate a vector asset first."
+    return
+  }
+  generating.value = true
+  statusMessage.value = "Exporting Amiga BOB blitter object..."
+  try {
+    const res = await quantizeVectorToBob({
+      svg,
+      target_width: quantizeWidth.value,
+      target_height: quantizeHeight.value,
+      planes: quantizePlanes.value,
+    })
+    if (res.ok) {
+      if (!activeAsset.value) {
+        activeAsset.value = {
+          status: "success",
+          model: "uvcore-bob",
+          style_preset: "mono_blueprint",
+          asset_id: `bob-${Date.now()}`,
+          prompt: `Amiga BOB Blitter (${res.width}×${res.height}, ${res.planes} planes)`,
+          svg,
+          bob: {
+            width: res.width,
+            height: res.height,
+            planes: res.planes,
+            bytes_per_row: res.bytes_per_row,
+            plane_size_bytes: res.plane_size_bytes,
+            total_bytes: res.total_bytes,
+            data_hex: res.data_hex,
+          },
+        }
+        history.value.unshift(activeAsset.value)
+      } else {
+        activeAsset.value.bob = {
+          width: res.width,
+          height: res.height,
+          planes: res.planes,
+          bytes_per_row: res.bytes_per_row,
+          plane_size_bytes: res.plane_size_bytes,
+          total_bytes: res.total_bytes,
+          data_hex: res.data_hex,
+        }
+      }
+      previewTab.value = "bob"
+      statusMessage.value = `BOB generated: ${res.width}×${res.height}, ${res.planes} planes (${res.total_bytes} bytes)`
+    } else {
+      statusMessage.value = `BOB export error: ${res.error}`
+    }
+  } catch (err: any) {
+    statusMessage.value = `BOB export error: ${err?.message || err}`
+  } finally {
+    generating.value = false
+  }
+}
+
+function copyBobHex() {
+  if (!activeAsset.value?.bob?.data_hex) return
+  navigator.clipboard.writeText(activeAsset.value.bob.data_hex)
+  statusMessage.value = "Planar BOB hex copied to clipboard."
 }
 
 function handleFileUpload(event: Event) {
@@ -998,6 +1334,78 @@ async function saveToVault() {
   color: #a6e3a1;
   margin: 0;
   white-space: pre;
+}
+
+.banana-studio__lattice-wrapper,
+.banana-studio__bob-wrapper {
+  background: var(--usx-color-surface-variant);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  padding: var(--usx-spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-sm);
+}
+
+.banana-studio__lattice-stats {
+  display: flex;
+  gap: var(--usx-spacing-md);
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-primary);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  padding-bottom: var(--usx-spacing-xs);
+}
+
+.banana-studio__lattice-matrix {
+  background: #000000;
+  border-radius: var(--usx-radius-sm);
+  padding: var(--usx-spacing-xs);
+  overflow: auto;
+  max-height: 380px;
+  font-size: 10px;
+  line-height: 1;
+  color: #39c5cf;
+}
+
+.banana-studio__lattice-row {
+  letter-spacing: 1px;
+}
+
+.banana-studio__bob-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-xs);
+  font-size: var(--usx-font-size-xs);
+}
+
+.banana-studio__bob-hex-card {
+  margin-top: var(--usx-spacing-xs);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  overflow: hidden;
+}
+
+.banana-studio__bob-hex-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  background: var(--usx-color-surface);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  font-weight: var(--usx-font-weight-medium);
+}
+
+.banana-studio__bob-hex {
+  margin: 0;
+  padding: var(--usx-spacing-sm);
+  background: #000000;
+  color: #58a6ff;
+  font-size: 11px;
+  line-height: 1.4;
+  word-break: break-all;
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .banana-studio__inspector-wrapper {

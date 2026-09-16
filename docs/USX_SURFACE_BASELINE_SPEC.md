@@ -140,7 +140,14 @@ Form and action controls should use:
 
 - Use only var(--usx-color-*) in component CSS.
 - Do not use --pico-* in new component-level styles.
-- Use UIcon with Material Symbols; do not use emoji as UI icons.
+- Use UIcon with Material Symbols; do not use emoji as UI icons or action buttons.
+- Amber CRT phosphor (`text-amber-*`, raw phosphor glow) is strictly forbidden. Semantic warnings must use `var(--usx-color-warning)`.
+
+## Surface Toolbar & Button Standards
+
+- **No Redundant Secondary Back Bars**: Surfaces hosted within `AppShell` must NOT render redundant `← Dashboard` or `← Back` top bars. The global shell (`GlobalToolbar`) already provides permanent one-click home and finder navigation. Surfaces begin with their canonical header (`[prefix]-header`) featuring title, status badges (`UBadge`), and action controls.
+- **Button Styling Consistency**: Action buttons must strictly use `.usx-btn` (with modifiers `.usx-btn--primary`, `.usx-btn--secondary`, `.usx-btn--danger`, `.usx-btn--sm`) or `UButton`. Do not invent ad-hoc button classes or use misspelt prefixes (e.g. `.uxs-btn`).
+- **Sovereign Sync Integration**: System surfaces expose calm, serene indicators for host sync status (Apple PIM JXA, BitChat LAN mesh, sovereign `~/Vault` storage) without visual clutter.
 
 ## Compliance Rubric
 

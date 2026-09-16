@@ -75,14 +75,14 @@
                 <div class="browserui-grounded-actions">
                   <button
                     type="button"
-                    class="uxs-btn uxs-btn--sm uxs-btn--secondary"
+                    class="usx-btn usx-btn--sm usx-btn--secondary"
                     :disabled="exportingNotes"
                     @click="exportSynthesisToNotes"
                   >
                     <UIcon :name="exportingNotes ? 'sync' : 'note_alt'" />
                     <span>{{ exportingNotes ? "Exporting…" : "Export to Notes" }}</span>
                   </button>
-                  <button type="button" class="uxs-btn uxs-btn--sm uxs-btn--primary" @click="saveGroundedToBinder">
+                  <button type="button" class="usx-btn usx-btn--sm usx-btn--primary" @click="saveGroundedToBinder">
                     <UIcon name="folder_special" /> Save Dossier to Binder
                   </button>
                 </div>
@@ -116,9 +116,9 @@
             </div>
             <div v-if="batchSelected.length" class="browserui-zen__selection">
               <span>{{ batchSelected.length }} selected</span>
-              <button class="uxs-btn" @click="batchResearch"><UIcon name="auto_awesome" /> Enrich</button>
-              <button class="uxs-btn uxs-btn--primary" @click="compileSelectionToBinder"><UIcon name="folder_special" /> Compile Binder</button>
-              <button class="uxs-btn" disabled title="Feed linking is scaffolded for the next workflow contract"><UIcon name="rss_feed" /> Link Feed</button>
+              <button class="usx-btn" @click="batchResearch"><UIcon name="auto_awesome" /> Enrich</button>
+              <button class="usx-btn usx-btn--primary" @click="compileSelectionToBinder"><UIcon name="folder_special" /> Compile Binder</button>
+              <button class="usx-btn" disabled title="Feed linking is scaffolded for the next workflow contract"><UIcon name="rss_feed" /> Link Feed</button>
             </div>
           </header>
 
@@ -126,7 +126,7 @@
             <UIcon name="filter_alt_off" />
             <h3>{{ stacks.length ? "No cards match the current filters" : "No research cards yet" }}</h3>
             <p>{{ stacks.length ? "Try clearing filters or adjusting search/group settings." : "Save research to your vault or add a bookmark to begin." }}</p>
-            <button class="uxs-btn" @click="resetControls">
+            <button class="usx-btn" @click="resetControls">
               <UIcon name="refresh" /> Reset filters
             </button>
           </div>
@@ -192,10 +192,10 @@
                   </div>
 
                   <div class="browserui-card__actions">
-                    <button class="uxs-btn uxs-btn--sm" @click.stop="handleResearchCard(card)">
+                    <button class="usx-btn usx-btn--sm" @click.stop="handleResearchCard(card)">
                       Research
                     </button>
-                    <button class="uxs-btn uxs-btn--sm" @click.stop="enhanceCard(card)">
+                    <button class="usx-btn usx-btn--sm" @click.stop="enhanceCard(card)">
                       Enhance
                     </button>
                   </div>
@@ -1902,40 +1902,46 @@ onMounted(async () => {
   }
 }
 
-.uxs-btn {
+.usx-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--usx-spacing-xs);
   border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-sm);
-  min-height: var(--usx-touch-target-compact);
+  border-radius: var(--usx-radius-md);
+  min-height: var(--usx-control-size-sm);
   padding: 0 var(--usx-spacing-sm);
   cursor: pointer;
-  background: color-mix(in srgb, var(--usx-color-surface) 94%, var(--usx-color-surface-variant));
+  background: var(--usx-color-surface-variant);
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface);
   white-space: nowrap;
+  transition: all var(--usx-transition-base);
 }
 
-.uxs-btn:hover {
-  background: var(--usx-color-surface-variant);
+.usx-btn:hover {
+  background: var(--usx-color-surface-hover);
+  border-color: var(--usx-color-primary);
 }
 
-.uxs-btn--primary {
+.usx-btn--primary {
   background: var(--usx-color-primary);
   color: var(--usx-color-on-primary);
   border-color: var(--usx-color-primary);
 }
 
-.uxs-btn--sm {
-  min-height: calc(var(--usx-touch-target-compact) - var(--usx-spacing-xs));
+.usx-btn--primary:hover {
+  background: var(--usx-color-primary-hover);
+}
+
+.usx-btn--sm {
+  min-height: 28px;
   padding: 0 var(--usx-spacing-xs);
 }
 
-.uxs-btn--icon {
-  width: var(--usx-touch-target-compact);
-  min-width: var(--usx-touch-target-compact);
+.usx-btn--icon {
+  width: var(--usx-control-size-sm);
+  min-width: var(--usx-control-size-sm);
   padding: 0;
 }
 

@@ -17,6 +17,92 @@
         <h1 class="dashboard-surface__title">Dashboard</h1>
         <p class="dashboard-surface__subtitle">Select a surface to begin</p>
 
+        <!-- Sovereign Ecosystem Sync Status Card -->
+        <div class="dashboard-sync-card surface__panel">
+          <div class="dashboard-sync-card__header">
+            <div class="dashboard-sync-card__title">
+              <span
+                class="dashboard-sync-card__dot"
+                :class="{ 'dashboard-sync-card__dot--active': syncState.ok }"
+              />
+              <h3>Sovereign Ecosystem Sync</h3>
+            </div>
+            <div class="dashboard-sync-card__actions">
+              <span v-if="syncState.timestamp" class="dashboard-sync-card__time font-mono">
+                {{ formatSyncTime(syncState.timestamp) }}
+              </span>
+              <button
+                type="button"
+                class="usx-btn usx-btn--sm usx-btn--secondary"
+                :disabled="syncing"
+                @click="fetchSyncStatus"
+              >
+                <UIcon :name="syncing ? 'sync' : 'refresh'" :class="{ 'dashboard-spin': syncing }" />
+                <span>{{ syncing ? "Checking..." : "Check Status" }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="dashboard-sync-card__grid">
+            <!-- Apple PIM -->
+            <div class="dashboard-sync-item">
+              <div class="dashboard-sync-item__icon">
+                <UIcon name="phone_iphone" />
+              </div>
+              <div class="dashboard-sync-item__info">
+                <span class="dashboard-sync-item__label">Apple Ecosystem (PIM)</span>
+                <span class="dashboard-sync-item__detail">
+                  Reminders · Notes · Mail · Messages (JXA)
+                </span>
+              </div>
+              <UBadge
+                :type="syncState.apple_sync?.reminders?.available ? 'success' : 'neutral'"
+                size="sm"
+              >
+                {{ syncState.apple_sync?.reminders?.available ? "Bridged" : "Standby" }}
+              </UBadge>
+            </div>
+
+            <!-- BitChat Mesh -->
+            <div class="dashboard-sync-item">
+              <div class="dashboard-sync-item__icon">
+                <UIcon name="hub" />
+              </div>
+              <div class="dashboard-sync-item__info">
+                <span class="dashboard-sync-item__label">BitChat Mesh Transport</span>
+                <span class="dashboard-sync-item__detail font-mono">
+                  {{ syncState.bitchat_mesh?.local_peer_id || "LAN Mesh" }} · {{ syncState.bitchat_mesh?.online_peers || 0 }} peers
+                </span>
+              </div>
+              <UBadge
+                :type="syncState.bitchat_mesh?.active ? 'success' : 'neutral'"
+                size="sm"
+              >
+                {{ syncState.bitchat_mesh?.active ? "Active" : "Offline" }}
+              </UBadge>
+            </div>
+
+            <!-- Google Vault -->
+            <div class="dashboard-sync-item">
+              <div class="dashboard-sync-item__icon">
+                <UIcon name="folder_shared" />
+              </div>
+              <div class="dashboard-sync-item__info">
+                <span class="dashboard-sync-item__label">Sovereign Vault Storage</span>
+                <span class="dashboard-sync-item__detail font-mono">
+                  {{ syncState.google_drive?.vault_path || "~/Vault" }}
+                </span>
+              </div>
+              <UBadge
+                :type="syncState.google_drive?.vault_exists ? 'success' : 'neutral'"
+                size="sm"
+              >
+                {{ syncState.google_drive?.vault_exists ? "Mounted" : "Missing" }}
+              </UBadge>
+            </div>
+          </div>
+        </div>
+
         <div class="dashboard-surface__grid-inner">
           <SurfaceCard
             v-for="surface in visibleSurfaces"
@@ -58,8 +144,11 @@ import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import { useExtensionStore } from "../../stores/extensions";
+import { ucoreApi } from "../../api/client";
 import SurfaceCard from "../../skills/molecules/SurfaceCard.vue";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
+import UIcon from "../../skills/atoms/UIcon.vue";
+import UBadge from "../../skills/atoms/UBadge.vue";
 
 const router = useRouter();
 const shell = useShellStore();
@@ -294,8 +383,67 @@ const activeExtensions = computed(() => {
     }));
 });
 
+const syncState = ref<{
+  ok?: boolean;
+  timestamp?: string | null;
+  apple_sync?: {
+    reminders?: { available?: boolean; bidirectional?: boolean };
+    notes?: { available?: boolean; bidirectional?: boolean };
+    mail?: { available?: boolean; bidirectional?: boolean };
+    messages?: { available?: boolean; bidirectional?: boolean };
+  } | null;
+  google_drive?: {
+    configured?: boolean;
+    vault_path?: string;
+    vault_exists?: boolean;
+    cloud_storage_detected?: boolean;
+  } | null;
+  bitchat_mesh?: {
+    active?: boolean;
+    local_peer_id?: string;
+    online_peers?: number;
+  } | null;
+}>({
+  ok: true,
+  timestamp: null,
+  apple_sync: null,
+  google_drive: null,
+  bitchat_mesh: null,
+});
+
+const syncing = ref(false);
+
+async function fetchSyncStatus() {
+  syncing.value = true;
+  try {
+    const res = await ucoreApi.host.syncStatus();
+    if (res) {
+      syncState.value = res;
+    }
+  } catch (err) {
+    console.warn("Failed to fetch host sync status:", err);
+  } finally {
+    syncing.value = false;
+  }
+}
+
+function formatSyncTime(ts: string | null | undefined): string {
+  if (!ts) return "";
+  try {
+    const d = new Date(ts);
+    return d.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
 onMounted(() => {
   void extStore.fetchCatalogue();
+  void fetchSyncStatus();
 });
 
 function navigate(route: string) {
@@ -335,6 +483,128 @@ function navigate(route: string) {
   color: var(--usx-color-on-surface-muted);
   margin-bottom: var(--usx-spacing-md);
   font-size: var(--usx-font-size-base);
+}
+
+/* ── Sovereign Ecosystem Sync Card ───────────────────────────── */
+
+.dashboard-sync-card {
+  margin-bottom: var(--usx-spacing-xl);
+  padding: var(--usx-spacing-md);
+  background: var(--usx-color-surface);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-lg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.dashboard-sync-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--usx-spacing-sm);
+  margin-bottom: var(--usx-spacing-md);
+  padding-bottom: var(--usx-spacing-xs);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  flex-wrap: wrap;
+}
+
+.dashboard-sync-card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+}
+
+.dashboard-sync-card__title h3 {
+  margin: 0;
+  font-size: var(--usx-font-size-md);
+  font-weight: 600;
+  color: var(--usx-color-on-surface);
+}
+
+.dashboard-sync-card__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--usx-color-on-surface-muted);
+  display: inline-block;
+  transition: background-color 0.2s ease;
+}
+
+.dashboard-sync-card__dot--active {
+  background: var(--usx-color-success);
+  box-shadow: 0 0 6px var(--usx-color-success);
+}
+
+.dashboard-sync-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+}
+
+.dashboard-sync-card__time {
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.dashboard-sync-card__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--usx-spacing-md);
+}
+
+.dashboard-sync-item {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface-variant);
+}
+
+.dashboard-sync-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-primary);
+  flex-shrink: 0;
+}
+
+.dashboard-sync-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-sync-item__label {
+  font-size: var(--usx-font-size-xs);
+  font-weight: 600;
+  color: var(--usx-color-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-sync-item__detail {
+  font-size: 0.7rem;
+  color: var(--usx-color-on-surface-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-spin {
+  animation: dashboard-spin 1s linear infinite;
+}
+
+@keyframes dashboard-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .dashboard-surface__grid-inner {

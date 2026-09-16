@@ -1,34 +1,29 @@
 <template>
   <div class="homenest-surface-wrapper">
-    <div class="homenest-surface-toolbar">
-      <button
-        class="homenest-surface-back"
-        @click="router.push('/')"
-        title="Back to Dashboard"
-      >
-        ← Dashboard
-      </button>
-      <span class="homenest-surface-label">HomeNest</span>
-      <span class="homenest-surface-badge">Media & Steam Living-Room Console</span>
-    </div>
+    <header class="homenest-header">
+      <div class="homenest-header__title-group">
+        <h1 class="homenest-header__title">HomeNest</h1>
+        <UBadge type="success" size="sm">Media & Steam Living-Room Console</UBadge>
+      </div>
+    </header>
 
     <div class="homenest-surface-body">
       <!-- Status Summary -->
       <div class="homenest-summary-grid">
         <div class="homenest-stat-card">
-          <div class="homenest-stat-value text-emerald-400">{{ lifecycleState.toUpperCase() }}</div>
+          <div class="homenest-stat-value text-success">{{ lifecycleState.toUpperCase() }}</div>
           <div class="homenest-stat-label">Presentation State</div>
         </div>
         <div class="homenest-stat-card">
-          <div class="homenest-stat-value text-sky-400">{{ activePresentation || 'None' }}</div>
+          <div class="homenest-stat-value text-info">{{ activePresentation || 'None' }}</div>
           <div class="homenest-stat-label">Active Session</div>
         </div>
         <div class="homenest-stat-card">
-          <div class="homenest-stat-value text-purple-400">{{ queue.length }}</div>
+          <div class="homenest-stat-value text-primary">{{ queue.length }}</div>
           <div class="homenest-stat-label">Queued Media</div>
         </div>
         <div class="homenest-stat-card">
-          <div class="homenest-stat-value text-amber-400">{{ focusTarget }}</div>
+          <div class="homenest-stat-value text-warning">{{ focusTarget }}</div>
           <div class="homenest-stat-label">Input Focus</div>
         </div>
       </div>
@@ -37,29 +32,32 @@
       <div class="homenest-card">
         <div class="homenest-card-header">
           <h2>Presentation Lifecycle Controls</h2>
-          <span class="homenest-badge font-mono">{{ running ? 'LIVE' : 'IDLE' }}</span>
+          <UBadge :type="running ? 'success' : 'neutral'" size="sm">{{ running ? 'LIVE' : 'IDLE' }}</UBadge>
         </div>
         <div class="homenest-card-content flex gap-3 p-4">
           <button
-            class="homenest-btn homenest-btn--primary"
+            class="usx-btn usx-btn--primary"
             :disabled="running && activePresentation === 'steam-console'"
             @click="startPresentation('steam-console')"
           >
-            🎮 Launch Steam Console
+            <UIcon name="sports_esports" />
+            <span>Launch Steam Console</span>
           </button>
           <button
-            class="homenest-btn homenest-btn--secondary"
+            class="usx-btn usx-btn--secondary"
             :disabled="running && activePresentation === 'thin-gui'"
             @click="startPresentation('thin-gui')"
           >
-            📺 Launch Thin GUI
+            <UIcon name="tv" />
+            <span>Launch Thin GUI</span>
           </button>
           <button
-            class="homenest-btn homenest-btn--danger"
+            class="usx-btn usx-btn--danger"
             :disabled="!running"
             @click="stopPresentation"
           >
-            ⏹ Stop Session & Restore Focus
+            <UIcon name="stop" />
+            <span>Stop Session & Restore Focus</span>
           </button>
         </div>
       </div>
@@ -68,15 +66,18 @@
       <div class="homenest-card">
         <div class="homenest-card-header">
           <h2>Playback Handoff Queue</h2>
-          <button class="homenest-btn" @click="addSampleMedia">Enqueue Sample Media</button>
+          <button class="usx-btn usx-btn--sm usx-btn--secondary" @click="addSampleMedia">
+            <UIcon name="add" />
+            <span>Enqueue Sample Media</span>
+          </button>
         </div>
         <div class="homenest-event-list">
           <div v-if="queue.length === 0" class="p-4 text-xs text-zinc-500 text-center font-mono">
             No media currently queued.
           </div>
           <div v-for="(item, i) in queue" :key="i" class="homenest-event-row">
-            <span class="homenest-event-time">{{ item.queued_at?.slice(11, 19) || '12:00:00' }}</span>
-            <span class="homenest-badge homenest-badge--info">{{ item.status || 'queued' }}</span>
+            <span class="homenest-event-time font-mono">{{ item.queued_at?.slice(11, 19) || '12:00:00' }}</span>
+            <UBadge type="info" size="sm">{{ item.status || 'queued' }}</UBadge>
             <span class="homenest-event-msg font-medium">{{ item.item_id }}</span>
             <span class="text-xs text-zinc-400 font-mono">Target: {{ item.target_client }}</span>
           </div>
@@ -88,9 +89,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
+import UIcon from '../../skills/atoms/UIcon.vue'
+import UBadge from '../../skills/atoms/UBadge.vue'
 
 const lifecycleState = ref('idle')
 const activePresentation = ref<string | null>(null)
@@ -135,105 +135,86 @@ function addSampleMedia() {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--usx-color-bg, #0d0e11);
-  color: var(--usx-color-text, #e2e4e9);
-  padding: 1rem;
-  gap: 1rem;
+  background: var(--usx-color-surface-base, var(--usx-color-bg, #0d0e11));
+  color: var(--usx-color-on-surface, #e2e4e9);
+  padding: var(--usx-spacing-md);
+  gap: var(--usx-spacing-md);
+  max-width: var(--usx-max-width);
+  margin: 0 auto;
+  width: 100%;
 }
-.homenest-surface-toolbar {
+.homenest-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--usx-color-border, #262930);
+  justify-content: space-between;
+  padding-bottom: var(--usx-spacing-sm);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
 }
-.homenest-surface-back {
-  background: transparent;
-  border: 1px solid var(--usx-color-border, #262930);
-  color: var(--usx-color-text, #e2e4e9);
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.8rem;
+.homenest-header__title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
 }
-.homenest-surface-label {
+.homenest-header__title {
+  font-size: var(--usx-font-size-xl);
   font-weight: 600;
-  font-size: 1.1rem;
-}
-.homenest-surface-badge {
-  font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 9999px;
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  font-family: monospace;
+  margin: 0;
+  color: var(--usx-color-on-surface);
 }
 .homenest-surface-body {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--usx-spacing-md);
 }
 .homenest-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.75rem;
+  gap: var(--usx-spacing-sm);
 }
 .homenest-stat-card {
-  background: var(--usx-color-surface, #16181d);
-  border: 1px solid var(--usx-color-border, #262930);
-  border-radius: 8px;
-  padding: 0.75rem;
+  background: var(--usx-color-surface);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
 }
 .homenest-stat-value {
-  font-size: 1.25rem;
+  font-size: var(--usx-font-size-xl);
   font-weight: 700;
   font-family: monospace;
 }
+.text-success {
+  color: var(--usx-color-success);
+}
+.text-info {
+  color: var(--usx-color-info);
+}
+.text-primary {
+  color: var(--usx-color-primary);
+}
+.text-warning {
+  color: var(--usx-color-warning);
+}
 .homenest-stat-label {
-  font-size: 0.75rem;
-  color: var(--usx-color-text-muted, #8b92a5);
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
 }
 .homenest-card {
-  background: var(--usx-color-surface, #16181d);
-  border: 1px solid var(--usx-color-border, #262930);
-  border-radius: 8px;
+  background: var(--usx-color-surface);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
   overflow: hidden;
 }
 .homenest-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--usx-color-border, #262930);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
 }
 .homenest-card-header h2 {
-  font-size: 0.95rem;
+  font-size: var(--usx-font-size-sm);
   font-weight: 600;
   margin: 0;
-}
-.homenest-btn {
-  background: var(--usx-color-surface-hover, #20242c);
-  border: 1px solid var(--usx-color-border, #262930);
-  color: var(--usx-color-text, #e2e4e9);
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-.homenest-btn--primary {
-  background: #2563eb;
-  color: #fff;
-  border-color: #3b82f6;
-}
-.homenest-btn--secondary {
-  background: #059669;
-  color: #fff;
-  border-color: #10b981;
-}
-.homenest-btn--danger {
-  background: #dc2626;
-  color: #fff;
-  border-color: #ef4444;
 }
 .homenest-event-list {
   display: flex;
@@ -242,23 +223,13 @@ function addSampleMedia() {
 .homenest-event-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 1rem;
-  border-bottom: 1px solid var(--usx-color-border, #262930);
-  font-size: 0.8rem;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  font-size: var(--usx-font-size-sm);
 }
 .homenest-event-time {
-  font-family: monospace;
-  color: var(--usx-color-text-muted, #8b92a5);
-  font-size: 0.75rem;
-}
-.homenest-badge {
-  font-size: 0.7rem;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-}
-.homenest-badge--info {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-xs);
 }
 </style>

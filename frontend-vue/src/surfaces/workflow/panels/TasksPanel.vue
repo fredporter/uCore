@@ -5,49 +5,72 @@
   >
     <!-- ── Task list / kanban (always visible, shrinks when editor slides in) ── -->
     <div class="wf-panel__main wf-zen-surface">
-      <header class="wf-standard-header">
-        <div><p class="wf-standard-header__kicker">User Workflow</p><h2>Task List</h2><p>{{ wf.inProgressCount }} in progress · {{ wf.activeTasks.length }} open</p></div>
-        <button class="wf-standard-header__action" type="button" @click="wf.setTab('editor')"><UIcon name="add" /> New or open task</button>
+      <header class="wf-unified-header">
+        <div class="wf-unified-header__left">
+          <p class="wf-standard-header__kicker">User Workflow</p>
+          <div class="wf-unified-header__title-row">
+            <h2 class="wf-unified-header__title">Tasks & Communications</h2>
+            <div class="wf-unified-header__badges">
+              <UBadge type="info" size="sm">{{ wf.activeTasks.length }} open</UBadge>
+              <UBadge v-if="wf.inProgressCount > 0" type="warning" size="sm">{{ wf.inProgressCount }} in progress</UBadge>
+              <UBadge v-if="pendingApprovals.length > 0" type="warning" size="sm">{{ pendingApprovals.length }} approvals</UBadge>
+              <UBadge v-if="inboundItems.length > 0" type="info" size="sm">{{ inboundItems.length }} inbound</UBadge>
+            </div>
+          </div>
+        </div>
+
+        <div class="wf-unified-header__right">
+          <!-- View switcher segmented group -->
+          <div class="wf-segmented-group">
+            <button
+              type="button"
+              class="wf-segmented-btn"
+              :class="{ 'wf-segmented-btn--active': viewMode === 'kanban' }"
+              title="Kanban view"
+              @click="viewMode = 'kanban'"
+            >
+              <UIcon name="view_kanban" />
+              <span>Kanban</span>
+            </button>
+            <button
+              type="button"
+              class="wf-segmented-btn"
+              :class="{ 'wf-segmented-btn--active': viewMode === 'list' }"
+              title="List view"
+              @click="viewMode = 'list'"
+            >
+              <UIcon name="table_rows" />
+              <span>List</span>
+            </button>
+            <button
+              type="button"
+              class="wf-segmented-btn"
+              :class="{ 'wf-segmented-btn--active': viewMode === 'triage' }"
+              title="Inbound Communications Triage"
+              @click="loadInboundTriage(); viewMode = 'triage'"
+            >
+              <UIcon name="mark_email_unread" />
+              <span>Inbox Triage</span>
+            </button>
+          </div>
+
+          <!-- Actions -->
+          <div class="wf-header-actions">
+            <button
+              class="usx-btn usx-btn--secondary"
+              :disabled="syncingReminders"
+              title="Sync with Apple Reminders (Bidirectional)"
+              @click="triggerRemindersSync"
+            >
+              <UIcon :name="syncingReminders ? 'sync' : 'alarm'" :class="{ 'wf-spin': syncingReminders }" />
+              <span class="wf-toolbar__btn-label">{{ syncingReminders ? "Syncing..." : "Sync Reminders" }}</span>
+            </button>
+            <button class="usx-btn usx-btn--primary" type="button" @click="wf.setTab('editor')">
+              <UIcon name="add" /> <span>New Task</span>
+            </button>
+          </div>
+        </div>
       </header>
-      <!-- Compact toolbar row -->
-      <div class="wf-toolbar">
-        <div class="wf-toolbar__toggles">
-          <button
-            class="wf-toolbar__btn"
-            :class="{ 'wf-toolbar__btn--active': viewMode === 'list' }"
-            title="List view"
-            @click="viewMode = 'list'"
-          >
-            <UIcon name="table_rows" />
-          </button>
-          <button
-            class="wf-toolbar__btn"
-            :class="{ 'wf-toolbar__btn--active': viewMode === 'kanban' }"
-            title="Kanban view"
-            @click="viewMode = 'kanban'"
-          >
-            <UIcon name="view_kanban" />
-          </button>
-        </div>
-        <span class="wf-toolbar__count">{{ wf.activeTasks.length }} open</span>
-        <span
-          v-if="wf.flowLogTasks.length"
-          class="wf-toolbar__count wf-toolbar__count--done"
-        >
-          {{ wf.flowLogTasks.length }} done
-        </span>
-        <div class="wf-toolbar__actions">
-          <button
-            class="wf-toolbar__btn wf-toolbar__sync-btn"
-            :disabled="syncingReminders"
-            title="Sync with Apple Reminders (Bidirectional)"
-            @click="triggerRemindersSync"
-          >
-            <UIcon :name="syncingReminders ? 'sync' : 'alarm'" :class="{ 'wf-spin': syncingReminders }" />
-            <span class="wf-toolbar__btn-label">{{ syncingReminders ? "Syncing..." : "Sync Reminders" }}</span>
-          </button>
-        </div>
-      </div>
 
       <div v-if="syncFeedback" class="wf-feedback-banner font-mono">
         <UIcon name="info" /> {{ syncFeedback }}
@@ -88,7 +111,7 @@
         </div>
       </div>
 
-      <div v-else class="kanban-board">
+      <div v-else-if="viewMode === 'kanban'" class="kanban-board">
         <div
           v-for="status in statuses"
           :key="status"
@@ -148,6 +171,136 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- ── Inbound Communications Triage View ── -->
+      <div v-else-if="viewMode === 'triage'" class="wf-triage-view">
+        <!-- Autonomous Approvals Section -->
+        <section v-if="pendingApprovals.length > 0" class="wf-triage-section surface__panel">
+          <div class="wf-triage-section__header">
+            <div class="wf-triage-section__title">
+              <UIcon name="gavel" />
+              <h3>Autonomous Actions Pending Human Approval</h3>
+            </div>
+            <UBadge type="warning" size="sm">{{ pendingApprovals.length }} Pending</UBadge>
+          </div>
+          <div class="wf-triage-list">
+            <div v-for="task in pendingApprovals" :key="task.id" class="wf-triage-card wf-triage-card--approval">
+              <div class="wf-triage-card__main">
+                <div class="wf-triage-card__header">
+                  <span class="wf-triage-card__badge wf-triage-card__badge--autonomous">Autonomous Gate</span>
+                  <span class="wf-triage-card__title">{{ task.title }}</span>
+                </div>
+                <p class="wf-triage-card__desc">{{ task.description || task.summary || 'Awaiting sovereign approval before execution.' }}</p>
+                <div v-if="task.action_type" class="wf-triage-card__meta font-mono">
+                  <span>Action: {{ task.action_type }}</span>
+                </div>
+              </div>
+              <div class="wf-triage-card__actions">
+                <button
+                  type="button"
+                  class="usx-btn usx-btn--sm usx-btn--primary"
+                  @click="handleApproveTask(task)"
+                >
+                  <UIcon name="check" /> Approve
+                </button>
+                <button
+                  type="button"
+                  class="usx-btn usx-btn--sm usx-btn--secondary"
+                  @click="handleRejectTask(task)"
+                >
+                  <UIcon name="close" /> Reject
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Inbound Communications Feed -->
+        <section class="wf-triage-section surface__panel">
+          <div class="wf-triage-section__header">
+            <div class="wf-triage-section__title">
+              <UIcon name="inbox" />
+              <h3>Host Inbound Feed (Apple Mail & Messages)</h3>
+            </div>
+            <div class="wf-triage-section__actions">
+              <button
+                type="button"
+                class="usx-btn usx-btn--sm"
+                :disabled="loadingInbound"
+                @click="loadInboundTriage"
+              >
+                <UIcon :name="loadingInbound ? 'sync' : 'refresh'" :class="{ 'wf-spin': loadingInbound }" />
+                <span>Fetch Latest</span>
+              </button>
+            </div>
+          </div>
+
+          <div v-if="loadingInbound" class="wf-loading">
+            <UIcon name="sync" class="wf-spin" /> Querying Apple Mail & Messages via JXA...
+          </div>
+
+          <div v-else-if="inboundItems.length === 0" class="wf-triage-empty">
+            <UIcon name="mark_email_read" :size="40" />
+            <p>All host communications are triaged. Zero pending messages.</p>
+            <button type="button" class="usx-btn usx-btn--sm usx-btn--secondary" @click="loadInboundTriage">
+              Check for New Messages
+            </button>
+          </div>
+
+          <div v-else class="wf-triage-list">
+            <div
+              v-for="item in inboundItems"
+              :key="item.id"
+              class="wf-triage-card"
+              :class="`wf-triage-card--${item.source}`"
+            >
+              <div class="wf-triage-card__main">
+                <div class="wf-triage-card__header">
+                  <span
+                    class="wf-triage-card__badge"
+                    :class="item.source === 'mail' ? 'wf-triage-card__badge--mail' : 'wf-triage-card__badge--imessage'"
+                  >
+                    <UIcon :name="item.source === 'mail' ? 'mail' : 'chat'" />
+                    {{ item.source === 'mail' ? 'Apple Mail' : 'iMessage' }}
+                  </span>
+                  <span class="wf-triage-card__sender">{{ item.sender }}</span>
+                  <span class="wf-triage-card__time font-mono">{{ item.timestamp }}</span>
+                </div>
+                <h4 v-if="item.subject" class="wf-triage-card__subject">{{ item.subject }}</h4>
+                <p class="wf-triage-card__preview">{{ item.preview }}</p>
+              </div>
+              <div class="wf-triage-card__actions">
+                <button
+                  type="button"
+                  class="usx-btn usx-btn--sm usx-btn--primary"
+                  title="Extract action and add as Workflow Task"
+                  @click="convertInboundToTask(item)"
+                >
+                  <UIcon name="add_task" /> Convert to Task
+                </button>
+                <template v-if="item.source === 'mail'">
+                  <button
+                    type="button"
+                    class="usx-btn usx-btn--sm usx-btn--secondary"
+                    title="Flag email in Apple Mail"
+                    @click="flagMail(item)"
+                  >
+                    <UIcon name="flag" />
+                  </button>
+                  <button
+                    type="button"
+                    class="usx-btn usx-btn--sm usx-btn--secondary"
+                    title="Archive email in Apple Mail"
+                    @click="archiveMail(item)"
+                  >
+                    <UIcon name="archive" />
+                  </button>
+                </template>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <section v-if="wf.flowLogTasks.length > 0" class="wf-flowlog">
@@ -239,12 +392,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, onMounted } from "vue";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 import UBadge from "../../../skills/atoms/UBadge.vue";
 import { EditorPanel } from "../../../skills";
 import { useWorkflowStore, type WorkflowTask } from "../../../stores/workflow";
 import { toTaskMarkdownLine } from "../../../utils/taskMarkdown";
+import { ucoreApi } from "../../../api/client";
 import {
   approveTaskAction,
   syncAppleRemindersInbound,
@@ -253,7 +407,7 @@ import {
 } from "../../browserui/ApiBridge";
 
 const wf = useWorkflowStore();
-const viewMode = ref<"list" | "kanban">("list");
+const viewMode = ref<"list" | "kanban" | "triage">("kanban");
 const statuses = ["todo", "in-progress", "review", "blocked"];
 const dragTaskId = ref<string | null>(null);
 const dragFromStatus = ref<string | null>(null);
@@ -264,6 +418,168 @@ const syncingReminders = ref(false);
 const syncingSingleRem = ref(false);
 const executingAction = ref(false);
 const syncFeedback = ref<string | null>(null);
+
+// ── Communications & Inbound Triage state ─────────────────────────
+const inboundItems = ref<
+  Array<{
+    id: string;
+    source: "mail" | "imessage";
+    sender: string;
+    subject?: string;
+    preview: string;
+    timestamp: string;
+    raw?: any;
+  }>
+>([]);
+const loadingInbound = ref(false);
+
+const pendingApprovals = computed(() =>
+  (wf.tasks || []).filter(
+    (t) =>
+      t.approval_status === "pending" ||
+      (t.workflowType === "autonomous" && t.status === "in-progress"),
+  ),
+);
+
+async function loadInboundTriage() {
+  loadingInbound.value = true;
+  try {
+    const items: Array<{
+      id: string;
+      source: "mail" | "imessage";
+      sender: string;
+      subject?: string;
+      preview: string;
+      timestamp: string;
+      raw?: any;
+    }> = [];
+
+    // 1. Fetch Apple Mail intake
+    try {
+      const mailRes: any = await ucoreApi.host.mailIntake({
+        limit: 15,
+        unread_only: false,
+      });
+      if (mailRes?.ok && Array.isArray(mailRes.items)) {
+        for (const m of mailRes.items) {
+          items.push({
+            id: m.id || m.message_id || `mail-${Math.random()}`,
+            source: "mail",
+            sender: m.sender || m.from || "Apple Mail",
+            subject: m.subject || "(No Subject)",
+            preview: m.snippet || m.body || "",
+            timestamp:
+              m.date_received || m.timestamp || new Date().toLocaleTimeString(),
+            raw: m,
+          });
+        }
+      }
+    } catch {
+      // Ignored if host Apple Mail is unavailable
+    }
+
+    // 2. Fetch Apple Messages intake
+    try {
+      const msgRes: any = await ucoreApi.host.imessageIntake({ limit: 15 });
+      if (msgRes?.ok && Array.isArray(msgRes.items)) {
+        for (const msg of msgRes.items) {
+          items.push({
+            id: msg.id || `msg-${Math.random()}`,
+            source: "imessage",
+            sender: msg.sender || msg.handle || "iMessage Contact",
+            preview: msg.text || msg.body || "",
+            timestamp: msg.timestamp || new Date().toLocaleTimeString(),
+            raw: msg,
+          });
+        }
+      }
+    } catch {
+      // Ignored if host iMessage is unavailable
+    }
+
+    inboundItems.value = items;
+  } finally {
+    loadingInbound.value = false;
+  }
+}
+
+async function convertInboundToTask(item: {
+  id: string;
+  source: "mail" | "imessage";
+  sender: string;
+  subject?: string;
+  preview: string;
+}) {
+  try {
+    const text = item.subject
+      ? `${item.subject}: ${item.preview}`
+      : item.preview;
+    const res: any = await ucoreApi.workflow.actionToTask({
+      text,
+      source: item.source,
+      source_ref: item.id,
+      priority: "medium",
+      sender: item.sender,
+    });
+    if (res?.ok) {
+      syncFeedback.value = `Created task: "${res.task?.title || item.subject || "Inbound action"}"`;
+      inboundItems.value = inboundItems.value.filter((i) => i.id !== item.id);
+      await wf.fetchTasks();
+    }
+  } catch (err: any) {
+    syncFeedback.value = `Error converting to task: ${err?.message || err}`;
+  }
+}
+
+async function handleApproveTask(task: WorkflowTask) {
+  try {
+    const res: any = await ucoreApi.workflow.approveTask(task.id);
+    if (res?.ok) {
+      syncFeedback.value = `Approved action for: ${task.title}`;
+      await wf.fetchTasks();
+    }
+  } catch (err: any) {
+    syncFeedback.value = `Approval error: ${err?.message || err}`;
+  }
+}
+
+async function handleRejectTask(task: WorkflowTask) {
+  try {
+    const res: any = await ucoreApi.workflow.rejectTask(
+      task.id,
+      "Rejected by user in inbox triage",
+    );
+    if (res?.ok) {
+      syncFeedback.value = `Rejected task: ${task.title}`;
+      await wf.fetchTasks();
+    }
+  } catch (err: any) {
+    syncFeedback.value = `Rejection error: ${err?.message || err}`;
+  }
+}
+
+async function flagMail(item: { id: string }) {
+  try {
+    await ucoreApi.host.mailFlag(item.id, 0);
+    syncFeedback.value = "Flagged message in Apple Mail";
+  } catch (err: any) {
+    syncFeedback.value = `Flag error: ${err?.message || err}`;
+  }
+}
+
+async function archiveMail(item: { id: string }) {
+  try {
+    await ucoreApi.host.mailArchive(item.id);
+    inboundItems.value = inboundItems.value.filter((i) => i.id !== item.id);
+    syncFeedback.value = "Archived message in Apple Mail";
+  } catch (err: any) {
+    syncFeedback.value = `Archive error: ${err?.message || err}`;
+  }
+}
+
+onMounted(() => {
+  void loadInboundTriage();
+});
 
 // ── Inline code editor state ──────────────────────────────────────
 const showCodeEditor = ref(false);
@@ -1152,5 +1468,269 @@ async function handleApproveAction(task: WorkflowTask) {
 @keyframes wf-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* ── Unified Tasks & Communications Header ───────────────────── */
+
+.wf-unified-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--usx-spacing-md);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  background: var(--usx-color-surface);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  flex-wrap: wrap;
+}
+
+.wf-unified-header__left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wf-unified-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  flex-wrap: wrap;
+}
+
+.wf-unified-header__title {
+  margin: 0;
+  font-size: var(--usx-font-size-lg);
+  font-weight: 600;
+  color: var(--usx-color-on-surface);
+}
+
+.wf-unified-header__badges {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+}
+
+.wf-unified-header__right {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-md);
+  flex-wrap: wrap;
+}
+
+.wf-segmented-group {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  background: var(--usx-color-surface-variant);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  gap: 2px;
+}
+
+.wf-segmented-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  padding: 0.25rem 0.6rem;
+  font-size: var(--usx-font-size-xs);
+  font-weight: 500;
+  border: none;
+  border-radius: var(--usx-radius-sm);
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wf-segmented-btn:hover {
+  color: var(--usx-color-on-surface);
+  background: color-mix(in srgb, var(--usx-color-surface) 60%, transparent);
+}
+
+.wf-segmented-btn--active {
+  background: var(--usx-color-surface);
+  color: var(--usx-color-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.wf-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+}
+
+/* ── Inbound Communications Triage View ─────────────────────── */
+
+.wf-triage-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-lg);
+  padding: var(--usx-spacing-md);
+  overflow-y: auto;
+}
+
+.wf-triage-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-md);
+  padding: var(--usx-spacing-md);
+  border-radius: var(--usx-radius-lg);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-surface);
+}
+
+.wf-triage-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--usx-spacing-sm);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  padding-bottom: var(--usx-spacing-xs);
+}
+
+.wf-triage-section__title {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+}
+
+.wf-triage-section__title h3 {
+  margin: 0;
+  font-size: var(--usx-font-size-md);
+  font-weight: 600;
+  color: var(--usx-color-on-surface);
+}
+
+.wf-triage-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-sm);
+}
+
+.wf-triage-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--usx-spacing-md);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface-variant);
+  transition: border-color 0.15s ease;
+}
+
+.wf-triage-card:hover {
+  border-color: var(--usx-color-primary);
+}
+
+.wf-triage-card--approval {
+  border-left: 3px solid var(--usx-color-warning);
+}
+
+.wf-triage-card--mail {
+  border-left: 3px solid var(--usx-color-info);
+}
+
+.wf-triage-card--imessage {
+  border-left: 3px solid var(--usx-color-success);
+}
+
+.wf-triage-card__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.wf-triage-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  flex-wrap: wrap;
+}
+
+.wf-triage-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--usx-radius-sm);
+}
+
+.wf-triage-card__badge--autonomous {
+  background: color-mix(in srgb, var(--usx-color-warning) 15%, transparent);
+  color: var(--usx-color-warning);
+}
+
+.wf-triage-card__badge--mail {
+  background: color-mix(in srgb, var(--usx-color-info) 15%, transparent);
+  color: var(--usx-color-info);
+}
+
+.wf-triage-card__badge--imessage {
+  background: color-mix(in srgb, var(--usx-color-success) 15%, transparent);
+  color: var(--usx-color-success);
+}
+
+.wf-triage-card__sender {
+  font-weight: 600;
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface);
+}
+
+.wf-triage-card__time {
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.wf-triage-card__title {
+  font-weight: 600;
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface);
+}
+
+.wf-triage-card__subject {
+  margin: 0.15rem 0 0 0;
+  font-size: var(--usx-font-size-sm);
+  font-weight: 500;
+  color: var(--usx-color-on-surface);
+}
+
+.wf-triage-card__desc,
+.wf-triage-card__preview {
+  margin: 0.15rem 0 0 0;
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.wf-triage-card__meta {
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+  margin-top: 0.2rem;
+}
+
+.wf-triage-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  flex-shrink: 0;
+}
+
+.wf-triage-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xl);
+  color: var(--usx-color-on-surface-muted);
+  text-align: center;
 }
 </style>

@@ -70,7 +70,7 @@
           <div v-if="selectedJob?.id === j.id && j.state === 'completed'" class="rdash__job-detail">
             <div v-if="j.result?.file"><strong>Saved:</strong> {{ j.result.file }}</div>
             <div v-if="j.result?.score"><strong>Quality:</strong> {{ j.result.score }}/5</div>
-            <button class="uxs-btn uxs-btn--sm" @click.stop="$emit('approve', j)">Approve</button>
+            <button class="usx-btn usx-btn--sm" @click.stop="$emit('approve', j)">Approve</button>
           </div>
         </div>
         </div>
@@ -94,7 +94,7 @@
               <span>Tags</span>
               <input v-model="newTags" placeholder="ai, docs, planning" class="rdash__input rdash__input--sm" />
             </label>
-            <button class="uxs-btn uxs-btn--primary" @click="submitRequest" :disabled="!newUrl">Start Research</button>
+            <button class="usx-btn usx-btn--primary" @click="submitRequest" :disabled="!newUrl">Start Research</button>
           </div>
         </section>
 
@@ -108,14 +108,14 @@
 
           <template v-else>
             <div class="rdash__gap-actions">
-              <button class="uxs-btn uxs-btn--sm" @click="props.gaps.forEach(g => $emit('fillGap', g))">Research All</button>
+              <button class="usx-btn usx-btn--sm" @click="props.gaps.forEach(g => $emit('fillGap', g))">Research All</button>
             </div>
           <div v-for="g in props.gaps" :key="g.topic" class="rdash__gap">
             <UIcon name="warning" class="rdash__gap-icon" />
             <span class="rdash__gap-priority" :class="`rdash__gap-priority--${g.priority || 'low'}`">{{ (g.priority || 'low') }}</span>
             <span class="rdash__gap-topic">{{ g.topic }}</span>
             <span class="rdash__gap-reason">{{ g.reason }}</span>
-            <button class="uxs-btn uxs-btn--sm" @click="$emit('fillGap', g)">Research</button>
+            <button class="usx-btn usx-btn--sm" @click="$emit('fillGap', g)">Research</button>
           </div>
           </template>
         </section>
@@ -411,11 +411,12 @@ function submitRequest() {
 .rdash__gap-topic { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rdash__gap-reason { font-size: var(--usx-font-size-xs); color: var(--usx-color-on-surface-muted); min-width: 0; }
 
-.uxs-btn { border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-sm); min-height: var(--usx-touch-target-compact); padding: 0 var(--usx-spacing-sm); cursor: pointer; background: var(--usx-color-surface); font-size: var(--usx-font-size-xs); }
-.uxs-btn:hover { background: var(--usx-color-surface-hover); }
-.uxs-btn--primary { background: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
-.uxs-btn--sm { font-size: var(--usx-font-size-xs); }
-.uxs-btn:disabled { opacity: 0.5; cursor: default; }
+.usx-btn { border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); min-height: var(--usx-control-size-sm); padding: 0 var(--usx-spacing-sm); cursor: pointer; background: var(--usx-color-surface); font-size: var(--usx-font-size-xs); transition: all var(--usx-transition-base); }
+.usx-btn:hover { background: var(--usx-color-surface-hover); border-color: var(--usx-color-primary); }
+.usx-btn--primary { background: var(--usx-color-primary); color: var(--usx-color-on-primary); border-color: var(--usx-color-primary); }
+.usx-btn--primary:hover { background: var(--usx-color-primary-hover); }
+.usx-btn--sm { font-size: var(--usx-font-size-xs); min-height: 28px; }
+.usx-btn:disabled { opacity: 0.5; cursor: default; }
 
 @media (max-width: 1100px) {
   .rdash__stats {

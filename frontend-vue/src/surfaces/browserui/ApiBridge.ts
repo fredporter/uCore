@@ -179,6 +179,55 @@ export interface BananaAssetResult {
   markdown_embed?: string
   citation_token?: string
   offline?: boolean
+  lattice?: {
+    width: number
+    height: number
+    active_points: number
+    total_points: number
+    fill_ratio: number
+    rows: string[]
+  }
+  bob?: {
+    width: number
+    height: number
+    planes: number
+    bytes_per_row: number
+    plane_size_bytes: number
+    total_bytes: number
+    data_hex: string
+  }
+  error?: string
+}
+
+export interface QuantizeLatticeResult {
+  ok: boolean
+  width: number
+  height: number
+  active_points: number
+  total_points: number
+  fill_ratio: number
+  rows: string[]
+  error?: string
+}
+
+export interface QuantizeTeletextResult {
+  ok: boolean
+  columns: number
+  rows: number
+  mosaic_lines: string[]
+  teletext: string
+  error?: string
+}
+
+export interface QuantizeBobResult {
+  ok: boolean
+  width: number
+  height: number
+  planes: number
+  bytes_per_row: number
+  plane_size_bytes: number
+  total_bytes: number
+  data_hex: string
   error?: string
 }
 
@@ -375,6 +424,45 @@ export async function generateBananaAsset(
     if (!res.ok) throw new Error(`Banana asset generation failed (HTTP ${res.status})`)
     return res.json()
   }
+}
+
+export async function quantizeVectorToLattice(
+  options: { svg?: string; file_path?: string; target_width?: number; target_height?: number; threshold?: number }
+): Promise<QuantizeLatticeResult> {
+  const res = await fetch(`${BASE}/api/vector/quantize/lattice`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(options),
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`Lattice quantization failed (HTTP ${res.status})`)
+  return res.json()
+}
+
+export async function quantizeVectorToTeletext(
+  options: { svg?: string; file_path?: string }
+): Promise<QuantizeTeletextResult> {
+  const res = await fetch(`${BASE}/api/vector/quantize/teletext-g1`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(options),
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`Teletext quantization failed (HTTP ${res.status})`)
+  return res.json()
+}
+
+export async function quantizeVectorToBob(
+  options: { svg?: string; file_path?: string; target_width?: number; target_height?: number; planes?: number }
+): Promise<QuantizeBobResult> {
+  const res = await fetch(`${BASE}/api/vector/quantize/bob`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(options),
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`BOB blitter export failed (HTTP ${res.status})`)
+  return res.json()
 }
 
 export async function syncGoogleDriveVault(vaultPath?: string): Promise<DriveVaultSyncResult> {

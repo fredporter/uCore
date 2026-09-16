@@ -3,11 +3,8 @@
     <!-- Top Toolbar -->
     <header class="bitchat-toolbar">
       <div class="bitchat-toolbar__left">
-        <button class="bitchat-btn-back" @click="router.push('/')" title="Back to Dashboard">
-          ← Dashboard
-        </button>
-        <span class="bitchat-title">BitChat</span>
-        <span class="bitchat-badge font-mono">Decentralized LAN Mesh</span>
+        <h1 class="bitchat-title">BitChat</h1>
+        <UBadge type="success" size="sm">Decentralized LAN Mesh</UBadge>
       </div>
 
       <div class="bitchat-toolbar__center">
@@ -23,11 +20,13 @@
       </div>
 
       <div class="bitchat-toolbar__right">
-        <button class="bitchat-btn bitchat-btn--accent" @click="triggerBeacon" :disabled="isBroadcasting">
-          📡 {{ isBroadcasting ? 'Beaconing...' : 'Announce Beacon' }}
+        <button class="usx-btn usx-btn--sm usx-btn--primary bitchat-btn bitchat-btn--accent" @click="triggerBeacon" :disabled="isBroadcasting">
+          <UIcon name="cell_tower" />
+          <span>{{ isBroadcasting ? 'Beaconing...' : 'Announce Beacon' }}</span>
         </button>
-        <button class="bitchat-btn" @click="refreshAll" title="Refresh peers and messages">
-          🔄 Refresh
+        <button class="usx-btn usx-btn--sm usx-btn--secondary bitchat-btn" @click="refreshAll" title="Refresh peers and messages">
+          <UIcon name="refresh" />
+          <span>Refresh</span>
         </button>
       </div>
     </header>
@@ -114,14 +113,15 @@
             </span>
             <button
               v-if="selectedMsgIds.length > 0"
-              class="bitchat-btn bitchat-btn--primary font-mono text-xs"
+              class="usx-btn usx-btn--sm usx-btn--primary bitchat-btn bitchat-btn--primary font-mono text-xs"
               @click="openSaveToBinderModal"
             >
-              📁 Save to Binder
+              <UIcon name="folder" />
+              <span>Save to Binder</span>
             </button>
             <button
               v-if="selectedMsgIds.length > 0"
-              class="bitchat-btn bitchat-btn--ghost font-mono text-xs"
+              class="usx-btn usx-btn--sm usx-btn--secondary bitchat-btn bitchat-btn--ghost font-mono text-xs"
               @click="clearSelection"
             >
               Clear
@@ -132,7 +132,9 @@
         <!-- Message Feed -->
         <div class="bitchat-feed" ref="feedEl">
           <div v-if="messages.length === 0" class="bitchat-empty-feed">
-            <div class="bitchat-empty-icon">💬</div>
+            <div class="bitchat-empty-icon">
+              <UIcon name="forum" />
+            </div>
             <div class="bitchat-empty-title">No messages in {{ currentChannel }} yet</div>
             <div class="bitchat-empty-subtitle text-zinc-400 text-xs">
               Broadcast a message across your local mesh network or save notes into your binders.
@@ -162,10 +164,10 @@
                   {{ formatTimestamp(msg.timestamp) }}
                 </span>
                 <span v-if="msg.saved_to_binder" class="bitchat-tag bitchat-tag--saved font-mono" title="Saved to Binder Evidence">
-                  📁 EVIDENCE
+                  <UIcon name="folder" /> EVIDENCE
                 </span>
                 <span v-if="msg.task_id" class="bitchat-tag bitchat-tag--task font-mono" title="Promoted to Sovereign Task">
-                  ⚡ {{ msg.task_id }}
+                  <UIcon name="bolt" /> {{ msg.task_id }}
                 </span>
               </div>
 
@@ -174,18 +176,18 @@
               <!-- Message Quick Actions -->
               <div class="bitchat-msg-actions">
                 <button
-                  class="bitchat-msg-btn font-mono"
+                  class="usx-btn usx-btn--sm usx-btn--secondary bitchat-msg-btn font-mono"
                   @click="openConvertTaskModal(msg)"
                   title="Promote to .tasker markdown task"
                 >
-                  ⚡ Convert to Task
+                  <UIcon name="bolt" /> Convert to Task
                 </button>
                 <button
-                  class="bitchat-msg-btn font-mono"
+                  class="usx-btn usx-btn--sm usx-btn--secondary bitchat-msg-btn font-mono"
                   @click="quickSaveSingleToBinder(msg)"
                   title="Save single message to binder evidence"
                 >
-                  📁 Save to Binder
+                  <UIcon name="folder" /> Save to Binder
                 </button>
               </div>
             </div>
@@ -214,11 +216,12 @@
             ></textarea>
 
             <button
-              class="bitchat-btn bitchat-btn--send font-mono"
+              class="usx-btn usx-btn--primary bitchat-btn bitchat-btn--send font-mono"
               :disabled="!draftText.trim()"
               @click="handleSendMessage"
             >
-              Send ↵
+              <span>Send</span>
+              <UIcon name="keyboard_return" />
             </button>
           </div>
         </footer>
@@ -230,7 +233,9 @@
       <div class="bitchat-modal">
         <div class="bitchat-modal-header">
           <h3>Save Discussion Evidence to Binder</h3>
-          <button class="bitchat-modal-close" @click="showSaveBinderModal = false">×</button>
+          <button class="bitchat-modal-close" @click="showSaveBinderModal = false">
+            <UIcon name="close" />
+          </button>
         </div>
         <div class="bitchat-modal-body">
           <p class="text-xs text-zinc-400 mb-3">
@@ -268,7 +273,9 @@
       <div class="bitchat-modal">
         <div class="bitchat-modal-header">
           <h3>Convert Action Item to Task</h3>
-          <button class="bitchat-modal-close" @click="showConvertTaskModal = false">×</button>
+          <button class="bitchat-modal-close" @click="showConvertTaskModal = false">
+            <UIcon name="close" />
+          </button>
         </div>
         <div class="bitchat-modal-body" v-if="activeTaskMsg">
           <div class="bitchat-task-preview mb-3 p-3 bg-zinc-900 border border-zinc-800 rounded">
@@ -322,9 +329,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
+import UIcon from '../../skills/atoms/UIcon.vue'
+import UBadge from '../../skills/atoms/UBadge.vue'
 
 // Channels
 const channels = [
@@ -658,22 +664,6 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-}
-
-.bitchat-btn-back {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: var(--usx-color-text, #e2e4e9);
-  padding: 0.35rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.bitchat-btn-back:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .bitchat-title {
