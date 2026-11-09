@@ -16,7 +16,9 @@ VISIBILITIES = {"private", "shared", "public"}
 
 
 def _store() -> IdentityStoryStore:
-    return IdentityStoryStore()
+    return IdentityStoryStore(
+        profile_id=get_full_identity().get("active_profile_id") or "signed-out"
+    )
 
 
 async def _json_object(request: web.Request) -> dict:
@@ -167,9 +169,9 @@ async def handle_wordpress_map_inbound(request: web.Request) -> web.Response:
 async def handle_roles_list(_request: web.Request) -> web.Response:
     """GET /api/identity/roles."""
     from .wordpress_rbac import ROLE_CAPABILITIES
+
     roles = [
-        {"role": role, "capabilities": sorted(caps)}
-        for role, caps in ROLE_CAPABILITIES.items()
+        {"role": role, "capabilities": sorted(caps)} for role, caps in ROLE_CAPABILITIES.items()
     ]
     return web.json_response({"roles": roles})
 
@@ -177,6 +179,7 @@ async def handle_roles_list(_request: web.Request) -> web.Response:
 async def handle_users_list(request: web.Request) -> web.Response:
     """GET /api/identity/users."""
     from .wordpress_rbac import get_current_user, get_user_store
+
     current_user = get_current_user(request)
     store = get_user_store()
     role_filter = request.query.get("role")
@@ -184,7 +187,12 @@ async def handle_users_list(request: web.Request) -> web.Response:
     if not store.has_capability(current_user, "manage_users"):
         users = store.list_users(role=role_filter)
         safe_users = [
-            {"id": u["id"], "username": u["username"], "display_name": u["display_name"], "role": u["role"]}
+            {
+                "id": u["id"],
+                "username": u["username"],
+                "display_name": u["display_name"],
+                "role": u["role"],
+            }
             for u in users
         ]
         return web.json_response({"users": safe_users})
@@ -196,6 +204,7 @@ async def handle_users_list(request: web.Request) -> web.Response:
 async def handle_users_create(request: web.Request) -> web.Response:
     """POST /api/identity/users."""
     from .wordpress_rbac import get_current_user, get_user_store
+
     current_user = get_current_user(request)
     store = get_user_store()
     if not store.has_capability(current_user, "manage_users"):
@@ -223,27 +232,33 @@ async def handle_users_create(request: web.Request) -> web.Response:
 async def handle_user_get(request: web.Request) -> web.Response:
     """GET /api/identity/users/{user_id}."""
     from .wordpress_rbac import get_current_user, get_user_store
+
     current_user = get_current_user(request)
     store = get_user_store()
     target_id = request.match_info["user_id"]
     user = store.get_user(target_id)
     if user is None:
         raise web.HTTPNotFound(reason="User not found")
-    if current_user.get("id") != target_id and not store.has_capability(current_user, "manage_users"):
-        return web.json_response({
-            "user": {
-                "id": user["id"],
-                "username": user["username"],
-                "display_name": user["display_name"],
-                "role": user["role"],
+    if current_user.get("id") != target_id and not store.has_capability(
+        current_user, "manage_users"
+    ):
+        return web.json_response(
+            {
+                "user": {
+                    "id": user["id"],
+                    "username": user["username"],
+                    "display_name": user["display_name"],
+                    "role": user["role"],
+                }
             }
-        })
+        )
     return web.json_response({"user": user})
 
 
 async def handle_user_update(request: web.Request) -> web.Response:
     """PATCH /api/identity/users/{user_id}."""
     from .wordpress_rbac import get_current_user, get_user_store
+
     current_user = get_current_user(request)
     store = get_user_store()
     target_id = request.match_info["user_id"]
@@ -276,6 +291,7 @@ async def handle_user_update(request: web.Request) -> web.Response:
 async def handle_user_delete(request: web.Request) -> web.Response:
     """DELETE /api/identity/users/{user_id}."""
     from .wordpress_rbac import get_current_user, get_user_store
+
     current_user = get_current_user(request)
     store = get_user_store()
     if not store.has_capability(current_user, "manage_users"):
@@ -291,12 +307,15 @@ async def handle_user_delete(request: web.Request) -> web.Response:
 async def handle_user_capabilities(request: web.Request) -> web.Response:
     """GET /api/identity/users/me/capabilities."""
     from .wordpress_rbac import get_current_user
+
     current_user = get_current_user(request)
-    return web.json_response({
-        "user_id": current_user.get("id"),
-        "role": current_user.get("role"),
-        "capabilities": current_user.get("capabilities", []),
-    })
+    return web.json_response(
+        {
+            "user_id": current_user.get("id"),
+            "role": current_user.get("role"),
+            "capabilities": current_user.get("capabilities", []),
+        }
+    )
 
 
 def register_routes(app: web.Application) -> None:
@@ -327,4 +346,3 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/identity/users/{user_id}", handle_user_get)
     app.router.add_patch("/api/identity/users/{user_id}", handle_user_update)
     app.router.add_delete("/api/identity/users/{user_id}", handle_user_delete)
-

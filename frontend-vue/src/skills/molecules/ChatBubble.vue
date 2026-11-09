@@ -25,7 +25,7 @@
         <!-- Top-right actions: lane toggle + close -->
         <div class="usx-chat-overlay-actions">
           <slot name="actions" />
-          <button class="usx-chat-overlay-close" @click="closeChat" title="Close (Esc)">
+          <button class="usx-btn usx-chat-overlay-close" @click="closeChat" title="Close (Esc)">
             <UIcon name="close" />
           </button>
         </div>
@@ -161,4 +161,7 @@ onBeforeUnmount(() => {
   opacity: 0;
   transform: translateY(16px);
 }
+
+.usx-chat-overlay-close.usx-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; min-height: 36px; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.usx-chat-overlay-close :deep(.u-icon) { width: 20px; height: 20px; font-size: 20px; }
 </style>

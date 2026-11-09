@@ -102,7 +102,7 @@
           <div class="bitchat-chat-title-group">
             <span class="bitchat-chat-title font-mono">{{ currentChannel }}</span>
             <span class="bitchat-chat-desc text-zinc-400 text-xs">
-              Zero-cloud sovereign mesh conduit
+              Nearby messaging
             </span>
           </div>
 
@@ -166,7 +166,7 @@
                 <span v-if="msg.saved_to_binder" class="bitchat-tag bitchat-tag--saved font-mono" title="Saved to Binder Evidence">
                   <UIcon name="folder" /> EVIDENCE
                 </span>
-                <span v-if="msg.task_id" class="bitchat-tag bitchat-tag--task font-mono" title="Promoted to Sovereign Task">
+                <span v-if="msg.task_id" class="bitchat-tag bitchat-tag--task font-mono" title="Linked task">
                   <UIcon name="bolt" /> {{ msg.task_id }}
                 </span>
               </div>
@@ -314,7 +314,7 @@
         <div class="bitchat-modal-footer">
           <button class="bitchat-btn bitchat-btn--ghost" @click="showConvertTaskModal = false">Cancel</button>
           <button class="bitchat-btn bitchat-btn--primary" @click="executeConvertToTask">
-            Create Sovereign Task
+            Create task
           </button>
         </div>
       </div>
@@ -607,7 +607,7 @@ async function executeConvertToTask() {
 
     const data = await res.json()
     if (res.ok && data.ok) {
-      showToast(`⚡ Sovereign Task ${data.task_id} created in ${taskBoard.value}!`)
+      showToast(`⚡ Task ${data.task_id} created in ${taskBoard.value}!`)
       showConvertTaskModal.value = false
       activeTaskMsg.value = null
       await loadMessages()

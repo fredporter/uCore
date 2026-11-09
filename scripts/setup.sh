@@ -23,7 +23,7 @@ UDOS_ROOT="${UDOS_ROOT:-$(dirname "$UCORE_ROOT")}"
 UDOS_HOME="${UDOS_HOME:-$UDOS_ROOT/.udos}"
 BACKEND_DIR="$UCORE_ROOT/backend"
 FRONTEND_DIR="$UCORE_ROOT/frontend-vue"
-VENV_DIR="$UDOS_ROOT/.venv"
+VENV_DIR="$BACKEND_DIR/.venv"
 LOG_DIR="$UDOS_HOME/logs"
 DATA_DIR="$UDOS_HOME/data"
 CONFIG_DIR="$UDOS_HOME/config"
@@ -119,7 +119,7 @@ info "Checking prerequisites..."
 
 # Python
 PYTHON_BIN=""
-for cmd in python3.12 python3.13 python3 python3.11; do
+for cmd in python3.12 python3; do
     if command -v "$cmd" &>/dev/null; then
         PY_VER=$("$cmd" --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
         PY_MAJOR=${PY_VER%%.*}
@@ -132,7 +132,7 @@ for cmd in python3.12 python3.13 python3 python3.11; do
 done
 
 if [[ -z "$PYTHON_BIN" ]]; then
-    err "Python 3.12+ is required. Install it with: brew install python@3.12"
+    err "Python 3.12 is required. Install it with: brew install python@3.12"
     exit 1
 fi
 ok "Python: $($PYTHON_BIN --version 2>&1)"
@@ -171,44 +171,24 @@ ok "Directory structure created"
 
 # ─── Python Virtual Environment ──────────────────────────────────────
 
-if [[ -f "$VENV_DIR/bin/python" ]]; then
-    info "Python venv already exists at $VENV_DIR"
-else
-    info "Creating Python virtual environment..."
-    "$PYTHON_BIN" -m venv "$VENV_DIR"
-    ok "Virtual environment created at $VENV_DIR"
+if [[ -L "$VENV_DIR" ]]; then
+    err "Refusing a symlinked backend environment. Repair it before setup; shared environments are unsupported."
+    exit 1
 fi
-
-# Activate venv
+if ! command -v uv &>/dev/null; then
+    err "uv is required to install backend dependencies from backend/uv.lock."
+    exit 1
+fi
+info "Synchronizing the locked uCore Python environment..."
+UV_PROJECT_ENVIRONMENT="$VENV_DIR" uv --no-cache sync --project "$BACKEND_DIR" --locked --extra dev --python "$PYTHON_BIN"
 source "$VENV_DIR/bin/activate"
-
-# Install uCore and dependencies in editable mode
-info "Installing Python dependencies..."
-cd "$BACKEND_DIR"
-
-# Install build deps first
-pip install --quiet --upgrade pip setuptools wheel 2>&1 | tail -1
-
-# Install uCore in editable mode (installs dependencies from pyproject.toml)
-pip install --quiet -e . 2>&1 | tail -1
-ok "uCore Python package installed"
-
-# Install required split-repo owners into the shared ecosystem environment.
-for package_repo in "$UDOS_ROOT/uFlow" "$UDOS_ROOT/uKnowledge"; do
-    if [[ -f "$package_repo/pyproject.toml" ]]; then
-        pip install --quiet --no-build-isolation -e "$package_repo" 2>&1 | tail -1
-    fi
-done
-ok "Required split-repo Python packages installed"
-
-# Install dev dependencies
-pip install --quiet -e ".[dev]" 2>&1 | tail -1 || true
-ok "Dev dependencies installed"
+"$VENV_DIR/bin/python" "$UCORE_ROOT/scripts/check_backend_environment.py"
+ok "Product-owned backend environment verified"
 
 # Install and validate vendor modules from lock
 if [[ -f "$UCORE_ROOT/vendor/sources.yaml" ]]; then
     info "Syncing locked vendor modules..."
-    bash "$UCORE_ROOT/scripts/vendor_sync.sh" --install-python --check
+    bash "$UCORE_ROOT/scripts/vendor_sync.sh" --check
     ok "Vendor modules synced from lock"
 fi
 
@@ -299,12 +279,14 @@ else
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <string>/Library/Developer/CommandLineTools/usr/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
         <key>PYTHONPATH</key>
         <string>$BACKEND_DIR</string>
         <key>PYTHONUNBUFFERED</key>
         <string>1</string>
         <key>UCORE_DEBUG</key>
+        <string>0</string>
+        <key>PYTHONNOUSERSITE</key>
         <string>1</string>
     </dict>
 </dict>
@@ -348,9 +330,11 @@ else
     <key>EnvironmentVariables</key>
     <dict>
         <key>UCORE_DEBUG</key>
+        <string>0</string>
+        <key>PYTHONNOUSERSITE</key>
         <string>1</string>
         <key>PATH</key>
-        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <string>/Library/Developer/CommandLineTools/usr/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     </dict>
 </dict>
 </plist>
@@ -391,7 +375,7 @@ else
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <string>/Library/Developer/CommandLineTools/usr/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
         <key>UCORE_ROOT</key>
         <string>$UCORE_ROOT</string>
     </dict>

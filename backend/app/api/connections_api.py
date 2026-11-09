@@ -1,0 +1,369 @@
+"""Profile-owned connection setup and the combined local collection."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+
+from aiohttp import web
+
+from app.services.connections.engine import SyncEngine
+from app.services.connections.google_auth import finish, secret_key, start
+from app.services.connections.reconcile import duplicate_candidates
+from app.services.connections.store import CollectionStore
+from app.services.identity import get_full_identity
+
+
+def profile(request):
+    identity = get_full_identity()
+    if not identity.get("authenticated") or not identity.get("active_profile_id"):
+        raise web.HTTPUnauthorized(text="Choose a local user profile first")
+    # The caller cannot select another profile through a header or query string.
+    if request.method not in {"GET", "HEAD"}:
+        origin = request.headers.get("Origin", "")
+        from urllib.parse import urlparse
+
+        if origin and urlparse(origin).hostname not in {"localhost", "127.0.0.1", "::1"}:
+            raise web.HTTPForbidden(text="Local connection setup required")
+    return identity["active_profile_id"]
+
+
+async def state(request):
+    owner = profile(request)
+    store = CollectionStore()
+    records = store.records(owner)
+    from app.identity.story_store import IdentityStoryStore
+
+    identity_store = IdentityStoryStore(profile_id=owner)
+    setup_state = store.setup(owner)
+    story = (
+        identity_store.get_story(setup_state.get("story_id", ""))
+        if setup_state.get("story_id")
+        else None
+    )
+    from app.services.connections.google_auth import AESGCM, client
+
+    try:
+        google_configured = bool(client()) and AESGCM is not None
+    except ValueError:
+        google_configured = False
+    return web.json_response(
+        {
+            "setup": setup_state,
+            "user_profile": identity_store.get_variables(),
+            "setup_story": story,
+            "google_auth_configured": google_configured,
+            "connections": store.connections(owner),
+            "counts": {
+                kind: sum(r["kind"] == kind and not r["data"].get("merged_into") for r in records)
+                for kind in ["tasks", "contacts", "notes", "calendar", "mail"]
+            },
+            "pending_exports": store.pending_exports(owner),
+            "duplicates": duplicate_candidates(records),
+            "conflicts": store.conflicts(owner),
+        }
+    )
+
+
+async def setup(request):
+    owner, body = profile(request), await request.json()
+    if not isinstance(body, dict):
+        raise web.HTTPBadRequest(text="Expected setup answers")
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+    from app.identity.story_store import IdentityStoryStore
+    from app.services.identity import update_profile
+
+    store = CollectionStore()
+    previous = store.setup(owner)
+    name = str(body.get("display_name", previous.get("display_name", ""))).strip()[:100]
+    answers = body.get("answers", {})
+    if not isinstance(answers, dict):
+        raise web.HTTPBadRequest(text="Expected story answers")
+    clean = {
+        key: str(value).strip()[:160]
+        for key, value in answers.items()
+        if key
+        in {
+            "city",
+            "country",
+            "locale",
+            "host_timezone",
+            "start_surface",
+            "theme_mode",
+            "font_size",
+        }
+    }
+    if clean.get("host_timezone"):
+        try:
+            ZoneInfo(clean["host_timezone"])
+        except (ZoneInfoNotFoundError, ValueError):
+            raise web.HTTPBadRequest(text="Timezone must be a valid host timezone") from None
+    if clean.get("start_surface") and clean["start_surface"] not in {
+        "workflow",
+        "knowledge",
+        "ucode",
+        "research",
+    }:
+        raise web.HTTPBadRequest(text="Choose a starting surface")
+    try:
+        step = max(0, min(int(body.get("step", previous.get("step", 0))), 6))
+        if "font_size" in clean and not 12 <= int(clean["font_size"]) <= 24:
+            raise ValueError()
+    except (ValueError, TypeError):
+        raise web.HTTPBadRequest(text="Invalid setup step or text size") from None
+    if clean.get("theme_mode") and clean["theme_mode"] not in {"auto", "dark", "light"}:
+        raise web.HTTPBadRequest(text="Choose an appearance")
+    if body.get("self_contact"):
+        contact = store.record(owner, body["self_contact"])
+        if not contact or contact["kind"] != "contacts":
+            raise web.HTTPBadRequest(text="Choose a contact from this profile")
+    completed = bool(body.get("completed", previous.get("completed", False)))
+    if completed and not name:
+        raise web.HTTPBadRequest(text="Your name is required")
+    identity_store = IdentityStoryStore(profile_id=owner)
+    story_id = previous.get("story_id")
+    if not story_id:
+        story_id = identity_store.create_story("user-setup-v2", {"display_name": name})["id"]
+    identity_store.update_story(
+        story_id,
+        step=step,
+        status="published" if completed else "in_progress",
+        responses={"display_name": name, **clean},
+    )
+    if completed:
+        update_profile(owner, name=name)
+        identity_store.update_variables(
+            {
+                **{k: v for k, v in clean.items() if k not in {"theme_mode", "font_size"}},
+                "timezone_source": "host",
+            }
+        )
+    try:
+        return web.json_response(
+            store.setup(
+                owner,
+                {
+                    **previous,
+                    **body,
+                    "display_name": name,
+                    "completed": completed,
+                    "story_id": story_id,
+                    "step": step,
+                },
+            )
+        )
+    except ValueError as exc:
+        raise web.HTTPBadRequest(text=str(exc)) from None
+
+
+async def configure(request):
+    owner, body = profile(request), await request.json()
+    try:
+        return web.json_response(
+            CollectionStore().configure(
+                owner, body.get("provider"), body.get("config", {}), body.get("id")
+            )
+        )
+    except (ValueError, TypeError) as exc:
+        raise web.HTTPBadRequest(text=str(exc)) from None
+
+
+async def action(request):
+    owner, body = profile(request), await request.json() if request.body_exists else {}
+    store = CollectionStore()
+    connection = store.connection(owner, request.match_info["connection"])
+    if not connection:
+        raise web.HTTPNotFound()
+    command = request.match_info["action"]
+    engine = SyncEngine(store)
+    try:
+        if command == "discover":
+            result = await asyncio.to_thread(
+                engine.adapters[connection["provider"]].discover, connection
+            )
+            store.health(connection["id"], state="scope_required", error="")
+            return web.json_response({"collections": result})
+        if command == "preview":
+            kind = body.get("kind")
+            scope = connection["config"]["collections"].get(kind)
+            if not scope:
+                raise ValueError("Choose a collection first")
+            result = await asyncio.to_thread(
+                engine.adapters[connection["provider"]].pull, connection, kind, scope
+            )
+            return web.json_response({"records": result})
+        if command == "sync":
+            return web.json_response(await engine.sync(owner, connection["id"], manual=True))
+        if command == "authorize" and connection["provider"] == "google":
+            # Fixed loopback destination: never derive OAuth redirects from Host input.
+            from app.core.settings import settings
+
+            url = start(
+                connection, f"http://127.0.0.1:{settings.port}/api/connections/google/callback"
+            )
+            opened = False
+            if body.get("open_browser"):
+                import webbrowser
+
+                opened = await asyncio.to_thread(webbrowser.open, url)
+            return web.json_response({"url": url, "opened": opened})
+        if command == "disconnect":
+            store.configure(
+                owner,
+                connection["provider"],
+                {**connection["config"], "enabled": False},
+                connection["id"],
+            )
+            if connection["provider"] == "google":
+                from app.secret.store import get_store
+
+                secrets = get_store()
+                secrets.delete(secret_key(connection))
+                secrets.save()
+            store.health(connection["id"], state="disconnected", error="")
+            return web.json_response({"state": "disconnected"})
+        if command == "link":
+            return web.json_response(
+                await asyncio.to_thread(
+                    engine.link, owner, connection["id"], body.get("record"), body.get("remote")
+                )
+            )
+        if command == "resolve":
+            return web.json_response(
+                engine.resolve(owner, connection["id"], body.get("remote"), body.get("choice"))
+            )
+        raise web.HTTPBadRequest(text="Unknown connection action")
+    except (ValueError, RuntimeError) as exc:
+        raise web.HTTPBadRequest(text=str(exc)) from None
+
+
+async def callback(request):
+    # State is short-lived, one-use, and bound to a profile + connection + PKCE verifier.
+    try:
+        connection = await asyncio.to_thread(
+            finish, request.query.get("state", ""), request.query.get("code", "")
+        )
+        store = CollectionStore()
+        if not store.connection(connection["profile"], connection["id"]):
+            raise ValueError("Connection no longer exists")
+        store.health(connection["id"], state="scope_required", error="")
+        return web.Response(
+            text="Google connected. Return to uCore Settings → Connections to choose lists and enable sync."
+        )
+    except (ValueError, RuntimeError):
+        return web.Response(
+            text="Google connection was not completed. Return to Connections and try again.",
+            status=400,
+        )
+
+
+async def records(request):
+    owner, store = profile(request), CollectionStore()
+    if request.method == "GET":
+        engine = SyncEngine(store)
+        await asyncio.to_thread(engine.refresh_tasks, owner)
+        await asyncio.to_thread(engine.refresh_notes, owner)
+        items = [
+            r
+            for r in store.records(owner, request.query.get("kind"))
+            if not r["data"].get("merged_into")
+        ]
+        if request.query.get("id"):
+            items = [r for r in items if r["id"] == request.query["id"]]
+        import hashlib
+
+        from app.core.settings import settings
+
+        connections = store.connections(owner)
+        for item in items:
+            item["sources"] = [
+                {
+                    "provider": c["provider"],
+                    "account": c["health"].get("account", ""),
+                    "connection": c["id"],
+                }
+                for c in connections
+                if any(r["record"] == item["id"] for r in store.replicas(c["id"]))
+            ]
+            if item["kind"] == "notes":
+                item["file_path"] = str(
+                    settings.vault_root
+                    / "Connections"
+                    / hashlib.sha256(owner.encode()).hexdigest()[:10]
+                    / (item["id"] + ".md")
+                )
+        return web.json_response({"records": items})
+    body = await request.json()
+    try:
+        if body.get("merge"):
+            return web.json_response(
+                SyncEngine(store).merge(owner, body["merge"]["keep"], body["merge"]["other"])
+            )
+        result = store.save(
+            owner, body.get("kind"), body.get("data"), body.get("id"), body.get("revision")
+        )
+        SyncEngine(store).project(owner, result)
+        return web.json_response(result)
+    except (ValueError, KeyError) as exc:
+        raise web.HTTPBadRequest(text=str(exc)) from None
+
+
+async def oauth_settings(request):
+    """Installation-owned OAuth app configuration; never return credential values."""
+    profile(request)
+    from app.core.settings import settings
+    from app.services.connections import google_auth
+
+    if request.method == "POST":
+        if google_auth.AESGCM is None:
+            raise web.HTTPBadRequest(text="Encrypted credential storage is required")
+        body = await request.json()
+        if not isinstance(body, dict):
+            raise web.HTTPBadRequest(text="Expected OAuth app settings")
+        import re
+
+        cid = str(body.get("client_id", "")).strip()
+        secret = str(body.get("client_secret", "")).strip()
+        if not re.fullmatch(r"[A-Za-z0-9_-]+[.]apps[.]googleusercontent[.]com", cid):
+            raise web.HTTPBadRequest(text="Enter a Google Desktop app client ID")
+        if len(secret) > 4096:
+            raise web.HTTPBadRequest(text="Client secret is too long")
+        vault = google_auth.get_store()
+        try:
+            previous = google_auth.client()
+        except ValueError:
+            previous = {}
+        if previous.get("client_id") and previous["client_id"] != cid:
+            raise web.HTTPBadRequest(
+                text="A different OAuth app is already configured. Manage replacement in Advanced Secrets and reconnect accounts."
+            )
+        vault.set("GOOGLE_OAUTH_CLIENT_ID", cid)
+        if secret:
+            vault.set("GOOGLE_OAUTH_CLIENT_SECRET", secret)
+        vault.save()
+    try:
+        configured = google_auth.client()
+    except ValueError:
+        configured = {}
+    return web.json_response(
+        {
+            "configured": bool(configured) and google_auth.AESGCM is not None,
+            "client_id_present": bool(configured.get("client_id")),
+            "client_secret_present": bool(configured.get("client_secret")),
+            "encrypted_storage": google_auth.AESGCM is not None,
+            "callback": f"http://127.0.0.1:{settings.port}/api/connections/google/callback",
+        }
+    )
+
+
+def register(app):
+    app.router.add_get("/api/connections/oauth-settings", oauth_settings)
+    app.router.add_post("/api/connections/oauth-settings", oauth_settings)
+    app.router.add_get("/api/connections", state)
+    app.router.add_post("/api/connections", configure)
+    app.router.add_post("/api/connections/setup", setup)
+    app.router.add_get("/api/connections/records", records)
+    app.router.add_post("/api/connections/records", records)
+    app.router.add_get("/api/connections/google/callback", callback)
+    app.router.add_post("/api/connections/{connection}/{action}", action)

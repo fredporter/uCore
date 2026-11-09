@@ -11,6 +11,7 @@ Provides endpoints for:
 from __future__ import annotations
 
 import logging
+
 from aiohttp import web
 
 from app.services.knowledge_overlay import KnowledgeOverlayResolver

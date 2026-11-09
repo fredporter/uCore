@@ -18,6 +18,8 @@ export interface ResearchJob {
   error: string | null
   created: string
   started: string | null
+  attempts?: number
+  retry_at?: string | null
   completed: string | null
 }
 
@@ -48,8 +50,9 @@ export async function startResearch(url: string, binder: string, tags: string[] 
     body: JSON.stringify({ url, binder, tags, mode }),
     signal: AbortSignal.timeout(5000),
   })
-  if (!res.ok) throw new Error(`Research start failed (HTTP ${res.status})`)
-  return res.json()
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || `Research start failed (HTTP ${res.status})`)
+  return data
 }
 
 export async function searchResearch(query: string): Promise<Array<{ title: string; url: string; description: string }>> {
@@ -75,6 +78,7 @@ export async function listResearchJobs(state?: string, binder?: string): Promise
   const res = await fetch(`${BASE}/api/research/list?${params}`, {
     signal: AbortSignal.timeout(3000),
   })
+  if (!res.ok) throw new Error(`Could not refresh research (HTTP ${res.status})`)
   const data = await res.json()
   return data.jobs || []
 }

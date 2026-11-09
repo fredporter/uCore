@@ -2,17 +2,18 @@
   "name": "ucore",
   "version": "0.2.0-dev",
   "private": true,
-  "description": "uCore — unified daemon combining uServer + uConnect backend with MCP support",
+  "description": "uCore \u2014 unified daemon combining uServer + uConnect backend with MCP support",
   "scripts": {
     "install:root": "bash scripts/install-root.sh",
     "dev": "pnpm --filter @udos/ui-hub-vue run dev",
-    "dev:backend": "cd backend && PYTHONPATH=. python3 -m app",
+    "dev:backend": "backend/.venv/bin/python scripts/check_backend_environment.py && cd backend && PYTHONPATH=. .venv/bin/python -m app",
     "build": "pnpm --filter @udos/ui-hub-vue run build",
     "test": "./.venv/bin/python -m pytest -q backend/tests",
     "lint": "cd backend && ruff check .",
     "mcp:build": "npm --prefix backend/app/mcp/udos_mcp run build",
     "mcp:test": "npm --prefix backend/app/mcp/udos_mcp test",
-    "mcp:start": "node backend/app/mcp/udos_mcp/build/index.js"
+    "mcp:start": "node backend/app/mcp/udos_mcp/build/index.js",
+    "check:backend": "backend/.venv/bin/python scripts/check_backend_environment.py"
   },
   "engines": {
     "node": ">=22.0.0",

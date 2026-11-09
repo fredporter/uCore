@@ -4,28 +4,28 @@
       <!-- Standard Header -->
       <header class="wf-standard-header">
         <div>
-          <p class="wf-standard-header__kicker">uFlow Anti-Drift Pipeline</p>
-          <h2>Notebook Binders</h2>
+          <p class="wf-standard-header__kicker">Project workspace</p>
+          <h2>Binders</h2>
           <p v-if="activeBinder">
             {{ activeBinder.metadata.title }} ·
             <span class="binder-status-badge" :class="`binder-status-badge--${activeBinder.metadata.state}`">
               {{ activeBinder.metadata.state }}
             </span>
           </p>
-          <p v-else>Select or create a project binder to begin notebook production</p>
+          <p v-else>Select or create a binder.</p>
         </div>
         <div class="header-actions">
           <select
             v-if="binders.length"
             v-model="selectedBinderId"
             class="binder-select"
-            @change="loadActiveBinder"
+            aria-label="Current binder"
           >
             <option v-for="b in binders" :key="b.id || b.name" :value="b.id || b.name">
               {{ b.title || b.name }} ({{ b.state || 'active' }})
             </option>
           </select>
-          <button class="wf-zen-primary" type="button" @click="showCreateModal = true">
+          <button class="usx-btn usx-btn--primary wf-zen-primary" type="button" @click="showCreateModal = true">
             <UIcon name="add" /> New Binder
           </button>
         </div>
@@ -42,6 +42,14 @@
         <UIcon name="check_circle" /> {{ successMessage }}
       </div>
 
+      <section v-if="selectedBinderId" class="binder-related" @dragover.prevent @drop.prevent="dropRelatedTask">
+        <div><h3>Tasks in this binder</h3><span>{{ relatedTasks.filter(task => task.status === 'completed').length }} of {{ relatedTasks.length }} done</span></div>
+        <button class="usx-btn" @click="wf.showList('', selectedBinderId)">View tasks</button>
+        <button class="usx-btn" @click="addBinderTask"><UIcon name="add" /> Add task</button>
+        <button class="usx-btn" @click="openDraftInEditor">Open draft in Editor</button>
+        <p v-if="!relatedTasks.length">Drop tasks here to link them to this binder.</p>
+        <button v-for="task in relatedTasks" :key="task.id" class="usx-btn" @click="wf.openTask(task)" draggable="true" @dragstart="wf.startTaskDrag($event, task)"><UIcon :name="task.status === 'completed' ? 'check_circle' : 'radio_button_unchecked'" /> {{ task.title }} · {{ task.status }}</button>
+      </section>
       <!-- Binder Active Workspace -->
       <div v-if="activeBinder && !loading" class="binder-workspace">
         <!-- Stage Navigation Bar -->
@@ -65,10 +73,10 @@
           </button>
         </nav>
 
-        <!-- Stage 1: Brief & Guardrails -->
+        <!-- Stage 1: Brief -->
         <section v-if="currentStage === 'brief'" class="stage-content stage-brief">
           <div class="brief-card">
-            <h3>Project Brief & Outcome Contract</h3>
+            <h3>Brief</h3>
             <div class="markdown-preview" v-html="renderMarkdown(activeBinder.brief)" />
           </div>
         </section>
@@ -111,12 +119,12 @@
           </div>
         </section>
 
-        <!-- Stage 3: Requirements & Plan -->
-        <!-- Stage 3: Requirements & Plan -->
+        <!-- Stage 3: Plan -->
+        <!-- Stage 3: Plan -->
         <section v-if="currentStage === 'plan'" class="stage-content stage-plan">
           <div class="plan-header">
             <div>
-              <h3>Requirements & Bounded Execution Plan</h3>
+              <h3>Plan</h3>
               <p class="section-subtext">uFlow strictly enforces requirements mapping and execution budgeting.</p>
             </div>
             <div class="plan-actions">
@@ -140,7 +148,7 @@
                 <UIcon name="replay" />
                 Resume from Checkpoint
               </button>
-              <button class="wf-zen-primary" type="button" :disabled="runningAssembly" @click="runAssembly">
+              <button class="usx-btn usx-btn--primary wf-zen-primary" type="button" :disabled="runningAssembly" @click="runAssembly">
                 <UIcon name="play_arrow" />
                 {{ runningAssembly ? 'Assembling Draft...' : 'Run Bounded Assembly' }}
               </button>
@@ -164,7 +172,7 @@
           </div>
 
           <div class="tasks-table-card">
-            <h4>uFlow Task Pipeline</h4>
+            <h4>Assembly steps</h4>
             <div v-for="t in activeBinder.plan" :key="t.task_id" class="task-row">
               <span class="task-id">{{ t.task_id }}</span>
               <span class="task-title">{{ t.title }}</span>
@@ -181,7 +189,7 @@
               <h3>Architectural Decisions & Rationale Log</h3>
               <p class="section-subtext">Record accepted choices, rejected proposals, and superseded alternatives.</p>
             </div>
-            <button class="wf-zen-primary" type="button" @click="showAddDecisionModal = true">
+            <button class="usx-btn usx-btn--primary wf-zen-primary" type="button" @click="showAddDecisionModal = true">
               <UIcon name="add" /> Record Decision
             </button>
           </div>
@@ -208,66 +216,12 @@
 
         <!-- Stage 5: Zen Lite Editor & Anti-Drift Audit -->
         <section v-if="currentStage === 'draft'" class="stage-content stage-draft">
-          <!-- Zen Lite Toolbar -->
-          <div class="zen-toolbar">
-            <div class="zen-typography-toggles">
-              <button
-                type="button"
-                class="zen-pill"
-                :class="{ 'zen-pill--active': editorFont === 'serif' }"
-                @click="editorFont = 'serif'"
-              >Serif</button>
-              <button
-                type="button"
-                class="zen-pill"
-                :class="{ 'zen-pill--active': editorFont === 'sans' }"
-                @click="editorFont = 'sans'"
-              >Sans</button>
-              <button
-                type="button"
-                class="zen-pill"
-                :class="{ 'zen-pill--active': editorFont === 'mono' }"
-                @click="editorFont = 'mono'"
-              >Mono</button>
-            </div>
-
-            <div class="zen-stats">
-              <span>{{ wordCount }} words</span> ·
-              <span>~{{ readingTimeMinutes }} min read</span>
-            </div>
-
-            <div v-if="activeBinder.sources?.length" class="zen-citation-chips">
-              <span class="citation-hint">Insert citation:</span>
-              <button
-                v-for="s in activeBinder.sources"
-                :key="s.citation_tag"
-                type="button"
-                class="citation-chip-btn"
-                :title="`Insert ${s.citation_tag} (${s.file_name})`"
-                @click="insertCitation(s.citation_tag)"
-              >
-                {{ s.citation_tag }}
-              </button>
-            </div>
-
-            <div class="draft-actions">
-              <button
-                class="wf-zen-secondary audit-btn"
-                type="button"
-                :disabled="auditing"
-                @click="runAudit"
-              >
-                <UIcon name="policy" /> {{ auditing ? 'Auditing...' : 'Audit Anti-Drift' }}
-              </button>
-              <button class="wf-zen-secondary" type="button" @click="reloadBinder">
-                <UIcon name="refresh" /> Reload
-              </button>
-              <button class="wf-zen-primary" type="button" :disabled="savingDraft" @click="saveDraft">
-                <UIcon name="save" /> {{ savingDraft ? 'Saving...' : 'Save Draft' }}
-              </button>
-            </div>
+          <div class="draft-actions">
+            <button class="usx-btn" @click="openDraftInEditor"><UIcon name="edit" /> Edit draft</button>
+            <button class="usx-btn" :disabled="auditing" @click="runAudit"><UIcon name="fact_check" /> Check draft</button>
+            <button class="usx-btn" @click="reloadBinder"><UIcon name="refresh" /> Refresh</button>
+            <span>{{ wordCount }} words</span>
           </div>
-
           <!-- Anti-Drift Audit Result Banner -->
           <div v-if="auditReport" class="audit-banner" :class="auditReport.passed ? 'audit-banner--passed' : 'audit-banner--warn'">
             <UIcon :name="auditReport.passed ? 'check_circle' : 'warning'" />
@@ -287,15 +241,8 @@
             </div>
           </div>
 
-          <div class="draft-editor-container" :class="`draft-editor--${editorFont}`">
-            <textarea
-              v-model="editableDraft"
-              class="draft-textarea"
-              :class="`draft-textarea--${editorFont}`"
-              placeholder="Draft contents..."
-              rows="18"
-            />
-          </div>
+          <MarkdownPreview v-if="editableDraft" :content="editableDraft" />
+          <p v-else>No draft yet. Open the editor to begin.</p>
 
           <div class="evidence-ledger">
             <h3>Evidence & Claim Citations Chain ({{ activeBinder.evidence?.length || 0 }})</h3>
@@ -352,7 +299,7 @@
               <div class="dispatch-studio-title">
                 <UIcon name="send" />
                 <div>
-                  <h4>Sovereign Dispatch &amp; Interactive Invitation Studio</h4>
+                  <h4>Invitations</h4>
                   <p>Publish an ephemeral, tracked-free interactive story or greeting card dispatch directly from this binder's content.</p>
                 </div>
               </div>
@@ -375,7 +322,7 @@
                     <input v-model="dispatchForm.title" type="text" placeholder="e.g. Project Odyssey: Invitation to Collaborate" />
                   </label>
                   <label>Lead / Subtitle
-                    <input v-model="dispatchForm.lead_text" type="text" placeholder="A calm, sovereign interactive dispatch..." />
+                    <input v-model="dispatchForm.lead_text" type="text" placeholder="A short introduction…" />
                   </label>
                   <div class="form-row">
                     <label>Initial Viewport Mode
@@ -416,10 +363,10 @@
                     <div class="form-row">
                       <label>Motif
                         <select v-model="selectedMotif">
-                          <option value="zen_envelope">Zen Sovereign Envelope</option>
+                          <option value="zen_envelope">Envelope</option>
                           <option value="teletext_pulse">Teletext Diamond Pulse</option>
                           <option value="cosmic_orbiter">Cosmic Celestial Orbiter</option>
-                          <option value="signal_beacon">Sovereign Signal Beacon</option>
+                          <option value="signal_beacon">Signal</option>
                         </select>
                       </label>
                       <label>Palette
@@ -475,13 +422,13 @@
 
               <div class="dispatch-actions">
                 <button
-                  class="wf-zen-primary"
+                  class="usx-btn usx-btn--primary wf-zen-primary"
                   type="button"
                   :disabled="creatingDispatch || !dispatchForm.title.trim()"
                   @click="createBinderDispatch"
                 >
                   <UIcon name="send" />
-                  {{ creatingDispatch ? 'Creating Dispatch...' : 'Generate Sovereign Dispatch Token' }}
+                  {{ creatingDispatch ? 'Creating Dispatch...' : 'Create invitation' }}
                 </button>
               </div>
             </div>
@@ -489,7 +436,7 @@
             <!-- Existing Dispatches for this Binder -->
             <div class="binder-dispatches-list">
               <div class="dispatches-header">
-                <h5>Active Sovereign Dispatches for this Binder ({{ binderDispatches.length }})</h5>
+                <h5>Invitations ({{ binderDispatches.length }})</h5>
                 <button class="wf-zen-subtle" type="button" @click="loadBinderDispatches">
                   <UIcon name="refresh" /> Refresh
                 </button>
@@ -592,7 +539,7 @@
                         </td>
                         <td class="time-col">{{ new Date(resp.timestamp || resp.created_at || Date.now()).toLocaleTimeString() }}</td>
                         <td class="action-col">
-                          <span v-if="resp.task_id" class="task-badge" :title="'Linked Sovereign Task: ' + resp.task_id">
+                          <span v-if="resp.task_id" class="task-badge" :title="'Linked task: ' + resp.task_id">
                             <UIcon name="task_alt" /> Linked
                           </span>
                           <button
@@ -600,7 +547,7 @@
                             class="wf-zen-subtle create-task-btn"
                             :disabled="creatingTaskIndex === `${disp.id}-${rIdx}`"
                             @click="convertRsvpToTask(disp.id, rIdx)"
-                            title="Convert RSVP into sovereign .tasker task &amp; optionally sync to Apple Reminders"
+                            title="Create a task from this response"
                           >
                             <UIcon name="add_task" />
                             {{ creatingTaskIndex === `${disp.id}-${rIdx}` ? 'Converting...' : 'Create Task' }}
@@ -624,14 +571,14 @@
                 class="notes-input"
                 placeholder="Reviewer notes / approval rationale..."
               />
-              <button class="wf-zen-primary" type="button" :disabled="acceptingEdition" @click="acceptEdition">
+              <button class="usx-btn usx-btn--primary wf-zen-primary" type="button" :disabled="acceptingEdition" @click="acceptEdition">
                 <UIcon name="verified" /> {{ acceptingEdition ? 'Accepting...' : 'Accept Edition' }}
               </button>
             </div>
           </div>
 
           <div class="editions-list">
-            <h3>Accepted Editions & Sovereign Publication Receipts</h3>
+            <h3>Publications</h3>
             <div v-if="!activeBinder.editions || activeBinder.editions.length === 0" class="empty-hint">
               No accepted editions yet. Once the draft is reviewed, accept it to freeze edition 1.
             </div>
@@ -646,7 +593,7 @@
                   <strong>{{ ed.file_name }}</strong>
                 </div>
                 <button
-                  class="wf-zen-primary"
+                  class="usx-btn usx-btn--primary wf-zen-primary"
                   type="button"
                   :disabled="publishingEdition === ed.edition"
                   @click="publishEdition(ed.edition)"
@@ -667,7 +614,7 @@
           <div v-if="publicationReceipt" class="publication-receipt-card">
             <header>
               <UIcon name="check_circle" />
-              <strong>Sovereign Publication Receipt</strong>
+              <strong>Publication receipt</strong>
             </header>
             <div class="receipt-details">
               <div><strong>Target:</strong> {{ publicationReceipt.target }}</div>
@@ -708,7 +655,7 @@
           </div>
           <footer class="modal-footer">
             <button class="wf-zen-secondary" type="button" @click="showAddDecisionModal = false">Cancel</button>
-            <button class="wf-zen-primary" type="button" :disabled="!newDecision.title.trim()" @click="addDecision">
+            <button class="usx-btn usx-btn--primary wf-zen-primary" type="button" :disabled="!newDecision.title.trim()" @click="addDecision">
               Save Decision
             </button>
           </footer>
@@ -738,7 +685,7 @@
           </div>
           <footer class="modal-footer">
             <button class="wf-zen-secondary" type="button" @click="showCreateModal = false">Cancel</button>
-            <button class="wf-zen-primary" type="button" :disabled="creating" @click="createBinder">
+            <button class="usx-btn usx-btn--primary wf-zen-primary" type="button" :disabled="creating" @click="createBinder">
               {{ creating ? 'Creating...' : 'Create Binder' }}
             </button>
           </footer>
@@ -749,22 +696,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch, toRefs } from "vue";
+import { useWorkflowStore } from "@/stores/workflow";
+import MarkdownPreview from "@/skills/molecules/MarkdownPreview.vue";
 import UIcon from "@/skills/atoms/UIcon.vue";
 
 const STAGES = [
-  { id: "brief", label: "Brief & Guardrails" },
-  { id: "sources", label: "Sources & Intake" },
-  { id: "plan", label: "Requirements & Plan" },
+  { id: "brief", label: "Brief" },
+  { id: "sources", label: "Sources" },
+  { id: "plan", label: "Plan" },
   { id: "decisions", label: "Decisions Log" },
-  { id: "draft", label: "Draft & Anti-Drift" },
-  { id: "publish", label: "Editions & Publish" },
+  { id: "draft", label: "Draft" },
+  { id: "publish", label: "Publish" },
 ];
 
-const binders = ref<any[]>([]);
-const selectedBinderId = ref<string>("");
+const wf = useWorkflowStore();
+const { binders, activeBinderId: selectedBinderId, binderStage: currentStage } = toRefs(wf);
 const activeBinder = ref<any>(null);
-const currentStage = ref<string>("brief");
+
 
 const loading = ref(false);
 const savingDraft = ref(false);
@@ -859,27 +808,37 @@ function renderMarkdown(md: string): string {
     .replace(/\n\n/gim, "<br><br>");
 }
 
-async function fetchBinders() {
-  loading.value = true;
-  errorMessage.value = "";
-  try {
-    const res = await fetch("/api/binder/list");
-    if (!res.ok) throw new Error(`Failed listing binders (${res.status})`);
-    const data = await res.json();
-    binders.value = data.binders || [];
-    if (binders.value.length > 0 && !selectedBinderId.value) {
-      selectedBinderId.value = binders.value[0].id || binders.value[0].name;
-      await loadActiveBinder();
-    }
-  } catch (e: any) {
-    errorMessage.value = e.message || String(e);
-  } finally {
-    loading.value = false;
-  }
+watch(() => wf.binderCreateRequested, requested => {
+  if (requested) { showCreateModal.value = true; wf.binderCreateRequested = false; }
+}, { immediate: true });
+const relatedTasks = computed(() => wf.tasks.filter(task => task.binder === selectedBinderId.value));
+async function dropRelatedTask(event: DragEvent) {
+  try { await wf.dropTask(event, { binder: selectedBinderId.value }); }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : "Could not link task"; }
 }
+async function addBinderTask() {
+  const title = window.prompt("Task title");
+  if (!title?.trim()) return;
+  try { await wf.createTask(title.trim(), "inbox", selectedBinderId.value); }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : "Could not create task"; }
+}
+function openDraftInEditor() {
+  if (!activeBinder.value) return;
+  wf.openBinderDocument(selectedBinderId.value, `${activeBinder.value.metadata.title} · Draft`, editableDraft.value, loadedBaseHash.value);
+}
+async function fetchBinders() {
+  try {
+    await wf.fetchBinders();
+    if (!selectedBinderId.value && binders.value.length) selectedBinderId.value = binders.value[0].id;
+    else if (selectedBinderId.value) await loadActiveBinder();
+  } catch (error) { errorMessage.value = error instanceof Error ? error.message : "Could not load binders"; }
+}
+watch(selectedBinderId, () => { void loadActiveBinder(); });
+let binderRequest = 0;
 
 async function loadActiveBinder() {
   if (!selectedBinderId.value) return;
+  const requestId = ++binderRequest;
   loading.value = true;
   errorMessage.value = "";
   conflictDetected.value = false;
@@ -887,6 +846,7 @@ async function loadActiveBinder() {
     const res = await fetch(`/api/binder/${encodeURIComponent(selectedBinderId.value)}`);
     if (!res.ok) throw new Error(`Failed loading binder (${res.status})`);
     const data = await res.json();
+    if (requestId !== binderRequest) return;
     activeBinder.value = data.binder;
     editableDraft.value = data.binder.draft || "";
     if (!dispatchForm.value.story_markdown) {
@@ -1270,7 +1230,7 @@ async function createBinderDispatch() {
       throw new Error(err.error || `Dispatch creation failed (${res.status})`);
     }
     const data = await res.json();
-    successMessage.value = `Sovereign dispatch staged! Story URL: ${data.story_url}`;
+    successMessage.value = `Invitation created: ${data.story_url}`;
     showDispatchCreator.value = false;
     dispatchForm.value = {
       title: "",
@@ -1411,7 +1371,7 @@ async function convertRsvpToTask(dispatchId: string, rsvpIndex: number) {
     if (responsesByDispatch.value[dispatchId] && responsesByDispatch.value[dispatchId][rsvpIndex]) {
       responsesByDispatch.value[dispatchId][rsvpIndex].task_id = data.task_id;
     }
-    successMessage.value = `Created sovereign task: ${data.task_id}${data.reminders_sync?.ok ? ' & synced to Apple Reminders' : ''}`;
+    successMessage.value = `Created task: ${data.task_id}${data.reminders_sync?.ok ? ' & synced to Apple Reminders' : ''}`;
   } catch (e: any) {
     errorMessage.value = e.message || String(e);
   } finally {
@@ -1426,6 +1386,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.binder-related { display: flex; flex-wrap: wrap; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-md); border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-md); }
+.binder-related > div { margin-right: auto; }
+.binder-related h3, .binder-related p { margin: 0; }
+
 .notebook-binder-panel {
   display: flex;
   flex-direction: column;

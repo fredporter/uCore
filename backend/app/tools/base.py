@@ -28,6 +28,8 @@ class ToolInfo(BaseModel):
     installed: bool = False
     version: str = ""
     running: bool = False
+    error: str = ""
+    repair_action: str = ""
 
 
 class BaseTool:

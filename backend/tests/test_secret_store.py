@@ -1,4 +1,5 @@
 """Unit tests for the SecretStore (AES-256-GCM encrypted)."""
+
 from __future__ import annotations
 
 from app.secret.store import SecretStore
@@ -75,6 +76,7 @@ class TestSecretStore:
 def test_sync_from_env(monkeypatch):
     """Test that sync_from_env imports known env vars."""
     from app.secret.store import SecretStore
+
     store = SecretStore()
     store._secrets = {}
     store._dirty = False
@@ -93,6 +95,7 @@ def test_sync_from_env(monkeypatch):
 def test_get_all_env_vars(monkeypatch):
     """get_all_env_vars returns store values + env overrides."""
     from app.secret.store import SecretStore
+
     store = SecretStore()
     store._secrets = {}
     store.set("STORE_KEY", "store_value")
@@ -102,3 +105,60 @@ def test_get_all_env_vars(monkeypatch):
     all_vars = store.get_all_env_vars()
     assert all_vars["STORE_KEY"] == "env_override"
     assert "EXTRA_ENV" not in all_vars
+
+
+def test_encrypted_roundtrip_and_tamper_fails_closed(tmp_path, monkeypatch):
+    import pytest
+
+    import app.secret.store as module
+
+    monkeypatch.setattr(module, "SECRETS_DIR", tmp_path)
+    monkeypatch.setattr(module, "SECRETS_FILE", tmp_path / "secrets.enc")
+    monkeypatch.setattr(module, "KEY_FILE", tmp_path / "key")
+    monkeypatch.setattr(module, "DATA_DIR", tmp_path / "data")
+    original = module.SecretStore()
+    original.set("EXAMPLE", "private-value")
+    original.save()
+    assert b"private-value" not in module.SECRETS_FILE.read_bytes()
+    assert module.SECRETS_FILE.stat().st_mode & 0o777 == 0o600
+    loaded = module.SecretStore()
+    loaded.load()
+    assert loaded.get("EXAMPLE") == "private-value"
+    before = module.SECRETS_FILE.read_bytes()
+    module.SECRETS_FILE.write_bytes(before[:-1] + bytes([before[-1] ^ 1]))
+    with pytest.raises(RuntimeError, match="Cannot decrypt"):
+        loaded.load()
+    module.KEY_FILE.unlink()
+    with pytest.raises(RuntimeError, match="key is missing"):
+        module.SecretStore().load()
+
+
+def test_encryption_unavailable_never_writes_plaintext(tmp_path, monkeypatch):
+    import pytest
+
+    import app.secret.store as module
+
+    monkeypatch.setattr(module, "AESGCM", None)
+    monkeypatch.setattr(module, "DATA_DIR", tmp_path)
+    store = module.SecretStore()
+    store.set("EXAMPLE", "private-value")
+    with pytest.raises(RuntimeError, match="cryptography"):
+        store.save()
+    assert not (tmp_path / "secrets.json").exists()
+
+
+def test_legacy_migration_verifies_before_removing_plaintext(tmp_path, monkeypatch):
+    import json
+
+    import app.secret.store as module
+
+    monkeypatch.setattr(module, "SECRETS_DIR", tmp_path)
+    monkeypatch.setattr(module, "SECRETS_FILE", tmp_path / "secrets.enc")
+    monkeypatch.setattr(module, "KEY_FILE", tmp_path / "key")
+    monkeypatch.setattr(module, "DATA_DIR", tmp_path)
+    legacy = tmp_path / "secrets.json"
+    legacy.write_text(json.dumps({"EXAMPLE": "private-value"}))
+    store = module.SecretStore()
+    store.load()
+    assert store.get("EXAMPLE") == "private-value"
+    assert module.SECRETS_FILE.exists() and not legacy.exists()

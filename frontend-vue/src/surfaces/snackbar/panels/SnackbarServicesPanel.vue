@@ -278,7 +278,7 @@
             <span class="card-tag">Audio</span>
           </div>
           <h4 class="card-title">Host Speech (say)</h4>
-          <p class="card-description">Zero-latency sovereign text-to-speech synthesis using macOS built-in voices.</p>
+          <p class="card-description">Read text aloud using macOS voices.</p>
           <div class="card-footer">
             <span
               class="status-pill"

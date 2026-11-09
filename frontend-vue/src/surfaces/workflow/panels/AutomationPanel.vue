@@ -11,12 +11,19 @@
 
     <div v-if="wf.loading" class="wf-state">Loading workflow automation…</div>
     <div v-else-if="wf.error && !definitions.length" class="wf-state wf-state--error">{{ wf.error }}</div>
+    <section v-if="selectedDefinition" class="wf-section" role="region" aria-label="Routine details">
+      <h3>{{ selectedDefinition.name }}</h3>
+      <p>{{ selectedDefinition.description }}</p>
+      <pre>{{ JSON.stringify(selectedDefinition.steps, null, 2) }}</pre>
+      <UButton variant="secondary" @click="selectedDefinition = null">Close</UButton>
+    </section>
     <template v-else>
       <section class="wf-section">
         <header class="wf-section-intro">
           <h4 class="wf-section-title">Definitions</h4>
-          <p class="wf-muted">Durable uFlow routines, resolved by execution policy when they run.</p>
+          <p class="wf-muted">Available routines.</p>
         </header>
+        <p v-if="!definitions.length" class="wf-state">No routines configured.</p>
         <div class="wf-list">
           <article
             v-for="definition in definitions"
@@ -27,7 +34,7 @@
               <strong>{{ definition.name }}</strong>
               <p class="wf-card__detail">{{ definition.description || "No description" }} · {{ definition.steps.length }} steps · {{ definition.schedule || "manual" }}</p>
             </div>
-            <button class="wf-canonical-action" type="button" :title="`Open ${definition.name}`"><UIcon name="view_sidebar" /></button>
+            <button class="wf-canonical-action" type="button" :title="`Open ${definition.name}`" @click="selectedDefinition = definition"><UIcon name="view_sidebar" /></button>
           </article>
         </div>
       </section>
@@ -55,18 +62,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
+import UBadge from "../../../skills/atoms/UBadge.vue";
 import UButton from "../../../skills/atoms/UButton.vue";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 import { useWorkflowStore } from "../../../stores/workflow";
 
 const wf = useWorkflowStore();
-const STARTERS = [
-  { id: "starter-daily", name: "Daily review", description: "Collect open tasks and prepare a focused daily brief.", schedule: "Every morning", steps: [{ type: "collect" }, { type: "summarise" }], starter: true },
-  { id: "starter-research", name: "Research watch", description: "Collect new feed signals and compile useful items into a Binder.", schedule: "Daily", steps: [{ type: "feed" }, { type: "binder" }], starter: true },
-  { id: "starter-weekly", name: "Weekly planning", description: "Review missions, completed work and the next actionable task.", schedule: "Weekly", steps: [{ type: "review" }, { type: "plan" }], starter: true },
-];
-const definitions = computed(() => wf.workflowDefinitions.length ? wf.workflowDefinitions : STARTERS);
+const definitions = computed(() => wf.workflowDefinitions);
+const selectedDefinition = ref<(typeof wf.workflowDefinitions)[number] | null>(null);
 
 async function refresh() {
   await Promise.all([wf.fetchWorkflowDefinitions(), wf.fetchWorkflowRuns()]);

@@ -5,7 +5,7 @@
         <span class="material-symbols-outlined header-icon">support_agent</span>
         <div>
           <h3 class="recipe-title">Active Runtime Agents</h3>
-          <p class="recipe-desc">Registered agent roles, autonomous subagents, and capability scope.</p>
+          <p class="recipe-desc">Agents and their permissions.</p>
         </div>
       </div>
       <div class="header-meta">

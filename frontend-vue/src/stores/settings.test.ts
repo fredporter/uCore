@@ -26,4 +26,16 @@ describe("settings sync", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(String(fetchMock.mock.calls[1][1]?.body)).toContain('"palette":"ocean"');
   });
+  it("defaults Advanced off and persists explicit server preferences", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ preferences: { advancedView: true } }) });
+    vi.stubGlobal("fetch", fetchMock);
+    const store = useSettingsStore();
+    expect(store.advancedView).toBe(false);
+    await store.initialize();
+    expect(store.advancedView).toBe(true);
+    store.setAdvancedView(false);
+    await store.save();
+    expect(JSON.parse(fetchMock.mock.calls.at(-1)?.[1]?.body).preferences.advancedView).toBe(false);
+  });
+
 });

@@ -4,9 +4,9 @@
       <div class="header-left">
         <span class="material-symbols-outlined header-icon">account_balance_wallet</span>
         <div>
-          <h3 class="recipe-title">Sovereign Budget &amp; Resource Policy</h3>
+          <h3 class="recipe-title">Resource limits</h3>
           <p class="recipe-desc">
-            Local-first policy enforcement: hard-zero cloud spend invariant.
+            Cloud spending is disabled by the current policy.
           </p>
         </div>
       </div>
@@ -29,7 +29,7 @@
         <p class="card-description">Available allocation for external frontier API fallback requests.</p>
         <div class="card-footer">
           <span class="card-metric">${{ srv.budgetRemaining != null ? srv.budgetRemaining.toFixed(2) : "0.00" }}</span>
-          <span class="card-metric-sub">Sovereign free lane</span>
+          <span class="card-metric-sub">Local processing</span>
         </div>
       </div>
 
@@ -78,7 +78,7 @@
           </span>
         </div>
         <h4 class="card-title">Policy Invariant</h4>
-        <p class="card-description">Automated gate keeping ecosystem operations completely cost-free.</p>
+        <p class="card-description">Controls resource usage and spending.</p>
         <div class="card-footer">
           <span class="status-pill" :class="srv.budgetOverLimit ? 'status-pill--down' : 'status-pill--up'">
             {{ srv.budgetOverLimit ? "OVER LIMIT" : "HARD ZERO OK" }}

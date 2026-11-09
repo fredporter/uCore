@@ -80,3 +80,14 @@ def test_workspace_rejects_stale_write(workspace: Path):
         workspace_files.write_file(
             "user", created["path"], "client change", opened["version"],
         )
+
+
+def test_indexed_absolute_user_paths_round_trip_with_version_checks(workspace: Path):
+    path = workspace / 'Indexed.md'
+    path.write_text('Original', encoding='utf-8')
+    opened = workspace_files.read_file('user', str(path))
+    assert opened['path'] == '/Indexed.md'
+    workspace_files.write_file('user', str(path), 'Updated', opened['version'])
+    assert path.read_text() == 'Updated'
+    with pytest.raises(workspace_files.WorkspaceConflictError):
+        workspace_files.write_file('user', str(path), 'Stale overwrite', opened['version'])

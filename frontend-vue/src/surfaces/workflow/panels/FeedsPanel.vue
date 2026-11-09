@@ -6,7 +6,7 @@
         <h2>Feeds</h2>
         <p>Review useful signals, then turn only what matters into work.</p>
       </div>
-      <button class="wf-standard-header__action" type="button" :disabled="loading" @click="load"><span class="material-symbols-outlined">refresh</span> Refresh</button>
+      <button class="usx-btn wf-standard-header__action" type="button" :disabled="loading" @click="load"><UIcon name="refresh" /> Refresh</button>
       <UButton
         size="sm"
         variant="secondary"
@@ -17,11 +17,12 @@
       </UButton>
     </header>
 
+    <section class="feed-monitor"><header><h3>Monitored connections</h3><button class="usx-btn" @click="router.push('/system?tab=connections')">Manage connections</button></header><p v-if="!connections.length">Choose source lists or groups in Connections. Flags and stars can then select items or trigger rules.</p><article v-for="connection in connections" :key="connection.id"><span>{{ connection.health.account || connection.provider }} · {{ connection.health.state }}</span><small v-for="(scope,kind) in connection.config.collections" :key="kind">{{ kind }}: {{ scope.lists.length }} lists · {{ scope.direction === 'both' ? 'in + out' : 'in' }} · {{ connection.config.enabled ? 'monitored' : 'paused' }}</small><button class="usx-btn" :disabled="syncing || !connection.config.enabled" @click="syncConnection(connection)">Sync</button></article></section>
     <div class="wf-feeds__sources" aria-label="Feed sources">
       <button
         v-for="source in sources"
         :key="source.id"
-        class="wf-feeds__source"
+        class="usx-btn wf-feeds__source"
         :class="{ 'wf-feeds__source--active': filter === source.id }"
         @click="filter = filter === source.id ? '' : source.id; load()"
       >
@@ -44,16 +45,17 @@
       No feed items yet. Sync a source when you are ready.
     </div>
 
+    <article v-if="viewedRecord" class="feed-detail"><header><h3>{{ viewedRecord.data.title }}</h3><button class="usx-btn" @click="viewedRecord=null">Close details</button></header><p v-if="viewedRecord.data.sender">{{ viewedRecord.data.sender }}</p><p v-if="viewedRecord.data.start">{{ viewedRecord.data.start.dateTime || viewedRecord.data.start.date }}</p><p>{{ viewedRecord.data.body }}</p></article>
     <div class="wf-feed-list">
       <article v-for="item in activities" :key="item.id" class="wf-feed-row">
-        <div class="wf-feed-row__main" :title="preview(item.content)">
+        <button class="usx-btn wf-feed-row__main" :title="preview(item.content)" @click="openFeedRecord(item)">
           <span class="wf-feed-row__state" />
           <div class="wf-feed-row__copy">
             <h3>{{ item.title || item.type }}</h3>
             <div class="wf-feed-card__meta">{{ item.source }} · {{ formatDate(item.timestamp) }}</div>
           </div>
-        </div>
-        <button class="wf-canonical-action" type="button" title="Add to tasks" @click="toTask(item)"><span class="material-symbols-outlined">add_task</span></button>
+        </button>
+        <button class="usx-btn wf-canonical-action" type="button" title="Add to tasks" @click="toTask(item)"><UIcon name="add_task" /></button>
       </article>
     </div>
   </section>
@@ -63,14 +65,20 @@
 import { computed, onMounted, ref } from "vue";
 import { UCORE_BASE } from "../../../api/base";
 import { useWorkflowStore } from "../../../stores/workflow";
+import { useRoute, useRouter } from "vue-router";
+import UIcon from "../../../skills/atoms/UIcon.vue";
 import UButton from "../../../skills/atoms/UButton.vue";
 
-interface Activity { id: number; source: string; type: string; title: string; content: string; timestamp: string }
+interface Activity { metadata?: string | Record<string,any>; id: number; source: string; type: string; title: string; content: string; timestamp: string }
 interface Source { id: string; label: string; state: string; available: boolean }
 
 const wf = useWorkflowStore();
 const activities = ref<Activity[]>([]);
 const sources = ref<Source[]>([]);
+const connections = ref<any[]>([]);
+const router = useRouter();
+const route = useRoute();
+const viewedRecord = ref<any>(null);
 const filter = ref("");
 const loading = ref(false);
 const syncing = ref(false);
@@ -94,19 +102,22 @@ async function load() {
   error.value = "";
   try {
     const suffix = filter.value ? `&source=${encodeURIComponent(filter.value)}` : "";
-    const [feedRes, sourceRes, rulesRes] = await Promise.all([
+    const [feedRes, sourceRes, rulesRes, connectionRes] = await Promise.all([
       fetch(`${UCORE_BASE}/api/feed/query?limit=50&processed=false${suffix}`),
       fetch(`${UCORE_BASE}/api/feed/sources`),
       fetch(`${UCORE_BASE}/api/feed/rules`),
+      fetch(`${UCORE_BASE}/api/connections`),
     ]);
     if (!feedRes.ok) throw new Error("Feeds are unavailable.");
+    if (connectionRes.ok) connections.value = (await connectionRes.json()).connections;
     activities.value = (await feedRes.json()).activities || [];
     if (sourceRes.ok) sources.value = (await sourceRes.json()).sources || [];
+    if(route.query.record){const response=await fetch(`${UCORE_BASE}/api/connections/records?id=${encodeURIComponent(String(route.query.record))}`);if(response.ok)viewedRecord.value=(await response.json()).records[0] || null;}
     ruleProposalCount.value = rulesRes.ok ? Number((await rulesRes.json()).count || 0) : 0;
   } catch (exc) {
     sources.value = [...DEFAULT_SOURCES];
-    activities.value = DEFAULT_ACTIVITIES.filter((item) => !filter.value || item.source === filter.value);
-    error.value = "Using local feeds";
+    activities.value = [];
+    error.value = exc instanceof Error ? exc.message : "Feeds are unavailable";
   } finally {
     loading.value = false;
   }
@@ -149,29 +160,16 @@ async function applyRules() {
 }
 
 async function toTask(item: Activity) {
-  const response = await fetch(`${UCORE_BASE}/api/feed/promote`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ activity_id: item.id, priority: "medium", binder: "Sandbox" }),
-  });
-  if (!response.ok) {
-    wf.tasks.push({
-      id: `feed-${Math.abs(item.id)}-${Date.now()}`,
-      title: item.title,
-      description: item.content,
-      status: "todo",
-      priority: "medium",
-      board: "inbox",
-      tags: ["feed", item.source],
-    });
-    activities.value = activities.value.filter((candidate) => candidate.id !== item.id);
-    error.value = "Added to local Tasks";
-    return;
-  }
-  await wf.fetchTasks();
-  activities.value = activities.value.filter((candidate) => candidate.id !== item.id);
+  try {
+    const response = await fetch(`${UCORE_BASE}/api/feed/promote`, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({activity_id:item.id,priority:"medium",binder:"Sandbox"})});
+    if(!response.ok)throw new Error('Task was not saved. Please retry.');
+    await wf.fetchTasks();
+    activities.value=activities.value.filter(candidate=>candidate.id!==item.id);
+  } catch(exc) { error.value=exc instanceof Error?exc.message:'Task could not be saved'; }
 }
+async function syncConnection(connection:any){syncing.value=true;try{const response=await fetch(`${UCORE_BASE}/api/connections/${connection.id}/sync`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});const result=await response.json();if(!response.ok||result.state==='error')throw new Error(result.error||'Connection sync failed');await load();}catch(exc){error.value=exc instanceof Error?exc.message:'Sync unavailable';}finally{syncing.value=false;}}
 
+async function openFeedRecord(item:Activity){try{const meta=typeof item.metadata==='string'?JSON.parse(item.metadata):item.metadata||{};if(meta.collection_id){const response=await fetch(`${UCORE_BASE}/api/connections/records?id=${encodeURIComponent(meta.collection_id)}`);if(!response.ok)throw Error('Record unavailable');viewedRecord.value=(await response.json()).records[0];}else viewedRecord.value={data:{title:item.title,body:item.content}};}catch(exc){error.value=exc instanceof Error?exc.message:'Record unavailable';}}
 function preview(value: string) { return (value || "No preview").replace(/\s+/g, " ").slice(0, 220); }
 function formatDate(value: string) { return value ? new Date(value).toLocaleString() : "Now"; }
 onMounted(load);
@@ -198,4 +196,8 @@ onMounted(load);
 .wf-feed-card p { margin: var(--usx-spacing-xs) 0 0; color: var(--usx-color-on-surface-muted); }
 .wf-feeds__notice, .wf-feeds__empty { padding: var(--usx-spacing-sm) 0; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-sm); }
 @media (max-width: 640px) { .wf-feeds__header { grid-template-columns: 1fr auto; } .wf-feeds__header > :last-child { grid-column: 1 / -1; } }
+
+.feed-monitor { display:grid; gap:8px; padding:12px 0; font-size:var(--usx-font-size-sm); }.feed-monitor header,.feed-monitor article{display:flex;align-items:center;flex-wrap:wrap;gap:8px;}.feed-monitor small{color:var(--usx-color-on-surface-muted);}.feed-monitor .usx-btn{min-height:32px;margin:0;padding:4px 8px;font-size:inherit;}
+
+.feed-detail { display:grid;gap:8px;padding:12px;border:1px solid var(--usx-color-border); }.feed-detail header {display:flex;align-items:center;justify-content:space-between;gap:8px;}.feed-detail p{white-space:pre-wrap;overflow-wrap:anywhere;}.wf-feed-row__main.usx-btn{flex:1;min-width:0;margin:0;padding:6px 0;border:0;background:transparent;text-align:left;box-shadow:none;}
 </style>

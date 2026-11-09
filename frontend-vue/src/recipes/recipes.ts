@@ -67,7 +67,7 @@ export interface CardMatrixItem {
   metric?: string
   tag?: string
   accent?: string
-  actions?: Array<{ label: string; primary?: boolean }>
+  actions?: Array<{ label: string; primary?: boolean; to?: string }>
 }
 
 export interface CardMatrixRecipe extends BaseRecipe {
@@ -346,7 +346,7 @@ export const SAMPLE_CARD_MATRIX: CardMatrixRecipe = {
   recipe: 'card-matrix',
   paradigm: 'usx',
   version: 1,
-  title: 'Ecosystem Specialist Surfaces',
+  title: 'Apps',
   description: 'Material 3 tonal elevation cards with icon badges, state layers, and action triggers',
   cards: [
     {
@@ -356,7 +356,7 @@ export const SAMPLE_CARD_MATRIX: CardMatrixRecipe = {
       icon: 'grid_view',
       metric: '188 Tests',
       tag: 'Core Product',
-      actions: [{ label: 'Launch', primary: true }],
+      actions: [{ label: 'Launch', primary: true, to: '/ucode' }],
     },
     {
       id: 'surface-flow',
@@ -365,7 +365,7 @@ export const SAMPLE_CARD_MATRIX: CardMatrixRecipe = {
       icon: 'account_tree',
       metric: 'Active',
       tag: 'Authority',
-      actions: [{ label: 'Inspect', primary: true }],
+      actions: [{ label: 'Inspect', primary: true, to: '/workflow' }],
     },
     {
       id: 'surface-knowledge',
@@ -374,7 +374,7 @@ export const SAMPLE_CARD_MATRIX: CardMatrixRecipe = {
       icon: 'menu_book',
       metric: 'Indexed',
       tag: 'Storage',
-      actions: [{ label: 'Open', primary: true }],
+      actions: [{ label: 'Open', primary: true, to: '/documentation' }],
     },
     {
       id: 'surface-snacks',
@@ -383,7 +383,7 @@ export const SAMPLE_CARD_MATRIX: CardMatrixRecipe = {
       icon: 'storefront',
       metric: '8 Snacks',
       tag: 'Integrations',
-      actions: [{ label: 'Configure', primary: false }],
+      actions: [{ label: 'Configure', primary: false, to: '/snackbar' }],
     },
   ],
 }
@@ -393,7 +393,7 @@ export const SAMPLE_SETTINGS_FORM: SettingsFormRecipe = {
   recipe: 'settings-form',
   paradigm: 'usx',
   version: 1,
-  title: 'Ecosystem Runtime Preferences',
+  title: 'Preferences',
   description: 'Segmented controls, grouped toggles, and contextual disclosure',
   sections: [
     {
@@ -660,11 +660,11 @@ export const SAMPLE_AUTHORING_WORKBENCH: AuthoringWorkbenchRecipe = {
   recipe: 'authoring-workbench',
   paradigm: 'usx',
   version: 1,
-  title: 'Local-First Sovereign AI Architectures',
+  title: 'Local AI',
   description: 'Authoring workbench combining Bangle formatting, YAML frontmatter, and uKnowledge citation provenance',
   document: {
     id: 'doc-sovereign-ai',
-    title: 'Local-First Sovereign AI Architectures',
+    title: 'Local AI',
     frontmatter: {
       type: 'whitepaper',
       status: 'review',
@@ -673,7 +673,7 @@ export const SAMPLE_AUTHORING_WORKBENCH: AuthoringWorkbenchRecipe = {
       budget_tier: 'free_local',
       version: '1.4.0',
     },
-    content: `# Local-First Sovereign AI Architectures
+    content: `# Local AI
 
 Modern autonomous agent runtimes require deterministic execution boundaries, reproducible artifact trees, and strict isolation between zero-cost local inference and metered frontier APIs[^1].
 
@@ -681,9 +681,9 @@ Modern autonomous agent runtimes require deterministic execution boundaries, rep
 > Provenance: [Ink & Switch](https://www.inkandswitch.com/local-first/)
 > Author: Martin Kleppmann, Adam Wiggins, Peter van Hardenberg, Mark McGranaghan | Published: 2019-04-01
 
-## 1. Storage Boundaries & State Sovereignty
+## 1. Storage
 
-Under the sovereign contract, application mutable state is strictly anchored to \`UDOS_HOME\` (e.g. \`~/Code/.udos\`), eliminating arbitrary dotfile proliferation across user home paths. Documents live permanently in sovereign user vaults.
+Application state lives in \`UDOS_HOME\` (e.g. \`~/Code/.udos\`). Your documents stay in your vault.
 
 ### Verification and Citation Provenance
 

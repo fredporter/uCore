@@ -14,7 +14,7 @@
           <div>
             <h2 class="surface__panel-title">uVector Illustration & Asset Studio</h2>
             <p class="surface__panel-description">
-              Sovereign vector engine for technical drawings, GridCore character blocks, and Mono Core illustrations.
+              Create drawings and GridCore illustrations.
             </p>
           </div>
         </div>

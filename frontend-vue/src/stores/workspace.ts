@@ -48,61 +48,8 @@ function saveExpanded(expanded: Set<string>) {
   } catch {}
 }
 
-// Seed tree for offline/demo use — replaced by API fetch in production
-const DEFAULT_TREE: FileNode[] = [
-  {
-    id: "notes",
-    name: "Notes",
-    type: "folder",
-    path: "/notes",
-    children: [
-      {
-        id: "notes-welcome",
-        name: "Welcome.md",
-        type: "file",
-        path: "/notes/Welcome.md",
-        extension: "md",
-        content:
-          "---\ntitle: Welcome\nstatus: published\ntags: [#intro]\n---\n\n# Welcome\n\nThis is your workspace.\n",
-      },
-      {
-        id: "notes-scratch",
-        name: "Scratch.md",
-        type: "file",
-        path: "/notes/Scratch.md",
-        extension: "md",
-        content: "# Scratch\n\nQuick notes here.\n",
-      },
-    ],
-  },
-  {
-    id: "research",
-    name: "Research",
-    type: "folder",
-    path: "/research",
-    children: [
-      {
-        id: "research-example",
-        name: "Example Research.md",
-        type: "file",
-        path: "/research/Example Research.md",
-        extension: "md",
-        content:
-          "---\ntitle: Example Research\ntype: research\nsource: https://example.com\ndate: 2026-08-08\nstatus: draft\ntags: [#research]\n---\n\n# Example Research\n\nResearch content goes here.\n",
-      },
-    ],
-  },
-  {
-    id: "binder",
-    name: "Binder",
-    type: "folder",
-    path: "/binder",
-    children: [],
-  },
-];
-
 export const useWorkspaceStore = defineStore("workspace", () => {
-  const tree = ref<FileNode[]>(DEFAULT_TREE);
+  const tree = ref<FileNode[]>(readStorage<FileNode[]>(TREE_CACHE_KEY, []));
   const expandedIds = ref<Set<string>>(loadExpanded());
   const selectedId = ref<string | null>(null);
   const loading = ref(false);
@@ -135,10 +82,9 @@ export const useWorkspaceStore = defineStore("workspace", () => {
       writeStorage(TREE_CACHE_KEY, tree.value);
     } catch (exc) {
       tree.value = readStorage<FileNode[]>(TREE_CACHE_KEY, tree.value);
-      // Cached/seeded files are a fully usable offline workspace. Avoid exposing
-      // transport/parser errors inside the file tree when that fallback exists.
+      // Keep genuine cached files available while clearly identifying offline data.
       error.value = tree.value.length
-        ? ""
+        ? "Offline: showing previously loaded files."
         : exc instanceof Error ? exc.message : "Workspace is unavailable";
     } finally {
       loading.value = false;
@@ -254,6 +200,8 @@ export const useWorkspaceStore = defineStore("workspace", () => {
         body: JSON.stringify({ source: "user", ...queued }),
       });
       if (node) node.version = result.version;
+      const currentEditor = getEditorSurface().currentFile.value;
+      if (currentEditor?.path === path) currentEditor.version = result.version;
       const files = readStorage<Record<string, { content: string; version?: string }>>(FILE_CACHE_KEY, {});
       files[path] = { content, version: result.version };
       writeStorage(FILE_CACHE_KEY, files);

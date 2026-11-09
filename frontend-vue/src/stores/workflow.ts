@@ -16,6 +16,10 @@ export type WorkflowTab =
   | "mission-control"
   | "tasks"
   | "binder"
+  | "contacts"
+  | "notes"
+  | "feeds"
+  | "research"
   | "editor";
 
 export interface WorkflowTask {
@@ -27,6 +31,7 @@ export interface WorkflowTask {
   tags: string[];
   description: string;
   binder?: string;
+  group?: string;
   workspace?: string;
   workflowType?: "user" | "developer" | "system" | "autonomous";
   summary?: string;
@@ -62,6 +67,8 @@ interface WorkflowTaskPatch {
   title?: string;
   tags?: string[];
   body?: string;
+  binder?: string;
+  group?: string;
 }
 
 export interface WorkflowFile {
@@ -72,6 +79,9 @@ export interface WorkflowFile {
   binder: string;
   content: string;
   readOnly: boolean;
+  binderId?: string;
+  baseHash?: string;
+  version?: string;
 }
 
 export interface Mission {
@@ -144,6 +154,10 @@ export const WORKFLOW_TABS: { id: WorkflowTab; label: string; icon: string }[] =
   [
     { id: "mission-control", label: "Workflow", icon: "schedule" },
     { id: "tasks", label: "Tasks", icon: "check" },
+    { id: "contacts", label: "Contacts", icon: "contacts" },
+    { id: "notes", label: "Notes", icon: "description" },
+    { id: "feeds", label: "Feeds", icon: "rss_feed" },
+    { id: "research", label: "Research", icon: "travel_explore" },
     { id: "binder", label: "Binder", icon: "book" },
     { id: "editor", label: "Editor", icon: "diamond" },
   ];
@@ -151,113 +165,6 @@ export const WORKFLOW_TABS: { id: WorkflowTab; label: string; icon: string }[] =
 import { SNACKBAR_BASE } from "@/api/base";
 
 const API = SNACKBAR_BASE;
-
-const SAMPLE_TASKS: WorkflowTask[] = [
-  {
-    id: "seed-1",
-    title: "Plan the week",
-    status: "in-progress",
-    priority: "high",
-    board: "planning",
-    tags: ["planning", "weekly"],
-    description: "Review goals and lock top priorities for the week.",
-  },
-  {
-    id: "seed-2",
-    title: "Draft article outline",
-    status: "todo",
-    priority: "medium",
-    board: "writing",
-    tags: ["writing", "content"],
-    description: "Create a clear outline before drafting full sections.",
-  },
-  {
-    id: "seed-3",
-    title: "Organize life admin docs",
-    status: "review",
-    priority: "medium",
-    board: "admin",
-    tags: ["admin", "records"],
-    description: "Collect invoices, reminders, and account documents.",
-  },
-  {
-    id: "seed-4",
-    title: "Summarize this week learning",
-    status: "completed",
-    priority: "low",
-    board: "learning",
-    tags: ["learning", "weekly-review"],
-    description: "Publish a short recap with key ideas and next actions.",
-  },
-  {
-    id: "seed-5",
-    title: "Schedule health appointments",
-    status: "todo",
-    priority: "high",
-    board: "personal",
-    tags: ["health", "personal"],
-    description: "Book pending checkups and note preparation items.",
-  },
-  {
-    id: "seed-6",
-    title: "Prepare monthly budget review",
-    status: "blocked",
-    priority: "medium",
-    board: "finance",
-    tags: ["finance", "planning"],
-    description: "Waiting for final bank export before reconciliation.",
-  },
-];
-
-const SAMPLE_MISSIONS: Mission[] = [
-  {
-    id: "m1",
-    title: "Weekly Planning",
-    status: "active",
-    priority: "high",
-    description: "Lock in top priorities and review goals for the week",
-    taskIds: ["seed-1"],
-  },
-  {
-    id: "m2",
-    title: "Content Pipeline",
-    status: "active",
-    priority: "medium",
-    description: "Outline, draft, and publish articles for the month",
-    taskIds: ["seed-2"],
-  },
-  {
-    id: "m3",
-    title: "Health & Admin",
-    status: "active",
-    priority: "medium",
-    description: "Book appointments, organize admin documents, budget review",
-    taskIds: ["seed-4", "seed-5", "seed-6"],
-  },
-];
-
-function createDefaultSteps(
-  taskId: string,
-  title: string,
-  status: string,
-): WorkflowStep[] {
-  const labels = ["Plan", "Draft", "Review", "Publish"];
-  return labels.map((label, index) => ({
-    id: `${taskId}:step-${index + 1}`,
-    title: `${label} ${title}`,
-    status:
-      status === "completed"
-        ? "completed"
-        : status === "blocked" && index === 0
-          ? "blocked"
-          : index === 0 && status === "in-progress"
-            ? "in-progress"
-            : "todo",
-    notes: "",
-    summary: "",
-    assetPaths: [],
-  }));
-}
 
 function normalizeWorkflowTask(task: WorkflowTask): WorkflowTask {
   const steps = task.steps?.length
@@ -269,11 +176,11 @@ function normalizeWorkflowTask(task: WorkflowTask): WorkflowTask {
         summary: step.summary || "",
         assetPaths: Array.isArray(step.assetPaths) ? step.assetPaths : [],
       }))
-    : createDefaultSteps(task.id, task.title, task.status);
+    : [];
 
   return {
     ...task,
-    binder: task.binder || "Sandbox",
+    binder: task.binder || "",
     workspace: task.workspace || "User Vault",
     workflowType: task.workflowType || "user",
     summary: task.summary ?? task.description ?? "",
@@ -332,8 +239,17 @@ export const useWorkflowStore = defineStore("workflow", () => {
   }
 
   const activeTab = ref<WorkflowTab>("mission-control");
-  const tasks = ref<WorkflowTask[]>(SAMPLE_TASKS.map(normalizeWorkflowTask));
-  const missions = ref<Mission[]>(SAMPLE_MISSIONS);
+  const activeList = ref("");
+  const listNames = ref<string[]>([]);
+  const activeBinderId = ref("");
+  const binderStage = ref("brief");
+  const binderCreateRequested = ref(false);
+  const binders = ref<Array<{ id: string; title?: string; name?: string; state?: string }>>([]);
+  const binderDocument = ref<WorkflowFile | null>(null);
+  const editorDrafts = ref<Record<string, string>>({});
+  const editorBaseHashes = ref<Record<string, string>>({});
+  const tasks = ref<WorkflowTask[]>([]);
+  const missions = ref<Mission[]>([]);
   const selectedTask = ref<WorkflowTask | null>(null);
   const selectedFile = ref<WorkflowFile | null>(null);
   const editorOpen = ref(false);
@@ -343,11 +259,120 @@ export const useWorkflowStore = defineStore("workflow", () => {
   // Backend-fetched state
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const taskError = ref<string | null>(null);
   const workflowStatus = ref<WorkflowStatus | null>(null);
   const missionTaskBinderRows = ref<MissionTaskBinderRow[]>([]);
   const workflowDefinitions = ref<WorkflowDefinition[]>([]);
   const workflowRuns = ref<WorkflowRun[]>([]);
   const capabilityRepairs = ref<Record<string, CapabilityPreflightResult>>({});
+
+  const taskLists = computed(() => [...new Set([...listNames.value, ...tasks.value.map(task => task.board), activeList.value])].filter(Boolean).sort());
+  const scopedTasks = computed(() => tasks.value.filter(task =>
+    (!activeList.value || task.board === activeList.value) &&
+    (!activeBinderId.value || task.binder === activeBinderId.value),
+  ));
+  const orderedContextTasks = computed(() => [...scopedTasks.value].sort((a, b) => {
+    const ranks: Record<string, number> = { "in-progress": 0, todo: 1, blocked: 2, review: 3, completed: 4 };
+    return (ranks[a.status] ?? 5) - (ranks[b.status] ?? 5) || a.title.localeCompare(b.title);
+  }));
+  const binderChoices = computed(() => [...new Set([...binders.value.map(binder => binder.id), ...tasks.value.map(task => task.binder || "")])].filter(Boolean).map(id => ({ id, title: binders.value.find(binder => binder.id === id)?.title || id, hasContent: binders.value.some(binder => binder.id === id) })));
+  const relatedTasks = computed(() => selectedTask.value
+    ? orderedContextTasks.value.filter(task => (task.group || "") === (selectedTask.value?.group || ""))
+    : orderedContextTasks.value);
+  const locationLabel = computed(() => (activeTab.value === "editor" && !selectedTask.value && !binderDocument.value && editorSurface.currentFile.value) ? editorSurface.currentFile.value.path : [
+    activeBinderId.value ? (binders.value.find(binder => binder.id === activeBinderId.value)?.title || activeBinderId.value) : "",
+    activeList.value,
+    activeTab.value === "editor" ? selectedTask.value?.group : "",
+  ].filter(Boolean).join(" / ") || "All tasks");
+  const editorKey = computed(() => selectedTask.value ? `task:${selectedTask.value.id}` : editorSurface.currentFile.value?.path || selectedFile.value?.path || "");
+  const hasEditorDraft = computed(() => Object.hasOwn(editorDrafts.value, editorKey.value));
+
+  function showList(board = "", binder = "") {
+    activeList.value = board;
+    activeBinderId.value = binder;
+    activeTab.value = "tasks";
+  }
+  function showBinder(id: string) {
+    activeBinderId.value = id;
+    activeList.value = "";
+    activeTab.value = "binder";
+  }
+  function openTask(task: WorkflowTask) {
+    selectTask(task);
+    activeList.value = task.board;
+    activeBinderId.value = task.binder || "";
+    activeTab.value = "editor";
+  }
+  async function fetchLists() {
+    const response = await fetch(`${API}/api/workflow/lists`, { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) throw new Error("Could not load task lists");
+    const data = await response.json();
+    listNames.value = (data.boards || []).map((board: { name: string }) => board.name);
+  }
+  async function createList(name: string) {
+    const response = await fetch(`${API}/api/workflow/lists`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }), signal: AbortSignal.timeout(8000) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not create list");
+    await fetchLists();
+    showList(data.name);
+  }
+  async function fetchBinders() {
+    const response = await fetch(`${API}/api/binder/list`, { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) throw new Error("Could not load binders");
+    const data = await response.json();
+    binders.value = (data.binders || []).map((binder: any) => ({ ...binder, id: binder.id || binder.name }));
+  }
+  function openBinderDocument(id: string, title: string, content: string, baseHash = "", readOnly = false) {
+    activeBinderId.value = id;
+    activeList.value = "";
+    const file: WorkflowFile = { id: `binder:${id}`, path: `binder:${id}/${readOnly ? "brief" : "draft"}`, filename: title, content, readOnly, binder: id, binderId: id, baseHash, extension: "md" };
+    if (!Object.hasOwn(editorDrafts.value, file.path)) editorBaseHashes.value[file.path] = baseHash;
+    file.baseHash = editorBaseHashes.value[file.path] ?? baseHash;
+    selectFile(file);
+    binderDocument.value = file;
+  }
+  async function saveBinderDocument(content: string) {
+    const file = binderDocument.value;
+    if (!file || file.readOnly) throw new Error("Open an editable binder draft first");
+    const response = await fetch(`${API}/api/binder/${encodeURIComponent(file.binderId!)}/draft`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, expected_base_hash: file.baseHash }), signal: AbortSignal.timeout(15000),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || data.error || "Could not save binder draft");
+    file.baseHash = data.draft_sha256;
+    editorBaseHashes.value[file.path] = data.draft_sha256;
+    file.content = content;
+    editorSurface.updateContent(content);
+    delete editorDrafts.value[editorKey.value];
+  }
+  async function createTask(title: string, board = activeList.value || "inbox", binder = activeBinderId.value, group = "") {
+    const response = await fetch(`${API}/api/workflow/tasks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, board, binder, group }), signal: AbortSignal.timeout(8000) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not create task");
+    await fetchTasks();
+    const task = tasks.value.find(task => task.id === data.updated.id);
+    if (task) openTask(task);
+    return data.updated;
+  }
+  async function duplicateTask(taskId: string, destination: { board?: string; binder?: string; group?: string } = {}) {
+    const response = await fetch(`${API}/api/workflow/tasks/${encodeURIComponent(taskId)}/duplicate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(destination), signal: AbortSignal.timeout(8000) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not copy task");
+    await fetchTasks();
+    return data.updated;
+  }
+  function startTaskDrag(event: DragEvent, task: WorkflowTask) {
+    event.dataTransfer?.setData("application/x-ucore-task", task.id);
+    event.dataTransfer?.setData("text/plain", task.id);
+    if (event.dataTransfer) event.dataTransfer.effectAllowed = "copyMove";
+  }
+  async function dropTask(event: DragEvent, destination: { board?: string; binder?: string; group?: string; status?: string }) {
+    const taskId = event.dataTransfer?.getData("application/x-ucore-task");
+    if (!taskId) return;
+    if (event.altKey || event.ctrlKey) await duplicateTask(taskId, destination);
+    else await patchTask(taskId, destination);
+  }
 
   async function preflightOrBlock(capability: string): Promise<boolean> {
     try {
@@ -367,12 +392,38 @@ export const useWorkflowStore = defineStore("workflow", () => {
     }
   }
 
+  const recheckingCapabilities = ref(false);
+
+  async function retryCapabilityPreflight(): Promise<void> {
+    if (recheckingCapabilities.value) return;
+    recheckingCapabilities.value = true;
+    try {
+      const blocked = Object.values(capabilityRepairs.value)
+        .filter((item) => !item.ready)
+        .map((item) => item.capability);
+      await fetchAll();
+      await Promise.all(blocked.map((capability) => preflightOrBlock(capability)));
+      if (Object.values(capabilityRepairs.value).every((item) => item.ready)) {
+        error.value = null;
+      }
+    } finally {
+      recheckingCapabilities.value = false;
+    }
+  }
+
   function setTab(tab: WorkflowTab) {
+    if (tab === "editor" && selectedTask.value) {
+      activeList.value = selectedTask.value.board;
+      activeBinderId.value = selectedTask.value.binder || "";
+    } else if (tab === "editor" && binderDocument.value) {
+      activeList.value = "";
+      activeBinderId.value = binderDocument.value.binderId || "";
+    }
     activeTab.value = tab;
   }
 
   const activeTasks = computed(() => {
-    return tasks.value.filter((task) => task.status !== "completed");
+    return tasks.value.filter((task) => !["completed", "superseded", "cancelled", "archived"].includes(task.status));
   });
 
   const flowLogTasks = computed(() => {
@@ -425,7 +476,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
       }
     } catch (e: any) {
       error.value = e.message || "Failed to fetch workflow status";
-      console.warn("Workflow status fetch failed, using sample data", e);
+      console.warn("Workflow status fetch failed, keeping last loaded data", e);
     } finally {
       loading.value = false;
     }
@@ -433,6 +484,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
 
   /** Fetch tasks from backend /api/workflow/tasks */
   async function fetchTasks(): Promise<void> {
+    taskError.value = null;
     if (!(await preflightOrBlock("workflow.run"))) return;
     loading.value = true;
     error.value = null;
@@ -455,6 +507,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
               : [],
             description: t.description || t.summary || "",
             binder: t.binder,
+            group: t.group || "",
             workspace: t.workspace,
             workflowType: t.workflow_type || t.workflowType,
             summary: t.summary,
@@ -481,14 +534,12 @@ export const useWorkflowStore = defineStore("workflow", () => {
             completedAt: t.completed_at || t.completedAt || null,
           }),
         );
-        tasks.value =
-          mapped.length > 0
-            ? mapped
-            : [...SAMPLE_TASKS.map(normalizeWorkflowTask)];
+        tasks.value = mapped;
       }
     } catch (e: any) {
-      error.value = e.message || "Failed to fetch tasks";
-      console.warn("Tasks fetch failed, using sample data", e);
+      taskError.value = e.message || "Failed to fetch tasks";
+      error.value = taskError.value;
+      console.warn("Tasks fetch failed, keeping last loaded data", e);
     } finally {
       loading.value = false;
     }
@@ -531,7 +582,8 @@ export const useWorkflowStore = defineStore("workflow", () => {
         ? updated.tags.map((tag: unknown) => String(tag))
         : [],
       description: String(updated.description || updated.body || ""),
-      binder: String(updated.binder || existing?.binder || "Sandbox"),
+      binder: String(updated.binder ?? patch.binder ?? existing?.binder ?? ""),
+      group: String(updated.group ?? patch.group ?? existing?.group ?? ""),
       workspace: String(
         updated.workspace || existing?.workspace || "User Vault",
       ),
@@ -564,12 +616,16 @@ export const useWorkflowStore = defineStore("workflow", () => {
     });
 
     const idx = tasks.value.findIndex((task) => task.id === taskId);
-    if (idx >= 0) {
-      tasks.value[idx] = mapped;
-    }
+    if (idx >= 0) tasks.value[idx] = mapped;
+    else tasks.value.push(mapped);
     if (selectedTask.value?.id === taskId) {
       selectedTask.value = mapped;
+      if (activeTab.value === "editor") {
+        activeList.value = mapped.board;
+        activeBinderId.value = mapped.binder || "";
+      }
     }
+    if ("body" in patch) delete editorDrafts.value[`task:${taskId}`];
     return mapped;
   }
 
@@ -611,7 +667,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
       }
     } catch (e: any) {
       error.value = e.message || "Failed to fetch mission/task binder data";
-      console.warn("Mission/task binder fetch failed, using sample data", e);
+      console.warn("Mission/task binder fetch failed, keeping last loaded data", e);
     } finally {
       loading.value = false;
     }
@@ -664,6 +720,8 @@ export const useWorkflowStore = defineStore("workflow", () => {
   /** Fetch all data for the current surface at once */
   async function fetchAll(): Promise<void> {
     await Promise.allSettled([
+      fetchBinders(),
+      fetchLists(),
       fetchWorkflowStatus(),
       fetchTasks(),
       fetchMissionTaskBinder(),
@@ -724,6 +782,8 @@ export const useWorkflowStore = defineStore("workflow", () => {
    * its own inline editor (e.g. TasksPanel code-only view).
    */
   function selectTask(task: WorkflowTask, openSideEditor = true) {
+    editorSurface.closeEditor();
+    binderDocument.value = null;
     selectedFile.value = null;
     selectedTask.value = task;
     editorOpen.value = openSideEditor;
@@ -731,6 +791,11 @@ export const useWorkflowStore = defineStore("workflow", () => {
   }
 
   function selectFile(file: WorkflowFile) {
+    if (!file.binderId) {
+      activeBinderId.value = binders.value.find(binder => binder.id === file.binder)?.id || "";
+      activeList.value = "";
+    }
+    binderDocument.value = null;
     selectedTask.value = null;
     selectedFile.value = {
       ...file,
@@ -742,6 +807,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
       content: selectedFile.value.content,
       extension: selectedFile.value.extension,
       readOnly: selectedFile.value.readOnly,
+      version: selectedFile.value.version,
     });
     editorOpen.value = true;
     activeTab.value = "editor";
@@ -824,13 +890,8 @@ export const useWorkflowStore = defineStore("workflow", () => {
   }
 
   function updateEditorContent(value: string) {
-    if (selectedTask.value) {
-      selectedTask.value.description = value;
-    }
-    if (selectedFile.value) {
-      selectedFile.value.content = value;
-    }
-    editorSurface.updateContent(value);
+    if (editorKey.value) editorDrafts.value[editorKey.value] = value;
+    if (!selectedTask.value) editorSurface.updateContent(value);
   }
 
   // toggleEditorPane and togglePaneLayout deprecated with side-by-side editor
@@ -845,6 +906,10 @@ export const useWorkflowStore = defineStore("workflow", () => {
   }
 
   return {
+    activeList, activeBinderId, binderStage, binderCreateRequested, binders, binderDocument, editorDrafts,
+    taskLists, binderChoices, scopedTasks, orderedContextTasks, relatedTasks, locationLabel, editorKey, hasEditorDraft,
+    showList, showBinder, openTask, openBinderDocument, saveBinderDocument, fetchBinders,
+    createTask, duplicateTask, startTaskDrag, dropTask, fetchLists, createList,
     activeTab,
     tasks,
     activeTasks,
@@ -857,6 +922,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     editorMode,
     loading,
     error,
+    taskError,
     workflowStatus,
     missionTaskBinderRows,
     workflowDefinitions,
@@ -886,6 +952,8 @@ export const useWorkflowStore = defineStore("workflow", () => {
     fetchWorkflowDefinitions,
     fetchWorkflowRuns,
     fetchAll,
+    retryCapabilityPreflight,
+    recheckingCapabilities,
     patchTask,
     archiveUserWorkflow,
     resetUserWorkflow,

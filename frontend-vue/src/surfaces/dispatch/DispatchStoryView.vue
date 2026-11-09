@@ -6,13 +6,13 @@
         <div class="dispatch-tombstone__icon">✦</div>
         <h2 class="dispatch-tombstone__title">Ether Dissolution</h2>
         <p class="dispatch-tombstone__desc">{{ tombstoneMessage }}</p>
-        <router-link to="/" class="dispatch-tombstone__link">Return to Sovereign Home</router-link>
+        <router-link to="/" class="dispatch-tombstone__link">Home</router-link>
       </div>
     </div>
 
     <!-- Loading State -->
     <div v-else-if="loading" class="dispatch-loading">
-      <div class="dispatch-loading__pulse">Connecting to sovereign dispatch...</div>
+      <div class="dispatch-loading__pulse">Loading invitation…</div>
     </div>
 
     <!-- Error State -->

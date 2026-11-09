@@ -15,10 +15,18 @@ log = logging.getLogger("ucore.api.feed")
 
 # Lazy singleton
 _feed_server = None
+_profile_feed_servers = {}
 
 
 def _get_feed_server():
     global _feed_server
+    from app.services.identity import get_full_identity
+    profile = get_full_identity().get('active_profile_id') or 'signed-out'
+    if profile != 'default':
+        from app.services.feed_store import FeedServer, profile_feed_path
+        if profile not in _profile_feed_servers:
+            _profile_feed_servers[profile] = FeedServer(str(profile_feed_path(profile)))
+        return _profile_feed_servers[profile]
     if _feed_server is None:
         from app.services.feed_store import FeedServer
         _feed_server = FeedServer()
@@ -208,7 +216,7 @@ async def handle_feed_rules_apply(request: web.Request) -> web.Response:
             continue
 
         if proposal["action"] in {"auto-archive", "resolve"}:
-            res = server.resolve_activity(
+            server.resolve_activity(
                 proposal["activity_id"], note=f"Auto-resolved by rule {proposal['rule_id']}"
             )
             if proposal.get("archive_mail") and by_id[proposal["activity_id"]].get("source") == "mail":
@@ -251,7 +259,7 @@ async def handle_feed_runtime(request: web.Request) -> web.Response:
     """User-facing status for the Feed/Snackmachine workflow conduit."""
     from app.services.apple_feed_sync import AppleFeedSync
     from app.services.feed_rules import load_feed_rules
-    from snackmachine.scheduler import get_maintenance_scheduler
+    from app.services.maintenance_scheduler import get_maintenance_scheduler
 
     rules, config = load_feed_rules()
     scheduler = get_maintenance_scheduler()
@@ -400,6 +408,19 @@ async def handle_feed_source_sync(request: web.Request) -> web.Response:
     from app.services.apple_feed_sync import AppleFeedSync
 
     source = request.match_info["source"]
+    # Apple/Google connections share one intake and reconciliation path.
+    kind = {'mail':'mail', 'calendar':'calendar', 'notes':'notes', 'reminders':'tasks', 'contacts-notes-rules':'contacts'}.get(source)
+    if kind:
+        from app.api.connections_api import profile
+        from app.services.connections.engine import SyncEngine
+        engine = SyncEngine()
+        owner = profile(request)
+        matches = [c for c in engine.store.connections(owner) if c['provider'] == 'apple' and c['config']['enabled'] and kind in c['config']['collections']]
+        if not matches:
+            return web.json_response({'ok':False, 'error':'Choose Apple sources and lists in Settings → Connections first.'}, status=409)
+        results = [await engine.sync(owner, c['id']) for c in matches]
+        return web.json_response({'ok':all(r['state'] == 'connected' for r in results), 'results':results})
+
     try:
         body = await request.json()
     except Exception:

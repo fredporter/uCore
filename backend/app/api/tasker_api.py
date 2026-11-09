@@ -8,7 +8,10 @@ Provides:
 """
 from __future__ import annotations
 
+import json
 import logging
+import uuid
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -203,6 +206,17 @@ _META_ALIASES: dict[str, str] = {
 }
 
 
+def _json_metadata(value: Any) -> Any:
+    """YAML timestamps must remain serializable in task API responses."""
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {str(key): _json_metadata(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_metadata(item) for item in value]
+    return value
+
+
 def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
     """Parse an Obsidian-style YAML frontmatter block.
 
@@ -228,7 +242,7 @@ def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
             data = {}
     except Exception:
         data = {}
-    return data, rest
+    return _json_metadata(data), rest
 
 
 async def handle_list_boards(request: web.Request) -> web.Response:
@@ -298,6 +312,8 @@ async def handle_workflow_tasks(request: web.Request) -> web.Response:
       - tag: filter by tag (exact match)
       - scope: user|all (default: user)
     """
+    from app.services.identity import get_full_identity
+    active_profile = get_full_identity().get("active_profile_id") or "default"
     base = default_tasker_dir()
     board_filter = request.query.get("board", "").lower()
     tag_filter = request.query.get("tag", "").lower()
@@ -312,6 +328,10 @@ async def handle_workflow_tasks(request: web.Request) -> web.Response:
                 if md_file.name == "README.md":
                     continue
                 task = _parse_markdown_task(md_file)
+                if task.get("merged_into"):
+                    continue
+                if task.get("profile") and task["profile"] != active_profile:
+                    continue
                 tags = [t.lower() for t in task.get("tags", [])]
                 if tag_filter and tag_filter not in tags:
                     continue
@@ -361,11 +381,20 @@ async def handle_tasker_summary(request: web.Request) -> web.Response:
 
 
 def _find_task_file(base: Path, task_id: str) -> Path | None:
+    if not task_id or task_id in {".", ".."} or any(char in task_id for char in "/\\"):
+        raise ValueError("Invalid task ID")
+    matches = []
     for board_dir in sorted(p for p in base.iterdir() if p.is_dir()):
-        candidate = board_dir / f"{task_id}.md"
-        if candidate.exists() and candidate.is_file():
-            return candidate
-    return None
+        for candidate in board_dir.glob("*.md"):
+            if not candidate.resolve().is_relative_to(base.resolve()):
+                continue
+            # API records may expose a frontmatter ID rather than the filename.
+            # Resolve that stable identity after title/status filename changes.
+            if candidate.stem == task_id or str(_parse_markdown_task(candidate).get("id")) == task_id:
+                matches.append(candidate)
+    if len(matches) > 1:
+        raise ValueError("Task ID is ambiguous across boards")
+    return matches[0] if matches else None
 
 
 def _build_task_filename(
@@ -380,13 +409,16 @@ def _build_task_filename(
 
 def _task_metadata_from_record(task: dict[str, Any]) -> dict[str, Any]:
     metadata: dict[str, Any] = {
+        "id": task.get("id"),
+        "board": task.get("board") or "inbox",
+        "group": task.get("group") or "",
         "priority": task.get("priority") or "medium",
         "mission": task.get("mission") or "",
         "task": task.get("task") or "",
         "binder": task.get("binder") or "",
         "tags": task.get("tags") or [],
     }
-    for k in ("action_type", "action_payload", "approval_status", "due", "rejection_reason"):
+    for k in ("action_type", "action_payload", "approval_status", "due", "rejection_reason", "profile", "collection_id", "merged_into"):
         if k in task and task[k] not in (None, ""):
             metadata[k] = task[k]
     return metadata
@@ -421,10 +453,9 @@ def _update_task_file(
         patch.get("tags") if "tags" in patch else current.get("tags") or [],
     )
     new_body = str(
-        patch.get("body")
-        or current.get("body")
-        or current.get("description")
-        or "",
+        patch["body"] if "body" in patch else (
+            current.get("body") or current.get("description") or ""
+        ),
     ).strip()
     source = str(current.get("source") or "manual")
     source_id = str(current.get("source_id") or task_id)
@@ -432,11 +463,21 @@ def _update_task_file(
     metadata = _task_metadata_from_record(current)
     metadata["priority"] = new_priority
     metadata["tags"] = new_tags
-    for k in ("action_type", "action_payload", "approval_status", "due", "rejection_reason"):
+    metadata["board"] = new_board
+    for key in ("binder", "group"):
+        if key in patch:
+            if not isinstance(patch[key], str):
+                raise ValueError(f"{key} must be text")
+            metadata[key] = patch[key].strip()
+    for k in ("action_type", "action_payload", "approval_status", "due", "rejection_reason", "profile", "collection_id", "merged_into"):
         if k in patch:
             metadata[k] = patch[k]
 
+    if new_board in {".", ".."} or any(char in new_board for char in "/\\"):
+        raise ValueError("Invalid board")
     target_dir = base / new_board
+    if not target_dir.resolve().is_relative_to(base.resolve()):
+        raise ValueError("Board must remain inside the task workspace")
     target_dir.mkdir(parents=True, exist_ok=True)
 
     filename = _build_task_filename(new_status, new_title, source_id, task_id)
@@ -450,7 +491,11 @@ def _update_task_file(
         body=new_body,
         metadata=metadata,
     )
-    target_path.write_text(content, encoding="utf-8")
+    if target_path.exists() and source_path.resolve() != target_path.resolve():
+        raise ValueError("A different task already uses that filename")
+    temporary = target_path.with_suffix(".md.tmp")
+    temporary.write_text(content, encoding="utf-8")
+    temporary.replace(target_path)
 
     if source_path.resolve() != target_path.resolve() and source_path.exists():
         source_path.unlink(missing_ok=True)
@@ -497,6 +542,8 @@ async def handle_update_task(request: web.Request) -> web.Response:
             {"error": f"Task '{task_id}' not found"},
             status=404,
         )
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
     except Exception as exc:
         log.exception("Task update failed")
         return web.json_response(
@@ -509,6 +556,104 @@ async def handle_update_task(request: web.Request) -> web.Response:
         "task_id": task_id,
         **result,
     })
+
+
+def _create_workflow_task(base: Path, body: dict[str, Any]) -> dict[str, Any]:
+    """Create user work through uFlow's canonical Markdown storage."""
+    from app.services.identity import get_full_identity
+    from app.services.tasker_ops import write_task_markdown
+    profile = get_full_identity().get("active_profile_id") or "default"
+
+    title = str(body.get("title") or "").strip()
+    if not title:
+        raise ValueError("Task title is required")
+    board = str(body.get("board") or "inbox").strip()
+    task_id = str(uuid.uuid4())
+    result = write_task_markdown(
+        title=title, board=board, status="todo", body=str(body.get("body") or ""),
+        source="user", source_id=task_id, tasker_dir=str(base),
+        metadata={"id": task_id, "board": board, "profile": profile,
+                  "binder": str(body.get("binder") or "").strip(),
+                  "group": str(body.get("group") or "").strip(),
+                  "priority": normalize_priority(str(body.get("priority") or "medium")),
+                  "tags": normalize_tags(body.get("tags") or [])},
+    )
+    return {"updated": _parse_markdown_task(Path(result["path"]))}
+
+
+async def handle_workflow_lists(request: web.Request) -> web.Response:
+    from app.services.identity import get_full_identity
+    owner = get_full_identity().get("active_profile_id") or "default"
+    base = default_tasker_dir()
+    data = scan_tasker_boards(base)
+    visible = []
+    for board in data["boards"]:
+        directory = base / board["name"]
+        if not directory.resolve().is_relative_to(base.resolve()):
+            continue
+        marker = directory / "list.json"
+        explicit_user = False
+        if marker.is_file():
+            try:
+                marker_data = json.loads(marker.read_text())
+                explicit_user = marker_data.get("scope") == "user" and marker_data.get("profile", "default") == owner
+            except (ValueError, AttributeError):
+                pass
+        user_tasks = [_parse_markdown_task(path) for path in directory.glob("*.md") if path.name != "README.md"]
+        user_tasks = [task for task in user_tasks if _is_user_workflow_task(task) and not task.get("merged_into") and task.get("profile", "default") == owner]
+        if explicit_user or user_tasks or (owner == "default" and board["name"].lower() not in USER_EXCLUDED_BOARDS and not board["name"].startswith("user-")):
+            visible.append({**board, "count": len(user_tasks)})
+    return web.json_response({"boards": visible})
+
+
+async def handle_create_workflow_list(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+        name = str(body.get("name") or "").strip()
+        if not name or name in {".", ".."} or any(char in name for char in "/\\"):
+            raise ValueError("Choose a list name without path separators")
+        base = default_tasker_dir().resolve()
+        destination = (base / name).resolve()
+        if not destination.is_relative_to(base):
+            raise ValueError("List must remain in the task workspace")
+        destination.mkdir(parents=True, exist_ok=False)
+        from app.services.identity import get_full_identity
+        owner = get_full_identity().get("active_profile_id") or "default"
+        (destination / "list.json").write_text(json.dumps({"scope": "user", "title": name, "profile": owner}), encoding="utf-8")
+        return web.json_response({"name": name}, status=201)
+    except FileExistsError:
+        return web.json_response({"error": "A list with this name already exists"}, status=409)
+    except (ValueError, TypeError, AttributeError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
+
+async def handle_create_workflow_task(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+        if not isinstance(body, dict):
+            raise ValueError("Expected a task object")
+        return web.json_response(_create_workflow_task(default_tasker_dir(), body), status=201)
+    except (ValueError, TypeError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
+
+async def handle_duplicate_workflow_task(request: web.Request) -> web.Response:
+    try:
+        base = default_tasker_dir()
+        path = _find_task_file(base, request.match_info["task_id"])
+        if path is None:
+            return web.json_response({"error": "Task not found"}, status=404)
+        body = await request.json() if request.body_exists else {}
+        if not isinstance(body, dict):
+            raise ValueError("Expected an object")
+        task = _parse_markdown_task(path)
+        # Copies are new user tasks; never duplicate execution approvals/actions.
+        copy = {key: task.get(key) for key in ("board", "binder", "group", "priority", "tags", "body")}
+        copy.update({key: body[key] for key in ("board", "binder", "group") if key in body})
+        copy["title"] = task["title"] + " (copy)"
+        return web.json_response(_create_workflow_task(base, copy), status=201)
+    except (ValueError, TypeError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
 
 
 async def handle_execute_task_action(request: web.Request) -> web.Response:
@@ -686,6 +831,10 @@ def register_tasker_routes(app: web.Application) -> None:
         handle_update_task,
     )
     app.router.add_get("/api/developer/tasker/summary", handle_tasker_summary)
+    app.router.add_get("/api/workflow/lists", handle_workflow_lists)
+    app.router.add_post("/api/workflow/lists", handle_create_workflow_list)
+    app.router.add_post("/api/workflow/tasks", handle_create_workflow_task)
+    app.router.add_post("/api/workflow/tasks/{task_id}/duplicate", handle_duplicate_workflow_task)
     app.router.add_patch("/api/workflow/tasks/{task_id}", handle_update_task)
     app.router.add_post("/api/workflow/tasks/action-to-task", handle_action_to_task)
     app.router.add_post("/api/workflow/tasks/{task_id}/actions", handle_link_task_action)

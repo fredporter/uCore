@@ -689,7 +689,7 @@ const fallbackModel = computed<FallbackModel>(() => {
         { label: "Developer Surface", to: "/developer" },
       ],
       footnote:
-        "Configuration fallback. This page is intentionally local-first.",
+        "Using local settings.",
     };
   }
 

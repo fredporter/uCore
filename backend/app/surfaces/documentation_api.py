@@ -96,13 +96,11 @@ def _extract_frontmatter(markdown: str) -> dict[str, Any]:
 
 
 def _list_courses() -> list[dict[str, Any]]:
-    """Scan learning, uCode manual, vault, and archived docs for course/guide markdown."""
+    """Scan the learning library and product manuals for guide chapters."""
     roots: dict[str, Path] = {
         "manual": settings.udos_root / "uCode" / "docs" / "manual",
         "sonic": settings.udos_root / "SonicScrewdriver" / "docs" / "manual",
         "learning": LEARNING_ROOT,
-        "vault": Path.home() / "Vault",
-        "archive": settings.udos_root / "uCore" / "docs" / "archive",
     }
 
     courses: list[dict[str, Any]] = []

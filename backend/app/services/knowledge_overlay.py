@@ -393,7 +393,7 @@ class KnowledgeOverlayResolver:
                 difflib.unified_diff(
                     canon_lines,
                     effective_lines,
-                    fromfile=f"/dev/null",
+                    fromfile="/dev/null",
                     tofile=f"canon/{normalized}",
                 )
             )

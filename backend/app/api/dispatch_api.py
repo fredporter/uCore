@@ -247,7 +247,11 @@ async def handle_generate_bob(request: web.Request) -> web.Response:
     delay_ms = int(data.get("delay_ms", 100))
 
     try:
-        from app.services.uvector_bob import compile_svg_to_bob, compile_svgs_to_gif, generate_vector_motif
+        from app.services.uvector_bob import (
+            compile_svg_to_bob,
+            compile_svgs_to_gif,
+            generate_vector_motif,
+        )
     except Exception:
         import sys
         uvector_py = Path(__file__).resolve().parents[4] / "uVector" / "python"

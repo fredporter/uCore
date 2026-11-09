@@ -25,13 +25,14 @@
       <button
         v-for="(step, i) in steps"
         :key="i"
-        class="story-wizard__dot"
+        class="usx-btn story-wizard__dot"
         :class="{
           'story-wizard__dot--done': i < currentStep,
           'story-wizard__dot--active': i === currentStep,
         }"
         :aria-label="`Go to step ${i + 1}: ${step.title}`"
         :aria-current="i === currentStep ? 'step' : undefined"
+        :disabled="busy || (!allowJump && i > currentStep)"
         role="tab"
         @click="goTo(i)"
       />
@@ -56,24 +57,23 @@
     <!-- Navigation footer -->
     <div class="story-wizard__nav">
       <button
-        class="story-wizard__nav-btn"
-        :disabled="currentStep === 0"
+        class="usx-btn story-wizard__nav-btn"
+        :disabled="currentStep === 0 || busy"
         @click="prev"
       >
-        <span class="material-symbols-outlined">chevron_left</span>
+        <UIcon name="chevron_left" />
         Previous
       </button>
       <div class="story-wizard__nav-center">
         <slot name="footer-center" />
       </div>
       <button
-        class="story-wizard__nav-btn story-wizard__nav-btn--primary"
+        class="usx-btn usx-btn--primary story-wizard__nav-btn story-wizard__nav-btn--primary"
+        :disabled="nextDisabled || busy"
         @click="next"
       >
         {{ isLast ? finishLabel : 'Next' }}
-        <span class="material-symbols-outlined">
-          {{ isLast ? 'check' : 'chevron_right' }}
-        </span>
+        <UIcon :name="isLast ? 'check' : 'chevron_right'" />
       </button>
     </div>
   </div>
@@ -88,6 +88,7 @@
  * Or provide `html` in each step definition for simple HTML content.
  */
 import { computed, ref } from 'vue';
+import UIcon from '../atoms/UIcon.vue';
 
 export interface WizardStep {
   title: string;
@@ -100,9 +101,15 @@ const props = withDefaults(defineProps<{
   steps: WizardStep[];
   modelValue?: number;
   finishLabel?: string;
+  nextDisabled?: boolean;
+  busy?: boolean;
+  allowJump?: boolean;
 }>(), {
   modelValue: 0,
   finishLabel: 'Done',
+  nextDisabled: false,
+  busy: false,
+  allowJump: true,
 });
 
 const emit = defineEmits<{
@@ -124,6 +131,7 @@ const progressPct = computed(
 );
 
 function next() {
+  if (props.nextDisabled || props.busy) return;
   if (isLast.value) {
     emit('finish');
     return;
@@ -139,6 +147,7 @@ function prev() {
 }
 
 function goTo(i: number) {
+  if (props.busy || (!props.allowJump && i > currentStep.value)) return;
   direction.value = i > currentStep.value ? 'forward' : 'back';
   currentStep.value = i;
 }
@@ -355,4 +364,6 @@ function goTo(i: number) {
   .slide-back-enter-from,
   .slide-back-leave-to { transform: none; }
 }
+
+.story-wizard__nav-btn.usx-btn {display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;min-height:36px;margin:0;padding:0 12px;border-radius:var(--usx-radius-sm);font-size:var(--usx-font-size-sm);line-height:1;}.story-wizard__dot.usx-btn {min-height:0;min-width:0;margin:0;padding:0;border:0;}.story-wizard__nav-btn :deep(.u-icon){font-size:20px;width:20px;height:20px;}
 </style>

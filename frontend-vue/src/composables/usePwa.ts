@@ -1,17 +1,35 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { registerSW } from "virtual:pwa-register";
+import { UCORE_BASE } from "../api/base";
 
 interface InstallPromptEvent extends Event { prompt(): Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> }
 const INSTALL_DISMISSED = "ucore-pwa-install-dismissed";
 
 export function usePwa() {
   const online = ref(typeof navigator === "undefined" ? true : navigator.onLine);
+  const backendAvailable = ref<boolean | null>(null);
+  let healthTimer: ReturnType<typeof setInterval> | undefined;
+  let checking = false;
+  let stopped = false;
+  let healthAbort: AbortController | undefined;
+  async function checkBackend() {
+    if (checking || stopped) return;
+    checking = true;
+    healthAbort = new AbortController();
+    const timeout = setTimeout(() => healthAbort?.abort(), 4000);
+    try {
+      const response = await fetch(`${UCORE_BASE}/api/health`, {cache:"no-store",signal:healthAbort.signal});
+      const result = response.ok ? await response.json() : null;
+      if (!stopped) backendAvailable.value = result?.status === "ok";
+    } catch { if (!stopped) backendAvailable.value = false; }
+    finally { clearTimeout(timeout); checking = false; }
+  }
   const installEvent = ref<InstallPromptEvent | null>(null);
   const dwellComplete = ref(false);
   const installing = ref(false);
   const installMessage = ref("");
   let dwellTimer: ReturnType<typeof setTimeout> | undefined;
-  const updateOnline = () => { online.value = navigator.onLine; };
+  const updateOnline = () => { online.value = navigator.onLine; void checkBackend(); };
   const captureInstall = (event: Event) => { event.preventDefault(); installEvent.value = event as InstallPromptEvent; };
   const canInstall = computed(() => dwellComplete.value && Boolean(installEvent.value) && localStorage.getItem(INSTALL_DISMISSED) !== "true");
 
@@ -53,16 +71,21 @@ export function usePwa() {
 
   onMounted(() => {
     registerSW({ immediate: true });
+    void checkBackend();
+    healthTimer = setInterval(checkBackend, 15000);
     window.addEventListener("online", updateOnline);
     window.addEventListener("offline", updateOnline);
     window.addEventListener("beforeinstallprompt", captureInstall);
     dwellTimer = setTimeout(() => { dwellComplete.value = true; }, 30_000);
   });
   onBeforeUnmount(() => {
+    stopped = true;
+    clearInterval(healthTimer);
+    healthAbort?.abort();
     clearTimeout(dwellTimer);
     window.removeEventListener("online", updateOnline);
     window.removeEventListener("offline", updateOnline);
     window.removeEventListener("beforeinstallprompt", captureInstall);
   });
-  return { online, canInstall, installing, installMessage, install, dismissInstall };
+  return { online, backendAvailable, canInstall, installing, installMessage, install, dismissInstall };
 }

@@ -1,6 +1,6 @@
 <template>
   <button
-    class="u-button"
+    class="usx-btn u-button"
     :class="[`u-button--${variant}`, `u-button--${size}`, { 'u-button--disabled': disabled }]"
     :disabled="disabled"
     @click="emit('click', $event)"

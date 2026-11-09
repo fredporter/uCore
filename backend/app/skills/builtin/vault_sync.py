@@ -11,8 +11,12 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
+
 from app.services import library_index
 from app.skills.base import BaseSkill, SkillMeta, SkillParam
+
+_index_work: asyncio.Task | None = None
 
 
 class VaultSync(BaseSkill):
@@ -56,7 +60,10 @@ class VaultSync(BaseSkill):
                 ],
             }
 
-        result = library_index.build_index()
+        global _index_work
+        if _index_work is None or _index_work.done():
+            _index_work = asyncio.create_task(asyncio.to_thread(library_index.build_index))
+        result = await asyncio.shield(_index_work)
         if summary_only:
             sources = result.get("sources", [])
             return {

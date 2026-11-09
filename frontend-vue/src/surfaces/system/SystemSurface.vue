@@ -7,11 +7,22 @@
   >
     <SurfaceTabNav
       v-model="activeTab"
-      :tabs="SYSTEM_TABS"
+      :tabs="visibleSystemTabs"
       :orientation="shell.tabOrientation"
       @toggle-orientation="shell.toggleTabOrientation()"
     />
     <div class="surface__content">
+      <section v-if="currentTab === 'preferences'" class="system-panel system-tab-shell">
+        <div class="settings-heading"><h2>Settings</h2><button class="usx-btn" @click="router.push('/setup')">User Setup Story</button></div>
+        <div class="system-settings-form">
+          <label class="settings-row"><span>Show Advanced</span><input type="checkbox" :checked="preferences.advancedView" @change="preferences.setAdvancedView(($event.target as HTMLInputElement).checked)" /></label>
+          <p class="system-muted-copy">Show engineering, diagnostics, configuration and administration tools.</p>
+          <label class="settings-row"><span>Appearance</span><select :value="preferences.themeMode" @change="preferences.setThemeMode(($event.target as HTMLSelectElement).value as 'light' | 'dark' | 'auto')"><option value="dark">Dark</option><option value="light">Light</option><option value="auto">Automatic</option></select></label>
+          <label class="settings-row"><span>Text size</span><input type="number" min="12" max="24" :value="preferences.fontSize" @change="preferences.setFontSize(Number(($event.target as HTMLInputElement).value))" /></label>
+        </div>
+        <p v-if="preferences.syncError" role="status">{{ preferences.syncError }} · Settings are kept on this device.</p>
+      </section>
+      <ConnectionsPanel v-if="currentTab === 'connections'" />
       <!-- Pages Browser -->
       <div v-if="currentTab === 'pages'" class="system-panel system-tab-shell">
         <h3 class="surface__panel-title">System Pages</h3>
@@ -272,6 +283,7 @@
         v-if="currentTab === 'configuration'"
         class="system-panel system-tab-shell"
       >
+        <OAuthSettingsPanel />
         <h3 class="surface__panel-title">Secrets</h3>
         <p class="system-muted-copy">
           Encrypted secret storage. Values are masked by default.
@@ -397,7 +409,7 @@
         v-if="currentTab === 'identity'"
         class="system-panel system-tab-shell"
       >
-        <h3 class="surface__panel-title">Sovereign Identity & Profiles</h3>
+        <h3 class="surface__panel-title">Profiles</h3>
         <p class="system-muted-copy">
           Local device identity, multi-profile isolation, and persistent user preferences.
         </p>
@@ -479,15 +491,19 @@
 import type { TabDef } from "../../skills/molecules/SurfaceTabNav.vue";
 
 export const SYSTEM_TABS: TabDef[] = [
+  { id: "preferences", label: "Settings", icon: "tune" },
+  { id: "connections", label: "Connections", icon: "sync_alt" },
   { id: "pages", label: "Pages", icon: "dashboard" },
   { id: "configuration", label: "Configuration", icon: "tune" },
-  { id: "identity", label: "Identity", icon: "person" },
+  { id: "identity", label: "Profiles", icon: "person" },
 ];
 </script>
 
 <script setup lang="ts">
 import { computed, ref, reactive, watch, onMounted } from "vue";
+import OAuthSettingsPanel from "./OAuthSettingsPanel.vue";
 import { useRouter, useRoute } from "vue-router";
+import { useSettingsStore } from "../../stores/settings";
 import { useShellStore } from "../../stores/shell";
 import { useIdentityStore } from "../../stores/identity";
 import { SNACKBAR_BASE } from "../../api/base";
@@ -496,6 +512,7 @@ import {
   type CapabilityReadinessSnapshot,
   type CapabilityPreflightResult,
 } from "../../api/preflight";
+import ConnectionsPanel from "./ConnectionsPanel.vue";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import UBadge from "../../skills/atoms/UBadge.vue";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
@@ -505,6 +522,8 @@ const route = useRoute();
 const router = useRouter();
 const shell = useShellStore();
 const identityStore = useIdentityStore();
+const preferences = useSettingsStore();
+const visibleSystemTabs = computed(() => SYSTEM_TABS.filter(tab => preferences.advancedView || ['preferences', 'connections', 'identity'].includes(tab.id)));
 const VALID_SYSTEM_TABS = new Set(SYSTEM_TABS.map((tab) => tab.id));
 
 const routeTab = String(route.query.tab || "");
@@ -515,7 +534,7 @@ const LEGACY_SYSTEM_TABS: Record<string, string> = {
   "user-settings": "identity",
 };
 const initialTab = LEGACY_SYSTEM_TABS[routeTab] || routeTab;
-const activeTab = ref(VALID_SYSTEM_TABS.has(initialTab) ? initialTab : "pages");
+const activeTab = ref(visibleSystemTabs.value.some(tab => tab.id === initialTab) ? initialTab : "preferences");
 const currentTab = computed(() => activeTab.value);
 
 // ── Pages ────────────────────────────────────────────────────────
@@ -836,25 +855,19 @@ async function loadSettings() {
   } catch {}
 }
 
+function loadAdvancedSettings() {
+  void fetchPages(); void fetchReadiness(); void fetchVariables(); void fetchModelsConfig(); void fetchAgentsConfig(); void fetchSecrets();
+}
+watch(() => preferences.advancedView, enabled => {
+  if (enabled) loadAdvancedSettings();
+  if (!visibleSystemTabs.value.some(tab => tab.id === activeTab.value)) activeTab.value = "preferences";
+});
 onMounted(() => {
-  if (routeTab && routeTab !== initialTab) {
-    router.replace({
-      path: "/system",
-      query: { ...route.query, tab: initialTab },
-    });
-  } else if (!VALID_SYSTEM_TABS.has(initialTab) && routeTab) {
-    router.replace({
-      path: "/system",
-      query: { ...route.query, tab: "pages" },
-    });
+  if (String(route.query.tab || "") !== activeTab.value) {
+    router.replace({ path: "/system", query: { ...route.query, tab: activeTab.value } });
   }
   identityStore.load();
-  fetchPages();
-  fetchReadiness();
-  fetchVariables();
-  fetchModelsConfig();
-  fetchAgentsConfig();
-  fetchSecrets();
+  if (preferences.advancedView) loadAdvancedSettings();
   loadSettings();
 });
 
@@ -1157,4 +1170,15 @@ watch(
   font-size: var(--usx-font-size-sm);
   border: 1px solid var(--usx-color-border);
 }
+
+/* One control edge and a shared label column for ordinary preferences. */
+.system-settings-form > label.settings-row { display:grid; grid-template-columns:10rem minmax(0,24rem); align-items:center; gap:12px; min-height:32px; margin:0; padding:4px 0; font-size:var(--usx-font-size-sm); }
+.system-settings-form > label.settings-row > span { white-space:nowrap; }
+.system-settings-form > label.settings-row > :is(select,input:not([type=checkbox])) { box-sizing:border-box; width:100%; height:32px; min-height:32px; margin:0; padding:4px 8px; border:1px solid var(--usx-color-border); border-radius:var(--usx-radius-sm); background:var(--usx-color-surface); color:var(--usx-color-on-surface); box-shadow:none; outline:0; font:inherit; line-height:1.2; }
+.system-settings-form > label.settings-row > :is(select,input:not([type=checkbox])):focus-visible { border-color:transparent; outline:2px solid var(--usx-color-primary); outline-offset:-2px; box-shadow:none; }
+.system-settings-form > label.settings-row > input[type=checkbox] { justify-self:start; width:18px; height:18px; min-height:0; margin:0; accent-color:var(--usx-color-primary); box-shadow:none; }
+.system-settings-form > .system-muted-copy { margin:0 0 8px; font-size:var(--usx-font-size-sm); }
+@media(max-width:30rem){.system-settings-form > label.settings-row {grid-template-columns:8rem minmax(0,1fr);gap:8px;}}
+
+.settings-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}.settings-heading .usx-btn{min-height:32px;margin:0;padding:4px 8px;font-size:var(--usx-font-size-sm);}
 </style>

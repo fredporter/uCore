@@ -85,8 +85,8 @@ async def cors_middleware(request: web.Request, handler):
         raise
     if settings.enable_cors:
         response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, x-ucore-confirm"
     return response
 
 
@@ -469,6 +469,8 @@ def create_app() -> web.Application:
     Only routes unique to core (not covered by any module) are registered inline.
     """
     app = web.Application(middlewares=[budget_middleware, cors_middleware])
+    from app.api.research_api import research_queue_ctx
+    app.cleanup_ctx.append(research_queue_ctx)
     app.cleanup_ctx.append(maintenance_scheduler_ctx)
     app.cleanup_ctx.append(health_monitor_ctx)
 

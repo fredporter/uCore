@@ -14,18 +14,21 @@ def _default_data_file() -> Path:
     override = os.environ.get("UDOS_IDENTITY_DATA_FILE", "").strip()
     if override:
         return Path(override).expanduser()
-    udos_home = os.environ.get("UDOS_HOME", "").strip()
-    if udos_home:
-        return Path(udos_home).expanduser() / "identity" / "identity-story.json"
-    default_udos = Path.home() / "Code" / ".udos"
-    return default_udos / "identity" / "identity-story.json"
+    from app.core.settings import settings
+
+    return settings.udos_home / "identity" / "identity-story.json"
 
 
 class IdentityStoryStore:
     """JSON-backed store for profile variables and story progression."""
 
-    def __init__(self, data_file: Path | None = None) -> None:
+    def __init__(self, data_file: Path | None = None, profile_id: str | None = None) -> None:
         self.data_file = data_file or _default_data_file()
+        if profile_id and profile_id != "default":
+            import hashlib
+
+            suffix = hashlib.sha256(profile_id.encode()).hexdigest()[:16]
+            self.data_file = self.data_file.with_name("identity-story-" + suffix + ".json")
 
     def _load(self) -> dict[str, Any]:
         if not self.data_file.exists():

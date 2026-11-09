@@ -384,9 +384,11 @@ def register_routes(app: web.Application) -> None:
     # ── Research Queue (BrowserUI) ──────────────────────────────
     from .research_api import (
         handle_binder_search,
+        handle_research_cancel,
         handle_research_enhance,
         handle_research_list,
         handle_research_process,
+        handle_research_retry,
         handle_research_search,
         handle_research_start,
         handle_research_status,
@@ -395,6 +397,8 @@ def register_routes(app: web.Application) -> None:
     )
 
     app.router.add_post("/api/research/start", handle_research_start)
+    app.router.add_post("/api/research/{job_id}/cancel", handle_research_cancel)
+    app.router.add_post("/api/research/{job_id}/retry", handle_research_retry)
     app.router.add_get("/api/research/status", handle_research_status)
     app.router.add_get("/api/research/list", handle_research_list)
     app.router.add_post("/api/research/process", handle_research_process)
@@ -635,6 +639,8 @@ def register_routes(app: web.Application) -> None:
         from .host_api import register_host_routes
 
         register_host_routes(app)
+        from .connections_api import register as register_connections
+        register_connections(app)
         log.debug("Host PIM routes registered")
     except ImportError as e:
         log.debug("Host PIM routes not available: %s", e)

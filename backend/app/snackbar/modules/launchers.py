@@ -286,7 +286,7 @@ async def handle_sync_activity(request: web.Request) -> web.Response:
     doc = update_daily_activity_markdown()
 
     return web.json_response({
-        "ok": True,
+        "ok": all(result.get("ok", False) for result in sync_results.values()),
         "results": sync_results,
         "markdown": doc,
     })

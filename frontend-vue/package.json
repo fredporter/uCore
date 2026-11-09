@@ -3,7 +3,7 @@
   "version": "3.0.1",
   "private": true,
   "type": "module",
-  "description": "uDosConnect UI Hub — Vue 3 Skills-First rewrite of the Developer Surface",
+  "description": "uDosConnect UI Hub \u2014 Vue 3 Skills-First rewrite of the Developer Surface",
   "scripts": {
     "dev": "vite",
     "dev:clean": "vite --force",
@@ -14,7 +14,8 @@
     "test:ui": "vitest --ui",
     "test:golden": "playwright test",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "audit:actions": "node scripts/audit-ui-actions.mjs"
   },
   "engines": {
     "node": ">=22"

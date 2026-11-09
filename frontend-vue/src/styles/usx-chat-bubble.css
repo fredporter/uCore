@@ -474,3 +474,9 @@
     border-width: 2px;
   }
 }
+
+/* Keep navigation and the composer visible while conversation history scrolls. */
+.usx-chat-overlay-stack { min-height: 0; overflow: hidden; gap: 8px; }
+.usx-chat-panel { display: flex; flex-direction: column; min-height: 0; height: min(600px, calc(100dvh - 140px)); max-height: 100%; overflow: hidden; }
+.usx-chat-panel > .chat-panel { flex: 1 1 auto; min-height: 0; }
+.usx-chat-above:empty, .usx-chat-below:empty { display: none; }

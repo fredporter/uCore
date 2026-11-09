@@ -1,54 +1,18 @@
 <template>
-  <div class="surface">
+  <div class="surface" :class="{ 'surface--tab-nav-vertical': shell.tabOrientation === 'vertical' }">
+    <SurfaceTabNav v-if="!embedded" :model-value="activeTab" :tabs="TABS" :orientation="shell.tabOrientation" @update:model-value="selectTab" @toggle-orientation="shell.toggleTabOrientation()" />
     <div class="surface__content browserui-shell">
-      <div class="browserui-zen__top-nav">
-        <div class="browserui-nav-pills">
-          <button
-            type="button"
-            class="browserui-nav-pill"
-            :class="{ 'browserui-nav-pill--active': activeTab === 'cards' }"
-            @click="activeTab = 'cards'"
-          >
-            <UIcon name="dashboard" /> Research Cards
-          </button>
-          <button
-            type="button"
-            class="browserui-nav-pill"
-            :class="{ 'browserui-nav-pill--active': activeTab === 'studio' }"
-            @click="activeTab = 'studio'"
-          >
-            <UIcon name="palette" /> Banana Studio
-          </button>
-          <button
-            type="button"
-            class="browserui-nav-pill"
-            :class="{ 'browserui-nav-pill--active': activeTab === 'dashboard' }"
-            @click="activeTab = 'dashboard'"
-          >
-            <UIcon name="science" /> Research Queue
-          </button>
-          <button
-            type="button"
-            class="browserui-nav-pill browserui-nav-pill--wiki"
-            title="Read scraped and compiled notes in the offline Local Wikipedia"
-            @click="navigateToWiki"
-          >
-            <UIcon name="auto_stories" /> Read in Local Wiki
-          </button>
-        </div>
-      </div>
-
       <div v-if="activeTab === 'cards'" class="browserui-body">
         <section class="browserui-canvas">
           <header class="browserui-zen">
             <div class="browserui-zen__mark"><UIcon name="travel_explore" /></div>
             <h1>What are you exploring?</h1>
-            <p>Web intake, scraping, and vault enhancement engine. Ingest web knowledge to compile your offline collection.</p>
+            <p>Search the web and your saved research.</p>
             <div class="browserui-zen__search">
               <UInput v-model="searchQuery" placeholder="Search vaults, knowledge, and the web…" icon="search" @enter="runResearchSearch" />
               <button
                 type="button"
-                class="browserui-zen__safari-btn"
+                class="usx-btn browserui-zen__safari-btn"
                 title="Intake active tab from Safari"
                 :disabled="safariIntaking"
                 @click="intakeFromSafari"
@@ -56,10 +20,10 @@
                 <UIcon :name="safariIntaking ? 'sync' : 'open_in_browser'" />
                 <span>Safari Tab</span>
               </button>
-              <button v-if="hasActiveFilters" class="browserui-zen__clear" @click="resetControls" aria-label="Clear search">
+              <button v-if="hasActiveFilters" class="usx-btn browserui-zen__clear" @click="resetControls" aria-label="Clear search">
                 <UIcon name="close" />
               </button>
-              <button class="browserui-zen__submit" :disabled="researchSearching || !searchQuery.trim()" @click="runResearchSearch" aria-label="Search collections and web">
+              <button class="usx-btn usx-btn--primary browserui-zen__submit" :disabled="researchSearching || !searchQuery.trim()" @click="runResearchSearch" aria-label="Search collections and web">
                 <UIcon :name="researchSearching ? 'sync' : 'arrow_forward'" />
               </button>
             </div>
@@ -238,6 +202,8 @@
         :jobs="researchJobs"
         :gaps="researchGaps"
         @approve="approveJob"
+        @cancel="cancelResearchJob"
+        @retry="retryResearchJob"
         @startResearch="startResearchJob"
         @fillGap="fillResearchGap"
       />
@@ -247,15 +213,18 @@
 
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import UInput from "../../skills/atoms/UInput.vue"
 import UIcon from "../../skills/atoms/UIcon.vue"
 import PreviewTab from "./panels/PreviewTab.vue"
 import EditTab from "./panels/EditTab.vue"
+import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue"
+import { useShellStore } from "../../stores/shell"
 import ResearchDashboard from "./panels/ResearchDashboard.vue"
 import BananaStudio from "./panels/BananaStudio.vue"
 import { useChatStore } from "../../stores/chat"
+import { useWorkspaceStore } from "../../stores/workspace"
 import { useWorkflowStore } from "../../stores/workflow"
 import {
   addBinder,
@@ -316,14 +285,16 @@ const SESSION_KEY = "browserui-session-v3"
 
 const router = useRouter()
 const wf = useWorkflowStore()
+const workspace = useWorkspaceStore()
 const chat = useChatStore()
 
+defineProps<{ embedded?: boolean }>()
 const activeTab = ref<"cards" | "dashboard" | "studio">("cards")
 const searchQuery = ref("")
 const researchSearching = ref(false)
 
 function navigateToWiki() {
-  router.push({ path: "/docs", query: { tab: "wiki" } })
+  router.push({ path: "/documentation", query: { tab: "wiki" } })
 }
 const researchNotice = ref("")
 const groundedResult = ref<GroundedSearchResult | null>(null)
@@ -352,10 +323,18 @@ const researchContent = ref<Record<string, string>>({})
 const batchSelected = ref<string[]>([])
 const sessionCardMeta = ref<Record<string, { tags: string[]; groups: string[] }>>({})
 
+const shell = useShellStore()
 const TABS = [
   { id: "cards", label: "Cards", icon: "dashboard" },
-  { id: "dashboard", label: "Research", icon: "science" },
+  { id: "studio", label: "Studio", icon: "palette" },
+  { id: "dashboard", label: "Queue", icon: "science" },
+  { id: "knowledge", label: "Knowledge", icon: "auto_stories" },
 ]
+
+function selectTab(tab: string) {
+  if (tab === "knowledge") navigateToWiki()
+  else if (tab === "cards" || tab === "studio" || tab === "dashboard") activeTab.value = tab
+}
 
 function normalizeTag(value: string): string {
   const cleaned = value.trim().toLowerCase().replace(/\s+/g, "-")
@@ -815,8 +794,9 @@ async function handleResearchCard(card: DisplayCard | StackItem) {
       state: "pending",
       progress: 0,
     })
-  } catch {
-    // backend offline
+    researchNotice.value = "Research queued";
+  } catch (error) {
+    researchNotice.value = error instanceof Error ? error.message : "Could not start research.";
   }
 }
 
@@ -910,10 +890,35 @@ async function saveToBinder(payload: { title: string; content: string; tags: str
   router.push({ path: "/workflow", query: { tab: "editor" } })
 }
 
+let researchRefreshTimer: ReturnType<typeof setTimeout> | undefined;
+let researchRefreshInFlight = false;
+let researchViewActive = true;
+async function refreshResearchProgress() {
+  if (researchRefreshTimer) clearTimeout(researchRefreshTimer);
+  if (researchRefreshInFlight || !researchViewActive) return;
+  researchRefreshInFlight = true;
+  try {
+    if (!document.hidden && navigator.onLine !== false) await hydrateResearchJobs();
+  } finally {
+    researchRefreshInFlight = false;
+    if (researchViewActive) {
+      const active = researchJobs.value.some(job => !["completed", "failed", "cancelled"].includes(job.state));
+      researchRefreshTimer = setTimeout(refreshResearchProgress, active ? 5000 : 30000);
+    }
+  }
+}
+
+onBeforeUnmount(() => {
+  researchViewActive = false;
+  if (researchRefreshTimer) clearTimeout(researchRefreshTimer);
+  document.removeEventListener("visibilitychange", refreshResearchProgress);
+  window.removeEventListener("online", refreshResearchProgress);
+});
+
 async function hydrateResearchJobs() {
   try {
     const jobs = await listResearchJobs()
-    if (jobs.length) researchJobs.value = jobs
+    researchJobs.value = jobs.map(job => ({ ...job, result: typeof job.result === "string" ? JSON.parse(job.result || "null") : job.result }))
   } catch {
     // backend offline
   }
@@ -932,36 +937,62 @@ async function detectKnowledgeGaps() {
   }
 }
 
-function approveJob(job: any) {
-  if (job?.url) {
-    const card: StackItem = {
-      id: `job-${job.id || Date.now()}`,
-      title: job.url,
-      url: job.url,
-      description: "Approved research job",
-      tags: (job.tags || ["#research"]).map((tag: string) => normalizeTag(tag)),
-      groups: [],
-    }
-    handleResearchCard(card)
+async function retryResearchJob(job: { id: string }) {
+  try {
+    const response = await fetch(`${API_BASE}/api/research/${encodeURIComponent(job.id)}/retry`, { method: "POST", signal: AbortSignal.timeout(8000) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not retry research.");
+    await hydrateResearchJobs();
+    researchNotice.value = "Research queued";
+  } catch (error) {
+    researchNotice.value = error instanceof Error ? error.message : "Could not retry research.";
   }
 }
 
-function startResearchJob(payload: { url: string; binder?: string; tags?: string[]; mode?: string }) {
-  const card: StackItem = {
-    id: `dash-${Date.now()}`,
-    title: payload.url,
-    url: payload.url,
-    description: "Research from dashboard",
-    tags: (payload.tags || ["#research"]).map((tag) => normalizeTag(tag)),
-    groups: payload.binder ? [payload.binder] : [],
+async function cancelResearchJob(job: { id: string }) {
+  try {
+    const response = await fetch(`${API_BASE}/api/research/${encodeURIComponent(job.id)}/cancel`, { method: "POST", signal: AbortSignal.timeout(8000) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not cancel research.");
+    await hydrateResearchJobs();
+  } catch (error) {
+    researchNotice.value = error instanceof Error ? error.message : "Could not cancel research.";
   }
-  return handleResearchCard(card)
+}
+
+async function approveJob(job: any) {
+  try {
+    const result = typeof job.result === "string" ? JSON.parse(job.result) : job.result;
+    if (!result?.file) throw new Error("This job has no saved note.");
+    // Research outputs are saved beneath Vault; the editor API accepts the
+    // relative workspace path and performs its own boundary validation.
+    const marker = "/Vault/";
+    const index = result.file.indexOf(marker);
+    if (index < 0) throw new Error("Saved note is outside the workspace.");
+    const path = "/" + result.file.slice(index + marker.length);
+    await workspace.selectFile({ id: path, path, name: path.split("/").pop() || "Research.md", type: "file", extension: "md" });
+    if (workspace.error) throw new Error(workspace.error);
+    await router.push({ path: "/workflow", query: { tab: "editor" } });
+  } catch (error) {
+    researchNotice.value = error instanceof Error ? error.message : "Could not open note.";
+  }
+}
+
+async function startResearchJob(payload: { url: string; binder?: string; tags?: string[]; mode?: string }) {
+  try {
+    await startResearch(payload.url, payload.binder || "research", payload.tags || [], payload.mode || "full");
+    await hydrateResearchJobs();
+    researchNotice.value = "Research queued";
+  } catch (error) {
+    researchNotice.value = error instanceof Error ? error.message : "Could not start research.";
+  }
 }
 
 function fillResearchGap(gap: any) {
   activeTab.value = "cards"
   const query = gap?.query || gap?.topic || gap?.title || ""
   searchQuery.value = String(query)
+  void runResearchSearch()
 }
 
 function saveSession() {
@@ -1024,7 +1055,9 @@ watch(activeTab, (tab) => {
 onMounted(async () => {
   loadSession()
   await fetchBookmarks()
-  await Promise.all([hydrateResearchJobs(), detectKnowledgeGaps()])
+  document.addEventListener("visibilitychange", refreshResearchProgress);
+  window.addEventListener("online", refreshResearchProgress);
+  await Promise.all([refreshResearchProgress(), detectKnowledgeGaps()])
 })
 </script>
 
@@ -1183,47 +1216,6 @@ onMounted(async () => {
 }
 .browserui-zen__submit:disabled { opacity: .45; }
 .browserui-zen__notice { margin: var(--usx-spacing-xs) 0 0 !important; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); }
-
-/* ─── Top Nav Pills ──────────────────────────────────────────────── */
-.browserui-zen__top-nav {
-  display: flex;
-  justify-content: center;
-  margin-bottom: var(--usx-spacing-md);
-}
-
-.browserui-nav-pills {
-  display: inline-flex;
-  background: var(--usx-color-surface-variant);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-full);
-  padding: 3px;
-  gap: 2px;
-}
-
-.browserui-nav-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
-  border-radius: var(--usx-radius-full);
-  border: 0;
-  background: transparent;
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-xs);
-  font-weight: var(--usx-font-weight-semibold);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.browserui-nav-pill:hover {
-  color: var(--usx-color-on-surface);
-}
-
-.browserui-nav-pill--active {
-  background: var(--usx-color-surface);
-  color: var(--usx-color-primary);
-  box-shadow: var(--usx-shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
-}
 
 /* ─── Grounded Research Box ──────────────────────────────────────── */
 .browserui-grounded-box {
@@ -2056,4 +2048,20 @@ onMounted(async () => {
     border-top: var(--usx-border-width) solid var(--usx-color-border);
   }
 }
+
+/* Shared compact control geometry, without nested input/button borders. */
+.browserui-zen { margin-block: 24px; align-items: flex-start; text-align: left; }
+.browserui-zen__mark { width: 40px; height: 40px; font-size: 24px; }
+.browserui-zen h1 { font-size: var(--usx-font-size-xl); line-height: 1.3; }
+.browserui-zen__search { display: flex; align-items: center; gap: 4px; box-sizing: border-box; min-height: 44px; padding: 4px 6px; border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-md); background: var(--usx-color-surface); }
+.browserui-zen__search :deep(.u-input) { flex: 1 1 auto; min-width: 0; height: 34px; min-height: 34px; padding: 0 4px; border: 0; border-radius: 0; background: transparent; margin: 0; }
+.browserui-zen__search :deep(.u-input__field) { font-size: var(--usx-font-size-base); margin: 0; }
+.browserui-zen__search:focus-within { outline: 2px solid var(--usx-color-primary); outline-offset: 1px; }
+.browserui-zen__search button.usx-btn { position: static; transform: none; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: 4px; height: 32px; min-height: 32px; margin: 0; padding: 0 8px; border: 0; border-radius: var(--usx-radius-sm); box-shadow: none; font-size: var(--usx-font-size-sm); line-height: 1; }
+.browserui-zen__search button :deep(.u-icon) { width: 20px; height: 20px; font-size: 20px; }
+.browserui-zen__clear, .browserui-zen__submit { width: 32px; }
+.browserui-pill { display: inline-flex; align-items: center; min-height: 28px; margin: 0; padding: 2px 8px; font-size: var(--usx-font-size-sm); line-height: 1.2; box-shadow: none; }
+.browserui-card { text-align: left; }
+.browserui-actions-row .usx-btn, .browserui-batch-tools .usx-btn, .browserui-card__actions .usx-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 32px; margin: 0; padding: 4px 8px; font-size: var(--usx-font-size-sm); }
+@media (max-width: 40rem) { .browserui-zen__safari-btn span { display: none; } }
 </style>

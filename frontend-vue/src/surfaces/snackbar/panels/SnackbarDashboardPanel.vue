@@ -7,12 +7,12 @@
         <div>
           <h2 class="recipe-title">Server Overview</h2>
           <p class="recipe-desc">
-            {{ srv.services.length }} services &middot; {{ srv.upCount }} online &middot; sovereign local runtime
+            {{ srv.services.length }} services &middot; {{ srv.upCount }} online &middot; local
           </p>
         </div>
       </div>
       <div class="header-meta">
-        <span class="recipe-badge">Local-First (Zero Cloud Spend)</span>
+        <span class="recipe-badge">Local processing</span>
       </div>
     </div>
 
@@ -27,7 +27,7 @@
           <span class="card-tag">Overall</span>
         </div>
         <h3 class="card-title">System Health</h3>
-        <p class="card-description">Aggregate availability across sovereign services and endpoints.</p>
+        <p class="card-description">Service availability.</p>
         <div class="card-footer">
           <span class="card-metric" :class="`metric--${healthClass}`">{{ srv.healthPct }}%</span>
           <span class="card-metric-sub">Nominal</span>
@@ -149,7 +149,7 @@
         <div class="header-left">
           <span class="material-symbols-outlined header-icon">rocket_launch</span>
           <div>
-            <h3 class="recipe-title">Ecosystem &amp; Host Launchers</h3>
+            <h3 class="recipe-title">Apps</h3>
             <p class="recipe-desc">Installed applications discovered on local host (absent products hidden)</p>
           </div>
         </div>
@@ -218,7 +218,7 @@
 
   <div v-else class="server-loading">
     <span class="material-symbols-outlined spinning">progress_activity</span>
-    <span>Loading sovereign server metrics...</span>
+    <span>Loading service status…</span>
   </div>
 </template>
 

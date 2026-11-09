@@ -6,16 +6,36 @@
     }"
   >
     <SurfaceTabNav
-      v-model="wf.activeTab"
+      :model-value="wf.activeTab"
+      @update:model-value="wf.setTab($event as WorkflowTab)"
       :tabs="WORKFLOW_TABS"
       :orientation="shell.tabOrientation"
       @toggle-orientation="shell.toggleTabOrientation()"
     />
+    <div v-if="wf.activeTab === 'editor' && activeEditorItem" class="workflow-context" aria-label="Current item">
+      <button v-if="wf.activeBinderId" class="usx-btn" @click="wf.binders.some(binder => binder.id === wf.activeBinderId) ? wf.showBinder(wf.activeBinderId) : wf.showList('', wf.activeBinderId)"><UIcon name="book" />{{ wf.binders.find(b => b.id === wf.activeBinderId)?.title || wf.activeBinderId }}</button>
+      <button class="usx-btn" @click="wf.showList(wf.activeList, wf.activeBinderId)"><UIcon name="list" />{{ wf.activeList || 'Tasks' }}</button>
+      <strong>{{ editorTitle }}</strong><small v-if="wf.hasEditorDraft">Unsaved</small>
+      <span class="workflow-context__actions" v-if="activeEditorTask">
+        <span>{{ contextPosition + 1 }} of {{ wf.relatedTasks.length }} · {{ wf.relatedTasks.filter(task => task.status === 'completed').length }} done</span>
+        <button class="usx-btn" aria-label="Previous task" :disabled="contextPosition <= 0" @click="navigateTask(-1)"><UIcon name="chevron_left" /></button>
+        <button class="usx-btn" aria-label="Next task" :disabled="contextPosition < 0 || contextPosition >= wf.relatedTasks.length - 1" @click="navigateTask(1)"><UIcon name="chevron_right" /></button>
+        <button class="usx-btn" :disabled="saving" @click="completeTask()">{{ activeEditorTask.status === 'completed' ? 'Reopen' : 'Mark done' }}</button>
+        <button class="usx-btn" :disabled="saving" @click="completeTask(true)">Done & next</button>
+      </span>
+    </div>
     <!-- Content area -->
     <div class="surface__content">
+      <form v-if="saveAsOpen" class="surface__panel" @submit.prevent="saveDraftAsFile">
+        <label>File name <input v-model="saveAsName" required aria-label="File name" /></label>
+        <UButton type="submit" :disabled="saving">Save to files</UButton>
+        <UButton type="button" variant="secondary" :disabled="saving" @click="saveAsOpen = false">Cancel</UButton>
+      </form>
+      <p v-if="saveMessage" :role="saveFailed ? 'alert' : 'status'">{{ saveMessage }}</p>
       <CapabilityRepairPanel
         v-if="blockedRepairs.length > 0"
         :items="blockedRepairs"
+        :busy="wf.recheckingCapabilities"
         @retry="onRetryPreflight"
       />
 
@@ -27,6 +47,10 @@
         <div v-if="wf.activeTab !== 'editor'" class="workflow-panel">
           <MissionControlPanel v-if="wf.activeTab === 'mission-control'" />
           <TasksPanel v-else-if="wf.activeTab === 'tasks'" />
+          <ConnectionsPanel v-else-if="wf.activeTab === 'contacts'" collection-only initial-kind="contacts" />
+          <ConnectionsPanel v-else-if="wf.activeTab === 'notes'" collection-only initial-kind="notes" />
+          <FeedsPanel v-else-if="wf.activeTab === 'feeds'" />
+          <BrowserUISurface v-else-if="wf.activeTab === 'research'" embedded />
           <NotebookBinderPanel v-else-if="wf.activeTab === 'binder'" />
         </div>
 
@@ -39,6 +63,8 @@
             class="workflow-workspace-toggle"
             type="button"
             aria-label="Open workspace files"
+            :aria-expanded="workspaceTreeOpen"
+            aria-controls="workflow-location-tree"
             @click="workspaceTreeOpen = true"
           >
             <UIcon name="folder_open" :size="20" />
@@ -51,13 +77,16 @@
             @click="workspaceTreeOpen = false"
           />
           <aside
+            v-if="workspaceTreeOpen || wideEditor"
+            id="workflow-location-tree"
             class="workflow-workspace-tree"
             :class="{ 'workflow-workspace-tree--open': workspaceTreeOpen }"
           >
             <button class="workflow-workspace-close" type="button" aria-label="Close workspace files" @click="workspaceTreeOpen = false">
               <UIcon name="close" />
             </button>
-            <WorkspaceTree />
+            <WorkflowNavigator />
+            <details open><summary>Files</summary><WorkspaceTree /></details>
           </aside>
           <EditorPanel
             v-if="activeEditorItem"
@@ -68,8 +97,8 @@
             @update:content="onEditorContentUpdate"
             @update:edit-mode="onEditorModeUpdate"
             @save="onEditorSave"
-            @publish="publishOpen = true"
-            @close="wf.closeEditor()"
+            @publish="openPublishing"
+            @close="returnToContext"
           />
           <Transition name="workflow-publish">
             <aside v-if="publishOpen && activeEditorItem" class="workflow-publish-drawer">
@@ -86,13 +115,13 @@
           <div v-if="!activeEditorItem" class="wf-editor-empty">
             <UIcon name="diamond" />
             <p>
-              Select a file from the User Vault sidebar or a task from Tasks.
+              Open a task or binder draft to continue, or choose a file from the sidebar.
             </p>
             <div class="wf-editor-empty__actions">
               <UButton
                 size="sm"
                 variant="primary"
-                @click="shell.toggleSidebar()"
+                @click="workspaceTreeOpen = true"
               >
                 Open File Browser
               </UButton>
@@ -128,7 +157,11 @@
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
+import ConnectionsPanel from "../system/ConnectionsPanel.vue";
+import FeedsPanel from "./panels/FeedsPanel.vue";
+import BrowserUISurface from "../browserui/BrowserUISurface.vue";
 import { useWorkflowStore, WORKFLOW_TABS } from "../../stores/workflow";
+import { UCORE_BASE } from "../../api/base";
 import { useWorkspaceStore } from "../../stores/workspace";
 import type { WorkflowTab } from "../../stores/workflow";
 import { getEditorSurface } from "../../composables/useEditorSurface";
@@ -150,12 +183,17 @@ const NotebookBinderPanel = defineAsyncComponent(
 import { EditorPanel } from "../../skills";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import UButton from "../../skills/atoms/UButton.vue";
+import WorkflowNavigator from "../../skills/molecules/WorkflowNavigator.vue";
 import WorkspaceTree from "../../skills/molecules/editor/WorkspaceTree.vue";
 
 const shell = useShellStore();
 const wf = useWorkflowStore();
 const workspace = useWorkspaceStore();
 const workspaceTreeOpen = ref(false);
+const editorMedia = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(min-width: 1024px)") : null;
+const wideEditor = ref(editorMedia?.matches || false);
+function onEditorWidthChange(event: MediaQueryListEvent) { wideEditor.value = event.matches; }
+let restoringLocation = true;
 const publishOpen = ref(false);
 
 function toggleWorkspaceFiles() {
@@ -167,19 +205,14 @@ const router = useRouter();
 
 const VALID_WORKFLOW_TABS = new Set(WORKFLOW_TABS.map((t) => t.id));
 
-function ensureEditorDocument() {
-  if (wf.activeTab === "editor") {
-    wf.ensureDefaultEditorFile();
-  }
-}
-
 function asWorkflowTab(tab: string): WorkflowTab | null {
   return VALID_WORKFLOW_TABS.has(tab as WorkflowTab)
     ? (tab as WorkflowTab)
     : null;
 }
 
-onMounted(() => {
+onMounted(async () => {
+  editorMedia?.addEventListener("change", onEditorWidthChange);
   window.addEventListener("ucore:workflow-files-toggle", toggleWorkspaceFiles);
   void workspace.loadTree();
   const routeTab = String(route.query.tab || "").trim();
@@ -193,12 +226,47 @@ onMounted(() => {
     });
   }
 
-  ensureEditorDocument();
 
-  void wf.fetchAll();
+  wf.activeList = String(route.query.list || "");
+  wf.activeBinderId = String(route.query.binder || "");
+  const selectionAtLoad = wf.selectedTask?.id;
+  const fileAtLoad = editorSurface.currentFile.value?.path;
+  const taskId = String(route.query.task || "");
+  const documentPart = String(route.query.document || "");
+  const filePath = String(route.query.file || "");
+  await wf.fetchAll();
+  try {
+    const selectionChanged = wf.selectedTask?.id !== selectionAtLoad || editorSurface.currentFile.value?.path !== fileAtLoad;
+    if (selectionChanged) { /* Keep user navigation that happened during hydration. */ }
+    else if (taskId) {
+      const task = wf.tasks.find(task => task.id === taskId);
+      if (task) wf.openTask(task);
+    } else if (wf.activeBinderId && ["brief", "draft"].includes(documentPart)) {
+      const response = await fetch(`${UCORE_BASE}/api/binder/${encodeURIComponent(wf.activeBinderId)}`, { signal: AbortSignal.timeout(8000) });
+      if (!response.ok) throw new Error("Could not restore binder document");
+      const { binder } = await response.json();
+      wf.openBinderDocument(wf.activeBinderId, `${binder.metadata.title} · ${documentPart}`, binder[documentPart] || "", binder.draft_sha256 || "", documentPart === "brief");
+    } else if (filePath && safeTab === "editor") {
+      await workspace.selectFile({ id: filePath, path: filePath, name: filePath.split("/").pop() || "Document", type: "file" });
+    }
+  } catch (error) { saveFailed.value = true; saveMessage.value = error instanceof Error ? error.message : "Could not restore item"; }
+  restoringLocation = false;
+  syncLocation();
+});
+
+function syncLocation() {
+  if (restoringLocation) return;
+  const query = { ...route.query, tab: wf.activeTab, list: wf.activeList || undefined, binder: wf.activeBinderId || undefined, task: wf.activeTab === "editor" ? wf.selectedTask?.id : undefined, document: wf.activeTab === "editor" && wf.binderDocument ? (wf.binderDocument.readOnly ? "brief" : "draft") : undefined, file: wf.activeTab === "editor" && !wf.selectedTask && !wf.binderDocument ? editorSurface.currentFile.value?.path : undefined };
+  if (["tab", "list", "binder", "task", "document", "file"].some(key => String(route.query[key] || "") !== String(query[key as keyof typeof query] || ""))) void router.replace({ path: "/workflow", query });
+}
+watch(() => [wf.activeTab, wf.activeList, wf.activeBinderId, wf.selectedTask?.id, wf.binderDocument?.path, editorSurface.currentFile.value?.path], syncLocation);
+watch(() => route.query.task, value => {
+  const task = wf.tasks.find(task => task.id === value);
+  if (task && wf.selectedTask?.id !== task.id) wf.openTask(task);
 });
 
 onBeforeUnmount(() => {
+  editorMedia?.removeEventListener("change", onEditorWidthChange);
   window.removeEventListener("ucore:workflow-files-toggle", toggleWorkspaceFiles);
 });
 
@@ -211,61 +279,77 @@ watch(
     if (wf.activeTab !== routeTab) {
       wf.setTab(safeTab);
     }
-    if (safeTab === "editor") {
-      wf.ensureDefaultEditorFile();
-    }
   },
 );
 
 watch(() => workspace.selectedId, () => { workspaceTreeOpen.value = false; });
 watch(() => [wf.selectedTask?.id, wf.selectedFile?.id, workspace.selectedId], () => { publishOpen.value = false; });
 
-watch(
-  () => wf.activeTab,
-  (tab, prev) => {
-    if (tab === "editor") {
-      wf.ensureDefaultEditorFile();
-    }
-    // Close any lingering editor when leaving the Tasks tab
-    if (prev === "tasks" && tab !== "tasks") {
-      wf.closeEditor();
-    }
-    const current = String(route.query.tab || "");
-    if (current === tab) return;
-    router.replace({
-      path: "/workflow",
-      query: { ...route.query, tab },
-    });
-  },
-);
 
-watch(
-  () => [wf.activeTab, wf.selectedTask?.id || "", wf.selectedFile?.id || ""],
-  ([tab, taskId, fileId]) => {
-    if (tab !== "editor") return;
-    if (!taskId && !fileId) {
-      wf.ensureDefaultEditorFile();
-    }
-  },
-);
+function onEditorContentUpdate(value: string) { wf.updateEditorContent(value); }
 
-function onEditorContentUpdate(value: string) {
-  if (sharedEditorFile.value) {
-    editorSurface.updateContent(value);
-  } else {
-    wf.updateEditorContent(value);
+const saveAsOpen = ref(false);
+const saveAsName = ref("Untitled.md");
+const pendingDraft = ref("");
+const saving = ref(false);
+const saveMessage = ref("");
+const saveFailed = ref(false);
+
+async function onEditorSave(value: string) {
+  if (saving.value) return;
+  saving.value = true;
+  saveFailed.value = false;
+  saveMessage.value = "Saving…";
+  try {
+    if (activeEditorTask.value) {
+      await wf.patchTask(activeEditorTask.value.id, { body: value });
+    } else if (wf.binderDocument) {
+      await wf.saveBinderDocument(value);
+    } else if (activeWorkflowFile.value) {
+      const file = activeWorkflowFile.value;
+      if (file.readOnly) throw new Error("This file is read-only.");
+      if (file.path.startsWith("virtual/")) {
+        pendingDraft.value = value;
+        saveAsOpen.value = true;
+        saveMessage.value = "";
+        return;
+      }
+      editorSurface.updateContent(value);
+      const saved = await workspace.saveFile(file.path, value, sharedEditorFile.value?.version);
+      if (!saved) {
+        saveMessage.value = workspace.error || "Offline: save queued for reconnection.";
+        return;
+      }
+    } else {
+      throw new Error("Open a task or file to save changes.");
+    }
+    delete wf.editorDrafts[wf.editorKey];
+    saveMessage.value = "Saved";
+  } catch (error) {
+    saveFailed.value = true;
+    saveMessage.value = error instanceof Error ? error.message : "Could not save changes.";
+  } finally {
+    saving.value = false;
   }
 }
 
-async function onEditorSave(value: string) {
-  if (sharedEditorFile.value) {
-    editorSurface.updateContent(value);
-    await workspace.saveFile(sharedEditorFile.value.path, value);
-    return;
+async function saveDraftAsFile() {
+  if (saving.value) return;
+  saving.value = true;
+  saveFailed.value = false;
+  try {
+    const file = await workspace.createFile("/", saveAsName.value);
+    editorSurface.updateContent(pendingDraft.value);
+    saveAsOpen.value = false;
+    const saved = await workspace.saveFile(file.path, pendingDraft.value);
+    saveAsOpen.value = false;
+    saveMessage.value = saved ? "Saved" : workspace.error;
+  } catch (error) {
+    saveFailed.value = true;
+    saveMessage.value = error instanceof Error ? error.message : "Could not save changes.";
+  } finally {
+    saving.value = false;
   }
-  wf.updateEditorContent(value);
-  const itemId = wf.selectedTask?.id || wf.selectedFile?.path;
-  console.log("[Workflow] Editor saved:", itemId);
 }
 
 function onEditorModeUpdate(mode: "prose" | "code") {
@@ -291,12 +375,41 @@ const editorTitle = computed(
     editorSurface.title.value ||
     "Untitled",
 );
-const editorContent = computed(
-  () =>
-    activeEditorTask.value?.description ||
-    activeWorkflowFile.value?.content ||
-    "",
-);
+const editorContent = computed(() => wf.editorDrafts[wf.editorKey] ?? activeEditorTask.value?.description ?? activeWorkflowFile.value?.content ?? "");
+const contextPosition = computed(() => wf.relatedTasks.findIndex(task => task.id === activeEditorTask.value?.id));
+function navigateTask(offset: number) {
+  const task = wf.relatedTasks[contextPosition.value + offset];
+  if (task) wf.openTask(task);
+}
+function openPublishing() {
+  if (wf.binderDocument) { wf.binderStage = "publish"; wf.showBinder(wf.activeBinderId); }
+  else publishOpen.value = true;
+}
+function returnToContext() {
+  if (wf.binderDocument) wf.showBinder(wf.activeBinderId);
+  else wf.showList(wf.activeList, wf.activeBinderId);
+}
+async function completeTask(advance = false) {
+  if (!activeEditorTask.value || saving.value) return;
+  const current = activeEditorTask.value;
+  const next = wf.relatedTasks.find(task => task.id !== current.id && ["todo", "in-progress", "review"].includes(task.status));
+  saving.value = true;
+  try {
+    await wf.patchTask(current.id, { status: advance || current.status !== "completed" ? "completed" : "todo", ...(wf.hasEditorDraft ? { body: editorContent.value } : {}) });
+    if (advance && next) wf.openTask(next);
+    else if (advance) wf.showList(wf.activeList, wf.activeBinderId);
+    saveMessage.value = "Task updated";
+  } catch (error) { saveFailed.value = true; saveMessage.value = error instanceof Error ? error.message : "Could not update task"; }
+  finally { saving.value = false; }
+}
+watch(() => editorSurface.currentFile.value?.path, path => {
+  if (!path) return;
+  if (wf.binderDocument?.path !== path) wf.binderDocument = null;
+  wf.selectedTask = null;
+  if (wf.selectedFile?.path !== path) wf.selectedFile = null;
+});
+watch(() => [wf.selectedTask?.id, wf.selectedFile?.path], () => { saveMessage.value = ""; saveFailed.value = false; });
+
 const editorReadOnly = computed(() =>
   Boolean(activeWorkflowFile.value?.readOnly),
 );
@@ -315,11 +428,16 @@ const blockedRepairs = computed(() => {
 });
 
 function onRetryPreflight() {
-  void wf.fetchAll();
+  void wf.retryCapabilityPreflight();
 }
 </script>
 
 <style scoped>
+.workflow-context { display: flex; flex-wrap: wrap; align-items: center; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-sm); border-bottom: 1px solid var(--usx-color-border); }
+.workflow-context strong { overflow: hidden; text-overflow: ellipsis; }
+.workflow-context__actions { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: var(--usx-spacing-xs); }
+.workflow-context small { color: var(--usx-color-warning); }
+
 /* ─── Layout ──────────────────────────────────────────────────────── */
 .workflow-layout {
   display: flex;
@@ -484,4 +602,20 @@ function onRetryPreflight() {
   gap: var(--usx-spacing-sm);
   flex-wrap: wrap;
 }
+</style>
+
+<style scoped>
+@media (min-width: 1024px) {
+  .workflow-panel--editor { display: grid; grid-template-columns: minmax(12rem, 17rem) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .workflow-workspace-tree { position: relative; inset: auto; width: auto; transform: none; z-index: auto; overflow-y: auto; border-right: 1px solid var(--usx-color-border); }
+  .workflow-workspace-toggle, .workflow-workspace-backdrop, .workflow-workspace-close { display: none; }
+  .workflow-panel--editor > .editor-panel { min-width: 0; }
+}
+
+.workflow-context { flex-wrap: nowrap; min-height: 44px; box-sizing: border-box; padding: 4px 8px; overflow-x: auto; white-space: nowrap; font-size: var(--usx-font-size-sm); }
+.workflow-context strong { flex: 1 1 auto; min-width: 6rem; }
+.workflow-context__actions { flex: 0 0 auto; flex-wrap: nowrap; gap: 4px; }
+.workflow-context button.usx-btn { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 4px; box-sizing: border-box; height: 32px; min-height: 32px; margin: 0; padding: 0 8px; border: 0; box-shadow: none; background: transparent; font-size: inherit; line-height: 1; }
+.workflow-context button.usx-btn:hover { background: var(--usx-color-surface-variant); }
+.workflow-context :deep(.u-icon) { width: 20px; height: 20px; font-size: 20px; line-height: 1; }
 </style>

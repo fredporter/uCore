@@ -5,9 +5,9 @@
         <UIcon name="terminal" />
       </div>
       <div class="learning-hero__content">
-        <h3 class="learning-hero__title">Learn to Code with uCode</h3>
+        <h3 class="learning-hero__title">uCode user guide</h3>
         <p class="learning-hero__desc">
-          The official BBC Micro-inspired computing curriculum: BBC BASIC foundations, Mode 7 Teletext graphics, GridCore 2D spatial algebra, native Capsule Pods, and the LENS memory bridge.
+          Start with simple BASIC commands, then explore graphics and physical computing.
         </p>
         <div class="learning-hero__actions">
           <button v-if="manualIntro" class="learning-hero__btn" @click="emit('open', manualIntro)">
@@ -23,7 +23,7 @@
     <div class="wf-toolbar">
       <span class="wf-toolbar__count">
         <UIcon name="school" />
-        Curriculum & Courses
+        Chapters
       </span>
       <span class="wf-toolbar__count">{{ courses.length }} modules</span>
     </div>
@@ -33,7 +33,7 @@
     </div>
 
     <div v-else-if="courses.length === 0" class="wf-empty">
-      No courses indexed. Run a documentation scan to populate.
+      No guide chapters are available yet.
     </div>
 
     <div v-else class="learning-grid">
@@ -41,6 +41,7 @@
         v-for="course in sortedCourses"
         :key="course.path"
         class="learning-card"
+        :aria-current="activePath === course.path || activePath?.startsWith(course.path + '/') ? 'page' : undefined"
         role="button"
         tabindex="0"
         @click="emit('open', course)"
@@ -53,14 +54,8 @@
           <span class="learning-card__title">{{
             course.title || course.name
           }}</span>
-          <span class="learning-card__path">{{ course.path }}</span>
+
           <div class="learning-card__pills">
-            <span
-              class="task-pill"
-              :class="`task-pill--${relevanceClass(course.relevance)}`"
-            >
-              {{ course.relevance }}%
-            </span>
             <span class="task-pill task-pill--board">{{
               course.level || "all"
             }}</span>
@@ -88,7 +83,8 @@ interface Course {
   category?: string;
 }
 
-const emit = defineEmits<{ (e: "open", course: Course): void }>();
+defineProps<{ activePath?: string }>();
+const emit = defineEmits<{ (e: "open", course: Course): void; (e: "catalog", courses: Course[]): void }>();
 
 const courses = ref<Course[]>([]);
 const loading = ref(true);
@@ -124,19 +120,14 @@ function levelIcon(level: string): string {
   return "school";
 }
 
-function relevanceClass(relevance: number): string {
-  if (relevance >= 90) return "completed";
-  if (relevance >= 60) return "review";
-  return "blocked";
-}
-
 async function loadCourses() {
   loading.value = true;
   try {
     const res = await fetch(`/api/docs/courses`);
     if (res.ok) {
       const data = await res.json();
-      courses.value = data.courses || data || [];
+      courses.value = (data.courses || data || []).filter((course: Course) => ["manual", "sonic", "learning"].includes(course.source || "learning"));
+      emit("catalog", sortedCourses.value);
     }
   } catch {
     courses.value = [];
@@ -224,7 +215,7 @@ onMounted(loadCourses);
   padding: var(--usx-spacing-md);
   color: var(--usx-color-on-surface-muted);
   font-size: var(--usx-font-size-sm);
-  text-align: center;
+  text-align: left;
 }
 
 .learning-grid {
@@ -319,4 +310,9 @@ onMounted(loadCourses);
   color: var(--usx-color-info);
   background: color-mix(in srgb, var(--usx-color-info) 8%, transparent);
 }
+</style>
+
+<style scoped>
+.learning-card, .learning-card__body, .learning-hero { text-align: left; font-family: var(--usx-font-family-sans, Inter, sans-serif); }
+.learning-card[aria-current="page"] { border-color: var(--usx-color-primary); background: var(--usx-color-surface-hover); }
 </style>
