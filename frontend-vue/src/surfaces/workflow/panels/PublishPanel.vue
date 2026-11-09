@@ -72,26 +72,11 @@
                   placeholder="main"
                 />
               </label>
-              <label class="wf-field">
-                <span class="wf-field-label">Commit message</span>
-                <input
-                  v-model="jekyllCommitMessage"
-                  class="wf-input"
-                  type="text"
-                  placeholder="publish: my-new-post"
-                />
-              </label>
+
             </div>
             </details>
 
-            <label v-if="false" class="wf-checkbox-row">
-              <input
-                v-model="jekyllExecuteGit"
-                type="checkbox"
-                :disabled="jekyllMode !== 'cloud'"
-              />
-              <span>Execute git publish (cloud only)</span>
-            </label>
+
             <label v-if="false" class="wf-checkbox-row">
               <input
                 v-model="jekyllEditMode"
@@ -163,8 +148,6 @@ const jekyllCollection = ref("posts");
 const jekyllMode = ref<"local" | "cloud">("local");
 const jekyllTargetRepo = ref("");
 const jekyllTargetBranch = ref("main");
-const jekyllExecuteGit = ref(false);
-const jekyllCommitMessage = ref("");
 const jekyllContent = ref("");
 const jekyllEditMode = ref<"prose" | "code">("prose");
 const jekyllBusy = ref(false);
@@ -175,7 +158,6 @@ watch(() => [props.sourceTitle, props.sourceContent], ([title, content]) => {
   jekyllTitle.value = title || "Untitled";
   jekyllContent.value = content || "";
   jekyllSlug.value = jekyllTitle.value.toLowerCase().replace(/\.(md|markdown)$/i, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  jekyllCommitMessage.value = `publish: ${jekyllSlug.value}`;
 }, { immediate: true });
 
 watch(
@@ -217,9 +199,7 @@ async function publishJekyll(): Promise<void> {
       publish_mode: jekyllMode.value,
       target_repo: jekyllTargetRepo.value,
       target_branch: jekyllTargetBranch.value,
-      execute_git: jekyllExecuteGit.value && jekyllMode.value === "cloud",
-      commit_message: jekyllCommitMessage.value,
-      vault_layer: "public",
+      vault_layer: "user",
     });
 
     if (!res.ok) {

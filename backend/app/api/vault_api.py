@@ -6,6 +6,8 @@ from pathlib import Path
 
 from aiohttp import web
 
+from app.core.settings import settings
+
 log = logging.getLogger("ucore.vault_api")
 
 # Canonical vault topology — 3 vault types only.
@@ -18,7 +20,7 @@ VAULT_LAYERS = [
         "description": (
             "Personal workspace — binders, documents, notes, missions, tasks"
         ),
-        "path": str(Path.home() / "Vault"),
+        "path": str(settings.vault_root),
         "permissions": "read_write",
     },
     {
@@ -26,7 +28,7 @@ VAULT_LAYERS = [
         "label": "Shared Vaults",
         "icon": "mdi:account-group",
         "description": "Collaborative vaults for team projects",
-        "path": str(Path.home() / "Shared"),
+        "path": str(settings.shared_vault_root),
         "permissions": "read_write",
     },
     {
@@ -36,7 +38,7 @@ VAULT_LAYERS = [
         "description": (
             "Published, system-provided, community-contributed vaults"
         ),
-        "path": str(Path.home() / "Public"),
+        "path": str(settings.public_vault_root),
         "permissions": "read_only",
     },
 ]
@@ -49,7 +51,7 @@ PUBLIC_SUB_LAYERS = [
         "icon": "mdi:brain",
         "description": "Curated reference material",
         "path": str(
-            Path.home() / "Public" / "global-knowledge"
+            settings.public_vault_root / "global-knowledge"
         ),
     },
     {
@@ -57,14 +59,14 @@ PUBLIC_SUB_LAYERS = [
         "label": "Documentation Sites",
         "icon": "mdi:web",
         "description": "Published documentation sites",
-        "path": str(Path.home() / "Public" / "doc-sites"),
+        "path": str(settings.public_vault_root / "doc-sites"),
     },
     {
         "id": "learning",
         "label": "Learning",
         "icon": "mdi:school",
         "description": "Learning resources and tutorials",
-        "path": str(Path.home() / "Public" / "learning"),
+        "path": str(settings.public_vault_root / "learning"),
     },
 ]
 

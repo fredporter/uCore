@@ -6,9 +6,9 @@ from datetime import datetime, timedelta
 
 import httpx
 
-log = logging.getLogger(__name__)
-
 from app.core.settings import settings
+
+log = logging.getLogger(__name__)
 
 
 async def get_ollama_status() -> dict:
@@ -116,34 +116,7 @@ async def get_ollama_model_performance() -> dict:
 
 async def get_available_models() -> dict:
     """Get list of models available to pull from Ollama library."""
-    # This is a static list of recommended models
-    # In production, you might query the Ollama registry API
-    return {
-        "recommended": [
-            {
-                "name": "deepseek-v4-flash",
-                "size_gb": 13,
-                "description": "Cost-efficient MoE (79% on SWE-Bench Verified)",
-                "capabilities": ["coding", "reasoning"],
-            },
-            {
-                "name": "glm-5.1",
-                "size_gb": 40,
-                "description": "Frontier-tier architecture (SOTA on SWE-Bench Pro)",
-                "capabilities": ["design", "reasoning", "long-context"],
-            },
-            {
-                "name": "qwen3-coder-next",
-                "size_gb": 80,
-                "description": "Specialist coder (Claude Sonnet-level efficiency)",
-                "capabilities": ["coding", "implementation"],
-            },
-            {
-                "name": "qwen3.6-27b",
-                "size_gb": 27,
-                "description": "Dense model (Terminal-Bench performance)",
-                "capabilities": ["coding", "documentation"],
-            },
-        ],
-        "note": "Sizes are approximate. Actual download size may vary with quantization.",
-    }
+    from app.services.local_assistant import inventory
+
+    state = await inventory()
+    return {"recommended": [], "installed": state["models"], "note": "Model capabilities are discovered locally. Offline application packs supply reviewed model requirements; no developer model recommendation list is embedded."}

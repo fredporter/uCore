@@ -190,3 +190,19 @@ def test_accept_and_publish_edition(temp_environment):
 
     bdata = binder_engine.get_binder("proj-epsilon")
     assert bdata["metadata"]["state"] == "published"
+
+
+def test_document_projection_preserves_binder_and_excludes_external_symlinks(temp_environment, tmp_path):
+    binder_engine.create_binder("garden", "Garden", "Plan planting")
+    docs = binder_engine.get_binder_documents_dir("garden")
+    docs.mkdir()
+    (docs / "seeds.md").write_text("Plant beans. Source: https://example.com", encoding="utf-8")
+    outside = tmp_path / "private.md"
+    outside.write_text("Private", encoding="utf-8")
+    (docs / "outside.md").symlink_to(outside)
+    loaded = binder_engine.get_binder("garden")
+    assert loaded["documents"] == [{"filename": "seeds.md", "path": "/Binders/garden/docs/seeds.md"}]
+    assert loaded["sources"] == []
+    with pytest.raises(FileNotFoundError):
+        binder_engine.get_binder_documents_dir("missing")
+    assert not (temp_environment["binders"] / "missing").exists()

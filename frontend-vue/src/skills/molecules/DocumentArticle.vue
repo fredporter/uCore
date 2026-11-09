@@ -1,6 +1,6 @@
 <template>
   <article ref="article" class="reading-article" @click="onLink">
-    <DocumentProperties :frontmatter="parsed.frontmatter" />
+    <details v-if="Object.keys(parsed.frontmatter).length" class="reading-properties"><summary>Document properties</summary><DocumentProperties :frontmatter="parsed.frontmatter" /></details>
     <details v-if="rendered.headings.length > 1" class="reading-contents"><summary>Contents</summary><nav aria-label="Document contents"><button v-for="heading in rendered.headings" :key="heading.id" class="usx-btn" @click="scrollTo(heading.id)">{{ heading.text }}</button></nav></details>
     <div class="reading-prose" v-html="rendered.html" />
   </article>
@@ -38,7 +38,7 @@ watch(rendered, async () => { await nextTick(); if (article.value) await hydrate
 </script>
 <style scoped>
 .reading-article { width: min(100%, 72ch); margin-inline: auto; text-align: left; }
-.reading-prose { font-family: var(--usx-font-family-serif, Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif); font-size: var(--usx-font-size-base); line-height: 1.7; overflow-wrap: anywhere; }
+.reading-prose { font-family: var(--usx-font-family-reading, var(--usx-font-family-serif, Charter, Georgia, serif)); font-size: var(--usx-font-size-base); line-height: 1.7; overflow-wrap: anywhere; }
 .reading-prose :deep(h1), .reading-prose :deep(h2), .reading-prose :deep(h3) { line-height: 1.3; scroll-margin-top: var(--usx-spacing-lg); }
 .reading-prose :deep(p) { margin-bottom: 1em; }
 .reading-prose :deep(pre), .reading-prose :deep(code) { font-family: var(--usx-font-family-mono); }

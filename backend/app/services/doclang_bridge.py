@@ -358,17 +358,19 @@ def export_vault_to_doclang_context(
     Returns a dict with export summary."""
     source = Path(source_dir).expanduser().resolve()
     output = Path(output_path).expanduser().resolve()
-    output.parent.mkdir(parents=True, exist_ok=True)
-
     if not source.is_dir():
         return {"error": f"Source directory not found: {source}", "count": 0}
 
+    output.parent.mkdir(parents=True, exist_ok=True)
     exported = 0
     skipped = 0
     errors = 0
 
     with output.open("w", encoding="utf-8") as out:
         for md_file in sorted(source.rglob("*.md")):
+            if not md_file.resolve().is_relative_to(source):
+                skipped += 1
+                continue
             rel = md_file.relative_to(source)
             if any(p.startswith(".") for p in rel.parts):
                 skipped += 1

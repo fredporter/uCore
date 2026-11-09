@@ -338,16 +338,9 @@ async def _execute_tool(tool_name: str, arguments: dict) -> str:
             })
 
     if tool_name == "list_skills":
-        try:
-            from ..api.skills import get_skill_list
-            skills = await get_skill_list()
-            return json.dumps({"skills": skills[:20], "total": len(skills)})
-        except (ImportError, AttributeError):
-            return json.dumps({"skills": [
-                {"id": "backup", "name": "Backup", "category": "maintenance"},
-                {"id": "vault_discovery", "name": "Vault Discovery", "category": "knowledge"},
-                {"id": "workflow_audit", "name": "Workflow Audit", "category": "workflow"},
-            ], "total": 3, "source": "samples"})
+        from app.skills.registry import list_skills
+        skills = list_skills()
+        return json.dumps({"skills": skills[:20], "total": len(skills), "source": "registry"})
 
     if tool_name == "system_health":
         return json.dumps({
@@ -473,7 +466,9 @@ _UCORE_CHAT_SYSTEM = (
     "• ~/Vault/ — User Vault (personal workspace: binders, missions, tasks, journals)\n"
     "• ~/Shared/ — Shared Vaults (team collaboration)\n"
     "• ~/Public/ — Public Vaults (reference, templates, knowledge bank)\n\n"
-    "Note: ~/Code/ is NOT a vault — it is the Developer Lane for system development.\n\n"
+    "General software development and repository maintenance belong in external developer tools. "
+    "Support personal knowledge, creativity, learning and projects. "
+    "uCode help must use its installed language reference; never invent commands.\n\n"
     "Be helpful, proactive, and use your tools. Only claim access when a tool succeeds. Ask is read-only; suggest Continue in Act for changes."
 )
 
@@ -481,7 +476,7 @@ _UCORE_WORKFLOW_SYSTEM = (
     "You are the uCore workflow assistant. Use your tools to check tasks and status. "
     "Task statuses: todo, in-progress, review, blocked, completed. "
     "Priorities: low, medium, high. "
-    "Boards: planning, writing, admin, learning, personal, finance, general. "
+    "Binders hold user work; discover their existing identities instead of inventing boards. "
     "Always call workflow_tasks or workflow_status when the user asks about tasks. "
     "Be action-oriented — suggest concrete next steps."
 )
@@ -495,7 +490,7 @@ _UCORE_ASK_PLAN_SYSTEM = (
     "- Research: Analyze user vault documents and knowledge bases.\n"
     "- Plan: Produce structured, actionable plans with clear steps.\n"
     "- Synthesize: Combine information from multiple sources into coherent summaries.\n"
-    "- Cite: Always reference your sources (vault paths, repo files, skill names).\n"
+    "- Cite: Always reference your sources (vault paths, source documents, skill names).\n"
     "\n"
     "## Available Knowledge Sources\n"
     "### Document Vaults\n"
@@ -535,7 +530,7 @@ _UCORE_ACT_SYSTEM = (
     "EXECUTE safe operations within the user vault. "
     "\n\n"
     "## Your Capabilities\n"
-    "- Research: Search vaults, repos, and knowledge bases.\n"
+    "- Research: Search personal/shared vaults and reference knowledge.\n"
     "- Scrape: Fetch and extract content from web URLs.\n"
     "- Summarize: Create concise summaries of documents or scraped content.\n"
     "- Save to Vault: Write research results, summaries, and documents to ~/Vault/.\n"
@@ -543,7 +538,7 @@ _UCORE_ACT_SYSTEM = (
     "\n"
     "## Safety Rules\n"
     "1. Only write within ~/Vault/ (personal vault).\n"
-    "2. Never modify code repositories unless explicitly instructed.\n"
+    "2. Repository coding and maintenance belong in external developer tools.\n"
     "3. Always confirm with the user before executing any action.\n"
     "4. Report what you did and where you saved results.\n"
     "5. All web scraping is read-only.\n"
@@ -777,7 +772,7 @@ async def handle_chat(request: web.Request) -> web.Response:
                         args = {}
 
                 log.info("Executing tool: %s(%s)", name, args)
-                result_str = (await _execute_tool(name, args)) if name in allowed_names else json.dumps({"error": "Continue in Act to execute this action"})
+                result_str = (await _execute_tool(name, args)) if name in allowed_names else json.dumps({"error": "Continue in Act to execute this action" if name in write_tools else "This tool is not available in the personal assistant"})
                 tool_results.append({
                     "tool": name,
                     "arguments": args,
@@ -867,13 +862,11 @@ async def handle_chat_modes(request: web.Request) -> web.Response:
                 "id": "plan",
                 "label": "Plan",
                 "icon": "psychology",
-                "description": "Research and plan using vaults, repos, and OpenRouter free models.",
-                "cost": "free",
+                "description": "Research personal knowledge and plan creative work, learning and projects.",
+                "cost": "provider",
                 "available": True,
-                "models": [
-                    "cognitivecomputations/dolphin-mixtral-8x7b",
-                    "microsoft/phi-3-medium-128k-instruct",
-                ],
+                "models": [],
+                "model_source": "/api/models",
             },
             {
                 "id": "act",
@@ -894,12 +887,6 @@ async def handle_models(request: web.Request) -> web.Response:
     try:
         router = get_router()
         providers = router.list_providers() if hasattr(router, "list_providers") else []
-
-        if not providers:
-            providers = [
-                {"id": "ollama", "name": "Ollama (local)", "models": [
-                    "llama3.2", "mistral", "qwen2.5-coder:3b"]},
-            ]
 
         return web.json_response({"providers": providers, "count": len(providers)})
     except Exception as e:

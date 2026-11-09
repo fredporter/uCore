@@ -68,11 +68,6 @@ export const snackbarApi = {
   docker: {
     ps: () => request(`${SNACKBAR_API}/v1/docker/ps`),
   },
-  exec: (command: string) =>
-    request(`${SNACKBAR_API}/v1/exec`, {
-      method: "POST",
-      body: JSON.stringify({ command }),
-    }),
 };
 
 /**
@@ -91,6 +86,7 @@ export const ucoreApi = {
       vault_layer?: string;
       relative_dir?: string;
       overwrite?: boolean;
+      require_existing_binder?: boolean;
       metadata?: Record<string, unknown>;
     }) =>
       request(`${UCORE_API}/api/user/workflow/import-markdown`, {
@@ -110,8 +106,6 @@ export const ucoreApi = {
       publish_mode?: "local" | "cloud";
       target_repo?: string;
       target_branch?: string;
-      execute_git?: boolean;
-      commit_message?: string;
       overwrite?: boolean;
     }) =>
       request(`${UCORE_API}/api/user/workflow/publish-jekyll`, {

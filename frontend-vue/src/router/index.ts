@@ -1,3 +1,4 @@
+import { recipeDestination } from "./recipeDestinations";
 /**
  * @module router
  * @description Vue Router 4 — canonical surface routes.
@@ -52,10 +53,8 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/server/:pathMatch(.*)*",
-    redirect: (to) => ({
-      path: `/snackbar${to.path.replace(/^\/server/, "")}`,
-      query: to.query,
-    }),
+    component: () => import("../surfaces/server/ServerSurface.vue"),
+    meta: { title: "Server", icon: "dns" },
   },
   {
     path: "/developer/:pathMatch(.*)*",
@@ -123,9 +122,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/browserui/:pathMatch(.*)*",
-    name: "browserui",
-    component: () => import("../surfaces/browserui/BrowserUISurface.vue"),
-    meta: { title: "Browser", icon: "globe" },
+    redirect: (to) => String(to.query.tab)==='studio' ? '/ucode2' : ({ path:'/workflow', query:{...to.query,tab:'research',research:['cards','studio','dashboard'].includes(String(to.query.tab))?to.query.tab:'cards'},hash:to.hash }),
   },
   {
     path: "/dreamscape/:pathMatch(.*)*",
@@ -140,17 +137,10 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "Google Studio", icon: "cloud" },
   },
   {
-    path: "/banana/:pathMatch(.*)*",
-    name: "banana",
-    component: () => import("../surfaces/banana/BananaSurface.vue"),
-    meta: { title: "Banana Studio", icon: "image" },
+    path: "/ucode2/:pathMatch(.*)*", name:"ucode2", component:()=>import("../surfaces/banana/BananaSurface.vue"), meta:{title:"uCode2",icon:"view_in_ar"},
   },
-  {
-    path: "/vector/:pathMatch(.*)*",
-    name: "vector",
-    component: () => import("../surfaces/banana/BananaSurface.vue"),
-    meta: { title: "uVector Studio", icon: "draw" },
-  },
+  { path:"/banana/:pathMatch(.*)*",redirect:"/ucode2" },
+  { path:"/vector/:pathMatch(.*)*",redirect:"/ucode2" },
   { path: "/docs/:pathMatch(.*)*", redirect: to => ({ path: "/documentation", query: to.query, hash: to.hash }) },
   {
     path: "/documentation/:pathMatch(.*)*",
@@ -161,13 +151,11 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/recipes/:pathMatch(.*)*",
-    name: "recipes",
-    component: () => import("../surfaces/recipes/RecipeGallerySurface.vue"),
-    meta: { title: "Recipe Gallery", icon: "style" },
+    redirect: (to) => recipeDestination(String(to.query.recipe || to.params.pathMatch || "")),
   },
   {
     path: "/surfaces/:pathMatch(.*)*",
-    redirect: "/recipes",
+    redirect: "/",
   },
   {
     path: "/teletext/:pathMatch(.*)*",
@@ -184,7 +172,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/userver/:pathMatch(.*)*",
-    redirect: (to) => `/snackbar${to.path.replace("/userver", "")}`,
+    redirect: (to) => `/server${to.path.replace("/userver", "")}`,
   },
   // Legacy direct shortcuts
   {

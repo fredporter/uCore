@@ -1,20 +1,15 @@
-"""Docs publish — build a static docs site from the component mirror.
+"""External maintainer static-doc build helpers and historical status reads.
 
-Dev Lane only. Generates a self-contained static HTML site from
-``$UDOS_HOME/docs-mirror`` into ``~/Public/doc-sites/udos-docs/`` and
-optionally deploys it (git commit + push) to ``docs.udo.guide``.
-
-This module never touches user-lane vault paths.
+Runtime deployment is retired. Building requires an explicit destination chosen
+by external tooling; ordinary uCore publication uses user-owned export routes.
 """
 
 from __future__ import annotations
 
 import html
 import json
-import os
 import re
 import shutil
-import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -22,7 +17,7 @@ from typing import Any
 from app.core.logging import log
 from app.core.settings import settings
 
-SITE_ROOT = Path.home() / "Public" / "doc-sites" / "udos-docs"
+SITE_ROOT = settings.public_vault_root / "doc-sites" / "udos-docs"
 STATUS_FILE = "publish.json"
 
 SITE_TITLE = "uDos Documentation"
@@ -218,7 +213,9 @@ def _slug(path: str) -> str:
 def build_site(mirror_root: Path | None = None, site_root: Path | None = None) -> dict[str, Any]:
     """Build the static site from the mirror. Returns status summary."""
     mirror = mirror_root or (settings.udos_home / "docs-mirror")
-    root = site_root or SITE_ROOT
+    if site_root is None:
+        raise ValueError("External documentation builds require an explicit output directory")
+    root = site_root
 
     index_file = mirror / "_mirror.json"
     if not index_file.exists():
@@ -334,74 +331,6 @@ def publish_status(site_root: Path | None = None) -> dict[str, Any]:
         return {"status": "error", "site_root": str(root)}
 
 
-def _remote_url(site_root: Path) -> str | None:
-    """Resolve the deploy remote from env or a .deploy-remote file."""
-    env = os.environ.get("UDOS_DOCS_DEPLOY_REMOTE")
-    if env:
-        return env.strip() or None
-    remote_file = site_root / ".deploy-remote"
-    if remote_file.exists():
-        value = remote_file.read_text(encoding="utf-8").strip()
-        return value or None
-    return None
-
-
 def deploy_site(site_root: Path | None = None) -> dict[str, Any]:
-    """Deploy the built site via git (commit + push).
-
-    Initializes a git repository if none exists, commits the generated
-    site, and pushes when a remote is configured via
-    ``UDOS_DOCS_DEPLOY_REMOTE`` or a ``.deploy-remote`` file.
-    """
-    root = site_root or SITE_ROOT
-    root.mkdir(parents=True, exist_ok=True)
-
-    def _run(args: list[str]) -> dict[str, Any]:
-        proc = subprocess.run(
-            ["git", "-C", str(root), *args],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        return {
-            "cmd": " ".join(args),
-            "exit_code": proc.returncode,
-            "stdout": proc.stdout.strip(),
-            "stderr": proc.stderr.strip(),
-            "ok": proc.returncode == 0,
-        }
-
-    initialized = False
-    if not (root / ".git").exists():
-        initialized = _run(["init"])["ok"]
-
-    add = _run(["add", "-A"])
-    commit = _run(["commit", "-m", f"publish: {datetime.now(UTC).isoformat()}"])
-    commit_ok = commit["ok"] or "nothing to commit" in (commit["stdout"] + commit["stderr"])
-
-    remote = _remote_url(root)
-    if remote:
-        origin = _run(["remote", "get-url", "origin"])
-        if origin["ok"]:
-            _run(["remote", "set-url", "origin", remote])
-        else:
-            _run(["remote", "add", "origin", remote])
-        push = _run(["push", "-u", "origin", "HEAD"])
-    else:
-        push = {
-            "cmd": "push (skipped)",
-            "exit_code": 0,
-            "stdout": "",
-            "stderr": "no deploy remote configured",
-            "ok": False,
-        }
-
-    return {
-        "deployed": bool(push.get("ok")),
-        "initialized": initialized,
-        "remote": remote,
-        "add": add,
-        "commit": {**commit, "ok": commit_ok},
-        "push": push,
-        "site_root": str(root),
-    }
+    """Retired compatibility call; never initialise Git or push a remote."""
+    return {"deployed": False, "error": "runtime_deployment_retired", "owner": "external-development"}

@@ -110,7 +110,7 @@ class SettingsManager:
 
     def update_user_preferences(self, preferences: dict[str, Any], profile_id: str = "default") -> dict[str, Any]:
         """Update user preferences for the active profile."""
-        allowed = {"themeMode", "fontStyle", "fontSize", "palette", "defaultModel", "advancedView"}
+        allowed = {"themeMode", "fontStyle", "fontSize", "palette", "defaultModel", "advancedView", "readingFont"}
         filtered = {k: v for k, v in preferences.items() if k in allowed}
         data = self._load()
         if profile_id and profile_id != "default":

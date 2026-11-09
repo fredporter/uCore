@@ -5,6 +5,7 @@
  * and /api/knowledge/adapter/mission-task-binder endpoints.
  */
 import { defineStore } from "pinia";
+import { useWorkspaceStore } from "./workspace";
 import { ref, computed } from "vue";
 import {
   ensureCapabilityReady,
@@ -19,6 +20,7 @@ export type WorkflowTab =
   | "contacts"
   | "notes"
   | "feeds"
+  | "queue"
   | "research"
   | "editor";
 
@@ -154,11 +156,7 @@ export const WORKFLOW_TABS: { id: WorkflowTab; label: string; icon: string }[] =
   [
     { id: "mission-control", label: "Workflow", icon: "schedule" },
     { id: "tasks", label: "Tasks", icon: "check" },
-    { id: "contacts", label: "Contacts", icon: "contacts" },
-    { id: "notes", label: "Notes", icon: "description" },
-    { id: "feeds", label: "Feeds", icon: "rss_feed" },
-    { id: "research", label: "Research", icon: "travel_explore" },
-    { id: "binder", label: "Binder", icon: "book" },
+    { id: "queue", label: "Queue", icon: "pending_actions" },
     { id: "editor", label: "Editor", icon: "diamond" },
   ];
 
@@ -268,7 +266,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
 
   const taskLists = computed(() => [...new Set([...listNames.value, ...tasks.value.map(task => task.board), activeList.value])].filter(Boolean).sort());
   const scopedTasks = computed(() => tasks.value.filter(task =>
-    (!activeList.value || task.board === activeList.value) &&
+    (activeBinderId.value || !activeList.value || task.board === activeList.value) &&
     (!activeBinderId.value || task.binder === activeBinderId.value),
   ));
   const orderedContextTasks = computed(() => [...scopedTasks.value].sort((a, b) => {
@@ -287,20 +285,24 @@ export const useWorkflowStore = defineStore("workflow", () => {
   const editorKey = computed(() => selectedTask.value ? `task:${selectedTask.value.id}` : editorSurface.currentFile.value?.path || selectedFile.value?.path || "");
   const hasEditorDraft = computed(() => Object.hasOwn(editorDrafts.value, editorKey.value));
 
+  // Legacy list links may name a known Binder. Provider boards remain metadata.
+  function setTaskContext(board = "", binder = "", resolveLegacyList = true) {
+    const resolvedBinder = binder || (resolveLegacyList && binders.value.some(item => item.id === board) ? board : "");
+    activeBinderId.value = resolvedBinder;
+    activeList.value = resolvedBinder ? "" : board;
+  }
   function showList(board = "", binder = "") {
-    activeList.value = board;
-    activeBinderId.value = binder;
+    setTaskContext(board, binder);
     activeTab.value = "tasks";
   }
   function showBinder(id: string) {
     activeBinderId.value = id;
     activeList.value = "";
-    activeTab.value = "binder";
+    activeTab.value = "mission-control";
   }
   function openTask(task: WorkflowTask) {
     selectTask(task);
-    activeList.value = task.board;
-    activeBinderId.value = task.binder || "";
+    setTaskContext(task.board, task.binder || "", false);
     activeTab.value = "editor";
   }
   async function fetchLists() {
@@ -316,11 +318,17 @@ export const useWorkflowStore = defineStore("workflow", () => {
     await fetchLists();
     showList(data.name);
   }
-  async function fetchBinders() {
-    const response = await fetch(`${API}/api/binder/list`, { signal: AbortSignal.timeout(8000) });
-    if (!response.ok) throw new Error("Could not load binders");
-    const data = await response.json();
-    binders.value = (data.binders || []).map((binder: any) => ({ ...binder, id: binder.id || binder.name }));
+  let binderFetch: Promise<void> | null = null;
+  async function fetchBinders(force = false): Promise<void> {
+    if (binderFetch) { await binderFetch; if (!force) return; }
+    const work = (async () => {
+      const response = await fetch(`${API}/api/binder/list`, { signal: AbortSignal.timeout(8000) });
+      if (!response.ok) throw new Error("Could not load binders");
+      const data = await response.json();
+      binders.value = (data.binders || []).map((binder: any) => ({ ...binder, id: binder.id || binder.name }));
+    })();
+    binderFetch = work;
+    try { await work; } finally { if (binderFetch === work) binderFetch = null; }
   }
   function openBinderDocument(id: string, title: string, content: string, baseHash = "", readOnly = false) {
     activeBinderId.value = id;
@@ -350,7 +358,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     const response = await fetch(`${API}/api/workflow/tasks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, board, binder, group }), signal: AbortSignal.timeout(8000) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Could not create task");
-    await fetchTasks();
+    await fetchTasks(true);
     const task = tasks.value.find(task => task.id === data.updated.id);
     if (task) openTask(task);
     return data.updated;
@@ -359,7 +367,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     const response = await fetch(`${API}/api/workflow/tasks/${encodeURIComponent(taskId)}/duplicate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(destination), signal: AbortSignal.timeout(8000) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Could not copy task");
-    await fetchTasks();
+    await fetchTasks(true);
     return data.updated;
   }
   function startTaskDrag(event: DragEvent, task: WorkflowTask) {
@@ -412,9 +420,9 @@ export const useWorkflowStore = defineStore("workflow", () => {
   }
 
   function setTab(tab: WorkflowTab) {
+    if (tab === "binder" || tab === "research") tab = "mission-control";
     if (tab === "editor" && selectedTask.value) {
-      activeList.value = selectedTask.value.board;
-      activeBinderId.value = selectedTask.value.binder || "";
+      setTaskContext(selectedTask.value.board, selectedTask.value.binder || "", false);
     } else if (tab === "editor" && binderDocument.value) {
       activeList.value = "";
       activeBinderId.value = binderDocument.value.binderId || "";
@@ -483,7 +491,14 @@ export const useWorkflowStore = defineStore("workflow", () => {
   }
 
   /** Fetch tasks from backend /api/workflow/tasks */
-  async function fetchTasks(): Promise<void> {
+  let tasksFetch: Promise<void> | null = null;
+  async function fetchTasks(force = false): Promise<void> {
+    if (tasksFetch) { await tasksFetch; if (!force) return; }
+    const work = fetchTasksSnapshot();
+    tasksFetch = work;
+    try { await work; } finally { if (tasksFetch === work) tasksFetch = null; }
+  }
+  async function fetchTasksSnapshot(): Promise<void> {
     taskError.value = null;
     if (!(await preflightOrBlock("workflow.run"))) return;
     loading.value = true;
@@ -621,8 +636,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     if (selectedTask.value?.id === taskId) {
       selectedTask.value = mapped;
       if (activeTab.value === "editor") {
-        activeList.value = mapped.board;
-        activeBinderId.value = mapped.binder || "";
+        setTaskContext(mapped.board, mapped.binder || "", false);
       }
     }
     if ("body" in patch) delete editorDrafts.value[`task:${taskId}`];
@@ -721,10 +735,8 @@ export const useWorkflowStore = defineStore("workflow", () => {
   async function fetchAll(): Promise<void> {
     await Promise.allSettled([
       fetchBinders(),
-      fetchLists(),
       fetchWorkflowStatus(),
       fetchTasks(),
-      fetchMissionTaskBinder(),
       fetchWorkflowDefinitions(),
       fetchWorkflowRuns(),
     ]);
@@ -788,6 +800,17 @@ export const useWorkflowStore = defineStore("workflow", () => {
     selectedTask.value = task;
     editorOpen.value = openSideEditor;
     // Stay on the current tab — TasksPanel controls its own inline editor
+  }
+
+  async function openVaultDocument(path: string, filename: string, binder: string) {
+    const workspace = useWorkspaceStore();
+    workspace.error = "";
+    await workspace.selectFile({ id: path, path, name: filename, type: "file", extension: "md" });
+    const file = editorSurface.currentFile.value;
+    if (!file || file.path !== path || (workspace.error && workspace.error !== "Offline copy")) {
+      throw new Error(workspace.error || "Could not open document");
+    }
+    selectFile({ ...file, id: path, binder, readOnly: Boolean(file.readOnly) });
   }
 
   function selectFile(file: WorkflowFile) {
@@ -908,7 +931,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   return {
     activeList, activeBinderId, binderStage, binderCreateRequested, binders, binderDocument, editorDrafts,
     taskLists, binderChoices, scopedTasks, orderedContextTasks, relatedTasks, locationLabel, editorKey, hasEditorDraft,
-    showList, showBinder, openTask, openBinderDocument, saveBinderDocument, fetchBinders,
+    setTaskContext, showList, showBinder, openTask, openBinderDocument, saveBinderDocument, fetchBinders,
     createTask, duplicateTask, startTaskDrag, dropTask, fetchLists, createList,
     activeTab,
     tasks,
@@ -934,7 +957,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     tasksByStatus,
     setTab,
     selectTask,
-    selectFile,
+    selectFile, openVaultDocument,
     updateTaskNotes,
     updateTaskSummary,
     updateTaskStep,

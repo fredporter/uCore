@@ -94,203 +94,7 @@
       </div>
     </div>
 
-    <!-- Host-Native Integrations (Zen Host / Apple Events) - USX Card Matrix -->
-    <div class="host-integrations-section">
-      <div class="recipe-header">
-        <div class="header-left">
-          <span class="material-symbols-outlined header-icon">laptop_mac</span>
-          <div>
-            <h3 class="recipe-title">Host-Native Integrations</h3>
-            <p class="recipe-desc">
-              Level 1 of the Zen reuse hierarchy: Native Apple Events &amp; osascript bridge without heavyweight wrappers.
-            </p>
-          </div>
-        </div>
-        <div class="header-actions">
-          <button
-            class="m3-button"
-            :disabled="actionLoading === 'notify'"
-            @click="testNotification"
-          >
-            <span class="material-symbols-outlined">notifications</span>
-            <span>Test Toast</span>
-          </button>
-          <button
-            class="m3-button"
-            :disabled="actionLoading === 'say'"
-            @click="testSpeech"
-          >
-            <span class="material-symbols-outlined">volume_up</span>
-            <span>Test Speech</span>
-          </button>
-          <button
-            class="m3-button"
-            :disabled="actionLoading === 'reminders'"
-            @click="testFetchReminders"
-          >
-            <span class="material-symbols-outlined">checklist</span>
-            <span>Fetch Reminders</span>
-          </button>
-          <button
-            class="m3-button"
-            :disabled="actionLoading === 'notes'"
-            @click="testFetchNotes"
-          >
-            <span class="material-symbols-outlined">description</span>
-            <span>Fetch Notes</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="matrix-grid">
-        <!-- Safari Tab Intake -->
-        <div class="matrix-card">
-          <div class="card-top-row">
-            <div class="icon-avatar">
-              <span class="material-symbols-outlined">open_in_browser</span>
-            </div>
-            <span class="card-tag">Browser</span>
-          </div>
-          <h4 class="card-title">Safari Tab Intake</h4>
-          <p class="card-description">Extract active tab URLs, titles, and text contents via Apple Events.</p>
-          <div class="card-footer">
-            <span
-              class="status-pill"
-              :class="hostCaps?.capabilities?.browser_intake ? 'status-pill--up' : 'status-pill--neutral'"
-            >
-              {{ hostCaps?.capabilities?.browser_intake ? "Available" : "Unavailable" }}
-            </span>
-            <span class="card-subtext">Apple Events</span>
-          </div>
-        </div>
-
-        <!-- Apple Notes Export -->
-        <div class="matrix-card">
-          <div class="card-top-row">
-            <div class="icon-avatar">
-              <span class="material-symbols-outlined">note_alt</span>
-            </div>
-            <span class="card-tag">Notes</span>
-          </div>
-          <h4 class="card-title">Apple Notes Export</h4>
-          <p class="card-description">Export research briefs and notes directly to the macOS Notes application.</p>
-          <div class="card-footer">
-            <span
-              class="status-pill"
-              :class="hostCaps?.capabilities?.notes_export ? 'status-pill--up' : 'status-pill--neutral'"
-            >
-              {{ hostCaps?.capabilities?.notes_export ? "Available" : "Unavailable" }}
-            </span>
-            <span class="card-subtext">ScriptingBridge</span>
-          </div>
-        </div>
-
-        <!-- Apple Notes Intake -->
-        <div class="matrix-card">
-          <div class="card-top-row">
-            <div class="icon-avatar">
-              <span class="material-symbols-outlined">description</span>
-            </div>
-            <span class="card-tag">Notes</span>
-          </div>
-          <h4 class="card-title">Apple Notes Intake</h4>
-          <p class="card-description">Ingest personal notes into uKnowledge citation provenance store.</p>
-          <div class="card-footer">
-            <span
-              class="status-pill"
-              :class="hostCaps?.capabilities?.notes_intake ? 'status-pill--up' : 'status-pill--neutral'"
-            >
-              {{ hostCaps?.capabilities?.notes_intake ? "Available" : "Unavailable" }}
-            </span>
-            <span class="card-subtext">Local Intake</span>
-          </div>
-        </div>
-
-        <!-- Apple Reminders Sync -->
-        <div class="matrix-card">
-          <div class="card-top-row">
-            <div class="icon-avatar">
-              <span class="material-symbols-outlined">task_alt</span>
-            </div>
-            <span class="card-tag">Reminders</span>
-          </div>
-          <h4 class="card-title">Apple Reminders Sync</h4>
-          <p class="card-description">Write workflow tasks and reminders directly to Apple Reminders.</p>
-          <div class="card-footer">
-            <span
-              class="status-pill"
-              :class="hostCaps?.capabilities?.reminders_export ? 'status-pill--up' : 'status-pill--neutral'"
-            >
-              {{ hostCaps?.capabilities?.reminders_export ? "Available" : "Unavailable" }}
-            </span>
-            <span class="card-subtext">EventKit</span>
-          </div>
-        </div>
-
-        <!-- Apple Reminders Intake -->
-        <div class="matrix-card">
-          <div class="card-top-row">
-            <div class="icon-avatar">
-              <span class="material-symbols-outlined">checklist</span>
-            </div>
-            <span class="card-tag">Reminders</span>
-          </div>
-          <h4 class="card-title">Apple Reminders Intake</h4>
-          <p class="card-description">Incorporate active Reminders lists into the daily briefing spool.</p>
-          <div class="card-footer">
-            <span
-              class="status-pill"
-              :class="hostCaps?.capabilities?.reminders_intake ? 'status-pill--up' : 'status-pill--neutral'"
-            >
-              {{ hostCaps?.capabilities?.reminders_intake ? "Available" : "Unavailable" }}
-            </span>
-            <span class="card-subtext">PIM Feed</span>
-          </div>
-        </div>
-
-        <!-- Desktop Notifications -->
-        <div class="matrix-card">
-          <div class="card-top-row">
-            <div class="icon-avatar">
-              <span class="material-symbols-outlined">notifications</span>
-            </div>
-            <span class="card-tag">System</span>
-          </div>
-          <h4 class="card-title">Desktop Notifications</h4>
-          <p class="card-description">Trigger native macOS Notification Center alerts without web notification prompts.</p>
-          <div class="card-footer">
-            <span
-              class="status-pill"
-              :class="hostCaps?.capabilities?.notifications ? 'status-pill--up' : 'status-pill--neutral'"
-            >
-              {{ hostCaps?.capabilities?.notifications ? "Available" : "Unavailable" }}
-            </span>
-            <span class="card-subtext">osascript</span>
-          </div>
-        </div>
-
-        <!-- Host Speech -->
-        <div class="matrix-card">
-          <div class="card-top-row">
-            <div class="icon-avatar">
-              <span class="material-symbols-outlined">record_voice_over</span>
-            </div>
-            <span class="card-tag">Audio</span>
-          </div>
-          <h4 class="card-title">Host Speech (say)</h4>
-          <p class="card-description">Read text aloud using macOS voices.</p>
-          <div class="card-footer">
-            <span
-              class="status-pill"
-              :class="hostCaps?.capabilities?.speech_tts ? 'status-pill--up' : 'status-pill--neutral'"
-            >
-              {{ hostCaps?.capabilities?.speech_tts ? "Available" : "Unavailable" }}
-            </span>
-            <span class="card-subtext">/usr/bin/say</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <RouterLink class="usx-btn" to="/system?tab=apps">Connected apps and sync</RouterLink>
   </div>
 </template>
 
@@ -384,7 +188,7 @@ onMounted(() => {
   if (srv.unifiedServices.length === 0) {
     srv.fetchUnifiedServices();
   }
-  loadHostCapabilities();
+
 });
 
 const hostCaps = ref<HostCapabilitiesResult | null>(null);
@@ -399,7 +203,7 @@ async function loadHostCapabilities() {
 
 function handleRefresh() {
   srv.fetchUnifiedServices();
-  loadHostCapabilities();
+
 }
 
 async function testNotification() {

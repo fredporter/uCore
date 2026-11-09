@@ -188,7 +188,7 @@ onMounted(load);
 .wf-feed-row { display: flex; align-items: center; box-sizing: border-box; width: 100%; height: var(--wf-zen-row); min-height: var(--wf-zen-row); gap: var(--usx-spacing-sm); margin: 0; padding: var(--usx-spacing-xs) var(--usx-spacing-sm); border: 0; border-bottom: var(--usx-border-width) solid var(--usx-color-border); }
 .wf-feed-row__main { display: flex; align-items: center; flex: 1; min-width: 0; gap: var(--usx-spacing-sm); }
 .wf-feed-row__state { width: .7rem; height: .7rem; flex: 0 0 auto; border: 2px solid var(--usx-color-primary); border-radius: 50%; }
-.wf-feed-row__copy { display: grid; min-width: 0; gap: 2px; }
+.wf-feed-row__copy { text-align:left;justify-items:start;flex:1;display: grid; min-width: 0; gap: 2px; }
 .wf-feed-row__copy h3, .wf-feed-card__meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wf-feed-card { display: flex; align-items: center; gap: var(--usx-spacing-md); min-height: 4rem; padding: var(--usx-spacing-md) 0; border-bottom: var(--usx-border-width) solid var(--usx-color-border); }
 .wf-feed-card__body { min-width: 0; flex: 1; }
@@ -199,5 +199,5 @@ onMounted(load);
 
 .feed-monitor { display:grid; gap:8px; padding:12px 0; font-size:var(--usx-font-size-sm); }.feed-monitor header,.feed-monitor article{display:flex;align-items:center;flex-wrap:wrap;gap:8px;}.feed-monitor small{color:var(--usx-color-on-surface-muted);}.feed-monitor .usx-btn{min-height:32px;margin:0;padding:4px 8px;font-size:inherit;}
 
-.feed-detail { display:grid;gap:8px;padding:12px;border:1px solid var(--usx-color-border); }.feed-detail header {display:flex;align-items:center;justify-content:space-between;gap:8px;}.feed-detail p{white-space:pre-wrap;overflow-wrap:anywhere;}.wf-feed-row__main.usx-btn{flex:1;min-width:0;margin:0;padding:6px 0;border:0;background:transparent;text-align:left;box-shadow:none;}
+.feed-detail { display:grid;gap:8px;padding:12px;border:1px solid var(--usx-color-border); }.feed-detail header {display:flex;align-items:center;justify-content:space-between;gap:8px;}.feed-detail p{white-space:pre-wrap;overflow-wrap:anywhere;}.wf-feed-row__main.usx-btn{justify-content:flex-start;align-items:center;flex:1;min-width:0;margin:0;padding:6px 0;border:0;background:transparent;text-align:left;box-shadow:none;}
 </style>

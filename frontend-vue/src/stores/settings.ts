@@ -14,6 +14,8 @@ export type ThemeMode = 'light' | 'dark' | 'auto'
 export const useSettingsStore = defineStore('settings', () => {
   const fontStyle = ref<FontStyle>('inter')
   const fontSize = ref<number>(16)
+  const readingFont = ref<'serif' | 'sans'>('serif')
+  function setReadingFont(value: 'serif' | 'sans') { readingFont.value = value }
   const palette = ref<Palette>('default')
   const themeMode = ref<ThemeMode>('dark')
   const defaultModel = ref('auto')
@@ -45,6 +47,7 @@ export const useSettingsStore = defineStore('settings', () => {
   function setAdvancedView(enabled: boolean) { advancedView.value = enabled }
 
   function applyPreferences(value: Record<string, unknown>) {
+    if (value.readingFont === 'serif' || value.readingFont === 'sans') readingFont.value = value.readingFont
     if (typeof value.advancedView === 'boolean') advancedView.value = value.advancedView
     if (value.fontStyle === 'inter' || value.fontStyle === 'system' || value.fontStyle === 'mono') fontStyle.value = value.fontStyle
     if (typeof value.fontSize === 'number') setFontSize(value.fontSize)
@@ -54,7 +57,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   function snapshot() {
-    return { fontStyle: fontStyle.value, fontSize: fontSize.value, palette: palette.value, themeMode: themeMode.value, defaultModel: defaultModel.value, advancedView: advancedView.value }
+    return { readingFont: readingFont.value, fontStyle: fontStyle.value, fontSize: fontSize.value, palette: palette.value, themeMode: themeMode.value, defaultModel: defaultModel.value, advancedView: advancedView.value }
   }
 
   async function save() {
@@ -88,19 +91,22 @@ export const useSettingsStore = defineStore('settings', () => {
   function applyTheme() {
     const root = document.documentElement
     root.style.setProperty('--usx-font-size-base', `${fontSize.value}px`)
+    root.style.setProperty('--usx-font-family-reading', readingFont.value === 'sans' ? 'var(--usx-font-family-sans, system-ui, sans-serif)' : 'var(--usx-font-family-serif, Charter, Georgia, serif)')
     root.setAttribute('data-theme', themeMode.value)
     root.setAttribute('data-palette', palette.value)
     root.setAttribute('data-font', fontStyle.value)
   }
 
-  watch([fontStyle, fontSize, palette, themeMode], applyTheme, { immediate: true })
-  watch([fontStyle, fontSize, palette, themeMode, defaultModel, advancedView], () => {
+  watch([fontStyle, fontSize, palette, themeMode, readingFont], applyTheme, { immediate: true })
+  watch([fontStyle, fontSize, palette, themeMode, defaultModel, advancedView, readingFont], () => {
     if (!initialized.value) return
     clearTimeout(syncTimer)
     syncTimer = setTimeout(() => void save(), 250)
   })
 
   return {
+    readingFont,
+    setReadingFont,
     fontStyle,
     fontSize,
     palette,

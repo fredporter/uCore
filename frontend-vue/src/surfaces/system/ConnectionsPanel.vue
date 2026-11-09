@@ -5,15 +5,15 @@
     <p v-if="authUrl"><a :href="authUrl" target="_blank" rel="noopener noreferrer">Open Google sign-in in your system browser</a></p>
     <p v-if="error" role="alert">{{ error }}</p><p v-if="notice" role="status">{{ notice }}</p>
     <section v-if="!state.setup?.completed && !connectionsOnly" class="connection-box"><h3>Set up your workspace</h3><p>A short story will guide your profile, local settings and account choices.</p><button class="usx-btn usx-btn--primary" @click="router.push('/setup')">Start User Setup</button></section>
-    <div class="connection-actions"><button class="usx-btn" :disabled="busy" @click="add('apple')"><UIcon name="computer" />Add Apple</button><button class="usx-btn" :disabled="busy" @click="add('google')"><UIcon name="cloud" />Add Google account</button></div>
-    <article v-for="connection in state.connections" :key="connection.id" class="connection-box">
-      <header><h3>{{ connection.provider === 'apple' ? 'Apple on this Mac' : (connection.health.account || 'Google account') }} <small>{{ connection.id.slice(0,6) }}</small></h3><span>{{ connection.health.state }}</span></header>
+    <div class="connection-actions"><button v-if="state.providers?.apple?.available && providerMode!=='cloud'" class="usx-btn" :disabled="busy" @click="add('apple')"><UIcon name="computer" />Connect local Mac apps</button><button v-if="providerMode!=='local'" class="usx-btn" :disabled="busy" @click="add('google')"><UIcon name="cloud" />Add Google account</button></div>
+    <article v-for="connection in visibleConnections" :key="connection.id" :id="'connection-'+connection.id" class="connection-box">
+      <header><h3>{{ connection.provider === 'apple' ? 'Apple on this Mac' : (connection.health.account || 'Google account') }} <small>{{ connection.id.slice(0,6) }}</small></h3><span>{{ healthLabel(connection.health.state) }}</span></header>
       <p v-if="connection.health.error" role="status">{{ connection.health.error }}</p>
       <small v-if="connection.health.last_success">Last successful sync: {{ new Date(connection.health.last_success).toLocaleString() }} · {{ connection.health.pulled || 0 }} new · {{ connection.health.updated || 0 }} updated · {{ connection.health.pushed || 0 }} pushed</small>
-      <fieldset :disabled="busy"><legend>Collections</legend><label v-for="kind in kinds" :key="kind" class="inline"><input type="checkbox" :checked="!!connection.config.collections[kind]" @change="toggleKind(connection,kind,($event.target as HTMLInputElement).checked)" />{{ names[kind] }}</label></fieldset>
-      <p v-if="connection.provider === 'google' && state.google_auth_configured===false">Google sign-in is not configured on this installation yet. A maintainer needs to add the Google OAuth desktop client before you choose your account.</p>
-      <p v-if="connection.provider === 'google'">Sign in in your system browser, then return here and choose lists. Notes use uCore files in Google Drive; personal Google Keep is not connected.</p>
-      <div class="connection-actions"><button v-if="connection.provider === 'google'" class="usx-btn" :disabled="busy" @click="authorize(connection)">Choose Google account</button><button class="usx-btn" :disabled="busy" @click="discover(connection)">Choose lists and folders</button></div>
+      <p v-if="connection.provider==='apple'">Connects to the apps on this Mac. Google accounts configured in macOS Internet Accounts can be included. macOS manages iCloud and account sync.</p><fieldset :disabled="busy || (connection.provider==='apple' && !state.providers?.apple?.available)"><legend>Collections</legend><label v-for="kind in kinds" :key="kind" class="inline"><input type="checkbox" :checked="!!connection.config.collections[kind]" @change="toggleKind(connection,kind,($event.target as HTMLInputElement).checked)" />{{ names[kind] }}</label></fieldset>
+      <p v-if="connection.provider === 'google' && state.google_auth_configured===false">Direct Google sign-in needs a one-time device setup. Local Mac app connections do not require it.</p>
+      <p v-if="connection.provider === 'google'">Direct cloud mode: sign in, then choose lists. Records are stored locally. Drive notes use Markdown files, not Google Keep.</p>
+      <div class="connection-actions"><button v-if="connection.provider === 'google'" class="usx-btn" :disabled="busy" @click="authorize(connection)">Choose Google account</button><button class="usx-btn" :disabled="busy || (connection.provider==='apple' && !state.providers?.apple?.available)" @click="discover(connection)">Choose lists and folders</button></div>
       <div v-for="(scope,kind) in connection.config.collections" :key="kind" class="connection-scope">
         <h4>{{ names[String(kind)] }}</h4>
         <label v-for="list in discoveries[connection.id]?.[kind] || []" :key="list.id" class="inline"><input type="checkbox" v-model="scope.lists" :value="list.id" />{{ list.title }}</label>
@@ -50,14 +50,14 @@
 </template>
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { UCORE_BASE } from '../../api/base';
 import { useIdentityStore } from '../../stores/identity';
 import { useWorkspaceStore } from '../../stores/workspace';
 import { useWorkflowStore } from '../../stores/workflow';
 import { getEditorSurface } from '../../composables/useEditorSurface';
 import UIcon from '../../skills/atoms/UIcon.vue';
-const props=withDefaults(defineProps<{collectionOnly?:boolean;connectionsOnly?:boolean;initialKind?:string}>(),{collectionOnly:false,connectionsOnly:false,initialKind:'tasks'});
+const props=withDefaults(defineProps<{collectionOnly?:boolean;connectionsOnly?:boolean;initialKind?:string;providerMode?:'all'|'local'|'cloud'}>(),{collectionOnly:false,connectionsOnly:false,initialKind:'tasks',providerMode:'all'});
 const identity=useIdentityStore();
 const router=useRouter();
 const route=useRoute();
@@ -69,6 +69,8 @@ const discoveries=ref<Record<string,any>>({}), previews=ref<Record<string,any>>(
 const activeKind=ref(props.initialKind), edit=ref<any>(null), emails=ref(''), phones=ref(''), displayName=ref('');
 const pendingChoices=ref<Record<string,any[]>>({}), pendingRemote=ref<Record<string,string>>({});
 const busy=ref(false), error=ref(''), notice=ref(''), mergePair=ref<any>(null);
+const visibleConnections=computed(()=>state.value.connections.filter((c:any)=>props.providerMode==='all'||(props.providerMode==='local'?c.provider==='apple':c.provider==='google')));
+function healthLabel(value:string){return ({setup_required:'Choose apps and lists',scope_required:'Choose lists',connected:'Up to date',running:'Syncing',conflict:'Review changes',error:'Needs attention',disconnected:'Disconnected'} as Record<string,string>)[value]||value?.replaceAll('_',' ')||'Not connected';}
 const visibleDuplicates=computed(()=>(state.value.duplicates || []).filter((pair:any)=>!props.collectionOnly || allRecords.value.find(r=>r.id===pair.left)?.kind===activeKind.value));
 const visibleConflicts=computed(()=>(state.value.conflicts || []).filter((conflict:any)=>!props.collectionOnly || allRecords.value.find(r=>r.id===conflict.record)?.kind===activeKind.value));
 async function api(path='',body?:any){const profile=identity.activeProfileId; const response=await fetch(`${UCORE_BASE}/api/connections${path}`,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});if(profile!==identity.activeProfileId)throw Error('Profile changed; reloading connections');if(!response.ok)throw Error((await response.text()).slice(0,300));return response.json();}
@@ -76,7 +78,13 @@ async function work(action:()=>Promise<void>){busy.value=true;error.value='';try
 async function loadRecords(){allRecords.value=(await api('/records')).records;records.value=allRecords.value.filter(r=>r.kind===activeKind.value);state.value.counts=Object.fromEntries(kinds.map(kind=>[kind,allRecords.value.filter(r=>r.kind===kind).length]));const selected=records.value.find(r=>r.id===route.query.record);if(selected&&!edit.value)openRecord(selected);}
 async function load(){await work(async()=>{state.value=await api(); displayName.value=state.value.setup.display_name || identity.displayName; if(!props.connectionsOnly)await loadRecords();});}
 async function completeSetup(){await work(async()=>{await api('/setup',{display_name:displayName.value,completed:true,self_contact:state.value.setup.self_contact || ''});await identity.load();state.value=await api();});}
-async function add(provider:string){await work(async()=>{await api('',{provider,config:{enabled:false,collections:{tasks:{lists:[],direction:'pull',filter:'all',selection:'all',records:[],flag_labels:{}}}}});state.value=await api();});}
+async function add(provider:string){await work(async()=>{
+ if(provider==='apple'&&!state.value.providers?.apple?.available)throw Error('Local Apple apps require a Mac host');
+ let connection=provider==='apple'?state.value.connections.find((c:any)=>c.provider==='apple'):null;
+ if(!connection){connection=await api('',{provider,config:{enabled:false,collections:{tasks:{lists:[],direction:'pull',filter:'all',selection:'all',records:[],flag_labels:{}}}}});state.value=await api();}
+ await nextTick();document.getElementById('connection-'+connection.id)?.scrollIntoView?.({block:'nearest',behavior:'smooth'});
+ if(provider==='apple'){notice.value='Choose the native apps and lists below. macOS manages their cloud accounts.';}
+});}
 function toggleKind(c:any,kind:string,enabled:boolean){if(enabled)c.config.collections[kind]={lists:[],direction:'pull',filter:'all',selection:'all',records:[],flag_labels:{}};else delete c.config.collections[kind];}
 async function saveConnection(c:any){await api('',{id:c.id,provider:c.provider,config:c.config});notice.value='Connection saved';}
 async function discover(c:any){await work(async()=>{await saveConnection(c);discoveries.value[c.id]=(await api(`/${c.id}/discover`,{})).collections;for(const [kind,lists] of Object.entries(discoveries.value[c.id]))c.config.collections[kind].list_titles=Object.fromEntries((lists as any[]).map(list=>[list.id,list.title]));});}

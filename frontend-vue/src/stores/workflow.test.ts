@@ -49,7 +49,7 @@ describe('shared workflow context', () => {
     store.openTask(first);
     expect(store.editorDrafts[store.editorKey]).toBe('Unsaved draft');
     expect(first.description).toBe('Original');
-    expect(store.locationLabel).toBe('project / week / Next');
+    expect(store.locationLabel).toBe('project / Next');
     expect(store.orderedContextTasks).toHaveLength(2);
   });
 
@@ -76,4 +76,91 @@ describe('shared workflow context', () => {
     await store.dropTask({ ...event, altKey: true } as DragEvent, { board: 'later' });
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/api/workflow/tasks/one/duplicate'), expect.objectContaining({ method: 'POST', body: JSON.stringify({ board: 'later' }) }));
   });
+});
+
+it('shares concurrent Binder loads across surfaces and refreshes after a change', async () => {
+  let finish!: (response: Response) => void;
+  const pending = new Promise<Response>(resolve => { finish = resolve; });
+  const request = vi.fn().mockReturnValueOnce(pending).mockResolvedValue(new Response(JSON.stringify({binders:[{id:'updated',title:'Updated'}]})));
+  vi.stubGlobal('fetch', request);
+  const store = useWorkflowStore();
+  const first = store.fetchBinders(), second = store.fetchBinders();
+  expect(request).toHaveBeenCalledTimes(1);
+  finish(new Response(JSON.stringify({binders:[{id:'original',title:'Original'}]})));
+  await Promise.all([first,second]);
+  expect(store.binders[0].id).toBe('original');
+  await store.fetchBinders(true);
+  expect(request).toHaveBeenCalledTimes(2);
+  expect(store.binders[0].id).toBe('updated');
+});
+
+
+it('loads an empty Workflow without calling the retired mission projection', async () => {
+  const request = vi.fn(async (_url: RequestInfo | URL) => new Response(JSON.stringify({binders:[],tasks:[],workflows:[],runs:[],tasker:{boards:[]}})));
+  vi.stubGlobal('fetch',request);
+  const store=useWorkflowStore();
+  await store.fetchAll();
+  expect(request.mock.calls.every(call=>!String(call[0]).includes('mission-task-binder'))).toBe(true);
+  expect(store.error).toBe(null);
+  expect(store.tasks).toEqual([]);
+});
+
+it('opens a saved Binder document through the shared reader with its persisted version', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ content: '---\nbinder: garden\n---\n\nSaved note', version: 'disk-version' }))));
+  const store = useWorkflowStore();
+  store.binders = [{ id: 'garden', title: 'Garden' }];
+  await store.openVaultDocument('/Binders/garden/docs/seeds.md', 'seeds.md', 'garden');
+  expect(store.activeBinderId).toBe('garden');
+  expect(store.selectedFile).toMatchObject({ content: expect.stringContaining('Saved note'), version: 'disk-version', binder: 'garden' });
+  expect(store.activeTab).toBe('editor');
+});
+
+it('does not replace the current Workflow item when a document cannot be read', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })));
+  const store = useWorkflowStore();
+  store.binders = [{ id: 'garden' }];
+  store.showBinder('garden');
+  await expect(store.openVaultDocument('/Binders/garden/docs/missing.md', 'missing.md', 'garden')).rejects.toThrow();
+  expect(store.activeTab).toBe('mission-control');
+  expect(store.activeBinderId).toBe('garden');
+});
+
+it('shows Binder siblings across source boards and resolves known legacy list links', () => {
+  const store = useWorkflowStore();
+  store.binders = [{ id: 'garden', title: 'Garden' }];
+  const task = { id: 'one', title: 'One', board: 'apple-family', binder: 'garden', group: '', status: 'todo', priority: 'medium' as const, tags: [], description: '' };
+  store.tasks = [task, { ...task, id: 'two', board: 'google-personal' }, { ...task, id: 'other', binder: 'another' }];
+  store.openTask(task);
+  expect(store.activeList).toBe('');
+  expect(store.relatedTasks.map(task => task.id)).toEqual(['one', 'two']);
+  store.showList('garden');
+  expect(store.activeBinderId).toBe('garden');
+  expect(store.activeList).toBe('');
+  expect(store.scopedTasks).toHaveLength(2);
+  store.showList('apple-family');
+  expect(store.activeBinderId).toBe('');
+  expect(store.scopedTasks.map(task => task.id)).toEqual(['one', 'other']);
+});
+
+it('moves Binder membership without rewriting the source board', async () => {
+  const request = vi.fn(async () => new Response(JSON.stringify({ updated: { id: 'one', title: 'One', board: 'apple-family', binder: 'garden', status: 'todo' } })));
+  vi.stubGlobal('fetch', request);
+  const store = useWorkflowStore();
+  await store.dropTask({ dataTransfer: { getData: () => 'one' }, altKey: false, ctrlKey: false } as unknown as DragEvent, { binder: 'garden' });
+  expect(request).toHaveBeenCalledWith(expect.stringContaining('/tasks/one'), expect.objectContaining({ body: JSON.stringify({ binder: 'garden' }) }));
+});
+
+it('does not infer task membership from a matching source-board name', () => {
+  const store = useWorkflowStore();
+  store.binders = [{ id: 'garden' }];
+  const unbound = { id: 'unbound', title: 'Imported task', board: 'garden', binder: '', group: '', status: 'todo', priority: 'medium' as const, tags: [], description: '' };
+  store.tasks = [unbound];
+  store.openTask(unbound);
+  expect(store.activeBinderId).toBe('');
+  expect(store.activeList).toBe('garden');
+  expect(store.relatedTasks.map(task => task.id)).toEqual(['unbound']);
+  store.setTab('editor');
+  expect(store.activeBinderId).toBe('');
+  store.showList('garden');
+  expect(store.activeBinderId).toBe('garden');
 });

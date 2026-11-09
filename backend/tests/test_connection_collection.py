@@ -308,3 +308,34 @@ def test_manual_sync_does_not_require_scheduled_polling(fixture):
     assert result["pulled"] == 1
     assert len(store.records("default")) == 1
     assert store.connection("default", connection["id"])["config"]["enabled"] is False
+
+
+def test_sync_refresh_retains_local_binder_membership_and_source_identity(tmp_path, monkeypatch):
+    from app.api.tasker_api import _parse_markdown_task, _update_task_file
+    from app.flow.task_store import write_task_markdown
+
+    base = tmp_path / "flow"
+    monkeypatch.setenv("UFLOW_TASKS_DIR", str(base))
+    store = CollectionStore(tmp_path / "collection.sqlite3")
+    store.save("default", "tasks", {"title": "Plant beans", "body": "Source: https://example.com/seeds", "status": "todo", "due": ""}, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+    write_task_markdown(title="Plant beans", board="apple-family", body="Source: https://example.com/seeds", task="original", source="user-connection", source_id="remote-42", metadata={"id": "stable-task", "collection_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"})
+    engine = SyncEngine(store, {})
+    engine.refresh_tasks("default")
+    record = store.records("default", "tasks")[0]
+    _update_task_file(base=base, task_id="stable-task", patch={"binder": "garden", "group": "Next"})
+    engine.refresh_tasks("default")
+    record = store.record("default", record["id"])
+    changed = store.save("default", "tasks", {**record["data"], "status": "completed"}, record["id"])
+    engine.project("default", changed)
+    engine.refresh_tasks("default")
+    paths = list(base.glob("*/*.md"))
+    assert len(paths) == 1
+    task = _parse_markdown_task(paths[0])
+    assert task["id"] == "stable-task"
+    assert task["binder"] == "garden"
+    assert task["group"] == "Next"
+    assert task["board"] == "apple-family"
+    assert task["source_id"] == "remote-42"
+    assert task["collection_id"] == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    assert task["status"] == "completed"
+    assert "https://example.com/seeds" in paths[0].read_text()

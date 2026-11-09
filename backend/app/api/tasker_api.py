@@ -460,7 +460,8 @@ def _update_task_file(
     source = str(current.get("source") or "manual")
     source_id = str(current.get("source_id") or task_id)
 
-    metadata = _task_metadata_from_record(current)
+    original_metadata, original_body = _parse_frontmatter(source_path.read_text(encoding="utf-8"))
+    metadata = {**original_metadata, **_task_metadata_from_record(current)}
     metadata["priority"] = new_priority
     metadata["tags"] = new_tags
     metadata["board"] = new_board
@@ -469,6 +470,9 @@ def _update_task_file(
             if not isinstance(patch[key], str):
                 raise ValueError(f"{key} must be text")
             metadata[key] = patch[key].strip()
+            if key == "binder":
+                metadata.pop("notebook", None)
+                metadata.pop("collection", None)
     for k in ("action_type", "action_payload", "approval_status", "due", "rejection_reason", "profile", "collection_id", "merged_into"):
         if k in patch:
             metadata[k] = patch[k]
@@ -491,6 +495,10 @@ def _update_task_file(
         body=new_body,
         metadata=metadata,
     )
+    # Membership/status edits must not flatten Markdown headings, lists or links.
+    if original_metadata and "body" not in patch and "title" not in patch:
+        header = content.split("\n---\n", 1)[0]
+        content = header + "\n---\n" + original_body + "\n"
     if target_path.exists() and source_path.resolve() != target_path.resolve():
         raise ValueError("A different task already uses that filename")
     temporary = target_path.with_suffix(".md.tmp")

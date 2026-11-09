@@ -9,7 +9,7 @@
       <button class="usx-btn usx-btn--primary wf-zen-primary" type="button" @click="openTasks">
         <UIcon name="checklist" /> View tasks
       </button>
-      <button class="usx-btn" @click="router.push('/system?tab=connections')"><UIcon name="sync_alt" />Connections</button>
+      <button class="usx-btn" @click="router.push('/snackbar')"><UIcon name="sync_alt" />Snackbar</button>
     </header>
 
     <p v-if="wf.taskError" role="alert">{{ wf.taskError }}</p>
@@ -26,40 +26,6 @@
       <h3>Up next</h3>
       <button class="usx-btn wf-mission-row" @click="wf.openTask(nextTask)"><UIcon name="play_circle" /><span class="wf-mission-row__copy"><strong>{{ nextTask.title }}</strong><small>{{ nextTask.board }} · {{ nextTask.status }}</small></span><UIcon name="arrow_forward" /></button>
     </section>
-    <section class="wf-zen-section">
-      <h3>Lists</h3>
-      <div class="wf-mission-cards">
-        <button v-for="list in wf.taskLists" :key="list" class="usx-btn wf-mission-row" @click="wf.showList(list)">
-          <UIcon name="list" /><span class="wf-mission-row__copy"><strong>{{ list }}</strong><small>{{ listProgress(list).done }} of {{ listProgress(list).total }} done · {{ listProgress(list).open }} open</small><progress :value="listProgress(list).done" :max="listProgress(list).total || 1" :aria-label="`${list} progress`" /></span><UIcon name="arrow_forward" />
-        </button>
-      </div>
-      <p v-if="!wf.taskLists.length">No task lists yet. Create your first task in Tasks.</p>
-    </section>
-    <section class="wf-zen-section">
-      <h3>Binders</h3>
-      <div class="wf-mission-cards">
-        <button v-for="binder in wf.binders" :key="binder.id" class="usx-btn wf-mission-row" @click="wf.showBinder(binder.id)"><UIcon name="book" /><span class="wf-mission-row__copy"><strong>{{ binder.title || binder.id }}</strong><small>{{ wf.tasks.filter(task => task.binder === binder.id && task.status !== 'completed').length }} open tasks · {{ binder.state || 'Draft' }}</small></span><UIcon name="arrow_forward" /></button>
-      </div>
-      <p v-if="!wf.binders.length">No binders yet.</p>
-    </section>
-
-    <div class="wf-dashboard-actions">
-    <details class="wf-zen-details wf-prompt-card">
-      <summary>History and maintenance</summary>
-      <div class="wf-actions-row">
-        <UButton size="sm" variant="secondary" icon="archive" :disabled="!!busyAction" @click="archiveState">Archive</UButton>
-        <UButton size="sm" variant="secondary" icon="add" :disabled="!!busyAction" @click="seedState">Seed tasks</UButton>
-        <UButton size="sm" variant="secondary" icon="refresh" :disabled="!!busyAction" @click="resetState">Reset + seed</UButton>
-      </div>
-      <p v-if="lastActionMessage" class="wf-action-message">{{ lastActionMessage }}</p>
-      <details v-if="wf.workflowRuns.length" class="wf-zen-history">
-        <summary>Recent workflow runs</summary>
-        <span v-for="run in wf.workflowRuns.slice(0, 5)" :key="run.run_id">
-          {{ run.workflow_name || run.workflow_id }} · {{ run.status }} · {{ formatTime(run.started_at) }}
-        </span>
-      </details>
-    </details>
-    </div>
   </div>
 <!-- legacy dashboard retained temporarily as an unreachable migration reference -->
 </template>

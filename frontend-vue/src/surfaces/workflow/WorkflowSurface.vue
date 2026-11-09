@@ -14,7 +14,7 @@
     />
     <div v-if="wf.activeTab === 'editor' && activeEditorItem" class="workflow-context" aria-label="Current item">
       <button v-if="wf.activeBinderId" class="usx-btn" @click="wf.binders.some(binder => binder.id === wf.activeBinderId) ? wf.showBinder(wf.activeBinderId) : wf.showList('', wf.activeBinderId)"><UIcon name="book" />{{ wf.binders.find(b => b.id === wf.activeBinderId)?.title || wf.activeBinderId }}</button>
-      <button class="usx-btn" @click="wf.showList(wf.activeList, wf.activeBinderId)"><UIcon name="list" />{{ wf.activeList || 'Tasks' }}</button>
+      <button class="usx-btn" @click="wf.showList(wf.activeList, wf.activeBinderId)"><UIcon name="list" />Tasks</button>
       <strong>{{ editorTitle }}</strong><small v-if="wf.hasEditorDraft">Unsaved</small>
       <span class="workflow-context__actions" v-if="activeEditorTask">
         <span>{{ contextPosition + 1 }} of {{ wf.relatedTasks.length }} · {{ wf.relatedTasks.filter(task => task.status === 'completed').length }} done</span>
@@ -45,13 +45,17 @@
       >
         <!-- Left/Main panel: the active tab content -->
         <div v-if="wf.activeTab !== 'editor'" class="workflow-panel">
-          <MissionControlPanel v-if="wf.activeTab === 'mission-control'" />
+          <WorkflowDashboardPanel v-if="wf.activeTab === 'mission-control'" />
           <TasksPanel v-else-if="wf.activeTab === 'tasks'" />
           <ConnectionsPanel v-else-if="wf.activeTab === 'contacts'" collection-only initial-kind="contacts" />
           <ConnectionsPanel v-else-if="wf.activeTab === 'notes'" collection-only initial-kind="notes" />
           <FeedsPanel v-else-if="wf.activeTab === 'feeds'" />
+          <WorkflowQueuePanel v-else-if="wf.activeTab === 'queue'" />
           <BrowserUISurface v-else-if="wf.activeTab === 'research'" embedded />
-          <NotebookBinderPanel v-else-if="wf.activeTab === 'binder'" />
+          <div v-else-if="wf.activeTab === 'binder'">
+            <div class="binder-views" role="group" aria-label="Binder views"><button class="usx-btn" :aria-pressed="route.query.view!=='research'" @click="router.replace({query:{...route.query,view:'content'}})">Content</button><button class="usx-btn" :aria-pressed="route.query.view==='research'" @click="router.replace({query:{...route.query,view:'research'}})">Research</button></div>
+            <BrowserUISurface v-if="route.query.view==='research'" embedded /><NotebookBinderPanel v-else />
+          </div>
         </div>
 
         <!-- Editor tab: full-width document workspace -->
@@ -59,35 +63,6 @@
           v-if="wf.activeTab === 'editor'"
           class="workflow-panel workflow-panel--editor"
         >
-          <button
-            class="workflow-workspace-toggle"
-            type="button"
-            aria-label="Open workspace files"
-            :aria-expanded="workspaceTreeOpen"
-            aria-controls="workflow-location-tree"
-            @click="workspaceTreeOpen = true"
-          >
-            <UIcon name="folder_open" :size="20" />
-          </button>
-          <button
-            v-if="workspaceTreeOpen"
-            class="workflow-workspace-backdrop"
-            type="button"
-            aria-label="Close workspace files"
-            @click="workspaceTreeOpen = false"
-          />
-          <aside
-            v-if="workspaceTreeOpen || wideEditor"
-            id="workflow-location-tree"
-            class="workflow-workspace-tree"
-            :class="{ 'workflow-workspace-tree--open': workspaceTreeOpen }"
-          >
-            <button class="workflow-workspace-close" type="button" aria-label="Close workspace files" @click="workspaceTreeOpen = false">
-              <UIcon name="close" />
-            </button>
-            <WorkflowNavigator />
-            <details open><summary>Files</summary><WorkspaceTree /></details>
-          </aside>
           <EditorPanel
             v-if="activeEditorItem"
             :content="editorContent"
@@ -121,7 +96,7 @@
               <UButton
                 size="sm"
                 variant="primary"
-                @click="workspaceTreeOpen = true"
+                @click="shell.setSidebarOpen(true)"
               >
                 Open File Browser
               </UButton>
@@ -154,11 +129,12 @@
  * @category surfaces
  * @usage Routed at '/workflow?tab=mission-control'
  */
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, defineAsyncComponent, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import ConnectionsPanel from "../system/ConnectionsPanel.vue";
 import FeedsPanel from "./panels/FeedsPanel.vue";
+import WorkflowQueuePanel from "./panels/WorkflowQueuePanel.vue";
 import BrowserUISurface from "../browserui/BrowserUISurface.vue";
 import { useWorkflowStore, WORKFLOW_TABS } from "../../stores/workflow";
 import { UCORE_BASE } from "../../api/base";
@@ -167,7 +143,7 @@ import type { WorkflowTab } from "../../stores/workflow";
 import { getEditorSurface } from "../../composables/useEditorSurface";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import CapabilityRepairPanel from "../../skills/molecules/CapabilityRepairPanel.vue";
-import MissionControlPanel from "./panels/MissionControlPanel.vue";
+import WorkflowDashboardPanel from "./panels/WorkflowDashboardPanel.vue";
 const MissionsPanel = defineAsyncComponent(
   () => import("./panels/MissionsPanel.vue"),
 );
@@ -183,25 +159,21 @@ const NotebookBinderPanel = defineAsyncComponent(
 import { EditorPanel } from "../../skills";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import UButton from "../../skills/atoms/UButton.vue";
-import WorkflowNavigator from "../../skills/molecules/WorkflowNavigator.vue";
-import WorkspaceTree from "../../skills/molecules/editor/WorkspaceTree.vue";
 
 const shell = useShellStore();
 const wf = useWorkflowStore();
 const workspace = useWorkspaceStore();
-const workspaceTreeOpen = ref(false);
-const editorMedia = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(min-width: 1024px)") : null;
-const wideEditor = ref(editorMedia?.matches || false);
-function onEditorWidthChange(event: MediaQueryListEvent) { wideEditor.value = event.matches; }
 let restoringLocation = true;
 const publishOpen = ref(false);
 
-function toggleWorkspaceFiles() {
-  workspaceTreeOpen.value = !workspaceTreeOpen.value;
-}
 const editorSurface = getEditorSurface();
 const route = useRoute();
 const router = useRouter();
+
+watch(() => [route.query.tab, route.query.research], ([tab, research]) => {
+  if (['contacts','notes','feeds'].includes(String(tab))) void router.replace({path:'/snackbar',query:{tab:String(tab)}});
+  if (tab==='research' || tab==='binder') void router.replace({path:'/workflow',query:{...route.query,tab:research==='dashboard'?'queue':'mission-control'}});
+}, {immediate:true});
 
 const VALID_WORKFLOW_TABS = new Set(WORKFLOW_TABS.map((t) => t.id));
 
@@ -212,10 +184,8 @@ function asWorkflowTab(tab: string): WorkflowTab | null {
 }
 
 onMounted(async () => {
-  editorMedia?.addEventListener("change", onEditorWidthChange);
-  window.addEventListener("ucore:workflow-files-toggle", toggleWorkspaceFiles);
-  void workspace.loadTree();
-  const routeTab = String(route.query.tab || "").trim();
+  if (["contacts", "notes", "feeds"].includes(String(route.query.tab))) return;
+  const routeTab = ["research","binder"].includes(String(route.query.tab)) ? (route.query.research === "dashboard" ? "queue" : "mission-control") : String(route.query.tab || "").trim();
   const safeTab = asWorkflowTab(routeTab);
   if (safeTab) {
     wf.setTab(safeTab);
@@ -235,6 +205,7 @@ onMounted(async () => {
   const documentPart = String(route.query.document || "");
   const filePath = String(route.query.file || "");
   await wf.fetchAll();
+  wf.setTaskContext(wf.activeList, wf.activeBinderId);
   try {
     const selectionChanged = wf.selectedTask?.id !== selectionAtLoad || editorSurface.currentFile.value?.path !== fileAtLoad;
     if (selectionChanged) { /* Keep user navigation that happened during hydration. */ }
@@ -265,11 +236,6 @@ watch(() => route.query.task, value => {
   if (task && wf.selectedTask?.id !== task.id) wf.openTask(task);
 });
 
-onBeforeUnmount(() => {
-  editorMedia?.removeEventListener("change", onEditorWidthChange);
-  window.removeEventListener("ucore:workflow-files-toggle", toggleWorkspaceFiles);
-});
-
 watch(
   () => route.query.tab,
   (value) => {
@@ -282,7 +248,6 @@ watch(
   },
 );
 
-watch(() => workspace.selectedId, () => { workspaceTreeOpen.value = false; });
 watch(() => [wf.selectedTask?.id, wf.selectedFile?.id, workspace.selectedId], () => { publishOpen.value = false; });
 
 
@@ -497,80 +462,6 @@ function onRetryPreflight() {
   min-height: 0;
 }
 
-.workflow-workspace-tree {
-  position: fixed;
-  inset: 0 auto 0 0;
-  width: min(20rem, 86vw);
-  min-width: 0;
-  z-index: 41;
-  transform: translateX(-100%);
-  transition: transform 160ms ease;
-  background: var(--usx-color-surface);
-}
-
-.workflow-workspace-tree--open { transform: translateX(0); }
-.workflow-workspace-toggle { display: flex; }
-.workflow-workspace-close { display: flex; position: absolute; z-index: 2; top: var(--usx-spacing-xs); right: var(--usx-spacing-xs); }
-.workflow-workspace-backdrop { display: block; position: fixed; inset: 0; z-index: 40; border: 0; background: rgb(0 0 0 / 45%); }
-
-.workflow-workspace-toggle {
-  position: fixed;
-  z-index: 30;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  min-height: 0;
-  padding: 0;
-  left: var(--usx-spacing-md);
-  bottom: var(--usx-spacing-md);
-  overflow: hidden;
-  color: var(--usx-color-on-surface);
-  font-size: 0;
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-full);
-  background: var(--usx-color-surface);
-  box-shadow: var(--usx-shadow-md);
-  font-size: var(--usx-icon-size-md);
-  color: var(--usx-color-primary);
-}
-
-@media (max-width: 767px) {
-  .workflow-workspace-tree {
-    position: fixed;
-    inset: 0 auto 0 0;
-    width: min(20rem, 86vw);
-    min-width: 0;
-    z-index: 41;
-    transform: translateX(-100%);
-    transition: transform 160ms ease;
-    background: var(--usx-color-surface);
-  }
-
-  .workflow-workspace-tree--open {
-    transform: translateX(0);
-  }
-
-  .workflow-workspace-toggle :deep(*) { color: var(--usx-color-on-surface); }
-
-  .workflow-workspace-close {
-    display: flex;
-    position: absolute;
-    z-index: 2;
-    top: var(--usx-spacing-xs);
-    right: var(--usx-spacing-xs);
-  }
-
-  .workflow-workspace-backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 40;
-    border: 0;
-    background: color-mix(in srgb, var(--usx-color-on-surface) 45%, transparent);
-  }
-}
-
 /* ─── Editor Column — right sidebar, full height ──────────────── */
 /* Editor column: Markdown takes 1/3 width as sidecar */
 .workflow-editor {
@@ -605,13 +496,6 @@ function onRetryPreflight() {
 </style>
 
 <style scoped>
-@media (min-width: 1024px) {
-  .workflow-panel--editor { display: grid; grid-template-columns: minmax(12rem, 17rem) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
-  .workflow-workspace-tree { position: relative; inset: auto; width: auto; transform: none; z-index: auto; overflow-y: auto; border-right: 1px solid var(--usx-color-border); }
-  .workflow-workspace-toggle, .workflow-workspace-backdrop, .workflow-workspace-close { display: none; }
-  .workflow-panel--editor > .editor-panel { min-width: 0; }
-}
-
 .workflow-context { flex-wrap: nowrap; min-height: 44px; box-sizing: border-box; padding: 4px 8px; overflow-x: auto; white-space: nowrap; font-size: var(--usx-font-size-sm); }
 .workflow-context strong { flex: 1 1 auto; min-width: 6rem; }
 .workflow-context__actions { flex: 0 0 auto; flex-wrap: nowrap; gap: 4px; }

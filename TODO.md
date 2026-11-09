@@ -1,51 +1,11 @@
-# uCore Dev Status Ledger
+# uCore status and sprint index
 
-Status: Active
-Last updated: 2026-08-31
+Updated: 2026-11-09
 
-## Purpose
+uCore is the user application/service host. Development happens in external IDEs. The active product goal is a curated, local workspace that requires no code from its users; uCode is optional learning and composition.
 
-This file is a high-level status ledger only.
+The current assessed cleanup sprint is [Curated applications: alignment and cleanup](docs/plans/CURATED_APPLICATIONS_CLEANUP_SPRINT_2026-11-09.md). It records working features, committed checkpoints, scaffolds, ticket dependencies, release acceptance and deferred work. Start there rather than resuming historical Dev Mode programmes.
 
-Canonical workflow/task state is owned by uFlow. Repository readiness evidence
-lives in reviewed specs and implementation-backed task ledgers; retired
-`.tasker` paths must not be recreated.
+Canonical tasks and run state remain owned by uFlow within the existing host contracts. This file is an index, not a competing task database. Sprint preparation does not seed maintainer tasks into personal user lists.
 
-## Completed Foundations (Summary)
-
-1. Repo split hard-cut completed for workflow and knowledge route ownership.
-2. uCode runtime bridge ownership externalized behind strict adapters.
-3. Extension registry contract locked and validated in CI.
-4. External plugin discovery path operational (including `udos-budget` and `udos-identity`).
-5. Split-repo packaging and import smoke validations are wired and passing.
-
-## Active Program (Canonical Source)
-
-Dev Mode readiness pass active. Canonical repository plan:
-`docs/DEV_MODE_READINESS_2026-08-31.md`. Product task evidence:
-`frontend-vue/src/tasks/bangle-upgrade.tasks.ts`.
-
-Long-sprint execution sequence:
-`docs/DEV_MODE_LONG_SPRINTS_2026-09.md`.
-
-## Completed Phases
-
-- Phase 10 — Ecosystem Hardening and Autonomous Rounds (all gates checked).
-- Phase 11 — Docs Mirroring & Publishing (all five waves complete; evidence bundled).
-
-## Documentation Alignment
-
-Primary planning specs for this phase:
-
-1. `docs/DEV_MODE_READINESS_2026-08-31.md`
-2. `docs/DEVELOPER_SURFACE.md` (lane separation rules)
-3. `docs/specs/NANOCODER_VENDOR_INTEGRATION_PLAN_2026-08.md`
-
-## Governance
-
-Every wave must pass stop-the-line evidence gates before completion:
-
-1. runtime proof,
-2. command proof,
-3. test proof,
-4. evidence proof.
+Historical implementation evidence remains available in [the September product refactor plan](docs/UDOS_PRODUCT_REFACTOR_PLAN_2026-09-12.md) and the archived plans it references. Internal IDE, development-agent teams and general repository coding are retired product priorities. Preserve useful runtime capabilities, user data and prior evidence while moving them to their proper owners.

@@ -15,27 +15,6 @@
       </button>
     </div>
 
-    <div v-if="activeLane === 'dev'" class="chat-panel__dev-context">
-      <label v-if="!devChat.repository">Repository
-        <select v-model="devChat.repository" aria-label="Developer repository">
-          <option value="">Select repository</option>
-          <option v-for="repo in devChat.repos" :key="repo.name" :value="repo.name">{{ repo.name }}</option>
-        </select>
-      </label>
-      <details v-else>
-        <summary>{{ devChat.repository }} · Conversation</summary>
-        <button @click="devChat.newConversation()">New conversation</button>
-        <button v-if="!devChat.conversation" @click="devChat.repository = ''">Change repository</button>
-        <label>History <select :value="devChat.conversation?.id || ''" aria-label="Developer history" @change="devChat.select(($event.target as HTMLSelectElement).value)">
-          <option value="" disabled>Select conversation</option>
-          <option v-for="item in devChat.history" :key="item.id" :value="item.id">{{ item.repository }} · {{ item.title }}</option>
-        </select></label>
-        <button v-if="devChat.conversation" @click="devChat.remove()">Delete conversation</button>
-        <button v-if="devChat.suggestedRepository === devChat.repository && devChat.suggestedFile" @click="devChat.useSelection()">Attach selected file</button>
-        <p>{{ devChat.runtime?.available ? `Construction: ${devChat.runtime.provider} / ${devChat.runtime.model}` : 'Construction engine unavailable' }}</p>
-      </details>
-      <button v-if="devChat.file" @click="devChat.file = ''" :aria-label="`Remove ${devChat.file} context`">{{ devChat.file }} ×</button>
-    </div>
     <!-- ── Body ──────────────────────────────────────────────── -->
     <div class="chat-panel__body">
       <div v-if="activeMessages.length === 0" class="chat-panel__empty" />
@@ -69,7 +48,6 @@
           <span class="chat-panel__dot" />
         </div>
       </div>
-      <DeveloperChatActivity v-if="activeLane === 'dev'" />
     </div>
 
     <!-- ── Composer: input + send row, model switcher below ───── -->
@@ -79,11 +57,7 @@
           ref="inputEl"
           v-model="inputText"
           class="chat-panel__input"
-          :placeholder="
-            activeLane === 'dev'
-              ? 'Describe what you want to understand or change…'
-              : inputPlaceholder
-          "
+          :placeholder="inputPlaceholder"
           rows="2"
           @keydown.enter.exact.prevent="sendMessage"
           @keydown.shift.enter.prevent="inputText += '\n'"
@@ -91,7 +65,6 @@
         />
         <button
           class="usx-btn chat-panel__send"
-          :class="{ 'chat-panel__send--dev': activeLane === 'dev' }"
           :disabled="!inputText.trim() || loading"
           title="Send (Enter)"
           @click="sendMessage"
@@ -158,9 +131,6 @@ import { useToast } from "../../composables/useToast";
 import { useChatStore } from "../../stores/chat";
 import { renderMarkdown } from "../../composables/useMarkdown";
 import UIcon from "../atoms/UIcon.vue";
-import { useDeveloperChatStore } from "../../stores/developerChat";
-import type { ChatIntent } from "../../stores/developerChat";
-import DeveloperChatActivity from "../../surfaces/developer/DeveloperChatActivity.vue";
 
 interface Message {
   role: "user" | "assistant";
@@ -192,7 +162,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   "send-chat": [message: string, mode: "chat" | "plan" | "act" | "workflow"];
-  "send-dev": [message: string, mode: ChatIntent];
+  "send-dev": [message: string, mode: "ask" | "plan" | "act"];
   "toggle-dev-mode": [];
   "update:activeLane": [lane: "chat" | "dev"];
   close: [];
@@ -204,21 +174,14 @@ function setPresentation(event: Event) {
   shell.setChatPresentation((event.target as HTMLSelectElement).value as ChatPresentation);
 }
 const chatStore = useChatStore();
-const devChat = useDeveloperChatStore();
 const editorSurface = getEditorSurface();
 const ws = useWorkspaceStore();
 const { toast } = useToast();
 
-const activeLane = computed<"chat" | "dev">({
-  get: () => props.activeLane,
-  set: (v: "chat" | "dev") => emit("update:activeLane", v),
-});
+const activeLane = ref<'chat'>('chat');
 const activeChatMode = computed({
-  get: () => activeLane.value === 'dev' ? (devChat.intent === 'ask' ? 'chat' : devChat.intent) : (chatStore.promptMode === 'workflow' ? 'plan' : chatStore.promptMode),
-  set: (mode: "chat" | "plan" | "act" | "workflow") => {
-    if (activeLane.value === 'dev') devChat.intent = mode === 'chat' ? 'ask' : mode === 'workflow' ? 'plan' : mode;
-    else chatStore.setPromptMode(mode);
-  },
+  get: () => chatStore.promptMode === 'workflow' ? 'plan' : chatStore.promptMode,
+  set: (mode: "chat" | "plan" | "act" | "workflow") => chatStore.setPromptMode(mode),
 });
 const messagesEl = ref<HTMLDivElement | null>(null);
 const inputEl = ref<HTMLTextAreaElement | null>(null);
@@ -226,8 +189,8 @@ const modelPickerOpen = ref(false);
 const selectedModelId = ref(chatStore.selectedModel);
 
 const inputText = computed({
-  get: () => activeLane.value === 'dev' ? devChat.input : chatStore.input,
-  set: (v: string) => { if (activeLane.value === 'dev') devChat.input = v; else chatStore.input = v; },
+  get: () => chatStore.input,
+  set: (v: string) => { chatStore.input = v; },
 });
 
 // ─── Dynamic composer placeholder (matches Intelligence surface) ──
@@ -275,9 +238,7 @@ const CHAT_MODES = [
   { id: "act", label: "Act" },
 ] as const;
 
-const activeMessages = computed(() =>
-  activeLane.value === "dev" ? props.devMessages : props.chatMessages,
-);
+const activeMessages = computed(() => props.chatMessages);
 
 // Auto-scroll on new messages
 watch(
@@ -293,16 +254,8 @@ watch(
 function sendMessage() {
   const text = inputText.value.trim();
   if (!text || props.loading) return;
-  if (activeLane.value === "dev") {
-    emit("send-dev", text, devChat.intent);
-  } else {
-    emit("send-chat", text, activeChatMode.value);
-  }
+  emit("send-chat", text, activeChatMode.value);
   inputText.value = "";
-}
-
-function toggleLane() {
-  activeLane.value = activeLane.value === "chat" ? "dev" : "chat";
 }
 
 function closeChat() {

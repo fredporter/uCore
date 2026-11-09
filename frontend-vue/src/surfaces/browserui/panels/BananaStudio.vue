@@ -12,17 +12,13 @@
         <div class="banana-studio__title-wrap">
           <UIcon name="draw" :size="24" class="banana-studio__hero-icon" />
           <div>
-            <h2 class="surface__panel-title">uVector Illustration & Asset Studio</h2>
+            <h2 class="surface__panel-title">{{ scope==='grid' ? 'GridCore tools' : scope==='vector' ? 'Vector tools' : 'uVector Illustration & Asset Studio' }}</h2>
             <p class="surface__panel-description">
               Create drawings and GridCore illustrations.
             </p>
           </div>
         </div>
-        <div class="banana-studio__hero-badges">
-          <span class="banana-studio__badge">Rust Core (uvcore)</span>
-          <span class="banana-studio__badge">GridCore Mapped</span>
-          <span class="banana-studio__badge">100% Offline</span>
-        </div>
+
       </div>
     </section>
 
@@ -32,6 +28,7 @@
         type="button"
         class="banana-studio__mode-tab"
         :class="{ 'banana-studio__mode-tab--active': activeMode === 'generate' }"
+        v-if="scope!=='grid'"
         @click="activeMode = 'generate'"
       >
         <UIcon name="auto_awesome" /> Text-to-Vector
@@ -40,6 +37,7 @@
         type="button"
         class="banana-studio__mode-tab"
         :class="{ 'banana-studio__mode-tab--active': activeMode === 'trace' }"
+        v-if="scope!=='grid'"
         @click="activeMode = 'trace'"
       >
         <UIcon name="polyline" /> Bitmap Tracing
@@ -48,6 +46,7 @@
         type="button"
         class="banana-studio__mode-tab"
         :class="{ 'banana-studio__mode-tab--active': activeMode === 'font_map' }"
+        v-if="scope!=='vector'"
         @click="activeMode = 'font_map'"
       >
         <UIcon name="grid_on" /> GridCore Font & Icon Map
@@ -56,6 +55,7 @@
         type="button"
         class="banana-studio__mode-tab"
         :class="{ 'banana-studio__mode-tab--active': activeMode === 'quantize' }"
+        v-if="scope!=='vector'"
         @click="activeMode = 'quantize'"
       >
         <UIcon name="grain" /> V2B & BOB Quantizer
@@ -331,6 +331,7 @@
               type="button"
               class="banana-studio__tab-btn"
               :class="{ 'banana-studio__tab-btn--active': previewTab === 'teletext' }"
+              v-if="scope!=='vector'"
               @click="previewTab = 'teletext'"
             >
               Teletext (40×25)
@@ -339,6 +340,7 @@
               type="button"
               class="banana-studio__tab-btn"
               :class="{ 'banana-studio__tab-btn--active': previewTab === 'lattice' }"
+              v-if="scope!=='vector'"
               @click="previewTab = 'lattice'"
             >
               Dot Lattice
@@ -347,6 +349,7 @@
               type="button"
               class="banana-studio__tab-btn"
               :class="{ 'banana-studio__tab-btn--active': previewTab === 'bob' }"
+              v-if="scope!=='vector'"
               @click="previewTab = 'bob'"
             >
               BOB Inspector
@@ -355,6 +358,7 @@
               type="button"
               class="banana-studio__tab-btn"
               :class="{ 'banana-studio__tab-btn--active': previewTab === 'ascii' }"
+              v-if="scope!=='vector'"
               @click="previewTab = 'ascii'"
             >
               ASCII
@@ -543,6 +547,7 @@
 </template>
 
 <script setup lang="ts">
+const props=withDefaults(defineProps<{scope?:'all'|'grid'|'vector'}>(),{scope:'all'});
 import { ref, computed } from "vue"
 import UIcon from "../../../skills/atoms/UIcon.vue"
 import USpinner from "../../../skills/atoms/USpinner.vue"
@@ -642,7 +647,7 @@ const PRESETS: PresetDefinition[] = [
 
 const ASPECT_RATIOS = ["16:9", "4:3", "1:1", "2:1", "3:4"]
 
-const activeMode = ref<"generate" | "trace" | "font_map" | "quantize">("generate")
+const activeMode = ref<"generate" | "trace" | "font_map" | "quantize">(props.scope==='grid'?'font_map':'generate')
 const previewTab = ref<"svg" | "teletext" | "lattice" | "bob" | "ascii" | "inspector">("svg")
 const selectedPreset = ref("mono_blueprint")
 const selectedAspect = ref("16:9")

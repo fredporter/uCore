@@ -620,7 +620,7 @@ class UnifiedMenuDelegate(NSObject):
         """Open snacks workspace (and extension if installed)."""
         log.info("Opening SnackMachine/workspace")
         _ensure_frontend_running()
-        open_url("http://localhost:5175/server?tab=snacks")
+        open_url("http://localhost:5175/snackbar?tab=snacks")
 
     def openServicesCrash_(self, _sender):
         """Open the S500 crash recovery page."""
@@ -632,7 +632,7 @@ class UnifiedMenuDelegate(NSObject):
         """Open the Snackbar services panel."""
         log.info("Opening Snackbar services panel")
         _ensure_frontend_running()
-        open_url("http://localhost:5175/snackbar?tab=services")
+        open_url("http://localhost:5175/server?tab=services")
 
     def installSnackMachine_(self, _sender):
         """Open the SnackMachine repository for installation instructions."""

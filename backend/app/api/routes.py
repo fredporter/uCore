@@ -33,16 +33,8 @@ def register_routes(app: web.Application) -> None:
     from .config_api import handle_get_config
     from .containers import register_container_routes
     from .developer_api import (
-        handle_apply_developer_proposal,
         handle_cancel_developer_command,
         handle_cancel_developer_operation,
-        handle_commit_repo_files,
-        handle_create_developer_operation,
-        handle_create_repo_file,
-        handle_decide_developer_operation,
-        handle_delete_repo_file,
-        handle_developer_chat,
-        handle_developer_chat_stream,
         handle_developer_command_actions,
         handle_developer_operation_capabilities,
         handle_developer_status,
@@ -57,18 +49,11 @@ def register_routes(app: web.Application) -> None:
         handle_list_repo_files,
         handle_list_repo_review,
         handle_list_repos,
-        handle_move_repo_file,
         handle_repo_github_status,
         handle_repo_status,
+        handle_retired_development,
         handle_search_repo,
-        handle_stage_repo_file,
-        handle_stage_repo_hunk,
-        handle_start_developer,
-        handle_start_developer_command,
         handle_stop_developer,
-        handle_unstage_repo_file,
-        handle_update_repo_file,
-        handle_workspace_switch,
     )
     from .docker import handle_docker_ps
     from .exec import handle_exec
@@ -202,13 +187,13 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/budget/plugin/ping", handle_budget_plugin_ping)
     app.router.add_get("/api/developer/repos", handle_list_repos)
     app.router.add_get("/api/developer/repos/{repo_name}/files", handle_list_repo_files)
-    app.router.add_post("/api/developer/repos/{repo_name}/files", handle_create_repo_file)
+    app.router.add_post("/api/developer/repos/{repo_name}/files", handle_retired_development)
     app.router.add_get(
         "/api/developer/repos/{repo_name}/file-preview", handle_get_repo_file_preview
     )
-    app.router.add_put("/api/developer/repos/{repo_name}/file-preview", handle_update_repo_file)
-    app.router.add_delete("/api/developer/repos/{repo_name}/file-preview", handle_delete_repo_file)
-    app.router.add_post("/api/developer/repos/{repo_name}/file-move", handle_move_repo_file)
+    app.router.add_put("/api/developer/repos/{repo_name}/file-preview", handle_retired_development)
+    app.router.add_delete("/api/developer/repos/{repo_name}/file-preview", handle_retired_development)
+    app.router.add_post("/api/developer/repos/{repo_name}/file-move", handle_retired_development)
     app.router.add_get("/api/developer/repos/{repo_name}/diagnostics", handle_diagnose_repo_file)
     app.router.add_get("/api/developer/repos/{repo_name}/diff", handle_get_repo_file_diff)
     app.router.add_get("/api/developer/repos/{repo_name}/diffs", handle_get_repo_diffs)
@@ -216,34 +201,34 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/developer/repos/{repo_name}/status", handle_repo_status)
     app.router.add_get("/api/developer/repos/{repo_name}/search", handle_search_repo)
     app.router.add_get("/api/developer/repos/{repo_name}/github", handle_repo_github_status)
-    app.router.add_post("/api/developer/repos/{repo_name}/stage", handle_stage_repo_file)
-    app.router.add_post("/api/developer/repos/{repo_name}/stage-hunk", handle_stage_repo_hunk)
-    app.router.add_post("/api/developer/repos/{repo_name}/unstage", handle_unstage_repo_file)
-    app.router.add_post("/api/developer/repos/{repo_name}/commit", handle_commit_repo_files)
+    app.router.add_post("/api/developer/repos/{repo_name}/stage", handle_retired_development)
+    app.router.add_post("/api/developer/repos/{repo_name}/stage-hunk", handle_retired_development)
+    app.router.add_post("/api/developer/repos/{repo_name}/unstage", handle_retired_development)
+    app.router.add_post("/api/developer/repos/{repo_name}/commit", handle_retired_development)
     # DevMode (internal dev ops) endpoints
-    app.router.add_post("/api/developer/start", handle_start_developer)
+    app.router.add_post("/api/developer/start", handle_retired_development)
     app.router.add_post("/api/developer/stop", handle_stop_developer)
     app.router.add_get("/api/developer/status", handle_developer_status)
-    app.router.add_post("/api/developer/workspace", handle_workspace_switch)
+    app.router.add_post("/api/developer/workspace", handle_retired_development)
     app.router.add_get(
         "/api/developer/operations/capabilities", handle_developer_operation_capabilities
     )
     app.router.add_get("/api/developer/operations", handle_list_developer_operations)
-    app.router.add_post("/api/developer/operations", handle_create_developer_operation)
+    app.router.add_post("/api/developer/operations", handle_retired_development)
     app.router.add_get("/api/developer/operations/{operation_id}", handle_get_developer_operation)
     app.router.add_post(
-        "/api/developer/operations/{operation_id}/decision", handle_decide_developer_operation
+        "/api/developer/operations/{operation_id}/decision", handle_retired_development
     )
     app.router.add_post(
         "/api/developer/operations/{operation_id}/cancel", handle_cancel_developer_operation
     )
     app.router.add_post(
         "/api/developer/operations/{operation_id}/proposal/apply",
-        handle_apply_developer_proposal,
+        handle_retired_development,
     )
     app.router.add_get("/api/developer/repos/{repo_name}/actions", handle_developer_command_actions)
     app.router.add_post(
-        "/api/developer/repos/{repo_name}/actions/run", handle_start_developer_command
+        "/api/developer/repos/{repo_name}/actions/run", handle_retired_development
     )
     app.router.add_get("/api/developer/command-runs", handle_list_developer_command_runs)
     app.router.add_get("/api/developer/command-runs/{run_id}", handle_get_developer_command_run)
@@ -251,8 +236,8 @@ def register_routes(app: web.Application) -> None:
         "/api/developer/command-runs/{run_id}/cancel", handle_cancel_developer_command
     )
     # Dev Chat endpoints
-    app.router.add_post("/api/developer/chat", handle_developer_chat)
-    app.router.add_get("/api/developer/chat/stream", handle_developer_chat_stream)
+    app.router.add_post("/api/developer/chat", handle_retired_development)
+    app.router.add_get("/api/developer/chat/stream", handle_retired_development)
 
     app.router.add_get("/api/skills", handle_list_skills)
     app.router.add_get("/api/tools", handle_list_tools)
@@ -270,6 +255,9 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/agents/stats", handle_agents_stats)
 
     # Ollama Model Management
+    from .local_assistant_api import register as register_local_assistant
+
+    register_local_assistant(app)
     app.router.add_get("/api/ollama/status", handle_ollama_status)
     app.router.add_get("/api/ollama/models/available", handle_ollama_models_available)
     app.router.add_get("/api/ollama/performance", handle_ollama_performance)

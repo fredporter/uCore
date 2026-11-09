@@ -3,16 +3,8 @@
     <p class="workflow-nav__location" aria-live="polite">{{ wf.locationLabel }}</p>
     <p v-if="notice" role="alert">{{ notice }}</p>
     <details open>
-      <summary>Task lists</summary>
-      <button class="usx-btn" :aria-current="!wf.activeList && !wf.activeBinderId ? 'page' : undefined" @click="wf.showList()">All tasks</button>
-      <button v-for="list in wf.taskLists" :key="list" class="usx-btn" :aria-current="wf.activeList === list ? 'page' : undefined"
-        @click="wf.showList(list)" @dragover.prevent @drop.prevent="drop($event, { board: list })">
-        <UIcon name="list" /> {{ list }} <small>{{ wf.tasks.filter(task => task.board === list && task.status !== 'completed').length }}</small>
-      </button>
-      <button class="usx-btn" @click="newList"><UIcon name="add" /> New list</button>
-    </details>
-    <details open>
       <summary>Binders</summary>
+      <button class="usx-btn" @click="wf.showList()">All tasks</button>
       <button v-for="binder in wf.binderChoices" :key="binder.id" class="usx-btn" :aria-current="wf.activeBinderId === binder.id ? 'page' : undefined"
         @click="binder.hasContent ? wf.showBinder(binder.id) : wf.showList('', binder.id)" @dragover.prevent @drop.prevent="drop($event, { binder: binder.id })">
         <UIcon name="book" /> {{ binder.title || binder.id }}
@@ -41,18 +33,13 @@ import UIcon from "../atoms/UIcon.vue";
 const wf = useWorkflowStore();
 const notice = ref("");
 onMounted(() => {
+  if (!wf.tasks.length) void wf.fetchTasks().catch(error => { notice.value = error.message; });
   if (!wf.binders.length) void wf.fetchBinders().catch(error => { notice.value = error.message; });
 });
 async function drop(event: DragEvent, destination: { board?: string; binder?: string }) {
   notice.value = "";
   try { await wf.dropTask(event, destination); }
   catch (error) { notice.value = error instanceof Error ? error.message : "Could not move task"; }
-}
-async function newList() {
-  const name = window.prompt("List name");
-  if (!name?.trim()) return;
-  try { await wf.createList(name.trim()); }
-  catch (error) { notice.value = error instanceof Error ? error.message : "Could not create list"; }
 }
 async function openDocument(part: "brief" | "draft") {
   notice.value = "";
@@ -66,11 +53,11 @@ async function openDocument(part: "brief" | "draft") {
 }
 </script>
 <style scoped>
-.workflow-nav { display: grid; gap: var(--usx-spacing-md); padding: var(--usx-spacing-sm); border-bottom: 1px solid var(--usx-color-border); }
+.workflow-nav { width: 100%; box-sizing: border-box; font-size: var(--usx-font-size-sm); overflow-y: auto; min-height: 0; display: grid; gap: var(--usx-spacing-md); padding: var(--usx-spacing-sm); border-bottom: 1px solid var(--usx-color-border); }
 .workflow-nav__location { overflow-wrap: anywhere; color: var(--usx-color-on-surface-muted); margin: 0; }
-.workflow-nav details, .workflow-nav section { display: grid; gap: var(--usx-spacing-xs); }
+.workflow-nav details, .workflow-nav section { width: 100%; min-width: 0; margin: 0; padding: 0; display: grid; gap: var(--usx-spacing-xs); }
 .workflow-nav summary { cursor: pointer; margin-bottom: var(--usx-spacing-xs); }
-.workflow-nav .usx-btn { display: flex; align-items: center; gap: var(--usx-spacing-xs); text-align: left; width: 100%; white-space: normal; }
+.workflow-nav .usx-btn { display: flex; align-items: center; gap: var(--usx-spacing-xs); text-align: left; width: 100%; white-space: normal; box-sizing: border-box; min-width: 0; margin: 0; justify-content: flex-start; border: 0; border-radius: var(--usx-radius-sm); min-height: 32px; padding: 6px 8px; }
 .workflow-nav [aria-current="page"] { background: var(--usx-color-surface-hover); color: var(--usx-color-primary); }
 .workflow-nav__heading { display: flex; align-items: center; gap: var(--usx-spacing-xs); }
 .workflow-nav small { margin-left: auto; }

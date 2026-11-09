@@ -38,4 +38,15 @@ describe("settings sync", () => {
     expect(JSON.parse(fetchMock.mock.calls.at(-1)?.[1]?.body).preferences.advancedView).toBe(false);
   });
 
+  it("shares and persists the reading font through profile preferences", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ok:true,json:async()=>({preferences:{readingFont:'sans'}})});
+    vi.stubGlobal('fetch',fetchMock);
+    const store=useSettingsStore();
+    await store.initialize();
+    expect(store.readingFont).toBe('sans');
+    store.setReadingFont('serif');
+    await store.save();
+    expect(JSON.parse(fetchMock.mock.calls.at(-1)?.[1]?.body).preferences.readingFont).toBe('serif');
+  });
+
 });

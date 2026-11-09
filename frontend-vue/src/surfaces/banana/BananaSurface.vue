@@ -1,7 +1,8 @@
 <template>
   <div class="surface banana-surface">
     <div class="surface__content">
-      <BananaStudio />
+      <h2>uCode2</h2>
+      <BananaStudio scope="vector" />
     </div>
   </div>
 </template>

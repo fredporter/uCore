@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import platform
 
 from aiohttp import web
 
@@ -49,6 +50,11 @@ async def state(request):
         google_configured = False
     return web.json_response(
         {
+            "providers": {
+                "apple": {"available": platform.system() == "Darwin", "mode": "local-apps"},
+                "google": {"available": True, "mode": "direct-cloud"},
+            },
+            "coordinator": "snackbar",
             "setup": setup_state,
             "user_profile": identity_store.get_variables(),
             "setup_story": story,
@@ -92,8 +98,48 @@ async def setup(request):
             "start_surface",
             "theme_mode",
             "font_size",
+            "location_seeded",
+            "location_timezone",
+            "country_code",
+            "email",
+            "default_model",
+            "starter_workflow",
         }
     }
+    if "grid_location" in answers:
+        from app.services.setup_location import seed_readiness
+
+        value = answers["grid_location"]
+        maps = seed_readiness()["maps"]
+        mapping = next(
+            (m for m in maps if isinstance(value, dict) and m["id"] == value.get("map")), None
+        )
+        if value is not None:
+            if not mapping or not all(
+                type(value.get(k)) is int and 0 <= value[k] < mapping[bound]
+                for k, bound in [("column", "cols"), ("row", "rows")]
+            ):
+                raise web.HTTPBadRequest(
+                    text="Choose a location linked to an installed GridCore map"
+                )
+            clean["grid_location"] = {
+                "map": mapping["id"],
+                "column": value["column"],
+                "row": value["row"],
+                "precision": "place-seed",
+                "source": "system-iana-tzdata",
+                "format": "ucode-layer-map-v1",
+            }
+        else:
+            clean["grid_location"] = None
+    from app.services.workflow_starters import STARTERS
+
+    if clean.get("starter_workflow") and clean["starter_workflow"] not in STARTERS:
+        raise web.HTTPBadRequest(text="Choose an available starter workflow")
+    if clean.get("email") and (
+        "@" not in clean["email"] or any(c.isspace() for c in clean["email"])
+    ):
+        raise web.HTTPBadRequest(text="Enter an email address or leave it blank")
     if clean.get("host_timezone"):
         try:
             ZoneInfo(clean["host_timezone"])
@@ -124,7 +170,7 @@ async def setup(request):
     identity_store = IdentityStoryStore(profile_id=owner)
     story_id = previous.get("story_id")
     if not story_id:
-        story_id = identity_store.create_story("user-setup-v2", {"display_name": name})["id"]
+        story_id = identity_store.create_story("user-setup-v4", {"display_name": name})["id"]
     identity_store.update_story(
         story_id,
         step=step,
@@ -132,7 +178,17 @@ async def setup(request):
         responses={"display_name": name, **clean},
     )
     if completed:
+        if clean.get("starter_workflow") and not previous.get("completed"):
+            from app.services.workflow_starters import install_starter
+
+            await asyncio.to_thread(install_starter, owner, clean["starter_workflow"])
         update_profile(owner, name=name)
+        if "email" in clean:
+            from app.services.settings_manager import get_settings_manager
+
+            get_settings_manager().update_scope(
+                "user", {"email": clean["email"], "displayName": name}, profile_id=owner
+            )
         identity_store.update_variables(
             {
                 **{k: v for k, v in clean.items() if k not in {"theme_mode", "font_size"}},
@@ -160,6 +216,12 @@ async def setup(request):
 async def configure(request):
     owner, body = profile(request), await request.json()
     try:
+        if (
+            body.get("provider") == "apple"
+            and platform.system() != "Darwin"
+            and (not body.get("id") or body.get("config", {}).get("enabled"))
+        ):
+            raise ValueError("Local Apple app connections are available only on macOS")
         return web.json_response(
             CollectionStore().configure(
                 owner, body.get("provider"), body.get("config", {}), body.get("id")
@@ -194,7 +256,11 @@ async def action(request):
             )
             return web.json_response({"records": result})
         if command == "sync":
-            return web.json_response(await engine.sync(owner, connection["id"], manual=True))
+            from app.services.snackbar_sync import sync_connection
+
+            return web.json_response(
+                await sync_connection(owner, connection["id"], manual=True, store=store)
+            )
         if command == "authorize" and connection["provider"] == "google":
             # Fixed loopback destination: never derive OAuth redirects from Host input.
             from app.core.settings import settings
@@ -309,6 +375,22 @@ async def records(request):
         raise web.HTTPBadRequest(text=str(exc)) from None
 
 
+async def setup_locations(request):
+    profile(request)
+    from app.services.setup_location import location_catalog, seed_readiness, timezone_suggestion
+
+    catalog, readiness = await asyncio.gather(
+        asyncio.to_thread(location_catalog), asyncio.to_thread(seed_readiness)
+    )
+    return web.json_response(
+        {
+            **catalog,
+            "suggestion": timezone_suggestion(request.query.get("timezone", ""), catalog),
+            "readiness": readiness,
+        }
+    )
+
+
 async def oauth_settings(request):
     """Installation-owned OAuth app configuration; never return credential values."""
     profile(request)
@@ -358,11 +440,15 @@ async def oauth_settings(request):
 
 
 def register(app):
+    from app.api.apps_api import register as register_apps
+
+    register_apps(app)
     app.router.add_get("/api/connections/oauth-settings", oauth_settings)
     app.router.add_post("/api/connections/oauth-settings", oauth_settings)
     app.router.add_get("/api/connections", state)
     app.router.add_post("/api/connections", configure)
     app.router.add_post("/api/connections/setup", setup)
+    app.router.add_get("/api/connections/setup/locations", setup_locations)
     app.router.add_get("/api/connections/records", records)
     app.router.add_post("/api/connections/records", records)
     app.router.add_get("/api/connections/google/callback", callback)

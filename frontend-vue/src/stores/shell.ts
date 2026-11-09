@@ -12,6 +12,11 @@ export type TabOrientation = 'horizontal' | 'vertical'
 
 export const useShellStore = defineStore('shell', () => {
   const sidebarOpen = ref(false)
+  const sidebarMode = ref<'vault' | 'workflow'>(localStorage.getItem('ucore-sidebar-mode') === 'workflow' ? 'workflow' : 'vault')
+  function setSidebarMode(mode: 'vault' | 'workflow') {
+    sidebarMode.value = mode
+    localStorage.setItem('ucore-sidebar-mode', mode)
+  }
   const developerSidebarOpen = ref(false)
   const developerSurfaceTab = ref<'code' | 'repository' | 'editor' | 'operations'>('code')
   const chatMode = ref<ChatMode>('closed')
@@ -74,6 +79,8 @@ export const useShellStore = defineStore('shell', () => {
 
   return {
     sidebarOpen,
+    sidebarMode,
+    setSidebarMode,
     developerSidebarOpen,
     developerSurfaceTab,
     chatMode,
