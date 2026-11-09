@@ -52,16 +52,6 @@
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
         :class="{
-          'global-toolbar__tab--active': route.path.includes('/browserui'),
-        }"
-        @click="navigate('/browserui')"
-        title="Research"
-      >
-        <UIcon name="visibility" class="global-toolbar__icon" />
-      </button>
-      <button
-        class="global-toolbar__tab global-toolbar__tab--nav"
-        :class="{
           'global-toolbar__tab--active': route.path.includes('/ucode'),
         }"
         @click="navigate('/ucode')"
@@ -69,18 +59,7 @@
       >
         <UIcon name="grid_on" class="global-toolbar__icon" />
       </button>
-      <button
-        class="global-toolbar__tab global-toolbar__tab--nav"
-        :class="{
-          'global-toolbar__tab--active':
-            route.path.includes('/recipes') || route.path.includes('/surfaces'),
-        }"
-        v-if="settings.advancedView"
-        @click="navigate('/recipes')"
-        title="Surfaces & Recipes"
-      >
-        <UIcon name="widgets" class="global-toolbar__icon" />
-      </button>
+
     </div>
 
     <!-- Middle: always empty — surface tab navigation is now handled by SurfaceTabNav below -->

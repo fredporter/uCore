@@ -270,6 +270,9 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/agents/stats", handle_agents_stats)
 
     # Ollama Model Management
+    from .local_assistant_api import register as register_local_assistant
+
+    register_local_assistant(app)
     app.router.add_get("/api/ollama/status", handle_ollama_status)
     app.router.add_get("/api/ollama/models/available", handle_ollama_models_available)
     app.router.add_get("/api/ollama/performance", handle_ollama_performance)

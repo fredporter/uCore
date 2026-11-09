@@ -5,8 +5,8 @@ Budget: one connection, 90s worker budget + one bounded request. Removal: remove
 this catalogue entry and workflow steps referencing connections_sync; records stay.
 """
 
-from app.services.connections.engine import SyncEngine
 from app.services.identity import get_full_identity
+from app.services.snackbar_sync import sync_connection
 from app.skills.base import BaseSkill, SkillMeta, SkillParam
 
 
@@ -30,5 +30,5 @@ class ConnectionsSync(BaseSkill):
         identity = get_full_identity()
         if not identity.get("authenticated") or not identity.get("active_profile_id"):
             return {"success": False, "error": "Choose a user profile"}
-        result = await SyncEngine().sync(identity["active_profile_id"], connection_id)
+        result = await sync_connection(identity["active_profile_id"], connection_id)
         return {"success": result["state"] == "connected", **result}

@@ -11,7 +11,7 @@
       :orientation="shell.tabOrientation"
       @toggle-orientation="shell.toggleTabOrientation()"
     />
-    <div class="documentation-content-inner">
+    <div class="documentation-content-inner" :class="{ 'documentation-content-inner--reader': activeTab === 'wiki' }">
       <!-- 1. Local Wikipedia Tab (Default Serene View) -->
       <div v-if="activeTab === 'wiki'" class="doc-wiki-wrapper">
         <LocalWikiReader />
@@ -1114,4 +1114,7 @@ watch([activeTab, () => settings.advancedView], ([tab, advanced]) => { if (tab =
 .reading-location { padding: 6px 12px; gap: 8px; }
 .reading-location > div { display: flex; align-items: center; gap: 4px; }
 .reading-location .usx-btn { display: inline-flex; align-items: center; justify-content: center; height: 32px; min-height: 32px; padding: 0 6px; margin: 0; border: 0; background: transparent; line-height: 1; }
+
+.documentation-content-inner.documentation-content-inner--reader { padding: 0; gap: 0; overflow: hidden; }
+.documentation-content-inner--reader .doc-wiki-wrapper { margin: 0; padding: 0; min-height: 0; height: 100%; }
 </style>

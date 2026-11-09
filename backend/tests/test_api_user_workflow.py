@@ -171,6 +171,37 @@ class UserWorkflowApiTest(AioHTTPTestCase):
             assert "import_plugin: builtin.text_passthrough" in text
             assert "hello from import" in text
 
+    async def test_import_existing_binder_round_trip_and_missing_identity(self):
+        from app.flow import binder_engine
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp) / "Vault"
+            with (
+                patch.object(mod, "VAULT_LAYERS", [{"id": "user", "path": str(root), "permissions": "read_write"}]),
+                patch.object(binder_engine, "VAULT_ROOT", root),
+                patch.object(binder_engine, "BINDERS_ROOT", root / "Binders"),
+            ):
+                binder_engine.create_binder("garden", "Garden", "Plan spring planting")
+                response = await self.client.post("/api/user/workflow/import-markdown", json={
+                    "content": "Plant beans in spring. Source: https://example.com/seeds",
+                    "title": "Seeds", "filename": "seeds.md", "binder": "garden",
+                    "require_existing_binder": True,
+                })
+                assert response.status == 200
+                imported = await response.json()
+                assert imported["workspace_path"] == "/Binders/garden/docs/seeds.md"
+                assert Path(imported["path"]).parent == (root / "Binders/garden/docs").resolve()
+                reloaded = binder_engine.get_binder("garden")
+                assert reloaded["documents"] == [{"filename": "seeds.md", "path": imported["workspace_path"]}]
+                assert reloaded["sources"] == []  # generated notes are not evidence
+                assert "https://example.com/seeds" in Path(imported["path"]).read_text()
+                assert not (root / "binders" / "active").exists()
+                response = await self.client.post("/api/user/workflow/import-markdown", json={
+                    "content": "Do not orphan this note", "binder": "missing",
+                    "require_existing_binder": True,
+                })
+                assert response.status == 404
+                assert not (root / "binders" / "active").exists()
+
     async def test_import_markdown_rejects_read_only_layer(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

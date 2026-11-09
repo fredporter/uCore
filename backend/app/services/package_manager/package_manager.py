@@ -127,36 +127,9 @@ class PackageManager:
                         message=f"Package {name} is already installed (version {existing.version})",
                     )
 
-            # TODO: Implement actual package installation
-            # This would involve:
-            # 1. Fetching package from registry
-            # 2. Downloading package files
-            # 3. Extracting to installed_path
-            # 4. Verifying checksum
-            # 5. Installing dependencies
-            # 6. Updating metadata
-
-            # For now, simulate installation
-            package_info = PackageInfo(
-                name=name,
-                version=version or "1.0.0",
-                status=PackageStatus.INSTALLED,
-                description=f"Package {name}",
-                installed_path=f"/path/to/{name}",
-                last_updated=datetime.utcnow(),
-            )
-
-            self.installed_packages[name] = package_info
-            self._save_installed_packages()
-
-            duration = (datetime.utcnow() - start_time).total_seconds()
-
             return PackageOperationResult(
-                success=True,
-                package_name=name,
-                message=f"Package {name} installed successfully",
-                package_info=package_info,
-                duration_seconds=duration,
+                success=False, package_name=name,
+                message="Application installation is unavailable until a verified artifact and real executor are configured. No package was installed.",
             )
 
         except Exception as e:
@@ -203,30 +176,9 @@ class PackageManager:
                     message=f"Package {name} has been removed",
                 )
 
-            # TODO: Implement actual package update
-            # This would involve:
-            # 1. Fetching latest version from registry
-            # 2. Downloading updated files
-            # 3. Backing up current version
-            # 4. Replacing files
-            # 5. Verifying checksum
-            # 6. Updating version metadata
-
-            # For now, simulate update
-            package.version = "2.0.0"
-            package.status = PackageStatus.UPDATED
-            package.last_updated = datetime.utcnow()
-
-            self._save_installed_packages()
-
-            duration = (datetime.utcnow() - start_time).total_seconds()
-
             return PackageOperationResult(
-                success=True,
-                package_name=name,
-                message=f"Package {name} updated to version {package.version}",
-                package_info=package,
-                duration_seconds=duration,
+                success=False, package_name=name,
+                message="Application update requires a verified release artifact. No package files or version metadata were changed.",
             )
 
         except Exception as e:

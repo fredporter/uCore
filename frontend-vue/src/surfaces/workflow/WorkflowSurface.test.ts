@@ -85,3 +85,21 @@ it('navigates between related tasks without clearing Editor state', async () => 
   expect(store.activeTab).toBe('editor');
   wrapper.unmount();
 });
+
+it('opens the shared shell browser from the empty Editor without loading another tree', async () => {
+  const store = useWorkflowStore();
+  store.selectedTask = null;
+  const wrapper = shallowMount(WorkflowSurface, { global: { stubs: { UButton: defineComponent({ name: 'UButton', template: '<button><slot /></button>' }) } } });
+  await flushPromises();
+  const { useShellStore } = await import('../../stores/shell');
+  const shell = useShellStore();
+  shell.setSidebarOpen(false);
+  const openBrowser = wrapper.findAllComponents({ name: 'UButton' }).find(button => button.text() === 'Open File Browser');
+  expect(openBrowser).toBeDefined();
+  openBrowser!.vm.$emit('click');
+  await flushPromises();
+  expect(shell.sidebarOpen).toBe(true);
+  expect(useWorkspaceStore().loadTree).not.toHaveBeenCalled();
+  expect(wrapper.findComponent({ name: 'WorkspaceTree' }).exists()).toBe(false);
+  wrapper.unmount();
+});

@@ -91,6 +91,7 @@ export const ucoreApi = {
       vault_layer?: string;
       relative_dir?: string;
       overwrite?: boolean;
+      require_existing_binder?: boolean;
       metadata?: Record<string, unknown>;
     }) =>
       request(`${UCORE_API}/api/user/workflow/import-markdown`, {

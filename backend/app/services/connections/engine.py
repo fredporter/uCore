@@ -519,4 +519,6 @@ async def sync_due_connections():
             ):
                 continue
         if connection["config"]["enabled"]:
-            await engine.sync(connection["profile"], connection["id"])
+            from app.services.snackbar_sync import sync_connection
+
+            await sync_connection(connection["profile"], connection["id"], store=engine.store)

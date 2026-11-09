@@ -13,7 +13,7 @@
       :orientation="shell.tabOrientation"
       @toggle-orientation="shell.toggleTabOrientation()"
     >
-      <template #actions>
+      <template #actions v-if="activeTab!=='tools'">
         <span class="ucode-actions-spacer"></span>
         <button
           class="surface-tab-nav__action-btn"
@@ -54,7 +54,8 @@
     <!-- ─── Layer tab: full layer surface (shared canvas) ─── -->
 
     <!-- ─── Pixel Editor tab: true sub-cell 24×24 colour bitmap editor ─── -->
-    <div v-if="activeTab === 'pixel'" class="pixel-editor-layout">
+    <div v-if="activeTab==='tools'" style="overflow:auto;padding:12px"><BananaStudio scope="grid" /></div>
+    <div v-else-if="activeTab === 'pixel'" class="pixel-editor-layout">
       <div class="pixel-editor-body">
         <div class="pixel-editor-main">
           <!-- Editing controls belong in the shared sidebar, never above the viewport. -->
@@ -327,7 +328,7 @@
             <span class="software-library-kicker">uCode Software Library</span>
             <h2>Learn from the past. Modify the future.</h2>
           </div>
-          <button class="sidebar-font-btn software-library-refresh" :disabled="softwareLibraryLoading" @click="loadSoftwareLibrary">{{ softwareLibraryLoading ? "Loading…" : "Refresh" }}</button>
+          <button class="usx-btn software-library-refresh" :disabled="softwareLibraryLoading" @click="loadSoftwareLibrary">{{ softwareLibraryLoading ? "Loading…" : "Refresh" }}</button>
         </header>
         <p v-if="softwareLibraryError" class="software-library-message software-library-message--error">{{ softwareLibraryError }}</p>
         <p v-else-if="softwareLibraryLoading" class="software-library-message">Loading curated capsules…</p>
@@ -402,10 +403,10 @@
           </template>
           <div class="sidebar-section software-library-launch">
             <div class="software-library-lifecycle">
-              <button class="sidebar-font-btn" :disabled="softwareLifecycleLoading" @click="inspectSelectedCapsule('probe')">Probe</button>
-              <button class="sidebar-font-btn" :disabled="softwareLifecycleLoading || !selectedSoftwareTitle.evidence" @click="inspectSelectedCapsule('verify')">Verify</button>
+              <button class="usx-btn" :disabled="softwareLifecycleLoading" @click="inspectSelectedCapsule('probe')">Probe</button>
+              <button class="usx-btn" :disabled="softwareLifecycleLoading || !selectedSoftwareTitle.evidence" @click="inspectSelectedCapsule('verify')">Verify</button>
             </div>
-            <button class="sidebar-font-btn active" :disabled="!selectedSoftwareTitle.launchable || softwareLaunchLoading" @click="launchSelectedSoftware">{{ softwareLaunchLoading ? "Preparing…" : "Launch in Terminal" }}</button>
+            <button class="usx-btn usx-btn--primary" :disabled="!selectedSoftwareTitle.launchable || softwareLaunchLoading" @click="launchSelectedSoftware">{{ softwareLaunchLoading ? "Preparing…" : "Launch in Terminal" }}</button>
             <p v-if="softwareLifecycleMessage" class="sidebar-help" aria-live="polite">{{ softwareLifecycleMessage }}</p>
             <p v-if="softwareLaunchMessage" class="sidebar-help" aria-live="polite">{{ softwareLaunchMessage }}</p>
             <p v-else-if="!selectedSoftwareTitle.launchable" class="sidebar-help">{{ selectedSoftwareTitle.mediaPolicy === "user-supplied" ? "Original media is required and is not distributed by uCode." : "Research capsule—not yet verified for launch." }}</p>
@@ -842,6 +843,7 @@
 </template>
 
 <script setup lang="ts">
+import BananaStudio from "../browserui/panels/BananaStudio.vue";
 /**
  * @component UCodeSurface
  * @description uCode bridge surface — unified hub with Pixel Editor, Grid Builder, and Layer Composer.
@@ -996,6 +998,7 @@ const gridcorePresetClass = computed(
 
 /* ─── Tab Definitions ─────────────────────────────────────────────── */
 const UCODE_TABS: TabDef[] = [
+  { id: "tools", label: "Tools", icon: "grid_on" },
   { id: "terminal", label: "Terminal", icon: "terminal" },
   { id: "teletext", label: "Teletext", icon: "tv" },
   { id: "pixel", label: "Pixel", icon: "grid_on" },
@@ -4202,7 +4205,7 @@ function loadTerminalWelcome() {
   terminalBuffer = createBuffer(TERMINAL_COLS, TERMINAL_ROWS);
   terminalRender();
   terminalPrintCentered("**** UCODE GRIDCORE TERMINAL ****", 4, 0);
-  terminalPrintCentered("SHELL + BBC BASIC · TYPE BASIC", 7, 0);
+  terminalPrintCentered("UCODE · BBC BASIC", 7, 0);
   terminalPrintLine("READY.", 4, 0);
   terminalPrintLine("", 7, 0); // line gap before the prompt
   terminalCursorY = 4;
@@ -4315,10 +4318,11 @@ function connectTerminalRuntime(capsuleId?: string) {
       terminalPrintLine(`Runtime message error: ${String(err)}`, 1, 0);
     }
   });
-  socket.addEventListener("close", () => {
+  socket.addEventListener("close", (event) => {
     if (terminalSocket !== socket) return;
     terminalRuntimeState.value = "disconnected";
     terminalSocket = null;
+    if (event.code === 1008) { terminalRuntimeState.value = "unavailable"; terminalPendingInput = ""; return; }
     if (activeTab.value === "terminal") {
       terminalPrintLine("[runtime disconnected; reconnecting…]", 3, 0);
       scheduleTerminalReconnect();
@@ -6323,4 +6327,20 @@ function clearGrid() {
     text-align: left;
   }
 }
+/* Library is a desktop UI, rather than a terminal canvas. */
+.software-library-layout { font-family: var(--usx-font-family, system-ui, sans-serif); font-size: var(--usx-font-size-sm); background: var(--usx-color-background); }
+.software-library-main { padding: var(--usx-spacing-md); }
+.software-library-header { align-items: center; margin-bottom: var(--usx-spacing-md); }
+.software-library-header h2 { font-size: var(--usx-font-size-xl); line-height: 1.3; }
+.software-library-kicker { font: inherit; text-transform: none; letter-spacing: normal; }
+.software-library-refresh { width: auto; min-height: 32px; padding: 4px 10px; }
+.software-library-filters { grid-template-columns: minmax(10rem, 1fr) minmax(8rem, 12rem) auto; align-items: center; }
+.software-library-filters label { flex-direction: row; align-items: center; font: inherit; text-transform: none; margin: 0; }
+.software-library-filters input, .software-library-filters select { min-width: 0; width: 100%; height: 32px; min-height: 32px; padding: 4px 8px; font: inherit; border-radius: var(--usx-radius-sm); box-shadow: none; }
+.software-library-result-count { font: inherit; padding: 0; }
+.software-title-card { font: inherit; justify-content: flex-start; min-height: 0; padding: var(--usx-spacing-md); }
+.software-title-card strong { font-size: var(--usx-font-size-lg); }
+.software-title-card__status { font: inherit; font-size: var(--usx-font-size-xs); text-transform: capitalize; border-radius: var(--usx-radius-sm); }
+.software-library-sidebar { font: inherit; }
+@media (max-width: 40rem) { .software-library-filters { grid-template-columns: 1fr; } .software-library-header { flex-wrap: wrap; } }
 </style>

@@ -33,11 +33,11 @@
               type="button"
               class="usx-btn wf-segmented-btn"
               :class="{ 'wf-segmented-btn--active': viewMode === 'list' }"
-              title="List view"
+              title="Task rows"
               @click="viewMode = 'list'"
             >
               <UIcon name="table_rows" />
-              <span>List</span>
+              <span>Rows</span>
             </button>
             <button
               type="button"
@@ -83,18 +83,15 @@
       </div>
 
       <div class="task-scope" role="toolbar" aria-label="Task filters">
-        <label><span>List</span><span class="task-scope__select"><select v-model="wf.activeList" aria-label="Task list"><option value="">All lists</option><option v-for="list in wf.taskLists" :key="list" :value="list">{{ list }}</option></select><UIcon name="expand_more" /></span></label>
-        <label><span>Binder</span><span class="task-scope__select"><select v-model="wf.activeBinderId" aria-label="Task binder"><option value="">All binders</option><option v-for="binder in wf.binderChoices" :key="binder.id" :value="binder.id">{{ binder.title || binder.id }}</option></select><UIcon name="expand_more" /></span></label>
+
+        <label><span>Binder</span><span class="task-scope__select"><select :value="wf.activeBinderId" @change="wf.showList('', ($event.target as HTMLSelectElement).value)" aria-label="Task binder"><option value="">All binders</option><option v-for="binder in wf.binderChoices" :key="binder.id" :value="binder.id">{{ binder.title || binder.id }}</option></select><UIcon name="expand_more" /></span></label>
         <label><span>Show</span><span class="task-scope__select"><select v-model="completionFilter" aria-label="Task completion"><option value="active">Open</option><option value="done">Done</option><option value="all">All</option></select><UIcon name="expand_more" /></span></label>
-        <button class="usx-btn" @click="newList"><UIcon name="add" /> New list</button>
+        <button class="usx-btn" @click="newList"><UIcon name="add" /> New Binder</button>
         <button class="usx-btn" @click="addGroup"><UIcon name="create_new_folder" /> New group</button>
         <span>{{ visibleTasks.length }} tasks · {{ wf.scopedTasks.filter(task => task.status === 'completed').length }} done</span>
       </div>
-      <div class="task-destinations" aria-label="Drop onto a list to move; hold Alt to copy">
-        <span>Move to list:</span>
-        <button v-for="list in wf.taskLists" :key="list" class="usx-btn" @click="wf.activeList = list" @dragover.prevent @drop.prevent="dropInto($event, { board: list })">{{ list }}</button>
-        <small>Hold Option/Alt while dropping to copy.</small>
-      </div>
+      <div v-if="wf.binderChoices.length" class="task-destinations" aria-label="Move or copy to a Binder"><span>Move to Binder:</span><button v-for="binder in wf.binderChoices" :key="binder.id" class="usx-btn" @click="wf.showList('',binder.id)" @dragover.prevent @drop.prevent="dropInto($event, { binder: binder.id })">{{ binder.title || binder.id }}</button><small>Hold Option/Alt while dropping to copy.</small></div>
+
       <div v-if="viewMode === 'list'" class="task-list">
         <section v-for="group in taskGroups" :key="group.name" class="task-group" @dragover.prevent @drop.prevent="dropInto($event, { group: group.name === 'Ungrouped' ? '' : group.name })">
           <h3>{{ group.name }} <small>{{ group.tasks.length }}</small></h3>
@@ -102,7 +99,7 @@
           <div v-for="task in group.tasks" :key="task.id" class="task-list__row" :class="{ 'task-list__row--selected': wf.selectedTask?.id === task.id }"
             draggable="true" @dragstart="wf.startTaskDrag($event, task)">
             <input type="checkbox" :checked="task.status === 'completed'" :aria-label="`Complete ${task.title}`" @change="changeTask(task, { status: task.status === 'completed' ? 'todo' : 'completed' })" />
-            <button class="task-list__main usx-btn" @click="openTaskEditor(task)"><span class="task-list__copy"><strong>{{ task.title }}</strong><small>{{ task.board }} · {{ formatStatus(task.status) }}</small></span></button>
+            <button class="task-list__main usx-btn" @click="openTaskEditor(task)"><span class="task-list__copy"><strong>{{ task.title }}</strong><small>{{ wf.binders.find(binder => binder.id === task.binder)?.title || task.binder || "No Binder" }} · {{ formatStatus(task.status) }}</small></span></button>
             <select :value="task.status" :aria-label="`Status for ${task.title}`" @change="changeTask(task, { status: ($event.target as HTMLSelectElement).value })"><option v-if="!statuses.includes(task.status)" :value="task.status">{{ formatStatus(task.status) }}</option><option v-for="status in statuses" :key="status" :value="status">{{ formatStatus(status) }}</option></select>
             <select :value="task.binder || ''" :aria-label="`Binder for ${task.title}`" @change="changeTask(task, { binder: ($event.target as HTMLSelectElement).value })"><option value="">No binder</option><option v-for="binder in wf.binderChoices" :key="binder.id" :value="binder.id">{{ binder.title || binder.id }}</option></select>
             <button class="usx-btn" :aria-label="`Group ${task.title}`" @click="groupTask(task)"><UIcon name="workspaces" /></button>
@@ -161,7 +158,7 @@
                 <span class="task-pill" :class="`task-pill--${task.status}`">
                   {{ formatStatus(task.status) }}
                 </span>
-                <span class="task-pill task-pill--board">{{ task.board }}</span>
+                <span v-if="task.binder" class="task-pill task-pill--board">{{ wf.binders.find(binder => binder.id === task.binder)?.title || task.binder }}</span>
                 <span
                   v-for="tag in task.tags"
                   :key="tag"
@@ -502,14 +499,11 @@ const extraGroups = ref<string[]>([]);
 const visibleTasks = computed(() => wf.orderedContextTasks.filter(task => completionFilter.value === "all" || (completionFilter.value === "done" ? task.status === "completed" : !["completed", "superseded", "cancelled", "archived"].includes(task.status))));
 const visibleByStatus = computed(() => Object.fromEntries(statuses.map(status => [status, visibleTasks.value.filter(task => task.status === status)])));
 const taskGroups = computed(() => [...new Set([...visibleTasks.value.map(task => task.group || "Ungrouped"), ...extraGroups.value])].map(name => ({ name, tasks: visibleTasks.value.filter(task => (task.group || "Ungrouped") === name) })));
-async function newList() {
-  const name = window.prompt("List name");
-  if (!name?.trim()) return;
-  try { await wf.createList(name.trim()); }
-  catch (error) { dragError.value = error instanceof Error ? error.message : "Could not create list"; }
-}
+async function newList() { wf.binderCreateRequested = true; wf.setTab('mission-control'); }
+
 function addGroup() { const name = window.prompt("Group name"); if (name?.trim()) extraGroups.value.push(name.trim()); }
 async function newTask() {
+  if (!wf.activeBinderId) { wf.binderCreateRequested = true; wf.setTab('mission-control'); return; }
   const title = window.prompt("Task title");
   if (!title?.trim()) return;
   try { await wf.createTask(title.trim()); }
@@ -525,18 +519,18 @@ async function groupTask(task: WorkflowTask) {
   if (group !== null) await changeTask(task, { group: group.trim() });
 }
 async function moveTask(task: WorkflowTask) {
-  const board = window.prompt("Move to list", task.board);
-  if (board?.trim()) await changeTask(task, { board: board.trim() });
+  const board = window.prompt("Move to Binder ID", task.binder || "");
+  if (board?.trim()) await changeTask(task, { binder: board.trim() });
 }
 async function copyTask(task: WorkflowTask) {
-  const board = window.prompt("Copy to list", task.board);
+  const board = window.prompt("Copy to Binder ID", task.binder || "");
   if (!board?.trim()) return;
-  try { await wf.duplicateTask(task.id, { board: board.trim() }); }
+  try { await wf.duplicateTask(task.id, { binder: board.trim() }); }
   catch (error) { dragError.value = error instanceof Error ? error.message : "Could not copy task"; }
 }
-async function dropInto(event: DragEvent, destination: { board?: string; group?: string; status?: string }) {
+async function dropInto(event: DragEvent, destination: { board?: string; binder?: string; group?: string; status?: string }) {
   dragError.value = null;
-  try { await wf.dropTask(event, { ...(wf.activeList ? { board: wf.activeList } : {}), ...(wf.activeBinderId ? { binder: wf.activeBinderId } : {}), ...destination }); }
+  try { await wf.dropTask(event, { ...(wf.activeBinderId ? { binder: wf.activeBinderId } : {}), ...destination }); }
   catch (error) { dragError.value = error instanceof Error ? error.message : "Could not move task"; }
 }
 

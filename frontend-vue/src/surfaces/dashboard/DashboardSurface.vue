@@ -5,7 +5,7 @@
       'surface--tab-nav-vertical': shell.tabOrientation === 'vertical',
     }"
   >
-    <aside v-if="connectionSetupNeeded" class="dashboard-setup"><span>Set up your profile and choose Apple or Google connections.</span><button class="usx-btn" @click="router.push('/setup')">Set up workspace</button></aside>
+    <aside v-if="connectionSetupNeeded" class="dashboard-setup"><span>Set up your local profile and workspace.</span><button class="usx-btn" @click="router.push('/setup')">Set up workspace</button></aside>
     <!-- Hub navigation: quick-launch links to key surfaces -->
     <SurfaceTabNav
       v-model="activeHubTab"
@@ -17,93 +17,6 @@
       <div class="dashboard-surface">
         <h1 class="dashboard-surface__title">Dashboard</h1>
         <p class="dashboard-surface__subtitle">Select a surface to begin</p>
-
-        <!-- Sync Status Card -->
-        <div class="dashboard-sync-card surface__panel">
-          <div class="dashboard-sync-card__header">
-            <div class="dashboard-sync-card__title">
-              <span
-                class="dashboard-sync-card__dot"
-                :class="{ 'dashboard-sync-card__dot--active': syncState.ok }"
-              />
-              <h3>Sync</h3>
-            </div>
-            <div class="dashboard-sync-card__actions">
-              <span v-if="syncState.timestamp" class="dashboard-sync-card__time font-mono">
-                {{ formatSyncTime(syncState.timestamp) }}
-              </span>
-              <button
-                type="button"
-                class="usx-btn usx-btn--sm usx-btn--secondary"
-                :disabled="syncing"
-                @click="fetchSyncStatus"
-              >
-                <UIcon :name="syncing ? 'sync' : 'refresh'" :class="{ 'dashboard-spin': syncing }" />
-                <span>{{ syncing ? "Checking..." : "Check Status" }}</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="dashboard-sync-card__grid">
-            <div class="dashboard-sync-item"><div class="dashboard-sync-item__icon"><UIcon name="cloud" /></div><div class="dashboard-sync-item__info"><span class="dashboard-sync-item__label">Google</span><span class="dashboard-sync-item__detail">Tasks · Contacts · Drive notes · Calendar · Gmail</span></div><UBadge :type="googleConnected ? 'success' : 'neutral'" size="sm">{{ googleConnected ? 'Connected' : 'Set up connection' }}</UBadge></div>
-            <!-- Apple PIM -->
-            <div class="dashboard-sync-item">
-              <div class="dashboard-sync-item__icon">
-                <UIcon name="phone_iphone" />
-              </div>
-              <div class="dashboard-sync-item__info">
-                <span class="dashboard-sync-item__label">Apple apps</span>
-                <span class="dashboard-sync-item__detail">
-                  Reminders · Contacts · Notes · Calendar · Mail
-                </span>
-              </div>
-              <UBadge
-                :type="appleConnected ? 'success' : 'neutral'"
-                size="sm"
-              >
-                {{ appleConnected ? "Connected" : "Set up connection" }}
-              </UBadge>
-            </div>
-
-            <!-- BitChat Mesh -->
-            <div class="dashboard-sync-item">
-              <div class="dashboard-sync-item__icon">
-                <UIcon name="hub" />
-              </div>
-              <div class="dashboard-sync-item__info">
-                <span class="dashboard-sync-item__label">Nearby devices</span>
-                <span class="dashboard-sync-item__detail font-mono">
-                  {{ syncState.bitchat_mesh?.local_peer_id || "LAN Mesh" }} · {{ syncState.bitchat_mesh?.online_peers || 0 }} peers
-                </span>
-              </div>
-              <UBadge
-                :type="syncState.bitchat_mesh?.active ? 'success' : 'neutral'"
-                size="sm"
-              >
-                {{ syncState.bitchat_mesh?.active ? "Active" : "Offline" }}
-              </UBadge>
-            </div>
-
-            <!-- Google Vault -->
-            <div class="dashboard-sync-item">
-              <div class="dashboard-sync-item__icon">
-                <UIcon name="folder_shared" />
-              </div>
-              <div class="dashboard-sync-item__info">
-                <span class="dashboard-sync-item__label">Files</span>
-                <span class="dashboard-sync-item__detail font-mono">
-                  {{ syncState.google_drive?.vault_path || "~/Vault" }}
-                </span>
-              </div>
-              <UBadge
-                :type="syncState.google_drive?.vault_exists ? 'success' : 'neutral'"
-                size="sm"
-              >
-                {{ syncState.google_drive?.vault_exists ? "Available" : "Unavailable" }}
-              </UBadge>
-            </div>
-          </div>
-        </div>
 
         <div class="dashboard-surface__grid-inner">
           <SurfaceCard
@@ -161,7 +74,8 @@ const extStore = useExtensionStore();
 const HUB_TABS = [
   { id: "dashboard", label: "Dashboard", icon: "home" },
   { id: "workflow", label: "Workflow", icon: "schedule" },
-  { id: "snackbar", label: "Server", icon: "dns" },
+  { id: "server", label: "Server", icon: "dns" },
+  { id: "snackbar", label: "Snackbar", icon: "storefront" },
   { id: "system", label: "System", icon: "settings" },
 ];
 
@@ -174,6 +88,7 @@ watch(activeHubTab, (tabId) => {
   const routes: Record<string, string> = {
     workflow: "/workflow?tab=mission-control",
     snackbar: "/snackbar",
+    server: "/server",
     system: "/system",
   };
   const path = routes[tabId];
@@ -205,8 +120,9 @@ const SURFACE_CARD_DATA: Record<
     route: "/ucode",
     color: "var(--usx-color-success)",
   },
+  server: { title: "Server", description: "Local infrastructure and storage", icon: "dns", route: "/server", color: "var(--usx-color-info)" },
   snackbar: {
-    title: "Server",
+    title: "Snackbar",
     description: "Services and automation",
     icon: "dns",
     route: "/snackbar",
@@ -227,10 +143,10 @@ const SURFACE_CARD_DATA: Record<
     color: "var(--usx-color-accent)",
   },
   browserui: {
-    title: "Browser",
+    title: "Research",
     description: "Research and bookmarks",
     icon: "language",
-    route: "/browserui",
+    route: "/workflow?tab=research",
     color: "var(--usx-color-info)",
   },
   groovebox: {
@@ -262,10 +178,10 @@ const SURFACE_CARD_DATA: Record<
     color: "var(--usx-color-primary)",
   },
   dreamscape: {
-    title: "Dreamscape",
+    title: "Daily rhythm",
     description: "Daily planning and reflection",
     icon: "psychology",
-    route: "/dreamscape",
+    route: "/workflow?tab=mission-control",
     color: "var(--usx-color-accent)",
   },
   google: {
@@ -340,9 +256,7 @@ const visibleSurfaces = computed(() => {
   if (!seen.has("developer")) {
     cards.push({ id: "developer", ...SURFACE_CARD_DATA.developer });
   }
-  if (!seen.has("dreamscape")) {
-    cards.push({ id: "dreamscape", ...SURFACE_CARD_DATA.dreamscape });
-  }
+
   if (!seen.has("google")) {
     cards.push({ id: "google", ...SURFACE_CARD_DATA.google });
   }
@@ -421,51 +335,16 @@ const syncState = ref<{
   bitchat_mesh: null,
 });
 
-const syncing = ref(false);
-
-async function fetchSyncStatus() {
-  syncing.value = true;
-  try {
-    const connectionResponse = await fetch('/api/connections');
-    if (connectionResponse.ok) connectionStates.value=(await connectionResponse.json()).connections;
-    const res = await ucoreApi.host.syncStatus();
-    if (res) {
-      syncState.value = res;
-    }
-  } catch (err) {
-    console.warn("Failed to fetch host sync status:", err);
-  } finally {
-    syncing.value = false;
-  }
-}
-
-function formatSyncTime(ts: string | null | undefined): string {
-  if (!ts) return "";
-  try {
-    const d = new Date(ts);
-    return d.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  } catch {
-    return "";
-  }
-}
-
-const connectionStates = ref<any[]>([]);
-const appleConnected = computed(() => connectionStates.value.some(c => c.provider==='apple' && c.config.enabled && c.health.state==='connected'));
-const googleConnected = computed(() => connectionStates.value.some(c => c.provider==='google' && c.config.enabled && c.health.state==='connected'));
 const connectionSetupNeeded = ref(false);
 onMounted(async () => {
   try {
     const response = await fetch('/api/connections');
-    if (response.ok) { const data=await response.json(); connectionSetupNeeded.value=!data.setup.completed; connectionStates.value=data.connections; }
+    if (response.ok) { const data=await response.json(); connectionSetupNeeded.value=!data.setup.completed; }
   } catch { /* Existing local workspace remains usable offline. */ }
 });
 onMounted(() => {
   void extStore.fetchCatalogue();
-  void fetchSyncStatus();
+
 });
 
 function navigate(route: string) {

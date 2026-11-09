@@ -50,6 +50,13 @@
         <p v-if="!relatedTasks.length">Drop tasks here to link them to this binder.</p>
         <button v-for="task in relatedTasks" :key="task.id" class="usx-btn" @click="wf.openTask(task)" draggable="true" @dragstart="wf.startTaskDrag($event, task)"><UIcon :name="task.status === 'completed' ? 'check_circle' : 'radio_button_unchecked'" /> {{ task.title }} · {{ task.status }}</button>
       </section>
+      <section v-if="activeBinder && !loading" class="binder-related" aria-label="Binder documents">
+        <h3>Documents</h3>
+        <p v-if="!activeBinder.documents?.length">No saved documents yet.</p>
+        <button v-for="document in activeBinder.documents || []" :key="document.path" class="usx-btn" @click="openSavedDocument(document)">
+          <UIcon name="description" /> {{ document.filename }}
+        </button>
+      </section>
       <!-- Binder Active Workspace -->
       <div v-if="activeBinder && !loading" class="binder-workspace">
         <!-- Stage Navigation Bar -->
@@ -666,21 +673,18 @@
       <div v-if="showCreateModal" class="modal-backdrop" @click.self="showCreateModal = false">
         <div class="modal-card">
           <header class="modal-header">
-            <h3>Create Durable Project Binder</h3>
+            <h3>New Binder</h3>
             <button type="button" @click="showCreateModal = false"><UIcon name="close" /></button>
           </header>
           <div class="modal-body">
-            <label>Binder ID (folder name)
-              <input v-model="newBinder.id" type="text" placeholder="project-spec" />
+            <label>Name
+              <input v-model="newBinder.title" type="text" placeholder="My learning project" required />
             </label>
-            <label>Title
-              <input v-model="newBinder.title" type="text" placeholder="Project Specification" />
-            </label>
-            <label>Outcome Goal
+            <label>What would you like to achieve?
               <textarea v-model="newBinder.outcome" rows="3" placeholder="Concrete outcome to achieve..." />
             </label>
             <label>Audience
-              <input v-model="newBinder.audience" type="text" placeholder="Engineers, Stakeholders" />
+              <input v-model="newBinder.audience" type="text" placeholder="Me, my family or my community" />
             </label>
           </div>
           <footer class="modal-footer">
@@ -822,13 +826,17 @@ async function addBinderTask() {
   try { await wf.createTask(title.trim(), "inbox", selectedBinderId.value); }
   catch (error) { errorMessage.value = error instanceof Error ? error.message : "Could not create task"; }
 }
+async function openSavedDocument(document: { path: string; filename: string }) {
+  try { await wf.openVaultDocument(document.path, document.filename, selectedBinderId.value); }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : "Could not open document"; }
+}
 function openDraftInEditor() {
   if (!activeBinder.value) return;
   wf.openBinderDocument(selectedBinderId.value, `${activeBinder.value.metadata.title} · Draft`, editableDraft.value, loadedBaseHash.value);
 }
-async function fetchBinders() {
+async function fetchBinders(force = false) {
   try {
-    await wf.fetchBinders();
+    await wf.fetchBinders(force);
     if (!selectedBinderId.value && binders.value.length) selectedBinderId.value = binders.value[0].id;
     else if (selectedBinderId.value) await loadActiveBinder();
   } catch (error) { errorMessage.value = error instanceof Error ? error.message : "Could not load binders"; }
@@ -1019,7 +1027,8 @@ async function publishEdition(edNum: number) {
 }
 
 async function createBinder() {
-  if (!newBinder.value.id) return;
+  if (!newBinder.value.title.trim()) return;
+  newBinder.value.id = newBinder.value.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `binder-${Date.now()}`;
   creating.value = true;
   errorMessage.value = "";
   try {
@@ -1035,7 +1044,7 @@ async function createBinder() {
     const data = await res.json();
     showCreateModal.value = false;
     newBinder.value = { id: "", title: "", outcome: "", audience: "General" };
-    await fetchBinders();
+    await fetchBinders(true);
     selectedBinderId.value = data.binder.metadata.id;
     await loadActiveBinder();
   } catch (e: any) {

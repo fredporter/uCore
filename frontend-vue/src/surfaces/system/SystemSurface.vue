@@ -18,11 +18,12 @@
           <label class="settings-row"><span>Show Advanced</span><input type="checkbox" :checked="preferences.advancedView" @change="preferences.setAdvancedView(($event.target as HTMLInputElement).checked)" /></label>
           <p class="system-muted-copy">Show engineering, diagnostics, configuration and administration tools.</p>
           <label class="settings-row"><span>Appearance</span><select :value="preferences.themeMode" @change="preferences.setThemeMode(($event.target as HTMLSelectElement).value as 'light' | 'dark' | 'auto')"><option value="dark">Dark</option><option value="light">Light</option><option value="auto">Automatic</option></select></label>
+          <label class="settings-row"><span>Reading font</span><select :value="preferences.readingFont" @change="preferences.setReadingFont(($event.target as HTMLSelectElement).value as 'serif' | 'sans')"><option value="serif">Serif</option><option value="sans">Sans</option></select></label>
           <label class="settings-row"><span>Text size</span><input type="number" min="12" max="24" :value="preferences.fontSize" @change="preferences.setFontSize(Number(($event.target as HTMLInputElement).value))" /></label>
         </div>
         <p v-if="preferences.syncError" role="status">{{ preferences.syncError }} · Settings are kept on this device.</p>
       </section>
-      <ConnectionsPanel v-if="currentTab === 'connections'" />
+      <AppsManagerPanel v-if="currentTab === 'apps'" />
       <!-- Pages Browser -->
       <div v-if="currentTab === 'pages'" class="system-panel system-tab-shell">
         <h3 class="surface__panel-title">System Pages</h3>
@@ -241,40 +242,6 @@
             </table>
           </div>
 
-          <h4 class="system-section-title">Agents (Config)</h4>
-          <p class="system-muted-copy">
-            Agent definitions are configuration (provider + model +
-            capabilities).
-          </p>
-          <div v-if="agentConfigs.length === 0" class="system-muted-copy">
-            No agent configs.
-          </div>
-          <div v-else class="system-table-wrap">
-            <table class="system-table">
-              <thead>
-                <tr>
-                  <th>Agent</th>
-                  <th>Provider</th>
-                  <th>Model</th>
-                  <th>Capabilities</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="agent in agentConfigs" :key="agent.id">
-                  <td>
-                    <code class="system-var-key">{{ agent.name }}</code>
-                  </td>
-                  <td class="system-var-value">{{ agent.provider }}</td>
-                  <td class="system-var-value">{{ agent.model || "—" }}</td>
-                  <td>
-                    <span class="system-var-value">
-                      {{ (agent.capabilities || []).join(", ") }}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
         </div>
       </div>
 
@@ -395,13 +362,15 @@
               <option>sunset</option>
             </select>
           </div>
-        </div>
+        <p v-if="profileMessage" role="status">{{ profileMessage }}</p>
         <button
-          class="system-action-btn system-save-settings-btn"
+          class="usx-btn system-save-settings-btn"
           @click="saveGlobalSettings"
         >
           Save Global Settings
         </button>
+      </div>
+
       </div>
 
       <!-- User Settings & Identity -->
@@ -411,29 +380,17 @@
       >
         <h3 class="surface__panel-title">Profiles</h3>
         <p class="system-muted-copy">
-          Local device identity, multi-profile isolation, and persistent user preferences.
+          Your local name, role and contact details.
         </p>
         <div class="system-settings-form">
-          <div class="settings-row">
-            <label>Active Profile</label>
-            <select
-              :value="identityStore.activeProfileId || 'default'"
-              @change="(e) => identityStore.switchProfile((e.target as HTMLSelectElement).value)"
-            >
-              <option
-                v-for="p in identityStore.profiles"
-                :key="p.id"
-                :value="p.id"
-              >
-                {{ p.name }} ({{ p.role }})
-              </option>
-            </select>
-          </div>
+          <div class="settings-row"><label for="profile-name">Name</label><input id="profile-name" type="text" v-model="userSettings.displayName" /></div>
+          <div class="settings-row"><label>Role</label><output>{{ identityStore.activeProfile?.role || 'user' }}</output></div>
+          <div v-if="identityStore.profiles.length>1" class="settings-row"><label for="profile-switch">Switch profile</label><select id="profile-switch" :value="identityStore.activeProfileId" @change="identityStore.switchProfile(($event.target as HTMLSelectElement).value)"><option v-for="profile in identityStore.profiles" :key="profile.id" :value="profile.id">{{ profile.name }}</option></select></div>
           <div class="settings-row">
             <label>Authentication</label>
-            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <div class="profile-auth-row">
               <span :style="{ color: identityStore.authenticated ? 'var(--usx-color-success, #22c55e)' : 'var(--usx-color-danger, #ef4444)', fontWeight: 600 }">
-                {{ identityStore.authenticated ? `Authenticated (${identityStore.activeProfileId})` : 'Unauthenticated (Logged Out)' }}
+                {{ identityStore.authenticated ? 'Signed in' : 'Signed out' }}
               </span>
               <button
                 v-if="identityStore.authenticated"
@@ -456,10 +413,6 @@
             </div>
           </div>
           <div class="settings-row">
-            <label>Display Name</label
-            ><input type="text" v-model="userSettings.displayName" />
-          </div>
-          <div class="settings-row">
             <label>Email</label
             ><input
               type="email"
@@ -467,17 +420,9 @@
               placeholder="user@example.com"
             />
           </div>
-          <div class="settings-row">
-            <label>Default Model</label
-            ><select v-model="userSettings.defaultModel">
-              <option>Llama 3.2</option>
-              <option>GPT-4o</option>
-              <option>DeepSeek V3</option>
-            </select>
-          </div>
         </div>
         <button
-          class="system-action-btn system-save-settings-btn"
+          class="usx-btn system-save-settings-btn"
           @click="saveUserSettings"
         >
           Save User Settings
@@ -492,7 +437,7 @@ import type { TabDef } from "../../skills/molecules/SurfaceTabNav.vue";
 
 export const SYSTEM_TABS: TabDef[] = [
   { id: "preferences", label: "Settings", icon: "tune" },
-  { id: "connections", label: "Connections", icon: "sync_alt" },
+  { id: "apps", label: "Apps", icon: "apps" },
   { id: "pages", label: "Pages", icon: "dashboard" },
   { id: "configuration", label: "Configuration", icon: "tune" },
   { id: "identity", label: "Profiles", icon: "person" },
@@ -512,7 +457,7 @@ import {
   type CapabilityReadinessSnapshot,
   type CapabilityPreflightResult,
 } from "../../api/preflight";
-import ConnectionsPanel from "./ConnectionsPanel.vue";
+import AppsManagerPanel from "./AppsManagerPanel.vue";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import UBadge from "../../skills/atoms/UBadge.vue";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
@@ -523,11 +468,12 @@ const router = useRouter();
 const shell = useShellStore();
 const identityStore = useIdentityStore();
 const preferences = useSettingsStore();
-const visibleSystemTabs = computed(() => SYSTEM_TABS.filter(tab => preferences.advancedView || ['preferences', 'connections', 'identity'].includes(tab.id)));
+const visibleSystemTabs = computed(() => SYSTEM_TABS.filter(tab => preferences.advancedView || ['preferences', 'apps', 'identity'].includes(tab.id)));
 const VALID_SYSTEM_TABS = new Set(SYSTEM_TABS.map((tab) => tab.id));
 
 const routeTab = String(route.query.tab || "");
 const LEGACY_SYSTEM_TABS: Record<string, string> = {
+  connections: "apps",
   variables: "configuration",
   secrets: "configuration",
   "global-settings": "configuration",
@@ -578,15 +524,6 @@ const editingVar = ref<string | null>(null);
 const editVarValue = ref("");
 const modelsProviders = ref<
   Array<{ id: string; name: string; models: string[] }>
->([]);
-const agentConfigs = ref<
-  Array<{
-    id: string;
-    name: string;
-    provider: string;
-    model: string;
-    capabilities: string[];
-  }>
 >([]);
 
 function startEditVar(key: string, value: string) {
@@ -675,7 +612,7 @@ const themeSettings = reactive({
 
 async function saveGlobalSettings() {
   try {
-    await fetch(`${API_BASE}/api/system/settings`, {
+    const settingsResponse = await fetch(`${API_BASE}/api/system/settings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ scope: "global", values: { ...themeSettings } }),
@@ -684,16 +621,16 @@ async function saveGlobalSettings() {
 }
 
 // ── User Settings ────────────────────────────────────────────────
+const profileMessage = ref("");
 const userSettings = reactive({
-  displayName: "uDos Developer",
+  displayName: "",
   email: "",
-  defaultModel: "Llama 3.2",
 });
 
 async function saveUserSettings() {
   try {
     const profileId = identityStore.activeProfileId || "default";
-    await fetch(`${API_BASE}/api/system/settings`, {
+    const settingsResponse = await fetch(`${API_BASE}/api/system/settings`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -701,15 +638,18 @@ async function saveUserSettings() {
       },
       body: JSON.stringify({ scope: "user", values: { ...userSettings }, profile_id: profileId }),
     });
+    if (!settingsResponse.ok) throw Error("Profile settings could not be saved");
     if (userSettings.displayName) {
-      await fetch(`${API_BASE}/api/identity/profile`, {
+      const identityResponse = await fetch(`${API_BASE}/api/identity/profile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile_id: profileId, name: userSettings.displayName }),
       });
+      if (!identityResponse.ok) throw Error("Name could not be saved");
       await identityStore.load();
     }
-  } catch {}
+    profileMessage.value="Profile saved";
+  } catch (error) { profileMessage.value=error instanceof Error?error.message:"Profile could not be saved"; }
 }
 
 // ── Data Fetching ────────────────────────────────────────────────
@@ -787,28 +727,6 @@ async function fetchModelsConfig() {
   } catch {}
 }
 
-async function fetchAgentsConfig() {
-  try {
-    const res = await fetch(`${API_BASE}/api/agents`, {
-      signal: AbortSignal.timeout(3000),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const agents = Array.isArray(data.agents) ? data.agents : [];
-      // Demote agents to config — show only config-defined agents
-      agentConfigs.value = agents
-        .filter((a: any) => a.config || a.id === a.name)
-        .map((a: any) => ({
-          id: a.id || "",
-          name: a.name || a.id || "",
-          provider: a.provider || "ollama",
-          model: a.model || "",
-          capabilities: Array.isArray(a.capabilities) ? a.capabilities : [],
-        }));
-    }
-  } catch {}
-}
-
 async function fetchSecrets() {
   loadingSecrets.value = true;
   try {
@@ -847,26 +765,25 @@ async function loadSettings() {
       }
       if (settings.user) {
         userSettings.displayName =
-          settings.user.displayName || identityStore.displayName || "uDos Developer";
+          identityStore.displayName || settings.user.displayName || "Local user";
         userSettings.email = settings.user.email || "";
-        userSettings.defaultModel = settings.user.defaultModel || "Llama 3.2";
       }
     }
   } catch {}
 }
 
 function loadAdvancedSettings() {
-  void fetchPages(); void fetchReadiness(); void fetchVariables(); void fetchModelsConfig(); void fetchAgentsConfig(); void fetchSecrets();
+  void fetchPages(); void fetchReadiness(); void fetchVariables(); void fetchModelsConfig(); void fetchSecrets();
 }
 watch(() => preferences.advancedView, enabled => {
   if (enabled) loadAdvancedSettings();
   if (!visibleSystemTabs.value.some(tab => tab.id === activeTab.value)) activeTab.value = "preferences";
 });
-onMounted(() => {
+onMounted(async () => {
   if (String(route.query.tab || "") !== activeTab.value) {
     router.replace({ path: "/system", query: { ...route.query, tab: activeTab.value } });
   }
-  identityStore.load();
+  await identityStore.load();
   if (preferences.advancedView) loadAdvancedSettings();
   loadSettings();
 });
@@ -1172,13 +1089,14 @@ watch(
 }
 
 /* One control edge and a shared label column for ordinary preferences. */
-.system-settings-form > label.settings-row { display:grid; grid-template-columns:10rem minmax(0,24rem); align-items:center; gap:12px; min-height:32px; margin:0; padding:4px 0; font-size:var(--usx-font-size-sm); }
-.system-settings-form > label.settings-row > span { white-space:nowrap; }
-.system-settings-form > label.settings-row > :is(select,input:not([type=checkbox])) { box-sizing:border-box; width:100%; height:32px; min-height:32px; margin:0; padding:4px 8px; border:1px solid var(--usx-color-border); border-radius:var(--usx-radius-sm); background:var(--usx-color-surface); color:var(--usx-color-on-surface); box-shadow:none; outline:0; font:inherit; line-height:1.2; }
-.system-settings-form > label.settings-row > :is(select,input:not([type=checkbox])):focus-visible { border-color:transparent; outline:2px solid var(--usx-color-primary); outline-offset:-2px; box-shadow:none; }
-.system-settings-form > label.settings-row > input[type=checkbox] { justify-self:start; width:18px; height:18px; min-height:0; margin:0; accent-color:var(--usx-color-primary); box-shadow:none; }
+.system-settings-form > .settings-row { display:grid; grid-template-columns:10rem minmax(0,24rem); align-items:center; gap:12px; min-height:32px; margin:0; padding:4px 0; font-size:var(--usx-font-size-sm); }
+.system-settings-form > .settings-row > span { white-space:nowrap; }
+.system-settings-form > .settings-row > :is(select,input:not([type=checkbox])) { box-sizing:border-box; width:100%; height:32px; min-height:32px; margin:0; padding:4px 8px; border:1px solid var(--usx-color-border); border-radius:var(--usx-radius-sm); background:var(--usx-color-surface); color:var(--usx-color-on-surface); box-shadow:none; outline:0; font:inherit; line-height:1.2; }
+.system-settings-form > .settings-row > :is(select,input:not([type=checkbox])):focus-visible { border-color:transparent; outline:2px solid var(--usx-color-primary); outline-offset:-2px; box-shadow:none; }
+.system-settings-form > .settings-row > input[type=checkbox] { justify-self:start; width:18px; height:18px; min-height:0; margin:0; accent-color:var(--usx-color-primary); box-shadow:none; }
 .system-settings-form > .system-muted-copy { margin:0 0 8px; font-size:var(--usx-font-size-sm); }
-@media(max-width:30rem){.system-settings-form > label.settings-row {grid-template-columns:8rem minmax(0,1fr);gap:8px;}}
+@media(max-width:30rem){.system-settings-form > .settings-row {grid-template-columns:8rem minmax(0,1fr);gap:8px;}}
 
 .settings-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}.settings-heading .usx-btn{min-height:32px;margin:0;padding:4px 8px;font-size:var(--usx-font-size-sm);}
+.profile-auth-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px;font-size:var(--usx-font-size-sm);}.profile-auth-row .system-action-btn{height:32px;min-height:32px;margin:0;padding:4px 8px;}.system-settings-form>.settings-row>label{margin:0;min-width:0;}.profile-auth-row span{font-size:inherit;}
 </style>

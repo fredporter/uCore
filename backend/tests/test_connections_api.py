@@ -26,6 +26,7 @@ def request(method="GET", body=None, headers=None, connection=None):
 
 @pytest.fixture
 def store(tmp_path, monkeypatch):
+    monkeypatch.setattr(api.platform, "system", lambda: "Darwin")
     result = CollectionStore(tmp_path / "connections.sqlite3")
     monkeypatch.setattr(api, "CollectionStore", lambda: result)
     monkeypatch.setattr(

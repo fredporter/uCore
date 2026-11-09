@@ -61,3 +61,11 @@ def test_advanced_display_preference_persists_per_profile(tmp_path: Path):
     assert not reloaded.get_user_preferences(profile_id="default").get("advancedView", False)
     reloaded.update_user_preferences({"advancedView": False}, profile_id="alice")
     assert SettingsManager(target).get_user_preferences(profile_id="alice")["advancedView"] is False
+
+
+def test_reading_font_roundtrip_is_profile_owned(tmp_path: Path):
+    manager = SettingsManager(tmp_path / "settings.json")
+    manager.update_user_preferences({"readingFont": "sans"}, profile_id="alice")
+    restored = SettingsManager(tmp_path / "settings.json")
+    assert restored.get_user_preferences(profile_id="alice")["readingFont"] == "sans"
+    assert restored.get_user_preferences(profile_id="bob").get("readingFont") != "sans"

@@ -1,6 +1,7 @@
 <template>
   <div class="surface" :class="{ 'surface--tab-nav-vertical': shell.tabOrientation === 'vertical' }">
     <SurfaceTabNav v-if="!embedded" :model-value="activeTab" :tabs="TABS" :orientation="shell.tabOrientation" @update:model-value="selectTab" @toggle-orientation="shell.toggleTabOrientation()" />
+
     <div class="surface__content browserui-shell">
       <div v-if="activeTab === 'cards'" class="browserui-body">
         <section class="browserui-canvas">
@@ -33,8 +34,8 @@
               <div class="browserui-grounded-header">
                 <div class="browserui-grounded-title">
                   <UIcon name="auto_awesome" />
-                  <strong>Grounded Synthesis (Gemini 2.0 Flash)</strong>
-                  <span v-if="groundedResult.live_grounded" class="browserui-grounded-live">Verified Grounded</span>
+                  <strong>Research synthesis</strong>
+                  <span v-if="groundedResult.live_grounded" class="browserui-grounded-live">Web sources retrieved</span>
                 </div>
                 <div class="browserui-grounded-actions">
                   <button
@@ -193,9 +194,7 @@
       </div>
 
 
-      <BananaStudio
-        v-if="activeTab === 'studio'"
-      />
+
 
       <ResearchDashboard
         v-if="activeTab === 'dashboard'"
@@ -214,7 +213,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
-import { useRouter } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 import UInput from "../../skills/atoms/UInput.vue"
 import UIcon from "../../skills/atoms/UIcon.vue"
 import PreviewTab from "./panels/PreviewTab.vue"
@@ -227,7 +226,6 @@ import { useChatStore } from "../../stores/chat"
 import { useWorkspaceStore } from "../../stores/workspace"
 import { useWorkflowStore } from "../../stores/workflow"
 import {
-  addBinder,
   fetchScrape,
   listResearchJobs,
   searchResearch,
@@ -284,12 +282,15 @@ const API_BASE = import.meta.env.VITE_SNACKBAR_URL || "http://localhost:8484"
 const SESSION_KEY = "browserui-session-v3"
 
 const router = useRouter()
+const route = useRoute()
 const wf = useWorkflowStore()
 const workspace = useWorkspaceStore()
 const chat = useChatStore()
 
-defineProps<{ embedded?: boolean }>()
-const activeTab = ref<"cards" | "dashboard" | "studio">("cards")
+const props = defineProps<{ embedded?: boolean; queueOnly?: boolean; binderId?: string }>()
+const researchBinder = computed(() => props.binderId || "research")
+const sessionKey = computed(() => props.binderId ? `${SESSION_KEY}:binder:${props.binderId}` : SESSION_KEY)
+const activeTab = ref<"cards" | "dashboard" | "studio">(props.queueOnly ? "dashboard" : "cards")
 const searchQuery = ref("")
 const researchSearching = ref(false)
 
@@ -326,12 +327,12 @@ const sessionCardMeta = ref<Record<string, { tags: string[]; groups: string[] }>
 const shell = useShellStore()
 const TABS = [
   { id: "cards", label: "Cards", icon: "dashboard" },
-  { id: "studio", label: "Studio", icon: "palette" },
   { id: "dashboard", label: "Queue", icon: "science" },
   { id: "knowledge", label: "Knowledge", icon: "auto_stories" },
 ]
 
 function selectTab(tab: string) {
+  if (tab === "studio") { void router.push('/ucode2'); return; }
   if (tab === "knowledge") navigateToWiki()
   else if (tab === "cards" || tab === "studio" || tab === "dashboard") activeTab.value = tab
 }
@@ -708,13 +709,8 @@ async function saveGroundedToBinder() {
     "## Executive Synthesis",
     groundedResult.value.summary,
     "",
-    "## Verified Sources & Citations",
+    "## Sources & Citations",
     citationsMd,
-    "",
-    "```python",
-    "# Grounded Research Analysis Code",
-    `print("Dossier compiled for: ${safeTitle}")`,
-    "```",
     "",
   ].join("\n")
 
@@ -723,18 +719,17 @@ async function saveGroundedToBinder() {
       content,
       source_format: "markdown",
       title: `${safeTitle} Research Dossier`,
-      binder: "research",
+      binder: researchBinder.value,
+      require_existing_binder: Boolean(props.binderId),
       vault_layer: "user",
-      relative_dir: "research",
       filename: `${safeTitle.toLowerCase().replace(/\s+/g, "-")}.notebook.md`,
       metadata: {
         imported_from: "browserui.grounded-search",
         type: "notebook",
       },
     })
-    if (res.ok) {
-      researchNotice.value = `Dossier saved to research binder in User Vault.`
-    }
+    if (!res.ok) throw new Error("Could not save dossier to the local vault.")
+    researchNotice.value = `Dossier saved to the selected Binder in User Vault.`
   } catch (err: any) {
     researchNotice.value = `Failed to save dossier: ${err?.message || err}`
   }
@@ -786,11 +781,11 @@ async function exportSynthesisToNotes() {
 async function handleResearchCard(card: DisplayCard | StackItem) {
   try {
     const tags = card.tags?.length ? card.tags : ["#research"]
-    const response = await startResearch(card.url ?? "", "research", tags, "full")
+    const response = await startResearch(card.url ?? "", researchBinder.value, tags, "full")
     researchJobs.value.unshift({
       id: response.job_id || "0",
       url: card.url ?? "",
-      binder: "research",
+      binder: researchBinder.value,
       state: "pending",
       progress: 0,
     })
@@ -849,21 +844,16 @@ function sendToChatUI() {
 }
 
 async function saveToBinder(payload: { title: string; content: string; tags: string[] }) {
-  try {
-    await addBinder(payload.title, payload.content.slice(0, 500), payload.tags)
-  } catch {
-    // backend offline
-  }
-
   const filename = `${payload.title || "research-note"}.md`.toLowerCase().replace(/\s+/g, "-")
-  const content = `---\ntitle: "${payload.title || ""}"\ndate: "${new Date().toISOString().slice(0, 10)}"\n---\n\n${payload.content}`
+  const content = payload.content
 
   const imported = await ucoreApi.userWorkflow.importMarkdown({
-    content: payload.content,
+    content,
     source_format: "markdown",
     title: payload.title || "Research note",
     filename,
-    binder: "Research",
+    binder: researchBinder.value,
+    require_existing_binder: Boolean(props.binderId),
     vault_layer: "user",
     metadata: {
       source: editorMeta.value.source || "browserui",
@@ -875,17 +865,8 @@ async function saveToBinder(payload: { title: string; content: string; tags: str
     window.alert("Could not save this research note to the local vault.")
     return
   }
-  const persistedPath = String((imported.data as any).path)
-
-  wf.selectFile({
-    id: `research-${Date.now()}`,
-    path: persistedPath,
-    filename,
-    extension: "md",
-    binder: "Research",
-    content,
-    readOnly: false,
-  })
+  const persistedPath = String((imported.data as any).workspace_path || (imported.data as any).path)
+  await wf.openVaultDocument(persistedPath, filename, researchBinder.value)
 
   router.push({ path: "/workflow", query: { tab: "editor" } })
 }
@@ -917,7 +898,7 @@ onBeforeUnmount(() => {
 
 async function hydrateResearchJobs() {
   try {
-    const jobs = await listResearchJobs()
+    const jobs = await listResearchJobs(undefined, props.binderId)
     researchJobs.value = jobs.map(job => ({ ...job, result: typeof job.result === "string" ? JSON.parse(job.result || "null") : job.result }))
   } catch {
     // backend offline
@@ -980,7 +961,7 @@ async function approveJob(job: any) {
 
 async function startResearchJob(payload: { url: string; binder?: string; tags?: string[]; mode?: string }) {
   try {
-    await startResearch(payload.url, payload.binder || "research", payload.tags || [], payload.mode || "full");
+    await startResearch(payload.url, props.binderId || payload.binder || "research", payload.tags || [], payload.mode || "full");
     await hydrateResearchJobs();
     researchNotice.value = "Research queued";
   } catch (error) {
@@ -1007,7 +988,7 @@ function saveSession() {
   }
 
   localStorage.setItem(
-    SESSION_KEY,
+    sessionKey.value,
     JSON.stringify({
       searchQuery: searchQuery.value,
       selectedTags: selectedTags.value,
@@ -1016,7 +997,6 @@ function saveSession() {
       density: density.value,
       customTopics: customTopics.value,
       customGroups: customGroups.value,
-      researchJobs: researchJobs.value.slice(0, 50),
       cardMeta,
     }),
   )
@@ -1024,7 +1004,7 @@ function saveSession() {
 
 function loadSession() {
   try {
-    const raw = localStorage.getItem(SESSION_KEY)
+    const raw = localStorage.getItem(sessionKey.value)
     if (!raw) return
     const data = JSON.parse(raw)
 
@@ -1035,7 +1015,6 @@ function loadSession() {
     density.value = data.density || "stacked"
     customTopics.value = data.customTopics || []
     customGroups.value = data.customGroups || []
-    researchJobs.value = data.researchJobs || []
     sessionCardMeta.value = data.cardMeta || {}
   } catch {
     // ignore malformed session data
@@ -1048,12 +1027,17 @@ watch(
   { deep: true },
 )
 
+watch(() => route.query.research, (tab) => { if (props.embedded && !props.queueOnly && ['cards','studio','dashboard'].includes(String(tab))) activeTab.value=tab as 'cards'|'studio'|'dashboard'; });
 watch(activeTab, (tab) => {
+  if(props.embedded && !props.queueOnly && route.query.research!==tab) void router.replace({path:'/workflow',query:{...route.query,tab:'mission-control',research:tab}});
   if (tab === "dashboard") void hydrateResearchJobs()
 })
 
 onMounted(async () => {
   loadSession()
+  if(props.queueOnly) activeTab.value="dashboard";
+  if(activeTab.value==='studio'||route.query.research==='studio'){activeTab.value='cards';void router.replace('/ucode2');return;}
+  if(props.embedded && !props.queueOnly && ['cards','studio','dashboard'].includes(String(route.query.research)))activeTab.value=route.query.research as 'cards'|'studio'|'dashboard';
   await fetchBookmarks()
   document.addEventListener("visibilitychange", refreshResearchProgress);
   window.addEventListener("online", refreshResearchProgress);
@@ -2065,3 +2049,5 @@ onMounted(async () => {
 .browserui-actions-row .usx-btn, .browserui-batch-tools .usx-btn, .browserui-card__actions .usx-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 32px; margin: 0; padding: 4px 8px; font-size: var(--usx-font-size-sm); }
 @media (max-width: 40rem) { .browserui-zen__safari-btn span { display: none; } }
 </style>
+
+<style scoped>.workflow-research-tabs{display:flex;align-items:center;gap:4px;padding:6px 12px;border-bottom:1px solid var(--usx-color-border);}.workflow-research-tabs .usx-btn{display:inline-flex;align-items:center;gap:6px;margin:0;min-height:32px;padding:4px 8px;border:0;background:transparent;box-shadow:none;}.workflow-research-tabs [aria-pressed=true]{color:var(--usx-color-primary);}</style>

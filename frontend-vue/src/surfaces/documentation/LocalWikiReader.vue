@@ -13,26 +13,7 @@
           <span class="wiki-btn__text">{{ zenMode ? 'Exit full screen' : 'Full screen' }}</span>
         </button>
 
-        <div class="wiki-font-toggle">
-          <button
-            type="button"
-            class="usx-btn wiki-btn wiki-btn--toggle"
-            :class="{ 'wiki-btn--active': fontFamily === 'serif' }"
-            @click="fontFamily = 'serif'"
-            title="Serif Reader (Charter / Georgia)"
-          >
-            Serif
-          </button>
-          <button
-            type="button"
-            class="usx-btn wiki-btn wiki-btn--toggle"
-            :class="{ 'wiki-btn--active': fontFamily === 'sans' }"
-            @click="fontFamily = 'sans'"
-            title="Clean Sans (Inter / System)"
-          >
-            Sans
-          </button>
-        </div>
+
       </div>
 
       <nav v-if="activePath" class="wiki-reading-nav" aria-label="Reading sequence">
@@ -50,6 +31,94 @@
       </div>
 
       <div class="wiki-toolbar__right">
+        <button v-if="activePath" class="usx-btn wiki-btn" :aria-pressed="showProperties" aria-label="Document properties" title="Show or hide document properties" @click="showProperties=!showProperties"><UIcon name="label" /></button>
+        <button v-if="headings.length>2" class="usx-btn wiki-btn" :aria-pressed="showContents" aria-label="Table of contents" title="Show or hide table of contents" @click="showContents=!showContents"><UIcon name="format_list_bulleted" /></button>
+        <details v-if="activeOverlay && activeOverlay.effective_layer !== null" class="wiki-reader-actions"><summary class="usx-btn" aria-label="Document actions" title="Document actions"><UIcon name="more_horiz" /></summary><div class="wiki-reader-actions__menu">          <button v-if="!settings.advancedView && activeOverlay?.effective_layer === 0" class="usx-btn" :disabled="customizingOverlay" @click="customizeInVault">Save a personal copy</button>
+          <!-- Knowledge Federation Action Strip -->
+          <div v-if="settings.advancedView && activeOverlay && activeOverlay.effective_layer !== null" class="wiki-federation-toolbar">
+            <div class="wiki-fed-actions">
+              <!-- Compare vs Canon (if diff available) -->
+              <button
+                v-if="activeOverlay.canon_exists && activeOverlay.has_diff"
+                type="button"
+                class="usx-btn wiki-btn wiki-btn--xs wiki-btn--diff"
+                title="View unified diff against canonical Layer 0"
+                @click="openDiffModal"
+              >
+                <UIcon name="difference" size="xs" />
+                <span>Compare vs Canon</span>
+                <span class="wiki-fed-diff-stats">
+                  +{{ activeOverlay.diff_stats?.additions || 0 }} -{{ activeOverlay.diff_stats?.deletions || 0 }}
+                </span>
+              </button>
+
+              <!-- Toggle Canon baseline view -->
+              <button
+                v-if="activeOverlay.is_overlaid && activeOverlay.canon_exists"
+                type="button"
+                class="usx-btn wiki-btn wiki-btn--xs"
+                :class="{ 'wiki-btn--active': showingCanonOnly }"
+                title="Toggle between personal overlay and canonical baseline"
+                @click="toggleCanonOnly"
+              >
+                <UIcon :name="showingCanonOnly ? 'visibility_off' : 'visibility'" size="xs" />
+                <span>{{ showingCanonOnly ? 'Showing Canon Baseline' : 'Show Canon Baseline' }}</span>
+              </button>
+
+              <!-- Revert to Canon (Layer 2) -->
+              <button
+                v-if="activeOverlay.effective_layer === 2 && activeOverlay.canon_exists"
+                type="button"
+                class="usx-btn wiki-btn wiki-btn--xs wiki-btn--revert"
+                :disabled="revertingOverlay"
+                title="Revert personal overlay and restore pristine canonical baseline"
+                @click="confirmRevertToCanon"
+              >
+                <UIcon name="undo" size="xs" />
+                <span>{{ revertingOverlay ? 'Reverting...' : 'Revert to Canon' }}</span>
+              </button>
+
+              <!-- Customize in Vault (Layer 0 or 1) -->
+              <button
+                v-if="activeOverlay.effective_layer !== 2"
+                type="button"
+                class="usx-btn wiki-btn wiki-btn--xs wiki-btn--fork"
+                title="Create a personal copy"
+                :disabled="customizingOverlay"
+                @click="customizeInVault"
+              >
+                <UIcon name="edit_note" size="xs" />
+                <span>{{ customizingOverlay ? 'Forking...' : 'Customize in Vault' }}</span>
+              </button>
+
+              <!-- Export Submission Package (Layer 2) -->
+              <button
+                v-if="activeOverlay.effective_layer === 2"
+                type="button"
+                class="usx-btn wiki-btn wiki-btn--xs wiki-btn--export"
+                title="Bundle personal changes into cryptographic submission package"
+                @click="openSubmissionModal"
+              >
+                <UIcon name="send" size="xs" />
+                <span>Export Submission</span>
+              </button>
+            </div>
+
+            <div class="wiki-fed-status-link">
+              <button
+                type="button"
+                class="usx-btn wiki-btn wiki-btn--xs wiki-btn--ghost"
+                title="Open Federation Layer Overview"
+                @click="openFederationOverviewModal"
+              >
+                <UIcon name="info" size="xs" />
+                <span>Layer Info</span>
+              </button>
+            </div>
+          </div>
+
+</div></details>
+
         <button
           type="button"
           class="usx-btn wiki-search-trigger"
@@ -86,11 +155,9 @@
 
     <div class="wiki-body">
       <!-- Left Sidebar: Multi-Vault Explorer -->
-      <aside v-show="!zenMode" class="wiki-sidebar">
-        <div class="wiki-sidebar__header">
-          <span class="wiki-sidebar__title">Library</span>
-          <span class="wiki-badge wiki-badge--offline">Local knowledge</span>
-        </div>
+      <Teleport v-if="shell.sidebarOpen && !zenMode" to="#global-library-browser">
+      <aside class="wiki-sidebar">
+
 
         <div class="wiki-tree-filter">
           <UIcon name="filter_list" size="xs" />
@@ -142,6 +209,7 @@
           </div>
         </div>
       </aside>
+      </Teleport>
 
       <!-- Main Article Reader -->
       <main class="wiki-content">
@@ -191,93 +259,9 @@
             </div>
           </div>
 
-          <button v-if="!settings.advancedView && activeOverlay?.effective_layer === 0" class="usx-btn" :disabled="customizingOverlay" @click="customizeInVault">Save a personal copy</button>
-          <!-- Knowledge Federation Action Strip -->
-          <div v-if="settings.advancedView && activeOverlay && activeOverlay.effective_layer !== null" class="wiki-federation-toolbar">
-            <div class="wiki-fed-actions">
-              <!-- Compare vs Canon (if diff available) -->
-              <button
-                v-if="activeOverlay.canon_exists && activeOverlay.has_diff"
-                type="button"
-                class="wiki-btn wiki-btn--xs wiki-btn--diff"
-                title="View unified diff against canonical Layer 0"
-                @click="openDiffModal"
-              >
-                <UIcon name="difference" size="xs" />
-                <span>Compare vs Canon</span>
-                <span class="wiki-fed-diff-stats">
-                  +{{ activeOverlay.diff_stats?.additions || 0 }} -{{ activeOverlay.diff_stats?.deletions || 0 }}
-                </span>
-              </button>
-
-              <!-- Toggle Canon baseline view -->
-              <button
-                v-if="activeOverlay.is_overlaid && activeOverlay.canon_exists"
-                type="button"
-                class="wiki-btn wiki-btn--xs"
-                :class="{ 'wiki-btn--active': showingCanonOnly }"
-                title="Toggle between personal overlay and canonical baseline"
-                @click="toggleCanonOnly"
-              >
-                <UIcon :name="showingCanonOnly ? 'visibility_off' : 'visibility'" size="xs" />
-                <span>{{ showingCanonOnly ? 'Showing Canon Baseline' : 'Show Canon Baseline' }}</span>
-              </button>
-
-              <!-- Revert to Canon (Layer 2) -->
-              <button
-                v-if="activeOverlay.effective_layer === 2 && activeOverlay.canon_exists"
-                type="button"
-                class="wiki-btn wiki-btn--xs wiki-btn--revert"
-                :disabled="revertingOverlay"
-                title="Revert personal overlay and restore pristine canonical baseline"
-                @click="confirmRevertToCanon"
-              >
-                <UIcon name="undo" size="xs" />
-                <span>{{ revertingOverlay ? 'Reverting...' : 'Revert to Canon' }}</span>
-              </button>
-
-              <!-- Customize in Vault (Layer 0 or 1) -->
-              <button
-                v-if="activeOverlay.effective_layer !== 2"
-                type="button"
-                class="wiki-btn wiki-btn--xs wiki-btn--fork"
-                title="Create a personal copy"
-                :disabled="customizingOverlay"
-                @click="customizeInVault"
-              >
-                <UIcon name="edit_note" size="xs" />
-                <span>{{ customizingOverlay ? 'Forking...' : 'Customize in Vault' }}</span>
-              </button>
-
-              <!-- Export Submission Package (Layer 2) -->
-              <button
-                v-if="activeOverlay.effective_layer === 2"
-                type="button"
-                class="wiki-btn wiki-btn--xs wiki-btn--export"
-                title="Bundle personal changes into cryptographic submission package"
-                @click="openSubmissionModal"
-              >
-                <UIcon name="send" size="xs" />
-                <span>Export Submission</span>
-              </button>
-            </div>
-
-            <div class="wiki-fed-status-link">
-              <button
-                type="button"
-                class="wiki-btn wiki-btn--xs wiki-btn--ghost"
-                title="Open Federation Layer Overview"
-                @click="openFederationOverviewModal"
-              >
-                <UIcon name="info" size="xs" />
-                <span>Layer Info</span>
-              </button>
-            </div>
-          </div>
-
-          <DocumentProperties :frontmatter="readingDocument.frontmatter" />
+          <DocumentProperties v-if="showProperties" :frontmatter="readingDocument.frontmatter" />
           <!-- Auto-generated Table of Contents -->
-          <div v-if="headings.length > 2" class="wiki-toc">
+          <div v-if="showContents && headings.length > 2" class="wiki-toc">
             <div class="wiki-toc__title">
               <UIcon name="list" size="xs" /> Table of Contents
             </div>
@@ -733,6 +717,7 @@
 
 <script setup lang="ts">
 import { computed, h, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { useShellStore } from "../../stores/shell";
 import { useSettingsStore } from "../../stores/settings";
 import DocumentProperties from "../../skills/molecules/DocumentProperties.vue";
 import { parseReadingDocument, containReaderKeys } from "../../utils/readingDocument";
@@ -777,6 +762,7 @@ const activePath = ref<string>("");
 const activeTitle = ref<string>("");
 const rawMarkdown = ref<string>("");
 const settings = useSettingsStore();
+const shell = useShellStore();
 const readerRoot = ref<HTMLElement | null>(null);
 const readingDocument = computed(() => parseReadingDocument(rawMarkdown.value));
 const readingSequence = computed(() => {
@@ -793,7 +779,8 @@ function readingKeydown(event: KeyboardEvent) { if (showSearchModal.value || sho
 
 const filterQuery = ref<string>("");
 const zenMode = ref<boolean>(false);
-const fontFamily = ref<"serif" | "sans">("serif");
+const showProperties = ref(false), showContents = ref(false);
+const fontFamily = computed(() => settings.readingFont || "serif");
 
 // ── Recursive Tree Item Subcomponent ──────────────────────────────────
 const WikiTreeItem = {
@@ -1647,8 +1634,10 @@ onUnmounted(() => {
 }
 
 .wiki-sidebar {
-  width: 320px;
-  background: #161b22;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  background: var(--usx-color-surface);
   border-right: 1px solid #30363d;
   display: flex;
   flex-direction: column;
@@ -2833,4 +2822,27 @@ onUnmounted(() => {
 .wiki-toolbar .wiki-kbd { margin: 0; padding: 2px 4px; font-size: var(--usx-font-size-xs); line-height: 1; }
 @media (max-width: 60rem) { .wiki-toolbar .wiki-btn__text, .wiki-search-trigger__text, .wiki-toolbar .wiki-kbd { display: none; } }
 @media (max-width: 30rem) { .wiki-toolbar { gap: 4px; } .wiki-toolbar__center { display: none; } .wiki-toolbar__right { margin-left: auto; } .wiki-toolbar button.usx-btn { padding-inline: 5px; } }
+/* One shared sidebar; match shell typography and control density. */
+.wiki-sidebar { font-family: var(--usx-font-family, system-ui, sans-serif); font-size: var(--usx-font-size-sm); border: 0; color: var(--usx-color-on-surface); }
+.wiki-tree-filter { display: flex; align-items: center; gap: 6px; flex-shrink: 0; box-sizing: border-box; height: 36px; min-height: 36px; padding: 4px 8px; margin: 8px; border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-surface); }
+.wiki-tree-filter input { flex: 1; min-width: 0; width: 100%; height: 26px; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; color: inherit; font: inherit; }
+.wiki-vault-header { min-height: 30px; box-sizing: border-box; font-size: var(--usx-font-size-sm); padding: 5px 8px; color: var(--usx-color-on-surface); background: transparent; }
+.wiki-vault-badge { font-size: var(--usx-font-size-xs); color: var(--usx-color-on-surface-muted); background: transparent; padding: 0; }
+.wiki-sidebar :deep(.wiki-tree-row) { box-sizing: border-box; width: calc(100% - 8px); min-width: 0; min-height: 30px; font-size: var(--usx-font-size-sm); font-family: inherit; padding: 5px 8px; color: var(--usx-color-on-surface-muted); }
+.wiki-sidebar :deep(.wiki-tree-row--active) { color: var(--usx-color-primary); background: var(--usx-color-surface-hover); }
+
+.wiki-content { min-width: 0; padding: 0; }
+.wiki-content .wiki-article { box-sizing: border-box; width: 100%; max-width: none; margin: 0; border-radius: 0; padding: var(--usx-spacing-md); }
+
+.wiki-toc ul, .wiki-toc ol, .wiki-toc li { list-style: none; }
+.wiki-toc li::marker { content: ""; }
+
+.wiki-reader-actions { position: relative; margin: 0; padding: 0; border: 0; }
+.wiki-reader-actions summary { list-style: none; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; min-height: 32px; padding: 0; margin: 0; border: 0; }
+.wiki-reader-actions summary::-webkit-details-marker { display: none; }
+.wiki-reader-actions__menu { position: absolute; top: 100%; right: 0; width: min(18rem, 70vw); padding: 8px; background: var(--usx-color-surface); border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-sm); box-shadow: var(--usx-shadow-lg); z-index: var(--usx-z-index-dropdown, 100); }
+.wiki-reader-actions__menu .wiki-federation-toolbar, .wiki-reader-actions__menu .wiki-fed-actions { display: grid; gap: 4px; padding: 0; margin: 0; border: 0; background: transparent; }
+.wiki-reader-actions__menu .usx-btn { width: 100%; height: auto; min-height: 32px; justify-content: flex-start; text-align: left; padding: 6px 8px; white-space: normal; }
+.wiki-toolbar__right > .wiki-btn { width: 32px; padding: 0; justify-content: center; }
+.wiki-toolbar [aria-pressed="true"] { color: var(--usx-color-primary); }
 </style>

@@ -97,3 +97,35 @@ async def test_workflow_patch_and_confirmation_pass_cors_preflight(monkeypatch):
     response = await snackbar.cors_middleware(request, AsyncMock())
     assert 'PATCH' in response.headers['Access-Control-Allow-Methods']
     assert 'x-ucore-confirm' in response.headers['Access-Control-Allow-Headers']
+
+
+def test_binder_only_move_keeps_imported_storage_provenance_and_markdown(tmp_path):
+    folder = tmp_path / 'apple-family'
+    folder.mkdir()
+    path = folder / 'todo-plan.md'
+    body = '\n# Plan\n\n## Sources\n\n- [Original](https://example.com)\n- Keep list formatting\n\n```basic\nPRINT 90\n```\n'
+    path.write_text('---\nid: stable-task\nsource: user-connection\nsource_id: remote-42\ncollection_id: local-42\nprofile: default\ncreated: 2026-11-09T01:00:00Z\nprovider_metadata:\n  list: Family\n  etag: revision-7\nbinder: old-project\n---\n' + body)
+    changed = api._update_task_file(base=tmp_path, task_id='stable-task', patch={'binder': 'garden'})
+    reloaded = api._parse_markdown_task(Path(changed['path']))
+    assert Path(changed['path']).parent == folder
+    assert reloaded['id'] == 'stable-task'
+    assert reloaded['binder'] == 'garden'
+    assert reloaded['board'] == 'apple-family'
+    assert reloaded['source_id'] == 'remote-42'
+    assert reloaded['collection_id'] == 'local-42'
+    assert reloaded['provider_metadata'] == {'list': 'Family', 'etag': 'revision-7'}
+    assert '2026-11-09' in str(reloaded['created'])
+    _, saved_body = api._parse_frontmatter(Path(changed['path']).read_text())
+    assert saved_body.strip() == body.strip()
+    assert len(list(tmp_path.rglob('*.md'))) == 1
+
+
+def test_unlink_clears_legacy_notebook_membership_without_erasing_the_note(tmp_path):
+    folder = tmp_path / 'inbox'
+    folder.mkdir()
+    path = folder / 'legacy.md'
+    path.write_text('---\nid: legacy\nsource: user\nnotebook: garden\n---\n\n# Legacy\n\n- Keep this list\n')
+    changed = api._update_task_file(base=tmp_path, task_id='legacy', patch={'binder': ''})
+    reloaded = api._parse_markdown_task(Path(changed['path']))
+    assert not reloaded.get('binder')
+    assert '- Keep this list' in Path(changed['path']).read_text()

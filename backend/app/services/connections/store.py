@@ -10,7 +10,8 @@ from pathlib import Path
 
 from app.core.settings import settings
 
-KINDS = {"tasks", "contacts", "notes", "calendar", "mail"}
+PIM_KINDS = {"tasks", "contacts", "notes", "calendar", "mail"}
+KINDS = PIM_KINDS | {"bookmarks", "reading_list"}
 
 
 def now():
@@ -68,7 +69,7 @@ class CollectionStore:
         if provider not in {"apple", "google"}:
             raise ValueError("Unknown provider")
         scopes = config.get("collections", {})
-        if not isinstance(scopes, dict) or not set(scopes) <= KINDS:
+        if not isinstance(scopes, dict) or not set(scopes) <= PIM_KINDS:
             raise ValueError("Invalid collections")
         for kind, scope in scopes.items():
             if not isinstance(scope, dict) or scope.get("direction", "pull") not in {
@@ -187,6 +188,11 @@ class CollectionStore:
             raise ValueError("Title and notes must be text")
         if len(json.dumps(data)) > 1_000_000:
             raise ValueError("Record is too large")
+        if kind in {"bookmarks", "reading_list"}:
+            from app.services.browser_library import clean_url
+
+            if not clean_url(data.get("url", "")):
+                raise ValueError("Browser links require an HTTP or HTTPS URL")
         from .reconcile import COLOURS
 
         if not isinstance(data.get("flags", []), list) or any(

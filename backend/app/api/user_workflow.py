@@ -16,6 +16,7 @@ from aiohttp import web
 
 from app.api.vault_api import VAULT_LAYERS
 from app.core.settings import settings
+from app.flow import binder_engine
 from app.services.markdown_import_pipeline import convert_content_to_markdown
 from app.services.tasker_bridge import (
     normalize_priority,
@@ -661,8 +662,20 @@ async def handle_user_workflow_import_markdown(
         root = Path(str(layer.get("path") or "")).expanduser()
         root.mkdir(parents=True, exist_ok=True)
 
+        require_existing = bool(body.get("require_existing_binder", False))
+        if require_existing and (vault_layer_id != "user" or relative_dir):
+            raise ValueError("Existing Binder imports use its user-vault documents directory")
         if relative_dir:
             target_dir = _safe_relative_path(root, relative_dir)
+        elif vault_layer_id == "user":
+            try:
+                target_dir = binder_engine.get_binder_documents_dir(binder)
+                if not target_dir.is_relative_to(root.resolve()):
+                    raise ValueError("Binder belongs to a different vault")
+            except FileNotFoundError:
+                if require_existing:
+                    return web.json_response({"error": "Binder not found"}, status=404)
+                target_dir = root / "binders" / "active" / binder / "docs"
         else:
             target_dir = root / "binders" / "active" / binder / "docs"
 
@@ -716,6 +729,7 @@ async def handle_user_workflow_import_markdown(
             "status": "ok",
             "operation": "import-markdown",
             "path": str(output_path),
+            "workspace_path": "/" + output_path.relative_to(root.resolve()).as_posix(),
             "vault_layer": vault_layer_id,
             "binder": binder,
             "title": title,

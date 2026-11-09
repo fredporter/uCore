@@ -1,6 +1,8 @@
 <template>
   <div class="filepicker-sidebar">
-    <WorkflowNavigator />
+    <SidebarModeSwitch />
+    <WorkflowNavigator v-if="shell.sidebarMode === 'workflow'" />
+    <template v-else>
     <div class="filepicker-sidebar__header">
       <span class="filepicker-sidebar__heading">Vault</span>
       <div class="filepicker-sidebar__actions">
@@ -237,6 +239,7 @@
       </section>
     </div>
 
+    </template>
     <WorkspacePickerModal
       v-if="pickerOpen"
       @close="pickerOpen = false"
@@ -260,6 +263,8 @@
  */
 import { useRouter } from "vue-router";
 import { ref, computed, onMounted, watch } from "vue";
+import { useShellStore } from "../../stores/shell";
+import SidebarModeSwitch from "./SidebarModeSwitch.vue";
 import WorkflowNavigator from "./WorkflowNavigator.vue";
 import UIcon from "../atoms/UIcon.vue";
 import UButton from "../atoms/UButton.vue";
@@ -286,6 +291,7 @@ const emit = defineEmits<{
   newFile: [binderId: string];
 }>();
 const wf = useWorkflowStore();
+const shell = useShellStore();
 const router = useRouter();
 
 // ─── Refs ───────────────────────────────────────────────────────────
@@ -500,8 +506,8 @@ async function handleSyncDrive() {
 /** Open the same canonical binder creation form used by Workflow. */
 async function handleNewBinder() {
   wf.binderCreateRequested = true;
-  wf.activeTab = "binder";
-  await router.push({ path: "/workflow", query: { tab: "binder", ...(wf.activeBinderId ? { binder: wf.activeBinderId } : {}) } });
+  wf.activeTab = "mission-control";
+  await router.push({ path: "/workflow", query: { tab: "mission-control", ...(wf.activeBinderId ? { binder: wf.activeBinderId } : {}) } });
 }
 
 /** Create a markdown file inside an added workspace. */

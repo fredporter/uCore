@@ -33,7 +33,12 @@
       }"
     >
       <aside v-if="globalSidebarOpen" class="app-sidebar">
-        <FilepickerSidebar
+        <template v-if="isKnowledgeReader">
+          <SidebarModeSwitch />
+          <WorkflowNavigator v-if="shell.sidebarMode === 'workflow'" />
+          <div v-show="shell.sidebarMode === 'vault'" id="global-library-browser" class="app-sidebar__library" />
+        </template>
+        <FilepickerSidebar v-else
           @file-select="handleFileSelect"
           @new-file="handleNewFile"
         />
@@ -76,6 +81,8 @@ import { useWorkspaceStore } from "../stores/workspace";
 import { useWorkflowStore } from "../stores/workflow";
 import { useRouter, useRoute } from "vue-router";
 import GlobalToolbar from "../skills/organisms/GlobalToolbar.vue";
+import SidebarModeSwitch from "../skills/molecules/SidebarModeSwitch.vue";
+import WorkflowNavigator from "../skills/molecules/WorkflowNavigator.vue";
 import FilepickerSidebar from "../skills/molecules/FilepickerSidebar.vue";
 import SnackbarHost from "../skills/molecules/SnackbarHost.vue";
 import OverlayLayer from "../skills/organisms/OverlayLayer.vue";
@@ -99,14 +106,12 @@ const { toast } = useToast();
 const shellEl = ref<HTMLElement | null>(null);
 useSwipe(shellEl, { right: () => shell.setSidebarOpen(true), left: () => shell.setSidebarOpen(false) });
 const RUNTIME_WARNING_KEY = "ucore.runtime.warning";
-const isWorkflowEditor = computed(
-  () => route.path === "/workflow" && String(route.query.tab || "") === "editor",
-);
+const isKnowledgeReader = computed(() => ["/documentation", "/docs"].includes(route.path) && (!route.query.tab || route.query.tab === "wiki"));
 const isStandalone = computed(
   () => route.meta.layout === "standalone" || route.path.startsWith("/p/"),
 );
 const globalSidebarOpen = computed(
-  () => shell.sidebarOpen && !isWorkflowEditor.value && !isStandalone.value,
+  () => shell.sidebarOpen && !isStandalone.value,
 );
 
 // Initialize settings store to apply persisted theme (dark mode default)
@@ -156,11 +161,6 @@ onBeforeUnmount(() => {
 function handleGlobalSidebarToggle() {
   if (route.path === "/developer") {
     shell.toggleDeveloperSidebar();
-    return;
-  }
-  if (isWorkflowEditor.value) {
-    shell.setSidebarOpen(false);
-    window.dispatchEvent(new CustomEvent("ucore:workflow-files-toggle"));
     return;
   }
   shell.toggleSidebar();
@@ -367,7 +367,10 @@ async function handleNewFile(binderId: string) {
   }
 }
 
+.app-sidebar__library { flex: 1; min-height: 0; overflow: hidden; }
 .app-sidebar {
+  display: flex;
+  flex-direction: column;
   width: var(--usx-sidebar-width);
   overflow-y: auto;
   overflow-x: hidden;
@@ -412,7 +415,10 @@ async function handleNewFile(binderId: string) {
   display: contents;
 }
 
-.app-body--tabs-first .app-sidebar {
+.app-body--tabs-first .app-sidebar__library { flex: 1; min-height: 0; overflow: hidden; }
+.app-sidebar {
+  display: flex;
+  flex-direction: column;
   order: 2;
 }
 
@@ -450,7 +456,10 @@ async function handleNewFile(binderId: string) {
   display: contents;
 }
 
-.app-body--tabs-top .app-sidebar {
+.app-body--tabs-top .app-sidebar__library { flex: 1; min-height: 0; overflow: hidden; }
+.app-sidebar {
+  display: flex;
+  flex-direction: column;
   grid-area: vault;
   width: clamp(11rem, 40vw, var(--usx-sidebar-width));
   min-width: 0;

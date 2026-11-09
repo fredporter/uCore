@@ -19,7 +19,9 @@ from typing import Any, Dict, List, Optional
 
 log = logging.getLogger("ucore.binder_engine")
 
-VAULT_ROOT = Path.home() / "Vault"
+from app.core.settings import settings
+
+VAULT_ROOT = settings.vault_root
 BINDERS_ROOT = VAULT_ROOT / "Binders"
 
 
@@ -35,7 +37,26 @@ def get_binders_dir() -> Path:
 
 def _binder_dir(binder_id: str) -> Path:
     safe_id = re.sub(r"[^\w\-]", "_", binder_id.strip())
-    return get_binders_dir() / safe_id
+    return BINDERS_ROOT / safe_id
+
+
+def get_binder_documents_dir(binder_id: str) -> Path:
+    """Resolve documents owned by an existing Binder without creating another one.
+
+    Documents share the Binder's user-owned lifetime and storage budget; removing
+    or archiving a Binder includes this visible directory. No copies or cache.
+    """
+    bdir = _binder_dir(binder_id)
+    meta_path = bdir / "binder.json"
+    if not meta_path.is_file():
+        raise FileNotFoundError(f"Binder '{binder_id}' not found.")
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    if meta.get("id") != binder_id:
+        raise ValueError("Binder identity does not match its storage directory")
+    docs = (bdir / "docs").resolve()
+    if not docs.is_relative_to(bdir.resolve()) or not docs.is_relative_to(VAULT_ROOT.resolve()):
+        raise ValueError("Binder documents escape their owning vault")
+    return docs
 
 
 def create_binder(
@@ -174,7 +195,20 @@ def get_binder(binder_id: str) -> Dict[str, Any]:
     meta["attached_sources"] = len(sources)
     meta["total_requirements"] = len(reqs)
 
+    documents = []
+    docs_dir = get_binder_documents_dir(binder_id)
+    if docs_dir.is_dir():
+        for path in sorted(docs_dir.glob("*.md"), key=lambda p: p.name.lower()):
+            resolved = path.resolve()
+            if not resolved.is_relative_to(docs_dir) or not resolved.is_file():
+                continue
+            documents.append({
+                "filename": path.name,
+                "path": "/" + resolved.relative_to(VAULT_ROOT.resolve()).as_posix(),
+            })
+
     return {
+        "documents": documents,
         "metadata": meta,
         "brief": brief,
         "draft": draft,
