@@ -1,6 +1,8 @@
 """Integration tests for Chat API endpoints."""
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, Mock, patch
+
 from aiohttp import web
 from aiohttp.test_utils import AioHTTPTestCase
 
@@ -30,6 +32,13 @@ def test_normalise_tool_calls_rejects_unknown_tool():
 
 class ChatAPITest(AioHTTPTestCase):
     async def get_application(self):
+        # Endpoint contracts must not contact a user's model service or cloud account.
+        router = Mock()
+        router.list_providers.return_value = [{"name": "fixture-local", "type": "ollama", "models": []}]
+        router.chat = AsyncMock(return_value={"content": "Fixture response", "model": "fixture-local"})
+        patcher = patch('app.api.chat.get_router', return_value=router)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         app = web.Application()
         app.router.add_post("/api/chat", handle_chat)
         app.router.add_get("/api/chat/modes", handle_chat_modes)
@@ -100,11 +109,13 @@ class ChatAPITest(AioHTTPTestCase):
         assert "chat" in mode_ids
         assert "plan" in mode_ids
 
-    async def test_chat_modes_plan_has_free_models(self):
+    async def test_chat_modes_plan_uses_discovered_models(self):
         resp = await self.client.get("/api/chat/modes")
         data = await resp.json()
         plan_mode = next(m for m in data["modes"] if m["id"] == "plan")
-        assert plan_mode["cost"] == "free"
+        assert plan_mode["cost"] == "provider"
+        assert plan_mode["models"] == []
+        assert plan_mode["model_source"] == "/api/models"
         assert "models" in plan_mode
 
     async def test_plan_mode_returns_structured_response(self):
@@ -142,3 +153,39 @@ class ChatAPITest(AioHTTPTestCase):
             assert "model" in data
         else:
             assert "error" in data
+
+
+async def test_skill_discovery_uses_governed_registry(monkeypatch):
+    import json
+    from app.api import chat
+    from app.skills import registry
+    monkeypatch.setattr(registry, 'list_skills', lambda: [{'id': 'real-capability', 'name': 'Real capability'}])
+    result = json.loads(await chat._execute_tool('list_skills', {}))
+    assert result == {'skills': [{'id': 'real-capability', 'name': 'Real capability'}], 'total': 1, 'source': 'registry'}
+
+
+async def test_ordinary_chat_has_no_development_tools_and_rejects_fabricated_execution(monkeypatch):
+    import json
+    from unittest.mock import AsyncMock
+    from aiohttp.test_utils import make_mocked_request
+    from app.api import chat
+    class Router:
+        def __init__(self): self.calls = []
+        async def chat(self, **kwargs):
+            self.calls.append(kwargs)
+            if len(self.calls) == 1:
+                return {'tool_calls': [{'function': {'name': 'repo_write', 'arguments': {}}}]}
+            return {'content': 'Use external developer tooling.'}
+    router = Router()
+    monkeypatch.setattr(chat, 'get_router', lambda: router)
+    execution = AsyncMock()
+    monkeypatch.setattr(chat, '_execute_tool', execution)
+    request = make_mocked_request('POST', '/api/chat')
+    request.json = AsyncMock(return_value={'message': 'Help with a project', 'mode': 'chat'})
+    response = await chat.handle_chat(request)
+    assert response.status == 200
+    assert not execution.called
+    assert json.loads(response.text)['tool_results'][0]['result']['error'] == 'This tool is not available in the personal assistant'
+    names = {tool['function']['name'] for tool in router.calls[0]['tools']}
+    assert not names & {'repo_write', 'shell_exec', 'agent_run', 'binder_create', 'task_create', 'save_to_vault'}
+    assert 'external developer tools' in router.calls[0]['messages'][0]['content']
