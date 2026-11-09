@@ -149,3 +149,18 @@ it('moves Binder membership without rewriting the source board', async () => {
   await store.dropTask({ dataTransfer: { getData: () => 'one' }, altKey: false, ctrlKey: false } as unknown as DragEvent, { binder: 'garden' });
   expect(request).toHaveBeenCalledWith(expect.stringContaining('/tasks/one'), expect.objectContaining({ body: JSON.stringify({ binder: 'garden' }) }));
 });
+
+it('does not infer task membership from a matching source-board name', () => {
+  const store = useWorkflowStore();
+  store.binders = [{ id: 'garden' }];
+  const unbound = { id: 'unbound', title: 'Imported task', board: 'garden', binder: '', group: '', status: 'todo', priority: 'medium' as const, tags: [], description: '' };
+  store.tasks = [unbound];
+  store.openTask(unbound);
+  expect(store.activeBinderId).toBe('');
+  expect(store.activeList).toBe('garden');
+  expect(store.relatedTasks.map(task => task.id)).toEqual(['unbound']);
+  store.setTab('editor');
+  expect(store.activeBinderId).toBe('');
+  store.showList('garden');
+  expect(store.activeBinderId).toBe('garden');
+});

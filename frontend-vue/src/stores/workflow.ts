@@ -286,8 +286,8 @@ export const useWorkflowStore = defineStore("workflow", () => {
   const hasEditorDraft = computed(() => Object.hasOwn(editorDrafts.value, editorKey.value));
 
   // Legacy list links may name a known Binder. Provider boards remain metadata.
-  function setTaskContext(board = "", binder = "") {
-    const resolvedBinder = binder || (binders.value.some(item => item.id === board) ? board : "");
+  function setTaskContext(board = "", binder = "", resolveLegacyList = true) {
+    const resolvedBinder = binder || (resolveLegacyList && binders.value.some(item => item.id === board) ? board : "");
     activeBinderId.value = resolvedBinder;
     activeList.value = resolvedBinder ? "" : board;
   }
@@ -302,7 +302,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   }
   function openTask(task: WorkflowTask) {
     selectTask(task);
-    setTaskContext(task.board, task.binder || "");
+    setTaskContext(task.board, task.binder || "", false);
     activeTab.value = "editor";
   }
   async function fetchLists() {
@@ -422,7 +422,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   function setTab(tab: WorkflowTab) {
     if (tab === "binder" || tab === "research") tab = "mission-control";
     if (tab === "editor" && selectedTask.value) {
-      setTaskContext(selectedTask.value.board, selectedTask.value.binder || "");
+      setTaskContext(selectedTask.value.board, selectedTask.value.binder || "", false);
     } else if (tab === "editor" && binderDocument.value) {
       activeList.value = "";
       activeBinderId.value = binderDocument.value.binderId || "";
@@ -636,7 +636,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     if (selectedTask.value?.id === taskId) {
       selectedTask.value = mapped;
       if (activeTab.value === "editor") {
-        setTaskContext(mapped.board, mapped.binder || "");
+        setTaskContext(mapped.board, mapped.binder || "", false);
       }
     }
     if ("body" in patch) delete editorDrafts.value[`task:${taskId}`];

@@ -30,9 +30,9 @@ INDEX_DB = INDEX_DIR / "library.db"
 
 def get_default_vault_paths() -> dict[str, Path]:
     paths = {
-        "user": Path.home() / "Vault",
-        "shared": Path.home() / "Shared",
-        "public": Path.home() / "Public",
+        "user": settings.vault_root,
+        "shared": settings.shared_vault_root,
+        "public": settings.public_vault_root,
     }
     # Add educational & revival manuals if present
     ucode_manual = settings.udos_root / "uCode" / "docs" / "manual"
@@ -58,7 +58,7 @@ EXCLUDE_DIRS = {
 # Additional workspaces (user-registered vaults/folders) ---------------
 WORKSPACES_FILE = settings.udos_home / "workspaces.json"
 # Workspaces may only be selected from the shared/public vault roots.
-WORKSPACE_ROOTS = [Path.home() / "Shared", Path.home() / "Public"]
+WORKSPACE_ROOTS = [settings.shared_vault_root, settings.public_vault_root]
 
 
 def _within_workspace_roots(path: Path) -> bool:
@@ -170,7 +170,7 @@ def remove_workspace(source: str) -> dict[str, Any]:
 def workspace_root(source: str) -> Path | None:
     """Resolve the filesystem root for a source (user vault or added workspace)."""
     if source == "user":
-        return Path.home() / "Vault"
+        return settings.vault_root
     for ws in list_workspaces():
         if ws.get("source") == source:
             return Path(ws["path"])

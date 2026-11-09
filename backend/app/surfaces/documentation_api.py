@@ -15,9 +15,9 @@ from app.services.doclang_bridge import export_vault_to_doclang_context
 
 log = logging.getLogger("ucore.documentation")
 
-DOC_SITES_ROOT = Path.home() / "Public" / "doc-sites"
-GLOBAL_KNOWLEDGE_ROOT = Path.home() / "Public" / "global-knowledge"
-LEARNING_ROOT = Path.home() / "Public" / "learning"
+DOC_SITES_ROOT = settings.public_vault_root / "doc-sites"
+GLOBAL_KNOWLEDGE_ROOT = settings.public_vault_root / "global-knowledge"
+LEARNING_ROOT = settings.public_vault_root / "learning"
 DEFAULT_VAULT_SOURCE = settings.vault_root
 DEFAULT_EXPORT_OUTPUT = settings.vault_root / "Exports" / "doclang" / "vault-doclang.jsonl"
 
@@ -145,8 +145,8 @@ def _list_notebooks() -> list[dict[str, Any]]:
     Searches multiple candidate paths since uDev has been retired.
     """
     candidates = [
-        Path.home() / "Public" / "global-knowledge",
-        Path.home() / "Vault",
+        settings.public_vault_root / "global-knowledge",
+        settings.vault_root,
         Path.home() / "Code" / "uCore" / "notebooks",
     ]
     knowledge_root = None
@@ -446,9 +446,9 @@ _CONTENT_ROOTS: dict[str, Path] = {
     "learning": LEARNING_ROOT,
     "manual": settings.udos_root / "uCode" / "docs" / "manual",
     "sonic": settings.udos_root / "SonicScrewdriver" / "docs" / "manual",
-    "vault": Path.home() / "Vault",
-    "shared": Path.home() / "Shared",
-    "public": Path.home() / "Public",
+    "vault": settings.vault_root,
+    "shared": settings.shared_vault_root,
+    "public": settings.public_vault_root,
     "knowledge": GLOBAL_KNOWLEDGE_ROOT,
     "archive": settings.udos_root / "uCore" / "docs" / "archive",
     "mirror": settings.udos_home / "docs-mirror",
@@ -504,7 +504,7 @@ async def handle_docs_wiki_tree(_request: web.Request) -> web.Response:
     vaults: list[dict[str, Any]] = []
 
     # 1. Personal Vault (~/Vault)
-    vault_root = Path.home() / "Vault"
+    vault_root = settings.vault_root
     vault_items = await asyncio.to_thread(_build_dir_tree, vault_root, "vault")
     vaults.append({
         "id": "personal",
@@ -517,7 +517,7 @@ async def handle_docs_wiki_tree(_request: web.Request) -> web.Response:
     })
 
     # 2. Shared Vaults (~/Shared)
-    shared_root = Path.home() / "Shared"
+    shared_root = settings.shared_vault_root
     shared_items = await asyncio.to_thread(_build_dir_tree, shared_root, "shared")
     vaults.append({
         "id": "shared",
@@ -530,7 +530,7 @@ async def handle_docs_wiki_tree(_request: web.Request) -> web.Response:
     })
 
     # 3. Public Knowledge (~/Public)
-    public_root = Path.home() / "Public"
+    public_root = settings.public_vault_root
     public_items = await asyncio.to_thread(_build_dir_tree, public_root, "public")
     vaults.append({
         "id": "public",
