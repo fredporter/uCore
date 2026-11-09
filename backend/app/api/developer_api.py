@@ -16,6 +16,16 @@ from app.services.developer_commands import get_developer_command_manager
 from app.services.developer_operations import get_developer_operation_manager
 from app.utils.config_loader import load_developer_repo_policy
 
+
+async def handle_retired_development(request: web.Request) -> web.Response:
+    """Preserve the compatibility URL without starting internal development work."""
+    return web.json_response({
+        "error": "internal_development_retired",
+        "message": "Repository changes, development agents and command execution belong in external developer tools.",
+        "owner": "external-development",
+    }, status=410)
+
+
 # ─── File discovery constants (stable, not policy-driven) ────────
 
 ALLOWED_EXTENSIONS = {
@@ -992,38 +1002,8 @@ async def handle_stop_developer(request: web.Request) -> web.Response:
 
 
 async def handle_developer_status(request: web.Request) -> web.Response:
-    """Get current DevMode status.
-
-    The Developer Surface is self-hosted on the Vite dev server (port 5175).
-    Checks the Vite frontend rather than a separate uDev process.
-    """
-    import urllib.request
-
-    from app.core.logging import log
-
-    try:
-        # Check the Vite dev server that serves the Developer Surface
-        req = urllib.request.Request("http://localhost:5175", method="HEAD")
-        with urllib.request.urlopen(req, timeout=2) as resp:
-            active = resp.status < 500
-            if active:
-                log.debug("[DEVMODE] Vite dev server is active on :5175")
-            return web.json_response(
-                {
-                    "active": active,
-                    "description": "Developer Surface — self-hosted in uCore (Vite :5175)",
-                    "icon_visible": active,
-                }
-            )
-    except Exception:
-        log.debug("[DEVMODE] Vite dev server not reachable on :5175")
-        return web.json_response(
-            {
-                "active": False,
-                "description": "Developer Surface — Vite dev server not running",
-                "icon_visible": False,
-            }
-        )
+    """Compatibility status; frontend availability does not imply a dev runtime."""
+    return web.json_response({"active": False, "status": "retired", "owner": "external-development"})
 
 
 async def handle_list_repos(request: web.Request) -> web.Response:
@@ -1347,7 +1327,7 @@ async def handle_commit_repo_files(request: web.Request) -> web.Response:
 
 
 async def handle_developer_operation_capabilities(request: web.Request) -> web.Response:
-    return web.json_response(get_developer_operation_manager().capabilities())
+    return web.json_response({"available": False, "status": "retired", "owner": "external-development", "actions": []})
 
 
 async def handle_list_developer_operations(request: web.Request) -> web.Response:
@@ -1444,7 +1424,7 @@ async def handle_developer_command_actions(request: web.Request) -> web.Response
         actions = get_developer_command_manager().discover(repo_name, _repo_path(repo_name))
     except FileNotFoundError:
         return web.json_response({"error": f"Repository not found: {repo_name}"}, status=404)
-    return web.json_response({"repo": repo_name, "actions": actions})
+    return web.json_response({"repo": repo_name, "actions": actions, "execution_available": False, "owner": "external-development"})
 
 
 async def handle_list_developer_command_runs(request: web.Request) -> web.Response:

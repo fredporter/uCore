@@ -157,6 +157,7 @@ class ChatAPITest(AioHTTPTestCase):
 
 async def test_skill_discovery_uses_governed_registry(monkeypatch):
     import json
+
     from app.api import chat
     from app.skills import registry
     monkeypatch.setattr(registry, 'list_skills', lambda: [{'id': 'real-capability', 'name': 'Real capability'}])
@@ -167,7 +168,9 @@ async def test_skill_discovery_uses_governed_registry(monkeypatch):
 async def test_ordinary_chat_has_no_development_tools_and_rejects_fabricated_execution(monkeypatch):
     import json
     from unittest.mock import AsyncMock
+
     from aiohttp.test_utils import make_mocked_request
+
     from app.api import chat
     class Router:
         def __init__(self): self.calls = []
