@@ -1,15 +1,12 @@
 <template>
-  <div
-    class="wf-panel"
-    :class="{ 'wf-panel--editor-open': showCodeEditor && activeCodeTask }"
-  >
+  <div class="wf-panel">
     <!-- ── Task list / kanban (always visible, shrinks when editor slides in) ── -->
     <div class="wf-panel__main wf-zen-surface">
       <header class="wf-unified-header">
         <div class="wf-unified-header__left">
           <p class="wf-standard-header__kicker">User Workflow</p>
           <div class="wf-unified-header__title-row">
-            <h2 class="wf-unified-header__title">Tasks & Communications</h2>
+            <h2 class="wf-unified-header__title">Tasks</h2>
             <div class="wf-unified-header__badges">
               <UBadge type="info" size="sm">{{ wf.activeTasks.length }} open</UBadge>
               <UBadge v-if="wf.inProgressCount > 0" type="warning" size="sm">{{ wf.inProgressCount }} in progress</UBadge>
@@ -19,12 +16,12 @@
           </div>
         </div>
 
-        <div class="wf-unified-header__right">
+        <div class="wf-unified-header__right" role="toolbar" aria-label="Task views and actions">
           <!-- View switcher segmented group -->
           <div class="wf-segmented-group">
             <button
               type="button"
-              class="wf-segmented-btn"
+              class="usx-btn wf-segmented-btn"
               :class="{ 'wf-segmented-btn--active': viewMode === 'kanban' }"
               title="Kanban view"
               @click="viewMode = 'kanban'"
@@ -34,7 +31,7 @@
             </button>
             <button
               type="button"
-              class="wf-segmented-btn"
+              class="usx-btn wf-segmented-btn"
               :class="{ 'wf-segmented-btn--active': viewMode === 'list' }"
               title="List view"
               @click="viewMode = 'list'"
@@ -44,7 +41,7 @@
             </button>
             <button
               type="button"
-              class="wf-segmented-btn"
+              class="usx-btn wf-segmented-btn"
               :class="{ 'wf-segmented-btn--active': viewMode === 'triage' }"
               title="Inbound Communications Triage"
               @click="loadInboundTriage(); viewMode = 'triage'"
@@ -59,13 +56,13 @@
             <button
               class="usx-btn usx-btn--secondary"
               :disabled="syncingReminders"
-              title="Sync with Apple Reminders (Bidirectional)"
+              title="Sync enabled task connections"
               @click="triggerRemindersSync"
             >
               <UIcon :name="syncingReminders ? 'sync' : 'alarm'" :class="{ 'wf-spin': syncingReminders }" />
-              <span class="wf-toolbar__btn-label">{{ syncingReminders ? "Syncing..." : "Sync Reminders" }}</span>
+              <span class="wf-toolbar__btn-label">{{ syncingReminders ? "Syncing..." : "Sync connections" }}</span>
             </button>
-            <button class="usx-btn usx-btn--primary" type="button" @click="wf.setTab('editor')">
+            <button class="usx-btn usx-btn--primary" type="button" @click="newTask">
               <UIcon name="add" /> <span>New Task</span>
             </button>
           </div>
@@ -80,35 +77,40 @@
         <UIcon name="sync" /> Loading tasks...
       </div>
 
+      <div v-if="wf.taskError" class="wf-error" role="alert">{{ wf.taskError }} <button class="usx-btn" @click="wf.fetchTasks()">Retry</button></div>
       <div v-if="dragError" class="wf-error">
         <UIcon name="error" /> {{ dragError }}
       </div>
 
+      <div class="task-scope" role="toolbar" aria-label="Task filters">
+        <label><span>List</span><span class="task-scope__select"><select v-model="wf.activeList" aria-label="Task list"><option value="">All lists</option><option v-for="list in wf.taskLists" :key="list" :value="list">{{ list }}</option></select><UIcon name="expand_more" /></span></label>
+        <label><span>Binder</span><span class="task-scope__select"><select v-model="wf.activeBinderId" aria-label="Task binder"><option value="">All binders</option><option v-for="binder in wf.binderChoices" :key="binder.id" :value="binder.id">{{ binder.title || binder.id }}</option></select><UIcon name="expand_more" /></span></label>
+        <label><span>Show</span><span class="task-scope__select"><select v-model="completionFilter" aria-label="Task completion"><option value="active">Open</option><option value="done">Done</option><option value="all">All</option></select><UIcon name="expand_more" /></span></label>
+        <button class="usx-btn" @click="newList"><UIcon name="add" /> New list</button>
+        <button class="usx-btn" @click="addGroup"><UIcon name="create_new_folder" /> New group</button>
+        <span>{{ visibleTasks.length }} tasks · {{ wf.scopedTasks.filter(task => task.status === 'completed').length }} done</span>
+      </div>
+      <div class="task-destinations" aria-label="Drop onto a list to move; hold Alt to copy">
+        <span>Move to list:</span>
+        <button v-for="list in wf.taskLists" :key="list" class="usx-btn" @click="wf.activeList = list" @dragover.prevent @drop.prevent="dropInto($event, { board: list })">{{ list }}</button>
+        <small>Hold Option/Alt while dropping to copy.</small>
+      </div>
       <div v-if="viewMode === 'list'" class="task-list">
-        <div
-          v-for="task in orderedTasks"
-          :key="task.id"
-          class="task-list__row"
-          :class="{
-            'task-list__row--selected': wf.selectedTask?.id === task.id,
-          }"
-          @click="openTaskEditor(task)"
-        >
-          <div class="task-list__main">
-            <span class="task-list__state" :class="`task-list__state--${task.status}`" />
-            <div>
-              <div class="task-list__task-title">{{ task.title }}</div>
-              <div class="task-list__meta">{{ task.board || "Workflow" }} · {{ formatStatus(task.status) }}</div>
-            </div>
+        <section v-for="group in taskGroups" :key="group.name" class="task-group" @dragover.prevent @drop.prevent="dropInto($event, { group: group.name === 'Ungrouped' ? '' : group.name })">
+          <h3>{{ group.name }} <small>{{ group.tasks.length }}</small></h3>
+          <p v-if="!group.tasks.length">Drop tasks here to group them.</p>
+          <div v-for="task in group.tasks" :key="task.id" class="task-list__row" :class="{ 'task-list__row--selected': wf.selectedTask?.id === task.id }"
+            draggable="true" @dragstart="wf.startTaskDrag($event, task)">
+            <input type="checkbox" :checked="task.status === 'completed'" :aria-label="`Complete ${task.title}`" @change="changeTask(task, { status: task.status === 'completed' ? 'todo' : 'completed' })" />
+            <button class="task-list__main usx-btn" @click="openTaskEditor(task)"><span class="task-list__copy"><strong>{{ task.title }}</strong><small>{{ task.board }} · {{ formatStatus(task.status) }}</small></span></button>
+            <select :value="task.status" :aria-label="`Status for ${task.title}`" @change="changeTask(task, { status: ($event.target as HTMLSelectElement).value })"><option v-if="!statuses.includes(task.status)" :value="task.status">{{ formatStatus(task.status) }}</option><option v-for="status in statuses" :key="status" :value="status">{{ formatStatus(status) }}</option></select>
+            <select :value="task.binder || ''" :aria-label="`Binder for ${task.title}`" @change="changeTask(task, { binder: ($event.target as HTMLSelectElement).value })"><option value="">No binder</option><option v-for="binder in wf.binderChoices" :key="binder.id" :value="binder.id">{{ binder.title || binder.id }}</option></select>
+            <button class="usx-btn" :aria-label="`Group ${task.title}`" @click="groupTask(task)"><UIcon name="workspaces" /></button>
+            <button class="usx-btn" :aria-label="`Move ${task.title}`" @click="moveTask(task)"><UIcon name="drive_file_move" /></button>
+            <button class="usx-btn" :aria-label="`Copy ${task.title}`" @click="copyTask(task)"><UIcon name="content_copy" /></button>
           </div>
-          <button
-            class="task-list__editor-btn"
-            title="Open in Editor tab (split view)"
-            @click.stop="openInEditorTab(task)"
-          >
-            <UIcon name="view_sidebar" />
-          </button>
-        </div>
+        </section>
+        <p v-if="!visibleTasks.length && !extraGroups.length">No tasks match this view.</p>
       </div>
 
       <div v-else-if="viewMode === 'kanban'" class="kanban-board">
@@ -117,7 +119,7 @@
           :key="status"
           class="kanban-column"
           @dragover.prevent
-          @drop="handleDrop(status)"
+          @drop.prevent="dropInto($event, { status })"
         >
           <div
             class="kanban-column-header"
@@ -128,25 +130,25 @@
               {{ formatStatus(status as string) }}
             </span>
             <UBadge type="info" size="sm" circle>{{
-              wf.tasksByStatus[status]?.length || 0
+              visibleByStatus[status]?.length || 0
             }}</UBadge>
           </div>
           <div class="kanban-cards">
             <div
-              v-if="(wf.tasksByStatus[status] || []).length === 0"
+              v-if="(visibleByStatus[status] || []).length === 0"
               class="kanban-empty"
             >
               No tasks
             </div>
             <div
-              v-for="task in wf.tasksByStatus[status] || []"
+              v-for="task in visibleByStatus[status] || []"
               :key="task.id"
               class="kanban-card"
               :class="{
                 'kanban-card--selected': wf.selectedTask?.id === task.id,
               }"
               draggable="true"
-              @dragstart="handleDragStart(task.id, task.status)"
+              @dragstart="wf.startTaskDrag($event, task)"
               @click="openTaskEditor(task)"
             >
               <div class="kanban-card-top">
@@ -180,7 +182,7 @@
           <div class="wf-triage-section__header">
             <div class="wf-triage-section__title">
               <UIcon name="gavel" />
-              <h3>Autonomous Actions Pending Human Approval</h3>
+              <h3>Needs approval</h3>
             </div>
             <UBadge type="warning" size="sm">{{ pendingApprovals.length }} Pending</UBadge>
           </div>
@@ -188,10 +190,10 @@
             <div v-for="task in pendingApprovals" :key="task.id" class="wf-triage-card wf-triage-card--approval">
               <div class="wf-triage-card__main">
                 <div class="wf-triage-card__header">
-                  <span class="wf-triage-card__badge wf-triage-card__badge--autonomous">Autonomous Gate</span>
+                  <span class="wf-triage-card__badge wf-triage-card__badge--autonomous">Needs approval</span>
                   <span class="wf-triage-card__title">{{ task.title }}</span>
                 </div>
-                <p class="wf-triage-card__desc">{{ task.description || task.summary || 'Awaiting sovereign approval before execution.' }}</p>
+                <p class="wf-triage-card__desc">{{ task.description || task.summary || 'Review this action before it runs.' }}</p>
                 <div v-if="task.action_type" class="wf-triage-card__meta font-mono">
                   <span>Action: {{ task.action_type }}</span>
                 </div>
@@ -303,101 +305,19 @@
         </section>
       </div>
 
-      <section v-if="wf.flowLogTasks.length > 0" class="wf-flowlog">
-        <header class="wf-flowlog__header">
-          <div>
-            <h4 class="surface__panel-title">Flowlog</h4>
-            <p class="surface__panel-description">Completed work, kept out of your active list.</p>
-          </div>
-          <span class="wf-flowlog__count">{{ wf.flowLogTasks.length }} complete</span>
-        </header>
-        <div class="wf-flowlog-list">
-          <button
-            v-for="task in wf.flowLogTasks"
-            :key="task.id"
-            class="wf-flowlog-item"
-            @click="openTaskEditor(task)"
-          >
-            <div class="wf-flowlog-item__copy">
-              <div class="wf-flowlog-item__title">{{ task.title }}</div>
-              <div class="wf-flowlog-item__meta">
-                <span>{{ task.binder || "Sandbox" }}</span>
-                <span>{{ task.completedAt ? new Date(task.completedAt).toLocaleDateString() : "Completed" }}</span>
-              </div>
-            </div>
-            <span class="wf-flowlog-item__status" aria-label="Completed"><UIcon name="check_circle" /></span>
-          </button>
-        </div>
-      </section>
+
     </div>
 
     <!-- ── Slide-in code editor panel (from right) ── -->
-    <Transition name="wf-slide">
-      <div v-if="showCodeEditor && activeCodeTask" class="wf-code-editor-slide">
-        <div class="wf-code-editor__toolbar">
-          <button class="wf-editor-back-btn" @click="closeCodeEditor">
-            <UIcon name="arrow_back" />
-          </button>
-          <span class="wf-code-editor__title">{{ activeCodeTask.title }}</span>
-          <div class="wf-code-editor__actions">
-            <button
-              v-if="activeCodeTask.action_type && activeCodeTask.approval_status === 'pending_approval'"
-              class="wf-btn-action-approve"
-              :disabled="executingAction"
-              title="Approve & Execute Action"
-              @click="handleApproveAction(activeCodeTask)"
-            >
-              <UIcon name="check_circle" />
-              Approve {{ activeCodeTask.action_type }}
-            </button>
-            <span
-              v-else-if="activeCodeTask.approval_status === 'executed'"
-              class="wf-action-executed-badge font-mono"
-            >
-              <UIcon name="done" /> Executed
-            </span>
-            <button
-              class="wf-editor-sync-rem-btn"
-              :disabled="syncingSingleRem"
-              title="Sync this task to Apple Reminders"
-              @click="handleSyncTaskToReminders(activeCodeTask)"
-            >
-              <UIcon name="alarm" />
-            </button>
-            <button
-              class="wf-editor-open-tab-btn"
-              title="Open in Editor tab (side-by-side)"
-              @click="openInEditorTab(activeCodeTask)"
-            >
-              <UIcon name="view_sidebar" />
-            </button>
-          </div>
-        </div>
-        <div class="wf-code-editor__body">
-          <EditorPanel
-            :content="activeCodeTask.description || ''"
-            :title="activeCodeTask.title"
-            :read-only="false"
-            edit-mode="code"
-            :hide-header="true"
-            :single-pane="true"
-            @update:content="onCodeEditorUpdate"
-            @open-split="openInEditorTab(activeCodeTask!)"
-            @close="closeCodeEditor"
-          />
-        </div>
-      </div>
-    </Transition>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from "vue";
+import { computed, ref } from "vue";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 import UBadge from "../../../skills/atoms/UBadge.vue";
-import { EditorPanel } from "../../../skills";
 import { useWorkflowStore, type WorkflowTask } from "../../../stores/workflow";
-import { toTaskMarkdownLine } from "../../../utils/taskMarkdown";
 import { ucoreApi } from "../../../api/client";
 import {
   approveTaskAction,
@@ -407,10 +327,8 @@ import {
 } from "../../browserui/ApiBridge";
 
 const wf = useWorkflowStore();
-const viewMode = ref<"list" | "kanban" | "triage">("kanban");
-const statuses = ["todo", "in-progress", "review", "blocked"];
-const dragTaskId = ref<string | null>(null);
-const dragFromStatus = ref<string | null>(null);
+const viewMode = ref<"list" | "kanban" | "triage">("list");
+const statuses = ["todo", "in-progress", "review", "blocked", "completed"];
 const dragError = ref<string | null>(null);
 
 // ── Reminders & Autonomy state ────────────────────────────────────
@@ -436,7 +354,7 @@ const loadingInbound = ref(false);
 const pendingApprovals = computed(() =>
   (wf.tasks || []).filter(
     (t) =>
-      t.approval_status === "pending" ||
+      ["pending", "pending_approval"].includes(t.approval_status || "") ||
       (t.workflowType === "autonomous" && t.status === "in-progress"),
   ),
 );
@@ -577,30 +495,50 @@ async function archiveMail(item: { id: string }) {
   }
 }
 
-onMounted(() => {
-  void loadInboundTriage();
-});
 
-// ── Inline code editor state ──────────────────────────────────────
-const showCodeEditor = ref(false);
-const activeCodeTask = ref<WorkflowTask | null>(null);
 
-const statusRank: Record<string, number> = {
-  blocked: 0,
-  "in-progress": 1,
-  review: 2,
-  todo: 3,
-  completed: 4,
-};
-
-const orderedTasks = computed(() => {
-  return [...wf.activeTasks].sort((a, b) => {
-    const sa = statusRank[a.status] ?? 99;
-    const sb = statusRank[b.status] ?? 99;
-    if (sa !== sb) return sa - sb;
-    return a.title.localeCompare(b.title);
-  });
-});
+const completionFilter = ref("active");
+const extraGroups = ref<string[]>([]);
+const visibleTasks = computed(() => wf.orderedContextTasks.filter(task => completionFilter.value === "all" || (completionFilter.value === "done" ? task.status === "completed" : !["completed", "superseded", "cancelled", "archived"].includes(task.status))));
+const visibleByStatus = computed(() => Object.fromEntries(statuses.map(status => [status, visibleTasks.value.filter(task => task.status === status)])));
+const taskGroups = computed(() => [...new Set([...visibleTasks.value.map(task => task.group || "Ungrouped"), ...extraGroups.value])].map(name => ({ name, tasks: visibleTasks.value.filter(task => (task.group || "Ungrouped") === name) })));
+async function newList() {
+  const name = window.prompt("List name");
+  if (!name?.trim()) return;
+  try { await wf.createList(name.trim()); }
+  catch (error) { dragError.value = error instanceof Error ? error.message : "Could not create list"; }
+}
+function addGroup() { const name = window.prompt("Group name"); if (name?.trim()) extraGroups.value.push(name.trim()); }
+async function newTask() {
+  const title = window.prompt("Task title");
+  if (!title?.trim()) return;
+  try { await wf.createTask(title.trim()); }
+  catch (error) { dragError.value = error instanceof Error ? error.message : "Could not create task"; }
+}
+async function changeTask(task: WorkflowTask, patch: { status?: string; board?: string; group?: string; binder?: string }) {
+  dragError.value = null;
+  try { await wf.patchTask(task.id, patch); }
+  catch (error) { dragError.value = error instanceof Error ? error.message : "Could not update task"; }
+}
+async function groupTask(task: WorkflowTask) {
+  const group = window.prompt("Group name (leave empty to ungroup)", task.group || "");
+  if (group !== null) await changeTask(task, { group: group.trim() });
+}
+async function moveTask(task: WorkflowTask) {
+  const board = window.prompt("Move to list", task.board);
+  if (board?.trim()) await changeTask(task, { board: board.trim() });
+}
+async function copyTask(task: WorkflowTask) {
+  const board = window.prompt("Copy to list", task.board);
+  if (!board?.trim()) return;
+  try { await wf.duplicateTask(task.id, { board: board.trim() }); }
+  catch (error) { dragError.value = error instanceof Error ? error.message : "Could not copy task"; }
+}
+async function dropInto(event: DragEvent, destination: { board?: string; group?: string; status?: string }) {
+  dragError.value = null;
+  try { await wf.dropTask(event, { ...(wf.activeList ? { board: wf.activeList } : {}), ...(wf.activeBinderId ? { binder: wf.activeBinderId } : {}), ...destination }); }
+  catch (error) { dragError.value = error instanceof Error ? error.message : "Could not move task"; }
+}
 
 const STATUS_LABELS: Record<string, string> = {
   todo: "To Do",
@@ -637,87 +575,24 @@ function priorityBadgeType(priority: string): "error" | "warning" | "info" {
   return "info";
 }
 
-function toTaskMarkdown(task: {
-  status: string;
-  title: string;
-  tags: string[];
-  board: string;
-  priority: string;
-}): string {
-  return toTaskMarkdownLine(task);
-}
-
-function handleDragStart(taskId: string, status: string) {
-  dragTaskId.value = taskId;
-  dragFromStatus.value = status;
-}
-
-// ── Inline code editor actions ──────────────────────────────────
-
-/** Open the selected task in the inline code editor (single panel). */
-function openTaskEditor(task: WorkflowTask) {
-  activeCodeTask.value = task;
-  wf.selectTask(task, false); // select without opening side-column editor
-  showCodeEditor.value = true;
-}
-
-/** Close the inline code editor and return to task list. */
-function closeCodeEditor() {
-  showCodeEditor.value = false;
-  activeCodeTask.value = null;
-  wf.closeEditor();
-}
-
-/** Open the task in the full Editor tab (split view, hides task list). */
-function openInEditorTab(task: WorkflowTask) {
-  wf.selectTask(task, true); // select and open side-column editor
-  showCodeEditor.value = false;
-  activeCodeTask.value = null;
-  wf.setTab("editor");
-}
-
-/** Update task description from inline code editor. */
-function onCodeEditorUpdate(value: string) {
-  if (activeCodeTask.value) {
-    activeCodeTask.value.description = value;
-  }
-  wf.updateEditorContent(value);
-}
-
-async function handleDrop(targetStatus: string) {
-  const taskId = dragTaskId.value;
-  const fromStatus = dragFromStatus.value;
-  dragTaskId.value = null;
-  dragFromStatus.value = null;
-  dragError.value = null;
-
-  if (!taskId || !fromStatus || fromStatus === targetStatus) {
-    return;
-  }
-
-  const idx = wf.tasks.findIndex((task) => task.id === taskId);
-  if (idx < 0) {
-    return;
-  }
-
-  const previous = wf.tasks[idx].status;
-  wf.updateTaskStatus(taskId, targetStatus);
-
-  try {
-    await wf.patchTask(taskId, { status: targetStatus });
-  } catch (err: any) {
-    wf.updateTaskStatus(taskId, previous);
-    dragError.value = err?.message || "Failed to persist task move";
-  }
-}
+function openTaskEditor(task: WorkflowTask) { wf.openTask(task); }
+function openInEditorTab(task: WorkflowTask) { wf.openTask(task); }
 
 async function triggerRemindersSync() {
   syncingReminders.value = true;
   syncFeedback.value = null;
   try {
-    const inRes = await syncAppleRemindersInbound();
-    const outRes = await syncAppleRemindersOutbound();
-    syncFeedback.value = `Reminders synced (In: ${inRes.imported_count || 0}, Out: ${outRes.synced_count || 0})`;
+    const state = await fetch('/api/connections').then(response => { if (!response.ok) throw new Error('Connections unavailable'); return response.json(); });
+    const connections = state.connections.filter((item: any) => item.config.enabled && item.config.collections.tasks);
+    if (!connections.length) { syncFeedback.value = 'Choose Apple or Google lists in Settings → Connections.'; return; }
+    const results = [];
+    for (const item of connections) {
+      const response = await fetch(`/api/connections/${item.id}/sync`, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: '{}' });
+      if (!response.ok) throw new Error('Connection sync failed');
+      const result = await response.json();
+      results.push(`${item.provider}: ${result.state}${result.error ? ' · ' + result.error : ''}`);
+    }
+    syncFeedback.value = results.join(' · ');
     await wf.fetchTasks();
   } catch (err: any) {
     syncFeedback.value = `Sync error: ${err?.message || "Unknown error"}`;
@@ -771,6 +646,16 @@ async function handleApproveAction(task: WorkflowTask) {
 </script>
 
 <style scoped>
+.task-scope, .task-destinations { display: flex; flex-wrap: wrap; align-items: center; gap: var(--usx-spacing-sm); padding-block: var(--usx-spacing-sm); }
+.task-scope label { display: flex; align-items: center; gap: var(--usx-spacing-xs); }
+.task-group { min-height: 4rem; border-top: 1px solid var(--usx-color-border); padding: var(--usx-spacing-sm); }
+.task-group h3 { font-size: var(--usx-font-size-base); }
+.task-list__row { flex-wrap: wrap; }
+.task-list__row > select { max-width: 10rem; }
+.task-list__copy { display: flex; flex-direction: column; text-align: left; }
+.task-list__row .task-list__main { justify-content: flex-start; flex: 1; }
+.task-list__row small, .task-destinations small { color: var(--usx-color-on-surface-muted); }
+
 /* ── Panel layout ───────────────────────────────────────────── */
 
 .wf-panel {
@@ -1470,7 +1355,7 @@ async function handleApproveAction(task: WorkflowTask) {
   to { transform: rotate(360deg); }
 }
 
-/* ── Unified Tasks & Communications Header ───────────────────── */
+/* ── Unified Tasks Header ───────────────────── */
 
 .wf-unified-header {
   display: flex;
@@ -1733,4 +1618,24 @@ async function handleApproveAction(task: WorkflowTask) {
   color: var(--usx-color-on-surface-muted);
   text-align: center;
 }
+</style>
+
+<style scoped>
+.task-scope { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; overflow-x: auto; min-height: 44px; padding: 6px 0; box-sizing: border-box; white-space: nowrap; font-family: var(--usx-font-family-sans, Inter, sans-serif); font-size: var(--usx-font-size-sm); line-height: 1; }
+.task-scope > * { flex: 0 0 auto; margin: 0; }
+.task-scope label { display: inline-flex; align-items: center; gap: 6px; min-height: 0; height: 32px; padding: 0; margin: 0; font: inherit; color: var(--usx-color-on-surface-muted); }
+.task-scope__select { display: inline-flex; position: relative; align-items: center; height: 32px; }
+.task-scope select { appearance: none; box-sizing: border-box; width: auto; max-width: 9rem; height: 32px; min-height: 32px; margin: 0; padding: 0 26px 0 8px; border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-surface); color: var(--usx-color-on-surface); box-shadow: none; font: inherit; line-height: normal; }
+.task-scope__select :deep(.u-icon) { position: absolute; right: 5px; width: 16px; height: 16px; font-size: 16px; line-height: 1; pointer-events: none; }
+.task-scope .usx-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; height: 32px; min-height: 32px; margin: 0; padding: 0 8px; border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: transparent; box-shadow: none; font: inherit; line-height: 1; }
+.task-scope .usx-btn :deep(.u-icon) { width: 18px; height: 18px; font-size: 18px; line-height: 1; }
+.task-scope select:focus-visible, .task-scope .usx-btn:focus-visible { outline: 2px solid var(--usx-color-primary); outline-offset: -2px; }
+.task-scope > span { color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); }
+
+/* Compact action row: shared dimensions prevent global button defaults adding height. */
+.wf-unified-header__right { flex-wrap: nowrap; gap: var(--usx-spacing-xs); max-width: 100%; min-width: 0; overflow-x: auto; padding-block: 2px; }
+.wf-segmented-group, .wf-header-actions { flex: 0 0 auto; gap: 4px; }
+.wf-segmented-group { padding: 0; border: 0; background: transparent; }
+.wf-unified-header__right button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; height: 36px; min-height: 36px; margin: 0; padding: 0 8px; font-size: var(--usx-font-size-sm); line-height: 1; white-space: nowrap; }
+.wf-unified-header__right :deep(.u-icon) { font-size: 20px; width: 20px; height: 20px; line-height: 1; }
 </style>

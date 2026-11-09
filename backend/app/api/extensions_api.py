@@ -50,6 +50,12 @@ def _load_capability_requirements() -> tuple[dict[str, Any], str]:
     for spec in data.values():
         if isinstance(spec, dict) and isinstance(spec.get("repos"), list):
             spec["repos"] = [r for r in spec["repos"] if str(r) not in CONSOLIDATED_REPOS]
+    # Local workflow CRUD is owned by the loaded uFlow extension. Git is only
+    # needed by explicit developer/publishing operations, including on hosts
+    # with an older requirements override.
+    workflow = data.get("workflow.run")
+    if isinstance(workflow, dict) and isinstance(workflow.get("tools"), list):
+        workflow["tools"] = [tool for tool in workflow["tools"] if tool != "git"]
     return data, str(source)
 
 
@@ -131,11 +137,13 @@ async def _evaluate_capability(
                 # pydantic model fallback
                 ok = bool(getattr(result, "installed", False) or getattr(result, "available", False))
             if not ok:
+                probe_error = result.get("error", "") if isinstance(result, dict) else getattr(result, "error", "")
+                repair_action = result.get("repair_action", "") if isinstance(result, dict) else getattr(result, "repair_action", "")
                 repair.append(_repair_item(
                     "tool",
                     tool_id,
-                    "Required tool is not available on this machine",
-                    f"Install tool '{tool_id}' and rerun preflight",
+                    probe_error or "Required tool is not available on this machine",
+                    repair_action or f"Install tool '{tool_id}' and rerun preflight",
                 ))
 
     # Repos

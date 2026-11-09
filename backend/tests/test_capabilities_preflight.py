@@ -32,7 +32,7 @@ class CapabilitiesPreflightAPITest(AioHTTPTestCase):
         return app
 
     async def test_capability_requirements_consolidated_repos_contract(self):
-        from app.api.extensions_api import _load_capability_requirements, CONSOLIDATED_REPOS
+        from app.api.extensions_api import CONSOLIDATED_REPOS, _load_capability_requirements
         reqs, _ = _load_capability_requirements()
         assert reqs["workflow.run"]["repos"] == []
         assert reqs["knowledge.search"]["repos"] == []

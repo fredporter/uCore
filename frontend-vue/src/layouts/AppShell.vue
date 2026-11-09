@@ -20,7 +20,8 @@
         </button>
       </div>
     </div>
-    <div v-if="!pwa.online" class="app-offline-indicator" role="status">Offline — workspace saves will sync when reconnected</div>
+    <div v-if="pwa.backendAvailable === false" class="app-offline-indicator" role="status">Local backend unavailable — queued workspace saves will retry when it returns</div>
+    <div v-else-if="pwa.backendAvailable === true && !pwa.online" class="app-offline-indicator" role="status">Internet offline — your local workspace is available</div>
     <div class="app-workspace">
     <div
       class="app-body"
@@ -63,7 +64,7 @@
  * Replaces RootLayout + SurfaceShellContext from React.
  * @category layouts
  */
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useShellStore } from "../stores/shell";
 import { useSettingsStore } from "../stores/settings";
 import { useIdentityStore } from "../stores/identity";
@@ -71,12 +72,14 @@ import { useChatStore } from "../stores/chat";
 import { usePwa } from "../composables/usePwa";
 import { useSwipe } from "../composables/useSwipe";
 import { useToast } from "../composables/useToast";
+import { useWorkspaceStore } from "../stores/workspace";
 import { useWorkflowStore } from "../stores/workflow";
 import { useRouter, useRoute } from "vue-router";
 import GlobalToolbar from "../skills/organisms/GlobalToolbar.vue";
 import FilepickerSidebar from "../skills/molecules/FilepickerSidebar.vue";
 import SnackbarHost from "../skills/molecules/SnackbarHost.vue";
 import OverlayLayer from "../skills/organisms/OverlayLayer.vue";
+import { UCORE_BASE } from "../api/base";
 import { ucoreApi } from "../api/client";
 import type { FileEntry } from "../types/filepicker";
 
@@ -88,6 +91,10 @@ const runtimeWarning = ref("");
 const identity = useIdentityStore();
 const chat = useChatStore();
 const pwa = reactive(usePwa());
+const workspace = useWorkspaceStore();
+watch(() => pwa.backendAvailable, (available) => {
+  if (available) void workspace.flushSaveQueue();
+});
 const { toast } = useToast();
 const shellEl = ref<HTMLElement | null>(null);
 useSwipe(shellEl, { right: () => shell.setSidebarOpen(true), left: () => shell.setSidebarOpen(false) });
@@ -161,23 +168,32 @@ function handleGlobalSidebarToggle() {
 
 async function handleFileSelect(file: FileEntry) {
   let content = file.preview || "";
+  let path = file.path;
+  let version: string | undefined;
+  let loaded = false;
   try {
-    const res = await ucoreApi.library.file(file.path);
-    if (res.ok && (res.data as any)?.content !== undefined) {
-      content = String((res.data as any).content || "");
+    if (file.source === "user" && !file.is_readonly) {
+      const response = await fetch(`${UCORE_BASE}/api/editor/files?source=user&path=${encodeURIComponent(file.path)}`, { signal: AbortSignal.timeout(8000) });
+      if (!response.ok) throw new Error("Could not open the workspace file");
+      const data = await response.json();
+      content = data.content;
+      path = data.path;
+      version = data.version;
+      loaded = true;
+    } else {
+      const response = await ucoreApi.library.file(file.path);
+      if (response.ok && (response.data as any)?.content !== undefined) {
+        content = String((response.data as any).content);
+        loaded = true;
+      }
     }
   } catch {
-    // Fall back to indexed preview content.
+    toast("Could not load the full file. Showing a read-only preview.", "warning");
   }
-
   workflow.selectFile({
-    id: file.id || file.path,
-    path: file.path,
-    filename: file.filename,
-    extension: file.extension,
-    binder: file.binder || "Sandbox",
-    content,
-    readOnly: Boolean(file.is_readonly),
+    id: file.id || path, path, filename: file.filename, extension: file.extension,
+    binder: file.binder || "", content, version,
+    readOnly: Boolean(file.is_readonly) || file.source !== "user" || !loaded,
   });
   await router.push({ path: "/workflow", query: { tab: "editor" } });
 }

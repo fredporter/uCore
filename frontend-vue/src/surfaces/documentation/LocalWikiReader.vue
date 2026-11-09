@@ -1,22 +1,22 @@
 <template>
-  <div class="local-wiki-reader" :class="{ 'local-wiki-reader--zen': zenMode, [`font-${fontFamily}`]: true }">
+  <div ref="readerRoot" class="local-wiki-reader" :class="{ 'local-wiki-reader--zen': zenMode, [`font-${fontFamily}`]: true }">
     <!-- Top Reader Header / Toolbar -->
-    <header class="wiki-toolbar">
+    <header class="wiki-toolbar" role="toolbar" aria-label="Knowledge reader">
       <div class="wiki-toolbar__left">
         <button
           type="button"
-          class="wiki-btn wiki-btn--icon"
-          :title="zenMode ? 'Exit Zen Mode' : 'Enter Zen Focus Mode'"
+          class="usx-btn wiki-btn wiki-btn--icon"
+          :title="zenMode ? 'Exit full screen' : 'Full screen'"
           @click="zenMode = !zenMode"
         >
           <UIcon :name="zenMode ? 'fullscreen_exit' : 'fit_screen'" />
-          <span class="wiki-btn__text">{{ zenMode ? 'Exit Zen' : 'Zen Focus' }}</span>
+          <span class="wiki-btn__text">{{ zenMode ? 'Exit full screen' : 'Full screen' }}</span>
         </button>
 
         <div class="wiki-font-toggle">
           <button
             type="button"
-            class="wiki-btn wiki-btn--toggle"
+            class="usx-btn wiki-btn wiki-btn--toggle"
             :class="{ 'wiki-btn--active': fontFamily === 'serif' }"
             @click="fontFamily = 'serif'"
             title="Serif Reader (Charter / Georgia)"
@@ -25,7 +25,7 @@
           </button>
           <button
             type="button"
-            class="wiki-btn wiki-btn--toggle"
+            class="usx-btn wiki-btn wiki-btn--toggle"
             :class="{ 'wiki-btn--active': fontFamily === 'sans' }"
             @click="fontFamily = 'sans'"
             title="Clean Sans (Inter / System)"
@@ -35,6 +35,11 @@
         </div>
       </div>
 
+      <nav v-if="activePath" class="wiki-reading-nav" aria-label="Reading sequence">
+        <button class="usx-btn" aria-label="Previous article" :disabled="readingPosition <= 0 || loadingContent" @click="navigateArticle(-1)"><UIcon name="chevron_left" /></button>
+        <span v-if="readingPosition >= 0">{{ readingPosition + 1 }} of {{ readingSequence.length }}</span>
+        <button class="usx-btn" aria-label="Next article" :disabled="readingPosition < 0 || readingPosition >= readingSequence.length - 1 || loadingContent" @click="navigateArticle(1)"><UIcon name="chevron_right" /></button>
+      </nav>
       <div class="wiki-toolbar__center">
         <div v-if="activeTitle" class="wiki-meta">
           <span class="wiki-meta__title">{{ activeTitle }}</span>
@@ -47,19 +52,20 @@
       <div class="wiki-toolbar__right">
         <button
           type="button"
-          class="wiki-search-trigger"
-          title="Search Local Wikipedia (⌘K)"
+          class="usx-btn wiki-search-trigger"
+          title="Search knowledge (⌘K)"
           @click="openSearchModal"
         >
           <UIcon name="search" size="xs" />
-          <span class="wiki-search-trigger__text">Search Wikipedia…</span>
+          <span class="wiki-search-trigger__text">Search knowledge…</span>
           <kbd class="wiki-kbd">⌘K</kbd>
         </button>
 
         <button
           type="button"
-          class="wiki-btn wiki-btn--icon"
-          title="Knowledge Federation (Layers & Submissions)"
+          class="usx-btn wiki-btn wiki-btn--icon"
+          v-if="settings.advancedView"
+          title="Knowledge sharing and review"
           @click="openFederationOverviewModal"
         >
           <UIcon name="hub" />
@@ -68,7 +74,7 @@
 
         <button
           type="button"
-          class="wiki-btn wiki-btn--icon"
+          class="usx-btn wiki-btn wiki-btn--icon"
           title="Refresh Vaults Tree"
           :disabled="loadingTree"
           @click="loadTree"
@@ -82,8 +88,8 @@
       <!-- Left Sidebar: Multi-Vault Explorer -->
       <aside v-show="!zenMode" class="wiki-sidebar">
         <div class="wiki-sidebar__header">
-          <span class="wiki-sidebar__title">Local Vaults & Manuals</span>
-          <span class="wiki-badge wiki-badge--offline">Offline Wikipedia</span>
+          <span class="wiki-sidebar__title">Library</span>
+          <span class="wiki-badge wiki-badge--offline">Local knowledge</span>
         </div>
 
         <div class="wiki-tree-filter">
@@ -105,7 +111,7 @@
         </div>
 
         <div v-if="loadingTree" class="wiki-loading">
-          <UIcon name="sync" /> Loading multi-vault tree…
+          <UIcon name="sync" /> Loading library…
         </div>
 
         <div v-else-if="filteredVaults.length === 0" class="wiki-empty-tree">
@@ -147,14 +153,8 @@
           <div class="wiki-placeholder__icon">
             <UIcon name="auto_stories" />
           </div>
-          <h2>Welcome to the Sovereign Local Wikipedia</h2>
-          <p>
-            An offline-first, serene reading experience combining all local vaults
-            (<code>~/Vault</code>, <code>~/Shared</code>, <code>~/Public</code>, and manuals).
-          </p>
-          <p class="wiki-placeholder__note">
-            External links are safely rendered as static citation chips with zero outbound web tracking.
-          </p>
+          <h2>Knowledge</h2>
+          <p>Browse your saved knowledge, or search the library.</p>
           <div class="wiki-placeholder__actions">
             <button
               v-if="firstArticle"
@@ -191,8 +191,9 @@
             </div>
           </div>
 
+          <button v-if="!settings.advancedView && activeOverlay?.effective_layer === 0" class="usx-btn" :disabled="customizingOverlay" @click="customizeInVault">Save a personal copy</button>
           <!-- Knowledge Federation Action Strip -->
-          <div v-if="activeOverlay && activeOverlay.effective_layer !== null" class="wiki-federation-toolbar">
+          <div v-if="settings.advancedView && activeOverlay && activeOverlay.effective_layer !== null" class="wiki-federation-toolbar">
             <div class="wiki-fed-actions">
               <!-- Compare vs Canon (if diff available) -->
               <button
@@ -240,7 +241,7 @@
                 v-if="activeOverlay.effective_layer !== 2"
                 type="button"
                 class="wiki-btn wiki-btn--xs wiki-btn--fork"
-                title="Fork into ~/Vault/knowledge for personal sovereign customization"
+                title="Create a personal copy"
                 :disabled="customizingOverlay"
                 @click="customizeInVault"
               >
@@ -274,6 +275,7 @@
             </div>
           </div>
 
+          <DocumentProperties :frontmatter="readingDocument.frontmatter" />
           <!-- Auto-generated Table of Contents -->
           <div v-if="headings.length > 2" class="wiki-toc">
             <div class="wiki-toc__title">
@@ -304,7 +306,7 @@
 
     <!-- Offline Search Modal (Cmd+K) -->
     <div v-if="showSearchModal" class="wiki-modal-backdrop" @click.self="closeSearchModal">
-      <div class="wiki-search-modal" role="dialog" aria-label="Search Local Wikipedia">
+      <div class="wiki-search-modal" role="dialog" aria-label="Search knowledge">
         <header class="wiki-search-modal__header">
           <UIcon name="search" class="wiki-search-modal__icon" />
           <input
@@ -504,7 +506,7 @@
 
           <div v-else class="wiki-submission-form">
             <p class="wiki-fed-modal__desc">
-              Package your sovereign personal modifications into a signed bundle for community sharing or Wizard canon review.
+              Export your changes for sharing or review.
             </p>
 
             <div class="wiki-form-group">
@@ -514,7 +516,7 @@
 
             <div class="wiki-form-group">
               <label>Author / Pseudonym</label>
-              <input v-model="submissionAuthor" type="text" placeholder="e.g. sovereign-explorer" class="wiki-input" />
+              <input v-model="submissionAuthor" type="text" placeholder="Your name" class="wiki-input" />
             </div>
 
             <div class="wiki-form-group">
@@ -587,7 +589,7 @@
         <header class="wiki-fed-modal__header">
           <div class="wiki-fed-modal__title-row">
             <UIcon name="hub" class="wiki-fed-modal__icon" />
-            <h3 class="wiki-fed-modal__title">Sovereign Knowledge Federation Architecture</h3>
+            <h3 class="wiki-fed-modal__title">Knowledge layers</h3>
           </div>
           <button type="button" class="wiki-search-clear" @click="showFederationModal = false">
             <UIcon name="close" size="xs" />
@@ -599,14 +601,14 @@
             <div class="wiki-fed-tier-card tier--personal">
               <div class="tier-card__header">
                 <span class="tier-badge">Layer 2</span>
-                <h4>Sovereign Personal</h4>
+                <h4>Personal</h4>
               </div>
               <p class="tier-path"><code>~/Vault/knowledge/</code></p>
               <div class="tier-stat">
                 <span class="stat-number">{{ fedSummary?.layers?.layer_2_personal?.articles_count || 0 }}</span>
                 <span class="stat-label">articles</span>
               </div>
-              <p class="tier-desc">User private notes, custom clips, sovereign overrides. Full precedence.</p>
+              <p class="tier-desc">Your notes and changes take precedence locally.</p>
             </div>
 
             <div class="wiki-fed-tier-card tier--community">
@@ -731,6 +733,9 @@
 
 <script setup lang="ts">
 import { computed, h, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { useSettingsStore } from "../../stores/settings";
+import DocumentProperties from "../../skills/molecules/DocumentProperties.vue";
+import { parseReadingDocument, containReaderKeys } from "../../utils/readingDocument";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import { renderProseFast, sanitize } from "../../utils/markdownRenderer";
 import { hydrateDiagrams } from "../../utils/diagramHydrator";
@@ -771,6 +776,20 @@ const activeSource = ref<string>("");
 const activePath = ref<string>("");
 const activeTitle = ref<string>("");
 const rawMarkdown = ref<string>("");
+const settings = useSettingsStore();
+const readerRoot = ref<HTMLElement | null>(null);
+const readingDocument = computed(() => parseReadingDocument(rawMarkdown.value));
+const readingSequence = computed(() => {
+  const entries: TreeItem[] = [];
+  function visit(items: TreeItem[], source: string) { for (const item of items) { if (item.is_dir) visit(item.children || [], item.source || source); else entries.push({ ...item, source: item.source || source }); } }
+  for (const vault of vaults.value) visit(vault.items, vault.source);
+  const parent = activePath.value.split('/').slice(0, -1).join('/');
+  return entries.filter(item => item.source === activeSource.value && (activeSource.value === 'manual' || item.path.split('/').slice(0, -1).join('/') === parent));
+});
+const readingPosition = computed(() => readingSequence.value.findIndex(item => item.path === activePath.value));
+function navigateArticle(offset: number) { const item = readingSequence.value[readingPosition.value + offset]; if (item) void selectDocument(item.source, item.path, item.title || item.name); }
+function readingKeydown(event: KeyboardEvent) { if (showSearchModal.value || showFederationModal.value || showSubmissionModal.value || showDiffModal.value) return; containReaderKeys(event, readerRoot.value, zenMode.value, () => { zenMode.value = false; }); }
+
 
 const filterQuery = ref<string>("");
 const zenMode = ref<boolean>(false);
@@ -863,7 +882,7 @@ const WikiTreeItem = {
 // ── Word count and Reading Time ──────────────────────────────────────
 const wordCount = computed(() => {
   if (!rawMarkdown.value) return 0;
-  return rawMarkdown.value.trim().split(/\s+/).filter(Boolean).length;
+  return readingDocument.value.body.trim().split(/\s+/).filter(Boolean).length;
 });
 
 const estimatedMinutes = computed(() => {
@@ -960,7 +979,7 @@ function sourceLabel(src: string): string {
 const headings = computed<HeadingItem[]>(() => {
   if (!rawMarkdown.value) return [];
   const list: HeadingItem[] = [];
-  const lines = rawMarkdown.value.split("\n");
+  const lines = readingDocument.value.body.split("\n");
 
   for (const line of lines) {
     const match = line.match(/^(#{1,3})\s+(.+)$/);
@@ -990,7 +1009,7 @@ const wikiProseRef = ref<HTMLElement | null>(null);
 const renderedHtml = computed(() => {
   if (!rawMarkdown.value) return "";
 
-  let processed = rawMarkdown.value;
+  let processed = readingDocument.value.body;
 
   // 1. Transform internal [[WikiLink]] syntax to clickable local links
   processed = processed.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target, alias) => {
@@ -1192,12 +1211,14 @@ function layerBadgeLabel(layer: number | null, isOverlaid: boolean) {
   return "Document";
 }
 
+let documentRequest = 0;
 async function selectDocument(
   source: string,
   path: string,
   title?: string,
   forceCanon: boolean = false
 ) {
+  const request = ++documentRequest;
   activeSource.value = source;
   activePath.value = path;
   activeTitle.value = title || path.split("/").pop() || "Untitled";
@@ -1209,17 +1230,21 @@ async function selectDocument(
     const resp = await fetch(url);
     if (resp.ok) {
       const data = await resp.json();
+      if (request !== documentRequest) return;
       rawMarkdown.value = data.content || "";
       activeOverlay.value = data.overlay || null;
-    } else {
+    } else if (request === documentRequest) {
       rawMarkdown.value = `# Unable to load document\n\nPath: \`${path}\``;
       activeOverlay.value = null;
     }
   } catch (err) {
+    if (request !== documentRequest) return;
     rawMarkdown.value = `# Network Error\n\nCould not fetch document \`${path}\`.`;
     activeOverlay.value = null;
   } finally {
-    loadingContent.value = false;
+    if (request === documentRequest) loadingContent.value = false;
+    await nextTick();
+    readerRoot.value?.querySelector('.wiki-content')?.scrollTo({ top: 0 });
   }
 }
 
@@ -1469,11 +1494,13 @@ function onKeydown(e: KeyboardEvent) {
 
 onMounted(() => {
   window.addEventListener("keydown", onKeydown);
+  document.addEventListener("keydown", readingKeydown);
   loadTree();
 });
 
 onUnmounted(() => {
   window.removeEventListener("keydown", onKeydown);
+  document.removeEventListener("keydown", readingKeydown);
 });
 </script>
 
@@ -1489,11 +1516,11 @@ onUnmounted(() => {
 
 /* ── Typography Modes ──────────────────────────────────────────────── */
 .local-wiki-reader.font-serif .wiki-prose {
-  font-family: "Charter", "Georgia", "Merriweather", serif;
+  font-family: var(--usx-font-family-serif, Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif);
 }
 
 .local-wiki-reader.font-sans .wiki-prose {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", sans-serif;
+  font-family: var(--usx-font-family-sans, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
 }
 
 /* ── Top Toolbar ───────────────────────────────────────────────────── */
@@ -2782,4 +2809,28 @@ onUnmounted(() => {
   border-radius: 3px;
   margin-right: 4px;
 }
+</style>
+
+<style scoped>
+.local-wiki-reader--zen { position: fixed; inset: 0; z-index: 1000; width: 100%; height: 100%; background: var(--usx-color-background); }
+.wiki-toolbar { flex-wrap: wrap; font-family: var(--usx-font-family-sans, Inter, sans-serif); }
+.wiki-reading-nav { display: flex; align-items: center; gap: var(--usx-spacing-xs); white-space: nowrap; font-size: var(--usx-font-size-sm); }
+.wiki-reading-nav .usx-btn { padding: var(--usx-spacing-xs); }
+.wiki-prose { max-width: 72ch; line-height: 1.7; text-align: left; }
+.wiki-placeholder { text-align: left; }
+
+.wiki-toolbar { display: flex; align-items: center; flex-wrap: nowrap; box-sizing: border-box; height: 44px; min-height: 44px; flex-shrink: 0; gap: 8px; margin: 0; padding: 6px 8px; font-size: var(--usx-font-size-sm); line-height: 1; }
+.wiki-toolbar__left, .wiki-toolbar__right, .wiki-reading-nav, .wiki-font-toggle { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 4px; min-height: 0; height: 32px; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.wiki-toolbar__center { flex: 1 1 auto; min-width: 0; margin: 0; padding: 0; overflow: hidden; }
+.wiki-meta { min-width: 0; margin: 0; padding: 0; }
+.wiki-meta__title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: inherit; line-height: 1.3; }
+.wiki-meta__reading-time { display: none; }
+.wiki-toolbar button.usx-btn { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: 4px; box-sizing: border-box; height: 32px; min-height: 32px; margin: 0; padding: 0 8px; border: 0; border-radius: var(--usx-radius-sm); background: transparent; color: var(--usx-color-on-surface-muted); box-shadow: none; font: inherit; line-height: 1; white-space: nowrap; }
+.wiki-toolbar button.usx-btn:hover { background: var(--usx-color-surface-variant); }
+.wiki-toolbar button.wiki-btn--active { background: var(--usx-color-surface-variant); color: var(--usx-color-primary); }
+.wiki-toolbar button:focus-visible { outline: 2px solid var(--usx-color-primary); outline-offset: -2px; }
+.wiki-toolbar :deep(.u-icon) { width: 18px; height: 18px; font-size: 18px; line-height: 1; }
+.wiki-toolbar .wiki-kbd { margin: 0; padding: 2px 4px; font-size: var(--usx-font-size-xs); line-height: 1; }
+@media (max-width: 60rem) { .wiki-toolbar .wiki-btn__text, .wiki-search-trigger__text, .wiki-toolbar .wiki-kbd { display: none; } }
+@media (max-width: 30rem) { .wiki-toolbar { gap: 4px; } .wiki-toolbar__center { display: none; } .wiki-toolbar__right { margin-left: auto; } .wiki-toolbar button.usx-btn { padding-inline: 5px; } }
 </style>

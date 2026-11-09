@@ -49,3 +49,15 @@ def test_settings_manager_profile_isolation(tmp_path: Path):
 
     assert alice_user["displayName"] == "Alice Smith"
     assert default_user["displayName"] == "uDos Developer"
+
+
+def test_advanced_display_preference_persists_per_profile(tmp_path: Path):
+    target = tmp_path / "system_settings.json"
+    mgr = SettingsManager(target)
+    assert not mgr.get_user_preferences(profile_id="default").get("advancedView", False)
+    mgr.update_user_preferences({"advancedView": True}, profile_id="alice")
+    reloaded = SettingsManager(target)
+    assert reloaded.get_user_preferences(profile_id="alice")["advancedView"] is True
+    assert not reloaded.get_user_preferences(profile_id="default").get("advancedView", False)
+    reloaded.update_user_preferences({"advancedView": False}, profile_id="alice")
+    assert SettingsManager(target).get_user_preferences(profile_id="alice")["advancedView"] is False

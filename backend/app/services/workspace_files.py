@@ -31,7 +31,8 @@ def _target(source: str, relative_path: str, *, allow_root: bool = False) -> Pat
         return root
     if not raw:
         raise ValueError("path is required")
-    target = (root / raw).resolve()
+    supplied = Path(str(relative_path or "").strip()).expanduser()
+    target = supplied.resolve() if supplied.is_absolute() and supplied.is_relative_to(root) else (root / raw).resolve()
     if target == root and allow_root:
         return target
     if not target.is_relative_to(root):

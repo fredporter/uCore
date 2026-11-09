@@ -47,3 +47,22 @@ class TestDocsWikiTree(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_course_catalog_only_reads_learning_roots(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from app.surfaces import documentation_api as docs
+
+    roots = [tmp_path / 'uCode/docs/manual', tmp_path / 'SonicScrewdriver/docs/manual', tmp_path / 'learning']
+    for root in roots:
+        root.mkdir(parents=True)
+        (root / 'guide.md').write_text('# Guide', encoding='utf-8')
+    archive = tmp_path / 'uCore/docs/archive'
+    archive.mkdir(parents=True)
+    (archive / 'internal-report.md').write_text('# Internal report', encoding='utf-8')
+    monkeypatch.setattr(docs, 'settings', SimpleNamespace(udos_root=tmp_path))
+    monkeypatch.setattr(docs, 'LEARNING_ROOT', roots[-1])
+    courses = docs._list_courses()
+    assert {course['source'] for course in courses} == {'manual', 'sonic', 'learning'}
+    assert len(courses) == 3

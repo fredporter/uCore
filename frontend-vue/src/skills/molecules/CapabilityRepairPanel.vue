@@ -5,8 +5,8 @@
         <UIcon name="warning" />
         <h3 class="repair-panel__title">Repair Required</h3>
       </div>
-      <UButton size="sm" variant="secondary" @click="$emit('retry')">
-        Re-check
+      <UButton size="sm" variant="secondary" :disabled="busy" @click="$emit('retry')">
+        {{ busy ? "Checking…" : "Re-check" }}
       </UButton>
     </div>
 
@@ -51,6 +51,7 @@ import UIcon from "@/skills/atoms/UIcon.vue";
 
 defineProps<{
   items: CapabilityPreflightResult[];
+  busy?: boolean;
 }>();
 
 defineEmits<{

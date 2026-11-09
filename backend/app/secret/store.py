@@ -1,7 +1,7 @@
 """AES-256-GCM encrypted secret store for uCore.
 
 Stores API keys and credentials encrypted beneath ``$UDOS_HOME/secrets``.
-Uses a 256-bit key derived from a stored salt + host identifier.
+Uses a product-owned 256-bit key with owner-only file permissions.
 """
 
 from __future__ import annotations
@@ -58,9 +58,15 @@ def _get_or_create_key() -> bytes:
     SECRETS_DIR.mkdir(parents=True, exist_ok=True)
     if KEY_FILE.exists():
         return KEY_FILE.read_bytes()
+    if SECRETS_FILE.exists():
+        raise RuntimeError("Secret encryption key is missing; restore it before starting")
     key = _generate_key()
-    KEY_FILE.write_bytes(key)
-    KEY_FILE.chmod(0o600)
+    try:
+        fd = os.open(KEY_FILE, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        return KEY_FILE.read_bytes()
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(key)
     return key
 
 
@@ -120,66 +126,85 @@ class SecretStore:
     def load(self):
         """Load and decrypt secrets from disk."""
         if AESGCM is None:
-            log.warning("cryptography not installed, using plaintext fallback")
-            return self._load_plaintext()
-
+            raise RuntimeError(
+                "Encrypted secret storage requires cryptography; plaintext fallback is disabled"
+            )
         self._key = _get_or_create_key()
-        aes_key = _derive_key(self._key)
-
         if not SECRETS_FILE.exists():
-            log.info("No secrets file, starting fresh")
             self._secrets = {}
-            return None
-
+            self._migrate_legacy()
+            return
         try:
             data = SECRETS_FILE.read_bytes()
-            nonce = data[:12]
-            ciphertext = data[12:]
-            aes = AESGCM(aes_key)
-            decrypted = aes.decrypt(nonce, ciphertext, None)
-            self._secrets = json.loads(decrypted.decode())
-            log.debug(f"Loaded {len(self._secrets)} secrets")
-        except Exception as e:
-            log.warning(f"Failed to decrypt secrets: {e}")
-            self._secrets = {}
+            decrypted = AESGCM(_derive_key(self._key)).decrypt(data[:12], data[12:], None)
+            payload = json.loads(decrypted)
+            if not isinstance(payload, dict):
+                raise ValueError("Invalid secret payload")
+        except Exception:
+            raise RuntimeError(
+                "Cannot decrypt secret store; restore the matching key/store before saving"
+            ) from None
+        self._secrets = payload
+        KEY_FILE.chmod(0o600)
+        SECRETS_FILE.chmod(0o600)
+        self._migrate_legacy()
 
-    def _load_plaintext(self):
-        """Fallback: load from plaintext JSON."""
-        path = DATA_DIR / "secrets.json"
-        if path.exists():
-            try:
-                self._secrets = json.loads(path.read_text())
-            except Exception:
-                self._secrets = {}
-        self._dirty = False
+    def _migrate_legacy(self):
+        legacy = DATA_DIR / "secrets.json"
+        if not legacy.exists():
+            return
+        payload = json.loads(legacy.read_text())
+        if not isinstance(payload, dict) or not all(
+            isinstance(k, str) and isinstance(v, str) for k, v in payload.items()
+        ):
+            raise RuntimeError("Legacy secret store is invalid; no files changed")
+        conflicts = {
+            k: v for k, v in payload.items() if k in self._secrets and self._secrets[k] != v
+        }
+        if conflicts:
+            # Keep competing legacy values encrypted without replacing live credentials.
+            backup = "LEGACY_PLAINTEXT_BACKUP_" + pysecrets.token_hex(8)
+            self._secrets[backup] = json.dumps(conflicts)
+        for key, value in payload.items():
+            self._secrets.setdefault(key, value)
+        self._dirty = True
+        self.save()
+        data = SECRETS_FILE.read_bytes()
+        verified = json.loads(AESGCM(_derive_key(self._key)).decrypt(data[:12], data[12:], None))
+        if verified != self._secrets:
+            raise RuntimeError("Secret migration verification failed")
+        legacy.unlink()
+        log.info(
+            "Migrated legacy secrets to encrypted storage; competing values retained in encrypted backup"
+        )
 
     def save(self):
-        """Encrypt and save secrets to disk."""
+        """Write encrypted data atomically; never fall back to plaintext."""
         if AESGCM is None:
-            return self._save_plaintext()
-
+            raise RuntimeError("Encrypted secret storage requires cryptography")
         if not self._dirty:
-            return None
+            return
+        import tempfile
 
         self._key = _get_or_create_key()
-        aes_key = _derive_key(self._key)
-
-        plaintext = json.dumps(self._secrets, indent=2).encode()
         nonce = pysecrets.token_bytes(12)
-        aes = AESGCM(aes_key)
-        ciphertext = aes.encrypt(nonce, plaintext, None)
-
+        ciphertext = AESGCM(_derive_key(self._key)).encrypt(
+            nonce, json.dumps(self._secrets).encode(), None
+        )
         SECRETS_DIR.mkdir(parents=True, exist_ok=True)
-        SECRETS_FILE.write_bytes(nonce + ciphertext)
-        SECRETS_FILE.chmod(0o600)
-        self._dirty = False
-        log.debug(f"Saved {len(self._secrets)} secrets")
-
-    def _save_plaintext(self):
-        path = DATA_DIR / "secrets.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(self._secrets, indent=2))
-        path.chmod(0o600)
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                dir=SECRETS_DIR, prefix="secrets-", delete=False
+            ) as stream:
+                temporary = stream.name
+                stream.write(nonce + ciphertext)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, SECRETS_FILE)
+        finally:
+            if temporary and os.path.exists(temporary):
+                os.unlink(temporary)
         self._dirty = False
 
     def get(

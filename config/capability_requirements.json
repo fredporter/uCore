@@ -1,7 +1,7 @@
 {
   "workflow.run": {
     "extensions": ["uflow"],
-    "tools": ["git"],
+    "tools": [],
     "repos": [],
     "variables": [],
     "secrets": []

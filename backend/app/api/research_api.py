@@ -5,6 +5,7 @@ GET  /api/research/status  — poll job progress
 GET  /api/research/list    — list all jobs
 POST /api/research/process — process next pending job
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -19,7 +20,18 @@ from ..services.research_queue import ResearchQueue
 
 log = logging.getLogger("ucore.research_api")
 _queue: ResearchQueue | None = None
-_research_tasks: set[asyncio.Task] = set()
+
+
+async def research_queue_ctx(app):
+    """Own one durable research worker for the uCore service lifecycle."""
+    global _queue
+    queue = get_queue()
+    await queue.start()
+    try:
+        yield
+    finally:
+        await queue.stop()
+        _queue = None
 
 
 def get_queue() -> ResearchQueue:
@@ -45,10 +57,10 @@ async def handle_research_start(request: web.Request) -> web.Response:
     mode = body.get("mode", "summarise")
 
     q = get_queue()
-    job_id = await q.enqueue(url=url, binder=binder, tags=tags, mode=mode)
-    task = asyncio.create_task(q.process_job(job_id))
-    _research_tasks.add(task)
-    task.add_done_callback(_research_tasks.discard)
+    try:
+        job_id = await q.enqueue(url=url, binder=binder, tags=tags, mode=mode)
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
     return web.json_response({"job_id": job_id, "state": "pending", "binder": binder})
 
 
@@ -59,6 +71,7 @@ async def handle_research_search(request: web.Request) -> web.Response:
         return web.json_response({"results": [], "count": 0})
     try:
         import aiohttp
+
         timeout = aiohttp.ClientTimeout(total=12)
         headers = {"User-Agent": "Mozilla/5.0 (compatible; uCore-Research/1.0)"}
         url = f"https://html.duckduckgo.com/html/?q={quote_plus(query)}"
@@ -79,7 +92,9 @@ async def handle_research_search(request: web.Request) -> web.Response:
                 target = unquote(parse_qs(parsed.query).get("uddg", [target])[0])
             title = unescape(re.sub(r"<[^>]+>", "", title_html)).strip()
             if target.startswith(("http://", "https://")) and title:
-                results.append({"title": title, "url": target, "description": f"Web result for {query}"})
+                results.append(
+                    {"title": title, "url": target, "description": f"Web result for {query}"}
+                )
             if len(results) >= 10:
                 break
         return web.json_response({"results": results, "count": len(results), "query": query})
@@ -108,7 +123,27 @@ async def handle_research_list(request: web.Request) -> web.Response:
     binder = request.query.get("binder")
     q = get_queue()
     jobs = await q.list_jobs(state=state, binder=binder)
-    return web.json_response({"jobs": jobs, "count": len(jobs)})
+    return web.json_response({"jobs": jobs, "count": len(jobs), "worker": q.summary()})
+
+
+async def handle_research_cancel(request):
+    try:
+        result = await get_queue().cancel(request.match_info["job_id"])
+        return web.json_response(result)
+    except KeyError:
+        return web.json_response({"error": "Job not found"}, status=404)
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=409)
+
+
+async def handle_research_retry(request):
+    try:
+        result = await get_queue().retry(request.match_info["job_id"])
+        return web.json_response(result)
+    except KeyError:
+        return web.json_response({"error": "Job not found"}, status=404)
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=409)
 
 
 async def handle_research_process(request: web.Request) -> web.Response:
@@ -136,6 +171,7 @@ async def handle_research_enhance(request: web.Request) -> web.Response:
         return web.json_response({"error": "content required"}, status=400)
     try:
         from .chat import get_router
+
         router = get_router()
         prompt = (
             f"Expand and enhance the following document with deeper analysis, "
@@ -145,17 +181,21 @@ async def handle_research_enhance(request: web.Request) -> web.Response:
         )
         sr = await router.chat(
             messages=[{"role": "user", "content": prompt}],
-            model="ollama/qwen2.5-coder:3b", temperature=0.3,
+            model="ollama/qwen2.5-coder:3b",
+            temperature=0.3,
         )
         enhanced = sr.get("content", content)
         # Extract hashtags
         import re
+
         tags = re.findall(r"#\w+", enhanced)
-        return web.json_response({
-            "enhanced": enhanced,
-            "original": content,
-            "suggested_tags": list(set(tags))[:10],
-        })
+        return web.json_response(
+            {
+                "enhanced": enhanced,
+                "original": content,
+                "suggested_tags": list(set(tags))[:10],
+            }
+        )
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
 
@@ -167,7 +207,8 @@ async def handle_research_stream(request: web.Request) -> web.StreamResponse:
         return web.json_response({"error": "job_id required"}, status=400)
     q = get_queue()
     resp = web.StreamResponse(
-        status=200, reason="OK",
+        status=200,
+        reason="OK",
         headers={
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache",
@@ -175,18 +216,18 @@ async def handle_research_stream(request: web.Request) -> web.StreamResponse:
         },
     )
     await resp.prepare(request)
-    import asyncio
     import json
+
     last_state = None
     for _ in range(60):  # max 60 seconds
         status = await q.status(job_id)
         if status is None:
-            await resp.write(b"data: {\"error\":\"not found\"}\n\n")
+            await resp.write(b'data: {"error":"not found"}\n\n')
             break
         if status["state"] != last_state:
             await resp.write(f"data: {json.dumps(status)}\n\n".encode())
             last_state = status["state"]
-        if status["state"] in ("completed", "failed"):
+        if status["state"] in ("completed", "failed", "cancelled"):
             break
         await asyncio.sleep(1)
     return resp
@@ -198,6 +239,7 @@ async def handle_binder_search(request: web.Request) -> web.Response:
     if not query:
         return web.json_response({"results": [], "count": 0})
     from pathlib import Path
+
     vault = Path.home() / "Vault"
     results = []
     if vault.exists():
@@ -207,12 +249,16 @@ async def handle_binder_search(request: web.Request) -> web.Response:
                 if query in text:
                     rel = str(md.relative_to(vault))
                     binder = rel.split("/")[0] if "/" in rel else "root"
-                    results.append({
-                        "path": f"~/Vault/{rel}",
-                        "binder": binder,
-                        "title": md.stem.replace("-", " ").title(),
-                        "snippet": text[max(0, text.find(query)-40):text.find(query)+len(query)+80],
-                    })
+                    results.append(
+                        {
+                            "path": f"~/Vault/{rel}",
+                            "binder": binder,
+                            "title": md.stem.replace("-", " ").title(),
+                            "snippet": text[
+                                max(0, text.find(query) - 40) : text.find(query) + len(query) + 80
+                            ],
+                        }
+                    )
             except Exception:
                 continue
     results = results[:20]
@@ -224,14 +270,17 @@ async def handle_vault_scan(request: web.Request) -> web.Response:
     import json
     from datetime import UTC, datetime, timedelta
     from pathlib import Path
+
     vault = Path.home() / "Vault"
     gaps = []
     now = datetime.now(UTC)
     if vault.exists():
         for d in sorted(vault.iterdir()):
-            if not d.is_dir():
+            if not d.is_dir() or d.name.startswith("."):
                 continue
             bj = d / "binder.json"
+            if not bj.is_file():
+                continue
             meta = {}
             if bj.exists():
                 try:
@@ -243,29 +292,35 @@ async def handle_vault_scan(request: web.Request) -> web.Response:
             updated = meta.get("updated", "")
             # Low quality
             if score < 2:
-                gaps.append({
-                    "topic": d.name,
-                    "reason": f"Low quality score ({score}/5) — needs research",
-                    "priority": "high" if score == 0 else "medium",
-                })
+                gaps.append(
+                    {
+                        "topic": d.name,
+                        "reason": f"Low quality score ({score}/5) — needs research",
+                        "priority": "high" if score == 0 else "medium",
+                    }
+                )
             # No sources
             elif not sources:
-                gaps.append({
-                    "topic": d.name,
-                    "reason": "No sources — needs initial research",
-                    "priority": "high",
-                })
+                gaps.append(
+                    {
+                        "topic": d.name,
+                        "reason": "No sources — needs initial research",
+                        "priority": "high",
+                    }
+                )
             # Stale (older than 30 days)
             elif updated:
                 try:
                     dt = datetime.fromisoformat(updated.replace("Z", "+00:00"))
                     age = (now - dt).days
                     if age > 30:
-                        gaps.append({
-                            "topic": d.name,
-                            "reason": f"Stale ({age} days old) — consider re-research",
-                            "priority": "low",
-                        })
+                        gaps.append(
+                            {
+                                "topic": d.name,
+                                "reason": f"Stale ({age} days old) — consider re-research",
+                                "priority": "low",
+                            }
+                        )
                 except Exception:
                     pass
     gaps.sort(key=lambda g: {"high": 0, "medium": 1, "low": 2}[g["priority"]])

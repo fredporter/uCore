@@ -27,10 +27,16 @@ class GitTool(BaseTool):
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            out, _ = await asyncio.wait_for(proc.communicate(), timeout=5)
+            out, err = await asyncio.wait_for(proc.communicate(), timeout=5)
             if proc.returncode == 0:
                 info.installed = True
                 info.version = out.decode().strip()
+            else:
+                info.error = err.decode(errors="replace").strip() or f"git --version failed (exit {proc.returncode})"
+                if "license" in info.error.lower() and "xcode" in info.error.lower():
+                    info.repair_action = "Review and accept the Xcode licence in Terminal with sudo xcodebuild -license, then re-check"
+                else:
+                    info.repair_action = "Resolve the Git probe error, then re-check"
         except (TimeoutError, FileNotFoundError, OSError) as exc:
             log.debug("Git check failed: %s", exc)
         return info

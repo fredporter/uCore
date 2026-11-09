@@ -235,3 +235,48 @@
   #app .workflow-layout .wf-zen-surface .wf-card__meta { gap: var(--usx-spacing-xs); }
   #app .workflow-layout :is(.wf-standard-header, .wf-feeds__header) { align-items: stretch; flex-direction: column; gap: var(--usx-spacing-sm); }
 }
+
+/* Shared density for Overview, Tasks and Binder. Editor keeps its own canvas. */
+.workflow-layout { --wf-zen-pad: clamp(12px, 2vw, 20px); --wf-zen-gap: 16px; --wf-control-height: 32px; }
+#app .workflow-layout .wf-zen-surface h2 { font-size: var(--usx-font-size-xl); line-height: 1.25; }
+#app .workflow-layout .wf-zen-surface :is(.wf-zen-header, .wf-standard-header, .wf-unified-header) { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; padding: 0 0 12px; margin: 0; background: transparent; }
+#app .workflow-layout .wf-zen-surface :is(.wf-zen-header, .wf-standard-header) p { margin: 4px 0 0; font-size: var(--usx-font-size-sm); }
+#app .workflow-layout .wf-zen-surface :is(.wf-zen-kicker, .wf-standard-header__kicker) { margin: 0 0 4px !important; font-size: var(--usx-font-size-xs); line-height: 1.3; }
+#app .workflow-layout .wf-zen-surface :is(.wf-header-actions, .header-actions, .stages-nav) { display: flex; align-items: center; gap: 6px; margin: 0; padding: 0; }
+#app .workflow-layout .wf-zen-surface :is(.wf-zen-primary, .wf-standard-header__action, .header-actions .usx-btn, .binder-related .usx-btn, .stage-tab) { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; gap: 4px; height: var(--wf-control-height); min-height: var(--wf-control-height); margin: 0; padding: 0 8px; border-radius: var(--usx-radius-sm); font-size: var(--usx-font-size-sm); line-height: 1; white-space: nowrap; }
+#app .workflow-layout .wf-zen-surface :is(.wf-zen-primary, .header-actions, .binder-related, .stage-tab) .u-icon { width: 18px; height: 18px; font-size: 18px; line-height: 1; }
+#app .workflow-layout .wf-panel--zen > .wf-zen-section > .wf-zen-section__heading { min-height: 40px; padding: 8px 0 !important; }
+#app .workflow-layout .wf-panel--zen .wf-mission-cards .wf-mission-row { min-height: 72px; padding: 12px; }
+#app .workflow-layout .wf-zen-surface .task-destinations { display: flex; align-items: center; gap: 6px; padding: 6px 0; margin: 0; font-size: var(--usx-font-size-sm); }
+#app .workflow-layout .wf-zen-surface .task-destinations .usx-btn { display: inline-flex; align-items: center; height: 28px; min-height: 28px; margin: 0; padding: 0 8px; border-radius: var(--usx-radius-sm); font-size: inherit; line-height: 1; }
+#app .workflow-layout .wf-zen-surface .task-list__row { height: auto; min-height: 48px; padding: 6px 0; gap: 6px; }
+#app .workflow-layout .wf-zen-surface .task-list__main { margin: 0; padding: 0 6px; border: 0; background: transparent; box-shadow: none; text-align: left; }
+#app .workflow-layout .wf-zen-surface .task-list__row > :is(select, button:not(.task-list__main)) { box-sizing: border-box; height: 32px; min-height: 32px; margin: 0; padding: 0 6px; font-size: var(--usx-font-size-sm); }
+#app .workflow-layout .notebook-binder-panel .binder-select { box-sizing: border-box; height: 32px; min-height: 32px; margin: 0; padding-block: 0; font-size: var(--usx-font-size-sm); }
+#app .workflow-layout .notebook-binder-panel .header-actions { flex-wrap: wrap; }
+#app .workflow-layout .notebook-binder-panel .binder-related { gap: 8px; margin: 0; padding: 12px 0; font-size: var(--usx-font-size-sm); }
+#app .workflow-layout .notebook-binder-panel .stages-nav { flex-wrap: nowrap; overflow-x: auto; padding: 4px 0; border: 0; border-bottom: var(--wf-zen-rule); }
+#app .workflow-layout .notebook-binder-panel .stage-tab { flex-shrink: 0; border: 0; box-shadow: none; }
+#app .workflow-layout .notebook-binder-panel .stage-step { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; min-width: 20px; margin: 0; padding: 0; font-size: var(--usx-font-size-xs); }
+
+/* Overview uses dashboard cards rather than full-width task-list rows. */
+#app .workflow-layout .wf-overview { display: flex; flex-direction: column; gap: 16px; }
+#app .workflow-layout .wf-overview > .wf-zen-header { padding-bottom: 0; }
+#app .workflow-layout .wf-overview .wf-zen-section > h3 { margin: 0; padding: 8px 0; line-height: 1.3; }
+#app .workflow-layout .wf-overview .wf-mission-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; }
+#app .workflow-layout .wf-overview .wf-mission-row { display: flex; align-items: center; width: 100%; height: auto; min-height: 56px; gap: 8px; margin: 0; padding: 8px; border: 0; border-radius: var(--usx-radius-sm); background: var(--usx-color-surface); box-shadow: none; text-align: left; white-space: normal; font-size: var(--usx-font-size-sm); line-height: 1.35; }
+#app .workflow-layout .wf-overview .wf-mission-cards .wf-mission-row { min-height: 72px; height: auto; padding: 8px 10px; border: 1px solid var(--usx-color-border); }
+#app .workflow-layout .wf-overview .wf-mission-row:hover { background: var(--usx-color-surface-variant); }
+#app .workflow-layout .wf-overview .wf-mission-row:focus-visible { outline: 2px solid var(--usx-color-primary); outline-offset: -2px; }
+#app .workflow-layout .wf-overview .wf-mission-row > .u-icon { width: 20px; height: 20px; min-width: 20px; flex: 0 0 20px; font-size: 20px; }
+#app .workflow-layout .wf-overview .wf-mission-row__copy { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 3px; margin: 0; padding: 0; }
+#app .workflow-layout .wf-overview .wf-mission-row__copy strong { font-size: var(--usx-font-size-sm); line-height: 1.3; overflow-wrap: anywhere; }
+#app .workflow-layout .wf-overview .wf-mission-row__copy small { font-size: var(--usx-font-size-xs); line-height: 1.3; }
+#app .workflow-layout .wf-overview progress { display: block; width: 100%; height: 4px; min-height: 0; margin: 3px 0 0; border: 0; border-radius: 2px; overflow: hidden; appearance: none; background: var(--usx-color-surface-variant); accent-color: var(--usx-color-primary); }
+#app .workflow-layout .wf-overview progress::-webkit-progress-bar { background: var(--usx-color-surface-variant); }
+#app .workflow-layout .wf-overview progress::-webkit-progress-value { background: var(--usx-color-primary); }
+#app .workflow-layout .wf-overview progress::-moz-progress-bar { background: var(--usx-color-primary); }
+#app .workflow-layout .wf-overview .wf-dashboard-actions { margin: 0; gap: 8px; }
+#app .workflow-layout .wf-overview .wf-prompt-card { min-height: 0; margin: 0; padding: 8px 0; border: 0; border-top: var(--wf-zen-rule); background: transparent; }
+#app .workflow-layout .wf-overview .wf-prompt-card > summary { min-height: 32px; margin: 0; padding: 4px 0; font-size: var(--usx-font-size-sm); line-height: 1.5; }
+@media (max-width: 34rem) { #app .workflow-layout .wf-overview .wf-mission-cards { grid-template-columns: minmax(0, 1fr); } }

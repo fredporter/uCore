@@ -221,11 +221,10 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
             </div>
           </div>
 
-          <h2>1. Storage Boundaries & State Sovereignty</h2>
+          <h2>1. Storage</h2>
           <p>
-            Under the sovereign contract, application mutable state is strictly anchored to
-            <code>UDOS_HOME</code> (e.g. <code>~/Code/.udos</code>), eliminating arbitrary dotfile
-            proliferation across user home paths. Documents live permanently in sovereign user vaults.
+            Application state lives in <code>UDOS_HOME</code>.
+            Your documents stay in your vault.
           </p>
 
           <h3>Verification and Citation Provenance</h3>
@@ -277,7 +276,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
         </div>
 
         <p class="provenance-description">
-          All citations originate from local sovereign documents or verified web snapshots.
+          All citations originate from local documents or verified web snapshots.
           Select citation format to format attribution strings:
         </p>
 

@@ -26,11 +26,23 @@ HERE = Path(__file__).resolve().parent
 SCHEMA_PATH = HERE.parents[1] / "schemas" / "activity.schema.sql"
 
 
+def profile_feed_path(profile: str | None = None) -> Path:
+    """Each profile owns its Feed projection; default retains the existing pod."""
+    import hashlib
+    if profile is None:
+        from app.services.identity import get_full_identity
+        identity = get_full_identity()
+        profile = identity.get('active_profile_id') or 'signed-out'
+    if profile == 'default':
+        return DEFAULT_POD_PATH
+    return DEFAULT_POD_PATH.parent / ('activity-' + hashlib.sha256(profile.encode()).hexdigest()[:16] + '.db')
+
+
 class FeedServer:
     """Store for Feed Activity Pod ingestion, query, suggestion, and linking."""
 
     def __init__(self, pod_path: str | None = None):
-        self._pod_path = Path(pod_path or DEFAULT_POD_PATH).expanduser()
+        self._pod_path = Path(pod_path or profile_feed_path()).expanduser()
         self._pod_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(self._pod_path))
         self._conn.row_factory = sqlite3.Row

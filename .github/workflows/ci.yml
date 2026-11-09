@@ -75,6 +75,11 @@ jobs:
       UDOS_ROOT: ${{ github.workspace }}/..
       UDOS_HOME: ${{ github.workspace }}/.ci-udos
       UCORE_UCODE_PATH: ${{ github.workspace }}/external/uCode
+      UCORE_DATA_DIR: ${{ github.workspace }}/.ci-udos/data
+      UDOS_VAULT_ROOT: ${{ github.workspace }}/.ci-udos/Vault
+      UDOS_SHARED_ROOT: ${{ github.workspace }}/.ci-udos/Shared
+      UDOS_PUBLIC_ROOT: ${{ github.workspace }}/.ci-udos/Public
+      UFLOW_TASKS_DIR: ${{ github.workspace }}/.ci-udos/flow/tasks
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -83,20 +88,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Checkout uFlow
-        uses: actions/checkout@v4
-        with:
-          repository: fredporter/uFlow
-          ref: main
-          path: external/uFlow
-
-      - name: Checkout uKnowledge
-        uses: actions/checkout@v4
-        with:
-          repository: fredporter/uKnowledge
-          ref: main
-          path: external/uKnowledge
 
       - name: Checkout uCode runtime
         uses: actions/checkout@v4
@@ -107,11 +98,11 @@ jobs:
           ref: c7dbc4414f30a542096984a753201afb7e0dc367
           path: external/uCode
 
-      - name: Install backend dependencies
+      - name: Install locked backend dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -e ./external/uFlow -e ./external/uKnowledge -e ./external/uCode
-          pip install -e ./backend[dev]
+          python -m pip install uv==0.11.8
+          UV_PROJECT_ENVIRONMENT="$GITHUB_WORKSPACE/backend/.venv" uv --no-cache sync --project backend --locked --extra dev
+          backend/.venv/bin/python scripts/check_backend_environment.py
 
       - name: Prepare isolated runtime and Git identity
         run: |
@@ -120,7 +111,7 @@ jobs:
           git config --global user.email "ci@udos.invalid"
 
       - name: Run backend tests
-        run: python -m pytest -q backend/tests
+        run: backend/.venv/bin/python -m pytest -q backend/tests
 
   frontend-build:
     name: Frontend Build

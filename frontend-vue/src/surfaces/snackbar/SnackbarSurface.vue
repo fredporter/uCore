@@ -7,45 +7,18 @@
   >
     <SurfaceTabNav
       v-model="srv.activeTab"
-      :tabs="SNACKBAR_OPS_TABS"
+      :tabs="visibleTabs"
       :orientation="shell.tabOrientation"
       @toggle-orientation="shell.toggleTabOrientation()"
     />
     <div class="surface__content snackbar-server-content usx-prose">
-      <!-- USX Frontmatter Runtime Metadata Card -->
-      <div class="usx-frontmatter-card">
-        <span class="usx-frontmatter-chip">
-          <span>Runtime:</span>
-          <strong>uCore Zen 4.0.5</strong>
-        </span>
-        <span class="usx-frontmatter-chip">
-          <span>Port:</span>
-          <strong>8484</strong>
-        </span>
-        <span class="usx-frontmatter-chip">
-          <span>Execution Lane:</span>
-          <strong>Free Local (Ollama)</strong>
-        </span>
-        <span class="usx-frontmatter-chip">
-          <span>Storage:</span>
-          <strong>UDOS_HOME</strong>
-        </span>
-        <span class="usx-frontmatter-chip">
-          <span>Services:</span>
-          <strong>{{ srv.upCount }}/{{ srv.services.length }} Online</strong>
-        </span>
-      </div>
-
-      <!-- USX Sovereign Boundary Callout -->
-      <div class="usx-callout usx-callout-note">
-        <div class="usx-callout-header">
-          <span class="material-symbols-outlined">shield</span>
-          <span>Local-First Sovereign Runtime Boundary</span>
+      <details>
+        <summary>Service details</summary>
+        <div class="usx-frontmatter-card">
+          <span class="usx-frontmatter-chip">API port: <strong>8484</strong></span>
+          <span class="usx-frontmatter-chip">Services: <strong>{{ srv.upCount }}/{{ srv.services.length }} online</strong></span>
         </div>
-        <div>
-          Server state and reply spools are anchored strictly under <code>UDOS_HOME</code>. All automated background tasks run local-first with a hard-zero cloud allowance.
-        </div>
-      </div>
+      </details>
 
       <!-- Dashboard -->
       <div v-if="activeTab === 'dashboard'" class="server-tab-shell">
@@ -65,9 +38,9 @@
       <!-- Automation: the inputs, capabilities, and schedules of one pipeline -->
       <div v-else-if="activeTab === 'automation'" class="server-tab-shell server-panel-stack">
         <section class="surface__panel">
-          <h3 class="surface__panel-title">Automations &amp; Skills Runner</h3>
+          <h3 class="surface__panel-title">Automation</h3>
           <p class="surface__panel-description">
-            The master library and runtime for reusable skills, feed inputs, and scheduled automations. Workflows invoke registered items from here.
+            Manage routines, feeds and scheduled work.
           </p>
         </section>
         <SnackbarFeedsPanel />
@@ -105,6 +78,7 @@ import {
   watch,
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useSettingsStore } from "../../stores/settings";
 import { useShellStore } from "../../stores/shell";
 import SnackbarDashboardPanel from "./panels/SnackbarDashboardPanel.vue";
 const SnackbarServicesPanel = defineAsyncComponent(
@@ -146,6 +120,8 @@ const srv = useSnackbarOpsStore();
 const route = useRoute();
 const router = useRouter();
 
+const settings = useSettingsStore();
+const visibleTabs = computed(() => SNACKBAR_OPS_TABS.filter(tab => settings.advancedView || ["dashboard", "services"].includes(tab.id)));
 const VALID_SNACKBAR_OPS_TABS = new Set<SnackbarOpsTab>(
   SNACKBAR_OPS_TABS.map((tab) => tab.id),
 );
@@ -162,12 +138,14 @@ function normalizeSnackbarOpsTab(
     skills: "automation",
     snacks: "automation",
   };
-  if (legacyTabs[tab]) return legacyTabs[tab];
+  tab = legacyTabs[tab] || tab;
+  if (!settings.advancedView && !["dashboard", "services"].includes(tab)) return "dashboard";
   return VALID_SNACKBAR_OPS_TABS.has(tab as SnackbarOpsTab)
     ? (tab as SnackbarOpsTab)
     : "dashboard";
 }
 
+watch(() => settings.advancedView, () => { srv.activeTab = normalizeSnackbarOpsTab(srv.activeTab); });
 const activeTab = computed(() =>
   normalizeSnackbarOpsTab(String(srv.activeTab || "dashboard")),
 );

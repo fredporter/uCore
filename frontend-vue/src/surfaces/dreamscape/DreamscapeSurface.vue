@@ -364,7 +364,7 @@ const briefing = ref<DailyBriefingResult["briefing"] | null>(null)
 
 const defaultTodayItems = [
   "Execute Sprint 4 UI surfaces alignment",
-  "Validate Zen Ecosystem Contract boundaries",
+  "Review workspace settings",
   "Review vault mirror revisions and local notebooks",
 ]
 

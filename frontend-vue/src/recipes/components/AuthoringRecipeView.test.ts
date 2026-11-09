@@ -13,7 +13,7 @@ describe("AuthoringRecipeView", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("Local-First Sovereign AI Architectures");
+    expect(wrapper.text()).toContain(SAMPLE_AUTHORING_WORKBENCH.document.title);
     expect(wrapper.text()).toContain("whitepaper");
     expect(wrapper.text()).toContain("uCore Systems Team");
   });

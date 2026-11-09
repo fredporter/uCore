@@ -527,8 +527,9 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
-  min-height: var(--usx-control-size-sm);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 2px 8px;
   border-bottom: 0;
   background: color-mix(in srgb, var(--usx-color-surface) 58%, transparent);
   flex-shrink: 0;

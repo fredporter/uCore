@@ -1,16 +1,18 @@
 <template>
-  <div class="wf-panel wf-panel--zen wf-zen-surface">
+  <div class="wf-panel wf-panel--zen wf-zen-surface wf-overview">
     <header class="wf-zen-header">
       <div>
         <p class="wf-zen-kicker">User Workflow</p>
-        <h2>What needs your attention?</h2>
+        <h2>Workflow overview</h2>
         <p>{{ wf.inProgressCount }} in progress · {{ wf.activeTasks.length }} open</p>
       </div>
-      <button class="wf-zen-primary" type="button" @click="openTasks">
-        <UIcon name="add" /> New or open task
+      <button class="usx-btn usx-btn--primary wf-zen-primary" type="button" @click="openTasks">
+        <UIcon name="checklist" /> View tasks
       </button>
+      <button class="usx-btn" @click="router.push('/system?tab=connections')"><UIcon name="sync_alt" />Connections</button>
     </header>
 
+    <p v-if="wf.taskError" role="alert">{{ wf.taskError }}</p>
     <div v-if="wf.loading" class="wf-loading"><UIcon name="sync" /> Loading workflow…</div>
     <div
       v-else-if="wf.error && !wf.tasks.length && !wf.missions.length"
@@ -20,68 +22,30 @@
       <button type="button" @click="wf.fetchAll()">Retry</button>
     </div>
 
-    <section v-if="currentTasks.length" class="wf-zen-section">
-      <div class="wf-zen-section__heading">
-        <h3>Now</h3><span>{{ currentTasks.length }}</span>
-      </div>
-      <div class="task-list wf-now-list">
-        <button
-          v-for="task in currentTasks"
-          :key="task.id"
-          class="task-list__row"
-          type="button"
-          @click="openTask(task)"
-        >
-          <span class="task-list__main">
-            <span class="task-list__state" :class="`task-list__state--${task.status}`" />
-            <span class="task-list__copy">
-              <strong class="task-list__task-title">{{ task.title }}</strong>
-              <small class="task-list__meta">{{ task.board || task.binder || "Workflow" }} · {{ task.status }}</small>
-            </span>
-          </span>
-          <span class="task-list__editor-btn" :title="task.status === 'todo' ? 'Start task' : 'Continue task'"><UIcon name="view_sidebar" /></span>
-        </button>
-      </div>
+    <section v-if="nextTask" class="wf-zen-section">
+      <h3>Up next</h3>
+      <button class="usx-btn wf-mission-row" @click="wf.openTask(nextTask)"><UIcon name="play_circle" /><span class="wf-mission-row__copy"><strong>{{ nextTask.title }}</strong><small>{{ nextTask.board }} · {{ nextTask.status }}</small></span><UIcon name="arrow_forward" /></button>
     </section>
-
     <section class="wf-zen-section">
-      <div class="wf-zen-section__heading">
-        <h3>Missions</h3><span>{{ wf.missions.length }}</span>
-      </div>
+      <h3>Lists</h3>
       <div class="wf-mission-cards">
-        <button v-for="mission in wf.missions" :key="mission.id" class="wf-mission-row" type="button" @click="openMission(mission.taskIds)">
-          <UIcon name="flag" />
-          <span class="wf-mission-row__copy"><strong>{{ mission.title }}</strong><small>{{ mission.taskIds.length }} tasks · {{ mission.status }}</small></span>
-          <UIcon name="arrow_forward" />
+        <button v-for="list in wf.taskLists" :key="list" class="usx-btn wf-mission-row" @click="wf.showList(list)">
+          <UIcon name="list" /><span class="wf-mission-row__copy"><strong>{{ list }}</strong><small>{{ listProgress(list).done }} of {{ listProgress(list).total }} done · {{ listProgress(list).open }} open</small><progress :value="listProgress(list).done" :max="listProgress(list).total || 1" :aria-label="`${list} progress`" /></span><UIcon name="arrow_forward" />
         </button>
       </div>
-      <p v-if="!wf.missions.length && !wf.loading" class="wf-zen-empty">No missions yet. Add a task to begin.</p>
+      <p v-if="!wf.taskLists.length">No task lists yet. Create your first task in Tasks.</p>
+    </section>
+    <section class="wf-zen-section">
+      <h3>Binders</h3>
+      <div class="wf-mission-cards">
+        <button v-for="binder in wf.binders" :key="binder.id" class="usx-btn wf-mission-row" @click="wf.showBinder(binder.id)"><UIcon name="book" /><span class="wf-mission-row__copy"><strong>{{ binder.title || binder.id }}</strong><small>{{ wf.tasks.filter(task => task.binder === binder.id && task.status !== 'completed').length }} open tasks · {{ binder.state || 'Draft' }}</small></span><UIcon name="arrow_forward" /></button>
+      </div>
+      <p v-if="!wf.binders.length">No binders yet.</p>
     </section>
 
     <div class="wf-dashboard-actions">
-    <section class="wf-zen-details wf-prompt-card">
-      <h3>Compile files into a Binder</h3>
-      <div
-        class="wf-launchpad-drop"
-        :class="{ 'wf-launchpad-drop--active': isDragging }"
-        @dragover.prevent="onDragOver"
-        @dragleave.prevent="onDragLeave"
-        @drop.prevent="onDrop"
-      >
-        <UIcon name="publish" />
-        <span>Drop Markdown, YAML, JSON or code here</span>
-        <div v-if="launchpadFiles.length" class="wf-launchpad-files">
-          <div v-for="(file, idx) in launchpadFiles" :key="idx" class="wf-launchpad-file">
-            <span>{{ file.name }}</span>
-            <button type="button" title="Remove" @click="removeFile(idx)"><UIcon name="close" /></button>
-          </div>
-          <button class="wf-zen-primary" type="button" @click="compileBinder">Compile Binder</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="wf-zen-details wf-prompt-card">
-      <h3>Workflow settings and history</h3>
+    <details class="wf-zen-details wf-prompt-card">
+      <summary>History and maintenance</summary>
       <div class="wf-actions-row">
         <UButton size="sm" variant="secondary" icon="archive" :disabled="!!busyAction" @click="archiveState">Archive</UButton>
         <UButton size="sm" variant="secondary" icon="add" :disabled="!!busyAction" @click="seedState">Seed tasks</UButton>
@@ -94,17 +58,16 @@
           {{ run.workflow_name || run.workflow_id }} · {{ run.status }} · {{ formatTime(run.started_at) }}
         </span>
       </details>
-    </section>
+    </details>
     </div>
   </div>
 <!-- legacy dashboard retained temporarily as an unreachable migration reference -->
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import UIcon from "../../../skills/atoms/UIcon.vue";
-import UBadge from "../../../skills/atoms/UBadge.vue";
 import UButton from "../../../skills/atoms/UButton.vue";
 import { useWorkflowStore } from "../../../stores/workflow";
 
@@ -122,106 +85,13 @@ const currentTasks = computed(() =>
     .slice(0, 7),
 );
 
-function openTasks() {
-  wf.setTab("tasks");
+const nextTask = computed(() => currentTasks.value.find(task => task.status !== "blocked"));
+function listProgress(list: string) {
+  const tasks = wf.tasks.filter(task => task.board === list);
+  const done = tasks.filter(task => task.status === "completed").length;
+  return { total: tasks.length, done, open: tasks.length - done };
 }
-
-function openTask(task: (typeof wf.tasks)[number]) {
-  wf.selectTask(task, true);
-  wf.setTab("editor");
-}
-
-function openMission(taskIds: string[]) {
-  const next = taskIds
-    .map((id) => wf.tasks.find((task) => task.id === id))
-    .find((task) => task && task.status !== "completed");
-  if (next) openTask(next);
-  else openTasks();
-}
-
-// ── Launchpad (moved from Binder tab) ─────────────────────────────
-interface LaunchpadFile {
-  name: string;
-  size: number;
-  type: string;
-  raw: File;
-}
-
-const isDragging = ref(false);
-const launchpadFiles = ref<LaunchpadFile[]>([]);
-
-function onDragOver() {
-  isDragging.value = true;
-}
-
-function onDragLeave() {
-  isDragging.value = false;
-}
-
-function onDrop(e: DragEvent) {
-  isDragging.value = false;
-  if (!e.dataTransfer?.files) return;
-  for (let i = 0; i < e.dataTransfer.files.length; i++) {
-    const f = e.dataTransfer.files[i];
-    launchpadFiles.value = [
-      ...launchpadFiles.value,
-      { name: f.name, size: f.size, type: f.type || "", raw: f },
-    ];
-  }
-}
-
-function removeFile(idx: number) {
-  launchpadFiles.value.splice(idx, 1);
-}
-
-async function compileBinder(): Promise<void> {
-  if (launchpadFiles.value.length === 0) return;
-  wf.loading = true;
-  lastActionMessage.value = "";
-  try {
-    const binderId = "mission-binder";
-    // Ensure binder exists
-    try {
-      await fetch("/api/binder/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: binderId,
-          title: "Mission Launchpad Binder",
-          outcome: "Durable compilation of mission files into verified draft",
-        }),
-      });
-    } catch {
-      // Binder may already exist, proceed
-    }
-
-    for (const f of launchpadFiles.value) {
-      const formData = new FormData();
-      formData.append("file", f.raw, f.name);
-      formData.append("author", "MissionControl");
-      const res = await fetch(`/api/binder/${encodeURIComponent(binderId)}/intake`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || `Failed intake for ${f.name}`);
-      }
-    }
-
-    // Run bounded assembly
-    await fetch(`/api/binder/${encodeURIComponent(binderId)}/run`, {
-      method: "POST",
-    });
-
-    lastActionMessage.value = `Compiled ${launchpadFiles.value.length} files into durable Binder with SHA-256 provenance.`;
-    launchpadFiles.value = [];
-  } catch (e: any) {
-    lastActionMessage.value = `Binder compile failed: ${e.message || e}`;
-  } finally {
-    wf.loading = false;
-  }
-}
+function openTasks() { wf.showList(); }
 
 function formatTime(iso: string): string {
   if (!iso) return "";
@@ -279,9 +149,7 @@ async function seedState() {
   }
 }
 
-onMounted(() => {
-  wf.fetchAll();
-});
+
 </script>
 
 <style scoped>

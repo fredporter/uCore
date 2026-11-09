@@ -6,7 +6,7 @@ set -euo pipefail
 
 UCORE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_DIR="$UCORE_ROOT/backend"
-ROOT_VENV_DIR="$UCORE_ROOT/.venv"
+ROOT_VENV_DIR="$UCORE_ROOT/backend/.venv"
 LABEL="com.udos.ucore-menu"
 PLIST_PATH="$HOME/Library/LaunchAgents/${LABEL}.plist"
 LOG_DIR="$HOME/.ucore/logs"
@@ -96,12 +96,15 @@ if [[ "$UNINSTALL" -eq 1 ]]; then
 fi
 
 # Determine Python binary
+"$ROOT_VENV_DIR/bin/python" "$UCORE_ROOT/scripts/check_backend_environment.py" || exit 1
+
 if [[ -f "$ROOT_VENV_DIR/bin/python" ]]; then
     PYTHON_BIN="$ROOT_VENV_DIR/bin/python"
 elif [[ -f "$BACKEND_DIR/.venv/bin/python" ]]; then
     PYTHON_BIN="$BACKEND_DIR/.venv/bin/python"
 else
-    PYTHON_BIN="/usr/bin/python3"
+    echo "uCore backend environment missing; run locked setup" >&2
+        exit 1
 fi
 
 # Ensure directories exist

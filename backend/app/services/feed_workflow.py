@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 from app.services.tasker_bridge import render_task_markdown, slugify
-from app.services.workflow_status import default_tasker_dir
 
 
 def promote_activity_to_task(
@@ -21,10 +20,21 @@ def promote_activity_to_task(
     sync_apple_reminders: bool = False,
     archive_source_mail: bool = False,
 ) -> dict[str, Any]:
+    from app.flow.task_store import default_tasker_dir
     activity_id = int(activity["id"])
     task_title = str(title or activity.get("title") or "Feed item").strip()
     source = str(activity.get("source") or "feed")
-    source_id = f"feed-{activity_id}"
+    from app.services.identity import get_full_identity
+    profile = get_full_identity().get("active_profile_id") or "default"
+    source_id = f"feed-{activity_id}" if profile == "default" else f"feed-{slugify(profile)}-{activity_id}"
+    from app.api.tasker_api import _parse_markdown_task
+    base = default_tasker_dir().resolve()
+    for existing in base.glob('*/*.md'):
+        if not existing.resolve().is_relative_to(base):
+            continue
+        record = _parse_markdown_task(existing)
+        if record.get('source') == f'feed:{source}' and str(record.get('source_id')) in {source_id, str(activity_id)} and record.get('profile', 'default') == profile:
+            return {'task_id':record['id'], 'path':str(existing), 'reminders_sync':None, 'mail_archived':None, 'existing':True}
     target_dir = default_tasker_dir() / slugify(board or "inbox")
     target_dir.mkdir(parents=True, exist_ok=True)
     target = target_dir / f"todo-{slugify(task_title)}-{source_id}.md"
@@ -33,6 +43,8 @@ def promote_activity_to_task(
         tags.append(f"rule-{slugify(rule_id)}")
 
     metadata: dict[str, Any] = {
+        "profile": profile,
+        "id": source_id,
         "priority": priority,
         "binder": binder,
         "tags": tags,
@@ -74,7 +86,7 @@ def promote_activity_to_task(
         render_task_markdown(
             title=task_title,
             source=f"feed:{source}",
-            source_id=str(activity_id),
+            source_id=source_id,
             status="todo",
             body=str(activity.get("content") or ""),
             metadata=metadata,

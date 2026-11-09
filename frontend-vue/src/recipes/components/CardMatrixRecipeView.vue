@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
+const router = useRouter()
 import type { CardMatrixRecipe } from '../recipes'
 
 defineProps<{
@@ -41,7 +43,11 @@ defineProps<{
             <button
               v-for="action in card.actions"
               :key="action.label"
-              class="m3-button"
+              type="button"
+              class="usx-btn m3-button"
+              :disabled="!action.to"
+              :title="action.to ? action.label : 'Preview only'"
+              @click="action.to && router.push(action.to)"
               :class="{ 'm3-button-primary': action.primary }"
             >
               {{ action.label }}

@@ -17,6 +17,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const palette = ref<Palette>('default')
   const themeMode = ref<ThemeMode>('dark')
   const defaultModel = ref('auto')
+  const advancedView = ref(false)
   const initialized = ref(false)
   const syncError = ref('')
   let syncTimer: ReturnType<typeof setTimeout> | undefined
@@ -41,7 +42,10 @@ export const useSettingsStore = defineStore('settings', () => {
     defaultModel.value = model
   }
 
+  function setAdvancedView(enabled: boolean) { advancedView.value = enabled }
+
   function applyPreferences(value: Record<string, unknown>) {
+    if (typeof value.advancedView === 'boolean') advancedView.value = value.advancedView
     if (value.fontStyle === 'inter' || value.fontStyle === 'system' || value.fontStyle === 'mono') fontStyle.value = value.fontStyle
     if (typeof value.fontSize === 'number') setFontSize(value.fontSize)
     if (value.palette === 'default' || value.palette === 'ocean' || value.palette === 'forest' || value.palette === 'sunset') palette.value = value.palette
@@ -50,7 +54,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   function snapshot() {
-    return { fontStyle: fontStyle.value, fontSize: fontSize.value, palette: palette.value, themeMode: themeMode.value, defaultModel: defaultModel.value }
+    return { fontStyle: fontStyle.value, fontSize: fontSize.value, palette: palette.value, themeMode: themeMode.value, defaultModel: defaultModel.value, advancedView: advancedView.value }
   }
 
   async function save() {
@@ -90,7 +94,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   watch([fontStyle, fontSize, palette, themeMode], applyTheme, { immediate: true })
-  watch([fontStyle, fontSize, palette, themeMode, defaultModel], () => {
+  watch([fontStyle, fontSize, palette, themeMode, defaultModel, advancedView], () => {
     if (!initialized.value) return
     clearTimeout(syncTimer)
     syncTimer = setTimeout(() => void save(), 250)
@@ -102,6 +106,8 @@ export const useSettingsStore = defineStore('settings', () => {
     palette,
     themeMode,
     defaultModel,
+    advancedView,
+    setAdvancedView,
     initialized,
     syncError,
     setFontStyle,

@@ -1,5 +1,6 @@
 <template>
   <div class="filepicker-sidebar">
+    <WorkflowNavigator />
     <div class="filepicker-sidebar__header">
       <span class="filepicker-sidebar__heading">Vault</span>
       <div class="filepicker-sidebar__actions">
@@ -257,7 +258,9 @@
  * @emits {string} newFile - New file requested
  * @usage <FilepickerSidebar :open="true" @file-select="handleFileSelect" />
  */
+import { useRouter } from "vue-router";
 import { ref, computed, onMounted, watch } from "vue";
+import WorkflowNavigator from "./WorkflowNavigator.vue";
 import UIcon from "../atoms/UIcon.vue";
 import UButton from "../atoms/UButton.vue";
 import USpinner from "../atoms/USpinner.vue";
@@ -283,6 +286,7 @@ const emit = defineEmits<{
   newFile: [binderId: string];
 }>();
 const wf = useWorkflowStore();
+const router = useRouter();
 
 // ─── Refs ───────────────────────────────────────────────────────────
 const files = ref<FileEntry[]>([]);
@@ -295,6 +299,7 @@ const addedWorkspaces = ref<AddedWorkspace[]>([]);
 const MARKDOWN_OPEN_MODE_KEY = "ucore.filepicker.markdown-open-mode";
 const markdownOpenMode = ref<"auto" | "prose" | "code">("auto");
 const selectedFile = ref<FileEntry | null>(null);
+watch(() => [wf.selectedTask?.id, wf.binderDocument?.path], ([task, document]) => { if (task || document) selectedFile.value = null; });
 const expandedFolders = ref<Set<string>>(new Set());
 
 interface FolderTreeRow {
@@ -425,7 +430,7 @@ async function checkIndex() {
 }
 
 function handleNewFile() {
-  emit("newFile", "user");
+  emit("newFile", wf.activeBinderId || "user");
 }
 
 /** Create a new structured Markdown Notebook with YAML frontmatter. */
@@ -492,29 +497,11 @@ async function handleSyncDrive() {
 }
 
 
-/** Create a new binder (workspace folder) in the User Vault root. */
+/** Open the same canonical binder creation form used by Workflow. */
 async function handleNewBinder() {
-  const raw = window.prompt("New binder name", "");
-  const name = (raw || "").trim();
-  if (!name) return;
-  mirrorMessage.value = "";
-  try {
-    const res = await ucoreApi.userWorkflow.importMarkdown({
-      content: `# ${name}\n\nBinder workspace for **${name}**.\n`,
-      source_format: "markdown",
-      title: `${name} README`,
-      binder: name,
-      vault_layer: "user",
-      relative_dir: name,
-      filename: "README.md",
-      metadata: { imported_from: "filepicker.new-binder" },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    mirrorMessage.value = `Binder \"${name}\" created.`;
-    await fetchFiles();
-  } catch (e: any) {
-    mirrorMessage.value = `Binder create failed: ${e?.message || e}`;
-  }
+  wf.binderCreateRequested = true;
+  wf.activeTab = "binder";
+  await router.push({ path: "/workflow", query: { tab: "binder", ...(wf.activeBinderId ? { binder: wf.activeBinderId } : {}) } });
 }
 
 /** Create a markdown file inside an added workspace. */

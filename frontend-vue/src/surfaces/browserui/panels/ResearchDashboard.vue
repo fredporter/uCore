@@ -5,11 +5,8 @@
   <div class="rdash">
     <section class="rdash__hero surface__panel">
       <div class="rdash__hero-top">
-        <h3 class="surface__panel-title">Research Control</h3>
-        <div class="rdash__hero-badges">
-          <span class="rdash__hero-badge">Queue Driven</span>
-          <span class="rdash__hero-badge">Vault Gap Aware</span>
-        </div>
+        <h3 class="surface__panel-title">Research</h3>
+
       </div>
       <p class="surface__panel-description">
         Monitor live research jobs, launch new requests, and fill knowledge gaps.
@@ -59,18 +56,22 @@
             </div>
             <span class="rdash__job-state" :class="`rdash__job-state--${j.state}`">{{ stateLabel(j.state) }}</span>
           </div>
+          <button v-if="!['completed', 'failed', 'cancelled', 'saving'].includes(j.state)" class="usx-btn usx-btn--sm" @click.stop="$emit('cancel', j)">Cancel</button>
+          <button v-if="['failed', 'cancelled'].includes(j.state)" class="usx-btn usx-btn--sm" @click.stop="$emit('retry', j)">Retry</button>
           <div class="rdash__job-bar">
             <div class="rdash__job-bar-fill" :style="{ width: j.progress + '%' }"></div>
           </div>
           <div class="rdash__job-meta">
             <span>Binder: {{ j.binder }}</span>
+            <span v-if="j.retry_at">Retry scheduled · attempt {{ j.attempts || 0 }} of 3</span>
             <span v-if="j.result?.score" class="rdash__job-score">Score: {{ j.result.score }}/5</span>
+            <span v-if="j.result?.warning">{{ j.result.warning }}</span>
             <span v-if="j.error" class="rdash__job-error">{{ j.error }}</span>
           </div>
           <div v-if="selectedJob?.id === j.id && j.state === 'completed'" class="rdash__job-detail">
             <div v-if="j.result?.file"><strong>Saved:</strong> {{ j.result.file }}</div>
             <div v-if="j.result?.score"><strong>Quality:</strong> {{ j.result.score }}/5</div>
-            <button class="usx-btn usx-btn--sm" @click.stop="$emit('approve', j)">Approve</button>
+            <button class="usx-btn usx-btn--sm" @click.stop="$emit('approve', j)">Open note</button>
           </div>
         </div>
         </div>
@@ -107,15 +108,12 @@
           <div v-if="props.gaps.length === 0" class="rdash__empty">No active gaps detected</div>
 
           <template v-else>
-            <div class="rdash__gap-actions">
-              <button class="usx-btn usx-btn--sm" @click="props.gaps.forEach(g => $emit('fillGap', g))">Research All</button>
-            </div>
           <div v-for="g in props.gaps" :key="g.topic" class="rdash__gap">
             <UIcon name="warning" class="rdash__gap-icon" />
             <span class="rdash__gap-priority" :class="`rdash__gap-priority--${g.priority || 'low'}`">{{ (g.priority || 'low') }}</span>
             <span class="rdash__gap-topic">{{ g.topic }}</span>
             <span class="rdash__gap-reason">{{ g.reason }}</span>
-            <button class="usx-btn usx-btn--sm" @click="$emit('fillGap', g)">Research</button>
+            <button class="usx-btn usx-btn--sm" @click="$emit('fillGap', g)">Search</button>
           </div>
           </template>
         </section>
@@ -128,11 +126,11 @@
 import { computed, ref } from "vue"
 import UIcon from "../../../skills/atoms/UIcon.vue"
 
-export interface ResearchJob { id: string; url: string; binder: string; state: string; progress: number; error?: string; result?: { file?: string; score?: number } }
+export interface ResearchJob { attempts?: number; retry_at?: string | null; id: string; url: string; binder: string; state: string; progress: number; error?: string; result?: { file?: string; score?: number; warning?: string } }
 export interface ResearchGap { topic: string; reason: string; priority?: string }
 
 const props = defineProps<{ jobs: ResearchJob[]; gaps: ResearchGap[] }>()
-const emit = defineEmits<{ approve: [job: ResearchJob]; startResearch: [params: { url: string; binder: string; tags: string[] }]; fillGap: [gap: ResearchGap] }>()
+const emit = defineEmits<{ retry: [job: ResearchJob]; cancel: [job: ResearchJob]; approve: [job: ResearchJob]; startResearch: [params: { url: string; binder: string; tags: string[] }]; fillGap: [gap: ResearchGap] }>()
 
 const newUrl = ref("")
 const newBinder = ref("")

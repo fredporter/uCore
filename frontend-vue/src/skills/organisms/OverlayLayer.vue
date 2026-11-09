@@ -71,11 +71,12 @@ const hideChatBubble = computed(() => false);
 
 // ─── Context strip ───────────────────────────────────────────────
 const contextLabel = computed(() => {
-  const path = shell.lastSurface ?? "";
+  const path = route.path;
   if (path.includes("/workflow")) return "Workflow";
-  if (path.includes("/browserui")) return "Browser";
+  if (path.includes("/browserui")) return "Research";
   if (path.includes("/snackbar")) return "Snackbar";
-  if (path.includes("/system")) return "System";
+  if (path.includes("/system")) return "Settings";
+  if (path.includes("/documentation")) return "Knowledge";
   if (path.includes("/ucode")) return "uCode";
   return "Dashboard";
 });

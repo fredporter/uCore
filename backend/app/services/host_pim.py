@@ -16,12 +16,12 @@ from __future__ import annotations
 import html
 import json
 import logging
-from pathlib import Path
 import platform
 import re
 import shutil
 import subprocess
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 log = logging.getLogger("ucore.services.host_pim")

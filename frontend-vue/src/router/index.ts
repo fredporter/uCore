@@ -13,6 +13,7 @@ import DashboardSurface from "../surfaces/dashboard/DashboardSurface.vue";
 import WorkflowSurface from "../surfaces/workflow/WorkflowSurface.vue";
 
 const routes: RouteRecordRaw[] = [
+  { path: "/setup", name: "user-setup", component: () => import("../surfaces/system/UserSetupSurface.vue"), meta: { title: "User Setup", layout: "standalone" } },
   {
     path: "/",
     name: "dashboard",
@@ -150,6 +151,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("../surfaces/banana/BananaSurface.vue"),
     meta: { title: "uVector Studio", icon: "draw" },
   },
+  { path: "/docs/:pathMatch(.*)*", redirect: to => ({ path: "/documentation", query: to.query, hash: to.hash }) },
   {
     path: "/documentation/:pathMatch(.*)*",
     name: "documentation",
@@ -201,10 +203,21 @@ router.beforeEach((to) => {
   // Server owns the automation/skills runner; Workflow only invokes its items.
   if (
     to.path.startsWith("/workflow") &&
-    ["automation", "automations", "feeds", "skills"].includes(String(to.query.tab || ""))
+    ["automation", "automations", "skills"].includes(String(to.query.tab || ""))
   ) {
     return { path: "/snackbar", query: { tab: "automation" } };
   }
+});
+
+// Only the home entry opens first-run setup; direct links remain usable.
+router.beforeEach(async to => {
+  if (to.path !== '/') return;
+  try {
+    const response = await fetch('/api/connections', {signal:AbortSignal.timeout(3000)});
+    if (!response.ok) return;
+    const state = await response.json();
+    if (!state.setup.completed && !state.setup.deferred) return {path:'/setup'};
+  } catch { /* The ordinary dashboard can still explain an unavailable backend. */ }
 });
 
 const DYNAMIC_IMPORT_RELOAD_KEY = "ucore.router.dynamic-import-reload";

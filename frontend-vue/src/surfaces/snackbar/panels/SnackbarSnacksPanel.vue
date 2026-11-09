@@ -7,7 +7,7 @@
           {{ snackExecutables.length }} snack{{
             snackExecutables.length !== 1 ? "s" : ""
           }}
-          loaded into the SnackMachine scheduler — autonomous, set-and-forget.
+          available.
         </p>
       </div>
       <UButton
@@ -21,8 +21,7 @@
     </div>
 
     <div v-if="snackExecutables.length === 0" class="server-muted-text">
-      No snacks scheduled. Snacks run autonomously via the SnackMachine
-      scheduler (set-and-forget) — e.g. overnight maintenance, vault sync.
+      No routines available.
     </div>
     <div v-else class="server-table-wrap">
       <table class="server-table">
@@ -51,7 +50,7 @@
                 variant="secondary"
                 size="sm"
                 icon="schedule"
-                :disabled="runLoading === exe.id"
+                :disabled="!!runLoading"
                 @click="runExe(exe)"
               >
                 {{ runLoading === exe.id ? "Triggering..." : "Trigger Now" }}
@@ -61,6 +60,21 @@
         </tbody>
       </table>
     </div>
+
+    <details class="surface__panel" @toggle="loadMaintenance">
+      <summary>Scheduled work</summary>
+      <p v-if="maintenanceError" role="alert">{{ maintenanceError }}</p>
+      <ul>
+        <li v-for="job in maintenanceJobs" :key="job.skill_id">
+          <strong>{{ job.skill_id.replaceAll('_', ' ') }}</strong> · {{ job.time }} ·
+          {{ job.last_result?.state || (job.last_result ? (job.last_result.success ? 'Completed' : 'Failed') : 'Scheduled') }}
+          <span v-if="job.last_success"> · Last success: {{ job.last_success }}</span>
+          <span v-if="job.last_result?.next_retry"> · Retry: {{ job.last_result.next_retry }}</span>
+          <p v-if="job.last_result?.error">{{ job.last_result.error }}</p>
+          <p v-if="job.last_result?.state === 'needs_approval'">Review and run this action in Skills above.</p>
+        </li>
+      </ul>
+    </details>
 
     <!-- Run result -->
     <div v-if="runResult !== null" class="skills-result-panel usx-mt-md">
@@ -93,6 +107,27 @@ const runResult = ref<unknown>(null);
 const runSnackId = ref("");
 const runError = ref<string | null>(null);
 
+interface MaintenanceJobStatus {
+  skill_id: string;
+  time: string;
+  last_success?: string;
+  last_result?: { success?: boolean; state?: string; error?: string; next_retry?: string };
+}
+const maintenanceJobs = ref<MaintenanceJobStatus[]>([]);
+const maintenanceError = ref("");
+async function loadMaintenance(event: Event) {
+  if (!(event.target as HTMLDetailsElement).open) return;
+  maintenanceError.value = "";
+  try {
+    const response = await fetch("/api/system/maintenance", { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) throw new Error("Scheduled work is unavailable.");
+    const data = await response.json();
+    maintenanceJobs.value = data.jobs || [];
+  } catch (error) {
+    maintenanceError.value = error instanceof Error ? error.message : "Could not load scheduled work.";
+  }
+}
+
 // Snacks = executables of kind "snack" — scheduler-loaded, autonomous.
 const snackExecutables = computed(() =>
   srv.executables.filter((s) => s.kind === "snack"),
@@ -112,13 +147,15 @@ async function runExe(exe: {
   name: string;
   requires_confirmation: boolean;
 }) {
+  if (runLoading.value) return;
+  if (exe.requires_confirmation && !window.confirm(`Run ${exe.name}? This action may change files or system state.`)) return;
   runLoading.value = exe.id;
   runError.value = null;
   runSnackId.value = exe.name;
   try {
     const res = await fetch(`/api/executables/${exe.id}/run`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(exe.requires_confirmation ? { "x-ucore-confirm": "true" } : {}) },
       body: JSON.stringify({}),
     });
     if (!res.ok) {
@@ -127,7 +164,9 @@ async function runExe(exe: {
         `HTTP ${res.status}${text ? `: ${text.slice(0, 160)}` : ""}`,
       );
     }
-    runResult.value = await res.json();
+    const data = await res.json();
+    if (data.success === false) throw new Error(data.error || "Action failed");
+    runResult.value = data;
   } catch (e: any) {
     runError.value = e?.message || String(e);
     runResult.value = null;

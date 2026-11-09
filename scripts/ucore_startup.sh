@@ -6,7 +6,8 @@ set -e
 
 UCORE_ROOT="${UCORE_ROOT:-$HOME/Code/uCore}"
 BACKEND_DIR="$UCORE_ROOT/backend"
-ROOT_VENV_DIR="$UCORE_ROOT/.venv"
+ROOT_VENV_DIR="$UCORE_ROOT/backend/.venv"
+"$ROOT_VENV_DIR/bin/python" "$UCORE_ROOT/scripts/check_backend_environment.py" || exit 1
 LOG_DIR="$HOME/.ucore/logs"
 PID_DIR="$HOME/.ucore"
 
@@ -69,7 +70,8 @@ if ! check_backend; then
     elif [ -f "$BACKEND_DIR/.venv/bin/python" ]; then
         PYTHON_BIN="$BACKEND_DIR/.venv/bin/python"
     else
-        PYTHON_BIN="/usr/bin/python3"
+        echo "uCore backend environment missing; run locked setup" >&2
+        exit 1
     fi
     
     cd "$BACKEND_DIR" && PYTHONPATH=. $PYTHON_BIN -m app --port 8484 > "$LOG_DIR/ucore-server.log" 2>&1 &
@@ -94,7 +96,8 @@ if ! check_menu; then
         PYTHON_BIN="$BACKEND_DIR/.venv/bin/python"
         cd "$BACKEND_DIR" && PYTHONPATH=. $PYTHON_BIN -m app.menu.unified_menu_simple > "$LOG_DIR/ucore-menu.log" 2>&1 &
     else
-        PYTHON_BIN="/usr/bin/python3"
+        echo "uCore backend environment missing; run locked setup" >&2
+        exit 1
         cd "$BACKEND_DIR" && PYTHONPATH=. $PYTHON_BIN -m app.menu.unified_menu_simple > "$LOG_DIR/ucore-menu.log" 2>&1 &
     fi
 

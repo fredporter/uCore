@@ -7,7 +7,7 @@
   >
     <SurfaceTabNav
       v-model="activeTab"
-      :tabs="TABS"
+      :tabs="visibleTabs"
       :orientation="shell.tabOrientation"
       @toggle-orientation="shell.toggleTabOrientation()"
     />
@@ -19,7 +19,7 @@
 
       <!-- 2. Learning Curriculum Tab -->
       <div v-else-if="activeTab === 'learning'" class="doc-learning-wrapper">
-        <LearningPanel @open="onLearningOpen" />
+        <LearningPanel :active-path="viewingDoc?.path" @open="onLearningOpen" @catalog="readingQueue = $event" />
       </div>
 
       <!-- 3. Developer & Engineering Tooling Tab -->
@@ -62,11 +62,9 @@
           <div class="doc-hero-banner">
             <UIcon name="terminal" class="doc-hero-icon" />
             <div class="doc-hero-text">
-              <h3 style="margin: 0 0 0.5rem 0;">External Engineering & Ecosystem Architecture</h3>
+              <h3 style="margin: 0 0 0.5rem 0;">Developer tools</h3>
               <p style="margin: 0; color: var(--usx-color-on-surface-muted);">
-                In accordance with the sovereign architecture contract (AGENTS.md), in-browser development mode is retired.
-                All software engineering, testing, and agent workflows belong in external developer tooling (Antigravity IDE, agy CLI, and Codex).
-                uCore acts as the sovereign user runtime host, document binder manager, and execution bridge.
+                Use Codex or your desktop development tools to extend uCore.
               </p>
             </div>
           </div>
@@ -110,7 +108,7 @@
           </div>
 
           <div class="doc-section doc-section--spaced" style="margin-top: var(--usx-spacing-lg);">
-            <h4 class="doc-section-title">Ecosystem Workspace Boundary (AGENTS.md)</h4>
+            <h4 class="doc-section-title">Workspace storage</h4>
             <div style="padding: var(--usx-spacing-md); background: var(--usx-color-surface-variant); border-left: 4px solid var(--usx-color-primary); border-radius: var(--usx-radius-sm);">
               <ul style="margin: 0; padding-left: 1.25rem; font-size: var(--usx-font-size-sm);">
                 <li><strong>Repository Source:</strong> All repos belong under <code>~/Code/&lt;repo&gt;</code>.</li>
@@ -125,26 +123,37 @@
     </div>
 
     <transition name="doc-sidepanel">
-      <aside v-if="viewingDoc" class="doc-sidepanel">
+      <aside v-if="viewingDoc" ref="readerPane" class="doc-sidepanel" :class="{ 'doc-sidepanel--fullscreen': readerFullscreen }" role="region" aria-label="Reading view">
         <div class="doc-sidepanel__bar">
+          <button class="usx-btn" aria-label="Return to library" @click="closeReader"><UIcon name="library_books" /></button>
           <span class="doc-sidepanel__title">{{ viewingDoc.title }}</span>
+          <button ref="fullscreenButton" class="usx-btn" :aria-label="readerFullscreen ? 'Exit full screen' : 'Full screen'" :aria-pressed="readerFullscreen" @click="readerFullscreen = !readerFullscreen"><UIcon :name="readerFullscreen ? 'fullscreen_exit' : 'fullscreen'" /></button>
           <button
             v-if="canEditDoc() && !editingDoc"
             class="doc-sidepanel__edit"
-            title="Edit in Dev Mode"
+            title="Edit document"
             @click="startEdit"
           >
             <UIcon name="edit" />
           </button>
           <button
-            class="doc-sidepanel__close"
+            class="usx-btn doc-sidepanel__close"
             title="Close"
-            @click="viewingDoc = null"
+            @click="closeReader"
           >
             <UIcon name="close" />
           </button>
         </div>
-        <div class="doc-sidepanel__body">
+        <nav class="reading-location" aria-label="Reading location">
+          <span>{{ viewingDoc.source }} / {{ viewingDoc.path }}</span>
+          <div>
+            <button class="usx-btn" aria-label="Previous document" :disabled="readingPosition <= 0 || docLoading" @click="navigateReading(-1)"><UIcon name="chevron_left" /></button>
+            <span v-if="readingPosition >= 0">{{ readingPosition + 1 }} of {{ readingQueue.length }}</span>
+            <button class="usx-btn" aria-label="Next document" :disabled="readingPosition < 0 || readingPosition >= readingQueue.length - 1 || docLoading" @click="navigateReading(1)"><UIcon name="chevron_right" /></button>
+            <button v-if="parentPath" class="usx-btn" @click="openDoc(viewingDoc.source, parentPath, 'Contents')">Up one folder</button>
+          </div>
+        </nav>
+        <div ref="readerBody" class="doc-sidepanel__body">
           <div v-if="docLoading" class="doc-loading">
             <UIcon name="sync" /> Loading...
           </div>
@@ -194,11 +203,7 @@
               >
             </div>
           </div>
-          <div
-            v-else
-            class="doc-sidepanel__content"
-            v-html="renderDocMarkdown(viewingDoc.content)"
-          />
+          <DocumentArticle v-else :content="viewingDoc.content" @navigate="openRelativeDocument" />
         </div>
       </aside>
     </transition>
@@ -206,8 +211,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useSettingsStore } from "../../stores/settings";
+import DocumentArticle from "../../skills/molecules/DocumentArticle.vue";
+import { containReaderKeys } from "../../utils/readingDocument";
 import { useShellStore } from "../../stores/shell";
 import UIcon from "../../skills/atoms/UIcon.vue";
 import UBadge from "../../skills/atoms/UBadge.vue";
@@ -217,19 +225,24 @@ import LearningPanel from "./panels/LearningPanel.vue";
 import LocalWikiReader from "./LocalWikiReader.vue";
 
 const shell = useShellStore();
+const settings = useSettingsStore();
 const route = useRoute();
 const router = useRouter();
 
 const TABS = [
-  { id: "wiki", label: "Local Wikipedia", icon: "auto_stories" },
-  { id: "learning", label: "Learn to Code", icon: "school" },
-  { id: "developer", label: "Developer & Tooling", icon: "terminal" },
+  { id: "wiki", label: "Knowledge", icon: "auto_stories" },
+  { id: "learning", label: "uCode", icon: "school" },
+  { id: "developer", label: "Advanced", icon: "terminal" },
 ];
+const visibleTabs = computed(() => TABS.filter(tab => tab.id !== "developer" || settings.advancedView));
 const VALID_DOC_TABS = new Set(TABS.map((tab) => tab.id));
 const routeTab = String(route.query.tab || "");
 
 function normalizeDocTab(tab: string): string {
   if (tab === "guide" || tab === "knowledge") return "wiki";
+  if (tab === "advanced") tab = "developer";
+  if (tab === "ucode") tab = "learning";
+  if (tab === "developer" && !settings.advancedView) return "wiki";
   if (VALID_DOC_TABS.has(tab)) return tab;
   return "wiki";
 }
@@ -241,10 +254,10 @@ if (routeTab === "publish") {
 }
 
 watch(activeTab, (tab) => {
-  if (route.query.tab !== tab) {
+  if (routeTab !== "publish" && route.query.tab !== tab) {
     router.replace({ query: { ...route.query, tab } });
   }
-});
+}, { immediate: true });
 
 watch(
   () => route.query.tab,
@@ -257,6 +270,29 @@ watch(
     activeTab.value = normalized;
   },
 );
+
+interface ReadingReference { title?: string; name: string; source?: string; path: string }
+const readingQueue = ref<ReadingReference[]>([]);
+const readerFullscreen = ref(false);
+const readerPane = ref<HTMLElement | null>(null);
+const fullscreenButton = ref<HTMLElement | null>(null);
+const readerBody = ref<HTMLElement | null>(null);
+let readerOpener: HTMLElement | null = null;
+const readingPosition = computed(() => readingQueue.value.findIndex(item => item.path === viewingDoc.value?.path && (item.source || "learning") === viewingDoc.value?.source));
+const parentPath = computed(() => viewingDoc.value?.path.includes("/") ? viewingDoc.value.path.slice(0, viewingDoc.value.path.lastIndexOf("/")) : "");
+function closeReader() { ++readerRequest; docLoading.value = false; viewingDoc.value = null; readerFullscreen.value = false; void nextTick(() => readerOpener?.focus()); }
+function navigateReading(offset: number) { const item = readingQueue.value[readingPosition.value + offset]; if (item) void openDoc(item.source || "learning", item.path, item.title || item.name); }
+function readerKeydown(event: KeyboardEvent) { containReaderKeys(event, readerPane.value, readerFullscreen.value, () => { readerFullscreen.value = false; fullscreenButton.value?.focus(); }); }
+watch(readerFullscreen, async () => { await nextTick(); fullscreenButton.value?.focus(); });
+onMounted(() => document.addEventListener("keydown", readerKeydown));
+onBeforeUnmount(() => document.removeEventListener("keydown", readerKeydown));
+function openRelativeDocument(href: string) {
+  if (!viewingDoc.value) return;
+  const base = viewingDoc.value.path.split("/").slice(0, -1);
+  for (const part of href.split('#')[0].split('/')) { if (part === '..') base.pop(); else if (part && part !== '.') base.push(decodeURIComponent(part)); }
+  void openDoc(viewingDoc.value.source, base.join('/'), base.at(-1) || 'Document');
+}
+watch(() => settings.advancedView, enabled => { if (!enabled && activeTab.value === "developer") activeTab.value = "wiki"; });
 
 interface DocSite {
   id: string;
@@ -399,17 +435,9 @@ async function probeCoursesEndpoint() {
   }
 }
 
-function renderDocMarkdown(content: string): string {
-  return content
-    .replace(/^# (.+)$/gm, "<h2>$1</h2>")
-    .replace(/^## (.+)$/gm, "<h3>$1</h3>")
-    .replace(/^### (.+)$/gm, "<h4>$1</h4>")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/`(.+?)`/g, "<code>$1</code>")
-    .replace(/\n/g, "<br>");
-}
-
+let readerRequest = 0;
 async function openDoc(source: string, path: string, title: string) {
+  const request = ++readerRequest;
   viewingDoc.value = { title, content: "", source, path };
   docLoading.value = true;
   try {
@@ -419,6 +447,8 @@ async function openDoc(source: string, path: string, title: string) {
     );
     if (res.ok) {
       const data = await res.json();
+      if (request !== readerRequest) return;
+      if (data.listing?.some((item: any) => !item.is_dir)) readingQueue.value = data.listing.filter((item: any) => !item.is_dir).map((item: any) => ({ ...item, source }));
       viewingDoc.value = {
         title: data.title || title,
         content: data.content || "",
@@ -426,13 +456,16 @@ async function openDoc(source: string, path: string, title: string) {
         path,
         listing: data.listing,
       };
-    } else {
+    } else if (request === readerRequest) {
       viewingDoc.value = { title, content: "Unable to load document.", source, path };
     }
   } catch {
+    if (request !== readerRequest) return;
     viewingDoc.value = { title, content: "Unable to load document.", source, path };
   } finally {
-    docLoading.value = false;
+    if (request === readerRequest) docLoading.value = false;
+    await nextTick();
+    readerBody.value?.scrollTo?.({ top: 0 });
   }
 }
 
@@ -442,7 +475,8 @@ function onLearningOpen(course: {
   source?: string;
   title?: string;
 }) {
-  openDoc(course.source || "learning", course.path, course.title || course.name);
+  readerOpener = document.activeElement as HTMLElement;
+  void openDoc(course.source || "learning", course.path, course.title || course.name);
 }
 
 function canEditDoc(): boolean {
@@ -566,14 +600,15 @@ function statusText(status: ApiStatus): string {
   return "Checking";
 }
 
-onMounted(() => {
+function loadAdvancedDocumentation() {
   fetchDocSites();
   fetchKnowledgeSections();
   probeExportEndpoint();
   probeCoursesEndpoint();
   fetchRepoDocs();
   fetchPublishStatus();
-});
+}
+watch([activeTab, () => settings.advancedView], ([tab, advanced]) => { if (tab === "developer" && advanced) loadAdvancedDocumentation(); }, { immediate: true });
 </script>
 
 <style scoped>
@@ -1059,4 +1094,24 @@ onMounted(() => {
   overflow-y: auto;
   padding: var(--usx-spacing-md);
 }
+</style>
+
+<style scoped>
+.doc-sidepanel--fullscreen { inset: 0; width: 100%; max-width: none; border: 0; }
+.doc-sidepanel__bar { flex-shrink: 0; gap: var(--usx-spacing-xs); font-family: var(--usx-font-family-sans, Inter, sans-serif); }
+.doc-sidepanel__bar .usx-btn { padding: var(--usx-spacing-xs); flex-shrink: 0; }
+.reading-location { padding: var(--usx-spacing-sm) var(--usx-spacing-md); border-bottom: 1px solid var(--usx-color-border); font-family: var(--usx-font-family-sans, Inter, sans-serif); font-size: var(--usx-font-size-sm); overflow-wrap: anywhere; }
+.reading-location > div { display: flex; align-items: center; gap: var(--usx-spacing-xs); }
+.doc-sidepanel__body { overflow-y: auto; padding: clamp(1rem, 3vw, 3rem); }
+.doc-tool-card, .doc-section { text-align: left; }
+
+.doc-sidepanel__bar { box-sizing: border-box; min-height: 48px; height: 48px; padding: 4px 12px; gap: 8px; }
+.doc-sidepanel__bar button.usx-btn { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; flex: 0 0 36px; width: 36px; height: 36px; min-height: 36px; margin: 0; padding: 0; border: 0; box-shadow: none; background: transparent; color: var(--usx-color-on-surface-muted); border-radius: var(--usx-radius-sm); }
+.doc-sidepanel__bar button.usx-btn:hover { background: var(--usx-color-surface-variant); color: var(--usx-color-on-surface); }
+.doc-sidepanel__bar button.usx-btn:focus-visible { outline: 2px solid var(--usx-color-primary); outline-offset: 1px; }
+.doc-sidepanel__bar :deep(.u-icon) { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; font-size: 20px; line-height: 1; }
+.doc-sidepanel__title { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.25; }
+.reading-location { padding: 6px 12px; gap: 8px; }
+.reading-location > div { display: flex; align-items: center; gap: 4px; }
+.reading-location .usx-btn { display: inline-flex; align-items: center; justify-content: center; height: 32px; min-height: 32px; padding: 0 6px; margin: 0; border: 0; background: transparent; line-height: 1; }
 </style>

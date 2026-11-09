@@ -6,7 +6,8 @@ set -euo pipefail
 
 UCORE_ROOT="${UCORE_ROOT:-$HOME/Code/uCore}"
 BACKEND_DIR="$UCORE_ROOT/backend"
-ROOT_VENV_DIR="$UCORE_ROOT/.venv"
+ROOT_VENV_DIR="$UCORE_ROOT/backend/.venv"
+"$ROOT_VENV_DIR/bin/python" "$UCORE_ROOT/scripts/check_backend_environment.py" || exit 1
 LOG_DIR="$HOME/.ucore/logs"
 LOG_FILE="$LOG_DIR/ucore-watchdog.log"
 CIRCUIT_BREAKER_FILE="/tmp/ucore-watchdog-restarts"
@@ -89,7 +90,8 @@ pick_python_bin() {
     elif [[ -x "$BACKEND_DIR/.venv/bin/python" ]]; then
         echo "$BACKEND_DIR/.venv/bin/python"
     else
-        echo "/usr/bin/python3"
+        echo "uCore backend environment missing; run locked setup" >&2
+        return 1
     fi
 }
 

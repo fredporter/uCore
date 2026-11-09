@@ -30,7 +30,7 @@ def list_executables() -> list[dict[str, Any]]:
             "kind": "skill",
             "icon": "extension",
             "enabled": True,
-            "requires_confirmation": bool(skill.get("requires_confirmation")),
+            "requires_confirmation": bool(skill.get("requires_confirmation")) or skill["category"] in ("mutating", "destructive", "write"),
             "actions": [],
         })
 

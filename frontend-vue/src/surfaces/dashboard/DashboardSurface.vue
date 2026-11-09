@@ -5,6 +5,7 @@
       'surface--tab-nav-vertical': shell.tabOrientation === 'vertical',
     }"
   >
+    <aside v-if="connectionSetupNeeded" class="dashboard-setup"><span>Set up your profile and choose Apple or Google connections.</span><button class="usx-btn" @click="router.push('/setup')">Set up workspace</button></aside>
     <!-- Hub navigation: quick-launch links to key surfaces -->
     <SurfaceTabNav
       v-model="activeHubTab"
@@ -17,7 +18,7 @@
         <h1 class="dashboard-surface__title">Dashboard</h1>
         <p class="dashboard-surface__subtitle">Select a surface to begin</p>
 
-        <!-- Sovereign Ecosystem Sync Status Card -->
+        <!-- Sync Status Card -->
         <div class="dashboard-sync-card surface__panel">
           <div class="dashboard-sync-card__header">
             <div class="dashboard-sync-card__title">
@@ -25,7 +26,7 @@
                 class="dashboard-sync-card__dot"
                 :class="{ 'dashboard-sync-card__dot--active': syncState.ok }"
               />
-              <h3>Sovereign Ecosystem Sync</h3>
+              <h3>Sync</h3>
             </div>
             <div class="dashboard-sync-card__actions">
               <span v-if="syncState.timestamp" class="dashboard-sync-card__time font-mono">
@@ -44,22 +45,23 @@
           </div>
 
           <div class="dashboard-sync-card__grid">
+            <div class="dashboard-sync-item"><div class="dashboard-sync-item__icon"><UIcon name="cloud" /></div><div class="dashboard-sync-item__info"><span class="dashboard-sync-item__label">Google</span><span class="dashboard-sync-item__detail">Tasks · Contacts · Drive notes · Calendar · Gmail</span></div><UBadge :type="googleConnected ? 'success' : 'neutral'" size="sm">{{ googleConnected ? 'Connected' : 'Set up connection' }}</UBadge></div>
             <!-- Apple PIM -->
             <div class="dashboard-sync-item">
               <div class="dashboard-sync-item__icon">
                 <UIcon name="phone_iphone" />
               </div>
               <div class="dashboard-sync-item__info">
-                <span class="dashboard-sync-item__label">Apple Ecosystem (PIM)</span>
+                <span class="dashboard-sync-item__label">Apple apps</span>
                 <span class="dashboard-sync-item__detail">
-                  Reminders · Notes · Mail · Messages (JXA)
+                  Reminders · Contacts · Notes · Calendar · Mail
                 </span>
               </div>
               <UBadge
-                :type="syncState.apple_sync?.reminders?.available ? 'success' : 'neutral'"
+                :type="appleConnected ? 'success' : 'neutral'"
                 size="sm"
               >
-                {{ syncState.apple_sync?.reminders?.available ? "Bridged" : "Standby" }}
+                {{ appleConnected ? "Connected" : "Set up connection" }}
               </UBadge>
             </div>
 
@@ -69,7 +71,7 @@
                 <UIcon name="hub" />
               </div>
               <div class="dashboard-sync-item__info">
-                <span class="dashboard-sync-item__label">BitChat Mesh Transport</span>
+                <span class="dashboard-sync-item__label">Nearby devices</span>
                 <span class="dashboard-sync-item__detail font-mono">
                   {{ syncState.bitchat_mesh?.local_peer_id || "LAN Mesh" }} · {{ syncState.bitchat_mesh?.online_peers || 0 }} peers
                 </span>
@@ -88,7 +90,7 @@
                 <UIcon name="folder_shared" />
               </div>
               <div class="dashboard-sync-item__info">
-                <span class="dashboard-sync-item__label">Sovereign Vault Storage</span>
+                <span class="dashboard-sync-item__label">Files</span>
                 <span class="dashboard-sync-item__detail font-mono">
                   {{ syncState.google_drive?.vault_path || "~/Vault" }}
                 </span>
@@ -97,7 +99,7 @@
                 :type="syncState.google_drive?.vault_exists ? 'success' : 'neutral'"
                 size="sm"
               >
-                {{ syncState.google_drive?.vault_exists ? "Mounted" : "Missing" }}
+                {{ syncState.google_drive?.vault_exists ? "Available" : "Unavailable" }}
               </UBadge>
             </div>
           </div>
@@ -142,6 +144,7 @@
  */
 import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useSettingsStore } from "../../stores/settings";
 import { useShellStore } from "../../stores/shell";
 import { useExtensionStore } from "../../stores/extensions";
 import { ucoreApi } from "../../api/client";
@@ -190,118 +193,120 @@ const SURFACE_CARD_DATA: Record<
 > = {
   workflow: {
     title: "Workflow",
-    description: "Missions, Tasks & Binder",
+    description: "Tasks, missions and files",
     icon: "flag",
     route: "/workflow?tab=mission-control",
     color: "var(--usx-color-primary)",
   },
   ucode: {
     title: "uCode",
-    description: "GridCore — Grid, Teletext & Terminal",
+    description: "Coding and graphics",
     icon: "grid",
     route: "/ucode",
     color: "var(--usx-color-success)",
   },
   snackbar: {
     title: "Server",
-    description: "Services, AI, Automation & Logs",
+    description: "Services and automation",
     icon: "dns",
     route: "/snackbar",
     color: "var(--usx-color-warning)",
   },
   system: {
     title: "System",
-    description: "Admin, Pages & Tools",
+    description: "Settings and tools",
     icon: "settings",
     route: "/system",
     color: "var(--usx-color-on-surface-muted)",
   },
   documentation: {
-    title: "Documentation",
-    description: "Learning Hub & Guides",
+    title: "Knowledge",
+    description: "Guides",
     icon: "menu_book",
     route: "/documentation",
     color: "var(--usx-color-accent)",
   },
   browserui: {
     title: "Browser",
-    description: "Web Reader & Bookmarks",
+    description: "Research and bookmarks",
     icon: "language",
     route: "/browserui",
     color: "var(--usx-color-info)",
   },
   groovebox: {
     title: "Groovebox",
-    description: "Music Production — Pattern Composer & Vault",
+    description: "Make music",
     icon: "music_note",
     route: "/groovebox",
     color: "var(--usx-color-warning)",
   },
   sonic: {
     title: "Sonic",
-    description: "USB Bootloader & System Toolkit",
+    description: "Prepare bootable USB drives",
     icon: "usb",
     route: "/sonic",
     color: "var(--usx-color-success)",
   },
   developer: {
     title: "Engineering",
-    description: "External Antigravity IDE, agy CLI & Architecture",
+    description: "Developer tools",
     icon: "terminal",
     route: "/documentation?tab=developer",
     color: "var(--usx-color-primary)",
   },
   markdown: {
     title: "Editor",
-    description: "WYSIWYG Prose and Code Editor",
+    description: "Write and edit files",
     icon: "diamond",
     route: "/workflow?tab=editor",
     color: "var(--usx-color-primary)",
   },
   dreamscape: {
     title: "Dreamscape",
-    description: "Dreambeans, Briefing & Scaffolding",
+    description: "Daily planning and reflection",
     icon: "psychology",
     route: "/dreamscape",
     color: "var(--usx-color-accent)",
   },
   google: {
     title: "Google Studio",
-    description: "AI Studio, Drive Mirror & Gemini Sandbox",
+    description: "Google tools",
     icon: "cloud",
     route: "/google",
     color: "var(--usx-color-info)",
   },
   banana: {
     title: "Banana Studio",
-    description: "Visual Generation & Teletext Canvas",
+    description: "Create images and graphics",
     icon: "image",
     route: "/banana",
     color: "var(--usx-color-warning)",
   },
   recipes: {
     title: "Surfaces & Recipes",
-    description: "USX & GridCore Design System Showcase",
+    description: "Interface examples",
     icon: "widgets",
     route: "/recipes",
     color: "var(--usx-color-primary)",
   },
   homenest: {
     title: "HomeNest",
-    description: "Media & Living-Room Steam Console",
+    description: "Media and games",
     icon: "tv",
     route: "/homenest",
     color: "var(--usx-color-info)",
   },
   bitchat: {
     title: "BitChat",
-    description: "Decentralized Local Mesh Transport & Chat",
+    description: "Nearby messaging",
     icon: "forum",
     route: "/bitchat",
     color: "var(--usx-color-success)",
   },
 };
 
+const displaySettings = useSettingsStore();
+const advancedSurfaceIds = new Set(["developer", "snackbar", "recipes", "google", "banana", "sonic", "bitchat"]);
 const visibleSurfaces = computed(() => {
   const cards: Array<{
     id: string;
@@ -327,6 +332,9 @@ const visibleSurfaces = computed(() => {
       });
       seen.add(surface.manifest.id);
     }
+  }
+  for (const id of ["documentation", "workflow", "system", "browserui"]) {
+    if (!seen.has(id) && SURFACE_CARD_DATA[id]) cards.push({ id, ...SURFACE_CARD_DATA[id] });
   }
   // Built-in first-class surfaces: guard against catalogue duplicates
   if (!seen.has("developer")) {
@@ -356,7 +364,8 @@ const visibleSurfaces = computed(() => {
   // Always show Markdown Editor card
   cards.push({ id: "markdown", ...SURFACE_CARD_DATA.markdown });
 
-  return cards;
+  if (!seen.has("ucode")) cards.push({ id: "ucode", ...SURFACE_CARD_DATA.ucode });
+  return cards.filter(card => displaySettings.advancedView || !advancedSurfaceIds.has(card.id));
 });
 
 // Active extensions to show as cards below the main surfaces
@@ -365,6 +374,7 @@ const activeExtensions = computed(() => {
   return extStore.all
     .filter(
       (e) =>
+        displaySettings.advancedView &&
         e.manifest.kind === "plugin" &&
         Boolean(e.manifest.route) &&
         !visibleSurfaces.value.some(
@@ -416,6 +426,8 @@ const syncing = ref(false);
 async function fetchSyncStatus() {
   syncing.value = true;
   try {
+    const connectionResponse = await fetch('/api/connections');
+    if (connectionResponse.ok) connectionStates.value=(await connectionResponse.json()).connections;
     const res = await ucoreApi.host.syncStatus();
     if (res) {
       syncState.value = res;
@@ -441,6 +453,16 @@ function formatSyncTime(ts: string | null | undefined): string {
   }
 }
 
+const connectionStates = ref<any[]>([]);
+const appleConnected = computed(() => connectionStates.value.some(c => c.provider==='apple' && c.config.enabled && c.health.state==='connected'));
+const googleConnected = computed(() => connectionStates.value.some(c => c.provider==='google' && c.config.enabled && c.health.state==='connected'));
+const connectionSetupNeeded = ref(false);
+onMounted(async () => {
+  try {
+    const response = await fetch('/api/connections');
+    if (response.ok) { const data=await response.json(); connectionSetupNeeded.value=!data.setup.completed; connectionStates.value=data.connections; }
+  } catch { /* Existing local workspace remains usable offline. */ }
+});
 onMounted(() => {
   void extStore.fetchCatalogue();
   void fetchSyncStatus();
@@ -485,7 +507,7 @@ function navigate(route: string) {
   font-size: var(--usx-font-size-base);
 }
 
-/* ── Sovereign Ecosystem Sync Card ───────────────────────────── */
+/* ── Sync Card ───────────────────────────── */
 
 .dashboard-sync-card {
   margin-bottom: var(--usx-spacing-xl);
@@ -633,4 +655,7 @@ function navigate(route: string) {
   padding-bottom: var(--usx-spacing-sm);
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
 }
+
+.dashboard-setup { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:12px; padding:12px; border:1px solid var(--usx-color-border); border-radius:var(--usx-radius-sm); font-size:var(--usx-font-size-sm); }
+.dashboard-setup .usx-btn { min-height:32px; margin:0; padding:4px 8px; }
 </style>

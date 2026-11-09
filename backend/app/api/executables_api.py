@@ -4,6 +4,7 @@ GET  /api/executables            — list all executables (skills + snacks)
 GET  /api/executables/{exe_id}   — get a single executable
 POST /api/executables/{exe_id}/run — run an executable (body: {action?, ...})
 """
+
 from __future__ import annotations
 
 import logging
@@ -30,7 +31,8 @@ async def handle_get_executable(request: web.Request) -> web.Response:
     exe = get_executable(exe_id)
     if not exe:
         return web.json_response(
-            {"error": f"Executable '{exe_id}' not found"}, status=404,
+            {"error": f"Executable '{exe_id}' not found"},
+            status=404,
         )
     return web.json_response(exe)
 
@@ -43,10 +45,27 @@ async def handle_run_executable(request: web.Request) -> web.Response:
     except Exception:
         body = {}
 
+    if not isinstance(body, dict):
+        return web.json_response({"success": False, "error": "Expected an object"}, status=400)
+    exe = get_executable(exe_id)
+    if not exe:
+        return web.json_response({"success": False, "error": "Executable not found"}, status=404)
+    authorized = request.headers.get("x-ucore-confirm") == "true"
+    if exe.get("requires_confirmation") and not authorized:
+        return web.json_response(
+            {
+                "success": False,
+                "error": "Confirm this action before running",
+                "requires_confirmation": True,
+            },
+            status=409,
+        )
     action = body.get("action")
-    kwargs = {key: value for key, value in body.items() if key != "action"}
-    result = await run_executable(exe_id, action=action, **kwargs)
-    return web.json_response(result)
+    kwargs = {
+        key: value for key, value in body.items() if key not in ("action", "execution_authorized")
+    }
+    result = await run_executable(exe_id, action=action, execution_authorized=authorized, **kwargs)
+    return web.json_response(result, status=200 if result.get("success", True) else 422)
 
 
 def register_executables_routes(app: web.Application) -> None:
@@ -54,6 +73,7 @@ def register_executables_routes(app: web.Application) -> None:
     app.router.add_get("/api/executables", handle_list_executables)
     app.router.add_get("/api/executables/{exe_id}", handle_get_executable)
     app.router.add_post(
-        "/api/executables/{exe_id}/run", handle_run_executable,
+        "/api/executables/{exe_id}/run",
+        handle_run_executable,
     )
     log.debug("Executables API routes registered")

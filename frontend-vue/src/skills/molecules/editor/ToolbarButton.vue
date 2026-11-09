@@ -1,7 +1,7 @@
 <template>
   <button
     type="button"
-    class="toolbar-button"
+    class="usx-btn toolbar-button"
     :class="{ 'toolbar-button--active': active }"
     :title="shortcut ? `${label} (${shortcut})` : label"
     :aria-label="shortcut ? `${label}, ${shortcut}` : label"
@@ -38,4 +38,8 @@ function activate() {
 .toolbar-button:hover, .toolbar-button:focus-visible { background: var(--usx-color-surface-hover); color: var(--usx-color-primary); }
 .toolbar-button--active { background: var(--usx-color-primary); color: var(--usx-color-on-primary); }
 .toolbar-button:disabled { opacity: .4; cursor: default; }
+
+.toolbar-button.usx-btn { box-sizing: border-box; flex: 0 0 32px; width: 32px; height: 32px; min-width: 32px; min-height: 32px; margin: 0; padding: 0; border: 0; box-shadow: none; line-height: 1; }
+.toolbar-button :deep(.u-icon) { width: 20px; height: 20px; font-size: 20px; line-height: 1; }
+.toolbar-button:focus-visible { outline: 2px solid var(--usx-color-primary); outline-offset: -2px; }
 </style>

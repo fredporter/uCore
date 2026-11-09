@@ -108,4 +108,17 @@ function heading(event: Event) {
 .enhanced-toolbar__menu { position: absolute; z-index: var(--usx-z-index-dropdown); top: 100%; right: 0; display: flex; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-sm); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); background: var(--usx-color-surface); box-shadow: var(--usx-shadow-md); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
 @media (max-width: 40rem) { .enhanced-toolbar__desktop-extra, .enhanced-toolbar > :deep(.toolbar-section:nth-of-type(n + 3)) { display: none; } .enhanced-toolbar :deep(.toolbar-button) { width: var(--usx-touch-min); height: var(--usx-touch-min); min-width: var(--usx-touch-min); } .enhanced-toolbar__menu { position: fixed; inset-inline: var(--usx-spacing-sm); top: auto; bottom: var(--usx-spacing-sm); flex-wrap: wrap; } }
+
+.enhanced-toolbar { gap: 4px; min-width: 0; min-height: 32px; padding-block: 2px; }
+.enhanced-toolbar__heading { display: inline-flex; align-items: center; flex: 0 0 auto; margin: 0; }
+.enhanced-toolbar__heading select { box-sizing: border-box; width: 5rem; height: 32px; min-height: 32px; padding: 0 20px 0 8px; margin: 0; border: 0; box-shadow: none; border-radius: var(--usx-radius-sm); background-color: transparent; color: var(--usx-color-on-surface); font-family: inherit; font-size: var(--usx-font-size-sm); line-height: 1; }
+.enhanced-toolbar__heading select:focus-visible { outline: 2px solid var(--usx-color-primary); outline-offset: -2px; }
+.enhanced-toolbar__more { flex: 0 0 auto; margin: 0; padding: 0; border: 0; }
+.enhanced-toolbar__more summary { box-sizing: border-box; width: 32px; height: 32px; min-height: 32px; margin: 0; padding: 0; border: 0; line-height: 1; }
+.enhanced-toolbar__more summary :deep(.u-icon) { width: 20px; height: 20px; font-size: 20px; }
+
+.enhanced-toolbar__heading { height: 32px; min-height: 0; padding: 0; line-height: 1; }
+.enhanced-toolbar :deep(.editor-panel__pane-actions) { align-items: center; gap: 4px; margin: 0; }
+.enhanced-toolbar :deep(.editor-panel__pane-actions button) { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; width: 32px; height: 32px; min-height: 32px; padding: 0; margin: 0; border: 0; background: transparent; box-shadow: none; }
+.enhanced-toolbar :deep(.editor-panel__pane-actions .u-icon) { width: 20px; height: 20px; font-size: 20px; }
 </style>

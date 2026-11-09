@@ -74,7 +74,7 @@
                 <UButton
                   variant="secondary"
                   size="sm"
-                  :disabled="runLoading === exe.id"
+                  :disabled="!!runLoading"
                   @click="runExe(exe)"
                 >
                   {{ runLoading === exe.id ? "Running..." : "Run" }}
@@ -219,6 +219,8 @@ async function runExe(exe: {
   requires_confirmation: boolean;
   name: string;
 }) {
+  if (runLoading.value) return;
+  if (exe.requires_confirmation && !window.confirm(`Run ${exe.name}? This action may change files or system state.`)) return;
   runLoading.value = exe.id;
   runError.value = null;
   runSkillId.value = exe.name;
@@ -235,6 +237,7 @@ async function runExe(exe: {
       body: JSON.stringify({}),
     });
     const data = await res.json();
+    if (!res.ok || data.success === false) throw new Error(data.error || data.errors?.join("; ") || `Action failed (HTTP ${res.status})`);
     runResult.value = data;
   } catch (e: any) {
     runError.value = e.message || "Failed to run executable";

@@ -6,7 +6,7 @@
       <button
         v-if="activeLane === 'chat' && chatStore.hasMessages"
         type="button"
-        class="chat-panel__header-action"
+        class="usx-btn chat-panel__header-action"
         title="Clear chat history"
         aria-label="Clear chat history"
         @click="chatStore.clearHistory()"
@@ -51,13 +51,13 @@
             <div class="chat-panel__msg-body" v-html="renderMsgContent(msg.content)" />
           </div>
           <div v-if="msg.role === 'assistant'" class="chat-panel__msg-actions">
-            <button v-if="activeLane === 'chat'" class="chat-panel__msg-action" title="Append to current document" @click="appendToDoc(msg.content)">
+            <button v-if="activeLane === 'chat'" class="usx-btn chat-panel__msg-action" title="Append to current document" @click="appendToDoc(msg.content)">
               <UIcon name="note_add" />
             </button>
-            <button v-if="activeLane === 'chat'" class="chat-panel__msg-action" title="New note" @click="newNote(msg.content)">
+            <button v-if="activeLane === 'chat'" class="usx-btn chat-panel__msg-action" title="New note" @click="newNote(msg.content)">
               <UIcon name="post_add" />
             </button>
-            <button class="chat-panel__msg-action" title="Copy to clipboard" @click="copyText(msg.content)">
+            <button class="usx-btn chat-panel__msg-action" title="Copy to clipboard" @click="copyText(msg.content)">
               <UIcon name="content_copy" />
             </button>
           </div>
@@ -90,7 +90,7 @@
           @input="autoResize"
         />
         <button
-          class="chat-panel__send"
+          class="usx-btn chat-panel__send"
           :class="{ 'chat-panel__send--dev': activeLane === 'dev' }"
           :disabled="!inputText.trim() || loading"
           title="Send (Enter)"
@@ -101,7 +101,7 @@
       </div>
 
       <div class="chat-panel__composer-actions">
-        <a href="/server">Runtime settings</a>
+        <RouterLink class="usx-btn chat-panel__settings" to="/system?tab=preferences" @click="shell.setChatMode('closed')"><UIcon name="settings" />Settings</RouterLink>
         <label class="chat-panel__presentation">
           <UIcon name="view_sidebar" />
           <select
@@ -114,6 +114,7 @@
             <option value="sidebar">Sidebar</option>
             <option value="floating">Floating</option>
           </select>
+          <UIcon name="expand_more" class="chat-panel__presentation-chevron" />
         </label>
       </div>
 
@@ -133,7 +134,7 @@
         <button
           v-for="mode in CHAT_MODES"
           :key="mode.id"
-          class="chat-panel__mode-btn"
+          class="usx-btn chat-panel__mode-btn"
           :class="{ 'chat-panel__mode-btn--active': activeChatMode === mode.id }"
           role="tab"
           :aria-selected="activeChatMode === mode.id ? 'true' : 'false'"
@@ -148,6 +149,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from "vue";
+import { RouterLink } from "vue-router";
 import { useShellStore } from "../../stores/shell";
 import type { ChatPresentation } from "../../stores/shell";
 import { getEditorSurface } from "../../composables/useEditorSurface";
@@ -909,4 +911,22 @@ async function copyText(content: string) {
 <style scoped>
 .chat-panel__dev-context { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; font-size: 12px; }
 .chat-panel__dev-context select { max-width: 220px; }
+
+.chat-panel__composer-actions, .chat-panel__footer-row { display: flex; align-items: center; gap: 8px; box-sizing: border-box; min-height: 40px; padding: 4px 0; margin: 0; font-family: var(--usx-font-family-sans); font-size: var(--usx-font-size-sm); line-height: 1; }
+.chat-panel__composer-actions { flex-wrap: nowrap; }
+.chat-panel__settings.usx-btn, .chat-panel__mode-btn.usx-btn, .chat-panel__presentation { display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; height: 32px; min-height: 32px; margin: 0; padding: 0 8px; border: 0; border-radius: var(--usx-radius-sm); background: transparent; box-shadow: none; color: var(--usx-color-on-surface-muted); font: inherit; line-height: 1; text-decoration: none; }
+.chat-panel__presentation { position: relative; padding: 0 4px; }
+.chat-panel__presentation select { box-sizing: border-box; height: 32px; min-height: 32px; min-width: 0; width: auto; margin: 0; padding: 0 22px 0 4px; border: 0; border-radius: var(--usx-radius-sm); background: transparent; box-shadow: none; font: inherit; line-height: normal; }
+.chat-panel__presentation-chevron { position: absolute; right: 4px; pointer-events: none; }
+.chat-panel__composer-actions :deep(.u-icon), .chat-panel__footer-row :deep(.u-icon) { width: 18px; height: 18px; font-size: 18px; line-height: 1; }
+.chat-panel__mode-toggle { gap: 2px; margin: 0; }
+.chat-panel__mode-btn--active.usx-btn { background: var(--usx-color-surface-variant); color: var(--usx-color-primary); }
+.chat-panel__settings:hover, .chat-panel__mode-btn:hover { background: var(--usx-color-surface-variant); }
+.chat-panel__context { min-height: 32px; margin: 0; padding: 0; border: 0; background: transparent; font-size: inherit; line-height: 1; }
+.chat-panel__composer-row { align-items: end; gap: 8px; margin: 0; padding: 4px 0; }
+.chat-panel__input { min-height: 44px; padding: 8px 12px; border-radius: var(--usx-radius-md); }
+.chat-panel__send.usx-btn { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0; border: 0; border-radius: var(--usx-radius-md); background: var(--usx-color-primary); color: var(--usx-color-on-primary); }
+.chat-panel__send :deep(.u-icon), .chat-panel__header-action :deep(.u-icon), .chat-panel__msg-action :deep(.u-icon) { width: 20px; height: 20px; font-size: 20px; }
+.chat-panel__header-action.usx-btn, .chat-panel__msg-action.usx-btn { width: 32px; height: 32px; min-height: 32px; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.chat-panel a:focus-visible, .chat-panel button:focus-visible, .chat-panel select:focus-visible { outline: 2px solid var(--usx-color-primary); outline-offset: 1px; }
 </style>

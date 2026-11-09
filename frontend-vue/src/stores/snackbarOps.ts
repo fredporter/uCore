@@ -158,13 +158,20 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
   // ── Health polling + crash alerts ──────────────────────────────
   // Tracks last-seen status per service to fire toasts on transitions.
   const lastHealthSnapshot = ref<Record<string, string>>({});
-  let pollTimer: ReturnType<typeof setInterval> | null = null;
+  let pollTimer: ReturnType<typeof setTimeout> | null = null;
+
+  let healthInFlight = false;
+  let healthPollingActive = false;
+  let healthFailures = 0;
 
   /** Fetch health, diff against the previous snapshot, and toast on changes. */
   async function pollHealthWithAlerts(): Promise<void> {
+    if (healthInFlight || document.hidden || navigator.onLine === false) return;
+    healthInFlight = true;
     try {
-      const res = await fetch("/api/server/health");
-      if (!res.ok) return;
+      const res = await fetch("/api/server/health", { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) { healthFailures += 1; return; }
+      healthFailures = 0;
       const data: HealthInfo = await res.json();
       const next: Record<string, string> = {};
       for (const s of data.services || []) {
@@ -199,34 +206,35 @@ export const useSnackbarOpsStore = defineStore("snackbar-ops", () => {
       downCount.value = data.down;
       healthPct.value = data.health_pct;
     } catch {
+      healthFailures += 1;
       // Backend unreachable — keep last snapshot, no false alerts.
+    } finally {
+      healthInFlight = false;
     }
   }
 
   /** Start periodic health polling with crash/restore toasts. */
   function startHealthPolling(intervalMs = 15000): void {
-    if (pollTimer) return;
-    // Seed the snapshot without alerting, then begin polling.
-    void (async () => {
-      try {
-        const res = await fetch("/api/server/health");
-        if (res.ok) {
-          const data: HealthInfo = await res.json();
-          const seed: Record<string, string> = {};
-          for (const s of data.services || []) seed[s.name] = s.status;
-          lastHealthSnapshot.value = seed;
-        }
-      } catch {
-        /* backend down */
-      }
-    })();
-    pollTimer = setInterval(() => void pollHealthWithAlerts(), intervalMs);
+    if (healthPollingActive) return;
+    healthPollingActive = true;
+    document.addEventListener("visibilitychange", pollHealthWithAlerts);
+    window.addEventListener("online", pollHealthWithAlerts);
+    const poll = async () => {
+      await pollHealthWithAlerts();
+      if (!healthPollingActive) return;
+      const delay = document.hidden ? 60000 : Math.min(120000, Math.max(5000, intervalMs) * 2 ** Math.min(healthFailures, 3));
+      pollTimer = setTimeout(poll, delay);
+    };
+    void poll();
   }
 
   /** Stop periodic health polling. */
   function stopHealthPolling(): void {
+    healthPollingActive = false;
+    document.removeEventListener("visibilitychange", pollHealthWithAlerts);
+    window.removeEventListener("online", pollHealthWithAlerts);
     if (pollTimer) {
-      clearInterval(pollTimer);
+      clearTimeout(pollTimer);
       pollTimer = null;
     }
   }

@@ -5,6 +5,10 @@ It provides a calm Vue 3 UI shell, governed backend APIs, native Obsidian vault 
 
 **September 2026 Refactor:** In-browser IDE/Dev Mode has been decommissioned. External software development is conducted in Google Antigravity (AGY) and Codex. uCore is focused purely on user productivity, notebook binders, daily automations, and domain application hosting.
 
+## First-time setup
+
+Start with the [User Setup and quickstart](docs/guides/QUICKSTART.md). For Google accounts, configure the installation’s [Desktop OAuth credentials](docs/guides/GOOGLE_OAUTH_SETUP.md) in Advanced, then choose accounts and lists in Connections.
+
 ## Architecture & Ownership
 
 | Component / Subsystem | Location in uCore | Responsibilities |
@@ -27,6 +31,8 @@ Independent domain products (`SonicScrewdriver`, `Groovebox`, `uVector`, `HomeNe
 - **External Engineering:** Antigravity IDE, `agy` CLI, and standard MCP servers (`mcp-server-git`, `mcp-filesystem`).
 - **Policy Enforcement:** Run `python3 scripts/check_home_path_policy.py` before committing.
 - **Fail-Closed Governance:** Capabilities are registered explicitly and fail closed; loose runtime scripts, fake users, compatibility shims and duplicated MCP facades are unsupported.
+
+See [backend environment ownership and recovery](docs/guides/BACKEND_ENVIRONMENT.md) for the locked Python setup. The full Xcode IDE is not required.
 
 ## Development & Running
 

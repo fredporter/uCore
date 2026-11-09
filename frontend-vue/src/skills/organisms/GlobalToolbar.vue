@@ -34,6 +34,11 @@
       >
         <UIcon name="home" class="global-toolbar__icon" />
       </button>
+      <button class="global-toolbar__tab global-toolbar__tab--nav"
+        :class="{ 'global-toolbar__tab--active': route.path.includes('/documentation') }"
+        @click="navigate('/documentation?tab=wiki')" title="Knowledge">
+        <UIcon name="auto_stories" class="global-toolbar__icon" />
+      </button>
       <button
         class="global-toolbar__tab global-toolbar__tab--nav"
         :class="{
@@ -60,7 +65,7 @@
           'global-toolbar__tab--active': route.path.includes('/ucode'),
         }"
         @click="navigate('/ucode')"
-        title="GridCore"
+        title="uCode"
       >
         <UIcon name="grid_on" class="global-toolbar__icon" />
       </button>
@@ -70,6 +75,7 @@
           'global-toolbar__tab--active':
             route.path.includes('/recipes') || route.path.includes('/surfaces'),
         }"
+        v-if="settings.advancedView"
         @click="navigate('/recipes')"
         title="Surfaces & Recipes"
       >
@@ -84,7 +90,7 @@
     <div class="global-toolbar__right">
       <button
         class="global-toolbar__icon-only global-toolbar__sync-btn"
-        title="Host Ecosystem Sync Active (Dashboard)"
+        title="Sync active (Dashboard)"
         @click="navigate('/')"
       >
         <span class="global-toolbar__sync-dot" />
@@ -100,7 +106,7 @@
       <button
         class="global-toolbar__icon-only"
         title="Settings"
-        @click="navigate('/system')"
+        @click="navigate('/system?tab=preferences')"
       >
         <UIcon name="settings" />
       </button>
