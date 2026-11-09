@@ -58,31 +58,15 @@ def _setup_repo(tmp_path: Path):
     return repo, mirror
 
 
-def test_push_to_repo_requires_dev_mode(tmp_path, monkeypatch):
+@pytest.mark.parametrize("legacy_flag", [True, False])
+def test_push_to_repo_is_retired_even_with_legacy_bypass(tmp_path, legacy_flag):
     repo, mirror = _setup_repo(tmp_path)
-
-    monkeypatch.setattr(mod, "is_dev_mode_active", lambda: False)
-    result = mod.push_to_repo(
-        "uCore", "guide.md", "# New\n",
-        mirror_root=mirror, roots={"uCore": repo},
-    )
-
+    before = (repo / "guide.md").read_bytes()
+    result = mod.push_to_repo("uCore", "guide.md", "# New\n", require_dev_mode=legacy_flag,
+                              mirror_root=mirror, roots={"uCore": repo})
     assert result["success"] is False
-    assert "Dev Mode" in result["error"]
-    assert (repo / "guide.md").read_text(encoding="utf-8") == "# Old\n"
-
-
-def test_push_to_repo_writes_back_in_dev_mode(tmp_path, monkeypatch):
-    repo, mirror = _setup_repo(tmp_path)
-
-    monkeypatch.setattr(mod, "is_dev_mode_active", lambda: True)
-    result = mod.push_to_repo(
-        "uCore", "guide.md", "# New\n",
-        mirror_root=mirror, roots={"uCore": repo},
-    )
-
-    assert result["success"] is True
-    assert (repo / "guide.md").read_text(encoding="utf-8") == "# New\n"
+    assert result["error"] == "repository_writeback_retired"
+    assert (repo / "guide.md").read_bytes() == before
 
 
 def test_diff_entry_detects_drift(tmp_path):
@@ -99,3 +83,48 @@ def test_diff_entry_detects_drift(tmp_path):
     )
     assert drift["has_diff"] is True
     assert drift["source_status"] == "ok"
+
+
+def test_refresh_rejects_symlink_that_would_overwrite_source(tmp_path):
+    repo, mirror = _setup_repo(tmp_path)
+    cached = mirror / "uCore" / "guide.md"
+    cached.unlink()
+    cached.symlink_to(repo / "guide.md")
+    with pytest.raises(ValueError, match="destination"):
+        mod.sync_from_repos(roots={"uCore": repo}, mirror_root=mirror)
+    assert (repo / "guide.md").read_text() == "# Old\n"
+
+
+def test_refresh_rejects_source_symlink_outside_repository_docs(tmp_path):
+    repo, mirror = _setup_repo(tmp_path)
+    private = tmp_path / "private.md"
+    private.write_text("Private material")
+    (repo / "linked.md").symlink_to(private)
+    with pytest.raises(ValueError, match="source escapes"):
+        mod.sync_from_repos(roots={"uCore": repo}, mirror_root=mirror)
+    assert not (mirror / "uCore" / "linked.md").exists()
+
+
+@pytest.mark.asyncio
+async def test_writeback_api_does_not_parse_or_dispatch_content(monkeypatch):
+    from unittest.mock import AsyncMock
+
+    from aiohttp.test_utils import make_mocked_request
+
+    from app.surfaces.documentation_api import handle_docs_mirror_push
+    request = make_mocked_request("POST", "/api/docs/mirror/push")
+    request.json = AsyncMock(side_effect=AssertionError("Read a retired mutation payload"))
+    response = await handle_docs_mirror_push(request)
+    assert response.status == 410
+    request.json.assert_not_called()
+
+
+def test_diff_rejects_tampered_provenance_paths(tmp_path):
+    import json
+    repo, mirror = _setup_repo(tmp_path)
+    index_path = mirror / '_mirror.json'
+    index = json.loads(index_path.read_text())
+    index['entries'][0]['mirrored_path'] = '../outside.md'
+    index_path.write_text(json.dumps(index))
+    with pytest.raises(ValueError, match='entry escapes'):
+        mod.diff_entry('uCore', 'guide.md', mirror_root=mirror, roots={'uCore': repo})

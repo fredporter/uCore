@@ -409,15 +409,12 @@ src/surfaces/documentation/DocumentationSurface.vue	8	SurfaceTabNav		toggle-orie
 src/surfaces/documentation/DocumentationSurface.vue	22	LearningPanel		open: onLearningOpen | catalog: readingQueue = $event		bound; outcome needs verification	not exercised by static audit
 src/surfaces/documentation/DocumentationSurface.vue	128	button	Return to library	click: closeReader		bound; outcome needs verification	not exercised by static audit
 src/surfaces/documentation/DocumentationSurface.vue	130	button		click: readerFullscreen = !readerFullscreen		bound; outcome needs verification	not exercised by static audit
-src/surfaces/documentation/DocumentationSurface.vue	131	button	Edit document	click: startEdit		bound; outcome needs verification	not exercised by static audit
-src/surfaces/documentation/DocumentationSurface.vue	139	button	Close	click: closeReader		bound; outcome needs verification	not exercised by static audit
-src/surfaces/documentation/DocumentationSurface.vue	150	button	Previous document	click: navigateReading(-1)	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/documentation/DocumentationSurface.vue	152	button	Next document	click: navigateReading(1)	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/documentation/DocumentationSurface.vue	153	button	Up one folder	click: openDoc(viewingDoc.source, parentPath, 'Contents')		bound; outcome needs verification	not exercised by static audit
-src/surfaces/documentation/DocumentationSurface.vue	161	div	{{ item.name }}	click: openDoc(viewingDoc.source, item.path, item.name) | keydown: openDoc(viewingDoc.source, item.path, item.name)		bound; outcome needs verification	not exercised by static audit
-src/surfaces/documentation/DocumentationSurface.vue	187	UButton	{{ savingDoc ? "Saving..." : "Save to repo" }}	click: saveDoc	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/documentation/DocumentationSurface.vue	196	UButton	Cancel	click: cancelEdit	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/documentation/DocumentationSurface.vue	206	DocumentArticle		navigate: openRelativeDocument		bound; outcome needs verification	not exercised by static audit
+src/surfaces/documentation/DocumentationSurface.vue	131	button	Close	click: closeReader		bound; outcome needs verification	not exercised by static audit
+src/surfaces/documentation/DocumentationSurface.vue	142	button	Previous document	click: navigateReading(-1)	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/documentation/DocumentationSurface.vue	144	button	Next document	click: navigateReading(1)	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/documentation/DocumentationSurface.vue	145	button	Up one folder	click: openDoc(viewingDoc.source, parentPath, 'Contents')		bound; outcome needs verification	not exercised by static audit
+src/surfaces/documentation/DocumentationSurface.vue	153	div	{{ item.name }}	click: openDoc(viewingDoc.source, item.path, item.name) | keydown: openDoc(viewingDoc.source, item.path, item.name)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/documentation/DocumentationSurface.vue	169	DocumentArticle		navigate: openRelativeDocument		bound; outcome needs verification	not exercised by static audit
 src/surfaces/documentation/LocalWikiReader.vue	6	button	{{ zenMode ? 'Exit full screen' : 'Full screen' }}	click: zenMode = !zenMode		bound; outcome needs verification	not exercised by static audit
 src/surfaces/documentation/LocalWikiReader.vue	20	button	Previous article	click: navigateArticle(-1)	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/documentation/LocalWikiReader.vue	22	button	Next article	click: navigateArticle(1)	conditional/static	bound; outcome needs verification	not exercised by static audit

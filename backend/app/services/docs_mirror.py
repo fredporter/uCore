@@ -1,6 +1,6 @@
 """Docs mirror — pull uDos component docs from in-repo docs/ directories.
 
-Dev Lane only. The mirror reads from in-repo `docs/` directories in core and
+Read-only reference cache. The mirror reads from in-repo `docs/` directories in core and
 extension repos. It must NEVER scan user-lane vault paths
 (`~/Vault`, `~/Shared`, `~/Public`) — those belong to the User Lane and are
 handled separately.
@@ -20,7 +20,7 @@ from app.core.settings import settings
 MIRROR_ROOT = settings.udos_home / "docs-mirror"
 MIRROR_INDEX = MIRROR_ROOT / "_mirror.json"
 
-# Dev-lane component doc roots — in-repo docs/ only.
+# Component reference roots — in-repo docs/ only.
 CORE_DOC_ROOTS: dict[str, Path] = {
     name: settings.udos_root / name / "docs"
     for name in ("uCore", "uFlow", "uKnowledge", "uCode", "uVector")
@@ -28,9 +28,9 @@ CORE_DOC_ROOTS: dict[str, Path] = {
 
 # User-lane paths that must NEVER be mirrored.
 FORBIDDEN_ROOTS: tuple[Path, ...] = (
-    Path.home() / "Vault",
-    Path.home() / "Shared",
-    Path.home() / "Public",
+    settings.vault_root,
+    settings.shared_vault_root,
+    settings.public_vault_root,
 )
 
 # Excluded path segments (same policy as the repo-docs scanner).
@@ -87,7 +87,7 @@ def sync_from_repos(
     roots: dict[str, Path] | None = None,
     mirror_root: Path | None = None,
 ) -> dict[str, Any]:
-    """Pull markdown docs from dev-lane repos into the mirror.
+    """Refresh the reference cache from repository Markdown without changing sources.
 
     Copies `.md` files into `<mirror>/<repo>/...` and writes a
     `_mirror.json` index with provenance per file.
@@ -98,6 +98,9 @@ def sync_from_repos(
         **discover_extension_doc_roots(),
     }
 
+    _ensure_allowed(root)
+    if root.is_symlink():
+        raise ValueError("Mirror root must not be a symbolic link")
     root.mkdir(parents=True, exist_ok=True)
 
     entries: list[dict[str, Any]] = []
@@ -128,8 +131,12 @@ def sync_from_repos(
                 continue
             _ensure_allowed(md_file)
 
+            if not md_file.resolve().is_relative_to(docs_root.resolve()):
+                raise ValueError("Documentation source escapes its repository docs root")
             rel = md_file.relative_to(docs_root)
             dest = root / repo_name / rel
+            if not dest.resolve().is_relative_to(root.resolve()) or dest.is_symlink():
+                raise ValueError("Mirror destination escapes its cache or is a symbolic link")
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(md_file, dest)
 
@@ -158,7 +165,10 @@ def sync_from_repos(
         "sources": source_stats,
         "entries": entries,
     }
-    (root / "_mirror.json").write_text(
+    index_path = root / "_mirror.json"
+    if index_path.is_symlink():
+        raise ValueError("Mirror index must not be a symbolic link")
+    index_path.write_text(
         json.dumps(index, indent=2, default=str),
         encoding="utf-8",
     )
@@ -238,13 +248,6 @@ def _resolve_roots(roots: dict[str, Path] | None) -> dict[str, Path]:
     }
 
 
-def is_dev_mode_active() -> bool:
-    """True when the Dev Lane is active (mode != off)."""
-    from app.services.dev_layer import DevMode, get_dev_layer
-
-    return get_dev_layer().mode != DevMode.OFF
-
-
 def push_to_repo(
     repo: str,
     path: str,
@@ -254,44 +257,11 @@ def push_to_repo(
     mirror_root: Path | None = None,
     roots: dict[str, Path] | None = None,
 ) -> dict[str, Any]:
-    """Write a mirrored doc back to its source repo (Dev Mode only)."""
-    if require_dev_mode and not is_dev_mode_active():
-        return {
-            "success": False,
-            "error": "Dev Mode required for doc write-back",
-        }
+    """Retired compatibility call; source edits belong in external tooling.
 
-    entry = get_entry(repo, path, mirror_root)
-    if entry is None:
-        return {
-            "success": False,
-            "error": f"No mirror entry for {repo}/{path}",
-        }
-
-    docs_root = _resolve_roots(roots).get(repo)
-    if docs_root is None or not docs_root.is_dir():
-        return {"success": False, "error": f"Source repo not found: {repo}"}
-
-    source_path = entry["source_path"]
-    target = (docs_root / source_path).resolve()
-    try:
-        target.relative_to(docs_root.resolve())
-    except ValueError:
-        return {
-            "success": False,
-            "error": "Refusing to write outside the repo docs root",
-        }
-
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(content, encoding="utf-8")
-
-    log.info("Docs mirror push-back: %s/%s", repo, source_path)
-    return {
-        "success": True,
-        "repo": repo,
-        "path": source_path,
-        "written": str(target),
-    }
+    Legacy arguments remain accepted but cannot bypass retirement.
+    """
+    return {"success": False, "error": "repository_writeback_retired", "owner": "external-development"}
 
 
 def diff_entry(
@@ -314,7 +284,9 @@ def diff_entry(
             "diff": "",
         }
 
-    mirror_file = root / entry["mirrored_path"]
+    mirror_file = (root / entry["mirrored_path"]).resolve()
+    if not mirror_file.is_relative_to(root.resolve()):
+        raise ValueError("Mirror entry escapes its cache")
     mirror_text = (
         mirror_file.read_text(encoding="utf-8", errors="replace")
         if mirror_file.exists()
@@ -325,7 +297,10 @@ def diff_entry(
     source_text = ""
     source_status = "missing"
     if docs_root and docs_root.is_dir():
-        src = docs_root / entry["source_path"]
+        src = (docs_root / entry["source_path"]).resolve()
+        _ensure_allowed(src)
+        if not src.is_relative_to(docs_root.resolve()):
+            raise ValueError("Documentation entry escapes its repository docs root")
         if src.exists():
             source_text = src.read_text(encoding="utf-8", errors="replace")
             source_status = "ok"

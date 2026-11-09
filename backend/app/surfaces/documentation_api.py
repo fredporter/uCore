@@ -405,7 +405,10 @@ async def handle_docs_mirror_sync(_request: web.Request) -> web.Response:
     """POST /api/docs/mirror/sync - pull component docs into the mirror."""
     from app.services.docs_mirror import sync_from_repos
 
-    result = await asyncio.to_thread(sync_from_repos)
+    try:
+        result = await asyncio.to_thread(sync_from_repos)
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
     return web.json_response(result)
 
 
@@ -417,29 +420,11 @@ async def handle_docs_mirror_status(_request: web.Request) -> web.Response:
 
 
 async def handle_docs_mirror_push(request: web.Request) -> web.Response:
-    """POST /api/docs/mirror/push - write a mirrored doc back to its repo."""
-    from app.services.docs_mirror import push_to_repo
-
-    try:
-        body = await request.json()
-    except Exception:
-        return web.json_response({"error": "Invalid JSON body"}, status=400)
-
-    repo = str(body.get("repo", "")).strip()
-    path = str(body.get("path", "")).strip()
-    content = body.get("content")
-    if not repo or not path or not isinstance(content, str):
-        return web.json_response(
-            {"error": "repo, path, and content are required"},
-            status=400,
-        )
-
-    result = await asyncio.to_thread(push_to_repo, repo, path, content)
-    if result.get("success"):
-        return web.json_response(result)
-    if "Dev Mode" in str(result.get("error", "")):
-        return web.json_response(result, status=403)
-    return web.json_response(result, status=400)
+    """Compatibility URL; repository editing belongs to external tooling."""
+    return web.json_response({
+        "success": False, "error": "repository_writeback_retired",
+        "owner": "external-development",
+    }, status=410)
 
 
 async def handle_docs_mirror_diff(request: web.Request) -> web.Response:
@@ -448,7 +433,10 @@ async def handle_docs_mirror_diff(request: web.Request) -> web.Response:
 
     repo = request.match_info.get("repo", "")
     path = request.match_info.get("path", "")
-    result = await asyncio.to_thread(diff_entry, repo, path)
+    try:
+        result = await asyncio.to_thread(diff_entry, repo, path)
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
     return web.json_response(result)
 
 
