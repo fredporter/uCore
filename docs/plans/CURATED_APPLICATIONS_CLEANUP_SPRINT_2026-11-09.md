@@ -24,6 +24,10 @@ The following refinements supersede conflicting wording later in this document a
 8. **Roundtable is bounded work, not an autonomous developer team.** Research, Create and Review reuse adequate installed models, normally sequentially. Repeated agreement is not verification. Web retrieval is explicit; accepted personal/shared layers preserve canonical Global Knowledge.
 9. **Curated applications require no code from users.** Install reviewed code packages through a real managed runtime. Simulated installs/running states cannot count as success.
 10. **Fresh start is authorised and performed reversibly.** Existing task folders, workflow definitions/runs and research queue history were archived on 2026-11-09. Do not re-seed technical examples or restore old user content automatically.
+11. **Universal OS, open hood.** uDos remains an offline-capable universal operating environment for everyday work, physical computing and hardware revival. Native macOS on Apple Silicon and non-destructive Sonic/Linux deployment on older hardware remain the device doctrine. Retiring internal Dev Mode does not retire advanced capabilities, inspection, useful engineering recipes or external IDE modification.
+12. **Roles, presentation and device profiles are separate contracts.** Human roles are Wizard (admin/maintainer), Sorceror (advanced user) and Knight (everyday user). Advanced visibility is a preference, not an authority grant. Crypt, Drone and Tomb are deployment/access profiles for device principals or distributions, not higher human privilege levels.
+13. **Preserve useful Advanced tools.** Google product integrations, engineering references and surface recipes remain candidates for a role-aware Advanced tools/Wizard workspace. Audit their real behaviour and migrate useful operations to governed capabilities; do not restore the generic shell, internal repository IDE or fabricated execution states. Sonic Screwdriver is an ordinary user surface.
+14. **Curate before distributing.** Research material, seed user vaults and the knowledge bank need a shared curation skill pipeline, explicit schemas/taxonomy and reviewable migrations. Installed canon stays immutable; personal/Shared work, distribution seed candidates and canonical release candidates have separate destinations and approvals.
 
 The scope now exceeds a credible single ten-day sprint. Keep one ordered programme backlog with three gated delivery slices. The first sprint is foundation/cleanup, the second delivers one curated application, and the third qualifies interest-driven knowledge/sync automation. Each slice must be useful and truthful independently; dates remain planning targets until its first-day capacity review.
 
@@ -49,6 +53,7 @@ The scope now exceeds a credible single ten-day sprint. Keep one ordered program
 - **Sidebar:** Vault or Binders; sole workspace/library file browser. Preserve current location and provide full-width aligned rows.
 - **Knowledge:** read the installed reference bank and Shared/Personal overlays through the common reader. Canon editing belongs to maintainers externally.
 - **uCode / creative tools:** optional BASIC learning, internal operations and GridCore output; uCode2/vector/spatial features retain their existing product owners.
+- **Sonic Screwdriver:** visible in normal user mode for installation, USB preparation, recovery, hardware recycling and capsule/device provisioning. Host detection must explain which actions are supported; Apple Silicon uses native macOS, not Linux installation. Normal visibility does not bypass confirmation of destructive hardware operations.
 - **Snackbar:** curated apps/snacks, routines, imported Tasks/Contacts/Notes/Feeds, assistant and reconciliation. Imported Tasks are a source view of the same logical work, not another task authority.
 - **Settings → Apps:** selected native/cloud app connections, scopes and app recommendations. Keep connection setup out of the first-run story.
 - **Settings:** Name, assigned Role, appearance, reading preferences, assistant preferences and explicit Advanced connection/cost controls.
@@ -130,9 +135,93 @@ Starts after Slice 1 contracts stabilise. C04–C06 are the critical path; retai
 - **K07 / C14:** Remote/local repository and publishing alignment. Compare active checkouts/branches/remotes, retain unrelated projects, archive proven remnants with recovery manifests, finish protected app releases and knowledge publication independently. SnackMachine is optional catalogue tooling, not another Server; Google/Publish scaffolds do not claim deployment until tested.
 - **K08 / C10:** Consolidated first-run, installer, offline-model, app/skill, sync and recovery quickstarts. Document what is manual, installed, supported, proposed or unavailable. Keep external maintainer guides separate from beginner learning.
 
+## Slice 3 extension — curated knowledge, roles and distributions
+
+This extension supersedes wording that treats Advanced as disposable engineering clutter or recipes as external-reference-only material. It is planned work, not a claim that new roles, skills or distribution profiles are implemented. The current runtime still has the legacy Advanced preference and WordPress-compatible identity roles. Preserve existing users and integration mappings while introducing the following contracts.
+
+### Human authority and interface detail
+
+Use one capability-based identity authority, extending the existing bundled identity/user store rather than adding a second account database. Retain WordPress-standard role mapping at the integration boundary; a remote WordPress administrator must not become a local Wizard or acquire canon-publishing authority automatically.
+
+| Human role | Intended experience and authority | Boundaries |
+| --- | --- | --- |
+| Knight (`knight`) | Everyday apps, personal Binder/Vault work, optional uCode, Sonic installation/recovery tools and approved skills | Own content and explicitly shared scopes; no account administration or canon publication |
+| Sorceror (`sorceror`) | Advanced workflows, content organisation, reviewed recipes, selected integration configuration and candidate seed preparation where granted | Personal/Shared or assigned staging scopes; cannot grant itself Wizard authority or replace installed canon |
+| Wizard (`wizard`) | Local administration, role grants, packaging/review and distribution curation; external maintainer work on source/canon candidates | Explicit ownership and release authority; installed canon is updated only through the edition installer, never direct runtime editing |
+
+Keep the user's spelling **Sorceror** as the canonical display name/ID; accept legacy spelling aliases only through a documented migration. Existing administrator/editor/author/etc. data needs an explicit crosswalk, preview and rollback. Default newly created ordinary users to Knight; confirm the sovereign installation owner through existing bootstrap/recovery identity before granting Wizard. Roles never stand in for operating-system permissions, provider consent or per-action approval. Test direct API enforcement, not only hidden buttons.
+
+Recommended naming: retain **Advanced tools** for extra interface detail available to appropriately granted Sorcerors/Wizards; use **Wizard workspace** for administration and distribution curation. Do not rename a freely toggled display preference to a role grant. Legacy `advancedView` remains presentation compatibility data until migrated. A Wizard may choose the calm normal view without losing their role, and showing Advanced cannot promote a Knight. The final labels can change without changing permissions.
+
+### Research and content curation skills
+
+Extend the existing governed internal capability registry/catalogue and its versioned recipe contracts. No new agent tree, daemon, interpreter, monolithic environment or parallel knowledge store. uCore hosts; bundled knowledge services own content/provenance contracts; uFlow owns jobs, budgets, cancellation and review state. Deterministic/offline operation is the baseline. AI can propose enrichment/classification with model/source provenance and explicit time/token/network limits; neither model agreement nor a polished summary counts as verification.
+
+| Skill family | Typed, reviewable result | Qualification |
+| --- | --- | --- |
+| Corpus inventory and triage | Paths, format/schema/template versions, stable IDs, hashes, sizes, licences, sensitivity and proposed disposition | Read-only first; no automatic move/delete/rename; report unknowns instead of assigning invented provenance |
+| Research intake and provenance | Preserved originals, normalized text, source URL/author/date/retrieval metadata and citation records | Reuse intake/source records; verify hashes, origin and permitted reuse; citations survive every transformation |
+| Schema and template normalization | Candidate metadata/body crosswalk from old templates to the approved document types | Use installed Prose/USX/GridCore standards and owned schemas; preserve unknown fields, IDs, links and versions; no ad-hoc per-product canon |
+| Classification and relationships | Controlled taxonomy, tags, document type, subjects, difficulty/reading level where justified, aliases and explicit relationships | Reuse one reviewed vocabulary; distinguish source statements, interpretations and inferred tags; avoid folder sprawl |
+| Deduplication and edition reconciliation | Exact-hash matches, near-duplicate suggestions, supersession/conflict proposals and link-repair preview | Never silently merge differing claims or delete originals; accepted merges retain aliases, evidence and recovery manifests |
+| Evidence and editorial review | Claim-to-source coverage, conflicting claims, freshness/uncertainty, licence and privacy findings | Retrieval is not verification; deterministic checks plus editorial sign-off; unresolvable claims remain marked |
+| Organisation and indexing | Proposed folder/collection map, summaries, entry pages, reading paths, crosslinks and search/teletext indexes | Stable identity independent of file location; regenerate indexes from owned content; shared modern/teletext editions |
+| Seed/edition packaging and verification | Selected-content manifest, file digests, template versions, compatibility, licences, privacy report and installed/download budgets | Repeatable builds, no credentials/private state, reviewable diff, staged install, prior-edition recovery and uninstall that preserves user work |
+
+The normalization crosswalk must cover a minimum common document contract: stable document/source IDs; schema and template versions; title/type/language; author and owner; layer/sensitivity/sharing classification; created/modified/retrieved dates where known; source URL and citation references; licence/redistribution status; controlled subjects/tags; aliases/related and superseded documents; assets/digests; and editorial/verification state. Not every source supplies every field: retain unknowns explicitly and distinguish original metadata from inferred/generated metadata. Review the crosswalk against existing owned schemas and canonical standards before adopting a version; this plan does not introduce another competing schema baseline.
+
+Every mutating skill declares owner, allowed roots, input/output schema and versions, role/capability requirements, effect preview, idempotency, source identities, storage/network/model budgets, timeout/cancel behaviour and rollback/removal procedure. Reuse the existing registry lifecycle and Queue instead of adding a new background worker. Outputs are candidate documents or packages until accepted. User consent to research does not authorise moving their entire vault, transmitting it to a cloud provider or publishing it.
+
+### Content destinations and legacy-vault cleanup
+
+The present mixed corpus must be inventoried before a taxonomy or clean structure is imposed. Useful Google product material, engineering notes, recipes and historical templates are classification/review candidates, not automatic deletion targets. Keep a record of what is current, reference-only, superseded, private, redistribution-restricted or awaiting evidence. An old template is not proof its underlying content is obsolete.
+
+| Destination | Owner, lifecycle and distribution rule |
+| --- | --- |
+| Personal and Shared content | Existing `settings.vault_root` / `settings.shared_vault_root`; user-owned mutable documents with overlays and explicit sharing; remove/archive through normal reviewed file operations |
+| Seed user vault source | A separately named content package in the existing maintainer content/source ownership, alongside but distinct from Global Knowledge editions; exact source path is chosen after inventory, before implementation, with no new repository |
+| Installed seed user vault | Optional first-run/import copy of a selected reviewed seed; becomes personal mutable work. Record seed ID/version/file identities; repeat installs and upgrades preview conflicts and never overwrite personal edits or repopulate the archived clean Workflow automatically |
+| Global Knowledge candidate | Existing `Code/global-knowledge` maintainer source and reviewed candidate/release branches; Wizard curation occurs with external IDE/CLI tooling and shared curation skills |
+| Installed Layer 0 | `settings.public_vault_root/global-knowledge`; immutable edition for ordinary runtime tools, with Personal/Shared overlays preserved across updates |
+
+Avoid corpus copies for each role or hardware profile. Use one content inventory and selected pack manifests with measured sizes, shared payloads and rebuildable indexes. Candidate workspace storage must be product/content-package owned, visible, explicitly budgeted and removable; no new hidden user-data folders. Seed packages need licence/privacy review, offline entry pages and useful everyday examples, not maintainer backlog tasks, account tokens, personal logs or fake installed/running records. Test a disposable fresh profile, opt-out, repeat import, upgraded seed with personal edits and full uninstall/recovery before distribution.
+
+### Advanced tools and recipe preservation
+
+Inventory current Google AI/Drive, provider code/data-analysis, engineering and surface-recipe capabilities one by one. Distinguish locally working, account-dependent, provider/network-dependent, preview-only and unsupported operations. Preserve useful functionality and source evidence; qualify backend grants, inputs/outputs, cost, credentials and side effects before presenting any action as runnable. Google account data remains provider-owned or explicitly imported into chosen Binder/Vault scopes; cloud access is opt-in and never an implicit requirement for local curation.
+
+Wizard content curation is a legitimate internal workflow: inventory, reorganise proposals, edit candidate documents, review citations, build seed/knowledge candidates and inspect the resulting package using governed content skills. Canon candidates can be prepared in explicitly scoped staging without granting repository-code execution or modifying the installed baseline. Integrating approved canonical-source changes, signing/publishing editions and modifying uDos software remain external maintainer/IDE workflows. The objective is a powerful internal content workbench, not merely an external-tools information page.
+
+The Advanced/Wizard workspace reuses existing navigation, settings, Binder/Editor, resource contracts, skill registry and Queue. It provides inspect/preview/configure/run/export/review where those actions are actually supported. Surface recipes are useful reusable compositions and teaching references; they can be adopted into user workflows or exported for external IDE enhancement. There is no generic in-app IDE, repo mutation endpoint or autonomous development team. Appropriate diagnostics, networking, physical computing and system administration remain powerful first-class capabilities behind their owners.
+
+### Distribution and standalone device profiles
+
+Human role grants and device identity are separate axes. Keep **Crypt**, **Drone** and **Tomb** visible as device/distribution profile concepts, with scoped principals instead of pretending they are human permission levels. Reuse Sonic's capsule/edition/runtime/deployment separation and identity enrolment; do not create a separate runtime or storage engine for each name.
+
+| Device profile | Working definition for qualification |
+| --- | --- |
+| Crypt | Existing Sonic encrypted-capsule profile: private selected content, established encryption adapter, protected keys and separately retained recovery method; public discovery metadata is distinct from payload |
+| Tomb | Existing Sonic sealed archival/presentation/time-capsule profile: immutable dated edition, offline entry/recovery instructions, checksums and retained recovery copy; may be public or encrypted |
+| Drone | Proposed scoped unattended appliance/worker profile; confirm original device use cases before fixing the contract. Define finite jobs/capabilities, least-privilege device credentials, resource/network limits, owner enrolment, pause/revoke and safe disconnected behaviour; do not infer an unrestricted agent fleet |
+
+Standalone reading must work without an always-running uCore server or internet account. Each manifest declares content edition, runtime/reader compatibility, host/hardware, display mode, writable versus sealed areas, power/storage constraints, update/recovery and decommissioning/removal. Device credentials never inherit the owner's Wizard role. Sonic owns media preparation/provisioning and host checks; knowledge services own content packs; uCode owns executable language content; host time remains authoritative. Native Apple Silicon macOS and non-destructive Linux USB/dual-boot on recycled hardware remain the universal deployment doctrine.
+
+### Added backlog and delivery order
+
+| Ticket | Work / dependency | Acceptance evidence |
+| --- | --- | --- |
+| K09 | Human roles/capabilities, explicit identity migration and role-aware Advanced/Wizard navigation | Wizard/Sorceror/Knight direct API matrix; no display-toggle or WordPress-sync escalation; owner recovery, grant/revoke and migration rollback |
+| K10 | Shared curation skill set and bounded review pipeline; depends on A06 registry lifecycle and K09 permissions | Same selected batch can be inventoried, normalized, classified, reconciled and validated with deterministic output; AI is optional and traceable; dry-run diff/cancel/retry/recovery |
+| K11 | Distribution-ready seed user vault; depends on K10 content contracts | Clean offline install, useful entry structure, no private/credential data, seed provenance, repeat/upgrade conflict handling and no automatic technical-task reseeding |
+| K12 | Existing corpus/old-template reconciliation into Personal/Shared/seed/canon candidates; K10 + K03 | Inventory and crosswalk before changes; original hashes, IDs and links survive; useful engineering/Google/recipe material retained or explicitly archived; separate approved canon release |
+| K13 | Advanced tools/Wizard workspace and recipe catalogue; K09 + A06 | Explicit capability/effect/status labels; preserve reviewed Google/engineering/surface workflows; normal Sonic visibility; retired arbitrary development execution stays retired |
+| K14 | Crypt/Drone/Tomb distribution profiles; K03/K11 + Sonic ownership | Separate human/device grants, standalone/offline operation, signed/digested selected package, supported encryption/recovery, owner revoke/removal and tested hardware lifecycle |
+
+Role naming/capability modelling and Sonic visibility are cross-cutting foundation follow-up, not blocked on a finished Slice 3. Implement the curation skill mechanics through Slice 2's existing skills/runtime contracts, then qualify distribution editions in Slice 3. Start with a read-only inventory of an explicitly selected corpus and one small seed-vault candidate; do not reorganise the live Vault or installed Global Knowledge as a planning exercise. First demonstrate one source-preserving curated Binder/reading pack, then a disposable seed-vault install, then an approved canon candidate, then a standalone Sonic capsule. These are gated demonstrations, not promises of a new unattended pipeline or fixed dates.
+
 ## Recipe disposition
 
-The gallery is no longer an ordinary runtime destination. Existing recipe source/tests remain implementation references for external development until useful behaviour is absorbed and verified.
+Recipes are removed from ordinary navigation, not discarded. Their useful source, examples and tests remain inspectable. The Advanced/Wizard catalogue planned below preserves reviewed engineering, Google/product and surface recipes with explicit states: reference, preview, configurable draft, installed or qualified runnable action. Links to working product features remain valid until a reviewed catalogue supplies the richer experience. Engineering references can be inspected and exported to an external IDE; they do not imply an in-app repository editor. Existing code/data-analysis sandboxes require their own provider, capability, scope and execution qualification, not a generic host-shell shortcut.
 
 | Gallery item | Working owner | Qualification work |
 | --- | --- | --- |
@@ -171,7 +260,7 @@ The gallery is no longer an ordinary runtime destination. Existing recipe source
 
 ## Foundation release assessment — 2026-11-10
 
-This is a qualified local cleanup checkpoint, not a release-certified Slice 1.
+The cleanup checkpoint is merged with green post-merge CI in both repositories. Slice 1 remains short of release certification.
 
 | Gate | Evidence / disposition |
 | --- | --- |
@@ -182,7 +271,7 @@ This is a qualified local cleanup checkpoint, not a release-certified Slice 1.
 | F05 native language | Native language/transport acceptance and truthful bridge inventory passed; no registered Vault/workflow language bridges |
 | F06 recipe disposition | Ordinary gallery routes retired and destinations tested; no claim that every historical preview is a production feature |
 | F07 user polish | Setup/preferences tests and Workflow keyboard/narrow checks passed; reader fullscreen/keyboard and broader cross-surface parity remain open |
-| F08 publication | Local suites/builds/policy checks recorded above; companion publication, remote CI, protected review/merge and clean-install platform qualification remain open |
+| F08 publication | uCode #13 and uCore #42 merged; both post-merge CI runs passed. Versioned artifact, clean-install/platform and remaining reader qualification remain open |
 
 ## Release and rollback gates
 
@@ -193,6 +282,8 @@ Restore prior app/host artifacts without overwriting new user work. Retain sourc
 Source publication follows repository → branch → isolated checks → protected PR → required CI → reviewed merge → versioned artifact → clean install smoke test. Content edition publication is independent and licence/provenance-qualified. Current uCore and uCode edits must be checked/committed in their own repositories; no force-push of preserved knowledge history.
 
 ## Current checkpoint and limits
+
+- Plan extension (2026-11-10): K09–K14 define role-aware Advanced/Wizard tools, shared research-curation skills, optional seed user-vault packaging, legacy-corpus reconciliation and separate Crypt/Drone/Tomb device profiles. Preserve useful Google/engineering/surface recipes and universal OS/open-hood doctrine. Sonic is removed from the Home Advanced-only filter now; roles, curation skills and the richer recipe catalogue are specifications, not implemented runtime capabilities. No user corpus or installed Global Knowledge was reorganised.
 
 - Pre-merge review fixes (2026-11-10): task opening/status refresh no longer infers Binder membership from a matching source-board name; only explicit legacy list navigation may resolve that alias. Vault topology, library/editor roots and documentation roots now all consume owning settings, matching Binder imports on custom-root installations. Added source-board collision and isolated custom-root regression coverage. Validation: full backend 742 passed, frontend 151 passed, production build/type-check, path policy and whitespace passed.
 
@@ -230,4 +321,4 @@ Source publication follows repository → branch → isolated checks → protect
 - Simulated package install/update success is removed; those operations report unavailable until the real artifact/executor path is configured. Container execution remains unqualified.
 - Knowledge navigation is moved into the shared sidebar. The duplicate in-panel file tree/header is removed. Reading font is centralised in Settings; toolbar is at panel top, outer padding removed, TOC bullets removed, and properties/TOC are toolbar toggles. Layer/copy actions are in the toolbar action menu.
 - Binder dashboard composition and naming cleanup are underway. Full Binder identity/legacy-board consolidation, context-scoped research and removal of all duplicated state are still F02/F03 gates; do not equate changed labels with finished data migration.
-- Cleanup checkpoint is ready for local commits in uCore and uCode. Validation below qualifies the touched behaviour; no protected merge, target-platform release or live account certification is implied.
+- Cleanup checkpoint merged through uCode #13 and uCore #42, with both post-merge CI runs green. Target-platform release, live account certification and the newly planned role/curation/distribution contracts remain unqualified.
