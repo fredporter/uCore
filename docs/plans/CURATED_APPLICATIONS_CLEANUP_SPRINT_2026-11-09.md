@@ -33,12 +33,12 @@ The scope now exceeds a credible single ten-day sprint. Keep one ordered program
 | --- | --- | --- |
 | Workflow | Real task persistence and contextual editing; reversible fresh-start archive; dashboard composition | Complete Binder identity/profile/source migration and context-scoped research |
 | Reader/sidebar | One sidebar tree, wider reader, central reading font, top toolbar, optional metadata/TOC and toolbar actions | Shared behaviour/regression checks across reader, Editor and uCode guide; keyboard/fullscreen/narrow tests |
-| uCode | Native language route; live BASIC calculation succeeds; language reference owned by uCode | Registered vault/workflow command bridge, validator and authoring acceptance suite; do not fabricate unsupported commands |
+| uCode | Native calculation, numbered LIST/RUN, reconnect, failure/cleanup and transport validation qualified; language inventory owned by uCode | Vault/workflow bridges explicitly unavailable; scoped authoring/bridge acceptance remains open |
 | Ollama | Live installed inventory; explicit tagged model download/progress; bounded local selected-text roundtable preview | Durable download jobs, reviewed packs/hardware qualification, dependency-aware cleanup, research/skills integration |
 | Skills | Governed builtin registry and confirmation contracts exist | Curated non-dev skill inventory, version/enable/disable/dependency management; no arbitrary AI-installed code |
 | Application platform | Existing package/catalogue and container records; fake package install/update success removed | Actual verified artifact installation and real isolated executor |
 | Sync | Source-scoped engine and Snackbar facade; Mac/direct Google adapters; browser file exchange | Live account round-trip qualification, full facade consolidation and Linux handoff/live-adapter work |
-| Development retirement | Gallery/runtime navigation removed; Settings agent table and assistant developer-store dependency removed | Audit remaining APIs/configs/external consumers before retiring repo mutation/ACP/agent execution |
+| Development retirement | Production repo/ACP/chat execution, generic shell, Dev Mode activation and repo-doc write-back retired; external read-only inspection/history/cancel preserved | Historical source remains; qualify any future managed app execution independently |
 | Global Knowledge | Preserved source/install split and availability checks | Remote corpus reconciliation, licensed edition manifests and atomic installer; immutable canon plus personal/shared overlays |
 | Publishing/repos | Protected uCore release flow exists; old superseded sources archived previously | Audit all active repo divergence and package contracts; qualify publishing/export adapters individually |
 
@@ -169,6 +169,21 @@ The gallery is no longer an ordinary runtime destination. Existing recipe source
 | Clean current Workflow/Binder “lists” and start fresh | Completed reversible archive checkpoint below; no automatic technical reseeding |
 | First-time credentials/setup/quickstart and honest capability documentation | F07/F08/K08; separate beginner use from external maintainer packaging |
 
+## Foundation release assessment — 2026-11-10
+
+This is a qualified local cleanup checkpoint, not a release-certified Slice 1.
+
+| Gate | Evidence / disposition |
+| --- | --- |
+| F01 inventory / recovery | Clean committed owners, prior reversible fresh-start archive and retained historical source; no QA reseeding of personal Workflow |
+| F02 Binder model | New-task/document membership, source identity, versioned opening, moves/copies and source-scoped research covered; historical list/document migration remains unqualified |
+| F03 shared resources | Shared sidebar, file reader and Binder/document article contracts in use; layered Knowledge and story Editor parity still open |
+| F04 runtime development | Audited mutation/execution entry points retired; read-only MCP/history and cancellation preserved and tested |
+| F05 native language | Native language/transport acceptance and truthful bridge inventory passed; no registered Vault/workflow language bridges |
+| F06 recipe disposition | Ordinary gallery routes retired and destinations tested; no claim that every historical preview is a production feature |
+| F07 user polish | Setup/preferences tests and Workflow keyboard/narrow checks passed; reader fullscreen/keyboard and broader cross-surface parity remain open |
+| F08 publication | Local suites/builds/policy checks recorded above; companion publication, remote CI, protected review/merge and clean-install platform qualification remain open |
+
 ## Release and rollback gates
 
 Run isolated backend tests, frontend tests/type-check/production build, action binding inventory, whitespace/path policy and credential scan against the final tree. Do not treat static handler bindings as proof of native/cloud effects. Exercise fresh-profile setup, offline use, language runtime, restart recovery, concurrent document edits, missing optional runtime, cancellation and failed credentials. Qualify target Apple Silicon/macOS and supported Linux independently. Use disposable fixtures, not new technical tasks in the user's clean Workflow.
@@ -178,6 +193,8 @@ Restore prior app/host artifacts without overwriting new user work. Retain sourc
 Source publication follows repository → branch → isolated checks → protected PR → required CI → reviewed merge → versioned artifact → clean install smoke test. Content edition publication is independent and licence/provenance-qualified. Current uCore and uCode edits must be checked/committed in their own repositories; no force-push of preserved knowledge history.
 
 ## Current checkpoint and limits
+
+- F08 release-gate audit (2026-11-10): legacy split-repo smoke/packaging scripts no longer skip absent uFlow/uKnowledge/identity siblings; they validate bundled authorities plus required companion uCode and native BASIC capability. Packaging checks actual README metadata and bundled package files; fixed uCore backend metadata that named a nonexistent README. Extension discovery uses owning UDOS_HOME settings and recognises bundled identity. CI runs host/package checks in the locked-dependency backend job, with both companion pins advanced to `f794d8e7144e69d076c6f6b9d4d76c53b07852e2`. Validation: actual host route smoke (450 paths / 11 identity method pairs), packaging, offline locked-dependency check, governance/capability/docs/duplicate-route/legacy checks passed; full backend suite 740 passed, followed by four focused release-check regressions. Remote uCode main was verified at `809bdf0d604187d714f963ee213657b4fe0cb02c`; no remote publication or CI success is implied. Publish/review the companion revision before remote CI/release.
 
 - F03 Binder reader consolidation (2026-11-10): brief and draft now consume the existing DocumentArticle used by documentation reading, removing the private regex/v-html renderer and separate draft preview. They share reading-font tokens, frontmatter, contents, sanitization and diagram hydration. Relative links resolve only to documents attached to the selected Binder and open through the shared versioned workspace reader; unrelated links report unavailable. Preserved the existing Editor conflict-hash/creation regression alongside new brief/draft sanitization and link tests. Validation: 150 frontend tests, production build/type-check, action audit, path policy and whitespace passed. Story-specific Editor preview and layered Knowledge reading retain their specialised owners pending parity qualification.
 

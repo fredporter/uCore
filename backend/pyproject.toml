@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "ucore"
 version = "4.0.3"
 description = "uCore — unified daemon combining uServer + uConnect backend"
-readme = "README.md"
+readme = { text = "uCore hosts the user workspace and bundled workflow, knowledge and identity authorities.", content-type = "text/plain" }
 requires-python = ">=3.12,<3.13"
 license = { text = "MIT" }
 authors = [

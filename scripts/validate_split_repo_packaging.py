@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-"""Validate split-repo publishable Python package layouts.
+"""Validate uCore's bundled authorities and companion uCode package metadata.
 
-Checks package metadata/layout for:
-- uFlow (`uflow`)
-- uKnowledge (`uknowledge`)
-- uCode runtime (`ucode_runtime`)
+Historical script name retained; required packages never silently skip.
 """
 
 from __future__ import annotations
@@ -15,24 +12,18 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
 CODE_ROOT = Path(os.environ.get("UDOS_ROOT", str(Path.home() / "Code"))).expanduser()
-STRICT_MODE = os.environ.get("UCORE_SPLIT_REPO_PACKAGING_STRICT", "0").lower() in {
-    "1",
-    "true",
-    "yes",
-}
-
-
 @dataclass(frozen=True)
 class PackageSpec:
     repo: str
     pyproject: str
     package_dir: str
+    project_dir: str = ""
 
 
 SPECS = [
-    PackageSpec("uFlow", "uflow", "uflow"),
-    PackageSpec("uKnowledge", "uknowledge", "uknowledge"),
+    PackageSpec("uCore", "ucore", "app", "backend"),
     PackageSpec("uCode", "ucode-runtime", "ucode_runtime"),
 ]
 
@@ -44,7 +35,8 @@ def _load_pyproject(path: Path) -> dict:
 
 def _validate_spec(spec: PackageSpec) -> list[str]:
     errors: list[str] = []
-    repo_root = CODE_ROOT / spec.repo
+    base = ROOT if spec.repo == "uCore" else Path(os.environ.get("UCORE_UCODE_PATH", str(CODE_ROOT / spec.repo))).expanduser()
+    repo_root = base / spec.project_dir
     pyproject_path = repo_root / "pyproject.toml"
     package_path = repo_root / spec.package_dir
 
@@ -76,8 +68,15 @@ def _validate_spec(spec: PackageSpec) -> list[str]:
         errors.append(f"{spec.repo}: project.version missing or invalid")
 
     readme = project.get("readme")
-    if not isinstance(readme, str):
+    if isinstance(readme, str):
+        if not (repo_root / readme).is_file():
+            errors.append(f"{spec.repo}: declared README is missing: {readme}")
+    elif not isinstance(readme, dict) or not readme.get("text"):
         errors.append(f"{spec.repo}: project.readme missing or invalid")
+    if spec.repo == "uCore":
+        for authority in ("flow", "knowledge", "identity"):
+            if not (package_path / authority / "__init__.py").is_file():
+                errors.append(f"uCore: bundled authority missing: app.{authority}")
 
     requires_python = project.get("requires-python")
     if not isinstance(requires_python, str):
@@ -87,14 +86,6 @@ def _validate_spec(spec: PackageSpec) -> list[str]:
 
 
 def main() -> int:
-    missing_repos = [spec.repo for spec in SPECS if not (CODE_ROOT / spec.repo).exists()]
-    if missing_repos and not STRICT_MODE:
-        print("Split-repo packaging validation skipped: external repos unavailable")
-        for repo in missing_repos:
-            print(f"- missing repo: {CODE_ROOT / repo}")
-        print("Set UCORE_SPLIT_REPO_PACKAGING_STRICT=1 to enforce hard failure")
-        return 0
-
     all_errors: list[str] = []
 
     for spec in SPECS:

@@ -24,6 +24,8 @@ if str(BACKEND_DIR) not in sys.path:
 
 from app.extensions.manifest import ExtensionManifest  # noqa: E402
 
+from app.core.settings import settings
+
 MANIFEST_FILE_NAME = "ucore-extension.json"
 
 # Built-ins are always valid dependency targets from manifest perspective.
@@ -35,13 +37,14 @@ BUILTIN_IDS = {
     "ucore-tools",
     "uflow",
     "uknowledge",
+    "uidentity",
 }
 
 
 def _default_paths() -> list[Path]:
     return [
         ROOT / "backend" / "app" / "extensions" / "manifests",
-        Path.home() / ".ucore" / "extensions",
+        settings.udos_home / "extensions",
     ]
 
 

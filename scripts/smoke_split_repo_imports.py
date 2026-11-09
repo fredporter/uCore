@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Split-repo install/import smoke checks for CI and local development.
+"""Verify bundled host authorities and the required companion uCode runtime.
 
-This script verifies that external repos are importable and that uCore can
-register routes with discovered extension manifests.
+The historical filename is retained for CI compatibility. Missing required
+packages fail; bundled uFlow/knowledge/identity never require sibling repos.
 """
 
 from __future__ import annotations
@@ -16,17 +16,7 @@ CODE_ROOT = Path(os.environ.get("UDOS_ROOT", str(Path.home() / "Code"))).expandu
 
 REPO_PATHS = {
     "uCore-backend": ROOT / "backend",
-    "uFlow": CODE_ROOT / "uFlow",
-    "uKnowledge": CODE_ROOT / "uKnowledge",
-    "uCode": CODE_ROOT / "uCode",
-    "udos-budget": CODE_ROOT / "udos-budget",
-    "udos-identity": CODE_ROOT / "udos-identity",
-}
-
-STRICT_MODE = os.environ.get("UCORE_SPLIT_REPO_SMOKE_STRICT", "0").lower() in {
-    "1",
-    "true",
-    "yes",
+    "uCode": Path(os.environ.get("UCORE_UCODE_PATH", str(CODE_ROOT / "uCode"))).expanduser(),
 }
 
 
@@ -38,23 +28,14 @@ def _ensure_path(path: Path) -> None:
         sys.path.insert(0, p)
 
 
-def _missing_external_repo_paths() -> list[Path]:
-    missing: list[Path] = []
-    for name, path in REPO_PATHS.items():
-        if name == "uCore-backend":
-            continue
-        if not path.exists():
-            missing.append(path)
-    return missing
-
-
 def _check_imports() -> None:
-    # External repos and uCore backend need to be importable from source.
-    import uflow.routes  # noqa: F401
-    import uknowledge.routes  # noqa: F401
-    import ucode_runtime.ceefax  # noqa: F401
-    import udos_budget.routes  # noqa: F401
-    import udos_identity.routes  # noqa: F401
+    import app.flow.routes
+    import app.knowledge.routes
+    import app.identity.routes
+    import ucode_runtime.ceefax
+    from ucode_runtime.runtime_info import runtime_info
+    if "terminal.basic-immediate" not in runtime_info()["capabilities"]:
+        raise RuntimeError("The companion uCode revision lacks the native BASIC Terminal contract")
 
 
 def _check_registry_routes() -> None:
@@ -70,8 +51,7 @@ def _check_registry_routes() -> None:
     expected_extensions = [
         "uflow",
         "uknowledge",
-        "udos-budget",
-        "udos-identity",
+        "uidentity",
     ]
     missing_ext = [
         ext for ext in expected_extensions
@@ -134,28 +114,13 @@ def _check_registry_routes() -> None:
 
 
 def main() -> int:
-    missing_external = _missing_external_repo_paths()
-    if missing_external and not STRICT_MODE:
-        print("Split-repo smoke skipped: external repos unavailable in this environment")
-        for p in missing_external:
-            print(f"- missing: {p}")
-        print("Set UCORE_SPLIT_REPO_SMOKE_STRICT=1 to enforce hard failure")
-        return 0
-
     for name, path in REPO_PATHS.items():
         _ensure_path(path)
         print(f"Path OK: {name} -> {path}")
-
-    os.environ.setdefault("UCORE_UFLOW_PATH", str(REPO_PATHS["uFlow"]))
-    os.environ.setdefault("UCORE_UKNOWLEDGE_PATH", str(REPO_PATHS["uKnowledge"]))
     os.environ.setdefault("UCORE_UCODE_PATH", str(REPO_PATHS["uCode"]))
-    os.environ.setdefault(
-        "UCORE_EXTENSION_MANIFEST_PATHS",
-        f"{REPO_PATHS['udos-budget']}:{REPO_PATHS['udos-identity']}",
-    )
 
     _check_imports()
-    print("External import smoke passed")
+    print("Bundled authority and companion runtime imports passed")
 
     _check_registry_routes()
     print("Split-repo smoke checks passed")
