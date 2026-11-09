@@ -84,7 +84,7 @@
         <section v-if="currentStage === 'brief'" class="stage-content stage-brief">
           <div class="brief-card">
             <h3>Brief</h3>
-            <div class="markdown-preview" v-html="renderMarkdown(activeBinder.brief)" />
+            <DocumentArticle :content="activeBinder.brief" @navigate="openBinderLink" />
           </div>
         </section>
 
@@ -248,7 +248,7 @@
             </div>
           </div>
 
-          <MarkdownPreview v-if="editableDraft" :content="editableDraft" />
+          <DocumentArticle v-if="editableDraft" :content="editableDraft" @navigate="openBinderLink" />
           <p v-else>No draft yet. Open the editor to begin.</p>
 
           <div class="evidence-ledger">
@@ -702,7 +702,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, toRefs } from "vue";
 import { useWorkflowStore } from "@/stores/workflow";
-import MarkdownPreview from "@/skills/molecules/MarkdownPreview.vue";
+import DocumentArticle from "@/skills/molecules/DocumentArticle.vue";
 import UIcon from "@/skills/atoms/UIcon.vue";
 
 const STAGES = [
@@ -798,20 +798,6 @@ function getStageBadge(stageId: string): string {
   return "";
 }
 
-function renderMarkdown(md: string): string {
-  if (!md) return "";
-  // Safe simple formatting for display
-  return md
-    .replace(/^# (.*$)/gim, "<h1>$1</h1>")
-    .replace(/^## (.*$)/gim, "<h2>$1</h2>")
-    .replace(/^### (.*$)/gim, "<h3>$1</h3>")
-    .replace(/^\> (.*$)/gim, "<blockquote>$1</blockquote>")
-    .replace(/\*\*(.*)\*\*/gim, "<strong>$1</strong>")
-    .replace(/\*(.*)\*/gim, "<em>$1</em>")
-    .replace(/`([^`]+)`/gim, "<code>$1</code>")
-    .replace(/\n\n/gim, "<br><br>");
-}
-
 watch(() => wf.binderCreateRequested, requested => {
   if (requested) { showCreateModal.value = true; wf.binderCreateRequested = false; }
 }, { immediate: true });
@@ -825,6 +811,17 @@ async function addBinderTask() {
   if (!title?.trim()) return;
   try { await wf.createTask(title.trim(), "inbox", selectedBinderId.value); }
   catch (error) { errorMessage.value = error instanceof Error ? error.message : "Could not create task"; }
+}
+async function openBinderLink(href: string) {
+  try {
+    const root = `/Binders/${encodeURIComponent(selectedBinderId.value)}/`;
+    const path = decodeURIComponent(new URL(href, `https://workspace.invalid${root}draft.md`).pathname);
+    const document = activeBinder.value?.documents?.find((item: { path: string }) => item.path === path);
+    if (!document) throw new Error("This document is not attached to the selected Binder.");
+    await openSavedDocument(document);
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : "Could not open attached document";
+  }
 }
 async function openSavedDocument(document: { path: string; filename: string }) {
   try { await wf.openVaultDocument(document.path, document.filename, selectedBinderId.value); }

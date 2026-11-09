@@ -821,6 +821,7 @@ src/surfaces/workflow/panels/NotebookBinderPanel.vue	49	button	Open draft in Edi
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	51	button	{{ task.title }} · {{ task.status }}	click: wf.openTask(task) | dragstart: wf.startTaskDrag($event, task)		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	56	button	{{ document.filename }}	click: openSavedDocument(document)		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	64	button	{{ idx + 1 }} {{ stage.label }} {{ getStageBadge(stage.id) }}	click: currentStage = stage.id		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/NotebookBinderPanel.vue	87	DocumentArticle		navigate: openBinderLink		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	93	div	Drop document files here or choose files for cryptographic intake Originals byte-preserved in ~/Vault/Originals/ with SHA-256 integrity Browse Files	dragover:  | drop: onDropFiles		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	97	input		change: onFileSelected		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	104	button	Browse Files	click: triggerFileInput		bound; outcome needs verification	not exercised by static audit
@@ -831,6 +832,7 @@ src/surfaces/workflow/panels/NotebookBinderPanel.vue	199	button	Record Decision	
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	227	button	Edit draft	click: openDraftInEditor		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	228	button	Check draft	click: runAudit	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	229	button	Refresh	click: reloadBinder		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/NotebookBinderPanel.vue	251	DocumentArticle		navigate: openBinderLink		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	294	button	Export for Gemini Notebooks (NotebookLM)	click: exportGemini		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	297	button	Generate Obsidian Vault Index	click: exportObsidian		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	314	a	Open Syndicated RSS 2.0 Feed with GIF enclosures	/api/dispatch/feed.xml		bound; outcome needs verification	not exercised by static audit
