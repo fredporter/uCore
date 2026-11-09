@@ -68,11 +68,6 @@ export const snackbarApi = {
   docker: {
     ps: () => request(`${SNACKBAR_API}/v1/docker/ps`),
   },
-  exec: (command: string) =>
-    request(`${SNACKBAR_API}/v1/exec`, {
-      method: "POST",
-      body: JSON.stringify({ command }),
-    }),
 };
 
 /**

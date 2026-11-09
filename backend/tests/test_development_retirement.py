@@ -53,3 +53,40 @@ async def test_retired_status_and_capabilities_do_not_start_managers(monkeypatch
     assert status['status'] == 'retired'
     assert capabilities['available'] is False
     assert capabilities['actions'] == []
+
+
+@pytest.mark.asyncio
+async def test_dev_mode_reads_and_enable_attempts_never_load_saved_state(monkeypatch):
+    from unittest.mock import AsyncMock
+
+    from app.api import dev_layer_api
+    def unexpected():
+        raise AssertionError('Loaded persisted development state')
+    monkeypatch.setattr(dev_layer_api, 'get_dev_layer', unexpected)
+    request = make_mocked_request('PUT', '/api/dev-layer/state')
+    request.json = AsyncMock(return_value={'mode': 'on'})
+    assert (await dev_layer_api.handle_set_dev_state(request)).status == 410
+    assert (await dev_layer_api.handle_toggle_dev_state(request)).status == 410
+    state = json.loads((await dev_layer_api.handle_get_dev_state(request)).text)
+    hud = json.loads((await dev_layer_api.handle_get_dev_hud(request)).text)
+    assert state['mode'] == 'off'
+    assert state['available'] is False
+    assert hud['quick_actions'] == []
+
+
+@pytest.mark.asyncio
+async def test_explicit_dev_shutdown_keeps_cancellation_available(monkeypatch):
+    from unittest.mock import AsyncMock, Mock
+
+    from app.api import dev_layer_api
+    layer = Mock()
+    stop = AsyncMock()
+    monkeypatch.setattr(dev_layer_api, 'get_dev_layer', lambda: layer)
+    monkeypatch.setattr(dev_layer_api, 'stop_developer_work', stop)
+    request = make_mocked_request('PUT', '/api/dev-layer/state')
+    request.json = AsyncMock(return_value={'mode': 'off'})
+    response = await dev_layer_api.handle_set_dev_state(request)
+    assert response.status == 200
+    assert layer.mode is dev_layer_api.DevMode.OFF
+    layer._save.assert_called_once()
+    stop.assert_awaited_once()

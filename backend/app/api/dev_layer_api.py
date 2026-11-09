@@ -1,9 +1,7 @@
-"""Dev Layer API — REST endpoints for Dev Mode toggle and Dev HUD.
+"""Compatibility reads and explicit shutdown for the retired Dev Layer.
 
-GET  /api/dev-layer/state   — Get current Dev Mode state
-PUT  /api/dev-layer/state   — Set Dev Mode state
-POST /api/dev-layer/toggle  — Cycle through OFF → MINIMAL → ON → OFF
-GET  /api/dev-layer/hud     — Aggregate Dev HUD data (tasks + vars + capabilities + actions)
+State/HUD reads do not initialise development services. Enable/toggle requests
+return 410; an explicit mode=off retains cancellation of leftover work.
 """
 
 from __future__ import annotations
@@ -37,67 +35,42 @@ async def stop_developer_work():
     for ident in list(commands.runs):
         await commands.cancel(ident)
 
+def _retired_state() -> dict:
+    return {"mode": "off", "status": "retired", "available": False, "owner": "external-development"}
+
+
 async def handle_get_dev_state(request: web.Request) -> web.Response:
-    """GET /api/dev-layer/state — get current Dev Mode state."""
-    return web.json_response(get_dev_layer().get_status())
+    """Expose compatibility state without restoring a persisted development mode."""
+    return web.json_response(_retired_state())
 
 
 async def handle_set_dev_state(request: web.Request) -> web.Response:
-    """PUT /api/dev-layer/state — set Dev Mode state.
-
-    Body: { "mode": "on" | "off" | "minimal" }
-    """
+    """Only explicit shutdown remains supported for leftover development work."""
     try:
         body = await request.json()
     except Exception:
         return web.json_response({"error": "Invalid JSON body"}, status=400)
-
-    mode_str = str(body.get("mode", "")).strip().lower()
-    if mode_str not in ("on", "off", "minimal"):
-        return web.json_response(
-            {
-                "error": "Invalid mode. Use: on, off, or minimal",
-            },
-            status=400,
-        )
-
+    if not isinstance(body, dict):
+        return web.json_response({"error": "Expected an object"}, status=400)
+    if str(body.get("mode", "")).strip().lower() != "off":
+        return await handle_toggle_dev_state(request)
     layer = get_dev_layer()
-    layer.mode = DevMode(mode_str)
+    layer.mode = DevMode.OFF
     layer._save()
-    if layer.mode is not DevMode.ON:
-        await stop_developer_work()
-    log.info("Dev Mode → %s (by %s)", mode_str, request.remote or "unknown")
-    return web.json_response(layer.get_status())
+    await stop_developer_work()
+    return web.json_response(_retired_state())
 
 
 async def handle_toggle_dev_state(request: web.Request) -> web.Response:
-    """POST /api/dev-layer/toggle — cycle dev mode."""
-    layer = get_dev_layer()
-    new_mode = layer.toggle()
-    if new_mode is not DevMode.ON:
-        await stop_developer_work()
-    log.info("Dev Mode toggled → %s (by %s)", new_mode.value, request.remote or "unknown")
-    return web.json_response(layer.get_status())
-
-
-# ── Dev HUD Aggregate ─────────────────────────────────────────────
+    return web.json_response({**_retired_state(), "error": "internal_development_retired"}, status=410)
 
 
 async def handle_get_dev_hud(request: web.Request) -> web.Response:
-    """GET /api/dev-layer/hud — aggregate Dev HUD data.
-
-    Returns a single payload with: dev_mode, tasks (tasker summary),
-    variables (user vars), capabilities (key readiness), quick_actions.
-    Used by the Dev Mode floating overlay in the uCore UI.
-    """
-    hud: dict = {
-        "dev_mode": get_dev_layer().get_status(),
-        "tasks": _get_tasker_hud(),
-        "variables": _get_variables_hud(),
-        "capabilities": _get_capabilities_hud(),
-        "quick_actions": _QUICK_ACTIONS,
-    }
-    return web.json_response(hud)
+    """Retain the read URL without scanning tasks or initialising dev managers."""
+    return web.json_response({
+        "dev_mode": _retired_state(), "tasks": {}, "variables": {},
+        "capabilities": {}, "quick_actions": [],
+    })
 
 
 # ── HUD sub-collectors ─────────────────────────────────────────────
