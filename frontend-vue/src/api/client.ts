@@ -106,8 +106,6 @@ export const ucoreApi = {
       publish_mode?: "local" | "cloud";
       target_repo?: string;
       target_branch?: string;
-      execute_git?: boolean;
-      commit_message?: string;
       overwrite?: boolean;
     }) =>
       request(`${UCORE_API}/api/user/workflow/publish-jekyll`, {

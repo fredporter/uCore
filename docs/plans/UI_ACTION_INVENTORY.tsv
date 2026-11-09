@@ -862,7 +862,7 @@ src/surfaces/workflow/panels/NotebookBinderPanel.vue	692	button	{{ creating ? 'C
 src/surfaces/workflow/panels/PublishPanel.vue	17	button	Local site	click: destination = 'jekyll'		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/PublishPanel.vue	18	button	Markdown library	click: destination = 'library'		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/PublishPanel.vue	19	button	Connect a cloud publishing provider		conditional/static	disabled; review availability	not exercised by static audit
-src/surfaces/workflow/panels/PublishPanel.vue	109	UButton	{{ jekyllBusy ? "Preparing..." : "Prepare draft" }}	click: publishJekyll	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/PublishPanel.vue	94	UButton	{{ jekyllBusy ? "Preparing..." : "Prepare draft" }}	click: publishJekyll	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/TasksPanel.vue	22	button	Kanban view	click: viewMode = 'kanban'		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/TasksPanel.vue	32	button	Task rows	click: viewMode = 'list'		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/TasksPanel.vue	42	button	Inbound Communications Triage	click: loadInboundTriage(); viewMode = 'triage'		bound; outcome needs verification	not exercised by static audit

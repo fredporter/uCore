@@ -285,9 +285,6 @@ const knowledgeLoading = ref(true);
 const repoDocsLoading = ref(true);
 const exportRunning = ref(false);
 const exportResult = ref<Record<string, any> | null>(null);
-const publishStatus = ref<Record<string, any> | null>(null);
-const publishing = ref(false);
-const publishResult = ref<Record<string, any> | null>(null);
 const viewingSite = ref<string | null>(null);
 const viewingDoc = ref<{
   title: string;
@@ -460,44 +457,6 @@ async function runExport() {
   }
 }
 
-async function fetchPublishStatus() {
-  try {
-    const res = await fetch(`/api/docs/publish/status`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (res.ok) {
-      publishStatus.value = await res.json();
-    }
-  } catch {
-    publishStatus.value = null;
-  }
-}
-
-async function runPublish(deploy = false) {
-  publishing.value = true;
-  publishResult.value = null;
-  try {
-    const res = await fetch(`/api/docs/publish`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ deploy }),
-      signal: AbortSignal.timeout(120000),
-    });
-    const data = await res.json();
-    publishResult.value = data;
-    if (res.ok) {
-      await fetchPublishStatus();
-    }
-  } catch (e: any) {
-    publishResult.value = {
-      status: "error",
-      error: e.message || "Publish failed",
-    };
-  } finally {
-    publishing.value = false;
-  }
-}
-
 function statusType(status: ApiStatus): "success" | "warning" | "error" {
   if (status === "ok") return "success";
   if (status === "error") return "error";
@@ -516,7 +475,6 @@ function loadAdvancedDocumentation() {
   probeExportEndpoint();
   probeCoursesEndpoint();
   fetchRepoDocs();
-  fetchPublishStatus();
 }
 watch([activeTab, () => settings.advancedView], ([tab, advanced]) => { if (tab === "developer" && advanced) loadAdvancedDocumentation(); }, { immediate: true });
 </script>

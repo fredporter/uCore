@@ -3,9 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
-import subprocess
 import tarfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -106,50 +104,6 @@ def _render_import_document(frontmatter: dict[str, Any], markdown: str) -> str:
     if not body:
         body = "Imported document has no body."
     return f"---\n{front}\n---\n\n{body}\n"
-
-
-def _git_root_for_path(path: Path) -> Path | None:
-    try:
-        env = os.environ.copy()
-        env["GIT_TERMINAL_PROMPT"] = "0"
-        result = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
-            cwd=str(path),
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-            env=env,
-        )
-        if result.returncode != 0:
-            return None
-        root = result.stdout.strip()
-        if not root:
-            return None
-        return Path(root)
-    except Exception:
-        return None
-
-
-def _run_git_step(cwd: Path, args: list[str]) -> dict[str, Any]:
-    env = os.environ.copy()
-    env["GIT_TERMINAL_PROMPT"] = "0"
-    result = subprocess.run(
-        ["git", *args],
-        cwd=str(cwd),
-        capture_output=True,
-        text=True,
-        timeout=20,
-        check=False,
-        env=env,
-    )
-    return {
-        "cmd": "git " + " ".join(args),
-        "exit_code": result.returncode,
-        "stdout": result.stdout.strip(),
-        "stderr": result.stderr.strip(),
-        "ok": result.returncode == 0,
-    }
 
 
 def _archive_base_dir() -> Path:
@@ -785,6 +739,11 @@ async def handle_user_workflow_publish_jekyll(
     except Exception:
         return web.json_response({"error": "Invalid JSON payload"}, status=400)
 
+    if not isinstance(body, dict):
+        return web.json_response({"error": "Expected an object"}, status=400)
+    if body.get("execute_git"):
+        return web.json_response({"error": "runtime_deployment_retired", "owner": "external-development"}, status=410)
+
     content = str(body.get("content") or "")
     if not content.strip():
         return web.json_response({"error": "content is required"}, status=400)
@@ -799,7 +758,7 @@ async def handle_user_workflow_publish_jekyll(
             status=400,
         )
 
-    vault_layer_id = str(body.get("vault_layer") or "public").strip()
+    vault_layer_id = str(body.get("vault_layer") or "user").strip()
     relative_dir = str(body.get("relative_dir") or "").strip()
     binder_raw = str(body.get("binder") or DEFAULT_USER_BINDER)
     overwrite = bool(body.get("overwrite", False))
@@ -813,8 +772,6 @@ async def handle_user_workflow_publish_jekyll(
 
     target_repo = str(body.get("target_repo") or "").strip()
     target_branch = str(body.get("target_branch") or "main").strip() or "main"
-    execute_git = bool(body.get("execute_git", False))
-    commit_message = str(body.get("commit_message") or "").strip()
     layout = str(body.get("layout") or "post").strip() or "post"
 
     layer = _vault_layer_by_id(vault_layer_id)
@@ -891,59 +848,7 @@ async def handle_user_workflow_publish_jekyll(
         f"git push origin {target_branch}",
     ]
 
-    git_publish: dict[str, Any] | None = None
-    if execute_git and publish_mode == "cloud":
-        repo_root = _git_root_for_path(output_path.parent)
-        if not repo_root:
-            git_publish = {
-                "status": "skipped",
-                "reason": "No git repository found for generated file path.",
-            }
-        else:
-            try:
-                rel_path = output_path.resolve().relative_to(
-                    repo_root.resolve(),
-                )
-            except ValueError:
-                rel_path = None
-
-            if rel_path is None:
-                git_publish = {
-                    "status": "skipped",
-                    "reason": (
-                        "Generated file is outside detected git repository "
-                        "root."
-                    ),
-                    "repo_root": str(repo_root),
-                }
-            else:
-                msg = commit_message or f"publish: {slug}"
-                steps: list[dict[str, Any]] = []
-                steps.append(_run_git_step(repo_root, ["add", str(rel_path)]))
-                commit_step = _run_git_step(repo_root, ["commit", "-m", msg])
-                steps.append(commit_step)
-
-                commit_ok = bool(commit_step.get("ok"))
-                nothing_to_commit = "nothing to commit" in (
-                    (
-                        f"{commit_step.get('stdout', '')} "
-                        f"{commit_step.get('stderr', '')}"
-                    ).lower()
-                )
-                if commit_ok or nothing_to_commit:
-                    push_step = _run_git_step(
-                        repo_root,
-                        ["push", "origin", target_branch],
-                    )
-                    steps.append(push_step)
-
-                all_ok = all(step.get("ok", False) for step in steps)
-
-                git_publish = {
-                    "status": "ok" if all_ok else "partial",
-                    "repo_root": str(repo_root),
-                    "steps": steps,
-                }
+    git_publish = None  # Local preparation never performs repository deployment.
 
     return web.json_response(
         {

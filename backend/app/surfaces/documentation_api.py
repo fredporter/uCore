@@ -18,8 +18,8 @@ log = logging.getLogger("ucore.documentation")
 DOC_SITES_ROOT = Path.home() / "Public" / "doc-sites"
 GLOBAL_KNOWLEDGE_ROOT = Path.home() / "Public" / "global-knowledge"
 LEARNING_ROOT = Path.home() / "Public" / "learning"
-DEFAULT_VAULT_SOURCE = Path.home() / "Vault"
-DEFAULT_EXPORT_OUTPUT = GLOBAL_KNOWLEDGE_ROOT / "doclang" / "vault-doclang.jsonl"
+DEFAULT_VAULT_SOURCE = settings.vault_root
+DEFAULT_EXPORT_OUTPUT = settings.vault_root / "Exports" / "doclang" / "vault-doclang.jsonl"
 
 # Repos to scan for documentation indexing
 REPO_DOC_ROOTS: dict[str, Path] = {
@@ -335,35 +335,25 @@ async def handle_docs_serve_global_knowledge(request: web.Request) -> web.Respon
 
 
 async def handle_docs_export(request: web.Request) -> web.Response:
-    """POST /api/docs/export - export markdown vault to DocLang output."""
-    payload: dict[str, Any] = {}
-    if request.method == "POST":
-        try:
-            payload = await request.json()
-        except Exception:
-            payload = {}
-
-    source_dir = str(payload.get("source_dir", DEFAULT_VAULT_SOURCE))
-    output_path = str(payload.get("output_path", DEFAULT_EXPORT_OUTPUT))
+    """Read-only discovery on GET; explicit export into user-owned space on POST."""
+    if request.method == "GET":
+        return web.json_response({"available": True, "operation": "export", "method": "POST"})
+    try:
+        payload = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+    if not isinstance(payload, dict):
+        return web.json_response({"error": "Expected an object"}, status=400)
+    source = Path(str(payload.get("source_dir") or DEFAULT_VAULT_SOURCE)).expanduser().resolve()
+    output = Path(str(payload.get("output_path") or DEFAULT_EXPORT_OUTPUT)).expanduser().resolve()
+    allowed = [settings.vault_root.resolve(), settings.shared_vault_root.resolve()]
+    if not any(source.is_relative_to(root) for root in allowed) or not any(output.is_relative_to(root) for root in allowed):
+        return web.json_response({"error": "Export source and output must stay in Vault or Shared space"}, status=403)
     tags = payload.get("tags")
-    if tags is not None and not isinstance(tags, list):
+    if tags is not None and (not isinstance(tags, list) or not all(isinstance(tag, str) for tag in tags)):
         return web.json_response({"error": "tags must be a list of strings"}, status=400)
-
-    result = export_vault_to_doclang_context(
-        source_dir=source_dir,
-        output_path=output_path,
-        tags=tags,
-    )
-
-    if result.get("error"):
-        return web.json_response(result, status=400)
-
-    return web.json_response(
-        {
-            "message": "Vault export completed",
-            **result,
-        }
-    )
+    result = await asyncio.to_thread(export_vault_to_doclang_context, source_dir=str(source), output_path=str(output), tags=tags)
+    return web.json_response({"message": "Vault export completed", **result}, status=400 if result.get("error") else 200)
 
 
 async def handle_docs_courses(_request: web.Request) -> web.Response:
@@ -441,29 +431,8 @@ async def handle_docs_mirror_diff(request: web.Request) -> web.Response:
 
 
 async def handle_docs_publish(request: web.Request) -> web.Response:
-    """POST /api/docs/publish - build (and optionally deploy) the docs site."""
-    from app.services.docs_publish import build_site, deploy_site
-
-    try:
-        body = await request.json() if request.can_read_body else {}
-    except Exception:
-        body = {}
-    deploy = bool(body.get("deploy", False))
-
-    try:
-        build = await asyncio.to_thread(build_site)
-    except Exception as exc:
-        return web.json_response(
-            {"status": "error", "error": str(exc)},
-            status=500,
-        )
-
-    result: dict[str, Any] = {"status": "ok", "build": build, "deployed": False}
-    if deploy:
-        dep = await asyncio.to_thread(deploy_site)
-        result["deploy"] = dep
-        result["deployed"] = bool(dep.get("deployed"))
-    return web.json_response(result)
+    """Retire runtime builds/deployment of maintainer documentation."""
+    return web.json_response({"error": "runtime_deployment_retired", "owner": "external-development"}, status=410)
 
 
 async def handle_docs_publish_status(_request: web.Request) -> web.Response:

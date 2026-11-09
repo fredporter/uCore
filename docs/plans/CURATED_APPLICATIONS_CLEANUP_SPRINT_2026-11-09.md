@@ -1,6 +1,6 @@
 # uDOS user-workspace cleanup and curated applications sprint
 
-Updated: 2026-11-09 · Australia/Perth
+Updated: 2026-11-10 · Australia/Perth
 Status: Slice 1 in progress; not release-certified
 Scope: uCore host and bundled uFlow authority, uCode language/runtime, existing product/package owners
 
@@ -178,6 +178,8 @@ Restore prior app/host artifacts without overwriting new user work. Retain sourc
 Source publication follows repository → branch → isolated checks → protected PR → required CI → reviewed merge → versioned artifact → clean install smoke test. Content edition publication is independent and licence/provenance-qualified. Current uCore and uCode edits must be checked/committed in their own repositories; no force-push of preserved knowledge history.
 
 ## Current checkpoint and limits
+
+- Publishing/export ownership checkpoint (2026-11-10): runtime documentation build/deploy returns HTTP 410; the deployment helper cannot initialise/commit/push Git, and external static builds require an explicit destination. Jekyll preparation rejects execute_git before writing and defaults to User Vault; local preparation, source content and publication guidance remain. Removed unused deployment UI state and Git execution fields from the client. GET docs/export is discovery-only; POST restricts source/output to configured Vault/Shared roots and defaults to `Vault/Exports/doclang/vault-doclang.jsonl`, never Global Knowledge. This is a user-owned generated artifact, one output file per chosen path (replaced by subsequent exports), retained until the user removes it through normal files; no daemon or extra runtime cache. Export scans skip symlinks outside their source. Historical publishing receipts remain readable. Validation: 737 backend tests, 148 frontend tests, production build, final type-check, documentation route contract, action audit, path policy and whitespace passed. External deployment and static-builder packaging qualification remain maintainer work; Binder editions and personal export adapters retain their existing owners.
 
 - F04 documentation-mirror boundary: repository write-back is retired at both HTTP API (410) and compatibility service level, including the legacy bypass argument; no persisted Dev Mode value can re-enable it. Removed unused reader edit/save state, controls, handler and styles. Refresh/status/diff/reading remain; cache refresh rejects source/destination symlink escapes and index symlinks, while diff validates indexed paths before reading. Forbidden user roots come from owning settings. Source repositories and installed canon remain unchanged by these tests. Validation: 732 backend tests, 148 frontend tests, ten focused mirror checks, documentation route contract, type-check, action audit, path policy and whitespace passed. Publishing/deployment APIs are a separate pending ownership audit.
 
