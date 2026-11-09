@@ -41,3 +41,43 @@ for (const width of [1280, 390]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
   });
 }
+
+test('objective leads a task into Queue and survives reload at narrow width', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const missions: any[] = [], tasks: any[] = [];
+  await page.route('**/api/**', async route => {
+    const request = route.request(), path = new URL(request.url()).pathname;
+    if (!path.startsWith('/api/')) return route.continue();
+    let data: unknown = {};
+    if (path === '/api/workflow/missions') {
+      if (request.method() === 'POST') {
+        const mission = { id: 'mission-fixture', title: request.postDataJSON().title, status: 'active', binder: '' };
+        missions.push(mission); data = { mission };
+      } else data = { missions };
+    } else if (path === '/api/workflow/tasks') {
+      if (request.method() === 'POST') {
+        const task = { ...request.postDataJSON(), id: 'task-fixture', status: 'todo', priority: 'medium', tags: [], source: 'user' };
+        tasks.push(task); data = { updated: task };
+      } else data = { tasks };
+    } else if (path === '/api/binder/list') data = { binders: [] };
+    else if (path === '/api/workflows') data = { workflows: [] };
+    else if (path.endsWith('/runs')) data = { runs: [] };
+    else if (path.includes('/capabilities')) data = { ready: true, repair: [] };
+    else if (path === '/api/connections') data = { setup: { completed: true }, connections: [], collections: {} };
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) });
+  });
+  await page.goto('/workflow?tab=mission-control');
+  await page.getByLabel('Your objective').fill('Plan a garden');
+  await page.getByRole('button', { name: /Set mission/ }).click();
+  await expect(page.getByRole('heading', { name: 'Plan a garden', exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Plan a garden', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /Tasks/ }).click();
+  page.once('dialog', dialog => dialog.accept('Choose seeds'));
+  await page.getByRole('button', { name: /New Task/ }).click();
+  await expect(page).toHaveURL(/tab=editor/);
+  expect(tasks[0].mission).toBe('mission-fixture');
+  await page.locator('.surface-tab-nav__link').filter({ hasText: 'Queue' }).click();
+  await expect(page.getByRole('region', { name: 'Mission task queue' })).toContainText('Choose seeds');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+});

@@ -12,3 +12,5 @@ Historical implementation evidence remains available in [the September product r
 
 
 The 2026-11-10 extension adds content-curation skills, reviewed seed-vault distribution, Wizard/Sorceror/Knight human authority, separate Crypt/Drone/Tomb device profiles and preservation of useful Advanced Google/engineering/surface recipes. Sonic Screwdriver belongs in normal navigation. Advanced visibility never grants authority; external IDE development and immutable installed canon remain the boundary. See K09–K14 in the current sprint plan.
+
+The mission correction restores **Mission → tasks/research → Queue → Binder results**. Mission Control begins with the user's objective; Binders remain content collections. BitChat and Sonic are normal user surfaces. The archive reconciliation and F09–F11/K15 retain earlier product concepts without restoring old runtimes or task histories.

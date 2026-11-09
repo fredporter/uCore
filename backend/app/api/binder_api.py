@@ -101,7 +101,7 @@ async def handle_binder_create(request: web.Request) -> web.Response:
 
     binder_id = str(binder_id).strip()
     title = body.get("title") or binder_id
-    outcome = body.get("outcome") or body.get("description") or f"Production binder for {title}"
+    outcome = body.get("outcome") or body.get("description") or f"Materials for {title}"
     audience = body.get("audience", "General")
     doc_type = body.get("document_type", "Document")
     reqs = body.get("requirements")

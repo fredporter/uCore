@@ -199,6 +199,7 @@ onMounted(async () => {
 
   wf.activeList = String(route.query.list || "");
   wf.activeBinderId = String(route.query.binder || "");
+  wf.activeMissionId = String(route.query.mission || "");
   const selectionAtLoad = wf.selectedTask?.id;
   const fileAtLoad = editorSurface.currentFile.value?.path;
   const taskId = String(route.query.task || "");
@@ -206,6 +207,8 @@ onMounted(async () => {
   const filePath = String(route.query.file || "");
   await wf.fetchAll();
   wf.setTaskContext(wf.activeList, wf.activeBinderId);
+  if (!wf.missions.some(mission => mission.id === wf.activeMissionId)) wf.activeMissionId = "";
+  else if (!route.query.binder) wf.selectMission(wf.activeMissionId);
   try {
     const selectionChanged = wf.selectedTask?.id !== selectionAtLoad || editorSurface.currentFile.value?.path !== fileAtLoad;
     if (selectionChanged) { /* Keep user navigation that happened during hydration. */ }
@@ -227,10 +230,10 @@ onMounted(async () => {
 
 function syncLocation() {
   if (restoringLocation) return;
-  const query = { ...route.query, tab: wf.activeTab, list: wf.activeList || undefined, binder: wf.activeBinderId || undefined, task: wf.activeTab === "editor" ? wf.selectedTask?.id : undefined, document: wf.activeTab === "editor" && wf.binderDocument ? (wf.binderDocument.readOnly ? "brief" : "draft") : undefined, file: wf.activeTab === "editor" && !wf.selectedTask && !wf.binderDocument ? editorSurface.currentFile.value?.path : undefined };
-  if (["tab", "list", "binder", "task", "document", "file"].some(key => String(route.query[key] || "") !== String(query[key as keyof typeof query] || ""))) void router.replace({ path: "/workflow", query });
+  const query = { ...route.query, mission: wf.activeMissionId || undefined, tab: wf.activeTab, list: wf.activeList || undefined, binder: wf.activeBinderId || undefined, task: wf.activeTab === "editor" ? wf.selectedTask?.id : undefined, document: wf.activeTab === "editor" && wf.binderDocument ? (wf.binderDocument.readOnly ? "brief" : "draft") : undefined, file: wf.activeTab === "editor" && !wf.selectedTask && !wf.binderDocument ? editorSurface.currentFile.value?.path : undefined };
+  if (["tab", "list", "binder", "mission", "task", "document", "file"].some(key => String(route.query[key] || "") !== String(query[key as keyof typeof query] || ""))) void router.replace({ path: "/workflow", query });
 }
-watch(() => [wf.activeTab, wf.activeList, wf.activeBinderId, wf.selectedTask?.id, wf.binderDocument?.path, editorSurface.currentFile.value?.path], syncLocation);
+watch(() => [wf.activeTab, wf.activeMissionId, wf.activeList, wf.activeBinderId, wf.selectedTask?.id, wf.binderDocument?.path, editorSurface.currentFile.value?.path], syncLocation);
 watch(() => route.query.task, value => {
   const task = wf.tasks.find(task => task.id === value);
   if (task && wf.selectedTask?.id !== task.id) wf.openTask(task);
