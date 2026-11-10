@@ -127,3 +127,18 @@ def test_native_workflow_status_remains_local_detail():
         "tasks", {"title": "Task", "status": "blocked", "flags": ["blue"]}
     ) == {"title": "Task", "status": "todo"}
     assert json.loads(json.dumps({"flags": ["blue"]}))["flags"] == ["blue"]
+
+
+def test_capabilities_do_not_claim_readiness_or_mail_creation():
+    from app.services.connections.providers import provider_capabilities
+    google = provider_capabilities("google", host_platform="Linux")
+    assert google["adapter_available"] is True
+    assert google["qualified"] is False
+    assert google["readiness"] == "requires_connection_and_permissions"
+    assert google["collections"]["mail"]["create"] is False
+    assert google["collections"]["mail"]["update"] is True
+    assert all(not item["delete"] for item in google["collections"].values())
+    apple = provider_capabilities("apple", host_platform="Linux")
+    assert not apple["adapter_available"]
+    assert all(not item["read"] and not item["update"] for item in apple["collections"].values())
+    assert provider_capabilities("linux", host_platform="Linux")["collections"] == {}

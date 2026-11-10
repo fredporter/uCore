@@ -6,6 +6,12 @@
     <p v-if="error" role="alert">{{ error }}</p><p v-if="notice" role="status">{{ notice }}</p>
     <section v-if="!state.setup?.completed && !connectionsOnly" class="connection-box"><h3>Set up your workspace</h3><p>A short story will guide your profile, local settings and account choices.</p><button class="usx-btn usx-btn--primary" @click="router.push('/setup')">Start User Setup</button></section>
     <div class="connection-actions"><button v-if="state.providers?.apple?.available && providerMode!=='cloud'" class="usx-btn" :disabled="busy" @click="add('apple')"><UIcon name="computer" />Connect local Mac apps</button><button v-if="providerMode!=='local'" class="usx-btn" :disabled="busy" @click="add('google')"><UIcon name="cloud" />Add Google account</button></div>
+    <details v-for="(provider,id) in visibleProviders" :key="id" class="connection-capabilities">
+      <summary>{{ id === 'apple' ? 'Apple' : 'Google' }} adapter capabilities</summary>
+      <p>Code support only. Connection, consent and permissions are required; live qualification is pending.</p>
+      <p v-if="!provider.capabilities.adapter_available">Unavailable on this host.</p>
+      <dl><template v-for="(capability,kind) in provider.capabilities.collections" :key="kind"><dt>{{ names[String(kind)] }}</dt><dd>{{ capability.read ? 'Read' : 'Read unavailable' }} · {{ capability.create ? 'Create' : 'Create unavailable' }} · {{ capability.update ? 'Update' : 'Update unavailable' }} · Delete unavailable<p>{{ capability.limitations }}</p></dd></template></dl>
+    </details>
     <article v-for="connection in visibleConnections" :key="connection.id" :id="'connection-'+connection.id" class="connection-feed__entry">
       <header><h3>{{ connection.provider === 'apple' ? 'Apple on this Mac' : (connection.health.account || 'Google account') }} </h3><span>{{ healthLabel(connection.health.state) }}</span></header>
       <p v-if="connection.health.error" role="status">{{ connection.health.error }}</p>
@@ -71,6 +77,7 @@ const discoveries=ref<Record<string,any>>({}), previews=ref<Record<string,any>>(
 const activeKind=ref(props.initialKind), edit=ref<any>(null), emails=ref(''), phones=ref(''), displayName=ref('');
 const pendingChoices=ref<Record<string,any[]>>({}), pendingRemote=ref<Record<string,string>>({});
 const busy=ref(false), error=ref(''), notice=ref(''), mergePair=ref<any>(null);
+const visibleProviders=computed(()=>Object.fromEntries(Object.entries(state.value.providers || {}).filter(([id,provider]:[string,any])=>provider.capabilities && (props.providerMode==='all'||(props.providerMode==='local'?id==='apple':id==='google'))))) as import('vue').ComputedRef<Record<string,any>>;
 const visibleConnections=computed(()=>state.value.connections.filter((c:any)=>props.providerMode==='all'||(props.providerMode==='local'?c.provider==='apple':c.provider==='google')));
 function healthLabel(value:string){return ({setup_required:'Choose apps and lists',scope_required:'Choose lists',connected:'Up to date',running:'Syncing',conflict:'Review changes',error:'Needs attention',disconnected:'Disconnected'} as Record<string,string>)[value]||value?.replaceAll('_',' ')||'Not connected';}
 const visibleDuplicates=computed(()=>(state.value.duplicates || []).filter((pair:any)=>!props.collectionOnly || allRecords.value.find(r=>r.id===pair.left)?.kind===activeKind.value));

@@ -486,3 +486,26 @@ class GoogleAdapter:
 
 
 from .apple import AppleAdapter  # noqa: E402,F401
+
+
+def provider_capabilities(provider: str, *, host_platform: str) -> dict:
+    """Describe adapter code support, never credential or authorization readiness."""
+    adapter = {"google": GoogleAdapter, "apple": AppleAdapter}.get(provider)
+    available = adapter is not None and (provider != "apple" or host_platform == "Darwin")
+    return {
+        "adapter_available": available,
+        "qualified": False,
+        "readiness": "requires_connection_and_permissions" if available else "unsupported_platform",
+        "collections": {
+            kind: {
+                "discover": available,
+                "read": available,
+                "create": available and kind != "mail",
+                "update": available,
+                "delete": False,
+                "writable_fields": sorted(fields) if available else [],
+                "limitations": "Existing message flags/read state only; no sending or copying" if kind == "mail" else "Native field round-trip qualification pending",
+            }
+            for kind, fields in (adapter.writable.items() if adapter else [])
+        },
+    }

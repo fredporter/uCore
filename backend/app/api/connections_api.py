@@ -9,6 +9,7 @@ import platform
 from aiohttp import web
 
 from app.services.connections.engine import SyncEngine
+from app.services.connections.providers import provider_capabilities
 from app.services.connections.google_auth import finish, secret_key, start
 from app.services.connections.reconcile import duplicate_candidates
 from app.services.connections.store import CollectionStore
@@ -51,8 +52,8 @@ async def state(request):
     return web.json_response(
         {
             "providers": {
-                "apple": {"available": platform.system() == "Darwin", "mode": "local-apps"},
-                "google": {"available": True, "mode": "direct-cloud"},
+                "apple": {"available": platform.system() == "Darwin", "mode": "local-apps", "capabilities": provider_capabilities("apple", host_platform=platform.system())},
+                "google": {"available": True, "mode": "direct-cloud", "capabilities": provider_capabilities("google", host_platform=platform.system())},
             },
             "coordinator": "snackbar",
             "setup": setup_state,
