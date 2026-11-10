@@ -166,6 +166,20 @@ def create_binder(
     return get_binder(binder_id)
 
 
+def rename_binder(binder_id: str, title: str) -> Dict[str, Any]:
+    """Change the display title while preserving identity and all materials."""
+    if not isinstance(title, str) or not title.strip() or len(title.strip()) > 200:
+        raise ValueError("Binder name must contain 1–200 characters")
+    path = _binder_dir(binder_id) / "binder.json"
+    if not path.exists():
+        raise FileNotFoundError("Binder not found")
+    meta = json.loads(path.read_text(encoding="utf-8"))
+    meta["title"] = title.strip()
+    meta["updated_at"] = datetime.now(UTC).isoformat()
+    path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    return meta
+
+
 def get_binder(binder_id: str) -> Dict[str, Any]:
     """Retrieve full durable binder state and all records."""
     bdir = _binder_dir(binder_id)

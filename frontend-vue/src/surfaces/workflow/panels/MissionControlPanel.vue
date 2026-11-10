@@ -45,4 +45,13 @@ input, select { box-sizing: border-box; min-width: 0; width: 100%; margin: 0; fo
 .mission-control__focus { border-top: var(--usx-border-width) solid var(--usx-color-border); padding-top: var(--usx-spacing-md); }
 .usx-btn { display: inline-flex; align-items: center; gap: var(--usx-spacing-xs); margin: 0; width: fit-content; }
 .mission-control__next { text-align: left; white-space: normal; }
+/* Card and form treatment from the Surfaces & Recipes examples. */
+.mission-control { align-content: start; }
+h2 { font-size: 1.5rem; line-height: 1.25; } h3 { font-size: 1.125rem; }
+header p { color: var(--usx-color-on-surface-muted); }
+form, .mission-control__focus { padding: var(--usx-spacing-md); border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-md, 12px); background: var(--usx-color-surface-container, var(--usx-color-surface)); }
+input, select { padding: 10px 12px; border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-background); color: var(--usx-color-on-surface); }
+input:focus-visible, select:focus-visible { outline: 2px solid var(--usx-color-primary); outline-offset: 2px; }
+label { font-size: var(--usx-font-size-sm); font-weight: 500; }
+@media (max-width: 640px) { .mission-control__entry { align-items: stretch; flex-direction: column; } .mission-control__entry input { flex: auto; } .mission-control__entry .usx-btn { width: 100%; justify-content: center; } }
 </style>

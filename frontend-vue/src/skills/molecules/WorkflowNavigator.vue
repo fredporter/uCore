@@ -11,6 +11,13 @@
       </button>
       <p v-if="!wf.binderChoices.length">No binders yet.</p>
     </details>
+    <form v-if="renaming" class="binder-rename" @submit.prevent="saveName">
+      <label for="binder-name">Binder name</label>
+      <input id="binder-name" v-model="binderName" maxlength="200" required :disabled="renameBusy" />
+      <button class="usx-btn" :disabled="renameBusy || !binderName.trim()">Save name</button>
+      <button type="button" class="usx-btn" :disabled="renameBusy" @click="renaming = false">Cancel</button>
+    </form>
+    <button v-else-if="wf.binders.some(binder => binder.id === wf.activeBinderId)" class="usx-btn" @click="beginRename"><UIcon name="edit" />Rename Binder</button>
     <section v-if="wf.activeBinderId || wf.activeList || wf.selectedTask" aria-label="Current work">
       <div class="workflow-nav__heading"><strong>In this location</strong><button class="usx-btn" @click="wf.showList(wf.activeList, wf.activeBinderId)">View tasks</button></div>
       <div v-if="wf.binders.some(binder => binder.id === wf.activeBinderId)" class="workflow-nav__heading">
@@ -32,6 +39,27 @@ import { UCORE_BASE } from "../../api/base";
 import UIcon from "../atoms/UIcon.vue";
 const wf = useWorkflowStore();
 const notice = ref("");
+const renaming = ref(false), renameBusy = ref(false), binderName = ref(""), renameId = ref("");
+function beginRename() {
+  renameId.value = wf.activeBinderId;
+  binderName.value = wf.binders.find(binder => binder.id === renameId.value)?.title || renameId.value;
+  renaming.value = true;
+}
+async function saveName() {
+  if (renameBusy.value) return;
+  renameBusy.value = true; notice.value = "";
+  try {
+    const response = await fetch(`${UCORE_BASE}/api/binder/${encodeURIComponent(renameId.value)}/title`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: binderName.value.trim() }), signal: AbortSignal.timeout(8000),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not rename Binder");
+    await wf.fetchBinders(true);
+    renaming.value = false;
+  } catch (error) { notice.value = error instanceof Error ? error.message : "Could not rename Binder"; }
+  finally { renameBusy.value = false; }
+}
 onMounted(() => {
   if (!wf.tasks.length) void wf.fetchTasks().catch(error => { notice.value = error.message; });
   if (!wf.binders.length) void wf.fetchBinders().catch(error => { notice.value = error.message; });

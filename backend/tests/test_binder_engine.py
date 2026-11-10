@@ -206,3 +206,24 @@ def test_document_projection_preserves_binder_and_excludes_external_symlinks(tem
     with pytest.raises(FileNotFoundError):
         binder_engine.get_binder_documents_dir("missing")
     assert not (temp_environment["binders"] / "missing").exists()
+
+
+def test_rename_preserves_identity_materials_and_metadata(temp_environment):
+    binder_engine.create_binder("garden", "Garden", "Plan planting")
+    before = binder_engine.get_binder("garden")
+    result = binder_engine.rename_binder("garden", "  Spring garden  ")
+    after = binder_engine.get_binder("garden")
+    assert result["title"] == "Spring garden"
+    assert result["id"] == "garden"
+    for key in before:
+        if key != "metadata":
+            assert after[key] == before[key]
+    for key in before["metadata"]:
+        if key not in {"title", "updated_at"}:
+            assert after["metadata"][key] == before["metadata"][key]
+    with pytest.raises(ValueError):
+        binder_engine.rename_binder("garden", " ")
+    with pytest.raises(ValueError):
+        binder_engine.rename_binder("garden", "x" * 201)
+    with pytest.raises(FileNotFoundError):
+        binder_engine.rename_binder("missing", "Name")

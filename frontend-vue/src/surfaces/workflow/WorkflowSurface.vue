@@ -401,6 +401,8 @@ function onRetryPreflight() {
 </script>
 
 <style scoped>
+.workflow-panel :deep(input), .workflow-panel :deep(select), .workflow-panel :deep(textarea) { max-width: 100%; box-sizing: border-box; }
+
 .workflow-context { display: flex; flex-wrap: wrap; align-items: center; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-sm); border-bottom: 1px solid var(--usx-color-border); }
 .workflow-context strong { overflow: hidden; text-overflow: ellipsis; }
 .workflow-context__actions { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: var(--usx-spacing-xs); }

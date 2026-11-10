@@ -6,10 +6,11 @@
     <p v-if="error" role="alert">{{ error }}</p><p v-if="notice" role="status">{{ notice }}</p>
     <section v-if="!state.setup?.completed && !connectionsOnly" class="connection-box"><h3>Set up your workspace</h3><p>A short story will guide your profile, local settings and account choices.</p><button class="usx-btn usx-btn--primary" @click="router.push('/setup')">Start User Setup</button></section>
     <div class="connection-actions"><button v-if="state.providers?.apple?.available && providerMode!=='cloud'" class="usx-btn" :disabled="busy" @click="add('apple')"><UIcon name="computer" />Connect local Mac apps</button><button v-if="providerMode!=='local'" class="usx-btn" :disabled="busy" @click="add('google')"><UIcon name="cloud" />Add Google account</button></div>
-    <article v-for="connection in visibleConnections" :key="connection.id" :id="'connection-'+connection.id" class="connection-box">
-      <header><h3>{{ connection.provider === 'apple' ? 'Apple on this Mac' : (connection.health.account || 'Google account') }} <small>{{ connection.id.slice(0,6) }}</small></h3><span>{{ healthLabel(connection.health.state) }}</span></header>
+    <article v-for="connection in visibleConnections" :key="connection.id" :id="'connection-'+connection.id" class="connection-feed__entry">
+      <header><h3>{{ connection.provider === 'apple' ? 'Apple on this Mac' : (connection.health.account || 'Google account') }} </h3><span>{{ healthLabel(connection.health.state) }}</span></header>
       <p v-if="connection.health.error" role="status">{{ connection.health.error }}</p>
       <small v-if="connection.health.last_success">Last successful sync: {{ new Date(connection.health.last_success).toLocaleString() }} · {{ connection.health.pulled || 0 }} new · {{ connection.health.updated || 0 }} updated · {{ connection.health.pushed || 0 }} pushed</small>
+      <details class="connection-feed__settings"><summary>Connection settings</summary>
       <p v-if="connection.provider==='apple'">Connects to the apps on this Mac. Google accounts configured in macOS Internet Accounts can be included. macOS manages iCloud and account sync.</p><fieldset :disabled="busy || (connection.provider==='apple' && !state.providers?.apple?.available)"><legend>Collections</legend><label v-for="kind in kinds" :key="kind" class="inline"><input type="checkbox" :checked="!!connection.config.collections[kind]" @change="toggleKind(connection,kind,($event.target as HTMLInputElement).checked)" />{{ names[kind] }}</label></fieldset>
       <p v-if="connection.provider === 'google' && state.google_auth_configured===false">Direct Google sign-in needs a one-time device setup. Local Mac app connections do not require it.</p>
       <p v-if="connection.provider === 'google'">Direct cloud mode: sign in, then choose lists. Records are stored locally. Drive notes use Markdown files, not Google Keep.</p>
@@ -32,6 +33,7 @@
         <div v-if="previews[connection.id]?.[kind]" class="connection-preview"><label v-for="item in previews[connection.id][kind]" :key="item.id" class="inline"><input type="checkbox" v-model="scope.records" :value="item.id" />{{ item.data.title }}</label></div>
       </div>
       <div class="connection-actions"><label class="inline"><input type="checkbox" v-model="connection.config.enabled" />Sync automatically</label><label>Every <input type="number" min="60" max="86400" v-model.number="connection.config.interval" /> seconds</label><button class="usx-btn" :disabled="busy" @click="saveConnection(connection)">Save connection</button><button class="usx-btn" :disabled="busy" @click="sync(connection)">Sync now</button><button class="usx-btn" :disabled="busy" @click="disconnect(connection)">Disconnect</button></div>
+      </details>
     </article>
     <form v-if="state.setup?.completed && !connectionsOnly" class="connection-box" @submit.prevent="completeSetup"><h3>Your profile</h3><label>Name<input v-model="displayName" required /></label><label>Your contact card<select v-model="state.setup.self_contact"><option value="">Choose after importing contacts</option><option v-for="contact in allRecords.filter(r=>r.kind==='contacts')" :key="contact.id" :value="contact.id">{{ contact.data.title }}</option></select></label><button class="usx-btn" :disabled="busy">Save profile</button></form>
     <section v-if="state.pending_exports?.length" class="connection-box"><h3>Check an interrupted export</h3><p>An earlier create did not return a confirmed result. To avoid duplicates, find the record at its destination and link it before retrying.</p><div v-for="pending in state.pending_exports" :key="pending.connection+pending.record"><p>{{ recordTitle(pending.record) }}</p><button class="usx-btn" @click="previewPending(pending)">Find destination record</button><label v-if="pendingChoices[pending.record]">Destination record<select v-model="pendingRemote[pending.record]"><option value="">Choose the matching record</option><option v-for="remote in pendingChoices[pending.record]" :key="remote.id" :value="remote.id">{{ remote.data.title }}</option></select></label><button v-if="pendingRemote[pending.record]" class="usx-btn" @click="linkPending(pending)">Link and review differences</button></div></section>
@@ -124,4 +126,14 @@ onMounted(load);
 .connection-actions { justify-content:flex-start; }.connection-preview { display:grid; gap:6px; max-height:16rem; overflow:auto; }.collection-row { justify-content:space-between; text-align:left; }.duplicate-row { display:flex; gap:8px; align-items:center; }
 
 .merge-comparison {display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;}.merge-comparison article{display:grid;gap:8px;padding:8px;border:1px solid var(--usx-color-border);}.incoming-values{display:grid;grid-template-columns:auto 1fr;gap:6px;margin:0;}.incoming-values dd{margin:0;overflow-wrap:anywhere;}
+
+/* Flat connection feed: no nested card shell or filled header. */
+.connection-feed__entry { display: grid; gap: var(--usx-spacing-sm); min-width: 0; padding-block: var(--usx-spacing-md); border-bottom: 1px solid var(--usx-color-border); background: transparent; overflow-wrap: anywhere; }
+.connection-feed__entry > header { background: transparent; border: 0; padding: 0; margin: 0; }
+.connection-feed__entry > header h3 { font-size: var(--usx-font-size-base); }
+.connection-feed__entry > header span, .connection-feed__entry > small { font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); }
+.connection-feed__settings { margin: 0; padding: 0; border: 0; background: transparent; }
+.connection-feed__settings > summary { cursor: pointer; padding-block: var(--usx-spacing-sm); font-size: var(--usx-font-size-sm); }
+.connection-feed__settings[open] { display: grid; gap: var(--usx-spacing-sm); }
+.connection-feed__settings .connection-scope { border: 0; border-left: 2px solid var(--usx-color-border); border-radius: 0; }
 </style>
