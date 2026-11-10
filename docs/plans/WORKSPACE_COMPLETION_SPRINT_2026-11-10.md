@@ -28,3 +28,5 @@ Use existing repository source, settings, shell/sidebar, resource registry and b
 ## Starting evidence
 
 Vault URL/name and shared sidebar action implemented locally. Previous slice: 152 frontend tests passed with Node native webstorage disabled for jsdom; Binder engine/lifecycle checks passed; build/action audit passed before final feed-only presentation change; final feed type-check/focused tests passed. These are starting evidence, not completion of N01–N07. Browser view showed Apple workspace feed; full responsive/keyboard and cross-platform qualification remain open.
+
+N01 routing checkpoint: direct Vault entry opens the existing shared browser; legacy workspace=local normalizes to vault while retaining collection and record query context. Provider entry does not open Vault. Three component navigation regressions and type-check pass. Narrow viewport/keyboard qualification and legacy Snackbar redirect integration remain open.
