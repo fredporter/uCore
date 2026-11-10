@@ -22,6 +22,10 @@
         <LearningPanel :active-path="viewingDoc?.path" @open="onLearningOpen" @catalog="readingQueue = $event" />
       </div>
 
+      <div v-else-if="activeTab === 'udos'" class="documentation-content">
+        <DocumentArticle :content="udosDocumentation" />
+      </div>
+
       <!-- 3. Developer & Engineering Tooling Tab -->
       <div v-else-if="activeTab === 'developer'" class="documentation-content">
         <!-- Diagnostic & Health strip inside Developer tab -->
@@ -186,6 +190,8 @@ import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import LearningPanel from "./panels/LearningPanel.vue";
 import LocalWikiReader from "./LocalWikiReader.vue";
 
+import udosDocumentation from "../../../../docs/UDOS_DOCUMENTATION.md?raw";
+
 const shell = useShellStore();
 const settings = useSettingsStore();
 const route = useRoute();
@@ -194,6 +200,7 @@ const router = useRouter();
 const TABS = [
   { id: "wiki", label: "Knowledge", icon: "auto_stories" },
   { id: "learning", label: "uCode", icon: "school" },
+  { id: "udos", label: "uDos Documentation", icon: "description" },
   { id: "developer", label: "Advanced", icon: "terminal" },
 ];
 const visibleTabs = computed(() => TABS.filter(tab => tab.id !== "developer" || settings.advancedView));
