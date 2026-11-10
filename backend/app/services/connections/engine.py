@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import platform
 import time
 from datetime import UTC, datetime, timedelta
 
@@ -27,6 +28,12 @@ class SyncEngine:
             raise ValueError("Connection not found")
         if not manual and not connection["config"]["enabled"]:
             return {"state": "disabled"}
+        from .providers import provider_capabilities
+
+        capabilities = provider_capabilities(connection["provider"], host_platform=platform.system())
+        if not capabilities["adapter_available"]:
+            self.store.health(cid, state="unsupported_platform", error="Provider adapter is unavailable on this host")
+            return {"state": "unsupported_platform", "error": "Provider adapter is unavailable on this host"}
         connection["_manual"] = manual
         lock = _LOCKS.setdefault(profile, asyncio.Lock())
         if lock.locked():

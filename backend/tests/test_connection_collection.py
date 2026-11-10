@@ -339,3 +339,23 @@ def test_sync_refresh_retains_local_binder_membership_and_source_identity(tmp_pa
     assert task["collection_id"] == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     assert task["status"] == "completed"
     assert "https://example.com/seeds" in paths[0].read_text()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("manual", [False, True])
+async def test_engine_blocks_unavailable_provider_for_manual_and_scheduled_work(tmp_path, monkeypatch, manual):
+    from app.services.connections import engine as module
+    monkeypatch.setattr(module.platform, "system", lambda: "Linux")
+    store = CollectionStore(tmp_path / "isolated.sqlite3")
+    connection = store.configure("owner", "apple", {"enabled": True, "collections": {"tasks": {"lists": ["list-1"], "direction": "pull"}}})
+    adapter = Adapter()
+    engine = SyncEngine(store, {"apple": adapter})
+    def forbidden(*args):
+        raise AssertionError("Unsupported provider work dispatched")
+    monkeypatch.setattr(engine, "_sync", forbidden)
+    result = await engine.sync("owner", connection["id"], manual=manual)
+    assert result["state"] == "unsupported_platform"
+    health = store.connection("owner", connection["id"])["health"]
+    assert health["state"] == "unsupported_platform"
+    assert not health.get("last_success")
+    assert adapter.writes == []
