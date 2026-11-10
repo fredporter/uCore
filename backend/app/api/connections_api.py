@@ -239,6 +239,10 @@ async def action(request):
     if not connection:
         raise web.HTTPNotFound()
     command = request.match_info["action"]
+    if command in {"discover", "preview", "sync", "authorize", "link"}:
+        capabilities = provider_capabilities(connection["provider"], host_platform=platform.system())
+        if not capabilities["adapter_available"]:
+            raise web.HTTPBadRequest(text="Provider adapter is unavailable on this host")
     engine = SyncEngine(store)
     try:
         if command == "discover":

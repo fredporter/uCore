@@ -154,3 +154,18 @@ async def test_oauth_settings_never_returns_credentials(store, monkeypatch):
         await api.oauth_settings(
             request("POST", body, headers={"Origin": "https://elsewhere.example"})
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("command", ["discover", "preview", "sync", "link"])
+async def test_unavailable_host_rejects_effects_before_adapter_dispatch(store, monkeypatch, command):
+    connection = store.configure("alice", "apple", {"collections": {}})
+    monkeypatch.setattr(api.platform, "system", lambda: "Linux")
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Unavailable adapter was instantiated")
+    monkeypatch.setattr(api, "SyncEngine", forbidden)
+    req = request("POST", {}, connection=connection["id"])
+    req.match_info["action"] = command
+    with pytest.raises(web.HTTPBadRequest) as rejected:
+        await api.action(req)
+    assert "unavailable" in rejected.value.text
