@@ -21,9 +21,10 @@ MIRROR_ROOT = settings.udos_home / "docs-mirror"
 MIRROR_INDEX = MIRROR_ROOT / "_mirror.json"
 
 # Component reference roots — in-repo docs/ only.
+# Workflow and knowledge services are bundled in uCore, not sibling repos.
 CORE_DOC_ROOTS: dict[str, Path] = {
     name: settings.udos_root / name / "docs"
-    for name in ("uCore", "uFlow", "uKnowledge", "uCode", "uVector")
+    for name in ("uCore", "uCode", "uVector")
 }
 
 # User-lane paths that must NEVER be mirrored.
