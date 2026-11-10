@@ -46,7 +46,7 @@ function beginRename() {
   renaming.value = true;
 }
 async function saveName() {
-  if (renameBusy.value) return;
+  if (renameBusy.value || !binderName.value.trim()) return;
   renameBusy.value = true; notice.value = "";
   try {
     const response = await fetch(`${UCORE_BASE}/api/binder/${encodeURIComponent(renameId.value)}/title`, {
