@@ -84,7 +84,7 @@ Before any extraction, list existing callers and ownership. Keep stable public c
 
 One catalogue contract handles distinct artifact types: application, model, skill and knowledge edition. It declares identity/version, owner/upstream/provenance, licence, verified digest/signature, OS/CPU/runtime, exact installed/download size when known, dependencies, typed inputs/outputs, filesystem/network/credential permissions, CPU/memory/time/output limits, retry/cancel behaviour, migrations, rollback and data-preserving removal. Do not create a second store, scheduler or package manager per artifact type.
 
-Server owns actual installation and isolated execution; Snackbar owns user invocation/scheduling; uFlow owns task/run linkage. Models remain Ollama-owned rather than copied per skill/app. Scratch state uses settings-resolved UDOS_HOME; accepted documents remain in approved Vault/Shared destinations. No new hidden HOME state or shared monolithic Python environment. Existing app-owned credential/model locations are not silently moved.
+Server owns actual installation and isolated execution; Snackbar exposes governed Snacks; dedicated Workspaces own provider collections and their sync actions; uFlow owns task/run linkage. Models remain Ollama-owned rather than copied per skill/app. Scratch state uses settings-resolved UDOS_HOME; accepted documents remain in approved Vault/Shared destinations. No new hidden HOME state or shared monolithic Python environment. Existing app-owned credential/model locations are not silently moved.
 
 A database row labelled running is not execution. The executor must prove real process/container start, bounded logs, resource/network/mount enforcement, true exit/results, cancellation and cleanup. No privileged container, blanket HOME/repository mount, in-container Docker socket or arbitrary host-shell fallback. Built-in readers and uCode do not require Docker simply to open the workspace.
 
@@ -280,7 +280,7 @@ Recipes are removed from ordinary navigation, not discarded. Their useful source
 | User Name/Role/email, host timezone/location/grid seed and first-run story | F07; save once/resume, host clock authority, explicit seed readiness, optional practical starters |
 | Apple/Google contacts/tasks/notes/mail/calendar, flags/VIP/stars and source groups | K04/K05; explicit scopes, duplicates/conflicts and tested round trips; no blind cross-account copying |
 | Bookmarks/favourites/reading lists | K06; current manual exchange stays accurately labelled |
-| Recommended Mac/Linux apps, app installation/management and Snackbar central sync | A01/A02/A06, K04; app-managed cloud accounts, no duplicate iCloud service |
+| Recommended Mac/Linux apps, app installation/management and Workspace-owned collections with Snack-based sync | A01/A02/A06, K04; app-managed cloud accounts, no duplicate iCloud service |
 | Ollama cleanup, installation, offline libraries and skills library | A04/A06; dynamic inventory and reviewed manifests; no automatic model deletion/download |
 | Non-dev roundtable, interests and projects, local knowledge enhancement | A05/K01/K02; reviewable outputs in overlays, bounded autonomous work |
 | uCode commands and an assistant skilled in uCode | F05/A05; real language authority/capabilities, no zsh or guessed syntax |
@@ -360,3 +360,13 @@ Source publication follows repository → branch → isolated checks → protect
 ### Role and documentation clarification — 2026-11-10
 
 The current user brief supersedes historical Tomb/Drone semantics: Tomb is public, Crypt is an encrypted Tomb, Drone supplies network access. Beacons advertise presence/resources without granting access; BitChat carries messaging and reviewed handoffs, never ambient execution authority. [uDos Documentation](../UDOS_DOCUMENTATION.md) records the target permission matrix, publishing flow, evidence and consolidation destinations. K09 includes server-side enforcement and migration; K14 includes scoped Drone delegation and Beacon manifests. Both remain open. The Documentation surface now includes a uDos Documentation tab next to uCode; this does not implement the new security model.
+
+### Workspace and vault organisation — 2026-11-10
+
+[Workspace and vault governance proposal](WORKSPACES_AND_VAULT_GOVERNANCE_2026-11-10.md) adds W01–W06 to this programme. Dedicated **Google Workspace** and **Apple Workspace** surfaces own native account-scoped Tasks/Reminders, Contacts, Notes/Docs, Links and other qualified collections. This supersedes Snackbar as the provider-collection UI and the earlier Advanced-only placement for Google; permissions still govern effects. Snacks invoke/schedule scoped cloud/app sync through existing services, with one Queue/scheduler. Move collection tabs only after destination parity and preserve route aliases. Vault/Shared/Public remain the document roots, with stable identity, explicit authority/import mappings, drift reports and reversible migrations. No live account/vault changes are part of this proposal.
+
+Accepted clarification: uDos is a universal cross-compatibility layer. Users may connect Google and/or Apple to their own workspace/vault at item, list or selected collection scope. W03/W04 use one simple **Sync with my vault** flow: choose what, where and supported direction; preview, then connect. Two-way sync is explicit and qualified. Cross-provider propagation is never implicit, private sync is distinct from public publishing, and provider-specific information is preserved.
+
+### Consolidation sprint kickoff — 2026-11-10
+
+Started against the repository assessment. First correction: uCore-Publish configured cloud adapters remain scaffolded/not ready and remote publication returns explicit unavailable status without a fabricated receipt. Validation: all six publishing unittest checks passed. Changes are local and uncommitted. Global Knowledge preservation/reconciliation, extension disposition and documentation consolidation remain pending; no source/history or user content was moved.
