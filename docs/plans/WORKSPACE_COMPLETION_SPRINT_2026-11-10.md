@@ -1,0 +1,30 @@
+# Workspace completion sprint — 2026-11-10
+
+Status: started. Owner: uCore maintainer, with existing adapter/package owners.
+Parent: CURATED_APPLICATIONS_CLEANUP_SPRINT_2026-11-09.md. Continues W01–W06 and the unfinished consolidation gates; it does not supersede them or create another task engine.
+
+## Outcome
+
+Deliver a coherent Vault, Google, Apple and Linux workspace experience with truthful capabilities, shared presentation and tested navigation. Finish Binder rename and responsive Workflow qualification. Existing UI changes are an initial implementation, not completed account isolation or provider qualification.
+
+## Ordered delivery
+
+| ID | Owner | Work | Exit evidence |
+| --- | --- | --- | --- |
+| N01 | uCore | Finish Vault remapping and legacy navigation | Vault selects the shared shell browser; old local/Snackbar links preserve collection/record context; route tests and narrow keyboard checks. No connection database relabelled as filesystem content. |
+| N02 | uCore | Complete shared recipe-based Workflow presentation and Binder rename | Mission Control, Tasks, Queue and Editor reviewed at 390/548/1280px, light/dark, keyboard focus, empty/error/busy states; rename HTTP and UI persistence tests preserve IDs and materials. Current styling only covers Mission Control and basic input containment. |
+| N03 | uCore/adapters | W01/W02 inventory and operation matrix | Provider/account/collection/native identity, supported operations and platform availability recorded from source. Read-only and unsupported states truthful; no automatic account selection. |
+| N04 | uCore/adapters | Dedicated collection views and feed parity | Account-qualified browsing and selected imports use shared components; connection settings expandable; no cross-account data leakage. Old Google Studio route reconciled with Google Workspace; local combined records clearly distinct from native provider records. Linux unavailable until qualified. |
+| N05 | uCore/uFlow | Governed sync and recovery qualification | Preview, explicit direction/selection, one Queue/scheduler, cancellation/retry/idempotency, disconnect without deletion; role/provider/OS grants enforced. Disposable fixtures first; live accounts unchanged without explicit scoped authorization. |
+| N06 | Product owners | Close consolidation C04/C06/C07 | Extension register documents dependencies/lifecycle/budgets/removal; canonical user guides and redirects; stale product claims corrected with evidence. No archival merely from product names. |
+| N07 | Maintainers | Source review/publication and closeout | Recheck worktrees; changed-product suites/build/action/path checks; review diffs and publish intended branches; record remote SHAs. Canon proposal reviewed separately, with recovery history preserved. |
+
+## Dependencies and limits
+
+N01/N02 first. N03 precedes N04 provider data operations. N05 depends on qualified role/Drone contracts from K09/K14; unsupported effects stay unavailable. N06 can proceed independently. Global Knowledge C02 selective proposal remains open; no installed canon update or wholesale recovered corpus publication belongs to this UI sprint.
+
+Use existing repository source, settings, shell/sidebar, resource registry and bundled uFlow. No new service, environment, agent configuration, persistent cache or filesystem root. This plan has source-document lifecycle and negligible storage cost; archive through Git after closeout.
+
+## Starting evidence
+
+Vault URL/name and shared sidebar action implemented locally. Previous slice: 152 frontend tests passed with Node native webstorage disabled for jsdom; Binder engine/lifecycle checks passed; build/action audit passed before final feed-only presentation change; final feed type-check/focused tests passed. These are starting evidence, not completion of N01–N07. Browser view showed Apple workspace feed; full responsive/keyboard and cross-platform qualification remain open.

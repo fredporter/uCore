@@ -27,7 +27,7 @@ import SnackbarLogsPanel from './panels/SnackbarLogsPanel.vue';
 const shell=useShellStore(),srv=useSnackbarOpsStore(),route=useRoute(),router=useRouter();
 const tabs=[{id:'dashboard',label:'Snackbar',icon:'storefront'},{id:'feeds',label:'Feeds',icon:'rss_feed'},{id:'snacks',label:'Snacks',icon:'restaurant_menu'},{id:'automation',label:'Routines',icon:'auto_mode'},{id:'ai',label:'Assistant',icon:'chat'}];
 const tab=computed(()=>tabs.some(t=>t.id===route.query.tab)?String(route.query.tab):route.query.tab==='logs'?'logs':'dashboard');
-watch(()=>route.query.tab,value=>{if(['tasks','contacts','notes'].includes(String(value)))void router.replace({path:'/system',query:{...route.query,tab:'apps',workspace:'local',collection:String(value)}});if(value==='services')void router.replace('/server?tab=services');if(['skills','extensions'].includes(String(value)))void router.replace('/snackbar?tab=snacks');},{immediate:true});
+watch(()=>route.query.tab,value=>{if(['tasks','contacts','notes'].includes(String(value)))void router.replace({path:'/system',query:{...route.query,tab:'apps',workspace:'vault',collection:String(value)}});if(value==='services')void router.replace('/server?tab=services');if(['skills','extensions'].includes(String(value)))void router.replace('/snackbar?tab=snacks');},{immediate:true});
 watch(tab,value=>{if(value==='snacks')void srv.fetchExecutables();if(value==='logs')void srv.fetchLogs();},{immediate:true});
 </script>
 <style scoped>
