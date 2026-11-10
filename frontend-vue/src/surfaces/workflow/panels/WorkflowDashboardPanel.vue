@@ -31,6 +31,7 @@ watch(() => wf.binderCreateRequested, requested => { if (requested) binderOpen.v
 <style scoped>
 .workflow-dashboard {
   display: grid;
+  align-content: start;
   gap: var(--usx-spacing-md);
   min-width: 0;
 }
