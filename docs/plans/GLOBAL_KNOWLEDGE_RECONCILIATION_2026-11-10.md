@@ -44,3 +44,17 @@ Files are now committed on local `recovery/consolidation-2026-11-10`; their path
 3. Start the delivery branch from upstream, selectively import reviewed canon/standards and edition planning; retain historical layout changes only as provenance.
 4. Check distribution rights, links and edition metadata before publishing; no unverified release claims.
 5. Record selected commits/files and recovery references; install canon only through a separately validated edition workflow.
+
+## Corpus comparison and first content decisions
+
+Full Git object inventory: `GLOBAL_KNOWLEDGE_COMPARISON_2026-11-10.json`. Compares the recovery commit against fetched upstream using blob object IDs plus mode/type. Counts: 518 local-only files, one upstream-only file (`VERSION`), one differing file (`README.md`), zero identical paths. Upstream is a placeholder repository, not a competing populated edition. Historical seven-versus-two counts must not imply shared ancestry.
+
+- Retain upstream VERSION as provenance; its prerelease marker does not certify local corpus content.
+- Replace the stale local README in the eventual delivery proposal: it claims topic trees are absent although they are present, and references obsolete archive paths.
+- Retain EDITION_PLAN as the basis for manifest/rights review; do not publish all recovered corpus files by default.
+- Hold CONTAINER-STANDARDS for revision: it describes Tomb as a sealed archive/tombstone, conflicting with the accepted public Tomb / encrypted Crypt contract, and specifies unqualified storage paths.
+- Hold KNOWLEDGE_LAYERING_AND_CONTRIBUTION_SPEC for revision: layering agrees with the contract, but fixed model recommendations, DeveloperReviewPanel and automatic cloud distribution claims are stale or unqualified.
+- Hold SOVEREIGN_HOST_REFERENCE for wording review: host clock authority is correct, but claims that all products inherit location services and that mapping is already fully offline require product evidence.
+- Keep recovered topical material, contributor references and GIF assets in recovery pending distribution-rights/provenance checks. No corpus files approved for a release in this pass.
+
+The JSON inventory belongs to uCore maintainer planning, contains only paths and Git object IDs, and follows the sprint document lifecycle. It introduces no runtime cache or service. C02 preservation/comparison is complete; selective content revision and delivery review remain open.
