@@ -10,8 +10,13 @@ from aiohttp import web
 
 from app.services.connections import drone
 from app.services.connections.engine import SyncEngine
+from app.services.connections.google_auth import (
+    disconnect_credentials,
+    finish,
+    require_direct_google,
+    start,
+)
 from app.services.connections.providers import provider_capabilities
-from app.services.connections.google_auth import disconnect_credentials, finish, require_direct_google, start
 from app.services.connections.reconcile import duplicate_candidates
 from app.services.connections.store import CollectionStore
 from app.services.identity import get_full_identity

@@ -54,3 +54,14 @@ Account browsing shows read-only snapshots of synced records. The server selects
 Validation passed for 48 backend tests, eight focused frontend tests, type-check and whitespace.
 
 Google Tasks Drone checkpoint. Enrollment, preview, expiry and revocation run in the existing connections service. Grants are rows in the existing connections database. Each grant binds a local recipient, administrator-owned Google account subject and one list, lasts at most 24 hours, and allows one bounded preview per minute. Disconnect revokes all grants on that connection. The service records grant and preview events through existing logging. Revoked/expired rows remain as grant history and follow the existing connections database retention lifecycle. This adds no process or scheduler. Remaining qualification covers remote enrollment, independently authenticated principals and live Google round trips.
+
+## Final qualification rounds
+
+| Round | Fixture and checks | Exit evidence |
+| --- | --- | --- |
+| 1. Source and integration | Run backend pytest, frontend Vitest and production build, route and extension contracts, path policy, publishing unit tests and whitespace checks. | Record suite counts and reviewed branch SHAs. |
+| 2. Disposable local workspace | Use a disposable profile and Binder. Check rename and reload, populated Mission progress and next task, task movement, Queue and Editor. Check 390, 548 and 1280 px in light and dark themes using keyboard navigation. | Titles persist with stable IDs, failure retains the edit, all controls are reachable and pages avoid horizontal overflow. |
+| 3. Google live read-only | Use a disposable Google account or list, a local Wizard and Knight, and a short grant. Check an approved list, an unapproved list, expiry, revocation and disconnect. Use a second disposable connection to check account isolation. | Only approved task snapshots are shown and later requests fail after grant loss. Verify provider logs for zero task writes. |
+| 4. Platform and release review | Check Apple native permissions using disposable lists. Check Linux unsupported states and bookmark exchange. Review artifacts and branch CI, and confirm legacy link routing. | Record platform evidence, remote branch SHAs and remaining gates before release. |
+
+Live fixtures must be identifiable as disposable before exercising account changes. The automated round uses simulated provider requests. Remote Drone enrollment and authenticated profile switching are a separate security qualification.

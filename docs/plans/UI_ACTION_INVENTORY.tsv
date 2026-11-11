@@ -567,6 +567,8 @@ src/surfaces/sonic/SonicScrewdriverSurface.vue	9	a	Open SonicScrewdriver on GitH
 src/surfaces/sonic/SonicScrewdriverSurface.vue	46	button	Refresh	click: refresh		bound; outcome needs verification	not exercised by static audit
 src/surfaces/sonic/SonicScrewdriverSurface.vue	87	a	GitHub Repository	https://github.com/uDosGo/SonicScrewdriver		bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/AppsManagerPanel.vue	2	button	{{ item.label }}	click: chooseWorkspace(item.id)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/AppsManagerPanel.vue	6	button	Browse Vault	click: openVault		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/AppsManagerPanel.vue	6	button	All connected records	click: clearAccount		bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/AppsManagerPanel.vue	6	button	{{ kind }}	click: chooseCollection(kind)		bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/AppsManagerPanel.vue	7	input		change: importFile	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/AppsManagerPanel.vue	7	button	Export HTML	click: exportFile	conditional/static	bound; outcome needs verification	not exercised by static audit
@@ -576,35 +578,40 @@ src/surfaces/system/AppsManagerPanel.vue	7	input		change: markRead(record,($even
 src/surfaces/system/AppsManagerPanel.vue	7	a	Official site	href: app.url		bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/ConnectionsPanel.vue	3	button	Connections	click: router.push('/system?tab=connections')		bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/ConnectionsPanel.vue	3	button	Refresh	click: load	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	5	a	Open Google sign-in in your system browser	href: authUrl		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	7	button	Start User Setup	click: router.push('/setup')		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	8	button	Connect local Mac apps	click: add('apple')	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	8	button	Add Google account	click: add('google')	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	13	input		change: toggleKind(connection,kind,($event.target as HTMLInputElement).checked)		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	16	button	Choose Google account	click: authorize(connection)	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	16	button	Choose lists and folders	click: discover(connection)	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	31	button	Choose individual records	click: preview(connection,String(kind))	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	34	button	Save connection	click: saveConnection(connection)	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	34	button	Sync now	click: sync(connection)	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	34	button	Disconnect	click: disconnect(connection)	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	36	form	Your profile Name Your contact card Choose after importing contacts r.kind==='contacts')" :key="contact.id" :value="contact.id">{{ contact.data.title }} Save pr	submit: completeSetup		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	36	button	Save profile	form: submit: completeSetup	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	37	button	Find destination record	click: previewPending(pending)		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	37	button	Link and review differences	click: linkPending(pending)		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	39	button	{{ names[kind] }} {{ state.counts?.[kind] || 0 }}	click: activeKind=kind; loadRecords()		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	39	button	New record	click: newRecord		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	41	button	{{ record.data.title }} {{ (record.data.flags || []).join(' · ') }} {{ record.data.starred ? 'Starred' : '' }} {{ record.data.vip ? 'VIP' : '' }}	click: openRecord(record)		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	43	form	{{ edit.id ? 'Edit record' : 'New record' }} Open in Editor Connected copies: {{ edit.sources.map((source:any)=>source.account || source.provider).join(' · ') }	submit: saveRecord		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	43	button	Open in Editor	click: openInEditor(edit)		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	43	input		change: edit.data.due=isoDate(($event.target as HTMLInputElement).value)		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	43	input		change: edit.data.start={dateTime:isoDate(($event.target as HTMLInputElement).value)}		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	43	input		change: edit.data.end={dateTime:isoDate(($event.target as HTMLInputElement).value)}		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	45	button	Save	form: submit: saveRecord	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	45	button	Cancel	click: edit=null		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	47	button	Review	click: reviewPair(pair)		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	47	button	Combine, keeping left preferred values	click: mergeRecords	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	47	button	Cancel	click: mergePair=null		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/ConnectionsPanel.vue	48	button	{{ choice === 'local' ? 'Keep local' : choice === 'remote' ? 'Use incoming' : 'Combine values' }}	click: resolve(conflict,choice)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	6	a	Open Google sign-in in your system browser	href: authUrl		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	8	button	Start User Setup	click: router.push('/setup')		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	9	button	Connect local Mac apps	click: add('apple')	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	9	button	Add Google account	click: add('google')	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	21	button	Browse synced records	click: browseAccount(connection)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	23	input		change: toggleKind(connection,kind,($event.target as HTMLInputElement).checked)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	26	button	Choose Google account	click: authorize(connection)	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	26	button	Choose lists and folders	click: discover(connection)	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	41	button	Choose individual records	click: preview(connection,String(kind))	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	44	button	Save connection	click: saveConnection(connection)	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	44	button	Sync now	click: sync(connection)	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	44	button	Disconnect	click: disconnect(connection)	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	47	form	Your profile Name Your contact card Choose after importing contacts r.kind==='contacts')" :key="contact.id" :value="contact.id">{{ contact.data.title }} Save pr	submit: completeSetup		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	47	button	Save profile	form: submit: completeSetup	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	48	button	Find destination record	click: previewPending(pending)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	48	button	Link and review differences	click: linkPending(pending)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	50	button	{{ names[kind] }} {{ state.counts?.[kind] || 0 }}	click: activeKind=kind; loadRecords()		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	50	button	New record	click: newRecord		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	55	button	{{ record.data.title }} {{ (record.data.flags || []).join(' · ') }} {{ record.data.starred ? 'Starred' : '' }} {{ record.data.vip ? 'VIP' : '' }}	click: openRecord(record)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	57	form	{{ edit.id ? 'Edit record' : 'New record' }} Open in Editor Connected copies: {{ edit.sources.map((source:any)=>source.account || source.provider).join(' · ') }	submit: saveRecord		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	57	button	Open in Editor	click: openInEditor(edit)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	57	input		change: edit.data.due=isoDate(($event.target as HTMLInputElement).value)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	57	input		change: edit.data.start={dateTime:isoDate(($event.target as HTMLInputElement).value)}		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	57	input		change: edit.data.end={dateTime:isoDate(($event.target as HTMLInputElement).value)}		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	59	button	Save	form: submit: saveRecord	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	59	button	Cancel	click: edit=null		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	61	button	Review	click: reviewPair(pair)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	61	button	Combine, keeping left preferred values	click: mergeRecords	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	61	button	Cancel	click: mergePair=null		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/ConnectionsPanel.vue	62	button	{{ choice === 'local' ? 'Keep local' : choice === 'remote' ? 'Use incoming' : 'Combine values' }}	click: resolve(conflict,choice)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/DroneGrantsPanel.vue	5	form	Recipient Choose a profile {{ profile.name }} Google account Choose an account {{ connection.health.account || connection.id.slice(0, 6) }} Task list Choose a t	submit: enroll		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/DroneGrantsPanel.vue	29	button	Grant preview access	form: submit: enroll	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/DroneGrantsPanel.vue	37	button	Preview tasks	click: preview(grant.id)	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/DroneGrantsPanel.vue	38	button	Revoke	click: revoke(grant.id)	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/OAuthSettingsPanel.vue	6	form	Client ID Client secret Local callback {{ status.callback || 'Loading…' }} Save credentials Check configuration Open Connections	submit: save		bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/OAuthSettingsPanel.vue	10	button	Save credentials	form: submit: save	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/OAuthSettingsPanel.vue	10	button	Check configuration	click: load	conditional/static	bound; outcome needs verification	not exercised by static audit

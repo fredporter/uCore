@@ -2,9 +2,17 @@
 
 Updated 2026-11-10. Owner: uCore documentation; workflow contracts belong to uFlow, language learning to uCode, media provisioning to Sonic Screwdriver. This index consolidates guidance without copying source corpora or creating another runtime store. Maintain it with product changes; remove superseded entries after their replacements are verified.
 
+## Work in uDos
+
+- **Start a project.** Open Workflow → Mission Control and set an objective. Use Tasks to track the work and Queue to inspect background results. A Binder collects briefs, drafts and research. Select the Binder in the shared sidebar to rename it.
+- **Find your files.** Open Settings → Apps → Vault to use the shared Vault sidebar. Use Knowledge for the installed Global Knowledge baseline and any Shared or Vault overlays. Keep personal edits in Vault or in a Shared collection you manage.
+- **Connect an account.** Choose Google or Apple in Settings → Apps. Select the lists and sync direction in Connection settings. Use **Browse synced records** for an account's read-only snapshots. Legacy Snackbar collection links open the corresponding Vault view.
+- **Exchange files on Linux.** Use Apps to import or export bookmark HTML. Evolution and Thunderbird manage their own accounts. Check the workspace's adapter status before configuring sync.
+- **Prepare an edition.** Gather the selected material in a Binder and export locally. Review the audience, provenance and permissions before releasing it. The WordPress cloud adapter reports unavailable until a transport is implemented.
+
 ## Target role permission matrix
 
-This is the agreed specification. The runtime still uses legacy WordPress-compatible roles and an Advanced display preference. These permissions require K09 backend enforcement and migration before they can be relied upon. Visibility is not authorization.
+This matrix describes the target permissions. Google Workspace enforces direct Google access and local Drone task grants through backend checks. The wider role migration and authorization across other product surfaces remain open.
 
 | Capability | Knight — regular user | Sorcerer — advanced user | Wizard — administrator |
 | --- | --- | --- | --- |

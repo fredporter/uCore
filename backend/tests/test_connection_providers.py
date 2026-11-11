@@ -185,6 +185,7 @@ def test_disconnect_during_token_exchange_cannot_restore_credentials(monkeypatch
 
 def test_revoked_role_cancels_pending_google_callback_before_exchange(monkeypatch):
     from types import SimpleNamespace
+
     from app.services import identity
     from app.services.connections import google_auth as auth
 
