@@ -359,3 +359,23 @@ async def test_engine_blocks_unavailable_provider_for_manual_and_scheduled_work(
     assert health["state"] == "unsupported_platform"
     assert not health.get("last_success")
     assert adapter.writes == []
+
+
+@pytest.mark.asyncio
+async def test_disconnect_during_manual_pull_preserves_status_and_skips_import(fixture, monkeypatch):
+    store, adapter, connection, engine = fixture
+    cid = connection["id"]
+
+    def disconnect_during_pull(*args):
+        store.configure("default", "google", {**connection["config"], "enabled": False}, cid)
+        store.health(cid, state="disconnected")
+        return adapter.rows
+
+    monkeypatch.setattr(adapter, "pull", disconnect_during_pull)
+    assert await engine.sync("default", cid, manual=True) == {"state": "disconnected"}
+    assert await engine.sync("default", cid, manual=True) == {"state": "disconnected"}
+    health = store.connection("default", cid)["health"]
+    assert health["state"] == "disconnected"
+    assert not health.get("last_success")
+    assert store.records("default") == []
+    assert adapter.writes == []
