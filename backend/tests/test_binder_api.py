@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 
 from aiohttp import web
+from unittest.mock import patch
+
 from aiohttp.test_utils import AioHTTPTestCase
 
 from app.api.binder_api import (
@@ -81,7 +83,16 @@ class BinderAPITest(AioHTTPTestCase):
             shutil.rmtree(self._temp_dir)
         await super().asyncTearDown()
 
-    async def test_full_binder_api_lifecycle(self):
+    @patch("app.services.identity.get_full_identity", return_value={"publishing_capabilities": {"publish_local": True}})
+    async def test_full_binder_api_lifecycle(self, _identity):
+        path = "/api/binder/b-system-spec/publish"
+        _identity.return_value = {"publishing_capabilities": {"publish_local": False}}
+        assert (await self.client.post(path, json={})).status == 403
+        _identity.return_value = {"publishing_capabilities": {"publish_local": True}}
+        rejected_cloud = await self.client.post(path, json={"target": "cloud"})
+        assert rejected_cloud.status == 400
+        assert "Cloud publishing" in (await rejected_cloud.json())["error"]
+
         # 1. Create binder
         resp = await self.client.post("/api/binder/create", json={
             "id": "b-system-spec",

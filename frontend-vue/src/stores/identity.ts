@@ -17,6 +17,7 @@ export interface UserIdentity {
   active_profile_id?: string;
   active_profile?: Profile | null;
   profiles?: Profile[];
+  publishing_capabilities?: { manage_domains: boolean; publish_cloud: boolean; publish_local: boolean };
 }
 
 export const useIdentityStore = defineStore("identity", () => {

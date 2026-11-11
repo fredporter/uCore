@@ -327,7 +327,17 @@ async def handle_binder_publish(request: web.Request) -> web.Response:
         body = {}
 
     edition_num = body.get("edition")
+    from app.services.identity import get_full_identity
+
+    if not get_full_identity()["publishing_capabilities"]["publish_local"]:
+        return web.json_response({"error": "Local publishing requires a signed-in publishing profile."}, status=403)
+
     target = body.get("target", "local_static")
+    if target != "local_static":
+        return web.json_response(
+            {"error": "This endpoint exports local editions. Cloud publishing requires a configured publisher."},
+            status=400,
+        )
 
     try:
         receipt = binder_engine.publish_edition(binder_id, edition_num=edition_num, target=target)

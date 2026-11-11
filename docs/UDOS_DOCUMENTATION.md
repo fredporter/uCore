@@ -28,6 +28,7 @@ This matrix describes the target permissions. Google Workspace enforces direct G
 | Read installed Global Knowledge | Yes | Yes | Yes |
 | Curate canonical Global Knowledge/default datasets | Submit proposals only | Submit proposals only | Maintain/review canon and release editions |
 | Grant/revoke human and device permissions | No | No | Yes |
+| Manage domains, DNS, and publishing origins | No | No | Yes |
 
 “Full access” still respects host ownership, provider credentials and release verification. Installed canon remains immutable to ordinary runtime writes; Wizard updates use reviewed editions. Personal and Shared overlays remain separate. Sorcerer is canonical; historical Sorceror is a migration alias. WordPress administrator status must never automatically grant local Wizard authority.
 
@@ -58,6 +59,22 @@ Messages can be deliberately saved into a Binder or converted into a task. A pee
 Publishing follows: select owned Binder materials → compile a versioned artifact → preview provenance, licenses and privacy → explicitly release to a permitted destination → optionally advertise a Beacon. Knight can release locally and use Ollama. Sorcerer and Wizard can release to cloud through a qualified provider adapter. Canon submissions enter Wizard review separately from public publishing. Crypt encryption/key delivery is separate from publishing public discovery metadata.
 
 Current local export/preparation is not cloud deployment: retired docs-publish and generic Git/shell execution endpoints stay retired. Role-aware cloud publishing requires a qualified adapter, account/destination preview, backend permission checks and an auditable result. No new capability is granted by this documentation tab.
+
+## Spatial and publishing URLs
+
+| Internal authority | External destination | Mapping |
+| --- | --- | --- |
+| Accepted Binder edition and its local artifact | `https://udo.guide/` | Proposed path: `/editions/{slug}/{revision}` for a reviewed edition. The local artifact stays addressable by its Binder and edition IDs. |
+| Graphical assets and generated layer derivatives | `https://cdn.udo.guide/` | Proposed path: `/layers/{layer-id}/{revision}/{asset}` for optimized derivatives. |
+| Approved `udo.guide` editions and their published spatial metadata | `https://udo.place/` | Mirror `/editions/{slug}/{revision}` with the same edition ID, slug and revision. Provide `/grid/{location-id}` as a spatial view that links to those mirrored editions. |
+
+Publish the same approved edition manifest to both domains. `udo.guide` supplies the canonical URL. `udo.place` serves the mirrored edition with that canonical URL in its page metadata and uses only approved GridCore fields in the spatial view. Coordinates and storage paths stay in their owning stores unless explicitly approved for publication.
+
+The edition build resolves Vault links against its manifest. Use relative links between pages mirrored on both hosts, canonical `udo.guide` URLs for approved targets outside the mirror, and `cdn.udo.guide` URLs for approved graphics. Report unresolved or restricted links during preview. Apply corrections and withdrawals to both hosts using the same edition identity.
+
+GridSmith converts coordinates locally through `POST /api/gridsmith/location/latlon-to-ucode` and `POST /api/gridsmith/location/ucode-to-latlon`. The publishing contract names the external destinations. Public path templates, DNS, TLS and hosting must be configured before those destinations can resolve a published resource.
+
+Wizard manages the domain, route mapping and approved publishing origins. Sorcerer can cloud-publish a reviewed edition to an approved origin. Knight can publish local editions. The identity response exposes these capabilities separately. The Binder publish endpoint enforces local access. Cloud delivery and DNS mutations require their own authorized integrations.
 
 ## Consolidation register
 

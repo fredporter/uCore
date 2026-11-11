@@ -200,7 +200,7 @@ const router = useRouter();
 const TABS = [
   { id: "wiki", label: "Knowledge", icon: "auto_stories" },
   { id: "learning", label: "uCode", icon: "school" },
-  { id: "udos", label: "uDos Documentation", icon: "description" },
+  { id: "udos", label: "Docs + Specs", icon: "description" },
   { id: "developer", label: "Advanced", icon: "terminal" },
 ];
 const visibleTabs = computed(() => TABS.filter(tab => tab.id !== "developer" || settings.advancedView));

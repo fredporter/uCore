@@ -74,3 +74,29 @@ Live fixtures must be identifiable as disposable before exercising account chang
 - uCore-Publish branch `feat/wordpress-post-transport` adds an opt-in HTTPS transport for post creation. Eleven tests passed. Staging delivery, caller authorization and destination review remain necessary before runtime exposure.
 - Global Knowledge branch `plan/selective-canon-reconciliation` passed relative link checks and maintainer wording review. Distribution provenance for the recovered corpus remains a per-item gate. No recovered corpus content is part of the proposal.
 - Live Google, Apple and WordPress qualification awaits identified disposable fixtures. Linux native adapters, independent local profile authentication and remote Drone enrollment remain open engineering work.
+
+## WordPress-first extended form
+
+Use Forminator in the selected WordPress site for the form, validation and original submission. Use its HubSpot integration to map the approved CRM fields after a successful WordPress submission. The form owner can change the WordPress layout without renaming mapped CRM properties. Site owners manage credentials through the site's integration settings and the existing uDOS credential store where uDOS calls the site.
+
+| Form step | Proposed fields | HubSpot mapping |
+| --- | --- | --- |
+| Contact | Email, first name, last name, company, optional phone | Email, first name, last name, company and phone using the destination property's internal name |
+| Request | Request type, summary, details and conditional follow-up questions | Map structured fields to confirmed properties. Keep long details in WordPress unless explicitly selected for CRM |
+| Review and submit | Review contact and request details. Show separate opt-in when the form offers marketing communications | Map consent using the destination's configured subscription purpose and consent field |
+
+Local, Shared and Public are separate destinations. Keep raw submissions in the authorized records store. Create a Shared or Public view from explicitly selected fields. Keep contact details and credentials out of public output. Use the WordPress submission ID as the reference for any local or HubSpot projection so a retry can be reconciled with the original record.
+
+The staging check should verify conditional fields, required values, one saved WordPress submission and the mapped HubSpot record. Exercise a HubSpot delivery failure and confirm that the original WordPress entry remains available. Test Shared/Public output with dummy data and review exactly which fields are visible.
+
+The domain map assigns published materials to `https://udo.guide/`, optimized graphics to `https://cdn.udo.guide/`, and an edition mirror with spatial views to `https://udo.place/`. The same approved revision and link manifest drive both edition hosts. Confirm the WordPress form and task API origin separately. The graphics host is production, and its public REST index did not advertise a Forminator namespace or a uDOS task endpoint. The WordPress application password credential label and HubSpot account mapping are still needed.
+
+### Fallback task authority
+
+WordPress owns fallback tasks when neither Apple nor Google Tasks is available. The provider choice applies when a task is created. Keep the provider and its stable record ID on every task, so edits to existing tasks return to their owner when that provider becomes available again. A provider outage does not migrate records. Show a queued or failed status until WordPress confirms a fallback write. Retry against the same task identifier to avoid creating duplicates.
+
+Use a private WordPress task record with an opaque task ID, title, status, due date, visibility and revision. Access to Local and Shared records follows the selected profile and sharing scope. Public output comes from an explicit projection and may contain only selected fields. Store the task separately from the extended form submission, with the submission ID as a link when a form creates follow-up work. HubSpot receives the approved form fields through the integration.
+
+The opt-in post transport can verify WordPress authentication and draft creation. It cannot serve as the task store. The task endpoint needs authenticated create, read and update, revision checks, and isolation tests for Local, Shared and Public projections. Test Apple-only, Google-only and neither-provider routing, followed by provider recovery and a retry after a lost WordPress response.
+
+Reference: [Forminator forms and HubSpot integration](https://wpmudev.com/docs/changelog/forminator/).
