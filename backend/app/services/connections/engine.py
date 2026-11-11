@@ -36,6 +36,14 @@ class SyncEngine:
         if not capabilities["adapter_available"]:
             self.store.health(cid, state="unsupported_platform", error="Provider adapter is unavailable on this host")
             return {"state": "unsupported_platform", "error": "Provider adapter is unavailable on this host"}
+        if connection["provider"] == "google":
+            from .google_auth import require_direct_google
+
+            try:
+                require_direct_google(profile)
+            except PermissionError as exc:
+                self.store.health(cid, state="permission_required", error=str(exc))
+                return {"state": "permission_required", "error": str(exc)}
         connection["_manual"] = manual
         lock = _LOCKS.setdefault(profile, asyncio.Lock())
         if lock.locked():

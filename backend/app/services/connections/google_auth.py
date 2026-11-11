@@ -97,7 +97,19 @@ def client():
     }
 
 
+def require_direct_google(profile_id, *, administrator=False):
+    """Use the stored local role for every new provider operation."""
+    from app.services.identity import load_identity
+
+    profile = next((item for item in load_identity().profiles if item.id == profile_id), None)
+    role = str(profile.role).casefold() if profile else ""
+    allowed = {"wizard", "owner"} if administrator else {"wizard", "owner", "sorcerer", "sorceror"}
+    if role not in allowed:
+        raise PermissionError("Direct Google access requires an authorized local role. Drone access is unavailable.")
+
+
 def start(connection, redirect):
+    require_direct_google(connection["profile"])
     if AESGCM is None:
         raise ValueError("Encrypted credential storage is required")
     if not redirect.startswith("http://127.0.0.1:"):
@@ -144,6 +156,7 @@ def finish(state, code):
             raise ValueError("Sign-in expired; start again from Connections")
         pending["claimed"] = True
     connection = pending["connection"]
+    require_direct_google(connection["profile"])
     result = request_json(
         "https://oauth2.googleapis.com/token",
         method="POST",
@@ -162,6 +175,7 @@ def finish(state, code):
         raise ValueError(
             "Required permissions were not granted; reconnect and choose the collections again"
         )
+    require_direct_google(connection["profile"])
     account = request_json(
         "https://openidconnect.googleapis.com/v1/userinfo",
         headers={"Authorization": "Bearer " + result["access_token"]},
@@ -171,9 +185,13 @@ def finish(state, code):
     with _CREDENTIAL_LOCK:
         if _PENDING.pop(state, None) is not pending or pending["expires"] < time.time():
             raise ValueError("Sign-in expired or was cancelled")
+        require_direct_google(connection["profile"])
         store = CollectionStore()
-        if not store.connection(connection["profile"], connection["id"]):
+        latest = store.connection(connection["profile"], connection["id"])
+        if not latest:
             raise ValueError("Connection no longer exists")
+        if latest["config"]["collections"].keys() != connection["config"]["collections"].keys():
+            raise ValueError("Connection collections changed during sign-in")
         result["expires_at"] = time.time() + result.get("expires_in", 3600)
         credentials = get_store()
         credentials.set(secret_key(connection), json.dumps(result))
@@ -195,6 +213,7 @@ def disconnect_credentials(connection):
 
 
 def access_token(connection):
+    require_direct_google(connection["profile"])
     value = token_data(connection)
     if not value:
         raise RuntimeError("Google sign-in required")
@@ -216,6 +235,7 @@ def access_token(connection):
         value.update(result)
         value["expires_at"] = time.time() + result.get("expires_in", 3600)
         with _CREDENTIAL_LOCK:
+            require_direct_google(connection["profile"])
             if token_data(connection) != original:
                 raise RuntimeError("Google credentials changed; retry the connection")
             get_store().set(secret_key(connection), json.dumps(value))

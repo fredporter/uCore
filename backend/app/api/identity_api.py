@@ -98,6 +98,13 @@ async def handle_update_profile(request: web.Request) -> web.Response:
         return web.json_response({"success": False, "error": "profile_id is required"}, status=400)
     name = body.get("name")
     role = body.get("role")
+    if role is not None:
+        identity = get_full_identity()
+        active_role = str((identity.get("active_profile") or {}).get("role", "")).casefold()
+        if not identity.get("authenticated") or active_role not in {"owner", "wizard"}:
+            raise web.HTTPForbidden(text="Only a local administrator can change profile roles")
+        if not isinstance(role, str) or not role.strip():
+            raise web.HTTPBadRequest(text="Profile role must be a nonempty string")
     updated = update_profile(profile_id, name=name, role=role)
     return web.json_response({"success": True, "identity": updated})
 

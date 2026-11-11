@@ -10,7 +10,7 @@ from aiohttp import web
 
 from app.services.connections.engine import SyncEngine
 from app.services.connections.providers import provider_capabilities
-from app.services.connections.google_auth import disconnect_credentials, finish, start
+from app.services.connections.google_auth import disconnect_credentials, finish, require_direct_google, start
 from app.services.connections.reconcile import duplicate_candidates
 from app.services.connections.store import CollectionStore
 from app.services.identity import get_full_identity
@@ -49,11 +49,26 @@ async def state(request):
         google_configured = bool(client()) and AESGCM is not None
     except ValueError:
         google_configured = False
+    try:
+        require_direct_google(owner)
+        google_direct_allowed = True
+    except PermissionError:
+        google_direct_allowed = False
+    host_platform = platform.system()
     return web.json_response(
         {
             "providers": {
-                "apple": {"available": platform.system() == "Darwin", "mode": "local-apps", "capabilities": provider_capabilities("apple", host_platform=platform.system())},
-                "google": {"available": True, "mode": "direct-cloud", "capabilities": provider_capabilities("google", host_platform=platform.system())},
+                "apple": {
+                    "available": host_platform == "Darwin",
+                    "mode": "local-apps",
+                    "capabilities": provider_capabilities("apple", host_platform=host_platform),
+                },
+                "google": {
+                    "available": True,
+                    "mode": "direct-cloud",
+                    "direct_access_allowed": google_direct_allowed,
+                    "capabilities": provider_capabilities("google", host_platform=host_platform),
+                },
             },
             "coordinator": "snackbar",
             "setup": setup_state,
@@ -217,6 +232,8 @@ async def setup(request):
 async def configure(request):
     owner, body = profile(request), await request.json()
     try:
+        if body.get("provider") == "google" and body.get("config", {}).get("enabled"):
+            require_direct_google(owner)
         if (
             body.get("provider") == "apple"
             and platform.system() != "Darwin"
@@ -228,6 +245,8 @@ async def configure(request):
                 owner, body.get("provider"), body.get("config", {}), body.get("id")
             )
         )
+    except PermissionError as exc:
+        raise web.HTTPForbidden(text=str(exc)) from None
     except (ValueError, TypeError) as exc:
         raise web.HTTPBadRequest(text=str(exc)) from None
 
@@ -240,6 +259,11 @@ async def action(request):
         raise web.HTTPNotFound()
     command = request.match_info["action"]
     if command in {"discover", "preview", "sync", "authorize", "link"}:
+        if connection["provider"] == "google":
+            try:
+                require_direct_google(owner)
+            except PermissionError as exc:
+                raise web.HTTPForbidden(text=str(exc)) from None
         capabilities = provider_capabilities(connection["provider"], host_platform=platform.system())
         if not capabilities["adapter_available"]:
             raise web.HTTPBadRequest(text="Provider adapter is unavailable on this host")
@@ -314,7 +338,7 @@ async def callback(request):
         return web.Response(
             text="Google connected. Return to uCore Settings → Connections to choose lists and enable sync."
         )
-    except (ValueError, RuntimeError):
+    except (ValueError, RuntimeError, PermissionError):
         return web.Response(
             text="Google connection was not completed. Return to Connections and try again.",
             status=400,
@@ -324,9 +348,11 @@ async def callback(request):
 async def records(request):
     owner, store = profile(request), CollectionStore()
     if request.method == "GET":
-        engine = SyncEngine(store)
-        await asyncio.to_thread(engine.refresh_tasks, owner)
-        await asyncio.to_thread(engine.refresh_notes, owner)
+        account = request.query.get("account")
+        if not account:
+            engine = SyncEngine(store)
+            await asyncio.to_thread(engine.refresh_tasks, owner)
+            await asyncio.to_thread(engine.refresh_notes, owner)
         items = [
             r
             for r in store.records(owner, request.query.get("kind"))
@@ -339,6 +365,24 @@ async def records(request):
         from app.core.settings import settings
 
         connections = store.connections(owner)
+        if account:
+            connections = [connection for connection in connections if connection["id"] == account]
+            if not connections:
+                raise web.HTTPNotFound()
+        replicas = {connection["id"]: store.replicas(connection["id"]) for connection in connections}
+        if account:
+            local_items = {item["id"]: item for item in items}
+            return web.json_response({"records": [
+                {
+                    "id": replica["remote"],
+                    "local_record_id": item["id"],
+                    "kind": item["kind"],
+                    "data": json.loads(replica["base"]),
+                }
+                for replica in replicas[account]
+                if (item := local_items.get(replica["record"])) is not None
+            ]})
+        sources = {cid: {replica["record"] for replica in rows} for cid, rows in replicas.items()}
         for item in items:
             item["sources"] = [
                 {
@@ -347,7 +391,7 @@ async def records(request):
                     "connection": c["id"],
                 }
                 for c in connections
-                if any(r["record"] == item["id"] for r in store.replicas(c["id"]))
+                if item["id"] in sources[c["id"]]
             ]
             if item["kind"] == "notes":
                 item["file_path"] = str(
@@ -390,11 +434,15 @@ async def setup_locations(request):
 
 async def oauth_settings(request):
     """Installation-owned OAuth app configuration; never return credential values."""
-    profile(request)
+    owner = profile(request)
     from app.core.settings import settings
     from app.services.connections import google_auth
 
     if request.method == "POST":
+        try:
+            require_direct_google(owner, administrator=True)
+        except PermissionError as exc:
+            raise web.HTTPForbidden(text=str(exc)) from None
         if google_auth.AESGCM is None:
             raise web.HTTPBadRequest(text="Encrypted credential storage is required")
         body = await request.json()

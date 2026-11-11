@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+from types import SimpleNamespace
 
 import pytest
 
@@ -41,6 +42,11 @@ class Adapter:
 
 @pytest.fixture
 def fixture(tmp_path, monkeypatch):
+    from app.services import identity
+
+    monkeypatch.setattr(identity, "load_identity", lambda: SimpleNamespace(
+        profiles=[SimpleNamespace(id="default", role="owner")]
+    ))
     store = CollectionStore(tmp_path / "collection.sqlite3")
     adapter = Adapter()
     connection = store.configure(
@@ -379,3 +385,21 @@ async def test_disconnect_during_manual_pull_preserves_status_and_skips_import(f
     assert not health.get("last_success")
     assert store.records("default") == []
     assert adapter.writes == []
+
+
+@pytest.mark.asyncio
+async def test_scheduled_sync_rechecks_role_after_revocation(fixture, monkeypatch):
+    from app.services import identity
+    from app.services.connections import google_auth
+
+    store, adapter, connection, engine = fixture
+    profile = SimpleNamespace(id="default", role="sorcerer")
+    monkeypatch.setattr(identity, "load_identity", lambda: SimpleNamespace(profiles=[profile]))
+    google_auth.require_direct_google("default")
+    profile.role = "knight"
+    def forbidden(*args):
+        raise AssertionError("Revoked role reached the provider worker")
+    monkeypatch.setattr(engine, "_sync", forbidden)
+    result = await engine.sync("default", connection["id"])
+    assert result["state"] == "permission_required"
+    assert not store.connection("default", connection["id"])["health"].get("last_success")
