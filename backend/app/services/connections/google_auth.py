@@ -25,7 +25,12 @@ _PENDING = {}
 _CREDENTIAL_LOCK = Lock()
 
 
-def request_json(url, *, method="GET", data=None, headers=None, form=False):
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def request_json(url, *, method="GET", data=None, headers=None, form=False, timeout=25, follow_redirects=True):
     body = (
         urllib.parse.urlencode(data).encode()
         if form
@@ -51,7 +56,8 @@ def request_json(url, *, method="GET", data=None, headers=None, form=False):
         },
     )
     try:
-        with urllib.request.urlopen(request, timeout=25) as response:
+        open_request = urllib.request.urlopen if follow_redirects else urllib.request.build_opener(_NoRedirect()).open
+        with open_request(request, timeout=timeout) as response:
             raw = response.read(8_000_001)
             if len(raw) > 8_000_000:
                 raise RuntimeError("Google response exceeded the connection budget")
@@ -105,7 +111,7 @@ def require_direct_google(profile_id, *, administrator=False):
     role = str(profile.role).casefold() if profile else ""
     allowed = {"wizard", "owner"} if administrator else {"wizard", "owner", "sorcerer", "sorceror"}
     if role not in allowed:
-        raise PermissionError("Direct Google access requires an authorized local role. Drone access is unavailable.")
+        raise PermissionError("Direct Google access requires an authorized local role.")
 
 
 def start(connection, redirect):
@@ -192,6 +198,7 @@ def finish(state, code):
             raise ValueError("Connection no longer exists")
         if latest["config"]["collections"].keys() != connection["config"]["collections"].keys():
             raise ValueError("Connection collections changed during sign-in")
+        result["account_subject"] = account.get("sub", "")
         result["expires_at"] = time.time() + result.get("expires_in", 3600)
         credentials = get_store()
         credentials.set(secret_key(connection), json.dumps(result))
@@ -217,15 +224,23 @@ def access_token(connection):
     value = token_data(connection)
     if not value:
         raise RuntimeError("Google sign-in required")
+    expected_subject = connection.get("_drone_account_subject")
+    if expected_subject and value.get("account_subject") != expected_subject:
+        raise PermissionError("The enrolled Google account changed")
+    check = connection.get("_drone_check")
+    if check:
+        check()
     required = {scope for k in connection["config"]["collections"] for scope in SCOPES[k].split()}
     if not required <= set(value.get("scope", "").split()):
         raise RuntimeError("Reconnect Google to authorize the selected collections")
     if value.get("expires_at", 0) < time.time() + 60:
         original = value.copy()
+        options = {"timeout": max(0.1, connection["_deadline"] - time.monotonic()), "follow_redirects": False} if check else {}
         result = request_json(
             "https://oauth2.googleapis.com/token",
             method="POST",
             form=True,
+            **options,
             data={
                 **client(),
                 "refresh_token": value["refresh_token"],
@@ -236,6 +251,8 @@ def access_token(connection):
         value["expires_at"] = time.time() + result.get("expires_in", 3600)
         with _CREDENTIAL_LOCK:
             require_direct_google(connection["profile"])
+            if check:
+                check()
             if token_data(connection) != original:
                 raise RuntimeError("Google credentials changed; retry the connection")
             get_store().set(secret_key(connection), json.dumps(value))

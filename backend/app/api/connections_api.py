@@ -8,6 +8,7 @@ import platform
 
 from aiohttp import web
 
+from app.services.connections import drone
 from app.services.connections.engine import SyncEngine
 from app.services.connections.providers import provider_capabilities
 from app.services.connections.google_auth import disconnect_credentials, finish, require_direct_google, start
@@ -54,6 +55,11 @@ async def state(request):
         google_direct_allowed = True
     except PermissionError:
         google_direct_allowed = False
+    try:
+        require_direct_google(owner, administrator=True)
+        drone_admin = True
+    except PermissionError:
+        drone_admin = False
     host_platform = platform.system()
     return web.json_response(
         {
@@ -71,6 +77,7 @@ async def state(request):
                 },
             },
             "coordinator": "snackbar",
+            "drone_admin": drone_admin,
             "setup": setup_state,
             "user_profile": identity_store.get_variables(),
             "setup_story": story,
@@ -311,6 +318,7 @@ async def action(request):
                 connection["id"],
             )
             if connection["provider"] == "google":
+                drone.revoke_connection(store, owner, connection["id"])
                 disconnect_credentials(connection)
             store.health(connection["id"], state="disconnected", error="")
             return web.json_response({"state": "disconnected"})
@@ -484,6 +492,42 @@ async def oauth_settings(request):
     )
 
 
+async def drone_grants(request):
+    owner = profile(request)
+    store = CollectionStore()
+    if request.method == "GET":
+        return web.json_response({"grants": drone.grants(store, owner)})
+    body = await request.json()
+    if not isinstance(body, dict):
+        raise web.HTTPBadRequest(text="Expected a grant request")
+    try:
+        grant = drone.enroll(
+            store, owner, recipient=body.get("recipient"), connection_id=body.get("connection"),
+            list_id=body.get("list"), duration=body.get("duration"),
+        )
+    except PermissionError as exc:
+        raise web.HTTPForbidden(text=str(exc)) from None
+    except (ValueError, RuntimeError) as exc:
+        raise web.HTTPBadRequest(text=str(exc)) from None
+    return web.json_response({"id": grant}, status=201)
+
+
+async def drone_action(request):
+    owner = profile(request)
+    store = CollectionStore()
+    grant = request.match_info["grant"]
+    try:
+        if request.match_info["operation"] == "revoke":
+            drone.revoke(store, owner, grant)
+            return web.json_response({"revoked": True})
+        return web.json_response(await asyncio.to_thread(drone.preview, store, owner, grant))
+    except PermissionError as exc:
+        raise web.HTTPForbidden(text=str(exc)) from None
+    except (ValueError, RuntimeError) as exc:
+        raise web.HTTPBadRequest(text=str(exc)) from None
+
+
+
 def register(app):
     from app.api.apps_api import register as register_apps
 
@@ -497,4 +541,7 @@ def register(app):
     app.router.add_get("/api/connections/records", records)
     app.router.add_post("/api/connections/records", records)
     app.router.add_get("/api/connections/google/callback", callback)
+    app.router.add_get("/api/connections/drone/grants", drone_grants)
+    app.router.add_post("/api/connections/drone/grants", drone_grants)
+    app.router.add_post("/api/connections/drone/grants/{grant}/{operation:preview|revoke}", drone_action)
     app.router.add_post("/api/connections/{connection}/{action}", action)

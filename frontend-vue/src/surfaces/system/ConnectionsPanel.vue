@@ -10,7 +10,7 @@
     <details v-for="(provider,id) in visibleProviders" :key="id" class="connection-capabilities">
       <summary>{{ id === 'apple' ? 'Apple' : 'Google' }} adapter capabilities</summary>
       <p>Code support only. Connection, consent and permissions are required; live qualification is pending.</p>
-      <p v-if="id === 'google' && provider.direct_access_allowed === false">Direct Google access is unavailable for this profile. Drone access is unavailable.</p>
+      <p v-if="id === 'google' && provider.direct_access_allowed === false">This profile needs a Drone grant to preview a shared task list.</p>
       <p v-if="!provider.capabilities.adapter_available">Unavailable on this host.</p>
       <dl><template v-for="(capability,kind) in provider.capabilities.collections" :key="kind"><dt>{{ names[String(kind)] }}</dt><dd>{{ capability.read ? 'Read' : 'Read unavailable' }} · {{ capability.create ? 'Create' : 'Create unavailable' }} · {{ capability.update ? 'Update' : 'Update unavailable' }} · Delete unavailable<p>{{ capability.limitations }}</p></dd></template></dl>
     </details>

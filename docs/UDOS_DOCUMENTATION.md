@@ -36,6 +36,11 @@ These profiles describe resources or enrolled device/service principals, indepen
 
 Knight may use local BitChat/LAN messaging without being granted direct external web/cloud access. External requests cross a Drone boundary which checks the requesting identity, allowed operation and destination. Responses retain provenance. Offline failure stays explicit; there is no silent cloud fallback. A Drone's own network authority cannot elevate a Knight's publication or administration permissions.
 
+
+Google Workspace offers a local Drone gateway for read-only Google Tasks previews. A Wizard signs in to a Google connection they own, selects a task list configured for all records, and grants one local profile access for a chosen duration. The recipient opens **Drone task access** in Google Workspace to preview the shared list. Previews are limited to 100 tasks and one request per minute per grant. A Wizard can revoke a grant, and disconnecting Google revokes the connection’s grants. The gateway checks expiry, account, scope and revocation before provider requests. Credentials stay in the server secret store.
+
+Local Drone access relies on host-trusted profile switching. Remote Drone enrollment and live provider qualification remain open.
+
 ## BitChat and publishing flow
 
 BitChat is a core messaging and networking surface. Current code supports LAN peer discovery/announcements and message WebSocket/polling flows. Beacon announcements are discovery, not proof of authenticated federation, BLE/LoRa delivery or encrypted messaging. Those transport/security guarantees need separate qualification.
