@@ -14,3 +14,5 @@ The [starter collection](https://udo.guide/editions/starter-collection/1/) and i
 | Keep forms and fallback task work tracked | WordPress integration owner | WordPress owns extended form submissions and new fallback tasks when neither Apple nor Google Tasks is available. Confirm the task API origin and HubSpot mapping before wiring delivery. |
 
 Initial read-only Vault scan found 24 Markdown files, 123 other visible files and two wiki links with no candidate in Vault. This is a Vault-only sample. Shared and installed Global Knowledge, Markdown links, heading validity, and public visibility still need to be checked. No source content or paths were copied into this report.
+
+The cross-layer check found no matching Markdown target for either Vault wiki link in Vault, Shared or installed Global Knowledge. This is a path and filename check. The edition preview now distinguishes included, outside-edition, missing and ambiguous targets, and supplies URLs only for manifest entries. Heading text and embed intent are retained for review. The compiler and UI still need to consume the preview, validate heading destinations and render approved links.
