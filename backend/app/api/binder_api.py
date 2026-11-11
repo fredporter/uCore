@@ -101,7 +101,7 @@ async def handle_binder_create(request: web.Request) -> web.Response:
 
     binder_id = str(binder_id).strip()
     title = body.get("title") or binder_id
-    outcome = body.get("outcome") or body.get("description") or f"Production binder for {title}"
+    outcome = body.get("outcome") or body.get("description") or f"Materials for {title}"
     audience = body.get("audience", "General")
     doc_type = body.get("document_type", "Document")
     reqs = body.get("requirements")
@@ -327,7 +327,17 @@ async def handle_binder_publish(request: web.Request) -> web.Response:
         body = {}
 
     edition_num = body.get("edition")
+    from app.services.identity import get_full_identity
+
+    if not get_full_identity()["publishing_capabilities"]["publish_local"]:
+        return web.json_response({"error": "Local publishing requires a signed-in publishing profile."}, status=403)
+
     target = body.get("target", "local_static")
+    if target != "local_static":
+        return web.json_response(
+            {"error": "This endpoint exports local editions. Cloud publishing requires a configured publisher."},
+            status=400,
+        )
 
     try:
         receipt = binder_engine.publish_edition(binder_id, edition_num=edition_num, target=target)
@@ -552,3 +562,16 @@ async def handle_binder_export_obsidian(request: web.Request) -> web.Response:
     except Exception as e:
         log.exception("Error exporting binder %s for Obsidian: %s", binder_id, e)
         return web.json_response({"error": str(e)}, status=500)
+
+
+async def handle_binder_rename(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+        if not isinstance(body, dict):
+            raise ValueError("Expected a JSON object")
+        meta = binder_engine.rename_binder(request.match_info["binder_id"], body.get("title"))
+        return web.json_response({"success": True, "binder": meta})
+    except FileNotFoundError:
+        return web.json_response({"error": "Binder not found"}, status=404)
+    except (ValueError, TypeError):
+        return web.json_response({"error": "Binder name must contain 1–200 characters"}, status=400)

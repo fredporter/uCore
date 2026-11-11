@@ -82,6 +82,7 @@
         <UIcon name="error" /> {{ dragError }}
       </div>
 
+      <p v-if="wf.activeMissionId" class="task-scope">Mission: {{ wf.missions.find(mission => mission.id === wf.activeMissionId)?.title }} <button class="usx-btn" @click="wf.selectMission('')">All missions</button></p>
       <div class="task-scope" role="toolbar" aria-label="Task filters">
 
         <label><span>Binder</span><span class="task-scope__select"><select :value="wf.activeBinderId" @change="wf.showList('', ($event.target as HTMLSelectElement).value)" aria-label="Task binder"><option value="">All binders</option><option v-for="binder in wf.binderChoices" :key="binder.id" :value="binder.id">{{ binder.title || binder.id }}</option></select><UIcon name="expand_more" /></span></label>
@@ -503,7 +504,7 @@ async function newList() { wf.binderCreateRequested = true; wf.setTab('mission-c
 
 function addGroup() { const name = window.prompt("Group name"); if (name?.trim()) extraGroups.value.push(name.trim()); }
 async function newTask() {
-  if (!wf.activeBinderId) { wf.binderCreateRequested = true; wf.setTab('mission-control'); return; }
+  if (!wf.activeBinderId && !wf.activeMissionId) { wf.binderCreateRequested = true; wf.setTab('mission-control'); return; }
   const title = window.prompt("Task title");
   if (!title?.trim()) return;
   try { await wf.createTask(title.trim()); }

@@ -1,6 +1,7 @@
 <template>
   <section class="workflow-queue">
     <header><h2>Queue</h2><p>Background work and recent results across your workspace.</p><button class="usx-btn" :disabled="refreshing" @click="refresh"><UIcon name="refresh" />Refresh workflow runs</button></header>
+    <section v-if="wf.activeMissionId" aria-label="Mission task queue"><h3>{{ wf.missions.find(mission => mission.id === wf.activeMissionId)?.title }}</h3><p>Tasks for this objective. Background runs below retain their existing job identities.</p><p v-if="!wf.missionTasks.length">No tasks for this mission yet.</p><button v-for="task in wf.missionTasks.filter(item => !['completed', 'archived', 'cancelled', 'superseded'].includes(item.status))" :key="task.id" class="usx-btn queue-run" @click="wf.openTask(task)">{{ task.title }} · {{ task.status }}</button></section>
     <p v-if="error" role="alert">{{ error }}</p>
     <section aria-label="Workflow runs"><h3>Workflow runs</h3><p v-if="!wf.workflowRuns.length">No workflow runs yet.</p><article v-for="run in wf.workflowRuns" :key="run.run_id" class="queue-run"><strong>{{ run.workflow_name || run.workflow_id }}</strong><span>{{ run.status }}</span><time>{{ run.started_at ? new Date(run.started_at).toLocaleString() : '' }}</time></article></section>
     <BrowserUISurface embedded queue-only />

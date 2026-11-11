@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -88,7 +89,40 @@ class WorkflowManager:
                 )
                 """,
             )
+            conn.execute("""CREATE TABLE IF NOT EXISTS missions (
+                id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active', binder TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+            )""")
             conn.commit()
+
+    def list_missions(self, profile: str) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute("SELECT * FROM missions WHERE profile = ? ORDER BY created_at DESC, id", (profile,)).fetchall()
+        return [dict(row) for row in rows]
+
+    def create_mission(self, profile: str, title: str, binder: str = "") -> dict[str, Any]:
+        if not isinstance(title, str) or not title.strip() or len(title.strip()) > 500:
+            raise ValueError("Describe the objective in 1–500 characters")
+        ident, now = str(uuid.uuid4()), datetime.now(UTC).isoformat()
+        with self._connect() as conn:
+            conn.execute("INSERT INTO missions VALUES (?, ?, ?, 'active', ?, ?, ?)", (ident, profile, title.strip(), binder, now, now))
+        return next(item for item in self.list_missions(profile) if item['id'] == ident)
+
+    def update_mission(self, profile: str, ident: str, patch: dict[str, Any]) -> dict[str, Any]:
+        current = next((item for item in self.list_missions(profile) if item['id'] == ident), None)
+        if current is None:
+            raise KeyError("Mission not found")
+        title = patch.get('title', current['title'])
+        status = patch.get('status', current['status'])
+        binder = patch.get('binder', current['binder'])
+        if not isinstance(title, str) or not title.strip() or len(title.strip()) > 500:
+            raise ValueError("Describe the objective in 1–500 characters")
+        if status not in ('active', 'paused', 'completed', 'archived') or not isinstance(binder, str):
+            raise ValueError("Invalid mission state")
+        with self._connect() as conn:
+            conn.execute("UPDATE missions SET title=?, status=?, binder=?, updated_at=? WHERE id=? AND profile=?", (title.strip(), status, binder, datetime.now(UTC).isoformat(), ident, profile))
+        return next(item for item in self.list_missions(profile) if item['id'] == ident)
 
     def create_workflow(
         self,

@@ -36,6 +36,11 @@ class CollectionStore:
                 PRIMARY KEY(connection,remote));
             CREATE TABLE IF NOT EXISTS pending_exports(connection TEXT NOT NULL, record TEXT NOT NULL,
                 kind TEXT NOT NULL, started TEXT NOT NULL, PRIMARY KEY(connection,record));
+            CREATE TABLE IF NOT EXISTS drone_grants(
+                id TEXT PRIMARY KEY, owner TEXT NOT NULL, recipient TEXT NOT NULL,
+                connection TEXT NOT NULL, account_subject TEXT NOT NULL, list_id TEXT NOT NULL,
+                expires REAL NOT NULL, revoked REAL, last_used REAL,
+                FOREIGN KEY(connection) REFERENCES connections(id));
             CREATE TABLE IF NOT EXISTS setup(profile TEXT PRIMARY KEY, data TEXT NOT NULL);
             """)
         self.path.chmod(0o600)

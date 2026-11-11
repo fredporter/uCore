@@ -119,6 +119,7 @@ async def test_setup_rejects_invalid_draft_without_writes(store):
 @pytest.mark.asyncio
 async def test_oauth_settings_never_returns_credentials(store, monkeypatch):
     from app.services.connections import google_auth as auth
+    monkeypatch.setattr(api, "require_direct_google", lambda profile, **kwargs: None)
 
     secrets = {}
     vault = SimpleNamespace(
@@ -154,3 +155,56 @@ async def test_oauth_settings_never_returns_credentials(store, monkeypatch):
         await api.oauth_settings(
             request("POST", body, headers={"Origin": "https://elsewhere.example"})
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("command", ["discover", "preview", "sync", "link"])
+async def test_unavailable_host_rejects_effects_before_adapter_dispatch(store, monkeypatch, command):
+    connection = store.configure("alice", "apple", {"collections": {}})
+    monkeypatch.setattr(api.platform, "system", lambda: "Linux")
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Unavailable adapter was instantiated")
+    monkeypatch.setattr(api, "SyncEngine", forbidden)
+    req = request("POST", {}, connection=connection["id"])
+    req.match_info["action"] = command
+    with pytest.raises(web.HTTPBadRequest) as rejected:
+        await api.action(req)
+    assert "unavailable" in rejected.value.text
+
+
+@pytest.mark.asyncio
+async def test_account_snapshots_isolate_overlapping_ids_and_combined_record_fields(store):
+    a = store.configure("alice", "google", {"collections": {}})
+    b = store.configure("alice", "google", {"collections": {}})
+    other = store.configure("bob", "google", {"collections": {}})
+    shared = store.save("alice", "contacts", {"title": "Combined name", "body": "Local-only detail"})
+    separate = store.save("alice", "contacts", {"title": "Other local record"})
+    store.acknowledge(a["id"], "contacts:shared-native-id", shared["id"], {"title": "Account A"})
+    store.acknowledge(b["id"], "contacts:shared-native-id", separate["id"], {"title": "Account B"})
+    store.acknowledge(b["id"], "contacts:second-id", shared["id"], {"title": "Account B linked copy"})
+    req = request()
+    req.query["account"] = a["id"]
+    records = json.loads((await api.records(req)).text)["records"]
+    assert [(row["id"], row["data"]) for row in records] == [
+        ("contacts:shared-native-id", {"title": "Account A"})
+    ]
+    req.query["account"] = b["id"]
+    records = json.loads((await api.records(req)).text)["records"]
+    assert {row["data"]["title"] for row in records} == {"Account B", "Account B linked copy"}
+    req.query["account"] = other["id"]
+    with pytest.raises(web.HTTPNotFound):
+        await api.records(req)
+
+
+@pytest.mark.asyncio
+async def test_knight_cannot_dispatch_google_actions(store, monkeypatch):
+    from app.services import identity
+    monkeypatch.setattr(identity, "load_identity", lambda: SimpleNamespace(
+        profiles=[SimpleNamespace(id="alice", role="knight")]
+    ))
+    connection = store.configure("alice", "google", {"collections": {}})
+    for command in ("authorize", "discover", "preview", "link", "sync"):
+        req = request("POST", {}, connection=connection["id"])
+        req.match_info["action"] = command
+        with pytest.raises(web.HTTPForbidden):
+            await api.action(req)

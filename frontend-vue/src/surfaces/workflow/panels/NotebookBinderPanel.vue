@@ -680,8 +680,8 @@
             <label>Name
               <input v-model="newBinder.title" type="text" placeholder="My learning project" required />
             </label>
-            <label>What would you like to achieve?
-              <textarea v-model="newBinder.outcome" rows="3" placeholder="Concrete outcome to achieve..." />
+            <label>About this collection (optional)
+              <textarea v-model="newBinder.outcome" rows="3" placeholder="What materials belong in this Binder?" />
             </label>
             <label>Audience
               <input v-model="newBinder.audience" type="text" placeholder="Me, my family or my community" />

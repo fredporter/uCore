@@ -128,3 +128,28 @@ def test_diff_rejects_tampered_provenance_paths(tmp_path):
     index_path.write_text(json.dumps(index))
     with pytest.raises(ValueError, match='entry escapes'):
         mod.diff_entry('uCore', 'guide.md', mirror_root=mirror, roots={'uCore': repo})
+
+
+def test_default_roots_use_bundled_owners():
+    assert "uCore" in mod.CORE_DOC_ROOTS
+    assert "uFlow" not in mod.CORE_DOC_ROOTS
+    assert "uKnowledge" not in mod.CORE_DOC_ROOTS
+
+
+def test_default_refresh_without_retired_or_optional_repositories(tmp_path, monkeypatch):
+    code = tmp_path / "Code"
+    docs = code / "uCore" / "docs"
+    docs.mkdir(parents=True)
+    (docs / "workflow.md").write_text("# Bundled workflow")
+    monkeypatch.setattr(mod, "CORE_DOC_ROOTS", {
+        "uCore": docs, "uCode": code / "uCode" / "docs",
+        "uVector": code / "uVector" / "docs",
+    })
+    monkeypatch.setattr(mod, "discover_extension_doc_roots", lambda: {})
+    mirror = tmp_path / "mirror"
+    result = mod.sync_from_repos(mirror_root=mirror)
+    assert result["status"] == "completed"
+    assert result["total_files"] == 1
+    assert (mirror / "uCore" / "workflow.md").read_text() == "# Bundled workflow"
+    assert not (mirror / "uFlow").exists()
+    assert not (mirror / "uKnowledge").exists()

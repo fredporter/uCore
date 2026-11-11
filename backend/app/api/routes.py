@@ -412,6 +412,7 @@ def register_routes(app: web.Application) -> None:
         handle_binder_intake,
         handle_binder_list,
         handle_binder_publish,
+        handle_binder_rename,
         handle_binder_resume,
         handle_binder_run,
         handle_binder_score,
@@ -431,6 +432,7 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/binder/{binder_id}/decisions", handle_binder_decisions_get)
     app.router.add_post("/api/binder/{binder_id}/decisions", handle_binder_decisions_post)
     app.router.add_patch("/api/binder/{binder_id}/draft", handle_binder_draft_update)
+    app.router.add_patch("/api/binder/{binder_id}/title", handle_binder_rename)
     app.router.add_patch("/api/binder/{binder_id}/section/{req_id}", handle_binder_section_update)
     app.router.add_post("/api/binder/{binder_id}/accept", handle_binder_accept)
     app.router.add_post("/api/binder/{binder_id}/publish", handle_binder_publish)

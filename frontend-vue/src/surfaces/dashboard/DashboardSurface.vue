@@ -222,7 +222,7 @@ const SURFACE_CARD_DATA: Record<
 };
 
 const displaySettings = useSettingsStore();
-const advancedSurfaceIds = new Set(["developer", "snackbar", "recipes", "google", "banana", "sonic", "bitchat"]);
+const advancedSurfaceIds = new Set(["developer", "snackbar", "recipes", "google", "banana"]);
 const visibleSurfaces = computed(() => {
   const cards: Array<{
     id: string;

@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""Verify external uKnowledge route contract for uCore knowledge surface.
+"""Verify the bundled uCore knowledge route contract.
 
-This script imports `uknowledge.routes.register_routes` and confirms the
+This script imports `app.knowledge.routes.register_routes` and confirms the
 registered method/path pairs match the currently expected knowledge API surface.
 """
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
@@ -35,6 +34,7 @@ EXPECTED: set[tuple[str, str]] = {
 	("POST", "/api/knowledge/sync"),
 	("GET", "/api/knowledge/status"),
 	("GET", "/api/knowledge/index/status"),
+	("POST", "/api/knowledge/index/rebuild"),
 	("GET", "/api/knowledge/import/status"),
 	("GET", "/api/knowledge/index/coverage"),
 }
@@ -55,18 +55,13 @@ def _iter_routes(app: web.Application) -> Iterable[tuple[str, str]]:
 
 
 def main() -> int:
-	_hint = os.environ.get(
-		"UCORE_UKNOWLEDGE_PATH",
-		str(Path.home() / "Code" / "uKnowledge"),
-	)
-	_uk = Path(_hint)
-	if _uk.exists() and str(_uk) not in sys.path:
-		sys.path.insert(0, str(_uk))
+	backend = Path(__file__).resolve().parents[1] / "backend"
+	sys.path.insert(0, str(backend))
 
 	try:
-		from uknowledge.routes import register_routes
-	except Exception as exc:
-		print(f"[FAIL] Unable to import uknowledge.routes.register_routes: {exc}")
+		from app.knowledge.routes import register_routes
+	except ImportError as exc:
+		print(f"[FAIL] Unable to import app.knowledge.routes.register_routes: {exc}")
 		return 1
 
 	app = web.Application()

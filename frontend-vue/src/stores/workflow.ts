@@ -33,6 +33,7 @@ export interface WorkflowTask {
   tags: string[];
   description: string;
   binder?: string;
+  mission?: string;
   group?: string;
   workspace?: string;
   workflowType?: "user" | "developer" | "system" | "autonomous";
@@ -63,6 +64,7 @@ export interface WorkflowStep {
 }
 
 interface WorkflowTaskPatch {
+  mission?: string;
   status?: string;
   priority?: "low" | "medium" | "high";
   board?: string;
@@ -93,6 +95,7 @@ export interface Mission {
   priority: string;
   description: string;
   taskIds: string[];
+  binder?: string;
 }
 
 export interface MissionTaskBinderRow {
@@ -154,7 +157,7 @@ export interface WorkflowStatus {
 
 export const WORKFLOW_TABS: { id: WorkflowTab; label: string; icon: string }[] =
   [
-    { id: "mission-control", label: "Workflow", icon: "schedule" },
+    { id: "mission-control", label: "Mission Control", icon: "schedule" },
     { id: "tasks", label: "Tasks", icon: "check" },
     { id: "queue", label: "Queue", icon: "pending_actions" },
     { id: "editor", label: "Editor", icon: "diamond" },
@@ -248,6 +251,8 @@ export const useWorkflowStore = defineStore("workflow", () => {
   const editorBaseHashes = ref<Record<string, string>>({});
   const tasks = ref<WorkflowTask[]>([]);
   const missions = ref<Mission[]>([]);
+  const activeMissionId = ref("");
+  const missionTasks = computed(() => activeMissionId.value ? tasks.value.filter(task => task.mission === activeMissionId.value) : tasks.value);
   const selectedTask = ref<WorkflowTask | null>(null);
   const selectedFile = ref<WorkflowFile | null>(null);
   const editorOpen = ref(false);
@@ -265,7 +270,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   const capabilityRepairs = ref<Record<string, CapabilityPreflightResult>>({});
 
   const taskLists = computed(() => [...new Set([...listNames.value, ...tasks.value.map(task => task.board), activeList.value])].filter(Boolean).sort());
-  const scopedTasks = computed(() => tasks.value.filter(task =>
+  const scopedTasks = computed(() => missionTasks.value.filter(task =>
     (activeBinderId.value || !activeList.value || task.board === activeList.value) &&
     (!activeBinderId.value || task.binder === activeBinderId.value),
   ));
@@ -295,12 +300,38 @@ export const useWorkflowStore = defineStore("workflow", () => {
     setTaskContext(board, binder);
     activeTab.value = "tasks";
   }
+  function selectMission(id: string) {
+    activeMissionId.value = id;
+    const mission = missions.value.find(item => item.id === id);
+    activeBinderId.value = mission?.binder || "";
+    activeList.value = "";
+  }
+  async function fetchMissions() {
+    const response = await fetch(`${API}/api/workflow/missions`, { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) throw new Error("Could not load missions");
+    const data = await response.json();
+    missions.value = (data.missions || []).map((mission: any) => ({ ...mission, description: mission.title, priority: 'medium', taskIds: tasks.value.filter(task => task.mission === mission.id).map(task => task.id) }));
+  }
+  async function createMission(title: string) {
+    const response = await fetch(`${API}/api/workflow/missions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title }), signal: AbortSignal.timeout(8000) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not create mission");
+    await fetchMissions();
+    selectMission(data.mission.id);
+  }
+  async function updateMission(id: string, patch: { status?: string; binder?: string }) {
+    const response = await fetch(`${API}/api/workflow/missions/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch), signal: AbortSignal.timeout(8000) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not update mission");
+    await fetchMissions();
+  }
   function showBinder(id: string) {
     activeBinderId.value = id;
     activeList.value = "";
     activeTab.value = "mission-control";
   }
   function openTask(task: WorkflowTask) {
+    activeMissionId.value = task.mission || "";
     selectTask(task);
     setTaskContext(task.board, task.binder || "", false);
     activeTab.value = "editor";
@@ -355,7 +386,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     delete editorDrafts.value[editorKey.value];
   }
   async function createTask(title: string, board = activeList.value || "inbox", binder = activeBinderId.value, group = "") {
-    const response = await fetch(`${API}/api/workflow/tasks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, board, binder, group }), signal: AbortSignal.timeout(8000) });
+    const response = await fetch(`${API}/api/workflow/tasks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, board, binder, group, mission: activeMissionId.value }), signal: AbortSignal.timeout(8000) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Could not create task");
     await fetchTasks(true);
@@ -522,6 +553,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
               : [],
             description: t.description || t.summary || "",
             binder: t.binder,
+            mission: t.mission,
             group: t.group || "",
             workspace: t.workspace,
             workflowType: t.workflow_type || t.workflowType,
@@ -598,6 +630,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
         : [],
       description: String(updated.description || updated.body || ""),
       binder: String(updated.binder ?? patch.binder ?? existing?.binder ?? ""),
+      mission: String(updated.mission ?? patch.mission ?? existing?.mission ?? ""),
       group: String(updated.group ?? patch.group ?? existing?.group ?? ""),
       workspace: String(
         updated.workspace || existing?.workspace || "User Vault",
@@ -735,6 +768,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   async function fetchAll(): Promise<void> {
     await Promise.allSettled([
       fetchBinders(),
+      fetchMissions(),
       fetchWorkflowStatus(),
       fetchTasks(),
       fetchWorkflowDefinitions(),
@@ -937,7 +971,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     tasks,
     activeTasks,
     flowLogTasks,
-    missions,
+    missions, activeMissionId, missionTasks, selectMission, fetchMissions, createMission, updateMission,
     selectedTask,
     selectedFile,
     editorOpen,

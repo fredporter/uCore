@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import platform
 import time
 from datetime import UTC, datetime, timedelta
 
@@ -25,8 +26,24 @@ class SyncEngine:
         connection = self.store.connection(profile, cid)
         if not connection:
             raise ValueError("Connection not found")
+        if connection["health"].get("state") == "disconnected" and not connection["config"]["enabled"]:
+            return {"state": "disconnected"}
         if not manual and not connection["config"]["enabled"]:
             return {"state": "disabled"}
+        from .providers import provider_capabilities
+
+        capabilities = provider_capabilities(connection["provider"], host_platform=platform.system())
+        if not capabilities["adapter_available"]:
+            self.store.health(cid, state="unsupported_platform", error="Provider adapter is unavailable on this host")
+            return {"state": "unsupported_platform", "error": "Provider adapter is unavailable on this host"}
+        if connection["provider"] == "google":
+            from .google_auth import require_direct_google
+
+            try:
+                require_direct_google(profile)
+            except PermissionError as exc:
+                self.store.health(cid, state="permission_required", error=str(exc))
+                return {"state": "permission_required", "error": str(exc)}
         connection["_manual"] = manual
         lock = _LOCKS.setdefault(profile, asyncio.Lock())
         if lock.locked():
@@ -43,14 +60,21 @@ class SyncEngine:
                     # until the bounded worker exits, including during server shutdown.
                     await worker
                     raise
+                stopped = self._interruption(connection)
+                if stopped == "scope_changed":
+                    self.store.health(cid, state="scope_required", error="")
+                if stopped:
+                    return {"state": stopped}
+                if result["state"] in {"disabled", "disconnected", "scope_changed"}:
+                    return result
                 self.store.health(cid, **result, last_success=now(), failures=0, next_attempt=None)
                 return result
             except Exception as exc:
-                latest = self.store.connection(profile, cid)
-                if not latest or (
-                    not latest["config"]["enabled"] and not connection.get("_manual")
-                ):
-                    return {"state": "disabled"}
+                stopped = self._interruption(connection)
+                if stopped == "scope_changed":
+                    self.store.health(cid, state="scope_required", error="")
+                if stopped:
+                    return {"state": stopped}
                 attempts = int(connection["health"].get("failures", 0)) + 1
                 retry = datetime.now(UTC) + timedelta(seconds=min(3600, 60 * 2 ** min(attempts, 6)))
                 # Provider errors deliberately contain no request bodies or credentials.
@@ -62,6 +86,18 @@ class SyncEngine:
                     next_attempt=retry.isoformat(),
                 )
                 return {"state": "error", "error": str(exc)[:250]}
+
+    def _interruption(self, connection):
+        latest = self.store.connection(connection["profile"], connection["id"])
+        if not latest:
+            return "disabled"
+        if latest["health"].get("state") == "disconnected":
+            return "disconnected"
+        if not latest["config"]["enabled"] and not connection["_manual"]:
+            return "disabled"
+        if latest["config"] != connection["config"]:
+            return "scope_changed"
+        return None
 
     def _sync(self, connection):
         cid, profile = connection["id"], connection["profile"]
@@ -75,7 +111,11 @@ class SyncEngine:
                 raise RuntimeError("Sync time budget reached; remaining sources will retry")
             if not scope.get("lists"):
                 continue
+            if stopped := self._interruption(connection):
+                return {"state": stopped}
             incoming = adapter.pull(connection, kind, scope)
+            if stopped := self._interruption(connection):
+                return {"state": stopped}
             seen = set()
             unresolved = {
                 item["remote"]
@@ -174,11 +214,8 @@ class SyncEngine:
                         writable = set(exported)
                         if all(exported.get(key) == baseline.get(key) for key in writable):
                             continue
-                    latest = self.store.connection(profile, cid)
-                    if not latest or (
-                        not latest["config"]["enabled"] and not connection.get("_manual")
-                    ):
-                        raise ValueError("Connection disabled")
+                    if stopped := self._interruption(connection):
+                        return {"state": stopped}
                     if not mapping:
                         self.store.begin_export(cid, record["id"], kind)
                     result = adapter.push(connection, kind, scope, record, mapping)
@@ -197,6 +234,8 @@ class SyncEngine:
                         result.get("version", ""),
                     )
                     pushed += 1
+        if stopped := self._interruption(connection):
+            return {"state": stopped}
         self.project_feed(profile)
         conflicts = sum(item["connection"] == cid for item in self.store.conflicts(profile))
         return {

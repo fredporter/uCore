@@ -14,8 +14,8 @@ This is the single current backlog for the conversation. It supersedes conflicti
 
 The following refinements supersede conflicting wording later in this document and earlier plans:
 
-1. **Binders only.** One Binder holds tasks, documents, sources, research and outputs. “Lists” and task boards are compatibility/storage details, not another user-facing container. External provider list/group names remain source metadata and sync boundaries.
-2. **One Workflow dashboard.** Binder content and Research belong in the dashboard under the selected Binder context. Main tabs are Workflow, Tasks, Queue and Editor. Connected collections belong in Snackbar; Sidebar selects a Binder.
+1. **Missions lead; Binders collect.** A Mission is the user's objective or project: what they want to achieve. Tasks, research and reviewed actions advance it through the Queue. A Binder is a collection/folder of materials and results, not a replacement for the Mission. A Mission can nominate a primary result Binder and later link others; IDs remain independent. Legacy task boards/lists are storage/source metadata, not a third competing project model.
+2. **Mission Control within Workflow.** The dashboard begins with “What would you like to do today?”, mission selection, progress and next action. Tasks, Queue and contextual Editor remain adjacent views. Research discovery/intake stays integrated; Binder materials are a focused result view rather than the whole dashboard. Connected collections belong in Snackbar; the shared Sidebar selects content.
 3. **One sidebar browser.** Switch between Vault and Binders. Knowledge uses that shared sidebar, not another file picker inside the reader. Contents/headings remain optional reading aids, not a second filesystem tree.
 4. **Shared functionality first.** Similar functions across surfaces must consume the same resource contract and shared component, rather than copy controllers, state, APIs, pollers or CSS.
 5. **uCode is the user's optional programming language.** The Terminal starts its actual BBC BASIC language authority, not zsh. Vault/workflow commands must be registered capabilities with real validation; do not invent command vocabulary or implement another interpreter.
@@ -24,8 +24,12 @@ The following refinements supersede conflicting wording later in this document a
 8. **Roundtable is bounded work, not an autonomous developer team.** Research, Create and Review reuse adequate installed models, normally sequentially. Repeated agreement is not verification. Web retrieval is explicit; accepted personal/shared layers preserve canonical Global Knowledge.
 9. **Curated applications require no code from users.** Install reviewed code packages through a real managed runtime. Simulated installs/running states cannot count as success.
 10. **Fresh start is authorised and performed reversibly.** Existing task folders, workflow definitions/runs and research queue history were archived on 2026-11-09. Do not re-seed technical examples or restore old user content automatically.
+11. **Universal OS, open hood.** uDos remains an offline-capable universal operating environment for everyday work, physical computing and hardware revival. Native macOS on Apple Silicon and non-destructive Sonic/Linux deployment on older hardware remain the device doctrine. Retiring internal Dev Mode does not retire advanced capabilities, inspection, useful engineering recipes or external IDE modification.
+12. **Roles, presentation and device profiles are separate contracts.** Human roles are Wizard (admin/maintainer), Sorcerer (advanced user) and Knight (everyday user). Advanced visibility is a preference, not an authority grant. Crypt, Drone and Tomb are deployment/access profiles for device principals or distributions, not higher human privilege levels.
+13. **Preserve useful Advanced tools.** Google product integrations, engineering references and surface recipes remain candidates for a role-aware Advanced tools/Wizard workspace. Audit their real behaviour and migrate useful operations to governed capabilities; do not restore the generic shell, internal repository IDE or fabricated execution states. Sonic Screwdriver and BitChat are ordinary user surfaces.
+14. **Curate before distributing.** Research material, seed user vaults and the knowledge bank need a shared curation skill pipeline, explicit schemas/taxonomy and reviewable migrations. Installed canon stays immutable; personal/Shared work, distribution seed candidates and canonical release candidates have separate destinations and approvals.
 
-The scope now exceeds a credible single ten-day sprint. Keep one ordered programme backlog with three gated delivery slices. The first sprint is foundation/cleanup, the second delivers one curated application, and the third qualifies interest-driven knowledge/sync automation. Each slice must be useful and truthful independently; dates remain planning targets until its first-day capacity review.
+The scope now exceeds a credible single ten-day sprint. Keep one ordered programme backlog with three gated delivery slices. The first sprint is foundation/cleanup, including restoration of mission-led user Workflow, the second delivers one curated application, and the third qualifies interest-driven knowledge/sync automation. Each slice must be useful and truthful independently; dates remain planning targets until its first-day capacity review.
 
 ## Current-state assessment
 
@@ -45,10 +49,12 @@ The scope now exceeds a credible single ten-day sprint. Keep one ordered program
 ## Surface ownership
 
 - **Home:** resume work and launch installed useful applications; no duplicate sync/infrastructure dashboard.
-- **Workflow:** dashboard with Binder documents/sources/research, Tasks, Queue and contextual Editor. Binders contain tasks and content; groups/sections are inside a Binder.
+- **Workflow:** Mission Control leads with objectives and next actions. Tasks/research/approved jobs advance the selected Mission; Queue shows their actual execution state. Binders collect source material, drafts and deliverables; groups/sections organise their contents. Selecting a folder is not the same as choosing an objective.
+- **BitChat:** normal-mode messaging and local networking surface; messages can become mission tasks or selected Binder evidence through explicit user actions. Preserve current LAN/store/WebSocket contracts; separately qualify BLE/LoRa/relay adapters, encryption, identity, peer trust and real cross-device delivery instead of implying they already work.
 - **Sidebar:** Vault or Binders; sole workspace/library file browser. Preserve current location and provide full-width aligned rows.
 - **Knowledge:** read the installed reference bank and Shared/Personal overlays through the common reader. Canon editing belongs to maintainers externally.
 - **uCode / creative tools:** optional BASIC learning, internal operations and GridCore output; uCode2/vector/spatial features retain their existing product owners.
+- **Sonic Screwdriver:** visible in normal user mode for installation, USB preparation, recovery, hardware recycling and capsule/device provisioning. Host detection must explain which actions are supported; Apple Silicon uses native macOS, not Linux installation. Normal visibility does not bypass confirmation of destructive hardware operations.
 - **Snackbar:** curated apps/snacks, routines, imported Tasks/Contacts/Notes/Feeds, assistant and reconciliation. Imported Tasks are a source view of the same logical work, not another task authority.
 - **Settings → Apps:** selected native/cloud app connections, scopes and app recommendations. Keep connection setup out of the first-run story.
 - **Settings:** Name, assigned Role, appearance, reading preferences, assistant preferences and explicit Advanced connection/cost controls.
@@ -78,7 +84,7 @@ Before any extraction, list existing callers and ownership. Keep stable public c
 
 One catalogue contract handles distinct artifact types: application, model, skill and knowledge edition. It declares identity/version, owner/upstream/provenance, licence, verified digest/signature, OS/CPU/runtime, exact installed/download size when known, dependencies, typed inputs/outputs, filesystem/network/credential permissions, CPU/memory/time/output limits, retry/cancel behaviour, migrations, rollback and data-preserving removal. Do not create a second store, scheduler or package manager per artifact type.
 
-Server owns actual installation and isolated execution; Snackbar owns user invocation/scheduling; uFlow owns task/run linkage. Models remain Ollama-owned rather than copied per skill/app. Scratch state uses settings-resolved UDOS_HOME; accepted documents remain in approved Vault/Shared destinations. No new hidden HOME state or shared monolithic Python environment. Existing app-owned credential/model locations are not silently moved.
+Server owns actual installation and isolated execution; Snackbar exposes governed Snacks; dedicated Workspaces own provider collections and their sync actions; uFlow owns task/run linkage. Models remain Ollama-owned rather than copied per skill/app. Scratch state uses settings-resolved UDOS_HOME; accepted documents remain in approved Vault/Shared destinations. No new hidden HOME state or shared monolithic Python environment. Existing app-owned credential/model locations are not silently moved.
 
 A database row labelled running is not execution. The executor must prove real process/container start, bounded logs, resource/network/mount enforcement, true exit/results, cancellation and cleanup. No privileged container, blanket HOME/repository mount, in-container Docker socket or arbitrary host-shell fallback. Built-in readers and uCode do not require Docker simply to open the workspace.
 
@@ -97,7 +103,7 @@ Proposed ten-working-day target. Start with a green baseline and end with an off
 | Ticket | Priority | Work and dependency | Evidence required |
 | --- | --- | --- | --- |
 | F01 / C01 | P0 | Freeze inventory of working tree, active repositories, runtime state and prior plans; record archive/restore checkpoint | No uncommitted work or user records lost; source versus runtime clearly separated |
-| F02 / C02 | P0 | Binder-only model and shared sidebar; migrate list/board UI/callers into existing Binder authority; dashboard composes Binder content and research | Create Binder → add task/document → navigate/edit → reload; task IDs/versions/source links unchanged; no duplicate picker or Binder tab |
+| F02 / C02 | P0 | Mission-led Workflow, Binder outputs and shared sidebar; migrate list/board UI/callers into existing Binder authority; dashboard composes Binder content and research | Create Binder → add task/document → navigate/edit → reload; task IDs/versions/source links unchanged; no duplicate picker or Binder tab |
 | F03 / C12 | P0 | Shared-resource consolidation pass using table above; consolidate document rendering/navigation, controls and status/polling first | One owner per resource; tests cover at least two surfaces consuming each changed contract; old implementations removed only after caller migration |
 | F04 / C03 | P0 | Retire internal repo/IDE chat and development-agent defaults after call-site audit | Ordinary assistant never initialises repo agents/commands; historical conversations/source evidence retained; no new IDE configuration |
 | F05 / C11 | P0 | uCode Terminal and language contract: native language entry, installed reference, testable bridge inventory and scoped command validation | Immediate calculation, numbered program + RUN/LIST, reconnect/missing runtime, and honest unsupported-operation messages; no shell fallback |
@@ -130,9 +136,124 @@ Starts after Slice 1 contracts stabilise. C04–C06 are the critical path; retai
 - **K07 / C14:** Remote/local repository and publishing alignment. Compare active checkouts/branches/remotes, retain unrelated projects, archive proven remnants with recovery manifests, finish protected app releases and knowledge publication independently. SnackMachine is optional catalogue tooling, not another Server; Google/Publish scaffolds do not claim deployment until tested.
 - **K08 / C10:** Consolidated first-run, installer, offline-model, app/skill, sync and recovery quickstarts. Document what is manual, installed, supported, proposed or unavailable. Keep external maintainer guides separate from beginner learning.
 
+## Archive reconciliation and mission-led Workflow correction — 2026-11-10
+
+The current user direction supersedes the earlier Binder-only simplification. Archive scans are read-only evidence gathering: do not run archived code, restore task histories, resurrect old services or treat historical “working” labels as current qualification. Relevant documents/specs and implementation references were checked under `Code/ARCHIVED`, excluding dependency trees and environment payloads; personal task/run archives are not source requirements and are not re-seeded.
+
+| Historical reference | Concept retained | Current reconciliation |
+| --- | --- | --- |
+| [Mission Control for ProseUI design brief](../../../ARCHIVED/DevStudio-2026-06-21/docs/specs/mission-control-proseui.md), core concepts/dashboard sections | Mission is the project/goal; Binder holds its pieces; local-first work and optional cloud sync | Mission and Binder remain distinct in current uFlow/Editor contracts; do not restore lowercase legacy vault paths, separate stores or same-ID coupling |
+| [Mission Control implementation plan](../../../ARCHIVED/DevStudio-2026-06-21/docs/plans/mission-control-dev-plan.md) and archived uServer `snackbar/missions*.py` | Durable mission metadata, goals/tasks/progress and a useful dashboard | Reuse current bundled uFlow authority, existing tasks and job contracts; no old server process, technical example reseeding or autonomous IDE workflow |
+| [Archived uDev handover](../../../ARCHIVED/uDev/HANDOVER.md) | Mission Control was a central user-facing organising surface | Preserve the organising concept, not the retired uDev runtime or its mutation endpoints |
+| [Web3 convergence brief](../../../ARCHIVED/DevStudio-2026-06-21/docs/specs/WEB3_CONVERGENCE_BRIEF.md), mesh sections | BitChat/nearby messaging, Sonic networking/relay possibilities and offline connectivity are useful core concepts | Normal BitChat visibility; actual transport/trust/delivery qualification per adapter. Historical BLE/LoRa, token, partnership and network claims are proposals/evidence, not current supported guarantees |
+| [Ghost Mode draft](../../../ARCHIVED/uConnect-2026-06-21/docs/GHOST_MODE.md) | Local/anonymous-first use without an account wall | Preserve privacy-first optional identity; do not copy fake birth dates or invent new human roles from old draft defaults |
+| [Markdown grimoire / mini-vault lesson](../../../ARCHIVED/uConnect-2026-06-21/docs/course/lesson-1-markdown-grimoire.md) | Structured contacts/projects/tasks, metadata and wiki links as approachable seed-vault learning | Useful K10/K11 content/template material; migrate old paths and schemas, and never interpret a contact note's fictional role as an identity grant |
+| [Narrator glossary](../../../ARCHIVED/DevStudio-2026-06-21/docs/NARRATOR.md) | Reversible human-friendly terminology and themed glossary | Role labels need an understandable capability crosswalk; narrative substitution is not encryption and cannot secure Crypt payloads |
+| [Sonic v2 historical specification](../../../ARCHIVED/DevStudio-2026-06-21/docs/specs/UDN-SONIC-V2-001.md) and [ecosystem boundary brief](../../../ARCHIVED/DevStudio-2026-06-21/docs/UDN-ECOSYSTEM-001.md) | Hardware revival, recovery, portable media, networking and product separation | Reconcile with current Sonic ownership/device qualification; do not silently adopt the old rewrite/partition plan, obsolete repo layout, licensing claims or install Linux on Apple Silicon |
+| Sonic's active [revival/capsule plan](../../../SonicScrewdriver/docs/REVIVAL-PLAN-2026-09.md) | Crypt and Tomb are capsule/device experiences with recovery and offline readers | Retain the role/profile separation in K14. The exact Wizard/Sorcerer/Knight contract follows the current user brief; the bounded archive scan did not establish a newer authoritative role matrix |
+
+### Simple product vocabulary and dashboard
+
+**Mission = why / objective. Task = next action. Queue = actual work in progress. Binder = materials and resulting product. Research = evidence gathering and synthesis that serves the Mission.** Keep these labels and concepts consistent across navigation, skills, messages and stored relationships.
+
+Mission Control should lead with one objective input, current Mission, next action/progress and Queue access. A daily objective can be small; it does not need a technical project form. Binder materials and research stay available as focused sections, not a stack of separate full-size dashboards. Use shared USX spacing/type/button/icon contracts; remove competing private CSS and unnecessary wrappers incrementally, preserving functionality. A completed Mission can leave a useful Binder/reading pack even when no executable workflow ran.
+
+### Immediate implementation and remaining gates
+
+The first durable mission pass uses a profile-scoped `missions` table in uFlow's existing `settings.data_dir/workflows.db`; no additional service, daemon or state directory. Rows hold a stable ID, objective/title, state and optional primary result Binder. Existing database archive/reset owns its backup/removal lifecycle; storage grows with explicitly created objectives. No archived objectives or example tasks are imported automatically. Tasks retain their existing IDs/files/source mappings and can carry a Mission ID; selecting a Mission focuses its task queue. Creating/completing a Mission records intent/status and never starts model, network or shell work implicitly.
+
+| Ticket | Work | Evidence required |
+| --- | --- | --- |
+| F09 | Restore simple mission authoring, selection, progress and result-Binder linking | Create objective without first creating a Binder; persist/reload and profile isolation; link materials; tasks retain IDs/source links; empty user state stays empty until explicit action |
+| F10 / A07 | Propagate mission identity through research/model/sync/app job contracts and unified Queue | Distinguish queued tasks from executing jobs; research discovery before a result Binder is chosen; preserve source/job IDs; stop/retry/recovery and clear Mission→result links; never infer attribution solely from a shared Binder |
+| F11 / F03/F07 | Mission Control and research layout/style convergence | Shared USX components, consistent reading/body widths and compact controls; desktop/narrow/keyboard/fullscreen qualification without losing research improvements |
+| K15 / K04 | BitChat as normal messaging/networking with optional mission intake | Ordinary visibility; explicit message→task/Mission or Binder evidence; actual peer/delivery/offline/trust/privacy tests; no automatic beaconing, message transmission or cloud submission caused by changing display mode |
+
+Research remains Binder-scoped in the current worker contract, and background job attribution is not yet end-to-end Mission-aware. Preserve that working boundary while F10 adds explicit Mission IDs; do not report all background runs as belonging to the selected Mission. Historical migration/merging of old Mission data requires a separate mapping and recovery preview.
+
+## Slice 3 extension — curated knowledge, roles and distributions
+
+This extension supersedes wording that treats Advanced as disposable engineering clutter or recipes as external-reference-only material. It is planned work, not a claim that new roles, skills or distribution profiles are implemented. The current runtime still has the legacy Advanced preference and WordPress-compatible identity roles. Preserve existing users and integration mappings while introducing the following contracts.
+
+### Human authority and interface detail
+
+Use one capability-based identity authority, extending the existing bundled identity/user store rather than adding a second account database. Retain WordPress-standard role mapping at the integration boundary; a remote WordPress administrator must not become a local Wizard or acquire canon-publishing authority automatically.
+
+The authoritative target matrix and source consolidation register are in [uDos Documentation](../UDOS_DOCUMENTATION.md). Knight uses local Ollama and local publishing; external web/cloud retrieval requires an enrolled Drone. Sorcerer has scoped direct web/cloud, cloud agents/APIs and cloud publishing. Wizard adds administration, system documentation, open-hood inspection and Global Knowledge maintenance authority.
+
+Canonical spelling is **Sorcerer** (`sorcerer`); historical `sorceror` is a migration alias, never a new grant. Existing administrator/editor/author/etc. data needs an explicit crosswalk, preview and rollback. Default ordinary users to Knight; verify the sovereign installation owner through bootstrap/recovery before granting Wizard. Roles do not replace OS permissions, provider consent or action approvals. Test direct API enforcement, including bypass attempts.
+
+Recommended naming: retain **Advanced tools** for extra interface detail available to appropriately granted Sorcerers/Wizards; use **Wizard workspace** for administration and distribution curation. Do not rename a freely toggled display preference to a role grant. Legacy `advancedView` remains presentation compatibility data until migrated. A Wizard may choose the calm normal view without losing their role, and showing Advanced cannot promote a Knight. The final labels can change without changing permissions.
+
+### Research and content curation skills
+
+Extend the existing governed internal capability registry/catalogue and its versioned recipe contracts. No new agent tree, daemon, interpreter, monolithic environment or parallel knowledge store. uCore hosts; bundled knowledge services own content/provenance contracts; uFlow owns jobs, budgets, cancellation and review state. Deterministic/offline operation is the baseline. AI can propose enrichment/classification with model/source provenance and explicit time/token/network limits; neither model agreement nor a polished summary counts as verification.
+
+| Skill family | Typed, reviewable result | Qualification |
+| --- | --- | --- |
+| Corpus inventory and triage | Paths, format/schema/template versions, stable IDs, hashes, sizes, licences, sensitivity and proposed disposition | Read-only first; no automatic move/delete/rename; report unknowns instead of assigning invented provenance |
+| Research intake and provenance | Preserved originals, normalized text, source URL/author/date/retrieval metadata and citation records | Reuse intake/source records; verify hashes, origin and permitted reuse; citations survive every transformation |
+| Schema and template normalization | Candidate metadata/body crosswalk from old templates to the approved document types | Use installed Prose/USX/GridCore standards and owned schemas; preserve unknown fields, IDs, links and versions; no ad-hoc per-product canon |
+| Classification and relationships | Controlled taxonomy, tags, document type, subjects, difficulty/reading level where justified, aliases and explicit relationships | Reuse one reviewed vocabulary; distinguish source statements, interpretations and inferred tags; avoid folder sprawl |
+| Deduplication and edition reconciliation | Exact-hash matches, near-duplicate suggestions, supersession/conflict proposals and link-repair preview | Never silently merge differing claims or delete originals; accepted merges retain aliases, evidence and recovery manifests |
+| Evidence and editorial review | Claim-to-source coverage, conflicting claims, freshness/uncertainty, licence and privacy findings | Retrieval is not verification; deterministic checks plus editorial sign-off; unresolvable claims remain marked |
+| Organisation and indexing | Proposed folder/collection map, summaries, entry pages, reading paths, crosslinks and search/teletext indexes | Stable identity independent of file location; regenerate indexes from owned content; shared modern/teletext editions |
+| Seed/edition packaging and verification | Selected-content manifest, file digests, template versions, compatibility, licences, privacy report and installed/download budgets | Repeatable builds, no credentials/private state, reviewable diff, staged install, prior-edition recovery and uninstall that preserves user work |
+
+The normalization crosswalk must cover a minimum common document contract: stable document/source IDs; schema and template versions; title/type/language; author and owner; layer/sensitivity/sharing classification; created/modified/retrieved dates where known; source URL and citation references; licence/redistribution status; controlled subjects/tags; aliases/related and superseded documents; assets/digests; and editorial/verification state. Not every source supplies every field: retain unknowns explicitly and distinguish original metadata from inferred/generated metadata. Review the crosswalk against existing owned schemas and canonical standards before adopting a version; this plan does not introduce another competing schema baseline.
+
+Every mutating skill declares owner, allowed roots, input/output schema and versions, role/capability requirements, effect preview, idempotency, source identities, storage/network/model budgets, timeout/cancel behaviour and rollback/removal procedure. Reuse the existing registry lifecycle and Queue instead of adding a new background worker. Outputs are candidate documents or packages until accepted. User consent to research does not authorise moving their entire vault, transmitting it to a cloud provider or publishing it.
+
+### Content destinations and legacy-vault cleanup
+
+The present mixed corpus must be inventoried before a taxonomy or clean structure is imposed. Useful Google product material, engineering notes, recipes and historical templates are classification/review candidates, not automatic deletion targets. Keep a record of what is current, reference-only, superseded, private, redistribution-restricted or awaiting evidence. An old template is not proof its underlying content is obsolete.
+
+| Destination | Owner, lifecycle and distribution rule |
+| --- | --- |
+| Personal and Shared content | Existing `settings.vault_root` / `settings.shared_vault_root`; user-owned mutable documents with overlays and explicit sharing; remove/archive through normal reviewed file operations |
+| Seed user vault source | A separately named content package in the existing maintainer content/source ownership, alongside but distinct from Global Knowledge editions; exact source path is chosen after inventory, before implementation, with no new repository |
+| Installed seed user vault | Optional first-run/import copy of a selected reviewed seed; becomes personal mutable work. Record seed ID/version/file identities; repeat installs and upgrades preview conflicts and never overwrite personal edits or repopulate the archived clean Workflow automatically |
+| Global Knowledge candidate | Existing `Code/global-knowledge` maintainer source and reviewed candidate/release branches; Wizard curation occurs with external IDE/CLI tooling and shared curation skills |
+| Installed Layer 0 | `settings.public_vault_root/global-knowledge`; immutable edition for ordinary runtime tools, with Personal/Shared overlays preserved across updates |
+
+Avoid corpus copies for each role or hardware profile. Use one content inventory and selected pack manifests with measured sizes, shared payloads and rebuildable indexes. Candidate workspace storage must be product/content-package owned, visible, explicitly budgeted and removable; no new hidden user-data folders. Seed packages need licence/privacy review, offline entry pages and useful everyday examples, not maintainer backlog tasks, account tokens, personal logs or fake installed/running records. Test a disposable fresh profile, opt-out, repeat import, upgraded seed with personal edits and full uninstall/recovery before distribution.
+
+### Advanced tools and recipe preservation
+
+Inventory current Google AI/Drive, provider code/data-analysis, engineering and surface-recipe capabilities one by one. Distinguish locally working, account-dependent, provider/network-dependent, preview-only and unsupported operations. Preserve useful functionality and source evidence; qualify backend grants, inputs/outputs, cost, credentials and side effects before presenting any action as runnable. Google account data remains provider-owned or explicitly imported into chosen Binder/Vault scopes; cloud access is opt-in and never an implicit requirement for local curation.
+
+Wizard content curation is a legitimate internal workflow: inventory, reorganise proposals, edit candidate documents, review citations, build seed/knowledge candidates and inspect the resulting package using governed content skills. Canon candidates can be prepared in explicitly scoped staging without granting repository-code execution or modifying the installed baseline. Integrating approved canonical-source changes, signing/publishing editions and modifying uDos software remain external maintainer/IDE workflows. The objective is a powerful internal content workbench, not merely an external-tools information page.
+
+The Advanced/Wizard workspace reuses existing navigation, settings, Binder/Editor, resource contracts, skill registry and Queue. It provides inspect/preview/configure/run/export/review where those actions are actually supported. Surface recipes are useful reusable compositions and teaching references; they can be adopted into user workflows or exported for external IDE enhancement. There is no generic in-app IDE, repo mutation endpoint or autonomous development team. Appropriate diagnostics, networking, physical computing and system administration remain powerful first-class capabilities behind their owners.
+
+### Distribution and standalone device profiles
+
+Human role grants and device identity are separate axes. Keep **Crypt**, **Drone** and **Tomb** visible as device/distribution profile concepts, with scoped principals instead of pretending they are human permission levels. Reuse Sonic's capsule/edition/runtime/deployment separation and identity enrolment; do not create a separate runtime or storage engine for each name.
+
+| Device profile | Working definition for qualification |
+| --- | --- |
+| Crypt | Encrypted Tomb profile: private selected content, established encryption adapter, protected keys and separately retained recovery method; public discovery metadata is distinct from payload |
+| Tomb | Public resource profile: selected published content and manifest, offline reader and checksums; encrypted variants are Crypts |
+| Drone | Network-access profile: enrolled gateway for scoped web/cloud requests, including Knight delegation; finite capabilities, budgets, credential isolation, owner revoke and safe disconnected behaviour. No inherited Wizard or cloud-publishing authority |
+
+Standalone reading must work without an always-running uCore server or internet account. Each manifest declares content edition, runtime/reader compatibility, host/hardware, display mode, writable versus sealed areas, power/storage constraints, update/recovery and decommissioning/removal. Device credentials never inherit the owner's Wizard role. Sonic owns media preparation/provisioning and host checks; knowledge services own content packs; uCode owns executable language content; host time remains authoritative. Native Apple Silicon macOS and non-destructive Linux USB/dual-boot on recycled hardware remain the universal deployment doctrine.
+
+### Added backlog and delivery order
+
+| Ticket | Work / dependency | Acceptance evidence |
+| --- | --- | --- |
+| K09 | Human roles/capabilities, explicit identity migration and role-aware Advanced/Wizard navigation | Wizard/Sorcerer/Knight direct API matrix; no display-toggle or WordPress-sync escalation; owner recovery, grant/revoke and migration rollback |
+| K10 | Shared curation skill set and bounded review pipeline; depends on A06 registry lifecycle and K09 permissions | Same selected batch can be inventoried, normalized, classified, reconciled and validated with deterministic output; AI is optional and traceable; dry-run diff/cancel/retry/recovery |
+| K11 | Distribution-ready seed user vault; depends on K10 content contracts | Clean offline install, useful entry structure, no private/credential data, seed provenance, repeat/upgrade conflict handling and no automatic technical-task reseeding |
+| K12 | Existing corpus/old-template reconciliation into Personal/Shared/seed/canon candidates; K10 + K03 | Inventory and crosswalk before changes; original hashes, IDs and links survive; useful engineering/Google/recipe material retained or explicitly archived; separate approved canon release |
+| K13 | Advanced tools/Wizard workspace and recipe catalogue; K09 + A06 | Explicit capability/effect/status labels; preserve reviewed Google/engineering/surface workflows; normal Sonic and BitChat visibility; retired arbitrary development execution stays retired |
+| K14 | Crypt/Drone/Tomb distribution profiles; K03/K11 + Sonic ownership | Separate human/device grants, standalone/offline operation, signed/digested selected package, supported encryption/recovery, owner revoke/removal and tested hardware lifecycle |
+
+Role naming/capability modelling and Sonic visibility are cross-cutting foundation follow-up, not blocked on a finished Slice 3. Implement the curation skill mechanics through Slice 2's existing skills/runtime contracts, then qualify distribution editions in Slice 3. Start with a read-only inventory of an explicitly selected corpus and one small seed-vault candidate; do not reorganise the live Vault or installed Global Knowledge as a planning exercise. First demonstrate one source-preserving curated Binder/reading pack, then a disposable seed-vault install, then an approved canon candidate, then a standalone Sonic capsule. These are gated demonstrations, not promises of a new unattended pipeline or fixed dates.
+
 ## Recipe disposition
 
-The gallery is no longer an ordinary runtime destination. Existing recipe source/tests remain implementation references for external development until useful behaviour is absorbed and verified.
+Recipes are removed from ordinary navigation, not discarded. Their useful source, examples and tests remain inspectable. The Advanced/Wizard catalogue planned below preserves reviewed engineering, Google/product and surface recipes with explicit states: reference, preview, configurable draft, installed or qualified runnable action. Links to working product features remain valid until a reviewed catalogue supplies the richer experience. Engineering references can be inspected and exported to an external IDE; they do not imply an in-app repository editor. Existing code/data-analysis sandboxes require their own provider, capability, scope and execution qualification, not a generic host-shell shortcut.
 
 | Gallery item | Working owner | Qualification work |
 | --- | --- | --- |
@@ -159,7 +280,7 @@ The gallery is no longer an ordinary runtime destination. Existing recipe source
 | User Name/Role/email, host timezone/location/grid seed and first-run story | F07; save once/resume, host clock authority, explicit seed readiness, optional practical starters |
 | Apple/Google contacts/tasks/notes/mail/calendar, flags/VIP/stars and source groups | K04/K05; explicit scopes, duplicates/conflicts and tested round trips; no blind cross-account copying |
 | Bookmarks/favourites/reading lists | K06; current manual exchange stays accurately labelled |
-| Recommended Mac/Linux apps, app installation/management and Snackbar central sync | A01/A02/A06, K04; app-managed cloud accounts, no duplicate iCloud service |
+| Recommended Mac/Linux apps, app installation/management and Workspace-owned collections with Snack-based sync | A01/A02/A06, K04; app-managed cloud accounts, no duplicate iCloud service |
 | Ollama cleanup, installation, offline libraries and skills library | A04/A06; dynamic inventory and reviewed manifests; no automatic model deletion/download |
 | Non-dev roundtable, interests and projects, local knowledge enhancement | A05/K01/K02; reviewable outputs in overlays, bounded autonomous work |
 | uCode commands and an assistant skilled in uCode | F05/A05; real language authority/capabilities, no zsh or guessed syntax |
@@ -171,7 +292,7 @@ The gallery is no longer an ordinary runtime destination. Existing recipe source
 
 ## Foundation release assessment — 2026-11-10
 
-This is a qualified local cleanup checkpoint, not a release-certified Slice 1.
+The cleanup checkpoint is merged with green post-merge CI in both repositories. Slice 1 remains short of release certification.
 
 | Gate | Evidence / disposition |
 | --- | --- |
@@ -182,7 +303,7 @@ This is a qualified local cleanup checkpoint, not a release-certified Slice 1.
 | F05 native language | Native language/transport acceptance and truthful bridge inventory passed; no registered Vault/workflow language bridges |
 | F06 recipe disposition | Ordinary gallery routes retired and destinations tested; no claim that every historical preview is a production feature |
 | F07 user polish | Setup/preferences tests and Workflow keyboard/narrow checks passed; reader fullscreen/keyboard and broader cross-surface parity remain open |
-| F08 publication | Local suites/builds/policy checks recorded above; companion publication, remote CI, protected review/merge and clean-install platform qualification remain open |
+| F08 publication | uCode #13 and uCore #42 merged; both post-merge CI runs passed. Versioned artifact, clean-install/platform and remaining reader qualification remain open |
 
 ## Release and rollback gates
 
@@ -193,6 +314,10 @@ Restore prior app/host artifacts without overwriting new user work. Retain sourc
 Source publication follows repository → branch → isolated checks → protected PR → required CI → reviewed merge → versioned artifact → clean install smoke test. Content edition publication is independent and licence/provenance-qualified. Current uCore and uCode edits must be checked/committed in their own repositories; no force-push of preserved knowledge history.
 
 ## Current checkpoint and limits
+
+- Mission/BitChat correction (2026-11-10): archival concept audit restores Mission Control as the objective-led dashboard, with Binders as collections/results. BitChat is removed from Home’s Advanced-only filter. Durable profile-scoped mission CRUD now reuses the existing uFlow database; mission-tagged tasks have a contextual Queue view, and Binder/research sections are collapsed behind focused disclosure controls. Direct research/job mission attribution and broader layout parity remain F10/F11; no live messages, missions, task histories or archived services were restored as QA. Validation: 744 backend tests, 152 frontend tests and three fixture-only browser checks passed, including objective → task → Queue and reload at 390px. Production build/type-check, path/action/route/governance checks passed. The new backend routes require loading the updated host before live use.
+
+- Plan extension (2026-11-10): K09–K14 define role-aware Advanced/Wizard tools, shared research-curation skills, optional seed user-vault packaging, legacy-corpus reconciliation and separate Crypt/Drone/Tomb device profiles. Preserve useful Google/engineering/surface recipes and universal OS/open-hood doctrine. Sonic is removed from the Home Advanced-only filter now; roles, curation skills and the richer recipe catalogue are specifications, not implemented runtime capabilities. No user corpus or installed Global Knowledge was reorganised.
 
 - Pre-merge review fixes (2026-11-10): task opening/status refresh no longer infers Binder membership from a matching source-board name; only explicit legacy list navigation may resolve that alias. Vault topology, library/editor roots and documentation roots now all consume owning settings, matching Binder imports on custom-root installations. Added source-board collision and isolated custom-root regression coverage. Validation: full backend 742 passed, frontend 151 passed, production build/type-check, path policy and whitespace passed.
 
@@ -230,4 +355,20 @@ Source publication follows repository → branch → isolated checks → protect
 - Simulated package install/update success is removed; those operations report unavailable until the real artifact/executor path is configured. Container execution remains unqualified.
 - Knowledge navigation is moved into the shared sidebar. The duplicate in-panel file tree/header is removed. Reading font is centralised in Settings; toolbar is at panel top, outer padding removed, TOC bullets removed, and properties/TOC are toolbar toggles. Layer/copy actions are in the toolbar action menu.
 - Binder dashboard composition and naming cleanup are underway. Full Binder identity/legacy-board consolidation, context-scoped research and removal of all duplicated state are still F02/F03 gates; do not equate changed labels with finished data migration.
-- Cleanup checkpoint is ready for local commits in uCore and uCode. Validation below qualifies the touched behaviour; no protected merge, target-platform release or live account certification is implied.
+- Cleanup checkpoint merged through uCode #13 and uCore #42, with both post-merge CI runs green. Target-platform release, live account certification and the newly planned role/curation/distribution contracts remain unqualified.
+
+### Role and documentation clarification — 2026-11-10
+
+The current user brief supersedes historical Tomb/Drone semantics: Tomb is public, Crypt is an encrypted Tomb, Drone supplies network access. Beacons advertise presence/resources without granting access; BitChat carries messaging and reviewed handoffs, never ambient execution authority. [uDos Documentation](../UDOS_DOCUMENTATION.md) records the target permission matrix, publishing flow, evidence and consolidation destinations. K09 includes server-side enforcement and migration; K14 includes scoped Drone delegation and Beacon manifests. Both remain open. The Documentation surface now includes a uDos Documentation tab next to uCode; this does not implement the new security model.
+
+### Workspace and vault organisation — 2026-11-10
+
+[Workspace and vault governance proposal](WORKSPACES_AND_VAULT_GOVERNANCE_2026-11-10.md) adds W01–W06 to this programme. Dedicated **Google Workspace** and **Apple Workspace** surfaces own native account-scoped Tasks/Reminders, Contacts, Notes/Docs, Links and other qualified collections. This supersedes Snackbar as the provider-collection UI and the earlier Advanced-only placement for Google; permissions still govern effects. Snacks invoke/schedule scoped cloud/app sync through existing services, with one Queue/scheduler. Move collection tabs only after destination parity and preserve route aliases. Vault/Shared/Public remain the document roots, with stable identity, explicit authority/import mappings, drift reports and reversible migrations. No live account/vault changes are part of this proposal.
+
+Accepted clarification: uDos is a universal cross-compatibility layer. Users may connect Google and/or Apple to their own workspace/vault at item, list or selected collection scope. W03/W04 use one simple **Sync with my vault** flow: choose what, where and supported direction; preview, then connect. Two-way sync is explicit and qualified. Cross-provider propagation is never implicit, private sync is distinct from public publishing, and provider-specific information is preserved.
+
+### Consolidation sprint kickoff — 2026-11-10
+
+Started against the repository assessment. First correction: uCore-Publish configured cloud adapters remain scaffolded/not ready and remote publication returns explicit unavailable status without a fabricated receipt. Validation: all six publishing unittest checks passed. Changes are local and uncommitted. Global Knowledge preservation/reconciliation, extension disposition and documentation consolidation remain pending; no source/history or user content was moved.
+
+- Browser feedback checkpoint: added stable-ID Binder title editing via an explicit title API and sidebar form; Mission Control uses recipe-inspired semantic card/form styling. Apps now separates Google/Apple/Linux connection views and the combined local collection; legacy Snackbar collection links redirect to that local view preserving query context. Connection presentation is a flat feed entry with expandable settings, without the filled card or short technical ID in its heading. This is a presentation consolidation, not completed native account collection browsing or qualified Linux adapters. Checks: seven Binder engine tests including rename preservation/validation, Binder HTTP lifecycle, 152 frontend tests (Node native webstorage disabled for jsdom), production build before the final feed-only change, final type-check and focused connection tests, action audit, path policy and whitespace passed. Existing live Apple workspace observed; no live sync/account settings changed.

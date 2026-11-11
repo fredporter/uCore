@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+from types import SimpleNamespace
 
 import pytest
 
@@ -41,6 +42,11 @@ class Adapter:
 
 @pytest.fixture
 def fixture(tmp_path, monkeypatch):
+    from app.services import identity
+
+    monkeypatch.setattr(identity, "load_identity", lambda: SimpleNamespace(
+        profiles=[SimpleNamespace(id="default", role="owner")]
+    ))
     store = CollectionStore(tmp_path / "collection.sqlite3")
     adapter = Adapter()
     connection = store.configure(
@@ -339,3 +345,61 @@ def test_sync_refresh_retains_local_binder_membership_and_source_identity(tmp_pa
     assert task["collection_id"] == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     assert task["status"] == "completed"
     assert "https://example.com/seeds" in paths[0].read_text()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("manual", [False, True])
+async def test_engine_blocks_unavailable_provider_for_manual_and_scheduled_work(tmp_path, monkeypatch, manual):
+    from app.services.connections import engine as module
+    monkeypatch.setattr(module.platform, "system", lambda: "Linux")
+    store = CollectionStore(tmp_path / "isolated.sqlite3")
+    connection = store.configure("owner", "apple", {"enabled": True, "collections": {"tasks": {"lists": ["list-1"], "direction": "pull"}}})
+    adapter = Adapter()
+    engine = SyncEngine(store, {"apple": adapter})
+    def forbidden(*args):
+        raise AssertionError("Unsupported provider work dispatched")
+    monkeypatch.setattr(engine, "_sync", forbidden)
+    result = await engine.sync("owner", connection["id"], manual=manual)
+    assert result["state"] == "unsupported_platform"
+    health = store.connection("owner", connection["id"])["health"]
+    assert health["state"] == "unsupported_platform"
+    assert not health.get("last_success")
+    assert adapter.writes == []
+
+
+@pytest.mark.asyncio
+async def test_disconnect_during_manual_pull_preserves_status_and_skips_import(fixture, monkeypatch):
+    store, adapter, connection, engine = fixture
+    cid = connection["id"]
+
+    def disconnect_during_pull(*args):
+        store.configure("default", "google", {**connection["config"], "enabled": False}, cid)
+        store.health(cid, state="disconnected")
+        return adapter.rows
+
+    monkeypatch.setattr(adapter, "pull", disconnect_during_pull)
+    assert await engine.sync("default", cid, manual=True) == {"state": "disconnected"}
+    assert await engine.sync("default", cid, manual=True) == {"state": "disconnected"}
+    health = store.connection("default", cid)["health"]
+    assert health["state"] == "disconnected"
+    assert not health.get("last_success")
+    assert store.records("default") == []
+    assert adapter.writes == []
+
+
+@pytest.mark.asyncio
+async def test_scheduled_sync_rechecks_role_after_revocation(fixture, monkeypatch):
+    from app.services import identity
+    from app.services.connections import google_auth
+
+    store, adapter, connection, engine = fixture
+    profile = SimpleNamespace(id="default", role="sorcerer")
+    monkeypatch.setattr(identity, "load_identity", lambda: SimpleNamespace(profiles=[profile]))
+    google_auth.require_direct_google("default")
+    profile.role = "knight"
+    def forbidden(*args):
+        raise AssertionError("Revoked role reached the provider worker")
+    monkeypatch.setattr(engine, "_sync", forbidden)
+    result = await engine.sync("default", connection["id"])
+    assert result["state"] == "permission_required"
+    assert not store.connection("default", connection["id"])["health"].get("last_success")

@@ -1,0 +1,102 @@
+# Workspace completion sprint — 2026-11-10
+
+Status: started. Owner: uCore maintainer, with existing adapter/package owners.
+Parent: CURATED_APPLICATIONS_CLEANUP_SPRINT_2026-11-09.md. Continues W01–W06 and the unfinished consolidation gates; it does not supersede them or create another task engine.
+
+## Outcome
+
+Deliver a coherent Vault, Google, Apple and Linux workspace experience with truthful capabilities, shared presentation and tested navigation. Finish Binder rename and responsive Workflow qualification. Existing UI changes are an initial implementation, not completed account isolation or provider qualification.
+
+## Ordered delivery
+
+| ID | Owner | Work | Exit evidence |
+| --- | --- | --- | --- |
+| N01 | uCore | Finish Vault remapping and legacy navigation | Vault selects the shared shell browser; old local/Snackbar links preserve collection/record context; route tests and narrow keyboard checks. No connection database relabelled as filesystem content. |
+| N02 | uCore | Complete shared recipe-based Workflow presentation and Binder rename | Mission Control, Tasks, Queue and Editor reviewed at 390/548/1280px, light/dark, keyboard focus, empty/error/busy states; rename HTTP and UI persistence tests preserve IDs and materials. Current styling only covers Mission Control and basic input containment. |
+| N03 | uCore/adapters | W01/W02 inventory and operation matrix | Provider/account/collection/native identity, supported operations and platform availability recorded from source. Read-only and unsupported states truthful; no automatic account selection. |
+| N04 | uCore/adapters | Dedicated collection views and feed parity | Account-qualified browsing and selected imports use shared components; connection settings expandable; no cross-account data leakage. Old Google Studio route reconciled with Google Workspace; local combined records clearly distinct from native provider records. Linux unavailable until qualified. |
+| N05 | uCore/uFlow | Governed sync and recovery qualification | Preview, explicit direction/selection, one Queue/scheduler, cancellation/retry/idempotency, disconnect without deletion; role/provider/OS grants enforced. Disposable fixtures first; live accounts unchanged without explicit scoped authorization. |
+| N06 | Product owners | Close consolidation C04/C06/C07 | Extension register documents dependencies/lifecycle/budgets/removal; canonical user guides and redirects; stale product claims corrected with evidence. No archival merely from product names. |
+| N07 | Maintainers | Source review/publication and closeout | Recheck worktrees; changed-product suites/build/action/path checks; review diffs and publish intended branches; record remote SHAs. Canon proposal reviewed separately, with recovery history preserved. |
+
+## Dependencies and limits
+
+N01/N02 first. N03 precedes N04 provider data operations. N05 depends on qualified role/Drone contracts from K09/K14; unsupported effects stay unavailable. N06 can proceed independently. Global Knowledge C02 selective proposal remains open; no installed canon update or wholesale recovered corpus publication belongs to this UI sprint.
+
+Use existing repository source, settings, shell/sidebar, resource registry and bundled uFlow. No new service, environment, agent configuration, persistent cache or filesystem root. This plan has source-document lifecycle and negligible storage cost; archive through Git after closeout.
+
+## Starting evidence
+
+Vault URL/name and shared sidebar action implemented locally. Previous slice: 152 frontend tests passed with Node native webstorage disabled for jsdom; Binder engine/lifecycle checks passed; build/action audit passed before final feed-only presentation change; final feed type-check/focused tests passed. These are starting evidence, not completion of N01–N07. Browser view showed Apple workspace feed; full responsive/keyboard and cross-platform qualification remain open.
+
+N01 routing checkpoint: direct Vault entry opens the existing shared browser; legacy workspace=local normalizes to vault while retaining collection and record query context. Provider entry does not open Vault. Three component navigation regressions and type-check pass. Narrow viewport/keyboard qualification and legacy Snackbar redirect integration remain open.
+
+N01 redirect/keyboard checkpoint: three real memory-router tests verify legacy Snackbar Tasks/Contacts/Notes links land on Vault retaining account and record queries; all six focused Apps/redirect tests pass. Isolated live browser check at 390px: Enter activates Linux workspace, focus remains on the selected button, unavailable adapter message appears, and document has no horizontal overflow. Temporary viewport restored and check tab closed. No live account effects. Full 548/1280px and light/dark/Workflow qualification remains N02 work.
+
+N02 Binder rename UI checkpoint: three component regressions verify trimmed title submission to the original stable Binder ID even if navigation changes, refresh after acknowledgement, failed-save edit retention without changing the original title, blank-name rejection and cancellation without writes. Added explicit blank-title submit guard. Focused tests, type-check and whitespace pass. Uses mocked responses only; no live Binder changes. Broader Workflow responsive/light-dark and live rename API reload qualification remain open.
+
+N02 responsive checkpoint: isolated live empty-state checks found no document overflow for Mission Control at 390px dark and 1280px light, Queue at 390/548px and Editor at 548px. Tasks empty-state navigation observed; Queue keyboard activation works. Desktop light inspection revealed grid-distributed vertical gaps; dashboard now aligns content to the start. Original dark theme/viewport restored and temporary tab closed. This is sampled empty-state evidence, not the full populated/error-state matrix. No tasks, missions or Binders created.
+
+N02 Mission Control state checkpoint: fixture tests now cover creation failure with objective retention and successful retry, selected-mission progress/next-task isolation, and failed completion without optimistic status changes. Four Mission Control tests and type-check pass; no production code change or live data mutation. These component checks do not replace populated/error-state browser layout qualification, which remains open.
+
+N03 source audit recorded in WORKSPACE_CAPABILITY_AUDIT_2026-11-10.md: Google/Apple operation matrix, native versus combined identities, Linux adapter limits, writable-field restrictions and role/Drone enforcement gaps. Twenty-three provider/collection fixture tests pass. No live requests. Inventory is a source checkpoint, not certification; operation capability contract, entry-point authorization and two-account isolation evidence remain open.
+
+N03 capability checkpoint: connection status now exposes server-derived adapter code support per collection (discover/read/create/update/delete and writable fields), platform availability and explicit unqualified/readiness status. Workspace connection views display this as expandable reference, not authorization. Mail creation and all deletion remain unavailable; Apple operations unavailable off macOS. Fourteen provider/API tests, focused connection UI tests, type-check and whitespace pass. Role/Drone enforcement and live round-trip certification remain open.
+
+Capability enforcement checkpoint: UI discovery, preview, authorization and manual sync controls require server-reported adapter availability. API blocks unavailable-host discovery/preview/sync/authorization/link before adapter construction; disconnect remains accessible. Four rejection regressions verify no adapter dispatch. Authenticated active-profile and local-origin gates already cover manual actions; OAuth callback uses one-use profile-bound state. Wizard/Sorcerer/Knight and scoped Drone authorization remain unimplemented here, and automatic sync still requires independent entry-point audit. This change enforces host availability, not that broader security model. Focused API/provider/UI tests and type-check pass.
+
+Automatic-sync audit checkpoint: maintenance_scheduler calls sync_due_connections, which delegates enabled due connections through snackbar_sync into SyncEngine; the registered connections_sync skill uses the same engine with authenticated profile ownership. Added engine-level host availability enforcement for both scheduled and manual work, returning unsupported_platform before worker dispatch without updating last_success. Thirty-six connection/provider/API tests pass, including both paths. Background scheduling iterates enabled connections across profiles; it does not itself establish role/Drone grants. Role policy, OAuth callback revalidation and expiry/revocation remain separate open gates. No new scheduler or account calls introduced.
+
+Connection authorization and account browsing sprint checkpoint. Google sign-in, callback exchange, discovery, previews, linking, manual and scheduled sync, and token access check the stored local role. Wizard and Sorcerer have direct access. Existing local owner and historical Sorceror values are compatibility aliases. Installation OAuth settings and profile role edits require a local administrator. Role removal takes effect at the next provider boundary. Apple uses its existing host permission path. The local profile switch still relies on host trust. An enrolled Drone transport, scoped grant expiry and remote revocation remain pending and Knight direct access is denied.
+
+Account browsing shows read-only snapshots of synced records. The server selects replicas by profile and connection and returns the per-replica baseline. Tests cover overlapping native IDs, linked copies with different baselines and rejection of another profile's connection. The workspace can open a connection's records or return to the combined collection. Live native provider browsing still requires a qualified adapter flow.
+
+Validation passed for 48 backend tests, eight focused frontend tests, type-check and whitespace.
+
+Google Tasks Drone checkpoint. Enrollment, preview, expiry and revocation run in the existing connections service. Grants are rows in the existing connections database. Each grant binds a local recipient, administrator-owned Google account subject and one list, lasts at most 24 hours, and allows one bounded preview per minute. Disconnect revokes all grants on that connection. The service records grant and preview events through existing logging. Revoked/expired rows remain as grant history and follow the existing connections database retention lifecycle. This adds no process or scheduler. Remaining qualification covers remote enrollment, independently authenticated principals and live Google round trips.
+
+## Final qualification rounds
+
+| Round | Fixture and checks | Exit evidence |
+| --- | --- | --- |
+| 1. Source and integration | Run backend pytest, frontend Vitest and production build, route and extension contracts, path policy, publishing unit tests and whitespace checks. | Record suite counts and reviewed branch SHAs. |
+| 2. Disposable local workspace | Use a disposable profile and Binder. Check rename and reload, populated Mission progress and next task, task movement, Queue and Editor. Check 390, 548 and 1280 px in light and dark themes using keyboard navigation. | Titles persist with stable IDs, failure retains the edit, all controls are reachable and pages avoid horizontal overflow. |
+| 3. Google live read-only | Use a disposable Google account or list, a local Wizard and Knight, and a short grant. Check an approved list, an unapproved list, expiry, revocation and disconnect. Use a second disposable connection to check account isolation. | Only approved task snapshots are shown and later requests fail after grant loss. Verify provider logs for zero task writes. |
+| 4. Platform and release review | Check Apple native permissions using disposable lists. Check Linux unsupported states and bookmark exchange. Review artifacts and branch CI, and confirm legacy link routing. | Record platform evidence, remote branch SHAs and remaining gates before release. |
+
+Live fixtures must be identifiable as disposable before exercising account changes. The automated round uses simulated provider requests. Remote Drone enrollment and authenticated profile switching are a separate security qualification.
+
+## Qualification follow-up
+
+- PR #43 passed Planning Governance, Backend Tests and Frontend Build at `0fa7571`. The follow-up commit adds browser and Binder API qualification.
+- Twelve Chromium fixture cases passed at 390, 548 and 1280 px in both themes. They cover Binder rename failure, retry and reload, populated Mission Control, task creation, Queue and Editor navigation. The disposable Binder HTTP lifecycle also verifies the persisted title, stable ID and unchanged draft hash.
+- Optional source suites passed for uCore-Google (8), uVector offline Rust (26), SnackMachine (3) and uCode2 (6). Installation, removal and target platform qualification still require packaged artifacts and environments.
+- uCore-Publish branch `feat/wordpress-post-transport` adds an opt-in HTTPS transport for post creation. Eleven tests passed. Staging delivery, caller authorization and destination review remain necessary before runtime exposure.
+- Global Knowledge branch `plan/selective-canon-reconciliation` passed relative link checks and maintainer wording review. Distribution provenance for the recovered corpus remains a per-item gate. No recovered corpus content is part of the proposal.
+- Live Google, Apple and WordPress qualification awaits identified disposable fixtures. Linux native adapters, independent local profile authentication and remote Drone enrollment remain open engineering work.
+
+## WordPress-first extended form
+
+Use Forminator in the selected WordPress site for the form, validation and original submission. Use its HubSpot integration to map the approved CRM fields after a successful WordPress submission. The form owner can change the WordPress layout without renaming mapped CRM properties. Site owners manage credentials through the site's integration settings and the existing uDOS credential store where uDOS calls the site.
+
+| Form step | Proposed fields | HubSpot mapping |
+| --- | --- | --- |
+| Contact | Email, first name, last name, company, optional phone | Email, first name, last name, company and phone using the destination property's internal name |
+| Request | Request type, summary, details and conditional follow-up questions | Map structured fields to confirmed properties. Keep long details in WordPress unless explicitly selected for CRM |
+| Review and submit | Review contact and request details. Show separate opt-in when the form offers marketing communications | Map consent using the destination's configured subscription purpose and consent field |
+
+Local, Shared and Public are separate destinations. Keep raw submissions in the authorized records store. Create a Shared or Public view from explicitly selected fields. Keep contact details and credentials out of public output. Use the WordPress submission ID as the reference for any local or HubSpot projection so a retry can be reconciled with the original record.
+
+The staging check should verify conditional fields, required values, one saved WordPress submission and the mapped HubSpot record. Exercise a HubSpot delivery failure and confirm that the original WordPress entry remains available. Test Shared/Public output with dummy data and review exactly which fields are visible.
+
+The domain map assigns published materials to `https://udo.guide/`, optimized graphics to `https://cdn.udo.guide/`, and an edition mirror with spatial views to `https://udo.place/`. The same approved revision and link manifest drive both edition hosts. Confirm the WordPress form and task API origin separately. The graphics host is production, and its public REST index did not advertise a Forminator namespace or a uDOS task endpoint. The WordPress application password credential label and HubSpot account mapping are still needed.
+
+### Fallback task authority
+
+WordPress owns fallback tasks when neither Apple nor Google Tasks is available. The provider choice applies when a task is created. Keep the provider and its stable record ID on every task, so edits to existing tasks return to their owner when that provider becomes available again. A provider outage does not migrate records. Show a queued or failed status until WordPress confirms a fallback write. Retry against the same task identifier to avoid creating duplicates.
+
+Use a private WordPress task record with an opaque task ID, title, status, due date, visibility and revision. Access to Local and Shared records follows the selected profile and sharing scope. Public output comes from an explicit projection and may contain only selected fields. Store the task separately from the extended form submission, with the submission ID as a link when a form creates follow-up work. HubSpot receives the approved form fields through the integration.
+
+The opt-in post transport can verify WordPress authentication and draft creation. It cannot serve as the task store. The task endpoint needs authenticated create, read and update, revision checks, and isolation tests for Local, Shared and Public projections. Test Apple-only, Google-only and neither-provider routing, followed by provider recovery and a retry after a lost WordPress response.
+
+Reference: [Forminator forms and HubSpot integration](https://wpmudev.com/docs/changelog/forminator/).
