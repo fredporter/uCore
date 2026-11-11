@@ -326,11 +326,21 @@ async def handle_binder_publish(request: web.Request) -> web.Response:
     except Exception:
         body = {}
 
+    if not isinstance(body, dict):
+        return web.json_response({"error": "Expected an edition request."}, status=400)
+
     edition_num = body.get("edition")
     from app.services.identity import get_full_identity
 
     if not get_full_identity()["publishing_capabilities"]["publish_local"]:
         return web.json_response({"error": "Local publishing requires a signed-in publishing profile."}, status=403)
+
+    if body.get("preview") is True:
+        try:
+            preview = binder_engine.preview_edition_links(binder_id, edition_num)
+        except (FileNotFoundError, ValueError) as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        return web.json_response({"preview": preview})
 
     target = body.get("target", "local_static")
     if target != "local_static":

@@ -193,8 +193,9 @@ async def setup(request):
         if not contact or contact["kind"] != "contacts":
             raise web.HTTPBadRequest(text="Choose a contact from this profile")
     completed = bool(body.get("completed", previous.get("completed", False)))
-    if completed and not name:
-        raise web.HTTPBadRequest(text="Your name is required")
+    save_profile = body.get("save_profile") is True
+    if (completed or save_profile) and not name:
+        raise web.HTTPBadRequest(text="A username is required")
     identity_store = IdentityStoryStore(profile_id=owner)
     story_id = previous.get("story_id")
     if not story_id:
@@ -205,8 +206,8 @@ async def setup(request):
         status="published" if completed else "in_progress",
         responses={"display_name": name, **clean},
     )
-    if completed:
-        if clean.get("starter_workflow") and not previous.get("completed"):
+    if completed or save_profile:
+        if completed and clean.get("starter_workflow") and not previous.get("completed"):
             from app.services.workflow_starters import install_starter
 
             await asyncio.to_thread(install_starter, owner, clean["starter_workflow"])
@@ -229,7 +230,7 @@ async def setup(request):
                 owner,
                 {
                     **previous,
-                    **body,
+                    **{key: value for key, value in body.items() if key != "save_profile"},
                     "display_name": name,
                     "completed": completed,
                     "story_id": story_id,

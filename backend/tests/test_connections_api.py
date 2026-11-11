@@ -101,6 +101,24 @@ async def test_setup_draft_resume_and_finish_are_profile_owned(store, tmp_path, 
     assert stories.get_variables()["timezone_source"] == "host"
     assert "theme_mode" not in stories.get_variables()
     assert store.setup("alice")["completed"] is True
+    from app.services import settings_manager
+
+    saved_settings = []
+    class Settings:
+        def update_scope(self, scope, values, **kwargs):
+            saved_settings.append((scope, values, kwargs))
+
+    monkeypatch.setattr(settings_manager, "get_settings_manager", Settings)
+    await api.setup(request("POST", {
+        "save_profile": True,
+        "display_name": "New username",
+        "answers": {"email": "alice@example.invalid"},
+    }))
+    saved = store.setup("alice")
+    assert (saved["completed"], saved["step"], saved["story_id"]) == (True, 6, draft["story_id"])
+    assert stories.get_story(draft["story_id"])["responses"]["city"] == "Perth"
+    assert updates[-1] == ("alice", {"name": "New username"})
+    assert saved_settings == [("user", {"email": "alice@example.invalid", "displayName": "New username"}, {"profile_id": "alice"})]
 
 
 @pytest.mark.asyncio

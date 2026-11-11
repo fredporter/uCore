@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-
-from aiohttp import web
 from unittest.mock import patch
 
+from aiohttp import web
 from aiohttp.test_utils import AioHTTPTestCase
 
 from app.api.binder_api import (
@@ -217,6 +216,11 @@ class BinderAPITest(AioHTTPTestCase):
         accept_res = await resp.json()
         assert accept_res["accepted"] is True
         assert accept_res["edition"]["edition"] == 1
+
+        preview_response = await self.client.post(path, json={"edition": 1, "preview": True})
+        assert preview_response.status == 200
+        assert (await preview_response.json())["preview"]["edition"] == 1
+        assert not (self._temp_dir / "Public" / "editions" / "b-system-spec" / "receipt.json").exists()
 
         # 7. Publish edition
         resp = await self.client.post("/api/binder/b-system-spec/publish", json={

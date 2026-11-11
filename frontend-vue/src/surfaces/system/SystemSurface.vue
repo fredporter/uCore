@@ -134,13 +134,13 @@
         class="system-panel system-tab-shell"
       >
         <h3 class="surface__panel-title">Variables</h3>
-        <p class="system-muted-copy">User and installation variables.</p>
+        <p class="system-muted-copy">Advanced runtime variables. Manage your identity and preferences in Profiles.</p>
         <div v-if="loadingVars" class="system-loading">
           Loading variables...
         </div>
         <div v-else>
-          <h4 class="system-section-title">User Variables</h4>
-          <div class="system-table-wrap">
+          <h4 v-if="Object.keys(advancedUserVariables).length" class="system-section-title">User Variables</h4>
+          <div v-if="Object.keys(advancedUserVariables).length" class="system-table-wrap">
             <table class="system-table">
               <thead>
                 <tr>
@@ -151,7 +151,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(value, key) in userVariables" :key="key">
+                <tr v-for="(value, key) in advancedUserVariables" :key="key">
                   <td>
                     <code class="system-var-key">{{ key }}</code>
                   </td>
@@ -380,11 +380,15 @@
       >
         <h3 class="surface__panel-title">Profiles</h3>
         <p class="system-muted-copy">
-          Your local name, role and contact details.
+          Your username, publishing role and Setup Story details.
         </p>
         <div class="system-settings-form">
-          <div class="settings-row"><label for="profile-name">Name</label><input id="profile-name" type="text" v-model="userSettings.displayName" /></div>
-          <div class="settings-row"><label>Role</label><output>{{ identityStore.activeProfile?.role || 'user' }}</output></div>
+          <div class="settings-row"><label for="profile-name">Username</label><input id="profile-name" type="text" v-model="userSettings.displayName" /></div>
+          <div class="settings-row"><label>User role</label><output>{{ profileRole }}</output></div>
+          <div class="settings-row"><label>Location</label><output>{{ profileLocation || 'Set in Setup Story' }}</output></div>
+          <div class="settings-row"><label>Device timezone</label><output>{{ deviceTimezone }}</output></div>
+          <div v-if="identityStore.authenticated && identityStore.identity?.user_id" class="settings-row"><label>User ID</label><output class="profile-id">{{ identityStore.identity.user_id }}</output></div>
+          <div v-if="userVariables.cline_provider" class="settings-row"><label>Cline provider</label><output>{{ userVariables.cline_provider }}</output></div>
           <div v-if="identityStore.profiles.length>1" class="settings-row"><label for="profile-switch">Switch profile</label><select id="profile-switch" :value="identityStore.activeProfileId" @change="identityStore.switchProfile(($event.target as HTMLSelectElement).value)"><option v-for="profile in identityStore.profiles" :key="profile.id" :value="profile.id">{{ profile.name }}</option></select></div>
           <div class="settings-row">
             <label>Authentication</label>
@@ -421,11 +425,13 @@
             />
           </div>
         </div>
+        <p v-if="profileError" role="alert">{{ profileError }}</p>
         <button
           class="usx-btn system-save-settings-btn"
+          :disabled="savingProfile || !identityStore.authenticated || !userSettings.displayName.trim()"
           @click="saveUserSettings"
         >
-          Save User Settings
+          <UIcon name="arrow_forward" />{{ savingProfile ? "Saving…" : "Save and Open Setup Story" }}
         </button>
       </div>
     </div>
@@ -451,7 +457,7 @@ import { useRouter, useRoute } from "vue-router";
 import { useSettingsStore } from "../../stores/settings";
 import { useShellStore } from "../../stores/shell";
 import { useIdentityStore } from "../../stores/identity";
-import { SNACKBAR_BASE } from "../../api/base";
+import { SNACKBAR_BASE, UCORE_BASE } from "../../api/base";
 import {
   getCapabilitiesReadiness,
   type CapabilityReadinessSnapshot,
@@ -519,6 +525,10 @@ function goTo(path: string) {
 // ── Variables ────────────────────────────────────────────────────
 const loadingVars = ref(true);
 const userVariables = ref<Record<string, string>>({});
+const profileVariableKeys = new Set(["username", "role", "location", "timezone", "uid", "email", "cline_provider"]);
+const advancedUserVariables = computed<Record<string, string>>(() => Object.fromEntries(
+  Object.entries(userVariables.value).filter(([key]) => !profileVariableKeys.has(key)),
+));
 const installVariables = ref<Record<string, string>>({});
 const editingVar = ref<string | null>(null);
 const editVarValue = ref("");
@@ -627,29 +637,60 @@ const userSettings = reactive({
   email: "",
 });
 
-async function saveUserSettings() {
+const savingProfile = ref(false);
+const profileError = ref("");
+const profileLocation = ref("");
+const deviceTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const profileRole = computed(() => {
+  const role = identityStore.activeProfile?.role.toLowerCase();
+  if (!identityStore.authenticated || !role) return "—";
+  if (role === "wizard" || role === "owner") return "Wizard";
+  if (role === "sorcerer" || role === "sorceror") return "Sorcerer";
+  if (["knight", "user", "guest", "developer"].includes(role)) return "Knight";
+  return role;
+});
+
+watch([currentTab, () => identityStore.activeProfileId], async ([tab, profile], _old, onCleanup) => {
+  profileLocation.value = "";
+  if (tab !== "identity" || !profile) return;
+  const request = new AbortController();
+  onCleanup(() => request.abort());
+  void fetchVariables();
   try {
-    const profileId = identityStore.activeProfileId || "default";
-    const settingsResponse = await fetch(`${API_BASE}/api/system/settings`, {
+    const response = await fetch(`${UCORE_BASE}/api/connections`, { signal: request.signal });
+    if (!response.ok || request.signal.aborted) return;
+    const state = await response.json();
+    if (request.signal.aborted) return;
+    const story = state.setup_story?.responses || {};
+    const variables = state.user_profile || {};
+    profileLocation.value = [story.city ?? variables.city, story.country ?? variables.country].filter(Boolean).join(", ");
+  } catch {}
+}, { immediate: true });
+
+async function saveUserSettings() {
+  if (savingProfile.value || !identityStore.authenticated || !userSettings.displayName.trim()) return;
+  const profile = identityStore.activeProfileId;
+  savingProfile.value = true;
+  profileError.value = "";
+  try {
+    const response = await fetch(`${UCORE_BASE}/api/connections/setup`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Udos-Profile": profileId,
-      },
-      body: JSON.stringify({ scope: "user", values: { ...userSettings }, profile_id: profileId }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        save_profile: true,
+        display_name: userSettings.displayName,
+        answers: { email: userSettings.email },
+      }),
     });
-    if (!settingsResponse.ok) throw Error("Profile settings could not be saved");
-    if (userSettings.displayName) {
-      const identityResponse = await fetch(`${API_BASE}/api/identity/profile`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile_id: profileId, name: userSettings.displayName }),
-      });
-      if (!identityResponse.ok) throw Error("Name could not be saved");
-      await identityStore.load();
-    }
-    profileMessage.value="Profile saved";
-  } catch (error) { profileMessage.value=error instanceof Error?error.message:"Profile could not be saved"; }
+    if (!response.ok) throw Error(await response.text() || "Profile could not be saved");
+    if (identityStore.activeProfileId !== profile) return;
+    await identityStore.load();
+    if (identityStore.activeProfileId === profile) await router.push("/setup");
+  } catch (error) {
+    profileError.value = error instanceof Error ? error.message : "Profile could not be saved";
+  } finally {
+    savingProfile.value = false;
+  }
 }
 
 // ── Data Fetching ────────────────────────────────────────────────
@@ -1098,5 +1139,6 @@ watch(
 @media(max-width:30rem){.system-settings-form > .settings-row {grid-template-columns:8rem minmax(0,1fr);gap:8px;}}
 
 .settings-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}.settings-heading .usx-btn{min-height:32px;margin:0;padding:4px 8px;font-size:var(--usx-font-size-sm);}
+.profile-id{overflow-wrap:anywhere;}
 .profile-auth-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px;font-size:var(--usx-font-size-sm);}.profile-auth-row .system-action-btn{height:32px;min-height:32px;margin:0;padding:4px 8px;}.system-settings-form>.settings-row>label{margin:0;min-width:0;}.profile-auth-row span{font-size:inherit;}
 </style>

@@ -754,6 +754,39 @@ def accept_edition(binder_id: str, reviewer_notes: str = "") -> Dict[str, Any]:
     return manifest
 
 
+def preview_edition_links(binder_id: str, edition_num: int) -> Dict[str, Any]:
+    """Inspect links in an accepted snapshot without exporting it."""
+    from app.services.doclang_bridge import extract_sections, extract_wiki_links
+
+    if type(edition_num) is not int or edition_num < 1:
+        raise ValueError("Choose an accepted edition.")
+    edition_file = _binder_dir(binder_id) / "editions" / f"edition_{edition_num}.md"
+    manifest_file = edition_file.with_suffix(".manifest.json")
+    if (
+        not edition_file.resolve().is_relative_to(BINDERS_ROOT.resolve())
+        or not manifest_file.resolve().is_relative_to(BINDERS_ROOT.resolve())
+        or not edition_file.is_file()
+        or not manifest_file.is_file()
+    ):
+        raise FileNotFoundError("Accepted edition not found.")
+    markdown = edition_file.read_text(encoding="utf-8")
+    headings = [section for section in extract_sections(markdown) if section["heading"]]
+    links = []
+    for link in extract_wiki_links(markdown):
+        target = link["target"] or ""
+        note, _, heading = target.partition("#")
+        if note or not heading:
+            status = "outside_edition"
+        else:
+            candidates = [
+                section for section in headings
+                if heading.strip().casefold() in {section["heading"].casefold(), section["id"].casefold()}
+            ]
+            status = "heading_found" if len(candidates) == 1 else "ambiguous_heading" if candidates else "missing_heading"
+        links.append({**link, "status": status})
+    return {"edition": edition_num, "links": links}
+
+
 def publish_edition(
     binder_id: str,
     edition_num: Optional[int] = None,
@@ -770,7 +803,7 @@ def publish_edition(
     if edition_num is None:
         edition_num = meta.get("latest_edition")
 
-    if not edition_num:
+    if type(edition_num) is not int or edition_num < 1:
         raise ValueError(f"No accepted edition found to publish for binder '{binder_id}'.")
 
     edition_file = ed_dir / f"edition_{edition_num}.md"

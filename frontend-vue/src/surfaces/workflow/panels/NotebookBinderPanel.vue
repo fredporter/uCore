@@ -599,6 +599,10 @@
                   <span class="edition-badge">Edition {{ ed.edition }}</span>
                   <strong>{{ ed.file_name }}</strong>
                 </div>
+                <button class="usx-btn" type="button" :disabled="previewingEdition !== null"
+                  @click="reviewEditionLinks(ed.edition)">
+                  <UIcon name="link" />{{ previewingEdition === ed.edition ? 'Checking links…' : 'Review links' }}
+                </button>
                 <button
                   class="usx-btn usx-btn--primary wf-zen-primary"
                   type="button"
@@ -609,6 +613,15 @@
                   {{ publishingEdition === ed.edition ? 'Publishing...' : 'Publish Static Site' }}
                 </button>
               </div>
+              <section v-if="editionLinkPreview?.binder === selectedBinderId && editionLinkPreview.edition === ed.edition"
+                aria-label="Edition link preview">
+                <p v-if="!editionLinkPreview.links.length" role="status">No wiki links in this edition.</p>
+                <ul v-else>
+                  <li v-for="link in editionLinkPreview.links" :key="JSON.stringify(link)">
+                    {{ link.label || link.target }} · {{ linkPreviewLabels[link.status] }}
+                  </li>
+                </ul>
+              </section>
               <p class="edition-notes">"{{ ed.reviewer_notes }}"</p>
               <div class="edition-meta">
                 <span>SHA-256: <code>{{ ed.sha256 }}</code></span>
@@ -723,6 +736,15 @@ const loading = ref(false);
 const savingDraft = ref(false);
 const runningAssembly = ref(false);
 const acceptingEdition = ref(false);
+type EditionLinkStatus = "outside_edition" | "heading_found" | "ambiguous_heading" | "missing_heading";
+const linkPreviewLabels: Record<EditionLinkStatus, string> = {
+  outside_edition: "Outside this edition",
+  heading_found: "Heading found in source",
+  ambiguous_heading: "More than one matching heading",
+  missing_heading: "Heading missing",
+};
+const editionLinkPreview = ref<{ binder: string; edition: number; links: { target: string; label?: string; status: EditionLinkStatus }[] } | null>(null);
+const previewingEdition = ref<number | null>(null);
 const publishingEdition = ref<number | null>(null);
 const creating = ref(false);
 const authorisingRun = ref(false);
@@ -997,6 +1019,28 @@ async function acceptEdition() {
     errorMessage.value = e.message || String(e);
   } finally {
     acceptingEdition.value = false;
+  }
+}
+
+async function reviewEditionLinks(edition: number) {
+  const binder = selectedBinderId.value;
+  if (!binder || previewingEdition.value !== null) return;
+  previewingEdition.value = edition;
+  editionLinkPreview.value = null;
+  errorMessage.value = "";
+  try {
+    const response = await fetch(`/api/binder/${encodeURIComponent(binder)}/publish`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ edition, preview: true }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw Error(data.error || "Could not review edition links");
+    if (selectedBinderId.value === binder) editionLinkPreview.value = { binder, edition, links: data.preview.links };
+  } catch (error) {
+    if (selectedBinderId.value === binder) errorMessage.value = error instanceof Error ? error.message : "Could not review edition links";
+  } finally {
+    previewingEdition.value = null;
   }
 }
 
