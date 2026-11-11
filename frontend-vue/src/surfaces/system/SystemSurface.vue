@@ -393,14 +393,13 @@
           <div class="settings-row">
             <label>Authentication</label>
             <div class="profile-auth-row">
-              <span :style="{ color: identityStore.authenticated ? 'var(--usx-color-success, #22c55e)' : 'var(--usx-color-danger, #ef4444)', fontWeight: 600 }">
+              <span class="profile-auth-status" :class="identityStore.authenticated ? 'profile-auth-status--signed-in' : 'profile-auth-status--signed-out'">
                 {{ identityStore.authenticated ? 'Signed in' : 'Signed out' }}
               </span>
               <button
                 v-if="identityStore.authenticated"
                 type="button"
-                class="system-action-btn"
-                style="padding: 4px 12px; font-size: 13px;"
+                class="usx-btn usx-btn--secondary"
                 @click="identityStore.logout()"
               >
                 Log Out
@@ -408,8 +407,7 @@
               <button
                 v-else
                 type="button"
-                class="system-action-btn"
-                style="padding: 4px 12px; font-size: 13px;"
+                class="usx-btn usx-btn--primary"
                 @click="identityStore.login('default')"
               >
                 Log In
@@ -417,15 +415,16 @@
             </div>
           </div>
           <div class="settings-row">
-            <label>Email</label
-            ><input
+            <label for="profile-email">Email</label>
+            <input
+              id="profile-email"
               type="email"
               v-model="userSettings.email"
               placeholder="user@example.com"
             />
           </div>
         </div>
-        <p v-if="profileError" role="alert">{{ profileError }}</p>
+        <p v-if="profileError" role="alert" class="profile-error">{{ profileError }}</p>
         <button
           class="usx-btn system-save-settings-btn"
           :disabled="savingProfile || !identityStore.authenticated || !userSettings.displayName.trim()"
@@ -1140,5 +1139,12 @@ watch(
 
 .settings-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}.settings-heading .usx-btn{min-height:32px;margin:0;padding:4px 8px;font-size:var(--usx-font-size-sm);}
 .profile-id{overflow-wrap:anywhere;}
-.profile-auth-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px;font-size:var(--usx-font-size-sm);}.profile-auth-row .system-action-btn{height:32px;min-height:32px;margin:0;padding:4px 8px;}.system-settings-form>.settings-row>label{margin:0;min-width:0;}.profile-auth-row span{font-size:inherit;}
+.profile-auth-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px;font-size:var(--usx-font-size-sm);}
+.profile-auth-row .usx-btn{min-height:32px;margin:0;padding:4px 12px;font-size:var(--usx-font-size-sm);}
+.profile-auth-status{font-weight:var(--usx-font-weight-semibold);font-size:inherit;}
+.profile-auth-status--signed-in{color:var(--usx-color-success);}
+.profile-auth-status--signed-out{color:var(--usx-color-danger);}
+.profile-error{color:var(--usx-color-danger);font-size:var(--usx-font-size-sm);margin:var(--usx-spacing-xs) 0 0;}
+.system-settings-form>.settings-row>label{margin:0;min-width:0;}
+.system-settings-form>.settings-row>output{font-size:var(--usx-font-size-sm);color:var(--usx-color-on-surface);line-height:1.4;}
 </style>

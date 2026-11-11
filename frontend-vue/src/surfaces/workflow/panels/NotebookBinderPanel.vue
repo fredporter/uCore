@@ -614,13 +614,27 @@
                 </button>
               </div>
               <section v-if="editionLinkPreview?.binder === selectedBinderId && editionLinkPreview.edition === ed.edition"
-                aria-label="Edition link preview">
-                <p v-if="!editionLinkPreview.links.length" role="status">No wiki links in this edition.</p>
-                <ul v-else>
-                  <li v-for="link in editionLinkPreview.links" :key="JSON.stringify(link)">
-                    {{ link.label || link.target }} · {{ linkPreviewLabels[link.status] }}
-                  </li>
-                </ul>
+                aria-label="Edition link preview"
+                class="edition-link-preview">
+                <header class="edition-link-preview__header">
+                  <strong>Link manifest preview</strong>
+                  <span class="edition-link-preview__count">{{ editionLinkPreview.links.length }} link{{ editionLinkPreview.links.length === 1 ? '' : 's' }}</span>
+                </header>
+                <p v-if="!editionLinkPreview.links.length" role="status" class="edition-link-preview__empty">
+                  <UIcon name="info" :size="16" /> No wiki links in this edition.
+                </p>
+                <div v-else class="edition-link-preview__list">
+                  <div v-for="link in editionLinkPreview.links" :key="JSON.stringify(link)" class="edition-link-item">
+                    <span class="edition-link-item__target">
+                      <UIcon name="link" :size="16" />
+                      <code>{{ link.label || link.target }}</code>
+                    </span>
+                    <span class="edition-link-item__badge" :class="`edition-link-item__badge--${link.status}`">
+                      <UIcon :name="linkStatusIcon(link.status)" :size="14" />
+                      {{ linkPreviewLabels[link.status] }}
+                    </span>
+                  </div>
+                </div>
               </section>
               <p class="edition-notes">"{{ ed.reviewer_notes }}"</p>
               <div class="edition-meta">
@@ -743,6 +757,15 @@ const linkPreviewLabels: Record<EditionLinkStatus, string> = {
   ambiguous_heading: "More than one matching heading",
   missing_heading: "Heading missing",
 };
+function linkStatusIcon(status: EditionLinkStatus): string {
+  switch (status) {
+    case "heading_found": return "check_circle";
+    case "outside_edition": return "open_in_new";
+    case "ambiguous_heading": return "warning";
+    case "missing_heading": return "error_outline";
+    default: return "help_outline";
+  }
+}
 const editionLinkPreview = ref<{ binder: string; edition: number; links: { target: string; label?: string; status: EditionLinkStatus }[] } | null>(null);
 const previewingEdition = ref<number | null>(null);
 const publishingEdition = ref<number | null>(null);
@@ -1719,52 +1742,158 @@ onMounted(() => {
 
 .notes-input {
   flex: 1;
-  background: #0f172a;
-  color: #f8fafc;
-  border: 1px solid var(--border-subtle, #334155);
-  border-radius: 6px;
+  background: var(--usx-color-background);
+  color: var(--usx-color-on-surface);
+  border: 1px solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
   padding: 0.5rem 0.75rem;
 }
 
 .edition-card {
-  border: 1px solid var(--border-subtle, #334155);
-  border-radius: 8px;
-  padding: 1rem;
-  margin-top: 0.75rem;
+  border: 1px solid var(--usx-color-border);
+  background: var(--usx-color-surface);
+  border-radius: var(--usx-radius-md, 8px);
+  padding: var(--usx-spacing-md);
+  margin-top: var(--usx-spacing-sm);
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--usx-spacing-sm);
 }
 
 .edition-card__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-sm);
 }
 
 .edition-badge {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  margin-right: 0.5rem;
+  background: color-mix(in srgb, var(--usx-color-success) 16%, transparent);
+  color: var(--usx-color-success);
+  padding: 2px 8px;
+  border-radius: var(--usx-radius-sm, 4px);
+  font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-semibold);
+  margin-right: var(--usx-spacing-xs);
+}
+
+.edition-link-preview {
+  margin-top: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  background: var(--usx-color-background);
+  border: 1px solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm, 6px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-xs);
+}
+
+.edition-link-preview__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-bottom: var(--usx-spacing-xs);
+  border-bottom: 1px solid var(--usx-color-border);
+}
+
+.edition-link-preview__count {
+  font-family: var(--usx-font-family-mono);
+}
+
+.edition-link-preview__empty {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  margin: var(--usx-spacing-xs) 0;
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.edition-link-preview__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usx-spacing-xs);
+}
+
+.edition-link-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xs) 0;
+  font-size: var(--usx-font-size-sm);
+  border-bottom: 1px dashed var(--usx-color-border);
+}
+
+.edition-link-item:last-child {
+  border-bottom: none;
+}
+
+.edition-link-item__target {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  min-width: 0;
+}
+
+.edition-link-item__target code {
+  font-family: var(--usx-font-family-mono);
+  font-size: var(--usx-font-size-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edition-link-item__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--usx-font-size-xs);
+  font-weight: var(--usx-font-weight-medium);
+  padding: 2px 8px;
+  border-radius: var(--usx-radius-sm, 4px);
+  white-space: nowrap;
+}
+
+.edition-link-item__badge--heading_found {
+  background: color-mix(in srgb, var(--usx-color-success) 16%, transparent);
+  color: var(--usx-color-success);
+}
+
+.edition-link-item__badge--outside_edition {
+  background: color-mix(in srgb, var(--usx-color-secondary) 16%, transparent);
+  color: var(--usx-color-on-surface-muted);
+}
+
+.edition-link-item__badge--ambiguous_heading {
+  background: color-mix(in srgb, var(--usx-color-warning) 16%, transparent);
+  color: var(--usx-color-warning);
+}
+
+.edition-link-item__badge--missing_heading {
+  background: color-mix(in srgb, var(--usx-color-danger) 16%, transparent);
+  color: var(--usx-color-danger);
 }
 
 .edition-meta {
   display: flex;
-  gap: 1.5rem;
-  font-size: 0.75rem;
-  color: var(--text-muted, #94a3b8);
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-md);
+  font-size: var(--usx-font-size-xs);
+  color: var(--usx-color-on-surface-muted);
 }
 
 .publication-receipt-card {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 8px;
-  padding: 1.25rem;
-  margin-top: 1rem;
+  background: color-mix(in srgb, var(--usx-color-success) 8%, var(--usx-color-surface));
+  border: 1px solid color-mix(in srgb, var(--usx-color-success) 30%, var(--usx-color-border));
+  border-radius: var(--usx-radius-md, 8px);
+  padding: var(--usx-spacing-md);
+  margin-top: var(--usx-spacing-md);
 }
 
 .modal-backdrop {

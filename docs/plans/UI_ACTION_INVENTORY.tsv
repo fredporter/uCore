@@ -661,8 +661,8 @@ src/surfaces/system/SystemSurface.vue	316	button	Delete	click: deleteSecret(secr
 src/surfaces/system/SystemSurface.vue	366	button	Save Global Settings	click: saveGlobalSettings		bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/SystemSurface.vue	392	select	{{ profile.name }}	change: identityStore.switchProfile(($event.target as HTMLSelectElement).value)		bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/SystemSurface.vue	399	button	Log Out	click: identityStore.logout()		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/SystemSurface.vue	408	button	Log In	click: identityStore.login('default')		bound; outcome needs verification	not exercised by static audit
-src/surfaces/system/SystemSurface.vue	429	button	{{ savingProfile ? "Saving…" : "Save and Open Setup Story" }}	click: saveUserSettings	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/SystemSurface.vue	407	button	Log In	click: identityStore.login('default')		bound; outcome needs verification	not exercised by static audit
+src/surfaces/system/SystemSurface.vue	428	button	{{ savingProfile ? "Saving…" : "Save and Open Setup Story" }}	click: saveUserSettings	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/UserSetupSurface.vue	3	button	Do this later	click: later	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/UserSetupSurface.vue	6	StoryWizard	Username Email These details stay in your local profile. You can change them later. uDOS uses grid-based locations. Your timezone suggests a place once; choose 	update:model-value: move | finish: finish		bound; outcome needs verification	not exercised by static audit
 src/surfaces/system/UserSetupSurface.vue	7	input		keydown: move(1)		bound; outcome needs verification	not exercised by static audit
@@ -822,15 +822,15 @@ src/surfaces/workflow/panels/FeedsPanel.vue	33	UButton	{{ syncing ? 'Syncing…'
 src/surfaces/workflow/panels/FeedsPanel.vue	48	button	Close details	click: viewedRecord=null		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/FeedsPanel.vue	51	button	{{ item.title || item.type }} {{ item.source }} · {{ formatDate(item.timestamp) }}	click: openFeedRecord(item)		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/FeedsPanel.vue	58	button	Add to tasks	click: toTask(item)		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/MissionControlPanel.vue	4	form	Your objective Set mission	submit: create		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/MissionControlPanel.vue	6	button	Set mission	form: submit: create	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/MissionControlPanel.vue	10	select	All missions item.status !== 'archived')" :key="mission.id" :value="mission.id">{{ mission.title }} · {{ mission.status }}	change: wf.selectMission(($event.target as HTMLSelectElement).value)		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/MissionControlPanel.vue	15	button	Tasks	click: wf.setTab('tasks')		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/MissionControlPanel.vue	15	button	Queue	click: wf.setTab('queue')		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/MissionControlPanel.vue	15	button	{{ selectedMission.status === 'completed' ? 'Reopen mission' : 'Complete mission' }}	click: setStatus(selectedMission.status === 'completed' ? 'active' : 'completed')	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/MissionControlPanel.vue	17	select	Choose when ready {{ binder.title || binder.id }}	change: linkBinder(($event.target as HTMLSelectElement).value)	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/MissionControlPanel.vue	19	button	New Binder for materials	click: wf.binderCreateRequested = true		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/MissionControlPanel.vue	22	button	{{ nextTask.title }}	click: wf.openTask(nextTask)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/MissionControlPanel.vue	7	form	Your objective Set mission	submit: create		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/MissionControlPanel.vue	17	button	Set mission	form: submit: create	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/MissionControlPanel.vue	25	select	All missions item.status !== 'archived')" :key="mission.id" :value="mission.id"> {{ mission.title }} · {{ mission.status }}	change: wf.selectMission(($event.target as HTMLSelectElement).value)		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/MissionControlPanel.vue	36	button	Tasks	click: wf.setTab('tasks')		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/MissionControlPanel.vue	37	button	Queue	click: wf.setTab('queue')		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/MissionControlPanel.vue	38	button	{{ selectedMission.status === 'completed' ? 'Reopen mission' : 'Complete mission' }}	click: setStatus(selectedMission.status === 'completed' ? 'active' : 'completed')	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/MissionControlPanel.vue	44	select	Choose when ready {{ binder.title || binder.id }}	change: linkBinder(($event.target as HTMLSelectElement).value)	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/MissionControlPanel.vue	49	button	New Binder for materials	click: wf.binderCreateRequested = true		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/MissionControlPanel.vue	58	button	{{ nextTask.title }}	click: wf.openTask(nextTask)		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	28	button	New Binder	click: showCreateModal = true		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	45	section	Tasks in this binder {{ relatedTasks.filter(task => task.status === 'completed').length }} of {{ relatedTasks.length }} done View tasks Add task Open draft in E	dragover:  | drop: dropRelatedTask		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	47	button	View tasks	click: wf.showList('', selectedBinderId)		bound; outcome needs verification	not exercised by static audit
@@ -871,15 +871,15 @@ src/surfaces/workflow/panels/NotebookBinderPanel.vue	552	button	Create a task fr
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	581	button	{{ acceptingEdition ? 'Accepting...' : 'Accept Edition' }}	click: acceptEdition	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	602	button	{{ previewingEdition === ed.edition ? 'Checking links…' : 'Review links' }}	click: reviewEditionLinks(ed.edition)	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	606	button	{{ publishingEdition === ed.edition ? 'Publishing...' : 'Publish Static Site' }}	click: publishEdition(ed.edition)	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/NotebookBinderPanel.vue	645	a	{{ publicationReceipt.output_url }}	href: publicationReceipt.output_url		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/NotebookBinderPanel.vue	655	div	Record Architectural Decision Decision Title Status Accepted Rejected Superseded Rationale / Architecture Context Cancel Save Decision	click: showAddDecisionModal = false		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/NotebookBinderPanel.vue	659	button		click: showAddDecisionModal = false		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/NotebookBinderPanel.vue	677	button	Cancel	click: showAddDecisionModal = false		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/NotebookBinderPanel.vue	678	button	Save Decision	click: addDecision	conditional/static	bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/NotebookBinderPanel.vue	686	div	New Binder Name About this collection (optional) Audience Cancel {{ creating ? 'Creating...' : 'Create Binder' }}	click: showCreateModal = false		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/NotebookBinderPanel.vue	690	button		click: showCreateModal = false		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/NotebookBinderPanel.vue	704	button	Cancel	click: showCreateModal = false		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/NotebookBinderPanel.vue	705	button	{{ creating ? 'Creating...' : 'Create Binder' }}	click: createBinder	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/NotebookBinderPanel.vue	659	a	{{ publicationReceipt.output_url }}	href: publicationReceipt.output_url		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/NotebookBinderPanel.vue	669	div	Record Architectural Decision Decision Title Status Accepted Rejected Superseded Rationale / Architecture Context Cancel Save Decision	click: showAddDecisionModal = false		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/NotebookBinderPanel.vue	673	button		click: showAddDecisionModal = false		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/NotebookBinderPanel.vue	691	button	Cancel	click: showAddDecisionModal = false		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/NotebookBinderPanel.vue	692	button	Save Decision	click: addDecision	conditional/static	bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/NotebookBinderPanel.vue	700	div	New Binder Name About this collection (optional) Audience Cancel {{ creating ? 'Creating...' : 'Create Binder' }}	click: showCreateModal = false		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/NotebookBinderPanel.vue	704	button		click: showCreateModal = false		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/NotebookBinderPanel.vue	718	button	Cancel	click: showCreateModal = false		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/NotebookBinderPanel.vue	719	button	{{ creating ? 'Creating...' : 'Create Binder' }}	click: createBinder	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/PublishPanel.vue	17	button	Local site	click: destination = 'jekyll'		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/PublishPanel.vue	18	button	Markdown library	click: destination = 'library'		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/PublishPanel.vue	19	button	Connect a cloud publishing provider		conditional/static	disabled; review availability	not exercised by static audit
@@ -913,7 +913,8 @@ src/surfaces/workflow/panels/TasksPanel.vue	246	button	Check for New Messages	cl
 src/surfaces/workflow/panels/TasksPanel.vue	274	button	Extract action and add as Workflow Task	click: convertInboundToTask(item)		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/TasksPanel.vue	283	button	Flag email in Apple Mail	click: flagMail(item)		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/TasksPanel.vue	291	button	Archive email in Apple Mail	click: archiveMail(item)		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/WorkflowDashboardPanel.vue	5	button	Binder materials Review briefs, drafts and sources.	click: openPanel('binder')		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/WorkflowDashboardPanel.vue	11	button	Research Collect findings in a Binder.	click: openPanel('research')		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/WorkflowDashboardPanel.vue	5	button	Binder materials Review briefs, drafts and sources.	click: togglePanel('binder')		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/WorkflowDashboardPanel.vue	18	button	Research Collect findings in a Binder.	click: togglePanel('research')		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/WorkflowDashboardPanel.vue	44	button	Close	click: activePanel = null		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/WorkflowQueuePanel.vue	3	button	Refresh workflow runs	click: refresh	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/WorkflowQueuePanel.vue	4	button	!['completed', 'archived', 'cancelled', 'superseded'].includes(item.status))" :key="task.id" class="usx-btn queue-run" @click="wf.openTask(task)">{{ task.title 	click: wf.openTask(task)		bound; outcome needs verification	not exercised by static audit
