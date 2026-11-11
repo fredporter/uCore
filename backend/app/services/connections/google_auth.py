@@ -7,6 +7,7 @@ import hashlib
 import json
 import secrets
 import time
+from threading import Lock
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -21,6 +22,7 @@ SCOPES = {
     "mail": "https://www.googleapis.com/auth/gmail.modify",
 }
 _PENDING = {}
+_CREDENTIAL_LOCK = Lock()
 
 
 def request_json(url, *, method="GET", data=None, headers=None, form=False):
@@ -103,17 +105,18 @@ def start(connection, redirect):
     kinds = connection["config"]["collections"]
     if not kinds:
         raise ValueError("Choose collections before signing in")
-    current = time.time()
-    for old in list(_PENDING):
-        if _PENDING[old]["expires"] < current:
-            del _PENDING[old]
-    state, verifier = secrets.token_urlsafe(32), secrets.token_urlsafe(48)
-    _PENDING[state] = {
-        "connection": connection,
-        "verifier": verifier,
-        "redirect": redirect,
-        "expires": current + 600,
-    }
+    with _CREDENTIAL_LOCK:
+        current = time.time()
+        for old in list(_PENDING):
+            if _PENDING[old]["expires"] < current:
+                del _PENDING[old]
+        state, verifier = secrets.token_urlsafe(32), secrets.token_urlsafe(48)
+        _PENDING[state] = {
+            "connection": connection,
+            "verifier": verifier,
+            "redirect": redirect,
+            "expires": current + 600,
+        }
     challenge = (
         base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
     )
@@ -133,9 +136,13 @@ def start(connection, redirect):
 
 
 def finish(state, code):
-    pending = _PENDING.pop(state, None)
-    if not pending or pending["expires"] < time.time():
-        raise ValueError("Sign-in expired; start again from Connections")
+    with _CREDENTIAL_LOCK:
+        pending = _PENDING.get(state)
+        if not pending or pending.get("claimed") or pending["expires"] < time.time():
+            if pending and pending["expires"] < time.time():
+                _PENDING.pop(state, None)
+            raise ValueError("Sign-in expired; start again from Connections")
+        pending["claimed"] = True
     connection = pending["connection"]
     result = request_json(
         "https://oauth2.googleapis.com/token",
@@ -161,11 +168,30 @@ def finish(state, code):
     )
     from .store import CollectionStore
 
-    CollectionStore().health(connection["id"], account=account.get("email", "Google account"))
-    result["expires_at"] = time.time() + result.get("expires_in", 3600)
-    get_store().set(secret_key(connection), json.dumps(result))
-    get_store().save()
+    with _CREDENTIAL_LOCK:
+        if _PENDING.pop(state, None) is not pending or pending["expires"] < time.time():
+            raise ValueError("Sign-in expired or was cancelled")
+        store = CollectionStore()
+        if not store.connection(connection["profile"], connection["id"]):
+            raise ValueError("Connection no longer exists")
+        result["expires_at"] = time.time() + result.get("expires_in", 3600)
+        credentials = get_store()
+        credentials.set(secret_key(connection), json.dumps(result))
+        credentials.save()
+        store.health(connection["id"], account=account.get("email", "Google account"), state="scope_required", error="")
     return connection
+
+
+def disconnect_credentials(connection):
+    """Cancel pending sign-ins and remove credentials in one critical section."""
+    key = secret_key(connection)
+    with _CREDENTIAL_LOCK:
+        for state, pending in list(_PENDING.items()):
+            if secret_key(pending["connection"]) == key:
+                del _PENDING[state]
+        credentials = get_store()
+        credentials.delete(key)
+        credentials.save()
 
 
 def access_token(connection):
@@ -176,6 +202,7 @@ def access_token(connection):
     if not required <= set(value.get("scope", "").split()):
         raise RuntimeError("Reconnect Google to authorize the selected collections")
     if value.get("expires_at", 0) < time.time() + 60:
+        original = value.copy()
         result = request_json(
             "https://oauth2.googleapis.com/token",
             method="POST",
@@ -188,6 +215,9 @@ def access_token(connection):
         )
         value.update(result)
         value["expires_at"] = time.time() + result.get("expires_in", 3600)
-        get_store().set(secret_key(connection), json.dumps(value))
-        get_store().save()
+        with _CREDENTIAL_LOCK:
+            if token_data(connection) != original:
+                raise RuntimeError("Google credentials changed; retry the connection")
+            get_store().set(secret_key(connection), json.dumps(value))
+            get_store().save()
     return value["access_token"]

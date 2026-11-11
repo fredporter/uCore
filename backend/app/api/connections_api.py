@@ -10,7 +10,7 @@ from aiohttp import web
 
 from app.services.connections.engine import SyncEngine
 from app.services.connections.providers import provider_capabilities
-from app.services.connections.google_auth import finish, secret_key, start
+from app.services.connections.google_auth import disconnect_credentials, finish, start
 from app.services.connections.reconcile import duplicate_candidates
 from app.services.connections.store import CollectionStore
 from app.services.identity import get_full_identity
@@ -287,11 +287,7 @@ async def action(request):
                 connection["id"],
             )
             if connection["provider"] == "google":
-                from app.secret.store import get_store
-
-                secrets = get_store()
-                secrets.delete(secret_key(connection))
-                secrets.save()
+                disconnect_credentials(connection)
             store.health(connection["id"], state="disconnected", error="")
             return web.json_response({"state": "disconnected"})
         if command == "link":
@@ -312,13 +308,9 @@ async def action(request):
 async def callback(request):
     # State is short-lived, one-use, and bound to a profile + connection + PKCE verifier.
     try:
-        connection = await asyncio.to_thread(
+        await asyncio.to_thread(
             finish, request.query.get("state", ""), request.query.get("code", "")
         )
-        store = CollectionStore()
-        if not store.connection(connection["profile"], connection["id"]):
-            raise ValueError("Connection no longer exists")
-        store.health(connection["id"], state="scope_required", error="")
         return web.Response(
             text="Google connected. Return to uCore Settings → Connections to choose lists and enable sync."
         )

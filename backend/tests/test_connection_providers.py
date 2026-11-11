@@ -142,3 +142,40 @@ def test_capabilities_do_not_claim_readiness_or_mail_creation():
     assert not apple["adapter_available"]
     assert all(not item["read"] and not item["update"] for item in apple["collections"].values())
     assert provider_capabilities("linux", host_platform="Linux")["collections"] == {}
+
+
+@pytest.mark.parametrize("operation", ["callback", "refresh"])
+def test_disconnect_during_token_exchange_cannot_restore_credentials(monkeypatch, operation):
+    from app.services.connections import google_auth as auth
+
+    connection = {"id": "race", "profile": "alice", "config": {"collections": {"tasks": {}}}}
+    key = auth.secret_key(connection)
+    credentials = {key: json.dumps({"refresh_token": "old", "scope": auth.SCOPES["tasks"]})}
+
+    class Store:
+        get = credentials.get
+        set = credentials.__setitem__
+        def delete(self, name):
+            credentials.pop(name, None)
+        def save(self):
+            pass
+
+    def exchange(url, **kwargs):
+        if url.endswith("/token"):
+            auth.disconnect_credentials(connection)
+            return {"access_token": "new", "refresh_token": "new", "scope": auth.SCOPES["tasks"]}
+        return {"email": "fixture@example.invalid"}
+
+    monkeypatch.setattr(auth, "AESGCM", object())
+    monkeypatch.setattr(auth, "get_store", Store)
+    monkeypatch.setattr(auth, "client", lambda: {"client_id": "fixture"})
+    monkeypatch.setattr(auth, "request_json", exchange)
+    if operation == "callback":
+        url = auth.start(connection, "http://127.0.0.1:8484/api/connections/google/callback")
+        state = parse_qs(urlparse(url).query)["state"][0]
+        with pytest.raises(ValueError, match="cancelled"):
+            auth.finish(state, "fixture")
+    else:
+        with pytest.raises(RuntimeError, match="credentials changed"):
+            auth.access_token(connection)
+    assert key not in credentials
