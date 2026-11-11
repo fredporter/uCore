@@ -22,6 +22,7 @@ from app.api.binder_api import (
     handle_binder_intake,
     handle_binder_list,
     handle_binder_publish,
+    handle_binder_rename,
     handle_binder_resume,
     handle_binder_run,
     handle_binder_section_update,
@@ -65,6 +66,7 @@ class BinderAPITest(AioHTTPTestCase):
         app.router.add_get("/api/binder/{binder_id}/decisions", handle_binder_decisions_get)
         app.router.add_post("/api/binder/{binder_id}/decisions", handle_binder_decisions_post)
         app.router.add_patch("/api/binder/{binder_id}/draft", handle_binder_draft_update)
+        app.router.add_patch("/api/binder/{binder_id}/title", handle_binder_rename)
         app.router.add_patch("/api/binder/{binder_id}/section/{req_id}", handle_binder_section_update)
         app.router.add_post("/api/binder/{binder_id}/accept", handle_binder_accept)
         app.router.add_post("/api/binder/{binder_id}/publish", handle_binder_publish)
@@ -97,6 +99,14 @@ class BinderAPITest(AioHTTPTestCase):
         bdata = await resp.json()
         assert bdata["binder"]["metadata"]["title"] == "System Specification"
         orig_hash = bdata["binder"]["draft_sha256"]
+
+        rename = await self.client.patch("/api/binder/b-system-spec/title", json={"title": "Reviewed specification"})
+        assert rename.status == 200
+        reread = await self.client.get("/api/binder/b-system-spec")
+        persisted = (await reread.json())["binder"]
+        assert persisted["metadata"]["id"] == "b-system-spec"
+        assert persisted["metadata"]["title"] == "Reviewed specification"
+        assert persisted["draft_sha256"] == orig_hash
 
         # 3. Intake document as source
         resp = await self.client.post("/api/binder/b-system-spec/intake", json={

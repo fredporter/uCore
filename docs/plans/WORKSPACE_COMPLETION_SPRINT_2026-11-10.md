@@ -65,3 +65,12 @@ Google Tasks Drone checkpoint. Enrollment, preview, expiry and revocation run in
 | 4. Platform and release review | Check Apple native permissions using disposable lists. Check Linux unsupported states and bookmark exchange. Review artifacts and branch CI, and confirm legacy link routing. | Record platform evidence, remote branch SHAs and remaining gates before release. |
 
 Live fixtures must be identifiable as disposable before exercising account changes. The automated round uses simulated provider requests. Remote Drone enrollment and authenticated profile switching are a separate security qualification.
+
+## Qualification follow-up
+
+- PR #43 passed Planning Governance, Backend Tests and Frontend Build at `0fa7571`. The follow-up commit adds browser and Binder API qualification.
+- Twelve Chromium fixture cases passed at 390, 548 and 1280 px in both themes. They cover Binder rename failure, retry and reload, populated Mission Control, task creation, Queue and Editor navigation. The disposable Binder HTTP lifecycle also verifies the persisted title, stable ID and unchanged draft hash.
+- Optional source suites passed for uCore-Google (8), uVector offline Rust (26), SnackMachine (3) and uCode2 (6). Installation, removal and target platform qualification still require packaged artifacts and environments.
+- uCore-Publish branch `feat/wordpress-post-transport` adds an opt-in HTTPS transport for post creation. Eleven tests passed. Staging delivery, caller authorization and destination review remain necessary before runtime exposure.
+- Global Knowledge branch `plan/selective-canon-reconciliation` passed relative link checks and maintainer wording review. Distribution provenance for the recovered corpus remains a per-item gate. No recovered corpus content is part of the proposal.
+- Live Google, Apple and WordPress qualification awaits identified disposable fixtures. Linux native adapters, independent local profile authentication and remote Drone enrollment remain open engineering work.

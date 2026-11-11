@@ -8,7 +8,7 @@ Updated 2026-11-10. Owner: uCore documentation; workflow contracts belong to uFl
 - **Find your files.** Open Settings → Apps → Vault to use the shared Vault sidebar. Use Knowledge for the installed Global Knowledge baseline and any Shared or Vault overlays. Keep personal edits in Vault or in a Shared collection you manage.
 - **Connect an account.** Choose Google or Apple in Settings → Apps. Select the lists and sync direction in Connection settings. Use **Browse synced records** for an account's read-only snapshots. Legacy Snackbar collection links open the corresponding Vault view.
 - **Exchange files on Linux.** Use Apps to import or export bookmark HTML. Evolution and Thunderbird manage their own accounts. Check the workspace's adapter status before configuring sync.
-- **Prepare an edition.** Gather the selected material in a Binder and export locally. Review the audience, provenance and permissions before releasing it. The WordPress cloud adapter reports unavailable until a transport is implemented.
+- **Prepare an edition.** Gather the selected material in a Binder and export locally. Review the audience, provenance and permissions before releasing it. uCore-Publish has an opt-in WordPress post transport for reviewed editions. Staging qualification and runtime integration remain open.
 
 ## Target role permission matrix
 
