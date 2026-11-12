@@ -670,7 +670,7 @@
         <div class="modal-card">
           <header class="modal-header">
             <h3>Record Architectural Decision</h3>
-            <button type="button" @click="showAddDecisionModal = false"><UIcon name="close" /></button>
+            <button class="usx-btn usx-btn--ghost" type="button" aria-label="Close" @click="showAddDecisionModal = false"><UIcon name="close" /></button>
           </header>
           <div class="modal-body">
             <label>Decision Title
@@ -688,7 +688,7 @@
             </label>
           </div>
           <footer class="modal-footer">
-            <button class="wf-zen-secondary" type="button" @click="showAddDecisionModal = false">Cancel</button>
+            <button class="usx-btn wf-zen-secondary" type="button" @click="showAddDecisionModal = false">Cancel</button>
             <button class="usx-btn usx-btn--primary wf-zen-primary" type="button" :disabled="!newDecision.title.trim()" @click="addDecision">
               Save Decision
             </button>
@@ -701,7 +701,7 @@
         <div class="modal-card">
           <header class="modal-header">
             <h3>New Binder</h3>
-            <button type="button" @click="showCreateModal = false"><UIcon name="close" /></button>
+            <button class="usx-btn usx-btn--ghost" type="button" aria-label="Close" @click="showCreateModal = false"><UIcon name="close" /></button>
           </header>
           <div class="modal-body">
             <label>Name
@@ -715,7 +715,7 @@
             </label>
           </div>
           <footer class="modal-footer">
-            <button class="wf-zen-secondary" type="button" @click="showCreateModal = false">Cancel</button>
+            <button class="usx-btn wf-zen-secondary" type="button" @click="showCreateModal = false">Cancel</button>
             <button class="usx-btn usx-btn--primary wf-zen-primary" type="button" :disabled="creating" @click="createBinder">
               {{ creating ? 'Creating...' : 'Create Binder' }}
             </button>

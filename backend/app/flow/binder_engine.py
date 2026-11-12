@@ -817,12 +817,36 @@ def publish_edition(
     # Sanitize draft: remove internal comment section markers while preserving content & citations
     clean_md = re.sub(r"<!--\s*section:\s*[\w\-]+\s*-->\n?", "", raw_md)
 
+    # Rewrite in-edition links to valid markdown anchors; sanitize non-edition links
+    from app.services.doclang_bridge import extract_sections
+
+    headings = [section for section in extract_sections(clean_md) if section["heading"]]
+
+    def _rewrite_link(m: re.Match) -> str:
+        content = m.group(1).strip()
+        target, _, label = content.partition("|")
+        target = target.strip()
+        label = label.strip()
+        note, _, heading = target.partition("#")
+        if not note and heading:
+            candidates = [
+                s for s in headings
+                if heading.casefold() in {s["heading"].casefold(), s["id"].casefold()}
+            ]
+            if len(candidates) == 1:
+                anchor = candidates[0]["id"]
+                return f"[{label or heading}](#{anchor})"
+        return label or target
+
+    clean_md = re.sub(r"\[\[([^\]\n]+)\]\]", _rewrite_link, clean_md)
+
     # Convert to standalone HTML
     try:
         import markdown
         html_body = markdown.markdown(clean_md, extensions=["tables", "fenced_code"])
     except Exception:
-        html_body = f"<pre>{clean_md}</pre>"
+        from app.services.docs_publish import markdown_to_html
+        html_body = markdown_to_html(clean_md)
 
     title = meta.get("title", f"Edition {edition_num}")
     standalone_html = f"""<!DOCTYPE html>

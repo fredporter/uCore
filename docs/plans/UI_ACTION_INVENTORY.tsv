@@ -873,11 +873,11 @@ src/surfaces/workflow/panels/NotebookBinderPanel.vue	602	button	{{ previewingEdi
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	606	button	{{ publishingEdition === ed.edition ? 'Publishing...' : 'Publish Static Site' }}	click: publishEdition(ed.edition)	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	659	a	{{ publicationReceipt.output_url }}	href: publicationReceipt.output_url		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	669	div	Record Architectural Decision Decision Title Status Accepted Rejected Superseded Rationale / Architecture Context Cancel Save Decision	click: showAddDecisionModal = false		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/NotebookBinderPanel.vue	673	button		click: showAddDecisionModal = false		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/NotebookBinderPanel.vue	673	button	Close	click: showAddDecisionModal = false		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	691	button	Cancel	click: showAddDecisionModal = false		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	692	button	Save Decision	click: addDecision	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	700	div	New Binder Name About this collection (optional) Audience Cancel {{ creating ? 'Creating...' : 'Create Binder' }}	click: showCreateModal = false		bound; outcome needs verification	not exercised by static audit
-src/surfaces/workflow/panels/NotebookBinderPanel.vue	704	button		click: showCreateModal = false		bound; outcome needs verification	not exercised by static audit
+src/surfaces/workflow/panels/NotebookBinderPanel.vue	704	button	Close	click: showCreateModal = false		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	718	button	Cancel	click: showCreateModal = false		bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/NotebookBinderPanel.vue	719	button	{{ creating ? 'Creating...' : 'Create Binder' }}	click: createBinder	conditional/static	bound; outcome needs verification	not exercised by static audit
 src/surfaces/workflow/panels/PublishPanel.vue	17	button	Local site	click: destination = 'jekyll'		bound; outcome needs verification	not exercised by static audit

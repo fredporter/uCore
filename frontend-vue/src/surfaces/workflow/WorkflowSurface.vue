@@ -82,7 +82,7 @@
                   <strong>Publish</strong>
                   <span>{{ editorTitle }}</span>
                 </div>
-                <button aria-label="Close publishing" @click="publishOpen = false"><UIcon name="close" :size="20" /></button>
+                <button class="usx-btn" aria-label="Close publishing" @click="publishOpen = false"><UIcon name="close" :size="20" /></button>
               </header>
               <PublishPanel :source-title="editorTitle" :source-content="editorContent" embedded />
             </aside>

@@ -164,6 +164,12 @@ def test_accept_and_publish_edition(temp_environment):
 
     # 1. Assemble draft
     binder_engine.assemble_draft("proj-epsilon")
+    bdata = binder_engine.get_binder("proj-epsilon")
+    binder_engine.update_draft(
+        "proj-epsilon",
+        "# Project Epsilon\n\nSee [[#Requirements|View Requirements]] and [[Private Document]].\n\n## Requirements\n\nAll verified.",
+        expected_base_hash=bdata["draft_sha256"],
+    )
 
     # 2. Accept edition
     manifest = binder_engine.accept_edition(
@@ -187,6 +193,10 @@ def test_accept_and_publish_edition(temp_environment):
     assert "Edition 1 • Sovereign Publication" in html_content
     # Internal section markers should be stripped in published edition
     assert "<!-- section:" not in html_content
+    # In-edition wiki links rewritten to html anchors; unverified links rendered as safe text
+    assert '<a href="#requirements">View Requirements</a>' in html_content
+    assert "Private Document" in html_content
+    assert "[[Private Document]]" not in html_content
 
     bdata = binder_engine.get_binder("proj-epsilon")
     assert bdata["metadata"]["state"] == "published"
