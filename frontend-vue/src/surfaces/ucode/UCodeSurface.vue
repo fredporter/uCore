@@ -54,7 +54,7 @@
     <!-- ─── Layer tab: full layer surface (shared canvas) ─── -->
 
     <!-- ─── Pixel Editor tab: true sub-cell 24×24 colour bitmap editor ─── -->
-    <div v-if="activeTab==='tools'" style="overflow:auto;padding:12px"><BananaStudio scope="grid" /></div>
+    <BananaStudio v-if="activeTab === 'tools'" scope="grid" class="gridcore-tools" />
     <div v-else-if="activeTab === 'pixel'" class="pixel-editor-layout">
       <div class="pixel-editor-body">
         <div class="pixel-editor-main">
@@ -322,13 +322,13 @@
 
     <!-- ─── Curated Software Library ─── -->
     <div v-else-if="activeTab === 'library'" class="software-library-layout">
-      <main class="software-library-main" aria-label="uCode Software Library">
+      <section class="software-library-main" aria-labelledby="software-library-title">
         <header class="software-library-header">
-          <div>
-            <span class="software-library-kicker">uCode Software Library</span>
-            <h2>Learn from the past. Modify the future.</h2>
+          <div class="software-library-heading">
+            <UIcon name="local_library" aria-hidden="true" />
+            <h2 id="software-library-title">uCode Software Library</h2>
           </div>
-          <button class="usx-btn software-library-refresh" :disabled="softwareLibraryLoading" @click="loadSoftwareLibrary">{{ softwareLibraryLoading ? "Loading…" : "Refresh" }}</button>
+          <button class="usx-btn software-library-refresh" :disabled="softwareLibraryLoading" @click="loadSoftwareLibrary"><UIcon name="refresh" aria-hidden="true" />{{ softwareLibraryLoading ? "Loading…" : "Refresh" }}</button>
         </header>
         <p v-if="softwareLibraryError" class="software-library-message software-library-message--error">{{ softwareLibraryError }}</p>
         <p v-else-if="softwareLibraryLoading" class="software-library-message">Loading curated capsules…</p>
@@ -338,9 +338,12 @@
             <label><span>Status</span><select v-model="softwareLibraryStatus" aria-label="Filter by readiness"><option value="all">All</option><option value="launchable">Launchable</option><option value="verified">Verified</option><option value="configured">Configured</option><option value="research">Research</option></select></label>
             <span class="software-library-result-count">{{ filteredSoftwareTitles.length }} title{{ filteredSoftwareTitles.length === 1 ? "" : "s" }}</span>
           </div>
-          <div class="software-library-grid" role="listbox" aria-label="Curated software titles">
-          <button v-for="title in filteredSoftwareTitles" :key="title.id" class="software-title-card" :class="{ selected: selectedSoftwareTitle?.id === title.id }" role="option" :aria-selected="selectedSoftwareTitle?.id === title.id" @click="selectSoftwareTitle(title.id)">
-            <span class="software-title-card__status" :class="`software-title-card__status--${title.status}`">{{ title.status }}</span>
+          <div class="matrix-grid" role="listbox" aria-label="Curated software titles">
+          <button v-for="title in filteredSoftwareTitles" :key="title.id" class="usx-btn matrix-card software-title-card" :class="{ selected: selectedSoftwareTitle?.id === title.id }" role="option" :aria-selected="selectedSoftwareTitle?.id === title.id" @click="selectSoftwareTitle(title.id)">
+            <span class="software-title-card__top">
+              <UIcon name="terminal" aria-hidden="true" />
+              <span class="software-title-card__status" :class="`software-title-card__status--${title.status}`">{{ title.status }}</span>
+            </span>
             <strong>{{ title.title }}</strong>
             <span>{{ title.year }} · {{ title.platform }}</span>
             <p>{{ title.summary }}</p>
@@ -349,7 +352,7 @@
           <p v-if="filteredSoftwareTitles.length === 0" class="software-library-message">No capsules match these filters.</p>
         </div>
         </template>
-      </main>
+      </section>
       <aside class="editor-sidebar software-library-sidebar" aria-label="Selected software capsule">
         <template v-if="selectedSoftwareTitle">
           <div class="sidebar-section">
@@ -844,6 +847,7 @@
 
 <script setup lang="ts">
 import BananaStudio from "../browserui/panels/BananaStudio.vue";
+import "../../recipes/components/cardMatrix.css";
 /**
  * @component UCodeSurface
  * @description uCode bridge surface — unified hub with Pixel Editor, Grid Builder, and Layer Composer.
@@ -5754,13 +5758,6 @@ function clearGrid() {
   color: var(--gridcore-color-text);
   font-size: clamp(1.25rem, 2.5vw, 2rem);
 }
-.software-library-kicker {
-  color: var(--gridcore-color-primary);
-  font: var(--gridcore-font-weight-semibold) var(--gridcore-font-size-xs)
-    var(--gridcore-font-family-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
 .software-library-refresh {
   flex: 0 0 auto;
 }
@@ -5795,30 +5792,34 @@ function clearGrid() {
   font: var(--gridcore-font-size-xs) var(--gridcore-font-family-mono);
   white-space: nowrap;
 }
-.software-library-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
-  gap: var(--gridcore-space-md);
-}
 .software-title-card {
-  min-height: 12rem;
-  display: flex;
-  flex-direction: column;
   align-items: flex-start;
-  gap: var(--gridcore-space-xs);
-  padding: var(--gridcore-space-md);
-  color: var(--gridcore-color-text);
+  gap: var(--usx-spacing-xs);
+  color: var(--usx-color-on-surface);
   text-align: left;
-  background: var(--gridcore-color-surface);
-  border: var(--gridcore-border);
-  border-radius: var(--gridcore-radius-md);
-  cursor: pointer;
+  white-space: normal;
+  margin: 0;
+}
+.software-title-card__top,
+.software-library-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+}
+.software-title-card__top {
+  width: 100%;
+  justify-content: space-between;
+}
+.software-title-card__top > .u-icon {
+  padding: var(--usx-spacing-xs);
+  border-radius: var(--usx-radius-sm);
+  color: var(--usx-color-primary);
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
 }
 .software-title-card:hover,
 .software-title-card:focus-visible,
 .software-title-card.selected {
   border-color: var(--gridcore-color-primary);
-  outline: none;
 }
 .software-title-card.selected {
   box-shadow: inset 0 0 0 1px var(--gridcore-color-primary);
@@ -6329,11 +6330,11 @@ function clearGrid() {
 }
 /* Library is a desktop UI, rather than a terminal canvas. */
 .software-library-layout { font-family: var(--usx-font-family, system-ui, sans-serif); font-size: var(--usx-font-size-sm); background: var(--usx-color-background); }
-.software-library-main { padding: var(--usx-spacing-md); }
-.software-library-header { align-items: center; margin-bottom: var(--usx-spacing-md); }
+.software-library-main { display: block; padding: var(--usx-spacing-md); }
+.gridcore-tools { flex: 1; min-height: 0; min-width: 0; overflow: auto; box-sizing: border-box; }
+.software-library-header { align-items: center; padding-bottom: var(--usx-spacing-sm); border-bottom: 1px solid var(--usx-color-border); margin-bottom: var(--usx-spacing-md); }
 .software-library-header h2 { font-size: var(--usx-font-size-xl); line-height: 1.3; }
-.software-library-kicker { font: inherit; text-transform: none; letter-spacing: normal; }
-.software-library-refresh { width: auto; min-height: 32px; padding: 4px 10px; }
+.software-library-refresh { display: inline-flex; align-items: center; gap: var(--usx-spacing-xs); width: auto; min-height: 32px; padding: 4px 10px; }
 .software-library-filters { grid-template-columns: minmax(10rem, 1fr) minmax(8rem, 12rem) auto; align-items: center; }
 .software-library-filters label { flex-direction: row; align-items: center; font: inherit; text-transform: none; margin: 0; }
 .software-library-filters input, .software-library-filters select { min-width: 0; width: 100%; height: 32px; min-height: 32px; padding: 4px 8px; font: inherit; border-radius: var(--usx-radius-sm); box-shadow: none; }

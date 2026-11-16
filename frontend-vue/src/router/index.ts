@@ -122,7 +122,11 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/browserui/:pathMatch(.*)*",
-    redirect: (to) => String(to.query.tab)==='studio' ? '/ucode2' : ({ path:'/workflow', query:{...to.query,tab:'research',research:['cards','studio','dashboard'].includes(String(to.query.tab))?to.query.tab:'cards'},hash:to.hash }),
+    redirect: (to) => {
+      const { tab, research, ...query } = to.query;
+      if (tab === "studio") return "/ucode2";
+      return { path: "/workflow", query: { ...query, tab: tab === "dashboard" ? "queue" : "research" }, hash: to.hash };
+    },
   },
   {
     path: "/dreamscape/:pathMatch(.*)*",
@@ -188,10 +192,16 @@ export const router = createRouter({
 });
 
 router.beforeEach((to) => {
-  // Server owns the automation/skills runner; Workflow only invokes its items.
+  if (to.name === "workflow" && to.query.tab === "research" && to.query.research) {
+    const { research, ...query } = to.query;
+    if (research === "studio") return "/ucode2";
+    return { path: to.path, query: { ...query, tab: research === "dashboard" ? "queue" : "research" }, hash: to.hash, replace: true };
+  }
+
+  // Snackbar owns automation. Workflow has its own curated Skills catalog.
   if (
     to.path.startsWith("/workflow") &&
-    ["automation", "automations", "skills"].includes(String(to.query.tab || ""))
+    ["automation", "automations"].includes(String(to.query.tab || ""))
   ) {
     return { path: "/snackbar", query: { tab: "automation" } };
   }

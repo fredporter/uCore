@@ -14,9 +14,9 @@
           <section>
             <span class="wf-field-label">Destination</span>
             <div class="wf-choice-row">
-              <button :class="{ active: destination === 'jekyll' }" type="button" @click="destination = 'jekyll'">Local site</button>
-              <button :class="{ active: destination === 'library' }" type="button" @click="destination = 'library'">Markdown library</button>
-              <button type="button" disabled title="Connect a cloud publishing provider">Cloud publish · soon</button>
+              <button class="usx-btn" :class="{ active: destination === 'jekyll' }" type="button" @click="destination = 'jekyll'">Local site</button>
+              <button class="usx-btn" :class="{ active: destination === 'library' }" type="button" @click="destination = 'library'">Markdown library</button>
+              <button class="usx-btn" type="button" disabled title="Connect a cloud publishing provider">Cloud publish · soon</button>
             </div>
           </section>
         </div>

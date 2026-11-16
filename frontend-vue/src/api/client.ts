@@ -80,6 +80,7 @@ export const ucoreApi = {
     importMarkdown: (body: {
       content: string;
       source_format?: string;
+      feed_source?: string;
       title?: string;
       filename?: string;
       binder?: string;
@@ -123,10 +124,11 @@ export const ucoreApi = {
   },
   library: {
     build: () => request(`${UCORE_API}/api/library/build`, { method: "POST" }),
-    search: (query: string, source?: string, limit?: number) => {
+    search: (query: string, source?: string, limit?: number, offset = 0) => {
       let url = `${UCORE_API}/api/library/search?q=${encodeURIComponent(query)}`;
-      if (source) url += `&source=${source}`;
+      if (source) url += `&source=${encodeURIComponent(source)}`;
       if (limit) url += `&limit=${limit}`;
+      if (offset) url += `&offset=${offset}`;
       return request(url);
     },
     file: (path: string) =>

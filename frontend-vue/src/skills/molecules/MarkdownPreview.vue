@@ -1,5 +1,6 @@
 <template>
   <div ref="rootRef" class="md-preview" :class="`md-preview--${format}`">
+    <slot name="metadata" />
     <!-- Story format: slide viewer with navigation -->
     <template v-if="format === 'story' && slides.length > 1">
       <div class="md-preview__slide-bar">

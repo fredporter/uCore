@@ -23,10 +23,21 @@ class GoogleAdapter:
     def api(self, connection, url, *, method="GET", data=None, version=""):
         if time.monotonic() > connection.get("_deadline", float("inf")):
             raise RuntimeError("Sync time budget reached")
+        check = connection.get("_drone_check")
+        if check and (method != "GET" or url.split("?", 1)[0] not in connection["_drone_urls"]):
+            raise PermissionError("Drone request is outside the enrolled scope")
         headers = {"Authorization": "Bearer " + access_token(connection)}
+        if check:
+            check()
         if version:
             headers["If-Match"] = version
-        return request_json(url, method=method, data=data, headers=headers)
+        options = {}
+        if check:
+            remaining = connection["_deadline"] - time.monotonic()
+            if remaining <= 0:
+                raise RuntimeError("Drone preview time budget reached")
+            options = {"timeout": remaining, "follow_redirects": False}
+        return request_json(url, method=method, data=data, headers=headers, **options)
 
     def pages(self, connection, url, key):
         rows, token = [], ""
@@ -36,6 +47,8 @@ class GoogleAdapter:
                 url + ("&" if "?" in url else "?") + urllib.parse.urlencode({"pageToken": token}),
             )
             rows.extend(result.get(key, []))
+            if connection.get("_drone_check") and len(rows) > 100:
+                return rows[:101]
             token = result.get("nextPageToken", "")
             if not token:
                 return rows
@@ -486,3 +499,26 @@ class GoogleAdapter:
 
 
 from .apple import AppleAdapter  # noqa: E402,F401
+
+
+def provider_capabilities(provider: str, *, host_platform: str) -> dict:
+    """Describe adapter code support, never credential or authorization readiness."""
+    adapter = {"google": GoogleAdapter, "apple": AppleAdapter}.get(provider)
+    available = adapter is not None and (provider != "apple" or host_platform == "Darwin")
+    return {
+        "adapter_available": available,
+        "qualified": False,
+        "readiness": "requires_connection_and_permissions" if available else "unsupported_platform",
+        "collections": {
+            kind: {
+                "discover": available,
+                "read": available,
+                "create": available and kind != "mail",
+                "update": available,
+                "delete": False,
+                "writable_fields": sorted(fields) if available else [],
+                "limitations": "Existing message flags/read state only; no sending or copying" if kind == "mail" else "Native field round-trip qualification pending",
+            }
+            for kind, fields in (adapter.writable.items() if adapter else [])
+        },
+    }

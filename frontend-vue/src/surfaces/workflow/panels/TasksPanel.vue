@@ -11,7 +11,6 @@
               <UBadge type="info" size="sm">{{ wf.activeTasks.length }} open</UBadge>
               <UBadge v-if="wf.inProgressCount > 0" type="warning" size="sm">{{ wf.inProgressCount }} in progress</UBadge>
               <UBadge v-if="pendingApprovals.length > 0" type="warning" size="sm">{{ pendingApprovals.length }} approvals</UBadge>
-              <UBadge v-if="inboundItems.length > 0" type="info" size="sm">{{ inboundItems.length }} inbound</UBadge>
             </div>
           </div>
         </div>
@@ -38,16 +37,6 @@
             >
               <UIcon name="table_rows" />
               <span>Rows</span>
-            </button>
-            <button
-              type="button"
-              class="usx-btn wf-segmented-btn"
-              :class="{ 'wf-segmented-btn--active': viewMode === 'triage' }"
-              title="Inbound Communications Triage"
-              @click="loadInboundTriage(); viewMode = 'triage'"
-            >
-              <UIcon name="mark_email_unread" />
-              <span>Inbox Triage</span>
             </button>
           </div>
 
@@ -82,12 +71,12 @@
         <UIcon name="error" /> {{ dragError }}
       </div>
 
+      <p v-if="wf.activeMissionId" class="task-scope">Mission: {{ wf.missions.find(mission => mission.id === wf.activeMissionId)?.title }} <button class="usx-btn" @click="wf.selectMission('')">All missions</button></p>
       <div class="task-scope" role="toolbar" aria-label="Task filters">
 
         <label><span>Binder</span><span class="task-scope__select"><select :value="wf.activeBinderId" @change="wf.showList('', ($event.target as HTMLSelectElement).value)" aria-label="Task binder"><option value="">All binders</option><option v-for="binder in wf.binderChoices" :key="binder.id" :value="binder.id">{{ binder.title || binder.id }}</option></select><UIcon name="expand_more" /></span></label>
         <label><span>Show</span><span class="task-scope__select"><select v-model="completionFilter" aria-label="Task completion"><option value="active">Open</option><option value="done">Done</option><option value="all">All</option></select><UIcon name="expand_more" /></span></label>
-        <button class="usx-btn" @click="newList"><UIcon name="add" /> New Binder</button>
-        <button class="usx-btn" @click="addGroup"><UIcon name="create_new_folder" /> New group</button>
+        <button class="usx-btn" @click="wf.requestBinderCreation()"><UIcon name="add" /> New Binder</button>
         <span>{{ visibleTasks.length }} tasks · {{ wf.scopedTasks.filter(task => task.status === 'completed').length }} done</span>
       </div>
       <div v-if="wf.binderChoices.length" class="task-destinations" aria-label="Move or copy to a Binder"><span>Move to Binder:</span><button v-for="binder in wf.binderChoices" :key="binder.id" class="usx-btn" @click="wf.showList('',binder.id)" @dragover.prevent @drop.prevent="dropInto($event, { binder: binder.id })">{{ binder.title || binder.id }}</button><small>Hold Option/Alt while dropping to copy.</small></div>
@@ -100,14 +89,16 @@
             draggable="true" @dragstart="wf.startTaskDrag($event, task)">
             <input type="checkbox" :checked="task.status === 'completed'" :aria-label="`Complete ${task.title}`" @change="changeTask(task, { status: task.status === 'completed' ? 'todo' : 'completed' })" />
             <button class="task-list__main usx-btn" @click="openTaskEditor(task)"><span class="task-list__copy"><strong>{{ task.title }}</strong><small>{{ wf.binders.find(binder => binder.id === task.binder)?.title || task.binder || "No Binder" }} · {{ formatStatus(task.status) }}</small></span></button>
-            <select :value="task.status" :aria-label="`Status for ${task.title}`" @change="changeTask(task, { status: ($event.target as HTMLSelectElement).value })"><option v-if="!statuses.includes(task.status)" :value="task.status">{{ formatStatus(task.status) }}</option><option v-for="status in statuses" :key="status" :value="status">{{ formatStatus(status) }}</option></select>
-            <select :value="task.binder || ''" :aria-label="`Binder for ${task.title}`" @change="changeTask(task, { binder: ($event.target as HTMLSelectElement).value })"><option value="">No binder</option><option v-for="binder in wf.binderChoices" :key="binder.id" :value="binder.id">{{ binder.title || binder.id }}</option></select>
-            <button class="usx-btn" :aria-label="`Group ${task.title}`" @click="groupTask(task)"><UIcon name="workspaces" /></button>
-            <button class="usx-btn" :aria-label="`Move ${task.title}`" @click="moveTask(task)"><UIcon name="drive_file_move" /></button>
-            <button class="usx-btn" :aria-label="`Copy ${task.title}`" @click="copyTask(task)"><UIcon name="content_copy" /></button>
+            <div class="task-list__controls">
+              <select :value="task.status" :aria-label="`Status for ${task.title}`" @change="changeTask(task, { status: ($event.target as HTMLSelectElement).value })"><option v-if="!statuses.includes(task.status)" :value="task.status">{{ formatStatus(task.status) }}</option><option v-for="status in statuses" :key="status" :value="status">{{ formatStatus(status) }}</option></select>
+              <select :value="task.binder || ''" :aria-label="`Binder for ${task.title}`" @change="changeTask(task, { binder: ($event.target as HTMLSelectElement).value })"><option value="">No binder</option><option v-for="binder in wf.binderChoices" :key="binder.id" :value="binder.id">{{ binder.title || binder.id }}</option></select>
+              <button class="usx-btn" :aria-label="`Group ${task.title}`" @click="groupTask(task)"><UIcon name="workspaces" /></button>
+              <button class="usx-btn" :aria-label="`Move ${task.title}`" @click="moveTask(task)"><UIcon name="drive_file_move" /></button>
+              <button class="usx-btn" :aria-label="`Copy ${task.title}`" @click="copyTask(task)"><UIcon name="content_copy" /></button>
+            </div>
           </div>
         </section>
-        <p v-if="!visibleTasks.length && !extraGroups.length">No tasks match this view.</p>
+        <p v-if="!visibleTasks.length">No tasks match this view.</p>
       </div>
 
       <div v-else-if="viewMode === 'kanban'" class="kanban-board">
@@ -172,30 +163,28 @@
         </div>
       </div>
 
-      <!-- ── Inbound Communications Triage View ── -->
-      <div v-else-if="viewMode === 'triage'" class="wf-triage-view">
-        <!-- Autonomous Approvals Section -->
-        <section v-if="pendingApprovals.length > 0" class="wf-triage-section surface__panel">
-          <div class="wf-triage-section__header">
-            <div class="wf-triage-section__title">
+      <div v-if="pendingApprovals.length" class="wf-approvals">
+        <section class="wf-approval-section surface__panel">
+          <div class="wf-approval-section__header">
+            <div class="wf-approval-section__title">
               <UIcon name="gavel" />
               <h3>Needs approval</h3>
             </div>
             <UBadge type="warning" size="sm">{{ pendingApprovals.length }} Pending</UBadge>
           </div>
-          <div class="wf-triage-list">
-            <div v-for="task in pendingApprovals" :key="task.id" class="wf-triage-card wf-triage-card--approval">
-              <div class="wf-triage-card__main">
-                <div class="wf-triage-card__header">
-                  <span class="wf-triage-card__badge wf-triage-card__badge--autonomous">Needs approval</span>
-                  <span class="wf-triage-card__title">{{ task.title }}</span>
+          <div class="wf-approval-list">
+            <div v-for="task in pendingApprovals" :key="task.id" class="wf-approval-card wf-approval-card--approval">
+              <div class="wf-approval-card__main">
+                <div class="wf-approval-card__header">
+                  <span class="wf-approval-card__badge wf-approval-card__badge--autonomous">Needs approval</span>
+                  <span class="wf-approval-card__title">{{ task.title }}</span>
                 </div>
-                <p class="wf-triage-card__desc">{{ task.description || task.summary || 'Review this action before it runs.' }}</p>
-                <div v-if="task.action_type" class="wf-triage-card__meta font-mono">
+                <p class="wf-approval-card__desc">{{ task.description || task.summary || 'Review this action before it runs.' }}</p>
+                <div v-if="task.action_type" class="wf-approval-card__meta font-mono">
                   <span>Action: {{ task.action_type }}</span>
                 </div>
               </div>
-              <div class="wf-triage-card__actions">
+              <div class="wf-approval-card__actions">
                 <button
                   type="button"
                   class="usx-btn usx-btn--sm usx-btn--primary"
@@ -215,93 +204,7 @@
           </div>
         </section>
 
-        <!-- Inbound Communications Feed -->
-        <section class="wf-triage-section surface__panel">
-          <div class="wf-triage-section__header">
-            <div class="wf-triage-section__title">
-              <UIcon name="inbox" />
-              <h3>Host Inbound Feed (Apple Mail & Messages)</h3>
-            </div>
-            <div class="wf-triage-section__actions">
-              <button
-                type="button"
-                class="usx-btn usx-btn--sm"
-                :disabled="loadingInbound"
-                @click="loadInboundTriage"
-              >
-                <UIcon :name="loadingInbound ? 'sync' : 'refresh'" :class="{ 'wf-spin': loadingInbound }" />
-                <span>Fetch Latest</span>
-              </button>
-            </div>
-          </div>
-
-          <div v-if="loadingInbound" class="wf-loading">
-            <UIcon name="sync" class="wf-spin" /> Querying Apple Mail & Messages via JXA...
-          </div>
-
-          <div v-else-if="inboundItems.length === 0" class="wf-triage-empty">
-            <UIcon name="mark_email_read" :size="40" />
-            <p>All host communications are triaged. Zero pending messages.</p>
-            <button type="button" class="usx-btn usx-btn--sm usx-btn--secondary" @click="loadInboundTriage">
-              Check for New Messages
-            </button>
-          </div>
-
-          <div v-else class="wf-triage-list">
-            <div
-              v-for="item in inboundItems"
-              :key="item.id"
-              class="wf-triage-card"
-              :class="`wf-triage-card--${item.source}`"
-            >
-              <div class="wf-triage-card__main">
-                <div class="wf-triage-card__header">
-                  <span
-                    class="wf-triage-card__badge"
-                    :class="item.source === 'mail' ? 'wf-triage-card__badge--mail' : 'wf-triage-card__badge--imessage'"
-                  >
-                    <UIcon :name="item.source === 'mail' ? 'mail' : 'chat'" />
-                    {{ item.source === 'mail' ? 'Apple Mail' : 'iMessage' }}
-                  </span>
-                  <span class="wf-triage-card__sender">{{ item.sender }}</span>
-                  <span class="wf-triage-card__time font-mono">{{ item.timestamp }}</span>
-                </div>
-                <h4 v-if="item.subject" class="wf-triage-card__subject">{{ item.subject }}</h4>
-                <p class="wf-triage-card__preview">{{ item.preview }}</p>
-              </div>
-              <div class="wf-triage-card__actions">
-                <button
-                  type="button"
-                  class="usx-btn usx-btn--sm usx-btn--primary"
-                  title="Extract action and add as Workflow Task"
-                  @click="convertInboundToTask(item)"
-                >
-                  <UIcon name="add_task" /> Convert to Task
-                </button>
-                <template v-if="item.source === 'mail'">
-                  <button
-                    type="button"
-                    class="usx-btn usx-btn--sm usx-btn--secondary"
-                    title="Flag email in Apple Mail"
-                    @click="flagMail(item)"
-                  >
-                    <UIcon name="flag" />
-                  </button>
-                  <button
-                    type="button"
-                    class="usx-btn usx-btn--sm usx-btn--secondary"
-                    title="Archive email in Apple Mail"
-                    @click="archiveMail(item)"
-                  >
-                    <UIcon name="archive" />
-                  </button>
-                </template>
-              </div>
-            </div>
-          </div>
-        </section>
       </div>
-
 
     </div>
 
@@ -324,7 +227,7 @@ import {
 } from "../../browserui/ApiBridge";
 
 const wf = useWorkflowStore();
-const viewMode = ref<"list" | "kanban" | "triage">("list");
+const viewMode = ref<"list" | "kanban">("list");
 const statuses = ["todo", "in-progress", "review", "blocked", "completed"];
 const dragError = ref<string | null>(null);
 
@@ -334,19 +237,6 @@ const syncingSingleRem = ref(false);
 const executingAction = ref(false);
 const syncFeedback = ref<string | null>(null);
 
-// ── Communications & Inbound Triage state ─────────────────────────
-const inboundItems = ref<
-  Array<{
-    id: string;
-    source: "mail" | "imessage";
-    sender: string;
-    subject?: string;
-    preview: string;
-    timestamp: string;
-    raw?: any;
-  }>
->([]);
-const loadingInbound = ref(false);
 
 const pendingApprovals = computed(() =>
   (wf.tasks || []).filter(
@@ -355,96 +245,6 @@ const pendingApprovals = computed(() =>
       (t.workflowType === "autonomous" && t.status === "in-progress"),
   ),
 );
-
-async function loadInboundTriage() {
-  loadingInbound.value = true;
-  try {
-    const items: Array<{
-      id: string;
-      source: "mail" | "imessage";
-      sender: string;
-      subject?: string;
-      preview: string;
-      timestamp: string;
-      raw?: any;
-    }> = [];
-
-    // 1. Fetch Apple Mail intake
-    try {
-      const mailRes: any = await ucoreApi.host.mailIntake({
-        limit: 15,
-        unread_only: false,
-      });
-      if (mailRes?.ok && Array.isArray(mailRes.items)) {
-        for (const m of mailRes.items) {
-          items.push({
-            id: m.id || m.message_id || `mail-${Math.random()}`,
-            source: "mail",
-            sender: m.sender || m.from || "Apple Mail",
-            subject: m.subject || "(No Subject)",
-            preview: m.snippet || m.body || "",
-            timestamp:
-              m.date_received || m.timestamp || new Date().toLocaleTimeString(),
-            raw: m,
-          });
-        }
-      }
-    } catch {
-      // Ignored if host Apple Mail is unavailable
-    }
-
-    // 2. Fetch Apple Messages intake
-    try {
-      const msgRes: any = await ucoreApi.host.imessageIntake({ limit: 15 });
-      if (msgRes?.ok && Array.isArray(msgRes.items)) {
-        for (const msg of msgRes.items) {
-          items.push({
-            id: msg.id || `msg-${Math.random()}`,
-            source: "imessage",
-            sender: msg.sender || msg.handle || "iMessage Contact",
-            preview: msg.text || msg.body || "",
-            timestamp: msg.timestamp || new Date().toLocaleTimeString(),
-            raw: msg,
-          });
-        }
-      }
-    } catch {
-      // Ignored if host iMessage is unavailable
-    }
-
-    inboundItems.value = items;
-  } finally {
-    loadingInbound.value = false;
-  }
-}
-
-async function convertInboundToTask(item: {
-  id: string;
-  source: "mail" | "imessage";
-  sender: string;
-  subject?: string;
-  preview: string;
-}) {
-  try {
-    const text = item.subject
-      ? `${item.subject}: ${item.preview}`
-      : item.preview;
-    const res: any = await ucoreApi.workflow.actionToTask({
-      text,
-      source: item.source,
-      source_ref: item.id,
-      priority: "medium",
-      sender: item.sender,
-    });
-    if (res?.ok) {
-      syncFeedback.value = `Created task: "${res.task?.title || item.subject || "Inbound action"}"`;
-      inboundItems.value = inboundItems.value.filter((i) => i.id !== item.id);
-      await wf.fetchTasks();
-    }
-  } catch (err: any) {
-    syncFeedback.value = `Error converting to task: ${err?.message || err}`;
-  }
-}
 
 async function handleApproveTask(task: WorkflowTask) {
   try {
@@ -462,7 +262,7 @@ async function handleRejectTask(task: WorkflowTask) {
   try {
     const res: any = await ucoreApi.workflow.rejectTask(
       task.id,
-      "Rejected by user in inbox triage",
+      "Rejected by user in Tasks",
     );
     if (res?.ok) {
       syncFeedback.value = `Rejected task: ${task.title}`;
@@ -473,37 +273,13 @@ async function handleRejectTask(task: WorkflowTask) {
   }
 }
 
-async function flagMail(item: { id: string }) {
-  try {
-    await ucoreApi.host.mailFlag(item.id, 0);
-    syncFeedback.value = "Flagged message in Apple Mail";
-  } catch (err: any) {
-    syncFeedback.value = `Flag error: ${err?.message || err}`;
-  }
-}
-
-async function archiveMail(item: { id: string }) {
-  try {
-    await ucoreApi.host.mailArchive(item.id);
-    inboundItems.value = inboundItems.value.filter((i) => i.id !== item.id);
-    syncFeedback.value = "Archived message in Apple Mail";
-  } catch (err: any) {
-    syncFeedback.value = `Archive error: ${err?.message || err}`;
-  }
-}
-
-
-
 const completionFilter = ref("active");
-const extraGroups = ref<string[]>([]);
 const visibleTasks = computed(() => wf.orderedContextTasks.filter(task => completionFilter.value === "all" || (completionFilter.value === "done" ? task.status === "completed" : !["completed", "superseded", "cancelled", "archived"].includes(task.status))));
 const visibleByStatus = computed(() => Object.fromEntries(statuses.map(status => [status, visibleTasks.value.filter(task => task.status === status)])));
-const taskGroups = computed(() => [...new Set([...visibleTasks.value.map(task => task.group || "Ungrouped"), ...extraGroups.value])].map(name => ({ name, tasks: visibleTasks.value.filter(task => (task.group || "Ungrouped") === name) })));
-async function newList() { wf.binderCreateRequested = true; wf.setTab('mission-control'); }
+const taskGroups = computed(() => [...new Set(visibleTasks.value.map(task => task.group || "Ungrouped"))].map(name => ({ name, tasks: visibleTasks.value.filter(task => (task.group || "Ungrouped") === name) })));
 
-function addGroup() { const name = window.prompt("Group name"); if (name?.trim()) extraGroups.value.push(name.trim()); }
 async function newTask() {
-  if (!wf.activeBinderId) { wf.binderCreateRequested = true; wf.setTab('mission-control'); return; }
+  if (!wf.activeBinderId && !wf.activeMissionId) { wf.requestBinderCreation(); return; }
   const title = window.prompt("Task title");
   if (!title?.trim()) return;
   try { await wf.createTask(title.trim()); }
@@ -644,10 +420,17 @@ async function handleApproveAction(task: WorkflowTask) {
 .task-scope label { display: flex; align-items: center; gap: var(--usx-spacing-xs); }
 .task-group { min-height: 4rem; border-top: 1px solid var(--usx-color-border); padding: var(--usx-spacing-sm); }
 .task-group h3 { font-size: var(--usx-font-size-base); }
-.task-list__row { flex-wrap: wrap; }
-.task-list__row > select { max-width: 10rem; }
-.task-list__copy { display: flex; flex-direction: column; text-align: left; }
-.task-list__row .task-list__main { justify-content: flex-start; flex: 1; }
+.task-list { container-type: inline-size; }
+.task-list__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  min-width: 0;
+}
+.task-list__controls select { width: auto; max-width: min(10rem, 100%); }
+.task-list__copy { text-align: left; overflow-wrap: anywhere; }
+.task-list__copy strong { font-size: var(--usx-font-size-sm); line-height: var(--usx-line-height-tight); }
 .task-list__row small, .task-destinations small { color: var(--usx-color-on-surface-muted); }
 
 /* ── Panel layout ───────────────────────────────────────────── */
@@ -1438,9 +1221,9 @@ async function handleApproveAction(task: WorkflowTask) {
   gap: var(--usx-spacing-xs);
 }
 
-/* ── Inbound Communications Triage View ─────────────────────── */
+/* ── Task approvals ─────────────────────── */
 
-.wf-triage-view {
+.wf-approvals {
   display: flex;
   flex-direction: column;
   gap: var(--usx-spacing-lg);
@@ -1448,7 +1231,7 @@ async function handleApproveAction(task: WorkflowTask) {
   overflow-y: auto;
 }
 
-.wf-triage-section {
+.wf-approval-section {
   display: flex;
   flex-direction: column;
   gap: var(--usx-spacing-md);
@@ -1458,7 +1241,7 @@ async function handleApproveAction(task: WorkflowTask) {
   background: var(--usx-color-surface);
 }
 
-.wf-triage-section__header {
+.wf-approval-section__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1467,26 +1250,26 @@ async function handleApproveAction(task: WorkflowTask) {
   padding-bottom: var(--usx-spacing-xs);
 }
 
-.wf-triage-section__title {
+.wf-approval-section__title {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
 }
 
-.wf-triage-section__title h3 {
+.wf-approval-section__title h3 {
   margin: 0;
   font-size: var(--usx-font-size-md);
   font-weight: 600;
   color: var(--usx-color-on-surface);
 }
 
-.wf-triage-list {
+.wf-approval-list {
   display: flex;
   flex-direction: column;
   gap: var(--usx-spacing-sm);
 }
 
-.wf-triage-card {
+.wf-approval-card {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -1498,23 +1281,15 @@ async function handleApproveAction(task: WorkflowTask) {
   transition: border-color 0.15s ease;
 }
 
-.wf-triage-card:hover {
+.wf-approval-card:hover {
   border-color: var(--usx-color-primary);
 }
 
-.wf-triage-card--approval {
+.wf-approval-card--approval {
   border-left: 3px solid var(--usx-color-warning);
 }
 
-.wf-triage-card--mail {
-  border-left: 3px solid var(--usx-color-info);
-}
-
-.wf-triage-card--imessage {
-  border-left: 3px solid var(--usx-color-success);
-}
-
-.wf-triage-card__main {
+.wf-approval-card__main {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -1522,14 +1297,14 @@ async function handleApproveAction(task: WorkflowTask) {
   min-width: 0;
 }
 
-.wf-triage-card__header {
+.wf-approval-card__header {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
   flex-wrap: wrap;
 }
 
-.wf-triage-card__badge {
+.wf-approval-card__badge {
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
@@ -1541,47 +1316,25 @@ async function handleApproveAction(task: WorkflowTask) {
   border-radius: var(--usx-radius-sm);
 }
 
-.wf-triage-card__badge--autonomous {
+.wf-approval-card__badge--autonomous {
   background: color-mix(in srgb, var(--usx-color-warning) 15%, transparent);
   color: var(--usx-color-warning);
 }
 
-.wf-triage-card__badge--mail {
-  background: color-mix(in srgb, var(--usx-color-info) 15%, transparent);
-  color: var(--usx-color-info);
-}
-
-.wf-triage-card__badge--imessage {
-  background: color-mix(in srgb, var(--usx-color-success) 15%, transparent);
-  color: var(--usx-color-success);
-}
-
-.wf-triage-card__sender {
+.wf-approval-card__title {
   font-weight: 600;
   font-size: var(--usx-font-size-sm);
   color: var(--usx-color-on-surface);
 }
 
-.wf-triage-card__time {
-  font-size: var(--usx-font-size-xs);
-  color: var(--usx-color-on-surface-muted);
-}
-
-.wf-triage-card__title {
-  font-weight: 600;
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface);
-}
-
-.wf-triage-card__subject {
+.wf-approval-card__subject {
   margin: 0.15rem 0 0 0;
   font-size: var(--usx-font-size-sm);
   font-weight: 500;
   color: var(--usx-color-on-surface);
 }
 
-.wf-triage-card__desc,
-.wf-triage-card__preview {
+.wf-approval-card__desc {
   margin: 0.15rem 0 0 0;
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
@@ -1589,33 +1342,23 @@ async function handleApproveAction(task: WorkflowTask) {
   word-break: break-word;
 }
 
-.wf-triage-card__meta {
+.wf-approval-card__meta {
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
   margin-top: 0.2rem;
 }
 
-.wf-triage-card__actions {
+.wf-approval-card__actions {
   display: flex;
   align-items: center;
   gap: var(--usx-spacing-xs);
   flex-shrink: 0;
 }
 
-.wf-triage-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-xl);
-  color: var(--usx-color-on-surface-muted);
-  text-align: center;
-}
 </style>
 
 <style scoped>
-.task-scope { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; overflow-x: auto; min-height: 44px; padding: 6px 0; box-sizing: border-box; white-space: nowrap; font-family: var(--usx-font-family-sans, Inter, sans-serif); font-size: var(--usx-font-size-sm); line-height: 1; }
+.task-scope { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 44px; padding: 6px 0; box-sizing: border-box; white-space: nowrap; font-family: var(--usx-font-family-sans, Inter, sans-serif); font-size: var(--usx-font-size-sm); line-height: 1; }
 .task-scope > * { flex: 0 0 auto; margin: 0; }
 .task-scope label { display: inline-flex; align-items: center; gap: 6px; min-height: 0; height: 32px; padding: 0; margin: 0; font: inherit; color: var(--usx-color-on-surface-muted); }
 .task-scope__select { display: inline-flex; position: relative; align-items: center; height: 32px; }
@@ -1627,8 +1370,8 @@ async function handleApproveAction(task: WorkflowTask) {
 .task-scope > span { color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); }
 
 /* Compact action row: shared dimensions prevent global button defaults adding height. */
-.wf-unified-header__right { flex-wrap: nowrap; gap: var(--usx-spacing-xs); max-width: 100%; min-width: 0; overflow-x: auto; padding-block: 2px; }
-.wf-segmented-group, .wf-header-actions { flex: 0 0 auto; gap: 4px; }
+.wf-unified-header__right { flex-wrap: wrap; gap: var(--usx-spacing-xs); max-width: 100%; min-width: 0; padding-block: 2px; }
+.wf-segmented-group, .wf-unified-header__right .wf-header-actions { flex-wrap: wrap; max-width: 100%; gap: 4px; }
 .wf-segmented-group { padding: 0; border: 0; background: transparent; }
 .wf-unified-header__right button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; height: 36px; min-height: 36px; margin: 0; padding: 0 8px; font-size: var(--usx-font-size-sm); line-height: 1; white-space: nowrap; }
 .wf-unified-header__right :deep(.u-icon) { font-size: 20px; width: 20px; height: 20px; line-height: 1; }

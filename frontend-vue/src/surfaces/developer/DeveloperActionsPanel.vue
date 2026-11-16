@@ -1,13 +1,13 @@
 <template>
   <section class="actions" aria-labelledby="actions-title">
-    <header><h3 id="actions-title">Checks</h3><button title="Refresh actions" @click="refresh"><UIcon name="refresh" /></button></header>
+    <header><h3 id="actions-title">Checks</h3><button class="usx-btn usx-btn--ghost" title="Refresh actions" @click="refresh"><UIcon name="refresh" /></button></header>
     <div class="actions__buttons">
-      <button v-for="action in actions" :key="action.id" :disabled="running" @click="run(action.id)"><UIcon name="play_arrow" />{{ action.label }}</button>
+      <button v-for="action in actions" :key="action.id" class="usx-btn" :disabled="running" @click="run(action.id)"><UIcon name="play_arrow" />{{ action.label }}</button>
       <span v-if="!actions.length">No approved repository scripts.</span>
     </div>
     <article v-if="latest" class="actions__run">
       <div><strong>{{ latest.action }}</strong><UBadge :type="statusType(latest.status)" size="sm">{{ latest.status }}</UBadge><span>{{ latest.durationSeconds ?? 0 }}s</span></div>
-      <button v-if="['queued','running'].includes(latest.status)" @click="cancel(latest.id)">Stop</button>
+      <button v-if="['queued','running'].includes(latest.status)" class="usx-btn usx-btn--danger" @click="cancel(latest.id)">Stop</button>
       <pre v-if="latest.output">{{ latest.output }}</pre>
       <p v-if="latest.error">{{ latest.error }}</p>
       <small>Audit: developer-actions.jsonl</small>

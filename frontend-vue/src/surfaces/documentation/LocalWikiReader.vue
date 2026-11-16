@@ -227,7 +227,7 @@
             <button
               v-if="firstArticle"
               type="button"
-              class="wiki-btn wiki-btn--primary"
+              class="usx-btn usx-btn--primary wiki-btn wiki-btn--primary"
               @click="selectDocument(firstArticle.source, firstArticle.path, firstArticle.title)"
             >
               <UIcon name="menu_book" /> Open {{ firstArticle.title }}
@@ -429,7 +429,7 @@
               +{{ activeOverlay.diff_stats?.additions || 0 }} -{{ activeOverlay.diff_stats?.deletions || 0 }}
             </span>
           </div>
-          <button type="button" class="wiki-search-clear" @click="showDiffModal = false">
+          <button type="button" class="usx-btn usx-btn--ghost wiki-search-clear" aria-label="Close" @click="showDiffModal = false">
             <UIcon name="close" size="xs" />
           </button>
         </header>
@@ -449,7 +449,7 @@
         </div>
 
         <footer class="wiki-fed-modal__footer">
-          <button type="button" class="wiki-btn wiki-btn--secondary" @click="showDiffModal = false">
+          <button type="button" class="usx-btn usx-btn--secondary wiki-btn wiki-btn--secondary" @click="showDiffModal = false">
             Close
           </button>
         </footer>
@@ -464,7 +464,7 @@
             <UIcon name="send" class="wiki-fed-modal__icon" />
             <h3 class="wiki-fed-modal__title">Export Contribution Submission Bundle</h3>
           </div>
-          <button type="button" class="wiki-search-clear" @click="showSubmissionModal = false">
+          <button type="button" class="usx-btn usx-btn--ghost wiki-search-clear" aria-label="Close" @click="showSubmissionModal = false">
             <UIcon name="close" size="xs" />
           </button>
         </header>
@@ -482,7 +482,7 @@
               <code>{{ submissionSuccess.diff_checksum }}</code>
             </div>
             <div class="wiki-submission-actions">
-              <button type="button" class="wiki-btn wiki-btn--primary" @click="showSubmissionModal = false">
+              <button type="button" class="usx-btn usx-btn--primary wiki-btn wiki-btn--primary" @click="showSubmissionModal = false">
                 Done
               </button>
             </div>
@@ -549,12 +549,12 @@
             </div>
 
             <footer class="wiki-fed-modal__footer">
-              <button type="button" class="wiki-btn wiki-btn--secondary" @click="showSubmissionModal = false">
+              <button type="button" class="usx-btn usx-btn--secondary wiki-btn wiki-btn--secondary" @click="showSubmissionModal = false">
                 Cancel
               </button>
               <button
                 type="button"
-                class="wiki-btn wiki-btn--primary"
+                class="usx-btn usx-btn--primary wiki-btn wiki-btn--primary"
                 :disabled="packagingSubmission || (preflightResult && !preflightResult.passed)"
                 @click="submitPackage"
               >
@@ -575,7 +575,7 @@
             <UIcon name="hub" class="wiki-fed-modal__icon" />
             <h3 class="wiki-fed-modal__title">Knowledge layers</h3>
           </div>
-          <button type="button" class="wiki-search-clear" @click="showFederationModal = false">
+          <button type="button" class="usx-btn usx-btn--ghost wiki-search-clear" aria-label="Close" @click="showFederationModal = false">
             <UIcon name="close" size="xs" />
           </button>
         </header>
@@ -662,7 +662,7 @@
                     <td>
                       <button
                         type="button"
-                        class="wiki-btn wiki-btn--xs wiki-btn--ghost"
+                        class="usx-btn usx-btn--ghost wiki-btn wiki-btn--xs wiki-btn--ghost"
                         @click="selectDocument(item.layer === 2 ? 'vault' : 'shared', item.path, item.rel_path); showFederationModal = false"
                       >
                         Open
@@ -706,7 +706,7 @@
         </div>
 
         <footer class="wiki-fed-modal__footer">
-          <button type="button" class="wiki-btn wiki-btn--secondary" @click="showFederationModal = false">
+          <button type="button" class="usx-btn usx-btn--secondary wiki-btn wiki-btn--secondary" @click="showFederationModal = false">
             Close
           </button>
         </footer>
@@ -1029,6 +1029,8 @@ const renderedHtml = computed(() => {
     if (href.startsWith("#wiki:")) {
       a.classList.add("wiki-internal-link");
       a.setAttribute("data-wiki-target", decodeURIComponent(href.slice(6)));
+    } else if (relativeArticlePath(href)) {
+      a.classList.add("wiki-internal-link");
     } else if (href.startsWith("http://") || href.startsWith("https://")) {
       // Create static offline citation chip
       try {
@@ -1061,6 +1063,7 @@ watch(renderedHtml, async () => {
 
 // ── Internal Link Click Interception ──────────────────────────────────
 function handleProseClick(event: MouseEvent) {
+  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   const target = (event.target as HTMLElement).closest("a");
   if (!target) return;
 
@@ -1068,7 +1071,53 @@ function handleProseClick(event: MouseEvent) {
   if (wikiTarget) {
     event.preventDefault();
     findAndOpenWikiTarget(wikiTarget);
+    return;
   }
+
+  const href = target.getAttribute("href") || "";
+  const path = relativeArticlePath(href);
+  if (!path) return;
+  event.preventDefault();
+
+  for (const vault of vaults.value) {
+    const item = searchTreeForPath(vault.items, activeSource.value, path);
+    if (item) {
+      void selectDocument(item.source, item.path, item.title || item.name, showingCanonOnly.value);
+      return;
+    }
+  }
+}
+
+function relativeArticlePath(href: string): string | null {
+  if (!/^(?:[^:/?#\\]+\/)*[^:/?#\\]+\.md$/i.test(href)) return null;
+  const parts = activePath.value.split("/").slice(0, -1);
+  try {
+    for (const encoded of href.split("/")) {
+      const part = decodeURIComponent(encoded);
+      if (/[/\\\u0000]/.test(part)) return null;
+      if (part === ".") continue;
+      if (part === "..") {
+        if (!parts.length) return null;
+        parts.pop();
+      } else {
+        parts.push(part);
+      }
+    }
+  } catch {
+    return null;
+  }
+  return parts.join("/");
+}
+
+function searchTreeForPath(items: TreeItem[], source: string, path: string): TreeItem | null {
+  for (const item of items) {
+    if (!item.is_dir && item.source === source && item.path === path) return item;
+    if (item.children) {
+      const found = searchTreeForPath(item.children, source, path);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 function findAndOpenWikiTarget(name: string) {

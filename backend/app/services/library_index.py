@@ -334,6 +334,52 @@ def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
     return fm, body
 
 
+def _knowledge_metadata(
+    frontmatter: dict, body: str, topic_folder: str = "",
+) -> dict:
+    """Project authored metadata and legacy guide headers into the index."""
+    header_match = re.match(
+        r"\s*(?:#[ \t][^\r\n]+\r?\n\s*)?"
+        r"((?:\*\*(?:Topic|Category|Difficulty|Generated):\*\*[^\r\n]*\r?\n?)+)",
+        body[:1200],
+    )
+    header = header_match[1] if header_match else ""
+    legacy = dict(re.findall(
+        r"(?m)^\*\*(Topic|Category|Difficulty|Generated):\*\*\s+([^\r\n]+)", header,
+    ))
+    origin = frontmatter.get("origin")
+    origin = origin if isinstance(origin, dict) else {}
+    references = frontmatter.get("related") or frontmatter.get("references") or []
+    if isinstance(references, str):
+        references = [references]
+    from app.services.doclang_bridge import extract_wiki_links
+
+    references = [item for item in references if isinstance(item, str)] if isinstance(references, list) else []
+    references.extend(link["target"] for link in extract_wiki_links(body[:500000]) if link["target"])
+    needs = frontmatter.get("needs", [])
+    needs = [item for item in needs if isinstance(item, str)] if isinstance(needs, list) else []
+    if topic_folder and re.search(r"\[Placeholder\s*-", body, re.IGNORECASE):
+        needs.append("enhancement")
+    if topic_folder == "contributor" and body.strip() and not re.search(r"(?m)^#\s", body):
+        needs.append("formatting")
+    topic = frontmatter.get("topic") or frontmatter.get("category")
+    topic = topic or legacy.get("Topic") or legacy.get("Category") or topic_folder
+    return {
+        "uid": str(frontmatter.get("uid") or ""),
+        "topic": str(topic or "").strip(),
+        "difficulty": str(frontmatter.get("difficulty") or legacy.get("Difficulty") or ""),
+        "origin_date": str(origin.get("date") or frontmatter.get("origin_date")
+                           or legacy.get("Generated") or frontmatter.get("created") or ""),
+        "origin_time": str(origin.get("time") or frontmatter.get("origin_time") or ""),
+        "origin_place": str(origin.get("place") or frontmatter.get("origin_place") or ""),
+        "version": str(frontmatter.get("version") or ""),
+        "revision": str(frontmatter.get("revision") or ""),
+        "status": str(frontmatter.get("status") or ("Needs review" if needs else "")),
+        "needs": list(dict.fromkeys(needs)),
+        "references": list(dict.fromkeys(references)),
+    }
+
+
 def _get_preview(content: str, max_chars: int = 300) -> str:
     """Extract first paragraph as preview."""
     clean = FRONTMATTER_RE.sub("", content)
@@ -373,7 +419,7 @@ def _scan_source(source: str, base_path: Path) -> list[dict[str, Any]]:
         for fname in files:
             fpath = Path(root) / fname
             ext = fpath.suffix.lower()
-            if ext not in SUPPORTED_EXTENSIONS:
+            if ext not in SUPPORTED_EXTENSIONS or fpath.is_symlink():
                 continue
 
             try:
@@ -400,6 +446,11 @@ def _scan_source(source: str, base_path: Path) -> list[dict[str, Any]]:
                 if part not in (".", "") and not part.startswith("_"):
                     if part not in tags:
                         tags.append(part)
+
+            parts = fpath.relative_to(base_path).parts
+            topic_folder = parts[1] if source == "public" and len(parts) > 2 and parts[0] == "global-knowledge" else ""
+            if ext == ".md":
+                fm = {**fm, "_knowledge_index": _knowledge_metadata(fm, body, topic_folder)}
 
             entry_id = f"{source}:{fpath.relative_to(base_path)}"
             entry_id = re.sub(r"[^a-zA-Z0-9_:./-]", "_", entry_id)
@@ -482,6 +533,9 @@ def _upsert_entry(
     tags_json = json.dumps(entry["tags"], default=str)
     fm_json = json.dumps(entry["frontmatter"], default=str)
     title = entry["frontmatter"].get("title") or entry["filename"]
+    knowledge = entry["frontmatter"].get("_knowledge_index", {})
+    index_terms = [*entry["tags"], knowledge.get("uid"), knowledge.get("topic"),
+                   knowledge.get("status"), *knowledge.get("needs", [])]
 
     # Reclaim a path that is already owned by another source (e.g. an added
     # workspace overlapping a built-in vault) so the new source wins.
@@ -549,7 +603,7 @@ def _upsert_entry(
         (
             entry["id"], entry["filename"], title,
             entry["preview"], entry.get("body", ""),
-            " ".join(entry["tags"]),
+            " ".join(term for term in index_terms if term),
             entry["source"], entry["path"],
         ),
     )
@@ -589,6 +643,9 @@ def build_index(
             continue
 
         entries = _scan_source(source, base_path)
+        # Replace this source as one transaction so moved files lose their old references.
+        conn.execute("DELETE FROM library_fts WHERE source = ?", (source,))
+        conn.execute("DELETE FROM library_entries WHERE source = ?", (source,))
         for entry in entries:
             _upsert_entry(conn, entry)
 
@@ -646,6 +703,7 @@ def search(
     query: str,
     source: str | None = None,
     limit: int = 50,
+    offset: int = 0,
 ) -> list[dict[str, Any]]:
     """Full-text search across the unified library index with multi-tier ranking and highlighting."""
     if not INDEX_DB.exists():
@@ -661,17 +719,17 @@ def search(
             sql = """
                 SELECT * FROM library_entries
                 WHERE source = ?
-                ORDER BY modified_at DESC
-                LIMIT ?
+                ORDER BY modified_at DESC, path ASC
+                LIMIT ? OFFSET ?
             """
-            rows = conn.execute(sql, (source, limit)).fetchall()
+            rows = conn.execute(sql, (source, limit, offset)).fetchall()
         else:
             sql = """
                 SELECT * FROM library_entries
-                ORDER BY modified_at DESC
-                LIMIT ?
+                ORDER BY modified_at DESC, path ASC
+                LIMIT ? OFFSET ?
             """
-            rows = conn.execute(sql, (limit,)).fetchall()
+            rows = conn.execute(sql, (limit, offset)).fetchall()
     else:
         match_query = _format_fts_query(clean_q)
         if not match_query:
@@ -727,12 +785,13 @@ def search(
     results = []
     for row in rows:
         title = ""
+        fm = {}
         if "frontmatter_json" in row.keys() and row["frontmatter_json"]:
             try:
                 fm = json.loads(row["frontmatter_json"])
                 title = fm.get("title") or ""
-            except Exception:
-                pass
+            except (ValueError, AttributeError):
+                fm = {}
         if not title and "fts_title" in row.keys() and row["fts_title"]:
             title = row["fts_title"]
         if not title:
@@ -753,6 +812,8 @@ def search(
             "vault_layer": row["vault_layer"],
             "binder": row["binder"],
             "mission": row["mission"],
+            "is_readonly": bool(row["is_readonly"]),
+            "knowledge": fm.get("_knowledge_index") or _knowledge_metadata(fm, ""),
             "tags": json.loads(row["tags_json"] or "[]"),
             "extension": row["extension"],
             "size": row["size"],

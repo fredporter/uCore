@@ -465,7 +465,7 @@ def _update_task_file(
     metadata["priority"] = new_priority
     metadata["tags"] = new_tags
     metadata["board"] = new_board
-    for key in ("binder", "group"):
+    for key in ("binder", "group", "mission"):
         if key in patch:
             if not isinstance(patch[key], str):
                 raise ValueError(f"{key} must be text")
@@ -582,6 +582,7 @@ def _create_workflow_task(base: Path, body: dict[str, Any]) -> dict[str, Any]:
         source="user", source_id=task_id, tasker_dir=str(base),
         metadata={"id": task_id, "board": board, "profile": profile,
                   "binder": str(body.get("binder") or "").strip(),
+                  "mission": str(body.get("mission") or "").strip(),
                   "group": str(body.get("group") or "").strip(),
                   "priority": normalize_priority(str(body.get("priority") or "medium")),
                   "tags": normalize_tags(body.get("tags") or [])},
@@ -656,8 +657,8 @@ async def handle_duplicate_workflow_task(request: web.Request) -> web.Response:
             raise ValueError("Expected an object")
         task = _parse_markdown_task(path)
         # Copies are new user tasks; never duplicate execution approvals/actions.
-        copy = {key: task.get(key) for key in ("board", "binder", "group", "priority", "tags", "body")}
-        copy.update({key: body[key] for key in ("board", "binder", "group") if key in body})
+        copy = {key: task.get(key) for key in ("board", "binder", "mission", "group", "priority", "tags", "body")}
+        copy.update({key: body[key] for key in ("board", "binder", "mission", "group") if key in body})
         copy["title"] = task["title"] + " (copy)"
         return web.json_response(_create_workflow_task(base, copy), status=201)
     except (ValueError, TypeError) as exc:

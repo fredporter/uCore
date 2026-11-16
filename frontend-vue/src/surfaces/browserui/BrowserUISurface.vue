@@ -1,7 +1,8 @@
 <template>
-  <div class="surface" :class="{ 'surface--tab-nav-vertical': shell.tabOrientation === 'vertical' }">
+  <div class="surface" :class="{ 'surface--tab-nav-vertical': !embedded && shell.tabOrientation === 'vertical', 'browserui--workflow': embedded && !queueOnly, 'browserui--queue': queueOnly }">
     <SurfaceTabNav v-if="!embedded" :model-value="activeTab" :tabs="TABS" :orientation="shell.tabOrientation" @update:model-value="selectTab" @toggle-orientation="shell.toggleTabOrientation()" />
 
+    <slot />
     <div class="surface__content browserui-shell">
       <div v-if="activeTab === 'cards'" class="browserui-body">
         <section class="browserui-canvas">
@@ -74,7 +75,7 @@
               <button
                 v-for="tag in allTags"
                 :key="tag"
-                class="browserui-pill"
+                class="usx-btn usx-btn--ghost browserui-pill"
                 :class="{ 'browserui-pill--active': selectedTags.includes(tag) }"
                 @click="toggleTagFilter(tag)"
               >{{ tag }}</button>
@@ -96,8 +97,8 @@
             </button>
           </div>
 
-          <div v-else class="browserui-kanban browserui-kanban--zen">
-            <article v-for="column in displayedGroups" :key="column.id" class="browserui-column">
+          <div v-else class="browserui-results">
+            <template v-for="column in displayedGroups" :key="column.id">
               <header class="browserui-column__header">
                 <div class="browserui-column__title">
                   <UIcon :name="column.icon" />
@@ -166,7 +167,7 @@
                   </div>
                 </article>
               </div>
-            </article>
+            </template>
           </div>
         </section>
 
@@ -187,7 +188,7 @@
             @preview="editorMode = 'preview'"
             @save="saveToBinder"
           />
-          <button class="browserui-editor-close" @click="closeEditor">
+          <button class="usx-btn usx-btn--ghost browserui-editor-close" aria-label="Close editor" @click="closeEditor">
             <UIcon name="close" />
           </button>
         </aside>
@@ -196,9 +197,11 @@
 
 
 
+      <p v-if="queueOnly && researchNotice" role="status">{{ researchNotice }}</p>
       <ResearchDashboard
         v-if="activeTab === 'dashboard'"
         :jobs="researchJobs"
+        :inline="queueOnly"
         :gaps="researchGaps"
         @approve="approveJob"
         @cancel="cancelResearchJob"
@@ -539,12 +542,6 @@ function resetControls() {
   sortKey.value = "relevance"
   groupBy.value = "stack"
   batchSelected.value = []
-}
-
-function switchTab(tab: string) {
-  if (tab === "cards" || tab === "dashboard") {
-    activeTab.value = tab
-  }
 }
 
 function applySessionMeta() {
@@ -970,8 +967,15 @@ async function startResearchJob(payload: { url: string; binder?: string; tags?: 
 }
 
 function fillResearchGap(gap: any) {
-  activeTab.value = "cards"
   const query = gap?.query || gap?.topic || gap?.title || ""
+  if (props.queueOnly) {
+    void router.push({
+      path: "/workflow",
+      query: { tab: "research", ...(props.binderId ? { binder: props.binderId } : {}), q: String(query) },
+    })
+    return
+  }
+  activeTab.value = "cards"
   searchQuery.value = String(query)
   void runResearchSearch()
 }
@@ -1027,17 +1031,22 @@ watch(
   { deep: true },
 )
 
-watch(() => route.query.research, (tab) => { if (props.embedded && !props.queueOnly && ['cards','studio','dashboard'].includes(String(tab))) activeTab.value=tab as 'cards'|'studio'|'dashboard'; });
+async function refreshQueue() {
+  await Promise.all([hydrateResearchJobs(), detectKnowledgeGaps()])
+}
+
+defineExpose({ refreshQueue })
+
 watch(activeTab, (tab) => {
-  if(props.embedded && !props.queueOnly && route.query.research!==tab) void router.replace({path:'/workflow',query:{...route.query,tab:'mission-control',research:tab}});
   if (tab === "dashboard") void hydrateResearchJobs()
 })
 
 onMounted(async () => {
   loadSession()
-  if(props.queueOnly) activeTab.value="dashboard";
-  if(activeTab.value==='studio'||route.query.research==='studio'){activeTab.value='cards';void router.replace('/ucode2');return;}
-  if(props.embedded && !props.queueOnly && ['cards','studio','dashboard'].includes(String(route.query.research)))activeTab.value=route.query.research as 'cards'|'studio'|'dashboard';
+  if (props.embedded && !props.queueOnly && typeof route.query.q === "string") {
+    searchQuery.value = route.query.q
+    void runResearchSearch()
+  }
   await fetchBookmarks()
   document.addEventListener("visibilitychange", refreshResearchProgress);
   window.addEventListener("online", refreshResearchProgress);
@@ -1046,6 +1055,9 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.browserui--queue,
+.browserui--queue > .browserui-shell { display: contents; }
+
 .browserui-shell {
   display: flex;
   flex-direction: column;
@@ -1302,16 +1314,12 @@ onMounted(async () => {
 }
 
 
-.browserui-kanban--zen {
+.browserui-results {
   display: flex;
   flex-direction: column;
   width: min(760px, 100%);
   margin: 0 auto;
   gap: var(--usx-spacing-md);
-}
-
-.browserui-kanban--zen .browserui-column {
-  width: 100%;
 }
 
 @media (max-width: 640px) {
@@ -1640,13 +1648,6 @@ onMounted(async () => {
   width: 100%;
 }
 
-.browserui-kanban {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
-  gap: var(--usx-spacing-xl);
-  align-items: start;
-}
-
 .browserui-empty {
   display: grid;
   justify-items: center;
@@ -1675,24 +1676,11 @@ onMounted(async () => {
   color: var(--usx-color-on-surface-muted);
 }
 
-.browserui-column {
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-lg);
-  background: color-mix(in srgb, var(--usx-color-surface) 95%, var(--usx-color-background));
-  padding: var(--usx-spacing-lg);
-  min-height: var(--usx-touch-target-comfortable);
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-lg);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--usx-color-border) 60%, transparent);
-}
-
 .browserui-column__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: var(--usx-spacing-sm);
-  padding: 0 0 var(--usx-spacing-sm);
+  padding-block-end: var(--usx-spacing-xs);
   border-bottom: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-border) 75%, transparent);
 }
 
@@ -1735,10 +1723,12 @@ onMounted(async () => {
 }
 
 .browserui-column__cards {
+  --research-card-gap: 0px;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: stretch;
+  gap: var(--research-card-gap);
   min-height: 0;
   overflow-x: auto;
   overflow-y: hidden;
@@ -1747,11 +1737,11 @@ onMounted(async () => {
 }
 
 .browserui-column__cards--stacked {
-  gap: var(--usx-spacing-md);
+  --research-card-gap: var(--usx-spacing-md);
 }
 
 .browserui-column__cards--comfortable {
-  gap: var(--usx-spacing-lg);
+  --research-card-gap: var(--usx-spacing-lg);
 }
 
 .browserui-card {
@@ -1936,12 +1926,6 @@ onMounted(async () => {
   overflow-y: auto;
 }
 
-@media (min-width: 1600px) {
-  .browserui-kanban {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
 .browserui-editor-close {
   position: absolute;
   top: var(--usx-spacing-sm);
@@ -2033,6 +2017,45 @@ onMounted(async () => {
   }
 }
 
+.browserui--workflow > .browserui-shell {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  padding: 0;
+}
+
+.browserui--workflow .browserui-canvas {
+  padding: var(--wf-zen-pad, var(--usx-spacing-md));
+}
+
+.browserui--workflow .browserui-zen,
+.browserui--workflow .browserui-results {
+  width: 100%;
+  margin-inline: 0;
+}
+
+.browserui--workflow .browserui-zen {
+  margin-block-start: 0;
+  align-items: center;
+  text-align: center;
+}
+
+.browserui--workflow .browserui-results {
+  max-width: calc(48rem + var(--usx-spacing-lg));
+}
+
+.browserui--workflow .browserui-card {
+  box-sizing: border-box;
+  flex-basis: calc((100% - var(--research-card-gap)) / 2);
+  min-width: 0;
+}
+
+@media (max-width: 40rem) {
+  .browserui--workflow .browserui-card {
+    flex-basis: 100%;
+  }
+}
+
 /* Shared compact control geometry, without nested input/button borders. */
 .browserui-zen { margin-block: 24px; align-items: flex-start; text-align: left; }
 .browserui-zen__mark { width: 40px; height: 40px; font-size: 24px; }
@@ -2049,5 +2072,3 @@ onMounted(async () => {
 .browserui-actions-row .usx-btn, .browserui-batch-tools .usx-btn, .browserui-card__actions .usx-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 32px; margin: 0; padding: 4px 8px; font-size: var(--usx-font-size-sm); }
 @media (max-width: 40rem) { .browserui-zen__safari-btn span { display: none; } }
 </style>
-
-<style scoped>.workflow-research-tabs{display:flex;align-items:center;gap:4px;padding:6px 12px;border-bottom:1px solid var(--usx-color-border);}.workflow-research-tabs .usx-btn{display:inline-flex;align-items:center;gap:6px;margin:0;min-height:32px;padding:4px 8px;border:0;background:transparent;box-shadow:none;}.workflow-research-tabs [aria-pressed=true]{color:var(--usx-color-primary);}</style>

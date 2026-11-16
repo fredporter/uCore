@@ -5,7 +5,7 @@
       <input ref="input" v-model="query" aria-label="Search repository files" placeholder="Type a file name or path…" @keydown.escape="$emit('close')" @keydown.down.prevent="move(1)" @keydown.up.prevent="move(-1)" @keydown.enter.prevent="choose(results[selected])" />
       <ul role="listbox">
         <li v-for="(path, index) in results" :key="path">
-          <button :class="{ active: index === selected }" @mouseenter="selected = index" @click="choose(path)">
+          <button class="usx-btn usx-btn--ghost" :class="{ active: index === selected }" @mouseenter="selected = index" @click="choose(path)">
             <UIcon name="description" /><span>{{ path }}</span>
           </button>
         </li>

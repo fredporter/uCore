@@ -40,22 +40,53 @@ def _binder_dir(binder_id: str) -> Path:
     return BINDERS_ROOT / safe_id
 
 
+def _binder_trash() -> Path:
+    """User-owned, recoverable Binder folders. Restore by moving the folder back."""
+    trash = VAULT_ROOT / "Trash" / "Binders"
+    if trash.resolve() != VAULT_ROOT.resolve() / "Trash" / "Binders":
+        raise ValueError("Binder Trash cannot be a symbolic link")
+    return trash
+
+
+def trashed_binder_ids() -> list[str]:
+    trash = _binder_trash()
+    return [item["id"] for item in _list_binder_metadata(trash) if item.get("id")] if trash.is_dir() else []
+
+
+def _existing_binder_dir(binder_id: str) -> Path:
+    folder = _binder_dir(binder_id)
+    root = BINDERS_ROOT.resolve()
+    if (not binder_id.strip() or not root.is_relative_to(VAULT_ROOT.resolve())
+            or folder.resolve() != root / folder.name or folder == BINDERS_ROOT):
+        raise ValueError("Invalid Binder location")
+    metadata = folder / "binder.json"
+    if metadata.is_symlink() or not metadata.is_file():
+        raise FileNotFoundError("Binder not found")
+    if json.loads(metadata.read_text(encoding="utf-8")).get("id") != binder_id:
+        raise FileNotFoundError("Binder not found")
+    return folder
+
+
+def trash_binder(binder_id: str) -> None:
+    folder = _existing_binder_dir(binder_id)
+    trash = _binder_trash()
+    trash.mkdir(parents=True, exist_ok=True)
+    destination = trash / folder.name
+    if destination.exists() or destination.is_symlink():
+        raise FileExistsError("A Binder with this ID is already in Trash")
+    folder.rename(destination)
+
+
 def get_binder_documents_dir(binder_id: str) -> Path:
     """Resolve documents owned by an existing Binder without creating another one.
 
     Documents share the Binder's user-owned lifetime and storage budget; removing
     or archiving a Binder includes this visible directory. No copies or cache.
     """
-    bdir = _binder_dir(binder_id)
-    meta_path = bdir / "binder.json"
-    if not meta_path.is_file():
-        raise FileNotFoundError(f"Binder '{binder_id}' not found.")
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    if meta.get("id") != binder_id:
-        raise ValueError("Binder identity does not match its storage directory")
-    docs = (bdir / "docs").resolve()
-    if not docs.is_relative_to(bdir.resolve()) or not docs.is_relative_to(VAULT_ROOT.resolve()):
-        raise ValueError("Binder documents escape their owning vault")
+    bdir = _existing_binder_dir(binder_id).resolve()
+    docs = bdir / "docs"
+    if docs.resolve() != docs:
+        raise ValueError("Binder documents must use their declared directory")
     return docs
 
 
@@ -70,6 +101,8 @@ def create_binder(
 ) -> Dict[str, Any]:
     """Create a new durable project binder with its 7 canonical records."""
     bdir = _binder_dir(binder_id)
+    if (_binder_trash() / bdir.name).exists():
+        raise FileExistsError(f"Binder '{binder_id}' is in Trash.")
     if bdir.exists() and (bdir / "binder.json").exists():
         raise FileExistsError(f"Binder '{binder_id}' already exists.")
 
@@ -166,6 +199,18 @@ def create_binder(
     return get_binder(binder_id)
 
 
+def rename_binder(binder_id: str, title: str) -> Dict[str, Any]:
+    """Change the display title while preserving identity and all materials."""
+    if not isinstance(title, str) or not title.strip() or len(title.strip()) > 200:
+        raise ValueError("Binder name must contain 1–200 characters")
+    path = _existing_binder_dir(binder_id) / "binder.json"
+    meta = json.loads(path.read_text(encoding="utf-8"))
+    meta["title"] = title.strip()
+    meta["updated_at"] = datetime.now(UTC).isoformat()
+    path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    return meta
+
+
 def get_binder(binder_id: str) -> Dict[str, Any]:
     """Retrieve full durable binder state and all records."""
     bdir = _binder_dir(binder_id)
@@ -224,10 +269,13 @@ def get_binder(binder_id: str) -> Dict[str, Any]:
 
 def list_binders() -> List[Dict[str, Any]]:
     """Scan and list all binders in ~/Vault/Binders."""
+    return _list_binder_metadata(get_binders_dir())
+
+
+def _list_binder_metadata(root: Path) -> list[dict[str, Any]]:
     binders = []
-    root = get_binders_dir()
     for child in sorted(root.iterdir(), key=lambda p: p.name.lower()):
-        if child.is_dir() and (child / "binder.json").exists():
+        if not child.is_symlink() and child.is_dir() and (child / "binder.json").is_file():
             try:
                 meta = json.loads((child / "binder.json").read_text(encoding="utf-8"))
                 binders.append(meta)
@@ -740,6 +788,39 @@ def accept_edition(binder_id: str, reviewer_notes: str = "") -> Dict[str, Any]:
     return manifest
 
 
+def preview_edition_links(binder_id: str, edition_num: int) -> Dict[str, Any]:
+    """Inspect links in an accepted snapshot without exporting it."""
+    from app.services.doclang_bridge import extract_sections, extract_wiki_links
+
+    if type(edition_num) is not int or edition_num < 1:
+        raise ValueError("Choose an accepted edition.")
+    edition_file = _binder_dir(binder_id) / "editions" / f"edition_{edition_num}.md"
+    manifest_file = edition_file.with_suffix(".manifest.json")
+    if (
+        not edition_file.resolve().is_relative_to(BINDERS_ROOT.resolve())
+        or not manifest_file.resolve().is_relative_to(BINDERS_ROOT.resolve())
+        or not edition_file.is_file()
+        or not manifest_file.is_file()
+    ):
+        raise FileNotFoundError("Accepted edition not found.")
+    markdown = edition_file.read_text(encoding="utf-8")
+    headings = [section for section in extract_sections(markdown) if section["heading"]]
+    links = []
+    for link in extract_wiki_links(markdown):
+        target = link["target"] or ""
+        note, _, heading = target.partition("#")
+        if note or not heading:
+            status = "outside_edition"
+        else:
+            candidates = [
+                section for section in headings
+                if heading.strip().casefold() in {section["heading"].casefold(), section["id"].casefold()}
+            ]
+            status = "heading_found" if len(candidates) == 1 else "ambiguous_heading" if candidates else "missing_heading"
+        links.append({**link, "status": status})
+    return {"edition": edition_num, "links": links}
+
+
 def publish_edition(
     binder_id: str,
     edition_num: Optional[int] = None,
@@ -756,7 +837,7 @@ def publish_edition(
     if edition_num is None:
         edition_num = meta.get("latest_edition")
 
-    if not edition_num:
+    if type(edition_num) is not int or edition_num < 1:
         raise ValueError(f"No accepted edition found to publish for binder '{binder_id}'.")
 
     edition_file = ed_dir / f"edition_{edition_num}.md"
@@ -770,12 +851,36 @@ def publish_edition(
     # Sanitize draft: remove internal comment section markers while preserving content & citations
     clean_md = re.sub(r"<!--\s*section:\s*[\w\-]+\s*-->\n?", "", raw_md)
 
+    # Rewrite in-edition links to valid markdown anchors; sanitize non-edition links
+    from app.services.doclang_bridge import extract_sections
+
+    headings = [section for section in extract_sections(clean_md) if section["heading"]]
+
+    def _rewrite_link(m: re.Match) -> str:
+        content = m.group(1).strip()
+        target, _, label = content.partition("|")
+        target = target.strip()
+        label = label.strip()
+        note, _, heading = target.partition("#")
+        if not note and heading:
+            candidates = [
+                s for s in headings
+                if heading.casefold() in {s["heading"].casefold(), s["id"].casefold()}
+            ]
+            if len(candidates) == 1:
+                anchor = candidates[0]["id"]
+                return f"[{label or heading}](#{anchor})"
+        return label or target
+
+    clean_md = re.sub(r"\[\[([^\]\n]+)\]\]", _rewrite_link, clean_md)
+
     # Convert to standalone HTML
     try:
         import markdown
         html_body = markdown.markdown(clean_md, extensions=["tables", "fenced_code"])
     except Exception:
-        html_body = f"<pre>{clean_md}</pre>"
+        from app.services.docs_publish import markdown_to_html
+        html_body = markdown_to_html(clean_md)
 
     title = meta.get("title", f"Edition {edition_num}")
     standalone_html = f"""<!DOCTYPE html>

@@ -2,7 +2,7 @@
   <section class="dev-chat-activity" aria-label="Developer activity">
     <p v-if="chat.error" role="alert">{{ chat.error }}</p>
     <div v-if="chat.working" class="dev-chat-actions">
-      <span>Developer work is running</span><button @click="chat.stop()">Stop</button>
+      <span>Developer work is running</span><button class="usx-btn usx-btn--ghost usx-btn--sm" @click="chat.stop()"><UIcon name="stop" /> Stop</button>
     </div>
     <template v-if="chat.conversation">
       <p role="status">{{ chat.conversation.status }}</p>
@@ -22,8 +22,8 @@ Exit: {{ event.run.exitCode ?? 'pending' }}</pre>
         <p v-if="operation.error" role="alert">{{ operation.error }}</p>
         <div v-if="operation.status === 'awaiting_approval'" class="dev-chat-actions">
           <span>Construct a proposal for {{ chat.repository }} in an isolated workspace.</span>
-          <button @click="chat.action(`/operations/${operation.id}/decision`, { decision: 'approve' })">Approve construction</button>
-          <button @click="chat.action(`/operations/${operation.id}/decision`, { decision: 'deny' })">Deny</button>
+          <button class="usx-btn usx-btn--primary usx-btn--sm" @click="chat.action(`/operations/${operation.id}/decision`, { decision: 'approve' })">Approve construction</button>
+          <button class="usx-btn usx-btn--secondary usx-btn--sm" @click="chat.action(`/operations/${operation.id}/decision`, { decision: 'deny' })">Deny</button>
         </div>
         <details v-if="operation.events.length">
           <summary>Construction activity</summary>
@@ -34,15 +34,17 @@ Exit: {{ event.run.exitCode ?? 'pending' }}</pre>
             <summary>{{ file.path }}{{ file.applied ? ' · applied' : '' }}</summary><pre>{{ file.patch }}</pre>
           </details>
           <button v-if="operation.status === 'completed' && operation.proposal.files.some(f => !f.applied)"
+            class="usx-btn usx-btn--primary usx-btn--sm"
             @click="apply(operation.id, operation.proposal.fingerprint)">Apply reviewed changes</button>
         </template>
       </article>
-      <button v-if="chat.intent !== 'act' && !chat.busy" @click="continueInAct">Continue in Act</button>
+      <button v-if="chat.intent !== 'act' && !chat.busy" class="usx-btn usx-btn--secondary usx-btn--sm" @click="continueInAct">Continue in Act</button>
     </template>
   </section>
 </template>
 <script setup lang="ts">
 import { useDeveloperChatStore } from '../../stores/developerChat'
+import UIcon from '../../skills/atoms/UIcon.vue'
 const chat = useDeveloperChatStore()
 function continueInAct() {
   chat.intent = 'act'

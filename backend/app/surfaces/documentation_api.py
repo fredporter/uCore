@@ -36,18 +36,31 @@ def _safe_name(value: str) -> str:
 
 
 def _site_built(site_path: Path) -> bool:
-    """A doc site is considered built when it has a root index.html."""
-    return (site_path / "index.html").is_file()
+    """Recognize both root and generated documentation builds."""
+    return _site_index(site_path) is not None
+
+
+def _site_index(site_path: Path) -> Path | None:
+    root = site_path.resolve()
+    for index in (root / "index.html", root / "_site" / "index.html"):
+        if index.is_file() and index.resolve().is_relative_to(root):
+            return index
+    return None
 
 
 def _list_doc_sites() -> list[dict[str, Any]]:
-    if not DOC_SITES_ROOT.exists() or not DOC_SITES_ROOT.is_dir():
-        return []
+    candidates = {
+        child.name: child
+        for child in (DOC_SITES_ROOT.iterdir() if DOC_SITES_ROOT.is_dir() else ())
+        if child.is_dir() and not child.name.startswith(".")
+    }
+    for name in ("Developer-docs", "udos-docs"):
+        child = DOC_SITES_ROOT.parent / name
+        if child.is_dir():
+            candidates[name] = child
 
     sites: list[dict[str, Any]] = []
-    for child in sorted(DOC_SITES_ROOT.iterdir(), key=lambda p: p.name.lower()):
-        if not child.is_dir() or child.name.startswith("."):
-            continue
+    for child in sorted(candidates.values(), key=lambda p: p.name.lower()):
         sites.append(
             {
                 "id": child.name,
@@ -232,8 +245,8 @@ def _serve_directory_index(root: Path, section_name: str) -> web.Response:
     if target.is_file():
         return web.FileResponse(path=target)
 
-    index_path = target / "index.html"
-    if index_path.is_file():
+    index_path = _site_index(target)
+    if index_path:
         return web.FileResponse(path=index_path)
 
     readme = target / "README.md"
@@ -255,12 +268,12 @@ async def handle_docs_root(_request: web.Request) -> web.Response:
         {
             "method": "GET",
             "path": "/api/docs/sites",
-            "description": "List doc sites under ~/Public/doc-sites",
+            "description": "List doc sites under ~/Public",
         },
         {
             "method": "GET",
             "path": "/api/docs/serve/{site}/",
-            "description": "Serve a doc site index from ~/Public/doc-sites",
+            "description": "Serve a doc site index from ~/Public",
         },
         {
             "method": "GET",
@@ -325,6 +338,8 @@ async def handle_docs_global_knowledge(_request: web.Request) -> web.Response:
 async def handle_docs_serve_site(request: web.Request) -> web.Response:
     """GET /api/docs/serve/{site}/ - serve static doc site content."""
     site = request.match_info.get("site", "")
+    if site in {"Developer-docs", "udos-docs"} and (DOC_SITES_ROOT.parent / site).is_dir():
+        return _serve_directory_index(DOC_SITES_ROOT.parent, site)
     return _serve_directory_index(DOC_SITES_ROOT, site)
 
 
@@ -499,6 +514,50 @@ def _build_dir_tree(root: Path, source: str, current_depth: int = 0, max_depth: 
     return items
 
 
+def _group_public_developer_docs(items: list[dict[str, Any]]) -> None:
+    """Group developer materials in the Public Knowledge tree."""
+    knowledge = next((item for item in items if item["path"] == "global-knowledge"), None)
+    knowledge_items = knowledge["children"] if knowledge is not None else []
+    developer_paths = {
+        "global-knowledge/datasets",
+        "global-knowledge/tech",
+        "global-knowledge/bank-README.md",
+        "global-knowledge/KNOWLEDGE-SYSTEM.md",
+        "global-knowledge/KNOWLEDGE_LAYERING_AND_CONTRIBUTION_SPEC.md",
+        "global-knowledge/README.md",
+    }
+    developer_items = [item for item in knowledge_items if item["path"] in developer_paths]
+    udos_docs = next(
+        (item for item in items if item["path"] == "udos-docs" and item["is_dir"]),
+        None,
+    )
+    if udos_docs is not None:
+        developer_items.append(udos_docs)
+    if not developer_items:
+        return
+
+    developer = next((item for item in items if item["path"] == "Developer-docs"), None)
+    if developer is None:
+        developer = {
+            "name": "Developer Docs",
+            "path": "Developer-docs",
+            "source": "public",
+            "is_dir": True,
+            "children": [],
+        }
+        anchor = knowledge if knowledge is not None else udos_docs
+        items.insert(items.index(anchor), developer)
+
+    if udos_docs is not None:
+        items.remove(udos_docs)
+    if knowledge is not None:
+        knowledge["children"] = [item for item in knowledge_items if item["path"] not in developer_paths]
+        if not knowledge["children"]:
+            items.remove(knowledge)
+    developer["children"].extend(developer_items)
+    developer["children"].sort(key=lambda item: (not item["is_dir"], item["name"].lower()))
+
+
 async def handle_docs_wiki_tree(_request: web.Request) -> web.Response:
     """GET /api/docs/wiki/tree — multi-vault hierarchical tree for Local Wikipedia."""
     vaults: list[dict[str, Any]] = []
@@ -532,6 +591,13 @@ async def handle_docs_wiki_tree(_request: web.Request) -> web.Response:
     # 3. Public Knowledge (~/Public)
     public_root = settings.public_vault_root
     public_items = await asyncio.to_thread(_build_dir_tree, public_root, "public")
+    _group_public_developer_docs(public_items)
+    learning = next(
+        (item for item in public_items if item["path"] == "learning" and item["is_dir"]),
+        None,
+    )
+    if learning is not None:
+        public_items.remove(learning)
     vaults.append({
         "id": "public",
         "name": "Public Knowledge",
@@ -566,6 +632,9 @@ async def handle_docs_wiki_tree(_request: web.Request) -> web.Response:
             "is_dir": True,
             "children": sonic_children,
         })
+
+    if learning is not None:
+        manual_items.append(learning)
 
     vaults.append({
         "id": "manuals",

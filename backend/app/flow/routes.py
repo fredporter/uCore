@@ -22,10 +22,14 @@ def register_routes(app) -> None:
         handle_list_workflows,
         handle_run_workflow,
         handle_update_task,
+        handle_user_missions,
         handle_workflow_logs,
         handle_workflow_runs,
     )
 
+    app.router.add_get("/api/workflow/missions", handle_user_missions)
+    app.router.add_post("/api/workflow/missions", handle_user_missions)
+    app.router.add_patch("/api/workflow/missions/{mission_id}", handle_user_missions)
     app.router.add_get("/api/workflows", handle_list_workflows)
     app.router.add_get("/api/workflows/runs", handle_workflow_runs)
     app.router.add_post("/api/workflows", handle_create_workflow)

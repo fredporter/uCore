@@ -3,10 +3,26 @@
  * @description Type definitions for the filepicker sidebar and vault integration.
  */
 
+export interface KnowledgeMetadata {
+  uid?: string
+  topic?: string
+  difficulty?: string
+  origin_date?: string
+  origin_time?: string
+  origin_place?: string
+  version?: string
+  revision?: string
+  references?: string[]
+  status?: string
+  needs?: string[]
+}
+
 export interface FileEntry {
   id: string
   path: string
   filename: string
+  title?: string
+  knowledge?: KnowledgeMetadata
   source: string
   vault_layer: string
   binder: string | null

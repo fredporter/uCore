@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Wave F2 publishing route contract scaffold in udos-publishing."""
+"""Validate Wave F2 publishing route contract scaffold in uCore-Publish."""
 
 from __future__ import annotations
 
@@ -56,8 +56,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Check Wave F2 publishing route contract scaffold")
     parser.add_argument(
         "--repo",
-        default="/Users/fredbook/Code/udos-publishing",
-        help="Path to udos-publishing repository",
+        default=Path(__file__).resolve().parents[2] / "uCore-Publish",
+        help="Path to uCore-Publish repository",
     )
     args = parser.parse_args()
 

@@ -1,0 +1,18 @@
+.document-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  block-size: 40px;
+  box-sizing: border-box;
+  padding: 2px 8px;
+  background: color-mix(in srgb, var(--usx-color-surface) 58%, transparent);
+  flex-shrink: 0;
+  overflow: auto hidden;
+  white-space: nowrap;
+}
+
+@media (max-width: 40rem) {
+  .document-editor-toolbar {
+    block-size: max(40px, calc(var(--usx-touch-min) + 8px));
+  }
+}

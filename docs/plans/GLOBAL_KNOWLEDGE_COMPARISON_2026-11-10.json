@@ -1,0 +1,4703 @@
+{
+  "local_commit": "f45573ca4f36b9b4c2efbd2eadd52db3ff85c114",
+  "upstream_commit": "c69c46c5491cddf186b8fe4519fdfe447bee4568",
+  "counts": {
+    "identical": 0,
+    "local_only": 518,
+    "upstream_only": 1,
+    "different": 1
+  },
+  "files": {
+    "identical": [],
+    "local_only": [
+      {
+        "path": ".gitignore",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a534e1aab3f1269a981fa7ab07b850c39937edd0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "EDITION_PLAN.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "fc5eeac33eb3727278c5b8f9285d87908ddab687"
+        },
+        "upstream": null
+      },
+      {
+        "path": "GEOGRAPHY-KNOWLEDGE-SPEC.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0acfee0bbba176b3151d12b3acee6561a5f734d4"
+        },
+        "upstream": null
+      },
+      {
+        "path": "KNOWLEDGE-SYSTEM.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "69689deba91b22959d68fcb545b71a8fc8439fa7"
+        },
+        "upstream": null
+      },
+      {
+        "path": "KNOWLEDGE_LAYERING_AND_CONTRIBUTION_SPEC.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "51717636b0a8e94775a33e377375fbb51d4756d5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "_index.json",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e38e7da36f435193bda60bd090a74ced4b574dda"
+        },
+        "upstream": null
+      },
+      {
+        "path": "bank-README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b578e83564e84b6cc87caf264748c4be0f2d4e1e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "bin/publish",
+        "local": {
+          "mode": "100755",
+          "type": "blob",
+          "object": "2d39c176b76a8c8311c6f82668add21964cc30b4"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "38fd30a7c900d4d0add7ccfd6e69348d8be6fa70"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/community_coordination.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7b2c5445e3ddd0e3a398ab9eecfe553b536f9ab9"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/dead_drop_techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "873a04177547e2615af3b61fdd925e7ffb0c194b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/emergency_communication.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c4fb0ef01e5e28f353fdf21875738889703aadde"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/encrypted_messaging_basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "fd8ad507820d8953e2f17f70be285a7042ccdff3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/ground-to-air_signals.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a20c1f2bb394a7dde10c4339915693a1d163966d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/hand_signals.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "2c6f426e720ec6d5cf435a89ff09c0b226d65181"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/message_systems.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "4de93db35cb03294ef90c412b21cff9703c48c01"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/mirror_signals.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9df7821cff2f3cc376cb32aacaf6491c99a53a1a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/morse_code.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a3f4bdfce455559e5437b03fda45fa6928c50c71"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/radio_basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "22ee66ce22beb095260e63555a155f12560b42b5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/security_protocols.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b4929e72e7828a9115db1d8bd60ccf0566d073e4"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/semaphore_flag_system.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0071384ba8762b107ef4a51c685bfe75d7f2d907"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/smoke_signals.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "04f1dd36f9474f7e28940fcb2800f15d02a61af3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/visual_distress_signals.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7f8a87ed2ac906d82996327f26eb717178b55c59"
+        },
+        "upstream": null
+      },
+      {
+        "path": "communication/whistle_codes.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "cc8ef28b140b512661a055d771b5d3e21310c380"
+        },
+        "upstream": null
+      },
+      {
+        "path": "community/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c7b06f7326d5b735fa748207fa5e0bb2dc048bbe"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0da4626fcf85244856517d19cddd9d4dfe5fc3a0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Advanced Bushcraft_ An Expert Field Guide to the Art of Wilderness Survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3cf1649b12fe709bd95646787e8102f6bbfab967"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Bushcraft 101_ A Field Guide to the Art of Wilderness Survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "77748c8fab44327069f06959ecb40c6d94bc4f3b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Bushcraft First Aid_ A Field Guide to Wilderness Emergency Care.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "28de2cc0abacd195def47074df5898122bf3c506"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Bushcraft Outdoor Skills and Wilderness Survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "81e1d719ea4f59c43842c2d8a25dfe0752877756"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Bushcraft illustrated a visual guide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d80617e060a865ca48e7bfaee2b4360d0f068a28"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Bushcraft.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "70c7b121013822b7a2dab1706bdbf00bb8381aad"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Bushcraft_ Outdoor Skills and Wilderness Survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "4e1833e5ad25d0c3777ecee60bd8aa58deb578f9"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Bushcraft_The Ultimate Guide to Survival in the Wildernes.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "90ea9b28632278c8ade81cdfb72e8b1207014a02"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Campcraft_RichardGraves.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8837b7c1b3a6191e766a6ba71248594dc0c2018a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Essential bushcraft.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "67d771fd6dfa3ffb5305da409cf4e496e957f905"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Hollowtop Outdoor Primitive School Main Menu_ Primitive Living Skills, Sustainable Living Skills.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "bd6378c07fff054c97151df1fce039d4c63ff07a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Northern Bushcraft.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f4152839e4625a5ac90ccc66dfe19047339fa042"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Primitive Skills and Crafts_ An Outdoorsman_s Guide to Shelters, Tools, Weapons, Tracking, Survival, and More.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a691360077c7fbd154e8fc83bc3b8f7615e67afa"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Society of Primitive Technology_ Earth Skills, Wilderness Survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6f7055228fc866627562bed290a8e618d5525ad0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/The Bushcraft Bible.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f2ac3ff6f334dda3aae7dfe5951389264b4a7c31"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/The Bushcraft Essentials Field Guide_ The Basics You Need to Pack, Know, and Do to Survive in the Wild.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b14d3fac5eee24f69ba583960e541733499db9af"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/Wilderness Survival Tools_ Bushcraft Strategies and Tools You Will Need to Know to Be Safe When Backpacking or Camping.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "2be2627a4b0c2f589b14766797d810aa0aedc2d5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/bushcraftbasics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0974ce1e6389083bf177c8997785624f2074ed63"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/bushcraft/guidetomakingfirewithoutmatches.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "2df8085472fe0ca0a15a6bfa2e467cdbf9e43768"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/Complete Krav Maga_ The Ultimate Guide to Over 200 Self-Defense and Combative Techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f2b6e98072bc6487e743bacecd43312270f7b5ad"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/Gun Digest Book of Tactical Weapons Assembly_Disassembly.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d10ce7281d7c6e2e7995d94e9611d889301403ca"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/Improvised Booby Trap Devices by Jo.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/Military Science Improvised Weapons Detonation and Demolition Weapon Science and ...md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5aaca4be57092afcdaf3933311a37bf650000ce6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/Prepper guns_ firearms, ammo, tools, and techniques you will need to survive the coming collapse.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "4ce6ee1b5ee5620492b8e3479b37c2d923f2ed08"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/Prepper\u2019s Guide_10 Survival Tools and Weapons Out of Common Things_(Survival Guide, Prepper\u2019s Guide).md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "073117ecaf3f7f3a43e7ad5731d7fd3a577d4e69"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/SAS Ultimate Guide to Combat_How to Fight and Survive in Modern Warfare.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5b055c27795b8a7b6dc09d9fb3982bbca06475fd"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/Self-Defense Survival Guide_How To Survive When You_re Fighting For Your Life.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8400b76cb9535985c5155d0922abc0861751a899"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/Shooter_s Bible Guide to Knives_A Complete Guide to Hunting Knives, Survival Knives, Folding Knives, Skinning Knives, Sharpeners, and More.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1d3926bb3d4cce1dd5bff99b9cd4c57e03657982"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/Special Ops Fitness Training_ High-Intensity Workouts of Navy Seals, Delta Force, Marine Force Recon and Army Rangers.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "86404a85a6177fa09d655c019dcd1d65aa373c38"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/The Gun Digest Book of Survival Guns_Tools & Tactics for Survival Preparedness.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5bdc35c68bb528f59587f3dfeb6d10a2c50bf912"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/The Official U.S. Army Combat Skills Handbook.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c2198bea2212e3ec706531a1fbd3cf3892e3fc75"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/The SAS Self-Defense Handbook_A Complete Guide to Unarmed Combat Techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/The Tactical Knife_A Comprehensive Guide to Designs, Techniques, and Uses.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9be115f32c289f693f3d19765c3fdc47ea950e7e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/U.S. Army Combat Pistol Training Handbook.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a91499da89e6922fc2d0b59b0e0691c5a6dc673e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/U.S. Army Guerrilla Warfare Handbook.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "24d6b206c6fe7eedf1c2a40e46f01b478b2fe4a6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/Weapons Caching - DoomzDay Preppers.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/defence/theu_s_navysealguidetofitnessandnutrition.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "783ed564c62004345875ed89133df8d973b5e95e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/Adventures in Edible Plant Foraging_Finding, Identifying, Harvesting, and Preparing Native and Invasive Wild Plants.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "bde785727a3781ab14c0a5b35e7b47b8af2642ce"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/Dining on the Wilds, wild edible plants for gourmet and survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f4431b35861294ed658ddb235f8be2a4b49280a6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/Edible and useful plants of the Southwest _ Texas, New Mexico, and Arizona _ including recipes, teas and spices, natural dyes, medicinal uses, poisonous plants, fibers, basketry, and industrial uses.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c5c8f4e74aa022c0a130ac5fca6a51f5f6b43e9c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/Ethnobotany-Field-Guide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "21deea23cab63d380bbe397bd703849aabb8d5e1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/Field guide to edible wild plants .md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "af1ad584bd7dbb544a2cfa90295493fe60d673bc"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/Foraging_The Essential Guide to Free Wild Food.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6487c9baaef4b6863a7166d07ddf48f21fe290ba"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/Handbook of Edible Weeds _ Herbal Reference Library.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d095e8321aa2922b290f0ec11d04687d61259a2c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/Healing Herbs_ A Beginner\u2019s Guide to Identifying, Foraging, and Using Medicinal Plants _ More than 100 Remedies .md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "cb4efaeb8af189f1ff1e8678240572d1b3187de0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/Healing Herbs_A Beginner\u2019s Guide to Identifying, Foraging, and Using Medicinal Plants _More than 100 Remedies from 20 of the Most Healing Plants.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "cb4efaeb8af189f1ff1e8678240572d1b3187de0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/Mushrooming with Confidence_ A Guide to Collecting Edible and Tasty Mushrooms.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "184751d6f7e1b7900105246c630b06d99106ec19"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/The Complete Guide to Edible Wild Plants, Mushrooms, Fruits, and Nuts_ Finding, Identifying, and Cooking.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "28b5cf89074090e441de6a118a6bbf32f66efd80"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/The Complete Guide to Edible Wild Plants, Mushrooms, Fruits, and Nuts_Finding, Identifying, and Cooking.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "28b5cf89074090e441de6a118a6bbf32f66efd80"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/The Essential Wild Food Survival Guide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "67d774667e1c4a8cc044e4dcd6940b0ccc0aaf36"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/The Everything Guide to Foraging_ Identifying, Harvesting, and Cooking Nature\u2019s Wild Fruits and Vegetables.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "051b557f93763dcdc2f5d66405534b36f6d6aee3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/The Forager_s Harvest_ A Guide to Identifying, Harvesting, and Preparing Edible Wild Plants.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/The Forager\u2019s Feast_How to Identify, Gather, and Prepare Wild Edibles.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "142834e2aab9a8ac6030ec1083f5333114751bd8"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/The Illustrated Book of Edible Plants.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8e3707a897ef3d4a32d12401167c93886bd312e6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/The Official U.S. Army Illustrated Guide to Edible Wild Plants.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "63723b8c8122bd40e61fc1b2a0e5cf26d900070e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/The Wild & Weedy Apothecary_ An A to Z Book of Herbal Concoctions, Recipes & Remedies, Practical Know-How & Food for the Soul.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "734f53d033391bc896cc9a4bd2b273c32e5e8b1a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/The quick guide to wild edible plants_ easy to pick, easy to prepare.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "110b8b2eaf84f1a9a8eba89269e6d9f400796e55"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/Wild edibles _a practical guide to foraging, with easy identification of 60 edible plants and 67 recipes.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "bf326a5d5bcb1e93a348f630dd82db720c35e101"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/bigbookofbackyardmedicine.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "17b0027f4e07dc5bd0d80b7e43deb9f5f3372ddd"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/edible-wild-plants.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "94eeb4467caf2f44b7c1248e86f993c784ab45d2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/foragingforsurvival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5328e9fc03f6226edf196252d57d513d469f2b10"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/foraging/foragingguide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/gardening/50do-it-yourselfprojectsforkeepinggoats.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "bcf3a2ca87a919349b5608735dfa6925ada5c0c9"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/gardening/How to Grow More Vegetables.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "50aab5e0dd43bef2784a2170afaf221947fe468a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/gardening/JADAM  Organic Farming_ The way to Ultra-Low-Cost agriculture.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a84e667a00e702e6efab7a66a4930e45012f566f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/gardening/Live off the land _ survival gardening basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6cb5c0a4ea17a9bd8cc09d6082e7b821c5f1be02"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/gardening/Living Off-The-Grid_ Survival Techniques for Sustainable Living - PDF Room.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b38784101b9819050bb7dfb31e6a1cb0a120ac8e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/gardening/Organic Farming, Pest Control and Remediation of Soil Pollutants_ Organic farming, pest control and remediation of soil pollutants.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6f82b62e5e9a38ccf3cc3467a539c3a5ee29f627"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/gardening/Prepper\u2019s Livestock Handbook.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "09fc487a1ee4611e995740fede7ef9e6b28531c3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/gardening/Rebirth of the Small Family Farm_ A Handbook for Starting a Successful Organic Farm Based on the Community Supported Agriculture Concept.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ffc0f5544f59672f4555f40518ea4e0cc6ac7abc"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/gardening/Sepp Holzer_s Permaculture_ A Practical Guide to Small-Scale, Integrative Farming and Gardening--With information on mushroom cultivation, sowing a ... ways to keep livestock, and more.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1c154d7c2812dca9c200c9e9eafc0a3ae565e03f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/gardening/Teaching Organic Farming & Gardening.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5d6d0aa747c1e6026b0de6344c31bc226a043014"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/gardening/The Mini Farming Bible_ The Complete Guide to Self-Sufficiency on 1_4 Acre.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0ef22de7a70044aa216d3608fc749df6b9467841"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/gardening/buzzintobeekeeping.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b99ae5a5b48fa3204823444016be1145614f97e1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/gardening/minifarmingbible.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b64747a3c482a924c521b639695bec35e98bf6b5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/100 Deadly Skills_ Survival Edition_ The SEAL Operative\u2019s Guide to Surviving in the Wild and Being Prepared for Any Disaster.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c3f01c3ab6a59cdcb5279e218e9fdd40e3a7b63a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/150survivalsecrets.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "84b06a1a4d05721b1e1a21ee211d0c4661fe3e14"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/40 Survival Tools_ 40 Essential Tools For Every Survival Kit.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f9fe9a5934f94fbd3ac1982fe57a7714cb320245"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/A Guide To Outdoor Living And Wilderness Survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "da9a4c25602cc9f902eee11d2adc010d24ce8324"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/A Soldier Must Be Able To Use A Map... To Form A True Mental Picture Of The Ground  1983.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3468a726e64276f0f82e53411c7ba69b7563145b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/AHEIA-Map-Compass.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1f100525536fa61c3d962852783cdcdd66bd1f63"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Badass Survival Secrets_ Essential Skills to Survive Any Crisis.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "2d24197843be8d3db0dee0f36edfaa7c91cedda3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Basic illustrated. Map and compass.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "add27a203c7c4ed6cfd104fc63ad0844830487b3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Basic wilderness survival skills _ build shelters, safety and first aid, fire building, forage, hunt, and fish, and much more.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Build the Perfect Bug Out Bag_ Your 72-Hour Disaster Survival Kit.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7c36a51d12cc0335cd3f685fb594907390824f49"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Build the Perfect Bug Out Survival Skills.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8457b2d6121232edb517475a9aa484c74320de9d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Build the Perfect Bug Out Vehicle  The Disaster Survival Vehicle Guide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1e2c79232d53498236bfda09c636d0ddf7a79603"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Essential Survival Skills (DK Essential Skills).md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "bd4a06ad87e189ae9119682f09dc7ad46d7267ab"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Essential survival gear_ a pro_s guide to your most practical and portable survival kit.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a8af206e72a1bee3ceb1f063901bd21fb515ec0e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Field & Stream_The Total Outdoorsman Skills & Tools_324 Essential Tips & Tricks.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8f9b47c2c2d3fe7a66d8079710d1e4f6f9d67ff1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/How to Stay Alive in the Woods_ A Complete Guide to Food, Shelter and Self-Preservation Anywhere.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d8b692426b9fc4fc3130ee54b80c1f52952e3ca1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Map Reading and Land Navigation Army Study Guide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5e4a909afebe2b01a6820d744367df009b329619"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Mykel Hawke_s Green Beret Survival Manual_ Essential Strategies For_ Shelter and Water, Food and Fire, Tools and Medicine, Navigation and Signaling, Survival Psychology and Getting Out Alive!.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d029b0ad9815abd77048dafd3e4ecfd4f211e531"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Prepper_s survival hacks _ 50 DIY projects for lifesaving gear, gadgets and kits.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "96392189154ab1086e4d7e042471507b1b1dd88f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/SAS Desert Survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d98331778172cd973f2746cf15e1b6a69f6ce681"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/SAS Jungle Survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9afae7a9a1ec3ab72d1ef5169d2b99d8107262cd"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/SAS Mountain and Arctic Survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e06a2d79fa9139183168b20c0437597111154599"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/SAS survival handbook _how to survive in the wild, in any climate, on land or at sea.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Seal Survival Guide_ A Navy SEAL_s Secrets to Surviving Any Disaster.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "4b46cdace2002367ce90b1598b3f4a0f0ac1ec5e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Survival Guide_The Book All Survivalist and Preppers Need.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e01dc7db701705c0a98d3ac8a5b1f8dc428caa73"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Survival Wisdom & Know How_ Everything You Need to Know to Thrive in the Wilderness.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5f1860d09571d0af6bb5b5bb3dd1bcf63e5f3df9"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Survival hacks_ over 200 ways to use everyday items for wilderness survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a49a20ace7537fbc7e34e306f9d302d49fbf4a61"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Survive! A guide to survival in any situation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ef59aedc17cb73b7d2f4b3ef911cd58281599681"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/The Complete U.S. Army Survival Guide to Shelter Skills, Tactics, and Techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d801f7b2f4d1e5df06a8fa0e797e03980dcfb62c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/The Lost Art of Reading Nature_s Signs_ Use Outdoor Clues to Find Your Way, Predict the Weather, Locate Water, Track Animals\u2014and Other Forgotten Skills.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "16ae9f64ef5ea133b71bcdeff1ca78c3e0724057"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/The Pocket Outdoor Survival Guide_ The Ultimate Guide for Short-Term Survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5dd25933acc9cc59be32c8997f02f42af5470e51"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/The Ultimate Guide to U.S. Army Survival Skills, Tactics, and Techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "dd7be3a7275bcacf3c72944967c5e861d06d1166"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Tracks and tracking _ the classic guide to seeing and reading animal signs.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3a5cff5798b9cad691833c0a8c1c32ac5a64a44d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/U.S. Army Map Reading and Land Navigation Handbook.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "2891dfafd220a3b21e52658a51606af805355724"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/ULTIMATE SURVIVAL SKILLS - Survival Life.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6fa9cfc169dccde2e3f81bec9aefb4ae303b125f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Ultimate Guide to Wilderness Living_ Surviving With Nothing but Your Bare Hands and What You Find in the Woods.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e798d82a37d296bf7ab6cb311511cd70d7cfc23f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Wilderness Survival For Dummies (For Dummies (Sports & Hobbies)).md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "096340347c8fddf565643551f7133c80c1b73e6c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Wilderness navigation finding your way using map, compass, altimeter GPS.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "2be7033d149bf178b2390bbf6c21af1d9843a1af"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/Woodcraft_ A Guide to Camping and Survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f579ccd8ae128926033a373ae8f89c1a3807fe79"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/camperssurvivalguide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5aa05bc03e05c189e0d26a5cee9086e312b976e3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/familysurvivalguide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6e098dc81586e98024d394394aabea6d16bdb3fb"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/greenberetsurvivalguide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "32717cf23835b02e1c9af6fbebda26c31832c552"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/modernsurvival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "37a3a3d5e83709acd4516f2735a58702dc1debe8"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "987c64919ce34e50740f62903df94837fb4e048a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/survivalistshandbook.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c0c1b104882535f923570876207152521d176406"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/thepocketdisastersurvivalguide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7b510564c51601e64057398d15ff35c2a13d9a84"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/thepocketfirst-aidfieldguide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3d4079a80c3fd9ca1bf30b9207219f3c1795c0d2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/thepocketoutdoorsurvivalguide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0f2ae89615facc82ee15466318bf8bbd381ae89a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/theu_s_navysealsurvivalhandbook.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "dc53393b13a01e06ea0397f4e0eeeb6ffc722832"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/general/ultimateguidetonavigatingwithoutacompass.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5e9231fe9117f5be51015c856ea4836621547eba"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/healing/Healing Herbs_A Beginner\u2019s Guide to Identifying, Foraging, and Using Medicinal Plants _More than 100 Remedies from 20 of the Most Healing Plants.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "cb4efaeb8af189f1ff1e8678240572d1b3187de0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/healing/JARVIS-DC-Folk-Medicine-1960.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5f51e74cfcde20dcc6647a37df046cab0ff1f155"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/healing/Prepper\u2019s natural medicine_lifesaving herbs, essential oils and natural remedies for when there is no doctor.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ada6c4a8a801122540dcb82c1f8fb73574db2ce8"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/healing/Special Operations Forces Medical Handbook.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d1b9dc25a7380e372bfad9694fda49a8c4334bad"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/healing/The Nature Instinct_ Relearning Our Lost Intuition for the Inner Workings of the Natural World.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3fbeac7b77707c7cefc54318468c75539dc2ca5d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/healing/The Survival Medicine Handbook.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "fcbff5875fa0c38cdf6db2ff6392c917322cfcb6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/healing/The doctor_s guide to surviving when modern medicine fails the ultimate natural medicine guide to preventing disease and living longer.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "13bd7824892fbf34e8b4068b54467de5b3ebc673"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/healing/U.S. Army Special Forces Medical Handbook.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/healing/illustratedencyclopediaofnaturalremedies.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9a751b81fbf5a858b6fb06648bad34a642d95c3b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Chicken Coops_ 45 Building Ideas for Housing Your Flock.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "664e3e5d7bcca71c8d075680db557ffcda278cf0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/DIY Prepper\u2019s Projects_ A One-Project-a-Week Guide to Help You Prepare for an Emergency.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "93564a561906982806f683773f07e4c8c22edbc8"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Homesteading_ A Backyard Guide to Growing Your Own Food, Canning, Keeping Chickens, Generating Your Own Energy.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "cf6fca5c0e4434b8f9469696c53983ceb92ab1d2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Living Off the Grid With Organic Gardening_ How to Create a Sustainable Lifestyle Without Power.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9a18416336d3dc8408c5d21ec350c26832bc49f0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Living off the Grid_ A Simple Guide to Creating and Maintaining a Self-reliant Supply of Energy, Water, Shelter and More.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "34f76d84aa98983031ad2d2423d6fd95f39e7ab2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Microhydro_ Clean Power from Water.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3c90b4c7e228005d82e26c86ecfafb228b2d8d3f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Prepper_s total grid failure handbook_alternative power, energy storage, low voltage appliances and other lifesaving strat.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ba67a14117f907bcfabb2dc7429b12f3b5d95baa"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Primitive Culture.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "83044dbf62b27cf4604566411ae138d2f2c39569"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Rural Electrification_ Strategies for Distributed Generation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "399edf64411c67ae0655861114f4bbf86ad50790"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Saving Vegetable Seeds_ Harvest, Clean, Store, and Plant Seeds from Your Garden.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a41b41925079a238dafff3566b79d888f7fc5400"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Serious Microhydro_ Water Power Solutions from the Experts.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Smart Soapmaking_ The Simple Guide to Making Traditional Handmade Soap Quickly, Safely, and Reliably, or How to Make Luxurious Handcrafted Soaps from Scratch for Family, Friends, and Yourse.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "996830876fcc1015c1053289dfba592296fcb6d1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Soap Making_ A Quick Soap Making Book, Including Homemade Soap Recipes, Soap Making Supplies, Lye, Process and More.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e6bd27ff8c0396e7199d419f8ff26991c5c83b56"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Solar Photovoltaic System Applications_ A Guidebook for Off-Grid Electrification.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9245c31743ba5e9a13b484ceac746dd2821dbef3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Solar Power DIY Handbook_ So, You Want To Connect Your Off-Grid Solar Panel to a 12 Volts Battery.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c9efdb015610e2ba4f47eef08ff22a108571a4f8"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Surviving Off Off-Grid_ Decolonizing the Industrial Mind.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8524bbca213746d33f3c1334c2560b32d418514d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/The Complete Visual Guide to Building a House.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ae35699b1e681b31ebfe96449722201508aa901f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/The Solar Food Dryer_ How to Make and Use Your Own Low-Cost, High Performance, Sun-Powered Food Dehydrator.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "317437d7d39022877f3f6e7ff6ad6a52fc947b43"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/The ultimate guide to homesteading_ an encyclopedia for independent living.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8a242df4b214e87e468aa9072c82e864edb5a7f0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/The woodland homestead _ how to make your land more productive and live more self-sufficiently in the woods copy.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ff4be8ef779ef180620cdac68ff25436bc6a476b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/The woodland homestead _ how to make your land more productive and live more self-sufficiently in the woods.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ff4be8ef779ef180620cdac68ff25436bc6a476b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/Tiny House Designing, Building, & Living.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7c3d0169545f362a265102ac26c2b3646aaad587"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/backtobasics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a504d847754447513284dfa4d65a1fbd22f680ca"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/homesteading.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "02bdfd3e1cc55e1a141057e22201fe35767ca911"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/illustratedguidetobrewingbeer.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9fe08f119240f376b27e955c59242f26181e81ed"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/homestead/survivalretreats.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0462a97bd9cf05dfc04f19a0eb363deff1dadab9"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/1001 Fishing Tips_The Ultimate Guide to Finding and Catching More and Bigger Fish.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "49538e3862df50fddf9c10ab5ef6c888bae6f380"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/1001 Hunting Tips_The Ultimate Guide to Successfully Taking Deer, Big and Small Game, Upland Birds, and Waterfowl.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f09cdcbe5df9393bdf8cd9243000b581de629a91"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/American Whitetail_Deer Hunting Tips & Resources - Everything You Need to Know About Whitetail Deer Hunting.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "36a51e41ad5e192283a51c406855551d7732e464"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Animal Tracking. Basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "4fee7b792cf8d87eacbb4ec7e160af0d2e45b138"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Archery.. the art of making primitive bows and arrows.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Building-Primitive-Traps-Snares.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1ec7e289e1cd56f1ad678b6dfb4eefeb124e2916"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Camp life in the woods and the tricks of trapping and trap making_ containing comprehensive hunts.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e06b15f6b97f5731764cf3dce1a9f1b0d3120c40"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Canoe and boat building. A complete manual for amateurs. Containing plain and comprehensive directions for the construction of canoes, rowing and sailing boats and hunting craft.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "43c0eca6eff2cff39f1e3e2f1b8e2a51b10520a1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Deadfalls and snares_ a book on instruction for trappers about these.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9a5f336ebd693930f83dac662f38977518a32177"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Deer & Deer Hunting_s Guide to Better Bow-Hunting.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "02ceb7a2f52d75f3682dc15b4554f9ba47c2b6cd"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Fuselage Frame Boats_A Guide to Building Skin Kayaks and Canoes.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "eea8cf3d6af46584dfabe1f40f5cea8b70136f37"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/HUNTING WITH THE BOW AND ARROW.pdf - Survival School.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f2307ebcee0e95a22db68c8d28b04d09df73d8c6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Hunting Bears_The Ultimate Guide to Hunting Black, Brown, Grizzly, and Polar Bears.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3a19d5eb79a3b63b9a994fdddd32f624db56eda2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Hunting for food _guide to harvesting, field dressing and cooking wild game.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "def7056cab70992b1d5a4a9be974edfaa27e6416"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Ken Schultz_s Essentials of Fishing_The Only Guide You Need to Catch Freshwater and Saltwater Fish.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ebff3dfb5e025041212fd249b20c85d11689c2f7"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Lurecraft_ How to Make Plugs, Spinners, Spoons, and Jigs to Catch More Fish.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Making Wooden Fishing Lures_ Carving and Painting Techniques that Really Catch Fish.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Mountain man skills _ hunting, trapping, woodwork, and more.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7eb9ecde07180fc343a5bbe350346a418d6d2fbe"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Primitive-Manu2019s-Survival-Guide-To-Hunting-Catching-Wild-Game.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "53c9bffd01a753fb6a8b15f313192e632c720f26"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Ragnar_s Ten Best Traps_ And A Few Others That Are Damn Good Too.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "da06d3a156131845dadeca3ea5840245ee561287"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Successful Small Game Hunting_Rediscovering Our Hunting Heritage.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "30aea751098347dab1a40600b7a6564546b99a9e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/The Complete Book of Butchering, Smoking, Curing, and Sausage Making_ How to Harvest Your Livestock & Wild Game.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1bf1b6027b16823befe41ce268b80d16b6709a82"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/The Complete Guide to Hunting  Basic Techniques for Gun & Bow Hunters.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "28a56934e40e48c8e1df1895d9c18665ea421d99"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/The Complete Guide to Hunting, Butchering, and Cooking Wild Game_ Volume 2_ Small Game and Fowl.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c5cc671bdd5216f90965456f6f0b9bca6305fae7"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/The Complete U.S. Army Survival Guide to Shelter Skills, Tactics, and Techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d801f7b2f4d1e5df06a8fa0e797e03980dcfb62c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/The Pocket Guide to Fishing Knots_ A Step-by-Step Guide to the Most Important Knots for Fresh and Salt Water.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b528bce83e52372d6c6182078f2fc91780bc2389"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/The complete guide to hunting, butchering, and cooking wild game Volume 1, Big game.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a93420b0b14bcde702329b20e60f1622d7d9dc62"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/The lost art of reading nature_s signs _use outdoor clues to find your way, predict the weather, locate water, track animals--and other forgotten skills.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f9ca08d0677de80f209778e909b7274fe1ef3ef4"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/Traps_2004.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0aa24611f2971de653a7314ebe23fff80069addf"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/mountainmanskills.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ed38bf47292503330002efb36cd34750a1207278"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/repping_ Booby Traps_ Prepping And Fortifying Your Home With Booby Traps.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "cc4749cbd8ec20806499ab89d1e2383e95fdf1a0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/trapping101(1).md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6d1658a7c3212429234857afc2b5c23a7b9cb655"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/hunting/trapping101.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6d1658a7c3212429234857afc2b5c23a7b9cb655"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/Canadian-Army-Survival-Manual-b-Gl-382-006-Fp-001.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "907430a99080393d4360cd1575a44f181f593739"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/Expert Secrets_ The Underground Playbook for Finding Your Message, Building a Tribe, and Changing the World.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "2216ad7cd475cd8ada038a8062227fa2cd5a2709"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/Fundamentals of Steel Making.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "df7deef6072b662f27e30e1de7994fb7d00b9739"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/Handbook of Extractive Metallurgy.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/Hardening, Tempering and Heat Treatment_ The Structure of Steel and the Effects of Different Heat Treatments.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/How to Be Invisible, Third Edition_ Protect Your Home, Your Children, Your Assets, and Your Life.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "60359e241c0d7abd12a51d952f7e521e00f73940"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/How to Stay Alive in the Woods_ A Complete Guide to Food, Shelter and Self-Preservation Anywhere.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d8b692426b9fc4fc3130ee54b80c1f52952e3ca1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/How to kill, Spy & Other Survival Skills - Sigma 3 Survival School.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a94c11201827ca6467260c5c49f89ad30674c0e1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/HowtoOpt-OutoftheTechnocraticState2ndEd-FINAL.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f7e506b81b012b9e6fc33ac6e72bb410f306de74"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/IRON MAKING AND STEELMAKING_ THEORY AND PRACTICE.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b355517b4f9f278ec0719b250b3fc1cd4cdfddd3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/Leaders Eat Last_ Why Some Teams Pull Together and Others Don\u2019t.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d4dcd2861fc9608f37408621acafdfd62f98c330"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/Lyric-Writing-Worksheet-Revised_copy.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1a69e818187cb5f3b692d76cd683a9f0311edbb0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/Never Say Die The Canadian Air Force Survival manual.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/Steel Heat Treatment_ Metallurgy and Technologies (Steel Heat Treatment Handbook, Second Edition).md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9e445b08b2d535a6c18a8b54b0fab84f70c4e21e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/The Mammoth Book of Special Forces Training_Physical and Mental Secrets of Elite Military Units.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b9877eed44d656a6f25f94c6e41d628b0869ba57"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/U.S. Military Pocket Survival Guide_Plus Evasion & Recovery.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1b6bed160968249a50ff553b8bf46fe9be3df3d2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/Wood Gasifier Builder_s Bible [3 Books in 1].md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8035fe1f8ee701b3f17d83b92d487866118967a6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/lostandstranded.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9539eff58dfb10775301c61a96af8f71ce75ed38"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/nading-survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/theself-reliancemanifesto.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "cc290237e04bf9e7487aa4d93c49ac0ac0fddce3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/misc/watchyourback.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "225ac2f6439d6b9b781c31ab82bc2a63b9f2f889"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/52prepperprojects.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "dcdcb6e7083d7b6b116f77b0fff300295ab19802"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/DIY Prepper\u2019s Projects_ A One-Project-a-Week Guide to Help You Prepare for an Emergency.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "93564a561906982806f683773f07e4c8c22edbc8"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/Fallout Shelter_ Designing for Civil Defense in the Cold War.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d428e7ba4a8bc430b30ad8e48ac03fa80f66c173"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/Nuclear War Survival Skills.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/Prepper Supplies & Survival Guide_ The Prepping Supplies, Gear & Food You Must Have To Survive.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "51cd2a13217cc0c3efe98fb43eb1fe6c32d87046"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/Prepper_s Communication Handbook_Lifesaving Strategies for Staying in Contact During and After a Disaster.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "940f1cc7c518c0ae629404b8d1165ac0d3bfa828"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/Prepper_s Guide to Surviving Natural Disasters.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5cb98889deb7ce7da41c1f623c90961e2ba220c1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/Prepper_s Underground Guide to Improvised Weapons!.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "2f1c020bed29a48ac1d3167f6eba3e15cf3c48dc"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/Prepper_s long-term survival guide _ food, shelter, security, off-the-grid power and more life-saving strategies.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "bcc2768c508c225273edf0b35616bd5204ba6aba"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/SURVIVAL MANUAL - For Preppers, By Preppers.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "dabe1133a1b5809f6d0a9f26ac3a2ec82fd3522a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/Survival Prepping_Hunting, Fishing, Foraging, Trapping and Eating Insects_3 Books In 1.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d5fdce263e33feddf6bde86ff09bd56bded1404c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/The Family Preparedness Buyer_s Guide _ The Best Survival Gear, Tools, and Weapons for Your Skills and Budget.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6192fb0d9957352d6ed5ba3d2c7967b211fe26ac"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/The Practical Preppers Complete Guide to Disaster Preparedness.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9067aea4eca613ad76fb42626d36de7d6e63381c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/The penny-pinching prepper _ save more, spend less and get prepared for any disaster.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "fe6be1d39deccd80974d3816b379b76d458095a2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/Weapons of mass destruction_ what you should know _ a citizen_s guide to biological, chemical, and nuclear agents & weapons.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/bereadyforanything.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "873629f6cfcc93ff6e795dcc5a19915a68359198"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/deadlyoutbreaks.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "46159ec49bb7437b17ff316f1a34594916a85bd1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/dr_prepper.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ab553105d2decefb65dcafbf0f0cc3bf973747f9"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/hurricanepreparednesshandbook.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6d046bff9a5de46183adfe40825201feb5eafd6e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/survivingtheapocalypse.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5d995e3b7d306a240b69bddd3c910657db3a2288"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/theultimatesh_thitsthefansurvivalguide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "26cbd4e31faaaba2b2e8064b8402e08ef3b221ff"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/prepare/whattodowhentheshithitsthefan.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3eee12b36204f20f3e51f4ce4655add004bfd578"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/preserve/52 unique techniques for stocking food for preppers _ a strategy a week to help stock your pantry for survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "fee88ffdaa03b25efa430eb57e86d7e9c36ee236"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/preserve/Building Construction Handbook.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3f0e56a9dcc1774d1345153ab7d27291b2080f85"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/preserve/Cold-smoking & salt-curing meat, fish & game.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "994e08811abab9b760f39239fd920456591b53e5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/preserve/Engineering for Storage of Fruits and Vegetables_ Cold Storage, Controlled Atmosphere Storage, Modified Atmosphere Storage.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e8196fd0bbf61a137c6467454e64733252be78d9"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/preserve/Preserving Food without Freezing or Canning_ Traditional Techniques Using Salt, Oil, Sugar, Alcohol, Vinegar, Drying, Cold .md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/preserve/Preserving everything _ how to can, culture, pickle, freeze, ferment, dehydrate, salt, smoke, and store fruits, vegetables,.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c9e6433eec65bfb14a10ba7c4a6d3ddadf1f0221"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/preserve/Salt Sugar Smoke_ How to Preserve Fruit, Vegetables, Meat and Fish.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "10d8a47784fce3a952119538752ae7b0476bdbfd"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/preserve/The Complete Guide to Your New Root Cellar_ How to Build an Underground Root Cellar and Use It for Natural Storage of Fruit.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ae9360b44834e9998f4bc2021affb81fab94f8a9"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/preserve/The Preppers Cookbook.pdf.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5873199b733aadb3ba9f7094a65d18cd7e2d7086"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/preserve/thejoyofcheesemaking.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ed08d359d2a45d2d0716bbc1a54b0c560e23480f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/preserve/thejoyofhomedistilling.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "fea654c711f868650d3bc992c04b410090b3e2f6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/preserve/thejoyofsmokingandsaltcuring.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8051b7b53cbfe4ad8df7497696134c42c7fb1f8e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/rope/A Bibliography of Cordage and Cordage Making \u201cThe Art of.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "38630ac5ef3ca1f4a7cea1ff3447f3af75ddcff2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/rope/Paracord Fusion Ties - Volume 2.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "cebcc39cf8da9942a6994be720b8cc03fdf5428e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/rope/The Field Guide to Knots_ How to Identify, Tie, and Untie Over 80 Essential Knots for Outdoor Pursuit.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "57965cfe6877b62da19f8def663578de6d8c312b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/rope/The Pocket Guide to Prepper Knots_ A Practical Resource to Knots That Can Help You Survive.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "af59a0233f9ad75523c6cdd0cf2ae17b455aae9f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/rope/The knotting & braiding bible _ the complete guide to creative knotting including kumihimo, macrame and plaiting.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b17ac07e3a4bbdffe20337da78d6bd9e94e673c5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/rope/thepocketguidetoprepperknots.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a41a69afa585bbe08627e342fbc285a20c1d7500"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/shelter/Camp life in the woods and the tricks of trapping and trap making containing comprehensive hunts on camp shelter, log huts, and more.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e06b15f6b97f5731764cf3dce1a9f1b0d3120c40"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/shelter/Earth-Sheltered Houses_ How to Build an Affordable Underground Home.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e25d0bf2bb6819bf651e90fb2633089b6d60998a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/shelter/How To Build A Log Cabin.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "622c0e14227aa1f486ef8b9607837eb5c1613909"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/shelter/How to Build Your Own Underground Home.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/shelter/How to build and furnish a log cabin - The easy, natural way using only hand tools and the woods around you.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a4f4d6b05cb784f83f08a72a6f90ce4f35421e89"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/shelter/How to build your dream cabin in the woods _ the ultimate guide to building and maintaining a backcountry getaway.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "cd76dd5658172ab924325a97c1781016ae404e95"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/shelter/Log Cabins_ How to Build and Furnish Them.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b9e89b58aae6f46c823477215abe20200a62c1d4"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/shelter/Microshelters_ 59 Creative Cabins, Tiny Houses, Tree Houses, and Other Small Structures.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "59f93edd71b5b4c12d6022d59226443927f414ea"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/shelter/Shelters, Shacks and Shanties.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0ca96bb7819bac07e804224865da1c9ef47b3b2a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/shelter/Stay alive -- survival shelter and protection from the elements eshort learn about your body_s thermoregulation, what protection it needs and how to build a storm shelter for protection.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7ba36d5b87932be26524a0878bd483cd39abc2a6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/shelter/The complete survival shelters handbook _ a step-by -step guide to building life-saving structures for every climate and wilderness situation .md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "78e5d924bf772ada089a91c0c44b18fd9be02749"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/shelter/Underground houses _ how to build a low-cost home.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "64d10d80985e00b72faf6381e64397fd8033bfe3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "contributor/shelter/the complete book of underground houses-how to build a low-cost home.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+        },
+        "upstream": null
+      },
+      {
+        "path": "datasets/SOVEREIGN_HOST_REFERENCE.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "22486b64e9781380fb7d881084ad11acc589a4d0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "datasets/world_parameters.json",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ef15d7b1229123b4b29931c0b1f8f630828834e1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "elements/bob-zen_envelope-teletext_ceefax.gif",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "4924d7e67fb61882efb54735d26536367e86215a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "elements/catalog.json",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "655f26c21b3ca87087eb4c3bcf8b4465777305c5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "214650dba1b6051d9d878c1af35ba1580974a9a2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/bow_drill_technique.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "63a32b9b484efbee8ba2e18f86e1ba12e7e99c24"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/char_cloth_preparation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e80228ceb12a80b8ca5ddf93de78edec69235256"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/coal_bed_preservation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "fff3dbb6196c548a30b65dd4fc30eb2cec26c37d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/cooking_fires.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d6df6c657564689cbac891f138df5ba990bc3899"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/emergency_fire_lighting.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7a4e588ba37410fea56c692006ed499303da293a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/fire_banking_overnight.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "259de964f3b14e15abce1bb755530981adf10730"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/fire_in_wet_conditions.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f9bd678fe758ce6d5668326af1a1f8850407d917"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/fire_maintenance.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d23fedf7cd38b0959adf6ff7d8c1d9461fe60f76"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/fire_plough_method.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0bd2e014fb7821b45a8816999ed371c7ef80ebc6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/fire_reflector_construction.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "70f2027f752f9c01dfabd9974f9a6a72532c8a31"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/fire_safety_zones.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3e221655c01096bdfdf4783d2fd5a9149b11a36e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/fire_starter_materials.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d06271874b4eecabcaa12a1825fefb771f1c1ba6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/fire_starting_techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "63b0602ce304a5c2e135401670a8dbb9a85e0cc2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/flint_and_steel_methods.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1c152a5cf0581cbb94ece69d3b6d367a75aedbd2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/friction_fire_methods.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "803bf97a09464469d411b0d2bc0057eb0a9b23fa"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/hand_drill_fire_making.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c472fae62e5ea84475dfa5f8f293b7be5d516a1a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/improvised_fire_starters.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a20fd73ba7ef4c00e43fd66aa49969ec931a7976"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/signal_fires.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e4dafd7253765ca4b7874d5790bcbeb0cef80c8f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/smokeless_fires.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "801cdf4dad5b3114916f701ed50f89f4bd7930db"
+        },
+        "upstream": null
+      },
+      {
+        "path": "fire/tinder_preparation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e45a79a41ba7e4c5099334895a6e0204011864c6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8f7e5778101b4e04c530940aeb8d6fba49d15c4a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/bird_snaring_techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6ec6887ba73ff96a5c786763b8cfe680502d00b1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/bush-tucker.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "2db7aa1280882724db84e1dcce14a1a26a1b3cb7"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/bushcraft-recipes.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "879089e40439106c2c99b2132aa6b1020737924d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/composting-basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b8a23826b93a00f696802b59de5184380703e098"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/cooking_methods.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "2599ff245d2641d63797ccb069ad200d71de85db"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/drying-dehydration.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1b52a4bd87a65d8be609885fd9a7a7ffe89bdef5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/drying_foods.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "11eece64f0f3239fa7780492a450f68d8d03dd61"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/edible_plants_identification.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "336c3f1ab0e6221995f3a0fa8c98733fdad5c03d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/emergency_food_rationing.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6401a536fae164bb735375f445e1d27fdd0091dd"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/fish_trap_construction.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f4ea45a983c419234bacfca931e835767f197dee"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/fishing_techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a398481190c4b5faa66c4f9666c2043296cf60a6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/food_preservation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "652832bcfd0f229552088b09155e164daf79cc5d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/foraging_safety.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "51e46bac4654cac03452553ab53a5adc911a2c50"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/insect_protein_sources.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c377e020e8bbf33c258d5dc270095b590905f1ce"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/nutrition_planning.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d47adaa70fa230633a8e20b05584d8a1208920b0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/preservation-recipes.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "2202cea2e3bdc630cfd93beadecbf4aab5e94602"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/smoking_meat.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1eaef326e7fb43917f5acab3fc42e26bf2d4547f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/traditional-cooking-guide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "85fd55121e13cd16288eaca5519b34bbeba6098f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/trapping_basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3263c77cc47cdbfc752f7eec3b15250cb40de287"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/wild-edible-basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "011c1caa6fd651affefb7ff5797cb1176fd67fae"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/wild_edible_roots_and_tubers.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "751f86e2519ee8b31bc9d6ab0d310b3bc327196e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "food/wild_game_preparation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "84b503919efd9e806b4d4e670222d235064c00b1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "making/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "88a285ee947d0cbec5d9fd5a29edab0ca34e022c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "making/basic-woodworking.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c7106228bf1694aa954f9ba6d37342d38a34aac3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "making/rope-making-cordage.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "20597b73213f6f5963b86e8e939c27351f9edf78"
+        },
+        "upstream": null
+      },
+      {
+        "path": "making/solar-power-basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5cef5e9579d0a11f933dabdc8340abd4e209945a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "making/water-collection-systems.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "4352d88e21bf2ede24bcc84e0f4931dccbc3b631"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d9c5e5474f79fa9afe571098206a14fe9c56416c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/basic-cpr.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f2fd602729d236e04cdf05e040c20b5a739658f7"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/burns-treatment.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "cb05dad64d7b2c97785019900de98839d1c32616"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/burns_treatment.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8e043d5332725558183479dd907be7c3a5b6742c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/choking-heimlich.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6e95e35d51e913e87687d45ebd5921d6f33cf0df"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/dehydration-treatment.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ded53a56a6b71765601452909283527a3c127753"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/emergency_cpr.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7becce7e4d39f20390af206c7d50297ea53d9053"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/first-aid-kit.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1f1d1ba0afb815c6ab493463b1dc70648d3bcccf"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/first_aid_basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6995ff296b84146be1d5302cb540e8d0b83ea177"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/fracture_treatment.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ccefd1f96391f0f5820883c51d1b240c9ffd582a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/fractures-sprains.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ac8d183fbbaa4b88b9aed3f6d7981e461832db92"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/heat-illness.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "aaa561366513d1e1e11e07c92889d64cd7379e75"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/heat_exhaustion.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9420d7cb3192fec3f0a62e50f4e6f77c6c31bda2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/hypothermia.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7657b064ea9a368b82b8540095f0150ec8dc46d6"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/hypothermia_prevention.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "31c32a546bb3b27ce02718b17130add48c163fa5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/infection_prevention.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9dc2ded70c19c68ff79bb30b181cca2d1c413423"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/natural_antibiotics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c42e444a8d6a3d8d515e8b5a111f804238007c8f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/pain_management_without_medication.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6e46b3e89197cca09c51f09b5f1e1e910d44a8a0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/plant_poisons.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9088fd26af274d6e4d03a8f37bb1d5201754f715"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/shock-treatment.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e9cd11db954d0046b52b7afc065cdc5b0e4f737d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/shock_management.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "09d5e110348d2a4f4b0340efdcc39f6df2c0ceb5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/snake_bites.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8d3d42d8e80aa1d2b8ac033e28ccea877c14321a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/snakebite-treatment.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f6e5f2dd680295492020768fe24752ecc1539fc9"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/splinting_techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "688bd9592db9bbd389a17fca6799f9ee77faf0d0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/wilderness_medicine.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ad7979bec8c57c4a015528ad3f901ce10d2dc290"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/wound-care-bleeding.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "789de54d62a877cae75f41b2522c4fda04d19c81"
+        },
+        "upstream": null
+      },
+      {
+        "path": "medical/wound_care.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5dc6a4adce09d8f07e7eb083100908ac8b3b530a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3bcf89fcaf74d8c2ac9e4a60405a7e3633219b2a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/astronomy-navigation-guide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0eb13d662e6a1c4ae8dc991b20e264b74913157a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/compass_use.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0003d3a7a498bbf186e81f147635f115e602d7d1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/dead_reckoning_navigation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "36dba235255e7620b837744b827932586131ddc7"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/emergency_location_markers.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "662403689a69548717ff145d83de2fec6f47afcd"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/gps_basics_and_backup_methods.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "74cce9f1b45d4f503a0d3a7264cc93833e1036de"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/landmark_identification.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e3d12cfec6569f3835ca376cb3f567d1f09c8155"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/map_reading.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5e6ee89d3210af9e37114c5d9f5cc766f5b3f811"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/natural_navigation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5a328ac09df78a84760d407e42fa442edd2570de"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/ocean_current_navigation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "535f4765fd6307ecc55f9e952ac6d1f728f9fdd8"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/rescue_signals.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a10bb3a69555b312c51ee43716ee57a95327c50b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/route_planning.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "acde41c080725ae79b5f6376c127c1d33187b783"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/shadow_stick_method.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "cdfa764d9bafecc3082a65609900ac163b931fe8"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/signaling_techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "08cc2f80c620ec8940714558732e359bc5c811c4"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/sos_procedures.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "feba316ae9afedaf986747f879c535cb7f44d7ce"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/star_navigation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "4afb80fba4c93433a8981cc2e19f3c9c12498bc0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/sun_navigation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "50aeb90917e2b31bbc3ee2399941ac6690c4a5fd"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/terrain_features.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d04dc104c8e766ebf6dfc7532161df800a9eccda"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/topographic_map_interpretation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "36ab8907b90a6ca1ffc7a9f890f46dded1c6a70b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/trail_marking_systems.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3f85a53aa417d239823ef16069152ee6a2f7ed49"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/watch_navigation_technique.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8d8a4149dc86fa1fde72bc1f630c28e97d67be09"
+        },
+        "upstream": null
+      },
+      {
+        "path": "navigation/weather_pattern_navigation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "4814d5ba75d1eaa1451f4ace69252d2c312e48cc"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "00ca3cdca3e54ec625391f5229db3e51cf32191c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/astrogeography.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7d271eaf0088c4dddae21d85041ffc09674f9df8"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/astronomy-mapping-system-index.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d1bde5ac58f2c42604be5aa5232738786e3db694"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/celestial-coordinate-systems.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "4e1bb55ea3a184732bc7e9bab2059eccc1c0682a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/celestial-mechanics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d219a9bdc09adb7a63ab611429a729652fd0a4b1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/celestial-objects.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1d186a005921137b91037b97cc9c0ba2567e1dc1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/chinese-astrology.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "bafd5e196b26dbf7db06724290585fe1f2972d74"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/edible-plants-australia.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "703aa4d0b3fbdc900e31f832e876b7d1e06b608d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/essential-knots.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6b44dcb310232ebceb12541f747f9fda4172063b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/fire-starting-methods-comparison.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c4bff459e6d6b9a3398f25f07a115f9e7f20ae23"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/first-aid-quick-reference.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9516cf80c0580053b7b560903e6c1a8643c61d30"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/form-example.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "42af2a5a76c0a92076747b5a6fccb1c8841112bb"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/knots-quick-reference.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b8e0312beff09174d90b40264924e7d79a102717"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/navigation-techniques-field-guide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1c799070364ae06a27dc6e50a1187d3d411780b5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/numerology-basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "bd09da40f90c3fc43a79da800d3d2c776275bea7"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/planetary-systems-galaxies.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0e82197b2d3b4db905079b2ae4bfe34648c62e1d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/seasonal-calendar-australia.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b2854acdfe8d35915db2176528f17316d1cea9b2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/survival-priorities-chart.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e4cb218d9c16cae7847e1f1a1e0d615a4c89f162"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/water-purification-methods-comparison.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c890988e62e8cc2e5db39713f2902eebf42a9d31"
+        },
+        "upstream": null
+      },
+      {
+        "path": "reference/world-map-layers.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "4a2dc9ff15dd78a487929433b51e0bddc7dfd869"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "05917e84f494f85961aebd5f85c8263b9ca88d71"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/a-frame_shelters.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c2c0162ce705dfbe2373aa39ebb0bfb7e9d1db10"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/camouflage_techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8e1a7c541c07c18c96b1de6b9888fb4e1d3d36dc"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/debris_huts.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9f04a5e7684f67a4f1e9ff20088051a31f3749d1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/desert_shade_structures.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ab3bf93c701a7c32a33aebbb04f4102f85dc7d28"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/elevated_platform_shelters.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "4f2eaf3e0bff1e07f26cafc956f637de65a74c56"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/emergency_shelters.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f6999e1b6a223e018381ac8b415d47c7f7b1e276"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/group_shelter_construction.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "276868b898f88e95cf77f6e235052c16e2062d37"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/insulation_techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a4fc5bf008107b2a0ca3ab4b7a7075ae5197a13c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/knot_tying.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9ae4a239d1d1912c50822a984f5328e0eeffe7b4"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/lashing_techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c2a49d2036e93c00057cc55a5ec8c5536fdec2dd"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/lean-to_construction.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7ef689455f5341e3f9d66a9af202bbd64ffb0a50"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/natural_shelter_modifications.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7942ed06af97eecdb64b39980d6961880106ebc1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/shelter_drainage_systems.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c5c815b1da45da86f8b7a38c47595d481b1f4f62"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/shelter_site_selection.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "099eddd4deb4dcadd653930ffa78a7d26c877704"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/shelter_ventilation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8d260aa3719d5e0322c715b3d674069ae5f49122"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/snow_cave_construction.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "90883aa1b76ee268fb6c7c59f2039cb4c3753b6c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/tarp_shelter_configurations.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "623830e25457041a9ce66797a5a8ba47d4617229"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/tropical_shelter_building.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e468b6f073e3b998b560e323f9637a190ee3c122"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/underground_shelters.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d2d5910e942faf5bc385267a62f5823e57c336f8"
+        },
+        "upstream": null
+      },
+      {
+        "path": "shelter/weatherproofing.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7c63a41a8ebb7feb3c2d688e90e6c692cdec9462"
+        },
+        "upstream": null
+      },
+      {
+        "path": "skills/campfire-activities.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "db2f0963f7a6e5f6e5ad2add2a199635423ff225"
+        },
+        "upstream": null
+      },
+      {
+        "path": "skills/dice-games.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ef078be537a253e5db3923dbb4ea5d8b547b6efc"
+        },
+        "upstream": null
+      },
+      {
+        "path": "skills/map-reading-basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e4025bafb5c757622bccc63f391b1e9b20c097d4"
+        },
+        "upstream": null
+      },
+      {
+        "path": "skills/sewing-mending-basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6e19fdfc7f7437dfa751476bedd35fdb00a6247a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "skills/tool-skills-maintenance.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "9d882a6c609ad5a5c7df4c26e410a495687f6835"
+        },
+        "upstream": null
+      },
+      {
+        "path": "standards/COMMUNICATIONS-LOOP-SPEC.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b34c00b60cebf76d1c177b1f4aea0d9cb29ba17a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "standards/CONTAINER-STANDARDS.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "fd8ea97752b81f30d573670fbfa9abcfbc9e9534"
+        },
+        "upstream": null
+      },
+      {
+        "path": "standards/DEVICE-DISPLAY-STANDARDS.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a8765c78a5ad8740d6c29db2742b30b70efc9396"
+        },
+        "upstream": null
+      },
+      {
+        "path": "standards/GRIDCORE-LATTICE-SPEC.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "2ccd9ea624572c7a73e521fd4eded9a139674943"
+        },
+        "upstream": null
+      },
+      {
+        "path": "standards/GRIDCORE-STANDARDS.json",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "16d56485ddc0f67d4791a1e1a89d3a669cc7f02e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "standards/PROSE-STANDARDS.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ea79ed7263d20048208ce22c2e62a1ac4d5c52ad"
+        },
+        "upstream": null
+      },
+      {
+        "path": "standards/USX-STANDARDS.json",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "26e4439f12b7862d7c64fa01e9b78ac0a6d497f9"
+        },
+        "upstream": null
+      },
+      {
+        "path": "structure.txt",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5476dc26ab0437ed964a8866d7188256e82efbd3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/INDEX.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "765e064d70e264f8c0fa9928e74cffc50ff4055a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "bfa07a153e574ce2ba7c3193b8b7dc3a04c15b72"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/boiling-purification.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d40e2dc818f7ac86330e8130c73dd9a37b3dac63"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/bush-navigation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f2dea62e0efb7562caff6a05f215082f823f866b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/bush-tucker-foraging.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f2f8912d5e966784eb99b7a6d438403dd3ff7d21"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/bushfire-survival.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1e878aa50bbeabcaa1556431540a08ca0e5a2e19"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/chemical-purification.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "59005797aa15ff5ce579bb4ff097b24a9fe5c44e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/composting-basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0fba07548a4203f6c582deccf6f2d871d9213389"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/drying-dehydration.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6592f0cdc89710daad9133b8c392dee1328595c5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/emergency-debris-hut.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5b0182f53a273c73dd284c53c39ef257df4f8701"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/essential-knots.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f6eef93e0db67110b1488212eb04789da4ec72d5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/fire-building-basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a0726162c5a9e3eb25efbe94a465663f9c906f40"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/knife-sharpening.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7cc9d7d0f3a8f48aa241588e8b3c23abe3282f03"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/knot-tying.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "b0ddea7c9dcdea11d4138174a7675a2da6b7a63b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/lean-to-shelter.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "fba889b36b43daab92891152b6ce082402dbee8c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/map-compass-basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d4820318b17fc657fdd237b19d09c5049f73b7f2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/rainwater-harvesting.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "405c9effed6cb8aa55dc120ab2f3bd828dff8f16"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/shelter-construction.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8de114d2eb962ea73636b207c928975a2d5cd8b2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/situational-awareness.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d875491eeffdbc49f5b73f1de4538378acf1a2f3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/snakebite-treatment.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "220408b68c575095a2ceab21992fed0d7e69821a"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/snow-shelters.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "4b104046780cec8695790ee16ed1bb7705e091ce"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/solar-power-basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e1a0cffcd8c64ba16b46ff9557b9ec84c5e73a75"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/tarp-shelter-configurations.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3935f39f5212faa6fe8316a80b1a6c8957ed1f41"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/water-purification-methods.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "de1e396452a59e3e42f3253c416b33d0ab92c219"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/water-sources-wilderness.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "a3e5abb31b2a1abbc8af09ba51fb014a79dba827"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/wild-edible-basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1d39c40e5eadded97e574c9fb252cd327c15d50b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "survival/wound-care-bleeding.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "58b1107ef6fea3c8036aa7877e834a8ae29ed8cc"
+        },
+        "upstream": null
+      },
+      {
+        "path": "tech/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "20b501d753bf1d10245d4e9be9516714a1773fb4"
+        },
+        "upstream": null
+      },
+      {
+        "path": "tech/control-flow.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "f33376546480d9ec3fdd91b47b23b956e04df059"
+        },
+        "upstream": null
+      },
+      {
+        "path": "tech/daily-automation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "5aaa4042c092d2c9c586153a6facfc8544c263a0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "tech/devices/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8b21ef7d63234748c05117d92c5965cb0ab6749d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "tech/devices/firmware.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1cc716bdf0287245395dc1c72ee689527760c09f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "tech/devices/meshcore.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "fbc58e6dc7913980a8e9fdde93d70645031ced1f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "tech/devices/screwdriver.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0ef97792588694def569c7fbac67e1f3a082950d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "tech/pomodoro-guide.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "38b2142a443de65a05db1cb387829ad988a40a6f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "tech/ucode-mini-game.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c31f6da6c231db4fd968e2fde63c224d396e0c63"
+        },
+        "upstream": null
+      },
+      {
+        "path": "tech/variables.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "6a98cd38eb4436b0bf104c8981494912aaf0dc3f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "version.json",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "483e4996ac55e071cdb3a4a4d44f38a78287d218"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "31de8a00cc03fc7494a4e75ebd1ee6fbe918af91"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/boiling-purification.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "313a3effb0753463bb1c7215c0f93bd35be12bf3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/chemical-purification.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "c4fe43843a1a32e723e69a6122e02b56c3491b87"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/coastal_water_desalination.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "dc6fe626ddfbf1c2f2f36f45b50a43c15fc5a6cd"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/desert_water_procurement.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7c8544830a3face80cdc9650bfe6466bfc9bab4c"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/emergency_water_sources.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3fbc6cee6b91f2a0c2e09d7052d02b24d91227d9"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/finding_water_sources.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "06262823fe9062841b06d90b5f932ae550d68ef5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/ice_and_snow_water_extraction.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ec6325558ab4e21e9d179f1a1773a2e8811ed6c0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/long-term_water_storage.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "035f02c6b39851cb1c2e09d230637b3e4856d42b"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/plant_water_sources.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "402678cba08121fcb560a92138ba554c7a7d02b0"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/rainwater-harvesting.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "04b94d8085f70764170d3e206070c394e26989f5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/rainwater_collection.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "bc06c347736d4565bdadca34335acadfb72dcbd3"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/solar_still_construction.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "082ad84e599851b717c5a65635887f9537279a0e"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/spring_water_identification.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "29f69355b875904b814d9243ec7f7be1d57db071"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/transpiration_bag_technique.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "328e40a3a593d5de12cb79d2e9fafec6de3ad420"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/underground_water_detection.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "95ed0ee048f2e4e967594dbe8b87f6efa3756ec2"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/water-purification-methods.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1d5827abf1e4760b62526dcf13207f2b3f5306e1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/water-sources.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3f17f9620bac3530379206b24afb280f13848f21"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/water_conservation.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "3bcd1afa9e0cfa9437641078cc6ab192fd3c8e8f"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/water_contamination_signs.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "109d15226c33321ae26220679e39743f80f7c0d4"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/water_filtration_systems.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d4465fcc44199d0512e41c56ca767912aa3ceb54"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/water_purification_methods.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "8ebcdde058656b438325fec8d2f09c53fac58754"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/water_quality_testing.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7b328bd9435f8251fe0844a54511f18bf3a9f6d5"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/water_rationing_strategies.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e4db8155fea1e6de929362da05bb079031624b7d"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/water_storage_techniques.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "1d594ed234b1945b823e6cd898947791d674dec1"
+        },
+        "upstream": null
+      },
+      {
+        "path": "water/well_digging_basics.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "ee864238a6e1f8eb67fc210a550b586cdb9a6b07"
+        },
+        "upstream": null
+      },
+      {
+        "path": "wellbeing/README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d846b79d432cb8019c1752e03a365a690de91232"
+        },
+        "upstream": null
+      },
+      {
+        "path": "wellbeing/circadian-rhythms.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "7df46426ccbfe32ee7c7325f953770d464523b88"
+        },
+        "upstream": null
+      },
+      {
+        "path": "wellbeing/mood-factors.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0f6cbff2b1470ec33f3be588b8991f286a55c416"
+        },
+        "upstream": null
+      },
+      {
+        "path": "wellbeing/sleep-hygiene-optimization.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "838eeb95453534ff55cb531febc4b4a399413e21"
+        },
+        "upstream": null
+      },
+      {
+        "path": "wellbeing/stress-management-resilience.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "e36b6b3b7b53a5cddbda4b73d4b8eda7405ea0ca"
+        },
+        "upstream": null
+      }
+    ],
+    "upstream_only": [
+      {
+        "path": "VERSION",
+        "local": null,
+        "upstream": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "0d4d1249434dba8d7fcb8949a2e361f70308cc48"
+        }
+      }
+    ],
+    "different": [
+      {
+        "path": "README.md",
+        "local": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "05cef741f1cff72d8c450a8a3b396fec1b414d7f"
+        },
+        "upstream": {
+          "mode": "100644",
+          "type": "blob",
+          "object": "d5a7f982b570624a07c4945f978b7d6794cccfa2"
+        }
+      }
+    ]
+  }
+}

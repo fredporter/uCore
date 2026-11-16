@@ -1,23 +1,23 @@
 <template>
   <aside class="review" aria-labelledby="review-title">
-    <header><h3 id="review-title">Document &amp; Edition Review</h3><button title="Refresh review" @click="load"><UIcon name="refresh" /></button></header>
+    <header><h3 id="review-title">Document &amp; Edition Review</h3><button class="usx-btn usx-btn--ghost" title="Refresh review" @click="load"><UIcon name="refresh" /></button></header>
     <p v-if="loading">Loading review…</p>
     <p v-else-if="!items.length" class="review__clean"><UIcon name="check_circle" /> All vault documents and editions up to date</p>
     <ul v-else>
       <li v-for="item in items" :key="`${item.staged}-${item.file}`">
         <div class="review__file-row">
-          <button class="review__file" @click="$emit('select', item.file)">
+          <button class="usx-btn usx-btn--ghost review__file" @click="$emit('select', item.file)">
             <UBadge :type="item.staged ? 'success' : 'warning'" size="sm">{{ item.staged ? 'staged' : item.status }}</UBadge>
             <span>{{ item.file }}</span>
           </button>
-          <button class="review__stage" :title="item.staged ? 'Unstage file' : 'Stage file'" @click="toggleStage(item)">
+          <button class="usx-btn usx-btn--ghost review__stage" :title="item.staged ? 'Unstage file' : 'Stage file'" @click="toggleStage(item)">
             <UIcon :name="item.staged ? 'remove' : 'add'" />
           </button>
         </div>
         <details v-if="!item.staged && diffFor(item)?.hunks.length" class="review__hunks">
           <summary>{{ diffFor(item)?.hunks.length }} hunk{{ diffFor(item)?.hunks.length === 1 ? '' : 's' }}</summary>
           <article v-for="hunk in diffFor(item)?.hunks" :key="hunk.index" class="review__hunk">
-            <header><code>{{ hunk.header }}</code><button :disabled="stagingHunk === `${item.file}:${hunk.index}`" @click="stageHunk(item.file, hunk.index)">Stage hunk</button></header>
+            <header><code>{{ hunk.header }}</code><button class="usx-btn usx-btn--secondary" :disabled="stagingHunk === `${item.file}:${hunk.index}`" @click="stageHunk(item.file, hunk.index)">Stage hunk</button></header>
             <pre><code><span v-for="(line, index) in hunk.lines" :key="index" :class="lineClass(line)">{{ line }}
 </span></code></pre>
           </article>
@@ -28,7 +28,7 @@
     <div class="review__commit">
       <label for="commit-message">Edition Release Preparation</label>
       <textarea id="commit-message" v-model="commitMessage" rows="3" placeholder="Describe the edition or document revision…" />
-      <button :disabled="!staged.length || !commitMessage.trim() || committing" @click="commit">Approve {{ staged.length }} staged document{{ staged.length === 1 ? '' : 's' }}</button>
+      <button class="usx-btn usx-btn--primary" :disabled="!staged.length || !commitMessage.trim() || committing" @click="commit">Approve {{ staged.length }} staged document{{ staged.length === 1 ? '' : 's' }}</button>
       <p v-if="commitOutput" :class="{ 'review__error': commitFailed }">{{ commitOutput }}</p>
     </div>
     <DeveloperActionsPanel v-if="repository" :repository="repository" />

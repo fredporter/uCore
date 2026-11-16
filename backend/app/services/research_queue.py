@@ -18,6 +18,8 @@ from pathlib import Path
 from typing import Any
 
 from app.core.settings import settings
+from app.flow import binder_engine
+from app.services.markdown_import_pipeline import render_intake_markdown
 
 log = logging.getLogger("ucore.research_queue")
 
@@ -317,6 +319,8 @@ class ResearchQueue:
                         )
                         return self._refetch(job.id)
                     html = await resp.text(errors="replace")
+                    final_url = str(resp.url)
+                    captured_at = datetime.now(UTC).isoformat()
             from app.api.chat import _html_body_text, _html_desc, _html_title
 
             title = _html_title(html, job.url)
@@ -358,7 +362,10 @@ class ResearchQueue:
 
         # Phase 3: Save to vault binder
         try:
-            result = await asyncio.to_thread(self._save_document, job, title, description, summary)
+            result = await asyncio.to_thread(
+                self._save_document, job, title, description, summary,
+                payload=html, captured_at=captured_at, final_url=final_url,
+            )
             if warning:
                 result["warning"] = warning
             # Auto-score: token count + source quality → 0-5
@@ -372,21 +379,34 @@ class ResearchQueue:
         return self._refetch(job.id)
 
     @staticmethod
-    def _save_document(job, title, description, summary):
+    def _save_document(job, title, description, summary, *, payload=None, captured_at=None, final_url=None):
         """Keep filesystem work off the event loop; preserve existing notes."""
         vault_root = (Path.home() / "Vault").resolve()
         vault_dir = (vault_root / job.binder).resolve()
         if not vault_dir.is_relative_to(vault_root) or vault_dir == vault_root:
             raise ValueError("Binder must be within your vault")
+        if "/" not in job.binder and "\\" not in job.binder:
+            try:
+                vault_dir = binder_engine.get_binder_documents_dir(job.binder)
+            except FileNotFoundError:
+                pass
         vault_dir.mkdir(parents=True, exist_ok=True)
         safe = "".join(c for c in title if c.isalnum() or c in " _-")[:80]
         safe = safe.strip().replace(" ", "-") or "untitled"
         fp = vault_dir / f"{safe}-{job.id}.md"
-        now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M")
         temporary = fp.with_suffix(".md.tmp")
         temporary.write_text(
-            f"# {title}\n\n> Source: [{job.url}]({job.url})\n"
-            f"> Scraped: {now}\n> Tags: {' '.join(job.tags)}\n\n{summary}\n",
+            render_intake_markdown(
+                f"# {title}\n\n> Source: [{job.url}]({job.url})\n\n{summary}",
+                {
+                    "title": title, "uid": job.id, "tags": job.tags, "binder": job.binder,
+                    "requested_url": job.url,
+                },
+                source=final_url or job.url,
+                source_kind="web",
+                captured_at=captured_at or datetime.now(UTC).isoformat(),
+                payload=payload if payload is not None else summary,
+            ),
             encoding="utf-8",
         )
         if not fp.exists():

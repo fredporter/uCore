@@ -2,8 +2,8 @@
  * @component ResearchDashboard — Research queue, progress, and gaps.
  */
 <template>
-  <div class="rdash">
-    <section class="rdash__hero surface__panel">
+  <div class="rdash" :class="{ 'rdash--inline': inline }">
+    <section v-if="!inline" class="rdash__hero surface__panel">
       <div class="rdash__hero-top">
         <h3 class="surface__panel-title">Research</h3>
 
@@ -13,7 +13,7 @@
       </p>
     </section>
 
-    <div class="rdash__stats">
+    <div v-if="!inline" class="rdash__stats">
       <div class="rdash__stat">
         <span class="rdash__stat-value">{{ jobCount }}</span>
         <span class="rdash__stat-label">Total Jobs</span>
@@ -35,7 +35,7 @@
     <div class="rdash__layout">
       <section class="rdash__section rdash__section--queue">
         <div class="rdash__section-head">
-          <h3>Research Queue</h3>
+          <h3>Research jobs</h3>
           <span class="rdash__badge">{{ jobCount }}</span>
         </div>
 
@@ -129,7 +129,7 @@ import UIcon from "../../../skills/atoms/UIcon.vue"
 export interface ResearchJob { attempts?: number; retry_at?: string | null; id: string; url: string; binder: string; state: string; progress: number; error?: string; result?: { file?: string; score?: number; warning?: string } }
 export interface ResearchGap { topic: string; reason: string; priority?: string }
 
-const props = defineProps<{ jobs: ResearchJob[]; gaps: ResearchGap[] }>()
+const props = defineProps<{ jobs: ResearchJob[]; gaps: ResearchGap[]; inline?: boolean }>()
 const emit = defineEmits<{ retry: [job: ResearchJob]; cancel: [job: ResearchJob]; approve: [job: ResearchJob]; startResearch: [params: { url: string; binder: string; tags: string[] }]; fillGap: [gap: ResearchGap] }>()
 
 const newUrl = ref("")
@@ -174,6 +174,21 @@ function submitRequest() {
   display: grid;
   gap: var(--usx-spacing-md);
 }
+
+.rdash--inline {
+  padding: 0;
+  overflow: visible;
+  min-width: 0;
+}
+
+.rdash--inline .rdash__layout { grid-template-columns: minmax(0, 1fr); }
+.rdash--inline .rdash__section {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.rdash--inline .rdash__section h3 { font-size: var(--usx-font-size-base); }
 
 .rdash__hero {
   display: grid;

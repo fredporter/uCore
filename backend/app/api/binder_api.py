@@ -14,6 +14,7 @@ Provides complete REST lifecycle for notebook binders:
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import logging
@@ -69,9 +70,11 @@ async def handle_binder_list(request: web.Request) -> web.Response:
     """GET /api/binder/list — list all binders."""
     try:
         binders = binder_engine.list_binders()
+        trashed = binder_engine.trashed_binder_ids()
     except Exception as e:
         log.warning("Failed listing binders from binder_engine: %s", e)
         binders = []
+        trashed = []
 
     # Also include any legacy root binders not in Binders/
     seen_names = {b.get("id", b.get("name")) for b in binders}
@@ -85,7 +88,7 @@ async def handle_binder_list(request: web.Request) -> web.Response:
                     except Exception:
                         pass
 
-    return web.json_response({"binders": binders, "count": len(binders)})
+    return web.json_response({"binders": binders, "count": len(binders), "trashed_ids": trashed})
 
 
 async def handle_binder_create(request: web.Request) -> web.Response:
@@ -101,7 +104,7 @@ async def handle_binder_create(request: web.Request) -> web.Response:
 
     binder_id = str(binder_id).strip()
     title = body.get("title") or binder_id
-    outcome = body.get("outcome") or body.get("description") or f"Production binder for {title}"
+    outcome = body.get("outcome") or body.get("description") or f"Materials for {title}"
     audience = body.get("audience", "General")
     doc_type = body.get("document_type", "Document")
     reqs = body.get("requirements")
@@ -118,8 +121,8 @@ async def handle_binder_create(request: web.Request) -> web.Response:
             non_goals=non_goals,
         )
         return web.json_response({"created": True, "binder": created})
-    except FileExistsError:
-        return web.json_response({"error": f"Binder '{binder_id}' already exists"}, status=409)
+    except FileExistsError as error:
+        return web.json_response({"error": str(error)}, status=409)
     except Exception as e:
         log.exception("Error creating binder %s: %s", binder_id, e)
         return web.json_response({"error": str(e)}, status=500)
@@ -326,8 +329,28 @@ async def handle_binder_publish(request: web.Request) -> web.Response:
     except Exception:
         body = {}
 
+    if not isinstance(body, dict):
+        return web.json_response({"error": "Expected an edition request."}, status=400)
+
     edition_num = body.get("edition")
+    from app.services.identity import get_full_identity
+
+    if not get_full_identity()["publishing_capabilities"]["publish_local"]:
+        return web.json_response({"error": "Local publishing requires a signed-in publishing profile."}, status=403)
+
+    if body.get("preview") is True:
+        try:
+            preview = binder_engine.preview_edition_links(binder_id, edition_num)
+        except (FileNotFoundError, ValueError) as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        return web.json_response({"preview": preview})
+
     target = body.get("target", "local_static")
+    if target != "local_static":
+        return web.json_response(
+            {"error": "This endpoint exports local editions. Cloud publishing requires a configured publisher."},
+            status=400,
+        )
 
     try:
         receipt = binder_engine.publish_edition(binder_id, edition_num=edition_num, target=target)
@@ -421,6 +444,36 @@ async def handle_binder_resume(request: web.Request) -> web.Response:
     except Exception as e:
         log.exception("Error resuming run for binder %s: %s", binder_id, e)
         return web.json_response({"error": str(e)}, status=500)
+
+
+def _check_binder_intake(binder_id: str) -> list[dict[str, Any]]:
+    from app.services.markdown_import_pipeline import check_intake_markdown
+
+    docs = binder_engine.get_binder_documents_dir(binder_id)
+    results = []
+    for path in sorted(docs.glob("*.md")):
+        if path.is_symlink() or not path.is_file():
+            continue
+        try:
+            status, issues = check_intake_markdown(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError):
+            status, issues = "invalid", ["Could not read this document as UTF-8."]
+        results.append({"filename": path.name, "status": status, "issues": issues})
+    return results
+
+
+async def handle_binder_intake_check(request: web.Request) -> web.Response:
+    from app.api.connections_api import profile
+
+    profile(request)
+    binder_id = request.match_info["binder_id"]
+    try:
+        documents = await asyncio.to_thread(_check_binder_intake, binder_id)
+    except FileNotFoundError:
+        return web.json_response({"error": "Binder not found"}, status=404)
+    except ValueError:
+        return web.json_response({"error": "Invalid Binder location or metadata"}, status=400)
+    return web.json_response({"binder": binder_id, "documents": documents})
 
 
 async def handle_binder_audit(request: web.Request) -> web.Response:
@@ -552,3 +605,31 @@ async def handle_binder_export_obsidian(request: web.Request) -> web.Response:
     except Exception as e:
         log.exception("Error exporting binder %s for Obsidian: %s", binder_id, e)
         return web.json_response({"error": str(e)}, status=500)
+
+
+async def handle_binder_rename(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+        if not isinstance(body, dict):
+            raise ValueError("Expected a JSON object")
+        meta = binder_engine.rename_binder(request.match_info["binder_id"], body.get("title"))
+        return web.json_response({"success": True, "binder": meta})
+    except FileNotFoundError:
+        return web.json_response({"error": "Binder not found"}, status=404)
+    except (ValueError, TypeError):
+        return web.json_response({"error": "Binder name must contain 1–200 characters"}, status=400)
+
+
+async def handle_binder_delete(request: web.Request) -> web.Response:
+    try:
+        binder_engine.trash_binder(request.match_info["binder_id"])
+    except FileNotFoundError:
+        return web.json_response({"error": "Binder not found"}, status=404)
+    except FileExistsError as error:
+        return web.json_response({"error": str(error)}, status=409)
+    except ValueError:
+        return web.json_response({"error": "Invalid Binder location"}, status=400)
+    except OSError:
+        log.exception("Could not move Binder to Trash")
+        return web.json_response({"error": "Could not move Binder to Trash"}, status=500)
+    return web.json_response({"success": True})

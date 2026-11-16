@@ -6,6 +6,8 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from app.core.settings import settings
+
 from app.services.library_index import EXCLUDE_DIRS, SUPPORTED_EXTENSIONS, workspace_root
 
 
@@ -17,15 +19,15 @@ def _version(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
-def _root(source: str) -> Path:
-    root = workspace_root(source)
+def _root(source: str, *, include_shared: bool = False) -> Path:
+    root = settings.shared_vault_root if include_shared and source == "shared" else workspace_root(source)
     if root is None or not root.exists() or not root.is_dir():
         raise ValueError(f"Unknown or unavailable workspace: {source}")
     return root.resolve()
 
 
-def _target(source: str, relative_path: str, *, allow_root: bool = False) -> Path:
-    root = _root(source)
+def _target(source: str, relative_path: str, *, allow_root: bool = False, root: Path | None = None) -> Path:
+    root = root if root is not None else _root(source)
     raw = str(relative_path or "").strip().lstrip("/")
     if not raw and allow_root:
         return root
@@ -33,8 +35,8 @@ def _target(source: str, relative_path: str, *, allow_root: bool = False) -> Pat
         raise ValueError("path is required")
     supplied = Path(str(relative_path or "").strip()).expanduser()
     target = supplied.resolve() if supplied.is_absolute() and supplied.is_relative_to(root) else (root / raw).resolve()
-    if target == root and allow_root:
-        return target
+    if target == root and not allow_root:
+        raise ValueError("Choose an entry inside the workspace")
     if not target.is_relative_to(root):
         raise ValueError("path must remain inside the workspace")
     return target
@@ -139,20 +141,37 @@ def rename_entry(source: str, path: str, name: str) -> dict[str, Any]:
     return _node(destination, _root(source), depth=0, max_depth=1)
 
 
-def move_entry(source: str, path: str, parent: str) -> dict[str, Any]:
-    target = _target(source, path)
-    destination_parent = _target(source, parent, allow_root=True)
+def move_entry(
+    source: str, path: str, parent: str, destination_source: str | None = None,
+) -> dict[str, Any]:
+    destination_source = destination_source or source
+    across_vaults = source != destination_source
+    if across_vaults and {source, destination_source} != {"user", "shared"}:
+        raise ValueError("Moves between vaults require User Vault and Shared Vaults")
+    source_root = _root(source, include_shared=across_vaults)
+    destination_root = _root(destination_source, include_shared=across_vaults)
+    target = _target(source, path, root=source_root)
+    destination_parent = _target(destination_source, parent, allow_root=True, root=destination_root)
+    if across_vaults:
+        source_parts = target.relative_to(source_root).parts
+        destination_parts = destination_parent.relative_to(destination_root).parts
+        if any(parts and parts[0].casefold() in {"binders", "trash"} for parts in (source_parts, destination_parts)):
+            raise ValueError("Binder and Trash paths require their own workflow")
+        if not target.is_file() and not target.is_dir():
+            raise ValueError("Entry is unavailable")
+        if target.is_dir() and any(entry.is_symlink() or entry.name == "binder.json" for entry in target.rglob("*")):
+            raise ValueError("Folders containing symbolic links or managed Binders cannot be moved between vaults")
     if not destination_parent.is_dir():
         raise ValueError("destination must be a folder")
     destination = destination_parent / target.name
     if destination == target:
         return _node(target, _root(source), depth=0, max_depth=1)
-    if destination.exists():
+    if destination.exists() or destination.is_symlink():
         raise ValueError("an entry with that name already exists")
     if target.is_dir() and destination_parent.is_relative_to(target):
         raise ValueError("a folder cannot be moved inside itself")
     target.rename(destination)
-    return _node(destination, _root(source), depth=0, max_depth=1)
+    return _node(destination, destination_root, depth=0, max_depth=0 if across_vaults else 1)
 
 
 def delete_entry(source: str, path: str) -> dict[str, Any]:

@@ -10,10 +10,10 @@
           Start with simple BASIC commands, then explore graphics and physical computing.
         </p>
         <div class="learning-hero__actions">
-          <button v-if="manualIntro" class="learning-hero__btn" @click="emit('open', manualIntro)">
+          <button v-if="manualIntro" class="usx-btn usx-btn--primary learning-hero__btn" @click="emit('open', manualIntro)">
             User Guide Overview
           </button>
-          <button v-if="firstChapter" class="learning-hero__btn learning-hero__btn--secondary" @click="emit('open', firstChapter)">
+          <button v-if="firstChapter" class="usx-btn usx-btn--secondary learning-hero__btn learning-hero__btn--secondary" @click="emit('open', firstChapter)">
             Part 1: First Steps
           </button>
         </div>

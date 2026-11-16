@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 from aiohttp import web
 from aiohttp.test_utils import AioHTTPTestCase
@@ -16,12 +17,14 @@ from app.api.binder_api import (
     handle_binder_decisions_get,
     handle_binder_decisions_post,
     handle_binder_draft_update,
+    handle_binder_delete,
     handle_binder_export_gemini,
     handle_binder_export_obsidian,
     handle_binder_get,
     handle_binder_intake,
     handle_binder_list,
     handle_binder_publish,
+    handle_binder_rename,
     handle_binder_resume,
     handle_binder_run,
     handle_binder_section_update,
@@ -57,6 +60,7 @@ class BinderAPITest(AioHTTPTestCase):
         app.router.add_get("/api/binder/list", handle_binder_list)
         app.router.add_post("/api/binder/create", handle_binder_create)
         app.router.add_get("/api/binder/{binder_id}", handle_binder_get)
+        app.router.add_delete("/api/binder/{binder_id}", handle_binder_delete)
         app.router.add_post("/api/binder/{binder_id}/intake", handle_binder_intake)
         app.router.add_post("/api/binder/{binder_id}/authorise", handle_binder_authorise)
         app.router.add_post("/api/binder/{binder_id}/run", handle_binder_run)
@@ -65,6 +69,7 @@ class BinderAPITest(AioHTTPTestCase):
         app.router.add_get("/api/binder/{binder_id}/decisions", handle_binder_decisions_get)
         app.router.add_post("/api/binder/{binder_id}/decisions", handle_binder_decisions_post)
         app.router.add_patch("/api/binder/{binder_id}/draft", handle_binder_draft_update)
+        app.router.add_patch("/api/binder/{binder_id}/title", handle_binder_rename)
         app.router.add_patch("/api/binder/{binder_id}/section/{req_id}", handle_binder_section_update)
         app.router.add_post("/api/binder/{binder_id}/accept", handle_binder_accept)
         app.router.add_post("/api/binder/{binder_id}/publish", handle_binder_publish)
@@ -79,7 +84,39 @@ class BinderAPITest(AioHTTPTestCase):
             shutil.rmtree(self._temp_dir)
         await super().asyncTearDown()
 
-    async def test_full_binder_api_lifecycle(self):
+    async def test_rename_and_delete_keep_binder_content_recoverable(self):
+        response = await self.client.post("/api/binder/create", json={"id": "garden", "title": "Garden"})
+        assert response.status == 200
+        path = "/api/binder/garden"
+        renamed = await self.client.patch(f"{path}/title", json={"title": "Spring garden"})
+        assert (await renamed.json())["binder"]["title"] == "Spring garden"
+        docs = binder_engine.get_binder_documents_dir("garden")
+        docs.mkdir()
+        (docs / "seeds.md").write_text("Seeds", encoding="utf-8")
+
+        assert (await self.client.delete(path)).status == 200
+        assert (await self.client.get(path)).status == 404
+        listing = await (await self.client.get("/api/binder/list")).json()
+        assert listing["trashed_ids"] == ["garden"]
+        assert all(binder.get("id") != "garden" for binder in listing["binders"])
+        trash = binder_engine.VAULT_ROOT / "Trash" / "Binders" / "garden"
+        assert (trash / "docs" / "seeds.md").read_text(encoding="utf-8") == "Seeds"
+        assert (await self.client.post("/api/binder/create", json={"id": "garden"})).status == 409
+
+        trash.rename(binder_engine.BINDERS_ROOT / "garden")
+        restored = await (await self.client.get(path)).json()
+        assert restored["binder"]["metadata"]["title"] == "Spring garden"
+
+    @patch("app.services.identity.get_full_identity", return_value={"publishing_capabilities": {"publish_local": True}})
+    async def test_full_binder_api_lifecycle(self, _identity):
+        path = "/api/binder/b-system-spec/publish"
+        _identity.return_value = {"publishing_capabilities": {"publish_local": False}}
+        assert (await self.client.post(path, json={})).status == 403
+        _identity.return_value = {"publishing_capabilities": {"publish_local": True}}
+        rejected_cloud = await self.client.post(path, json={"target": "cloud"})
+        assert rejected_cloud.status == 400
+        assert "Cloud publishing" in (await rejected_cloud.json())["error"]
+
         # 1. Create binder
         resp = await self.client.post("/api/binder/create", json={
             "id": "b-system-spec",
@@ -97,6 +134,14 @@ class BinderAPITest(AioHTTPTestCase):
         bdata = await resp.json()
         assert bdata["binder"]["metadata"]["title"] == "System Specification"
         orig_hash = bdata["binder"]["draft_sha256"]
+
+        rename = await self.client.patch("/api/binder/b-system-spec/title", json={"title": "Reviewed specification"})
+        assert rename.status == 200
+        reread = await self.client.get("/api/binder/b-system-spec")
+        persisted = (await reread.json())["binder"]
+        assert persisted["metadata"]["id"] == "b-system-spec"
+        assert persisted["metadata"]["title"] == "Reviewed specification"
+        assert persisted["draft_sha256"] == orig_hash
 
         # 3. Intake document as source
         resp = await self.client.post("/api/binder/b-system-spec/intake", json={
@@ -196,6 +241,11 @@ class BinderAPITest(AioHTTPTestCase):
         accept_res = await resp.json()
         assert accept_res["accepted"] is True
         assert accept_res["edition"]["edition"] == 1
+
+        preview_response = await self.client.post(path, json={"edition": 1, "preview": True})
+        assert preview_response.status == 200
+        assert (await preview_response.json())["preview"]["edition"] == 1
+        assert not (self._temp_dir / "Public" / "editions" / "b-system-spec" / "receipt.json").exists()
 
         # 7. Publish edition
         resp = await self.client.post("/api/binder/b-system-spec/publish", json={

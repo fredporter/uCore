@@ -9,8 +9,8 @@
         </div>
       </div>
       <div class="header-meta">
-        <button class="m3-button" @click="srv.fetchModels">
-          <span class="material-symbols-outlined">refresh</span>
+        <button class="usx-btn usx-btn--secondary m3-button" @click="srv.fetchModels">
+          <UIcon name="refresh" />
           <span>Refresh</span>
         </button>
       </div>
@@ -59,6 +59,7 @@
 
 <script setup lang="ts">
 import { useSnackbarOpsStore } from "../../../stores/snackbarOps";
+import UIcon from "../../../skills/atoms/UIcon.vue";
 
 const srv = useSnackbarOpsStore();
 </script>

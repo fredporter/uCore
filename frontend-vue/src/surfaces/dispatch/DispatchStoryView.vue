@@ -36,7 +36,7 @@
         <div class="dispatch-bar__center">
           <div class="dispatch-mode-toggle" role="tablist">
             <button
-              class="dispatch-mode-btn"
+              class="usx-btn dispatch-mode-btn"
               :class="{ active: activeMode === 'card' }"
               @click="activeMode = 'card'"
               title="Zen Card Mode (1)"
@@ -44,7 +44,7 @@
               [Card]
             </button>
             <button
-              class="dispatch-mode-btn"
+              class="usx-btn dispatch-mode-btn"
               :class="{ active: activeMode === 'deck' }"
               @click="activeMode = 'deck'"
               title="10-Foot TV Deck Mode (2)"
@@ -52,7 +52,7 @@
               [Deck]
             </button>
             <button
-              class="dispatch-mode-btn"
+              class="usx-btn dispatch-mode-btn"
               :class="{ active: activeMode === 'prose' }"
               @click="activeMode = 'prose'"
               title="Prose Reader Mode (3)"
@@ -63,11 +63,11 @@
         </div>
 
         <div class="dispatch-bar__right">
-          <button class="dispatch-btn-sm" @click="toggleAspect" :title="`Switch Aspect (Current: ${aspectRatio})`">
+          <button class="usx-btn dispatch-btn-sm" @click="toggleAspect" :title="`Switch Aspect (Current: ${aspectRatio})`">
             {{ aspectRatio }}
           </button>
-          <button class="dispatch-btn-sm" @click="toggleFullscreen" title="Fullscreen (F)">
-            {{ isFullscreen ? 'Exit ⛶' : 'Fullscreen ⛶' }}
+          <button class="usx-btn dispatch-btn-sm" @click="toggleFullscreen" title="Fullscreen (F)">
+            <UIcon :name="isFullscreen ? 'fullscreen_exit' : 'fullscreen'" /> {{ isFullscreen ? 'Exit' : 'Fullscreen' }}
           </button>
         </div>
       </header>
@@ -88,8 +88,8 @@
               <h1 class="dispatch-card__heading">{{ manifest?.title }}</h1>
               <p v-if="manifest?.lead_text" class="dispatch-card__lead">{{ manifest.lead_text }}</p>
               <div class="dispatch-card__body" v-html="renderedCards[0]"></div>
-              <button class="dispatch-btn-primary dispatch-btn-primary--lg" @click="nextCard">
-                Begin Dispatch &rarr;
+              <button class="usx-btn usx-btn--primary dispatch-btn-primary dispatch-btn-primary--lg" @click="nextCard">
+                Begin Dispatch <UIcon name="arrow_forward" />
               </button>
             </div>
 
@@ -101,7 +101,7 @@
               <div v-if="manifest?.burn_after_read" class="dispatch-card__burn-note">
                 (This one-time dispatch will dissolve upon closing this window.)
               </div>
-              <button class="dispatch-btn-secondary" @click="currentCardIndex = 0">Review Cards</button>
+              <button class="usx-btn usx-btn--secondary dispatch-btn-secondary" @click="currentCardIndex = 0">Review Cards</button>
             </div>
 
             <!-- Question / Content Card -->
@@ -118,7 +118,7 @@
                   <button
                     v-for="(opt, idx) in getCurrentQuestion()?.options"
                     :key="idx"
-                    class="dispatch-option-btn"
+                    class="usx-btn dispatch-option-btn"
                     :class="{ selected: formAnswers[getCurrentQuestion()!.id] === opt }"
                     @click="selectOption(getCurrentQuestion()!.id, opt)"
                   >
@@ -137,7 +137,7 @@
                     @keydown.enter="nextCard"
                     autofocus
                   />
-                  <button class="dispatch-btn-primary" @click="nextCard">OK &check;</button>
+                  <button class="usx-btn usx-btn--primary dispatch-btn-primary" @click="nextCard">OK <UIcon name="check" /></button>
                 </div>
 
                 <!-- Number Input -->
@@ -150,25 +150,25 @@
                     @keydown.enter="nextCard"
                     autofocus
                   />
-                  <button class="dispatch-btn-primary" @click="nextCard">OK &check;</button>
+                  <button class="usx-btn usx-btn--primary dispatch-btn-primary" @click="nextCard">OK <UIcon name="check" /></button>
                 </div>
               </div>
 
               <!-- Card Navigation Bar -->
               <div class="dispatch-card__nav">
-                <button class="dispatch-btn-secondary" :disabled="currentCardIndex === 0" @click="prevCard">
-                  &larr; Previous
+                <button class="usx-btn usx-btn--secondary dispatch-btn-secondary" :disabled="currentCardIndex === 0" @click="prevCard">
+                  <UIcon name="arrow_back" /> Previous
                 </button>
                 <button
                   v-if="currentCardIndex === renderedCards.length - 1"
-                  class="dispatch-btn-primary"
+                  class="usx-btn usx-btn--primary dispatch-btn-primary"
                   :disabled="submitting"
                   @click="submitAllAnswers"
                 >
-                  {{ submitting ? 'Submitting...' : 'Complete & Send &rarr;' }}
+                  {{ submitting ? 'Submitting...' : 'Complete & Send' }} <UIcon name="arrow_forward" />
                 </button>
-                <button v-else class="dispatch-btn-primary" @click="nextCard">
-                  Next &rarr;
+                <button v-else class="usx-btn usx-btn--primary dispatch-btn-primary" @click="nextCard">
+                  Next <UIcon name="arrow_forward" />
                 </button>
               </div>
             </div>
@@ -190,9 +190,9 @@
         </div>
 
         <footer class="dispatch-deck-footer">
-          <button class="dispatch-deck-btn" :disabled="currentCardIndex === 0" @click="prevCard">&larr; PREV</button>
+          <button class="usx-btn dispatch-deck-btn" :disabled="currentCardIndex === 0" @click="prevCard"><UIcon name="arrow_back" /> PREV</button>
           <span class="dispatch-deck-counter">{{ currentCardIndex + 1 }} / {{ renderedCards.length }}</span>
-          <button class="dispatch-deck-btn" :disabled="currentCardIndex >= renderedCards.length - 1" @click="nextCard">NEXT &rarr;</button>
+          <button class="usx-btn dispatch-deck-btn" :disabled="currentCardIndex >= renderedCards.length - 1" @click="nextCard">NEXT <UIcon name="arrow_forward" /></button>
         </footer>
       </section>
 
@@ -217,7 +217,7 @@
                 <button
                   v-for="opt in q.options"
                   :key="opt"
-                  class="dispatch-option-btn dispatch-option-btn--inline"
+                  class="usx-btn dispatch-option-btn dispatch-option-btn--inline"
                   :class="{ selected: formAnswers[q.id] === opt }"
                   @click="formAnswers[q.id] = opt"
                 >
@@ -226,7 +226,7 @@
               </div>
               <input v-else type="text" class="dispatch-input" v-model="formAnswers[q.id]" placeholder="Your answer" />
             </div>
-            <button class="dispatch-btn-primary dispatch-btn-primary--lg" :disabled="submitting" @click="submitAllAnswers">
+            <button class="usx-btn usx-btn--primary dispatch-btn-primary dispatch-btn-primary--lg" :disabled="submitting" @click="submitAllAnswers">
               {{ submitting ? 'Submitting...' : 'Submit Responses' }}
             </button>
           </div>
@@ -240,6 +240,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import { renderProseFast } from "../../utils/markdownRenderer";
+import UIcon from "../../skills/atoms/UIcon.vue";
 
 interface QuestionDef {
   id: string;

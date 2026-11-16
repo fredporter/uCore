@@ -169,48 +169,63 @@ class MaintenanceScheduler:
         for job in self.jobs:
             if not self._is_due(job, now):
                 continue
-            attempt = self._state.setdefault("attempts", {}).get(job.skill_id, {})
-            count = attempt.get("count", 0) if attempt.get("date") == now.date().isoformat() else 0
-            # Persist the attempt before execution so restart cannot loop forever.
-            self._state["attempts"][job.skill_id] = {
-                "date": now.date().isoformat(),
-                "count": count + 1,
-                "next_retry": (now + timedelta(minutes=2**count)).isoformat(),
-            }
-            self._save_state()
-            try:
-                result = await asyncio.wait_for(
-                    run_skill_by_id(job.skill_id, **job.params),
-                    timeout=job.timeout_seconds,
-                )
-            except Exception as exc:
-                result = {"success": False, "error": str(exc) or type(exc).__name__}
-            success = bool(result.get("success"))
-            needs_approval = bool(result.get("requires_confirmation"))
-            retry = job.retry_safe and not success and not needs_approval and count + 1 < 3
-            if success or not retry:
-                self._state.setdefault("last_run", {})[job.skill_id] = now.date().isoformat()
-            if success:
-                self._state.setdefault("last_success", {})[job.skill_id] = now.isoformat()
-            self._state.setdefault("last_result", {})[job.skill_id] = {
-                "success": success,
-                "timestamp": now.isoformat(),
-                "state": "completed"
-                if success
-                else "needs_approval"
-                if needs_approval
-                else "retrying"
-                if retry
-                else "failed",
-                "error": result.get("error"),
-                "next_retry": self._state["attempts"][job.skill_id]["next_retry"]
-                if retry
-                else None,
-            }
-            self._save_state()
-            ran.append({"skill_id": job.skill_id, "result": result})
-            log.info("Maintenance job ran: %s success=%s", job.skill_id, success)
+            ran.append(await self._execute_job(job, now))
         return ran
+
+    async def run_once(self, skill_id: str) -> dict:
+        job = next((job for job in self.jobs if job.skill_id == skill_id), None)
+        if job is None:
+            raise KeyError(skill_id)
+        if self._run_lock.locked():
+            raise RuntimeError("Maintenance is already running. Try again shortly.")
+        async with self._run_lock:
+            return await self._execute_job(job, datetime.now(), manual=True)
+
+    async def _execute_job(self, job: MaintenanceJob, now: datetime, *, manual: bool = False) -> dict:
+        attempt = self._state.setdefault("attempts", {}).get(job.skill_id, {})
+        count = attempt.get("count", 0) if attempt.get("date") == now.date().isoformat() else 0
+        # Persist the attempt before execution so restart cannot loop forever.
+        self._state["attempts"][job.skill_id] = {
+            "date": now.date().isoformat(),
+            "count": count + 1,
+            "next_retry": (now + timedelta(minutes=2**min(count, 2))).isoformat(),
+        }
+        self._save_state()
+        params = dict(job.params)
+        if manual:
+            params["execution_authorized"] = True
+        try:
+            result = await asyncio.wait_for(
+                run_skill_by_id(job.skill_id, **params),
+                timeout=job.timeout_seconds,
+            )
+        except Exception as exc:
+            result = {"success": False, "error": str(exc) or type(exc).__name__}
+        success = bool(result.get("success"))
+        needs_approval = bool(result.get("requires_confirmation"))
+        retry = not manual and job.retry_safe and not success and not needs_approval and count + 1 < 3
+        if success or not retry:
+            self._state.setdefault("last_run", {})[job.skill_id] = now.date().isoformat()
+        if success:
+            self._state.setdefault("last_success", {})[job.skill_id] = now.isoformat()
+        self._state.setdefault("last_result", {})[job.skill_id] = {
+            "success": success,
+            "timestamp": now.isoformat(),
+            "state": "completed"
+            if success
+            else "needs_approval"
+            if needs_approval
+            else "retrying"
+            if retry
+            else "failed",
+            "error": result.get("error"),
+            "next_retry": self._state["attempts"][job.skill_id]["next_retry"]
+            if retry
+            else None,
+        }
+        self._save_state()
+        log.info("Maintenance job ran: %s success=%s", job.skill_id, success)
+        return {"skill_id": job.skill_id, "result": result}
 
     def _is_due(self, job: MaintenanceJob, now: datetime) -> bool:
         last_run = self._state.get("last_run", {}).get(job.skill_id)

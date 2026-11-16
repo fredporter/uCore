@@ -5,7 +5,7 @@
       <aside v-if="showSidebar" class="dev-sidebar">
         <div class="dev-sidebar__header">
           <span>{{ sidebarRepo ? sidebarRepo : "Select repo" }}</span>
-          <button class="dev-sidebar__close" @click="closeSidebar()">&times;</button>
+          <button class="usx-btn usx-btn--ghost dev-sidebar__close" aria-label="Close sidebar" @click="closeSidebar()"><UIcon name="close" /></button>
         </div>
         <div class="dev-sidebar__body">
           <div v-if="loadingRepos" class="dev-loading"><UIcon name="sync" /> Loading...</div>
@@ -20,14 +20,14 @@
             <div class="dev-search">
               <UIcon name="search" />
               <input v-model="fileFilter" aria-label="Filter repository files" placeholder="Filter files…" @keydown.enter="searchRepository" />
-              <button :disabled="!fileFilter.trim()" title="Search file contents" @click="searchRepository"><UIcon name="manage_search" /></button>
+              <button class="usx-btn usx-btn--ghost" :disabled="!fileFilter.trim()" title="Search file contents" @click="searchRepository"><UIcon name="manage_search" /></button>
             </div>
             <div v-if="searching" class="dev-loading"><UIcon name="sync" /> Searching…</div>
             <div v-else-if="searchResults.length" class="dev-search-results">
-              <button v-for="match in searchResults" :key="`${match.path}:${match.line}`" @click="selectFile(match.path)">
+              <button class="usx-btn usx-btn--ghost" v-for="match in searchResults" :key="`${match.path}:${match.line}`" @click="selectFile(match.path)">
                 <strong>{{ match.path }}:{{ match.line }}</strong><span>{{ match.preview }}</span>
               </button>
-              <button class="dev-search-results__clear" @click="searchResults=[]">Clear content results</button>
+              <button class="usx-btn usx-btn--ghost dev-search-results__clear" @click="searchResults=[]">Clear content results</button>
             </div>
             <div v-if="loadingFiles" class="dev-loading"><UIcon name="sync" /> Loading...</div>
             <div v-for="node in visibleTree" :key="node.path" class="dev-file-row" :style="{ paddingLeft: (8 + node.depth * 16) + 'px' }" @click="node.isDir ? toggleDir(node.path) : selectFile(node.path)" :class="{ 'dev-file-row--active': !node.isDir && activePath === node.path }">
@@ -40,9 +40,9 @@
       <div class="surface__content">
         <div v-if="activeTab==='code'" class="dev-repo-grid">
           <div class="dev-lane-bar">
-            <button :class="{active:devLane==='core'}" @click="devLane='core'">Code</button>
-            <button :class="{active:devLane==='extension'}" @click="devLane='extension'">Extensions</button>
-            <button :class="{active:devLane==='project'}" @click="devLane='project'">Projects</button>
+            <button class="usx-btn usx-btn--ghost" :class="{active:devLane==='core'}" @click="devLane='core'">Code</button>
+            <button class="usx-btn usx-btn--ghost" :class="{active:devLane==='extension'}" @click="devLane='extension'">Extensions</button>
+            <button class="usx-btn usx-btn--ghost" :class="{active:devLane==='project'}" @click="devLane='project'">Projects</button>
           </div>
           <div v-if="loadingRepos" class="dev-loading"><UIcon name="sync" /> Loading...</div>
           <div v-else class="dev-repo-grid__cards">
@@ -57,19 +57,19 @@
           <div class="dev-workbench-bar">
             <span><UIcon name="folder" /> {{ activeRepo }}</span>
             <span v-if="activePath"><UIcon name="description" /> {{ activePath }}</span>
-            <button title="Go to file (Ctrl/Cmd+P)" @click="paletteOpen=true"><UIcon name="search" /> Go to file <kbd>⌘P</kbd></button>
-            <button title="Create file" @click="openFileDialog('create')"><UIcon name="note_add" /></button>
-            <button :disabled="!activePath" title="Rename or move file" @click="openFileDialog('move')"><UIcon name="drive_file_move" /></button>
-            <button :disabled="!activePath" title="Delete file" @click="openFileDialog('delete')"><UIcon name="delete" /></button>
-            <button :disabled="!activePath" title="Run diagnostics" @click="loadDiagnostics"><UIcon name="problem" /> {{ diagnosticsLabel }}</button>
-            <button :class="{active:reviewOpen}" @click="reviewOpen=!reviewOpen"><UIcon name="difference" /> Review</button>
+            <button class="usx-btn usx-btn--secondary" title="Go to file (Ctrl/Cmd+P)" @click="paletteOpen=true"><UIcon name="search" /> Go to file <kbd>⌘P</kbd></button>
+            <button class="usx-btn usx-btn--secondary" title="Create file" @click="openFileDialog('create')"><UIcon name="note_add" /></button>
+            <button class="usx-btn usx-btn--secondary" :disabled="!activePath" title="Rename or move file" @click="openFileDialog('move')"><UIcon name="drive_file_move" /></button>
+            <button class="usx-btn usx-btn--secondary" :disabled="!activePath" title="Delete file" @click="openFileDialog('delete')"><UIcon name="delete" /></button>
+            <button class="usx-btn usx-btn--secondary" :disabled="!activePath" title="Run diagnostics" @click="loadDiagnostics"><UIcon name="problem" /> {{ diagnosticsLabel }}</button>
+            <button class="usx-btn usx-btn--secondary" :class="{active:reviewOpen}" @click="reviewOpen=!reviewOpen"><UIcon name="difference" /> Review</button>
           </div>
           <div class="dev-workbench-main">
           <div class="dev-workbench-content">
         <div v-if="diagnosticsSupported !== null" class="dev-diagnostics" role="status">
           <span v-if="diagnosticsSupported === false">No diagnostics adapter for this file type.</span>
           <span v-else-if="!diagnostics.length"><UIcon name="check_circle" /> No syntax diagnostics.</span>
-          <button v-for="item in diagnostics" v-else :key="`${item.line}:${item.column}:${item.message}`" @click="activeTab='editor'">
+          <button class="usx-btn usx-btn--ghost" v-for="item in diagnostics" v-else :key="`${item.line}:${item.column}:${item.message}`" @click="activeTab='editor'">
             <UBadge type="error" size="sm">{{ item.line }}:{{ item.column }}</UBadge>{{ item.message }}
           </button>
         </div>

@@ -133,7 +133,8 @@ async def handle_library_search(request: web.Request) -> web.Response:
 
         query = request.query.get("q", "")
         source = request.query.get("source")
-        limit = int(request.query.get("limit", 50))
+        limit = min(1000, max(1, int(request.query.get("limit", 50))))
+        offset = max(0, int(request.query.get("offset", 0)))
 
         if not query:
             return web.json_response(
@@ -141,7 +142,7 @@ async def handle_library_search(request: web.Request) -> web.Response:
                 status=400,
             )
 
-        results = search(query, source=source, limit=limit)
+        results = search(query, source=source, limit=limit, offset=offset)
         return web.json_response({
             "query": query,
             "source": source,

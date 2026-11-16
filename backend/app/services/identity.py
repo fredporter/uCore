@@ -278,6 +278,18 @@ def get_or_create_session() -> Session:
 
 # ─── Public API ─────────────────────────────────────────────────────────
 
+def publishing_capabilities(role: str, *, authenticated: bool) -> dict[str, bool]:
+    """Return the publishing and domain authorities of a local profile."""
+    role = str(role).strip().casefold()
+    administrator = authenticated and role in {"wizard", "owner"}
+    cloud = administrator or (authenticated and role in {"sorcerer", "sorceror"})
+    return {
+        "manage_domains": administrator,
+        "publish_cloud": cloud,
+        "publish_local": cloud or (authenticated and role in {"knight", "user", "guest", "developer"}),
+    }
+
+
 def get_full_identity() -> dict[str, Any]:
     """Return the complete identity info for API responses and log tagging."""
     import platform as _platform
@@ -294,6 +306,10 @@ def get_full_identity() -> dict[str, Any]:
         "authenticated": identity.authenticated and session.authenticated,
         "active_profile_id": identity.active_profile_id if (identity.authenticated and session.authenticated) else "",
         "active_profile": active_profile,
+        "publishing_capabilities": publishing_capabilities(
+            active_profile["role"] if active_profile else "",
+            authenticated=identity.authenticated and session.authenticated,
+        ),
         "profiles": [p.to_dict() for p in identity.profiles],
         "hostname": socket.gethostname(),
         "platform": _platform.system().lower(),

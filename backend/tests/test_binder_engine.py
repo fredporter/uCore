@@ -164,6 +164,12 @@ def test_accept_and_publish_edition(temp_environment):
 
     # 1. Assemble draft
     binder_engine.assemble_draft("proj-epsilon")
+    bdata = binder_engine.get_binder("proj-epsilon")
+    binder_engine.update_draft(
+        "proj-epsilon",
+        "# Project Epsilon\n\nSee [[#Requirements|View Requirements]] and [[Private Document]].\n\n## Requirements\n\nAll verified.",
+        expected_base_hash=bdata["draft_sha256"],
+    )
 
     # 2. Accept edition
     manifest = binder_engine.accept_edition(
@@ -187,6 +193,10 @@ def test_accept_and_publish_edition(temp_environment):
     assert "Edition 1 • Sovereign Publication" in html_content
     # Internal section markers should be stripped in published edition
     assert "<!-- section:" not in html_content
+    # In-edition wiki links rewritten to html anchors; unverified links rendered as safe text
+    assert '<a href="#requirements">View Requirements</a>' in html_content
+    assert "Private Document" in html_content
+    assert "[[Private Document]]" not in html_content
 
     bdata = binder_engine.get_binder("proj-epsilon")
     assert bdata["metadata"]["state"] == "published"
@@ -206,3 +216,24 @@ def test_document_projection_preserves_binder_and_excludes_external_symlinks(tem
     with pytest.raises(FileNotFoundError):
         binder_engine.get_binder_documents_dir("missing")
     assert not (temp_environment["binders"] / "missing").exists()
+
+
+def test_rename_preserves_identity_materials_and_metadata(temp_environment):
+    binder_engine.create_binder("garden", "Garden", "Plan planting")
+    before = binder_engine.get_binder("garden")
+    result = binder_engine.rename_binder("garden", "  Spring garden  ")
+    after = binder_engine.get_binder("garden")
+    assert result["title"] == "Spring garden"
+    assert result["id"] == "garden"
+    for key in before:
+        if key != "metadata":
+            assert after[key] == before[key]
+    for key in before["metadata"]:
+        if key not in {"title", "updated_at"}:
+            assert after["metadata"][key] == before["metadata"][key]
+    with pytest.raises(ValueError):
+        binder_engine.rename_binder("garden", " ")
+    with pytest.raises(ValueError):
+        binder_engine.rename_binder("garden", "x" * 201)
+    with pytest.raises(FileNotFoundError):
+        binder_engine.rename_binder("missing", "Name")

@@ -636,3 +636,31 @@ async def handle_workflow_runs(request: web.Request) -> web.Response:
             "count": len(runs),
         },
     )
+
+
+async def handle_user_missions(request):
+    """Profile-scoped objectives use the existing uFlow database, not task projections."""
+    from app.flow import binder_engine
+    from app.services.identity import get_full_identity
+    from app.services.workflow_manager import WorkflowManager
+    owner = get_full_identity().get("active_profile_id") or "default"
+    manager = WorkflowManager()
+    if request.method == "GET":
+        return web.json_response({"missions": manager.list_missions(owner)})
+    try:
+        body = await request.json()
+        if not isinstance(body, dict):
+            raise ValueError("Expected an object")
+        if "binder" in body and not isinstance(body["binder"], str):
+            raise ValueError("Binder must be text")
+        if body.get("binder"):
+            binder_engine.get_binder_documents_dir(body['binder'])
+        if request.method == "POST":
+            mission = manager.create_mission(owner, body.get('title'), body.get('binder') or '')
+        else:
+            mission = manager.update_mission(owner, request.match_info['mission_id'], body)
+        return web.json_response({"mission": mission}, status=201 if request.method == 'POST' else 200)
+    except (KeyError, FileNotFoundError):
+        return web.json_response({"error": "Mission or Binder not found"}, status=404)
+    except (ValueError, TypeError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)

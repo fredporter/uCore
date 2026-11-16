@@ -34,7 +34,7 @@ def promote_activity_to_task(
             continue
         record = _parse_markdown_task(existing)
         if record.get('source') == f'feed:{source}' and str(record.get('source_id')) in {source_id, str(activity_id)} and record.get('profile', 'default') == profile:
-            return {'task_id':record['id'], 'path':str(existing), 'reminders_sync':None, 'mail_archived':None, 'existing':True}
+            return {'task_id':record['id'], 'path':str(existing), 'reminders_sync':None, 'mail_archived':None, 'existing':True, 'binder': record.get('binder')}
     target_dir = default_tasker_dir() / slugify(board or "inbox")
     target_dir.mkdir(parents=True, exist_ok=True)
     target = target_dir / f"todo-{slugify(task_title)}-{source_id}.md"
@@ -94,7 +94,8 @@ def promote_activity_to_task(
         encoding="utf-8",
     )
     return {
-        "task_id": target.stem,
+        "task_id": source_id,
+        "binder": binder,
         "path": str(target),
         "reminders_sync": reminders_result,
         "mail_archived": mail_archived_result,

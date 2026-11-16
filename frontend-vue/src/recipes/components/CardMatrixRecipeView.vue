@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router'
 const router = useRouter()
 import type { CardMatrixRecipe } from '../recipes'
+import './cardMatrix.css'
 
 defineProps<{
   recipe: CardMatrixRecipe
@@ -108,30 +109,6 @@ defineProps<{
   border-radius: 4px;
   color: var(--usx-color-on-surface-variant, #c4c6d0);
   font-family: var(--usx-font-family-mono, monospace);
-}
-
-.matrix-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-  width: 100%;
-}
-
-.matrix-card {
-  display: flex;
-  flex-direction: column;
-  padding: 1.25rem;
-  border-radius: 12px;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-}
-
-.matrix-card:hover {
-  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.07));
-  border-color: var(--usx-color-outline, rgba(255, 255, 255, 0.2));
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .card-top-row {

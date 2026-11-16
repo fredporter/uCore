@@ -51,6 +51,25 @@ async def pull(request):
     return response
 
 
+async def model_snack(request):
+    value = await body(request)
+    if value.get("confirm") is not True:
+        raise web.HTTPBadRequest(text="Confirm the models to pull or update")
+    response = web.StreamResponse(headers={
+        "Content-Type": "application/x-ndjson", "Cache-Control": "no-store", "X-Accel-Buffering": "no",
+    })
+    await response.prepare(request)
+    try:
+        async for event in service.maintain_models(request.match_info["action"], value.get("models")):
+            await response.write((json.dumps(event) + "\n").encode())
+    except ConnectionResetError:
+        return response
+    except (httpx.HTTPError, ValueError, TimeoutError) as exc:
+        await response.write((json.dumps({"error": str(exc)}) + "\n").encode())
+    await response.write_eof()
+    return response
+
+
 async def roundtable(request):
     value = await body(request)
     try:
@@ -61,7 +80,19 @@ async def roundtable(request):
         raise web.HTTPServiceUnavailable(text=f"Local assistant unavailable: {exc}") from None
 
 
+async def chat(request):
+    value = await body(request)
+    try:
+        return web.json_response(await service.chat(value.get("messages"), str(value.get("model") or "")))
+    except ValueError as exc:
+        raise web.HTTPBadRequest(text=str(exc)) from None
+    except (httpx.HTTPError, TimeoutError):
+        raise web.HTTPServiceUnavailable(text="Ollama is unavailable. Check the local service.") from None
+
+
 def register(app):
     app.router.add_get("/api/assistant/library", library)
     app.router.add_post("/api/assistant/models/pull", pull)
+    app.router.add_post("/api/snacks/roundtable-models/{action}", model_snack)
     app.router.add_post("/api/assistant/roundtable", roundtable)
+    app.router.add_post("/api/assistant/chat", chat)

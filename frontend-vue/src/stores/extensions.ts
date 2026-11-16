@@ -224,7 +224,7 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
     required: false,
     icon: "publish",
     activation_required: false,
-    description: "Cloud mirror for udo.guide/udo.place",
+    description: "Publishing and spatial references for udo.guide and udo.place",
   },
   {
     id: "udos-vaults",

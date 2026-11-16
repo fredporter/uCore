@@ -14,9 +14,11 @@
     </template>
 
     <ChatBubblePanel
-      :chat-messages="chatMessages"
+      :chat-messages="okMessages"
       :dev-messages="[]"
-      :loading="assistChat.loading"
+      :loading="okLoading"
+      :local-assistant="true"
+      @clear-local="okMessages = []"
       :dev-available="false"
       :dev-mode-on="false"
       :context-label="contextLabel"
@@ -43,6 +45,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { UCORE_BASE } from "../../api/base";
+import { useIdentityStore } from "../../stores/identity";
 import { useRoute } from "vue-router";
 import ToastOverlay from "../molecules/ToastOverlay.vue";
 import AlertOverlay from "./AlertOverlay.vue";
@@ -102,50 +106,73 @@ const activeLane = ref<"chat">("chat");
 interface PromptCard {
   label: string;
   prompt: string;
-  mode?: "chat" | "plan" | "act" | "workflow";
 }
 
 const chatPromptCards: PromptCard[] = [
-  { label: "Research a topic", prompt: "Research and summarize ", mode: "plan" },
-  { label: "Draft content", prompt: "Write a draft about ", mode: "chat" },
-  { label: "Explain a concept", prompt: "Explain ", mode: "chat" },
-  { label: "Plan a workflow", prompt: "Plan a workflow for ", mode: "workflow" },
-  { label: "Summarize a doc", prompt: "Summarize the following: ", mode: "act" },
-  { label: "Quick brainstorm", prompt: "Brainstorm ideas for ", mode: "chat" },
+  { label: "Explore a topic", prompt: "Explain what you know about " },
+  { label: "Draft content", prompt: "Write a draft about " },
+  { label: "Explain a concept", prompt: "Explain " },
+  { label: "Plan a workflow", prompt: "Plan a workflow for " },
+  { label: "Summarize text", prompt: "Summarize the following: " },
+  { label: "Quick brainstorm", prompt: "Brainstorm ideas for " },
 ];
 
 function handlePromptClick(card: PromptCard) {
-  if (card.mode) assistChat.setPromptMode(card.mode);
   assistChat.input = card.prompt;
 }
 
-const chatMessages = computed<Msg[]>(() =>
-  assistChat.messages.map((m) => ({ role: m.role, content: m.content })),
-);
-
-const showWelcome = computed(() =>
-  activeLane.value === "chat" && chatMessages.value.length <= 1 && !assistChat.input.trim(),
-);
-
-const timeGreeting = computed(() => {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
+const okMessages = ref<Msg[]>([]);
+const okLoading = ref(false);
+const identity = useIdentityStore();
+let requestId = 0;
+watch(() => identity.activeProfileId, () => {
+  requestId++;
+  okMessages.value = [];
+  okLoading.value = false;
+  assistChat.okAssistantModel = "";
 });
+const showWelcome = computed(() => !okMessages.value.length && !assistChat.input.trim());
+const overlayWelcomeTitle = "OK Assistant";
 
-const overlayWelcomeTitle = computed(() => {
-  switch (assistChat.promptMode) {
-    case "plan": return "What should we research?";
-    case "act": return "Ready to act";
-    case "workflow": return "What workflow should we plan?";
-    default: return timeGreeting.value;
+async function sendChat(text: string) {
+  if (okLoading.value) return;
+  if (text.length > 12000) {
+    toast("Keep your message under 12,000 characters.", "error");
+    return;
   }
-});
-async function sendChat(text: string, mode: "chat" | "plan" | "act" | "workflow") {
-  assistChat.setPromptMode(mode);
-  await assistChat.sendMessage(text);
-  assistChat.saveCurrentConversation();
+  const id = ++requestId;
+  const messages: Msg[] = [{ role: "user", content: text }];
+  let length = text.length;
+  for (const message of okMessages.value.slice(-7).reverse()) {
+    length += message.content.length;
+    if (length > 12000) break;
+    messages.unshift(message);
+  }
+  okMessages.value.push({ role: "user", content: text });
+  okLoading.value = true;
+  try {
+    const response = await fetch(`${UCORE_BASE}/api/assistant/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages, model: assistChat.okAssistantModel }),
+      signal: AbortSignal.timeout(100000),
+    });
+    if (!response.ok) {
+      if (response.status === 401) throw new Error("Choose a local profile to use OK Assistant.");
+      if (response.status === 404) throw new Error("Restart uCore to load OK Assistant chat.");
+      throw new Error((await response.text()).slice(0, 240) || "OK Assistant is unavailable.");
+    }
+    const data = await response.json();
+    if (id === requestId) okMessages.value.push({ role: "assistant", content: data.content });
+  } catch (error) {
+    if (id === requestId) {
+      okMessages.value.pop();
+      if (!assistChat.input) assistChat.input = text;
+      toast(error instanceof TypeError ? "Could not reach uCore." : error instanceof Error ? error.message : "OK Assistant is unavailable.", "error");
+    }
+  } finally {
+    if (id === requestId) okLoading.value = false;
+  }
 }
 
 // ─── Feed event handlers ─────────────────────────────────────────

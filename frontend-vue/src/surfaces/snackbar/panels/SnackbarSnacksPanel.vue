@@ -61,6 +61,20 @@
       </table>
     </div>
 
+    <details class="surface__panel">
+      <summary>Roundtable models</summary>
+      <form class="roundtable-snack" @submit.prevent>
+        <label for="roundtable-models">Tagged local models</label>
+        <input id="roundtable-models" v-model="modelNames" placeholder="model:tag, model:tag" :disabled="modelBusy" />
+        <div class="roundtable-snack__actions">
+          <UButton icon="download" :disabled="modelBusy || !modelNames.trim()" @click="maintainModels('pull')">Pull models</UButton>
+          <UButton icon="refresh" :disabled="modelBusy || !modelNames.trim()" @click="maintainModels('update')">Update installed models</UButton>
+        </div>
+        <p v-if="modelProgress" role="status">{{ modelProgress }}</p>
+        <p v-if="modelError" role="alert">{{ modelError }}</p>
+      </form>
+    </details>
+
     <details class="surface__panel" @toggle="loadMaintenance">
       <summary>Scheduled work</summary>
       <p v-if="maintenanceError" role="alert">{{ maintenanceError }}</p>
@@ -106,6 +120,58 @@ const runLoading = ref<string | null>(null);
 const runResult = ref<unknown>(null);
 const runSnackId = ref("");
 const runError = ref<string | null>(null);
+
+const modelNames = ref("");
+const modelBusy = ref(false);
+const modelProgress = ref("");
+const modelError = ref("");
+
+async function maintainModels(action: "pull" | "update") {
+  if (modelBusy.value) return;
+  const models = [...new Set(modelNames.value.trim().split(/[,\s]+/).filter(Boolean))];
+  if (!models.length || models.length > 5) {
+    modelError.value = "Enter one to five tagged local models.";
+    return;
+  }
+  modelBusy.value = true;
+  modelProgress.value = "";
+  modelError.value = "";
+  const completed = new Set<string>();
+  try {
+    const response = await fetch(`/api/snacks/roundtable-models/${action}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ models, confirm: true }),
+    });
+    if (!response.ok || !response.body) throw new Error(await response.text());
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let pending = "";
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        pending += value;
+        const lines = pending.split("\n");
+        pending = lines.pop() || "";
+        for (const line of lines.filter(Boolean)) {
+          const event = JSON.parse(line);
+          if (event.error) throw new Error(event.error);
+          if (event.status === "success") completed.add(event.model);
+          modelProgress.value = `${event.model} · ${event.status}`;
+        }
+      }
+    } finally {
+      await reader.cancel().catch(() => undefined);
+      reader.releaseLock();
+    }
+    if (completed.size !== models.length) throw new Error("The model service did not confirm every model.");
+    modelProgress.value = `${completed.size} local model${completed.size === 1 ? "" : "s"} ready.`;
+  } catch (error) {
+    modelError.value = error instanceof Error ? error.message : "Could not prepare the roundtable models.";
+  } finally {
+    modelBusy.value = false;
+  }
+}
 
 interface MaintenanceJobStatus {
   skill_id: string;
@@ -237,4 +303,9 @@ onMounted(() => {
   color: var(--usx-color-danger);
   font-size: var(--usx-font-size-sm);
 }
+</style>
+
+<style scoped>
+.roundtable-snack { display: grid; gap: 8px; margin-block: 8px; }
+.roundtable-snack__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 </style>

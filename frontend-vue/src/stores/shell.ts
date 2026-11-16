@@ -12,8 +12,11 @@ export type TabOrientation = 'horizontal' | 'vertical'
 
 export const useShellStore = defineStore('shell', () => {
   const sidebarOpen = ref(false)
-  const sidebarMode = ref<'vault' | 'workflow'>(localStorage.getItem('ucore-sidebar-mode') === 'workflow' ? 'workflow' : 'vault')
-  function setSidebarMode(mode: 'vault' | 'workflow') {
+  const savedSidebarMode = localStorage.getItem('ucore-sidebar-mode')
+  const sidebarMode = ref<'vault' | 'workflow' | 'mission'>(
+    savedSidebarMode === 'workflow' || savedSidebarMode === 'mission' ? savedSidebarMode : 'vault',
+  )
+  function setSidebarMode(mode: 'vault' | 'workflow' | 'mission') {
     sidebarMode.value = mode
     localStorage.setItem('ucore-sidebar-mode', mode)
   }
