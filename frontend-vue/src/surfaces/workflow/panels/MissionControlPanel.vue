@@ -1,23 +1,21 @@
 <template>
   <section class="mission-control">
     <header class="mission-control__header">
-      <h2>Mission Control</h2>
+      <h2>Mission Control Dashboard</h2>
       <p>What would you like to do today?</p>
     </header>
     <form class="mission-control__form" @submit.prevent="create">
-      <label for="mission-objective">Your objective</label>
-      <div class="mission-control__entry">
-        <input
-          id="mission-objective"
-          v-model="objective"
-          maxlength="500"
-          placeholder="What would you like to achieve?"
-          required
-        />
-        <button class="usx-btn usx-btn--primary" :disabled="busy || !objective.trim()">
-          <UIcon name="flag" />Set mission
-        </button>
-      </div>
+      <input
+        id="mission-objective"
+        v-model="objective"
+        aria-label="Mission objective"
+        maxlength="500"
+        placeholder="What would you like to achieve?"
+        required
+      />
+      <button class="usx-btn usx-btn--primary" :disabled="busy || !objective.trim()">
+        <UIcon name="flag" />Set mission
+      </button>
     </form>
     <p v-if="error" role="alert" class="mission-control__error">{{ error }}</p>
     <label v-if="wf.missions.length" class="mission-control__selector">
@@ -46,7 +44,7 @@
           <option v-for="binder in wf.binders" :key="binder.id" :value="binder.id">{{ binder.title || binder.id }}</option>
         </select>
       </label>
-      <button class="usx-btn" @click="wf.binderCreateRequested = true">
+      <button class="usx-btn" @click="wf.requestBinderCreation()">
         <UIcon name="create_new_folder" />New Binder for materials
       </button>
     </section>
@@ -58,11 +56,29 @@
       <button class="usx-btn mission-control__next" @click="wf.openTask(nextTask)">
         <UIcon name="play_circle" />{{ nextTask.title }}<UIcon name="arrow_forward" />
       </button>
+      <button
+        type="button"
+        class="usx-btn mission-control__details-toggle"
+        :aria-expanded="showTaskDetails"
+        aria-controls="mission-next-details"
+        @click="showTaskDetails = !showTaskDetails"
+      >
+        <UIcon :name="showTaskDetails ? 'expand_less' : 'expand_more'" />
+        {{ showTaskDetails ? 'Less details' : 'More details' }}
+      </button>
+      <div v-show="showTaskDetails" id="mission-next-details" class="mission-control__details">
+        <p v-if="nextTask.description || nextTask.summary">{{ nextTask.description || nextTask.summary }}</p>
+        <dl>
+          <dt>Status</dt><dd>{{ nextTask.status.replaceAll('-', ' ') }}</dd>
+          <dt>Priority</dt><dd>{{ nextTask.priority }}</dd>
+          <template v-if="nextTask.due"><dt>Due</dt><dd>{{ nextTask.due }}</dd></template>
+        </dl>
+      </div>
     </section>
   </section>
 </template>
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useWorkflowStore } from '../../../stores/workflow';
 import UIcon from '../../../skills/atoms/UIcon.vue';
 const wf = useWorkflowStore();
@@ -70,6 +86,8 @@ const objective = ref(''), busy = ref(false), error = ref('');
 const selectedMission = computed(() => wf.missions.find(mission => mission.id === wf.activeMissionId));
 const completed = computed(() => wf.missionTasks.filter(task => task.status === 'completed').length);
 const nextTask = computed(() => [...wf.missionTasks].filter(task => ['todo', 'in-progress', 'review'].includes(task.status)).sort((a, b) => (a.status === 'in-progress' ? -1 : b.status === 'in-progress' ? 1 : a.title.localeCompare(b.title)))[0]);
+const showTaskDetails = ref(false);
+watch(() => nextTask.value?.id, () => { showTaskDetails.value = false; });
 async function perform(action: () => Promise<void>) { if (busy.value) return; busy.value = true; error.value = ''; try { await action(); } catch (failure) { error.value = failure instanceof Error ? failure.message : 'Could not save mission'; } finally { busy.value = false; } }
 async function create() { await perform(async () => { await wf.createMission(objective.value.trim()); objective.value = ''; }); }
 async function setStatus(status: string) { if (selectedMission.value) await perform(() => wf.updateMission(selectedMission.value!.id, { status })); }
@@ -117,7 +135,6 @@ label {
   color: var(--usx-color-on-surface);
 }
 
-form,
 .mission-control__focus {
   display: grid;
   gap: var(--usx-spacing-sm);
@@ -127,7 +144,7 @@ form,
   background: var(--usx-color-surface);
 }
 
-.mission-control__entry,
+.mission-control__form,
 .mission-control__actions {
   display: flex;
   align-items: center;
@@ -135,7 +152,7 @@ form,
   gap: var(--usx-spacing-sm);
 }
 
-.mission-control__entry input {
+.mission-control__form input {
   flex: 1 1 18rem;
 }
 
@@ -153,7 +170,13 @@ select {
   color: var(--usx-color-on-surface);
 }
 
-input:focus-visible,
+#mission-objective:focus {
+  border-color: transparent;
+  box-shadow: none;
+  outline: 2px solid var(--usx-color-primary);
+  outline-offset: -2px;
+}
+
 select:focus-visible {
   outline: 2px solid var(--usx-color-primary);
   outline-offset: 2px;
@@ -194,15 +217,49 @@ select:focus-visible {
   justify-content: space-between;
 }
 
+.mission-control__form .usx-btn,
+.mission-control__next,
+.mission-control__details-toggle {
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+}
+
+.mission-control__details {
+  padding: var(--usx-spacing-md);
+  border: 1px solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface);
+  overflow-wrap: anywhere;
+}
+
+.mission-control__details p {
+  white-space: pre-wrap;
+}
+
+.mission-control__details dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--usx-spacing-xs) var(--usx-spacing-md);
+  margin: 0;
+  font-size: var(--usx-font-size-sm);
+}
+
+.mission-control__details p + dl {
+  margin-top: var(--usx-spacing-sm);
+}
+
+.mission-control__details dd {
+  margin: 0;
+}
+
 @media (max-width: 640px) {
-  .mission-control__entry {
+  .mission-control__form {
     align-items: stretch;
     flex-direction: column;
   }
-  .mission-control__entry input {
+  .mission-control__form input {
     flex: auto;
   }
-  .mission-control__entry .usx-btn {
+  .mission-control__form .usx-btn {
     width: 100%;
     justify-content: center;
   }

@@ -14,6 +14,7 @@ Provides complete REST lifecycle for notebook binders:
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import logging
@@ -69,9 +70,11 @@ async def handle_binder_list(request: web.Request) -> web.Response:
     """GET /api/binder/list — list all binders."""
     try:
         binders = binder_engine.list_binders()
+        trashed = binder_engine.trashed_binder_ids()
     except Exception as e:
         log.warning("Failed listing binders from binder_engine: %s", e)
         binders = []
+        trashed = []
 
     # Also include any legacy root binders not in Binders/
     seen_names = {b.get("id", b.get("name")) for b in binders}
@@ -85,7 +88,7 @@ async def handle_binder_list(request: web.Request) -> web.Response:
                     except Exception:
                         pass
 
-    return web.json_response({"binders": binders, "count": len(binders)})
+    return web.json_response({"binders": binders, "count": len(binders), "trashed_ids": trashed})
 
 
 async def handle_binder_create(request: web.Request) -> web.Response:
@@ -118,8 +121,8 @@ async def handle_binder_create(request: web.Request) -> web.Response:
             non_goals=non_goals,
         )
         return web.json_response({"created": True, "binder": created})
-    except FileExistsError:
-        return web.json_response({"error": f"Binder '{binder_id}' already exists"}, status=409)
+    except FileExistsError as error:
+        return web.json_response({"error": str(error)}, status=409)
     except Exception as e:
         log.exception("Error creating binder %s: %s", binder_id, e)
         return web.json_response({"error": str(e)}, status=500)
@@ -443,6 +446,36 @@ async def handle_binder_resume(request: web.Request) -> web.Response:
         return web.json_response({"error": str(e)}, status=500)
 
 
+def _check_binder_intake(binder_id: str) -> list[dict[str, Any]]:
+    from app.services.markdown_import_pipeline import check_intake_markdown
+
+    docs = binder_engine.get_binder_documents_dir(binder_id)
+    results = []
+    for path in sorted(docs.glob("*.md")):
+        if path.is_symlink() or not path.is_file():
+            continue
+        try:
+            status, issues = check_intake_markdown(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError):
+            status, issues = "invalid", ["Could not read this document as UTF-8."]
+        results.append({"filename": path.name, "status": status, "issues": issues})
+    return results
+
+
+async def handle_binder_intake_check(request: web.Request) -> web.Response:
+    from app.api.connections_api import profile
+
+    profile(request)
+    binder_id = request.match_info["binder_id"]
+    try:
+        documents = await asyncio.to_thread(_check_binder_intake, binder_id)
+    except FileNotFoundError:
+        return web.json_response({"error": "Binder not found"}, status=404)
+    except ValueError:
+        return web.json_response({"error": "Invalid Binder location or metadata"}, status=400)
+    return web.json_response({"binder": binder_id, "documents": documents})
+
+
 async def handle_binder_audit(request: web.Request) -> web.Response:
     """GET /api/binder/{binder_id}/audit — run deterministic anti-drift audit."""
     binder_id = request.match_info.get("binder_id", "").strip()
@@ -585,3 +618,18 @@ async def handle_binder_rename(request: web.Request) -> web.Response:
         return web.json_response({"error": "Binder not found"}, status=404)
     except (ValueError, TypeError):
         return web.json_response({"error": "Binder name must contain 1–200 characters"}, status=400)
+
+
+async def handle_binder_delete(request: web.Request) -> web.Response:
+    try:
+        binder_engine.trash_binder(request.match_info["binder_id"])
+    except FileNotFoundError:
+        return web.json_response({"error": "Binder not found"}, status=404)
+    except FileExistsError as error:
+        return web.json_response({"error": str(error)}, status=409)
+    except ValueError:
+        return web.json_response({"error": "Invalid Binder location"}, status=400)
+    except OSError:
+        log.exception("Could not move Binder to Trash")
+        return web.json_response({"error": "Could not move Binder to Trash"}, status=500)
+    return web.json_response({"success": True})

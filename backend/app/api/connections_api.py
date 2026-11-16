@@ -130,6 +130,7 @@ async def setup(request):
             "location_timezone",
             "country_code",
             "email",
+            "publishing_role",
             "default_model",
             "starter_workflow",
         }
@@ -195,7 +196,9 @@ async def setup(request):
     completed = bool(body.get("completed", previous.get("completed", False)))
     save_profile = body.get("save_profile") is True
     if (completed or save_profile) and not name:
-        raise web.HTTPBadRequest(text="A username is required")
+        name = f"user-{owner.rsplit('-', 1)[-1].lower()}"
+    if "publishing_role" in clean and clean["publishing_role"] not in {"knight", "sorcerer", "wizard"}:
+        raise web.HTTPBadRequest(text="Choose a publishing role")
     identity_store = IdentityStoryStore(profile_id=owner)
     story_id = previous.get("story_id")
     if not story_id:
@@ -220,6 +223,7 @@ async def setup(request):
             )
         identity_store.update_variables(
             {
+                "display_name": name,
                 **{k: v for k, v in clean.items() if k not in {"theme_mode", "font_size"}},
                 "timezone_source": "host",
             }

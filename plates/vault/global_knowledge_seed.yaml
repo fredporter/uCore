@@ -38,6 +38,11 @@ plate:
     - path: "learning/"
       description: "Learning resources and education"
 
+    - path: "standards/"
+      description: "Canonical uDOS authoring, display and data standards"
+    - path: "datasets/"
+      description: "Reviewed offline reference data and seed provenance"
+
     # ─── System / Metadata ──────────────────────────────────
     - path: "categories/"
       description: "Category definitions and taxonomies"

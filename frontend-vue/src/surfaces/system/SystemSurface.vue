@@ -19,6 +19,13 @@
           <p class="system-muted-copy">Show engineering, diagnostics, configuration and administration tools.</p>
           <label class="settings-row"><span>Appearance</span><select :value="preferences.themeMode" @change="preferences.setThemeMode(($event.target as HTMLSelectElement).value as 'light' | 'dark' | 'auto')"><option value="dark">Dark</option><option value="light">Light</option><option value="auto">Automatic</option></select></label>
           <label class="settings-row"><span>Reading font</span><select :value="preferences.readingFont" @change="preferences.setReadingFont(($event.target as HTMLSelectElement).value as 'serif' | 'sans')"><option value="serif">Serif</option><option value="sans">Sans</option></select></label>
+          <label class="settings-row">
+            <span>Terminology pack</span>
+            <select v-model="preferences.terminologyPack">
+              <option value="standard">Standard</option>
+              <option value="storytelling">Storytelling</option>
+            </select>
+          </label>
           <label class="settings-row"><span>Text size</span><input type="number" min="12" max="24" :value="preferences.fontSize" @change="preferences.setFontSize(Number(($event.target as HTMLInputElement).value))" /></label>
         </div>
         <p v-if="preferences.syncError" role="status">{{ preferences.syncError }} · Settings are kept on this device.</p>
@@ -69,7 +76,13 @@
               class="system-readiness-item"
             >
               <span class="system-readiness-cap">{{ cap.capability }}</span>
-              <span class="system-readiness-action">
+              <form v-if="cap.capability === 'llm.openrouter'" class="readiness-repair" @submit.prevent="saveOpenRouterModel">
+                <label for="openrouter-model">OpenRouter model</label>
+                <input id="openrouter-model" v-model="openRouterModel" placeholder="provider/model" required />
+                <button class="usx-btn" type="submit" :disabled="repairingOpenRouter">Save and re-check</button>
+                <p v-if="openRouterRepairError" role="alert">{{ openRouterRepairError }}</p>
+              </form>
+              <span v-else class="system-readiness-action">
                 {{
                   cap.repair?.[0]?.action ||
                   "Complete repair steps and re-check."
@@ -78,7 +91,7 @@
             </li>
           </ul>
 
-          <button class="system-action-btn" @click="fetchReadiness">
+          <button class="usx-btn system-action-btn" @click="fetchReadiness">
             Re-check readiness
           </button>
         </div>
@@ -107,19 +120,19 @@
           </p>
           <div class="system-runtime-actions">
             <button
-              class="system-action-btn"
+              class="usx-btn system-action-btn"
               @click="goTo('/snackbar?tab=dashboard')"
             >
               Open Server Overview
             </button>
             <button
-              class="system-action-btn"
+              class="usx-btn system-action-btn"
               @click="goTo('/snackbar?tab=services')"
             >
               Open Server Services
             </button>
             <button
-              class="system-action-btn"
+              class="usx-btn system-action-btn"
               @click="goTo('/snackbar?tab=automation')"
             >
               Open Server Automation
@@ -128,122 +141,25 @@
         </div>
       </div>
 
-      <!-- Variables -->
-      <div
-        v-else-if="currentTab === 'configuration'"
-        class="system-panel system-tab-shell"
-      >
-        <h3 class="surface__panel-title">Variables</h3>
-        <p class="system-muted-copy">Advanced runtime variables. Manage your identity and preferences in Profiles.</p>
-        <div v-if="loadingVars" class="system-loading">
-          Loading variables...
+      <section v-if="currentTab === 'configuration'" class="system-panel system-tab-shell">
+        <h3 class="surface__panel-title">Device</h3>
+        <div class="system-settings-form">
+          <div v-if="installVariables.hostname" class="settings-row"><span>Hostname</span><output>{{ installVariables.hostname }}</output></div>
+          <div v-if="installVariables.platform" class="settings-row"><span>Platform</span><output>{{ installVariables.platform }}</output></div>
+          <div class="settings-row"><span>Timezone</span><output>{{ deviceTimezone }}</output></div>
+          <div class="settings-row"><span>Appearance</span><output>{{ preferences.themeMode === 'auto' ? 'Automatic' : preferences.themeMode }}</output></div>
+          <div class="settings-row"><span>Text size</span><output>{{ preferences.fontSize }} px</output></div>
         </div>
-        <div v-else>
-          <h4 v-if="Object.keys(advancedUserVariables).length" class="system-section-title">User Variables</h4>
-          <div v-if="Object.keys(advancedUserVariables).length" class="system-table-wrap">
-            <table class="system-table">
-              <thead>
-                <tr>
-                  <th>Key</th>
-                  <th>Value</th>
-                  <th>Scope</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(value, key) in advancedUserVariables" :key="key">
-                  <td>
-                    <code class="system-var-key">{{ key }}</code>
-                  </td>
-                  <td>
-                    <input
-                      v-if="editingVar === key"
-                      v-model="editVarValue"
-                      class="system-var-input"
-                      @keyup.enter="saveVariable(key)"
-                      @keyup.escape="editingVar = null"
-                    />
-                    <span v-else class="system-var-value">{{ value }}</span>
-                  </td>
-                  <td><UBadge type="info" size="sm">user</UBadge></td>
-                  <td>
-                    <button
-                      v-if="editingVar !== key"
-                      class="system-edit-btn"
-                      @click="startEditVar(key, value)"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      v-else
-                      class="system-save-btn"
-                      @click="saveVariable(key)"
-                    >
-                      Save
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <h4 class="system-section-title">Installation Metadata</h4>
-          <div class="system-table-wrap">
-            <table class="system-table">
-              <thead>
-                <tr>
-                  <th>Key</th>
-                  <th>Value</th>
-                  <th>Scope</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(value, key) in installVariables" :key="key">
-                  <td>
-                    <code class="system-var-key">{{ key }}</code>
-                  </td>
-                  <td>
-                    <span class="system-var-value">{{ value }}</span>
-                  </td>
-                  <td><UBadge type="neutral" size="sm">install</UBadge></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <button type="button" class="usx-btn" @click="activeTab = 'identity'"><UIcon name="person" />Profiles</button>
 
-          <h4 class="system-section-title">Models (Config)</h4>
-          <p class="system-muted-copy">
-            Provider / model configuration treated as variables.
-          </p>
-          <div v-if="modelsProviders.length === 0" class="system-muted-copy">
-            No models configured.
-          </div>
-          <div v-else class="system-table-wrap">
-            <table class="system-table">
-              <thead>
-                <tr>
-                  <th>Provider</th>
-                  <th>Name</th>
-                  <th>Models</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="prov in modelsProviders" :key="prov.id">
-                  <td>
-                    <code class="system-var-key">{{ prov.id }}</code>
-                  </td>
-                  <td class="system-var-value">{{ prov.name }}</td>
-                  <td>
-                    <span class="system-var-value">
-                      {{ (prov.models || []).join(", ") }}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-        </div>
-      </div>
+        <h3 class="surface__panel-title">Ollama</h3>
+        <p class="system-muted-copy" role="status">{{ checkingOllama ? 'Checking Ollama…' : ollama?.online ? 'Running locally' : 'Ollama is unavailable' }}</p>
+        <ul v-if="ollama?.models.length">
+          <li v-for="model in ollama.models" :key="model.name">{{ model.name }}</li>
+        </ul>
+        <p v-else-if="ollama?.online" class="system-muted-copy">No local models installed.</p>
+        <button type="button" class="usx-btn" :disabled="checkingOllama" @click="fetchOllamaStatus"><UIcon name="refresh" />Check Ollama</button>
+      </section>
 
       <!-- Secrets -->
       <div
@@ -251,10 +167,13 @@
         class="system-panel system-tab-shell"
       >
         <OAuthSettingsPanel />
-        <h3 class="surface__panel-title">Secrets</h3>
+        <h3 class="surface__panel-title">Secret Store</h3>
         <p class="system-muted-copy">
           Encrypted secret storage. Values are masked by default.
         </p>
+        <h4 class="system-section-title">GitHub publishing</h4>
+        <p class="system-muted-copy">{{ loadingSecrets ? 'Checking credentials…' : secrets.some(secret => secret.key === 'GITHUB_TOKEN') ? 'GitHub token stored' : 'Add a GitHub token for publishing.' }}</p>
+        <button type="button" class="usx-btn" @click="newSecretKey = 'GITHUB_TOKEN'; newSecretValue = ''; showAddSecret = true"><UIcon name="key" />Set GitHub token</button>
         <div class="system-secrets-actions">
           <button class="system-action-btn" @click="showAddSecret = true">
             + Add Secret
@@ -326,53 +245,6 @@
         </div>
       </div>
 
-      <!-- Global Settings -->
-      <div
-        v-if="currentTab === 'configuration'"
-        class="system-panel system-tab-shell"
-      >
-        <h3 class="surface__panel-title">Global Settings</h3>
-        <p class="system-muted-copy">
-          Theme, palette, and typography controls. Saved server-side.
-        </p>
-        <div class="system-settings-form">
-          <div class="settings-row">
-            <label>Theme</label
-            ><select v-model="themeSettings.theme">
-              <option>dark</option>
-              <option>light</option>
-              <option>auto</option>
-            </select>
-          </div>
-          <div class="settings-row">
-            <label>Font Size</label
-            ><input
-              type="range"
-              min="12"
-              max="24"
-              v-model.number="themeSettings.fontSize"
-            /><span>{{ themeSettings.fontSize }}px</span>
-          </div>
-          <div class="settings-row">
-            <label>Palette</label
-            ><select v-model="themeSettings.palette">
-              <option>default</option>
-              <option>ocean</option>
-              <option>forest</option>
-              <option>sunset</option>
-            </select>
-          </div>
-        <p v-if="profileMessage" role="status">{{ profileMessage }}</p>
-        <button
-          class="usx-btn system-save-settings-btn"
-          @click="saveGlobalSettings"
-        >
-          Save Global Settings
-        </button>
-      </div>
-
-      </div>
-
       <!-- User Settings & Identity -->
       <div
         v-if="currentTab === 'identity'"
@@ -384,11 +256,18 @@
         </p>
         <div class="system-settings-form">
           <div class="settings-row"><label for="profile-name">Username</label><input id="profile-name" type="text" v-model="userSettings.displayName" /></div>
+          <div class="settings-row">
+            <label for="profile-role">Publishing role preference</label>
+            <select id="profile-role" v-model="userSettings.publishingRole" :disabled="!identityStore.authenticated">
+              <option value="knight">Knight</option>
+              <option value="sorcerer">Sorcerer</option>
+              <option value="wizard">Wizard</option>
+            </select>
+          </div>
           <div class="settings-row"><label>User role</label><output>{{ profileRole }}</output></div>
           <div class="settings-row"><label>Location</label><output>{{ profileLocation || 'Set in Setup Story' }}</output></div>
           <div class="settings-row"><label>Device timezone</label><output>{{ deviceTimezone }}</output></div>
           <div v-if="identityStore.authenticated && identityStore.identity?.user_id" class="settings-row"><label>User ID</label><output class="profile-id">{{ identityStore.identity.user_id }}</output></div>
-          <div v-if="userVariables.cline_provider" class="settings-row"><label>Cline provider</label><output>{{ userVariables.cline_provider }}</output></div>
           <div v-if="identityStore.profiles.length>1" class="settings-row"><label for="profile-switch">Switch profile</label><select id="profile-switch" :value="identityStore.activeProfileId" @change="identityStore.switchProfile(($event.target as HTMLSelectElement).value)"><option v-for="profile in identityStore.profiles" :key="profile.id" :value="profile.id">{{ profile.name }}</option></select></div>
           <div class="settings-row">
             <label>Authentication</label>
@@ -425,10 +304,16 @@
           </div>
         </div>
         <p v-if="profileError" role="alert" class="profile-error">{{ profileError }}</p>
+        <p v-if="profileSaved" role="status">Profile saved.</p>
         <button
           class="usx-btn system-save-settings-btn"
-          :disabled="savingProfile || !identityStore.authenticated || !userSettings.displayName.trim()"
-          @click="saveUserSettings"
+          :disabled="savingProfile || !identityStore.authenticated"
+          @click="saveUserSettings(false)"
+        >{{ savingProfile ? "Saving…" : "Save Profile" }}</button>
+        <button
+          class="usx-btn system-save-settings-btn"
+          :disabled="savingProfile || !identityStore.authenticated"
+          @click="saveUserSettings(true)"
         >
           <UIcon name="arrow_forward" />{{ savingProfile ? "Saving…" : "Save and Open Setup Story" }}
         </button>
@@ -522,37 +407,9 @@ function goTo(path: string) {
 }
 
 // ── Variables ────────────────────────────────────────────────────
-const loadingVars = ref(true);
-const userVariables = ref<Record<string, string>>({});
-const profileVariableKeys = new Set(["username", "role", "location", "timezone", "uid", "email", "cline_provider"]);
-const advancedUserVariables = computed<Record<string, string>>(() => Object.fromEntries(
-  Object.entries(userVariables.value).filter(([key]) => !profileVariableKeys.has(key)),
-));
 const installVariables = ref<Record<string, string>>({});
-const editingVar = ref<string | null>(null);
-const editVarValue = ref("");
-const modelsProviders = ref<
-  Array<{ id: string; name: string; models: string[] }>
->([]);
-
-function startEditVar(key: string, value: string) {
-  editingVar.value = key;
-  editVarValue.value = value;
-}
-
-async function saveVariable(key: string) {
-  try {
-    const res = await fetch(`${API_BASE}/api/variables/user`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [key]: editVarValue.value }),
-    });
-    if (res.ok) {
-      userVariables.value[key] = editVarValue.value;
-    }
-  } catch {}
-  editingVar.value = null;
-}
+const ollama = ref<{ online: boolean; models: { name: string }[] } | null>(null);
+const checkingOllama = ref(false);
 
 // ── Secrets ──────────────────────────────────────────────────────
 interface SecretItem {
@@ -612,32 +469,16 @@ async function importSecretsFromEnv() {
   } catch {}
 }
 
-// ── Global Settings ──────────────────────────────────────────────
-const themeSettings = reactive({
-  theme: "dark",
-  fontSize: 16,
-  palette: "default",
-});
-
-async function saveGlobalSettings() {
-  try {
-    const settingsResponse = await fetch(`${API_BASE}/api/system/settings`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scope: "global", values: { ...themeSettings } }),
-    });
-  } catch {}
-}
-
 // ── User Settings ────────────────────────────────────────────────
-const profileMessage = ref("");
 const userSettings = reactive({
   displayName: "",
   email: "",
+  publishingRole: "knight",
 });
 
 const savingProfile = ref(false);
 const profileError = ref("");
+const profileSaved = ref(false);
 const profileLocation = ref("");
 const deviceTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const profileRole = computed(() => {
@@ -651,10 +492,12 @@ const profileRole = computed(() => {
 
 watch([currentTab, () => identityStore.activeProfileId], async ([tab, profile], _old, onCleanup) => {
   profileLocation.value = "";
+  userSettings.displayName = "";
+  userSettings.email = "";
+  userSettings.publishingRole = profileRole.value.toLowerCase();
   if (tab !== "identity" || !profile) return;
   const request = new AbortController();
   onCleanup(() => request.abort());
-  void fetchVariables();
   try {
     const response = await fetch(`${UCORE_BASE}/api/connections`, { signal: request.signal });
     if (!response.ok || request.signal.aborted) return;
@@ -662,15 +505,22 @@ watch([currentTab, () => identityStore.activeProfileId], async ([tab, profile], 
     if (request.signal.aborted) return;
     const story = state.setup_story?.responses || {};
     const variables = state.user_profile || {};
+    if (!userSettings.displayName) {
+      userSettings.displayName = String(state.setup?.display_name || variables.display_name || identityStore.activeProfile?.name || "").trim()
+        || `user-${profile.split("-").at(-1)?.toLowerCase()}`;
+    }
+    if (!userSettings.email) userSettings.email = String(variables.email ?? story.email ?? state.setup?.answers?.email ?? "");
+    if (["knight", "sorcerer", "wizard"].includes(variables.publishing_role)) userSettings.publishingRole = variables.publishing_role;
     profileLocation.value = [story.city ?? variables.city, story.country ?? variables.country].filter(Boolean).join(", ");
   } catch {}
 }, { immediate: true });
 
-async function saveUserSettings() {
-  if (savingProfile.value || !identityStore.authenticated || !userSettings.displayName.trim()) return;
+async function saveUserSettings(openSetup: boolean) {
+  if (savingProfile.value || !identityStore.authenticated) return;
   const profile = identityStore.activeProfileId;
   savingProfile.value = true;
   profileError.value = "";
+  profileSaved.value = false;
   try {
     const response = await fetch(`${UCORE_BASE}/api/connections/setup`, {
       method: "POST",
@@ -678,13 +528,17 @@ async function saveUserSettings() {
       body: JSON.stringify({
         save_profile: true,
         display_name: userSettings.displayName,
-        answers: { email: userSettings.email },
+        answers: { email: userSettings.email, publishing_role: userSettings.publishingRole },
       }),
     });
     if (!response.ok) throw Error(await response.text() || "Profile could not be saved");
     if (identityStore.activeProfileId !== profile) return;
+    const saved = await response.json();
+    userSettings.displayName = saved.display_name || userSettings.displayName;
     await identityStore.load();
-    if (identityStore.activeProfileId === profile) await router.push("/setup");
+    if (identityStore.activeProfileId !== profile) return;
+    profileSaved.value = true;
+    if (openSetup) await router.push("/setup");
   } catch (error) {
     profileError.value = error instanceof Error ? error.message : "Profile could not be saved";
   } finally {
@@ -712,6 +566,32 @@ async function fetchPages() {
   allPages.value = LOCAL_FALLBACK_PAGES;
 }
 
+const openRouterModel = ref("");
+const repairingOpenRouter = ref(false);
+const openRouterRepairError = ref("");
+
+async function saveOpenRouterModel() {
+  const model = openRouterModel.value.trim();
+  if (!model || repairingOpenRouter.value) return;
+  repairingOpenRouter.value = true;
+  openRouterRepairError.value = "";
+  try {
+    const response = await fetch(`${UCORE_BASE}/api/variables/user`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ openrouter_model: model }),
+    });
+    if (!response.ok || (await response.json()).variables?.openrouter_model !== model) {
+      throw new Error("Could not save the OpenRouter model.");
+    }
+    await fetchReadiness();
+  } catch (error) {
+    openRouterRepairError.value = error instanceof Error ? error.message : "Could not save the OpenRouter model.";
+  } finally {
+    repairingOpenRouter.value = false;
+  }
+}
+
 async function fetchReadiness() {
   readinessLoading.value = true;
   readinessError.value = "";
@@ -737,34 +617,29 @@ async function fetchReadiness() {
 }
 
 async function fetchVariables() {
-  loadingVars.value = true;
   try {
     const res = await fetch(`${API_BASE}/api/variables`, {
       signal: AbortSignal.timeout(3000),
     });
     if (res.ok) {
       const data = await res.json();
-      userVariables.value = data.user || {};
       installVariables.value = data.installation || {};
     }
   } catch {}
-  loadingVars.value = false;
 }
 
-async function fetchModelsConfig() {
+async function fetchOllamaStatus() {
+  checkingOllama.value = true;
   try {
-    const res = await fetch(`${API_BASE}/api/models`, {
-      signal: AbortSignal.timeout(3000),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      modelsProviders.value = (data.providers || []).map((p: any) => ({
-        id: p.id || "",
-        name: p.name || p.id || "",
-        models: Array.isArray(p.models) ? p.models : [],
-      }));
-    }
-  } catch {}
+    const response = await fetch(`${UCORE_BASE}/api/ollama/status`, { signal: AbortSignal.timeout(6000) });
+    if (!response.ok) throw new Error("Could not check Ollama");
+    const status = await response.json();
+    ollama.value = { online: !!status.online, models: Array.isArray(status.models) ? status.models : [] };
+  } catch {
+    ollama.value = null;
+  } finally {
+    checkingOllama.value = false;
+  }
 }
 
 async function fetchSecrets() {
@@ -798,11 +673,6 @@ async function loadSettings() {
     if (res.ok) {
       const data = await res.json();
       const settings = data.settings || {};
-      if (settings.global) {
-        themeSettings.theme = settings.global.theme || "dark";
-        themeSettings.fontSize = settings.global.fontSize || 16;
-        themeSettings.palette = settings.global.palette || "default";
-      }
       if (settings.user) {
         userSettings.displayName =
           identityStore.displayName || settings.user.displayName || "Local user";
@@ -813,8 +683,15 @@ async function loadSettings() {
 }
 
 function loadAdvancedSettings() {
-  void fetchPages(); void fetchReadiness(); void fetchVariables(); void fetchModelsConfig(); void fetchSecrets();
+  void fetchPages(); void fetchReadiness();
 }
+watch(currentTab, tab => {
+  if (tab !== "configuration") return;
+  void fetchVariables();
+  void fetchOllamaStatus();
+  void fetchSecrets();
+}, { immediate: true });
+
 watch(() => preferences.advancedView, enabled => {
   if (enabled) loadAdvancedSettings();
   if (!visibleSystemTabs.value.some(tab => tab.id === activeTab.value)) activeTab.value = "preferences";
@@ -838,15 +715,6 @@ watch(activeTab, (tab) => {
 });
 
 // Persist to localStorage as cache
-watch(
-  themeSettings,
-  (v) => {
-    try {
-      localStorage.setItem("ucore-theme-settings", JSON.stringify(v));
-    } catch {}
-  },
-  { deep: true },
-);
 watch(
   userSettings,
   (v) => {
@@ -1147,4 +1015,7 @@ watch(
 .profile-error{color:var(--usx-color-danger);font-size:var(--usx-font-size-sm);margin:var(--usx-spacing-xs) 0 0;}
 .system-settings-form>.settings-row>label{margin:0;min-width:0;}
 .system-settings-form>.settings-row>output{font-size:var(--usx-font-size-sm);color:var(--usx-color-on-surface);line-height:1.4;}
+.system-settings-form > .settings-row > label { align-self: center; line-height: 1.25; padding: 0; }
+.readiness-repair { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.readiness-repair input { flex: 1 1 12rem; min-width: 0; }
 </style>

@@ -104,3 +104,62 @@ async def test_vault_sync_dry_run_reports_vault_roots():
     assert result["success"] is True
     assert result["status"] == "dry-run"
     assert result["sources"]
+
+
+@pytest.mark.asyncio
+async def test_manual_run_uses_configured_arguments_and_records_outcome(tmp_path, monkeypatch):
+    from app.services import maintenance_scheduler as mod
+
+    calls = []
+
+    async def run(skill_id, **params):
+        calls.append((skill_id, params))
+        return {"success": bool(params.get("execution_authorized")), "requires_confirmation": not params.get("execution_authorized")}
+
+    monkeypatch.setattr(mod, "run_skill_by_id", run)
+    now = datetime.now()
+    scheduler = mod.MaintenanceScheduler(
+        state_path=tmp_path / "state.json",
+        jobs=(mod.MaintenanceJob("backup", "00:00", {"type": "full"}),),
+    )
+    await scheduler.run_due(now)
+    assert scheduler.status()["jobs"][0]["last_result"]["state"] == "needs_approval"
+    await scheduler.run_once("backup")
+    assert scheduler.status()["jobs"][0]["last_result"]["state"] == "completed"
+    assert await scheduler.run_due(now) == []
+    assert calls == [
+        ("backup", {"type": "full"}),
+        ("backup", {"type": "full", "execution_authorized": True}),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_routine_route_requires_admin_and_confirmation(monkeypatch):
+    from unittest.mock import AsyncMock
+
+    from aiohttp import web
+    from aiohttp.test_utils import make_mocked_request
+
+    from app.api import connections_api, metadata
+    from app.services import identity, maintenance_scheduler
+
+    monkeypatch.setattr(connections_api, "profile", lambda request: "local")
+    current = {"active_profile_id": "local", "active_profile": {"role": "knight"}}
+    monkeypatch.setattr(identity, "get_full_identity", lambda: current)
+    scheduler = AsyncMock()
+    scheduler.run_once.return_value = {"result": {"success": True}}
+    monkeypatch.setattr(maintenance_scheduler, "get_maintenance_scheduler", lambda: scheduler)
+
+    def request(headers=None):
+        return make_mocked_request(
+            "POST", "/api/system/maintenance/backup/run",
+            match_info={"skill_id": "backup"}, headers=headers,
+        )
+
+    with pytest.raises(web.HTTPForbidden):
+        await metadata.maintenance_run_handler(request({"x-ucore-confirm": "true"}))
+    current["active_profile"]["role"] = "wizard"
+    assert (await metadata.maintenance_run_handler(request())).status == 409
+    scheduler.run_once.assert_not_awaited()
+    assert (await metadata.maintenance_run_handler(request({"x-ucore-confirm": "true"}))).status == 200
+    scheduler.run_once.assert_awaited_once_with("backup")

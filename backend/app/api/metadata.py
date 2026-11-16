@@ -265,6 +265,35 @@ async def maintenance_status_handler(request: web.Request) -> web.Response:
     )
 
 
+async def maintenance_run_handler(request: web.Request) -> web.Response:
+    """Run one configured maintenance job with explicit local administrator approval."""
+    from app.api.connections_api import profile
+    from app.services.identity import get_full_identity
+    from app.services.maintenance_scheduler import get_maintenance_scheduler
+
+    owner = profile(request)
+    identity = get_full_identity()
+    role = str((identity.get("active_profile") or {}).get("role", "")).casefold()
+    if identity.get("active_profile_id") != owner or role not in {"owner", "wizard"}:
+        raise web.HTTPForbidden(text="Only a local administrator can run maintenance routines.")
+    if request.headers.get("x-ucore-confirm") != "true":
+        return web.json_response({"error": "Confirm this one-time run first."}, status=409)
+    scheduler = get_maintenance_scheduler()
+    if scheduler is None:
+        return web.json_response({"error": "Maintenance scheduler unavailable."}, status=503)
+    try:
+        outcome = await scheduler.run_once(request.match_info["skill_id"])
+    except KeyError:
+        return web.json_response({"error": "Routine not found."}, status=404)
+    except RuntimeError as exc:
+        return web.json_response({"error": str(exc)}, status=409)
+    result = outcome["result"]
+    return web.json_response(
+        {"success": bool(result.get("success")), "error": result.get("error")},
+        status=200 if result.get("success") else 422,
+    )
+
+
 async def workflow_status_handler(request: web.Request) -> web.Response:
     """Return workflow surface status for Developer/System UI wiring."""
     from app.services.maintenance_scheduler import get_maintenance_scheduler

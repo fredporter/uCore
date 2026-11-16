@@ -11,9 +11,15 @@ export type FontStyle = 'inter' | 'system' | 'mono'
 export type Palette = 'default' | 'ocean' | 'forest' | 'sunset'
 export type ThemeMode = 'light' | 'dark' | 'auto'
 
+export type TerminologyPack = 'standard' | 'storytelling'
+const legacyTerminologyKey = 'ucore.document.terminology'
+
 export const useSettingsStore = defineStore('settings', () => {
   const fontStyle = ref<FontStyle>('inter')
   const fontSize = ref<number>(16)
+  const terminologyPack = ref<TerminologyPack>(
+    localStorage.getItem(legacyTerminologyKey) === 'storytelling' ? 'storytelling' : 'standard',
+  )
   const readingFont = ref<'serif' | 'sans'>('serif')
   function setReadingFont(value: 'serif' | 'sans') { readingFont.value = value }
   const palette = ref<Palette>('default')
@@ -47,6 +53,7 @@ export const useSettingsStore = defineStore('settings', () => {
   function setAdvancedView(enabled: boolean) { advancedView.value = enabled }
 
   function applyPreferences(value: Record<string, unknown>) {
+    if (value.terminologyPack === 'standard' || value.terminologyPack === 'storytelling') terminologyPack.value = value.terminologyPack
     if (value.readingFont === 'serif' || value.readingFont === 'sans') readingFont.value = value.readingFont
     if (typeof value.advancedView === 'boolean') advancedView.value = value.advancedView
     if (value.fontStyle === 'inter' || value.fontStyle === 'system' || value.fontStyle === 'mono') fontStyle.value = value.fontStyle
@@ -57,7 +64,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   function snapshot() {
-    return { readingFont: readingFont.value, fontStyle: fontStyle.value, fontSize: fontSize.value, palette: palette.value, themeMode: themeMode.value, defaultModel: defaultModel.value, advancedView: advancedView.value }
+    return { terminologyPack: terminologyPack.value, readingFont: readingFont.value, fontStyle: fontStyle.value, fontSize: fontSize.value, palette: palette.value, themeMode: themeMode.value, defaultModel: defaultModel.value, advancedView: advancedView.value }
   }
 
   async function save() {
@@ -67,6 +74,7 @@ export const useSettingsStore = defineStore('settings', () => {
         body: JSON.stringify({ preferences: snapshot() }), signal: AbortSignal.timeout(3000),
       })
       if (!response.ok) throw new Error(`Preferences returned ${response.status}`)
+      localStorage.removeItem(legacyTerminologyKey)
       syncError.value = ''
     } catch (exc) {
       syncError.value = exc instanceof Error ? exc.message : 'Preference sync unavailable'
@@ -78,8 +86,17 @@ export const useSettingsStore = defineStore('settings', () => {
       const response = await fetch(`${UCORE_BASE}/api/user/preferences`, { signal: AbortSignal.timeout(3000) })
       if (!response.ok) throw new Error(`Preferences returned ${response.status}`)
       const data = await response.json()
-      if (data.preferences && Object.keys(data.preferences).length) applyPreferences(data.preferences)
-      else await save() // migrate the already-hydrated Pinia/localStorage state
+      const saved = data.preferences
+      if (saved && Object.keys(saved).length) {
+        applyPreferences(saved)
+        if (saved.terminologyPack === undefined && localStorage.getItem(legacyTerminologyKey) !== null) {
+          await save()
+          return
+        }
+      } else {
+        await save() // migrate the already-hydrated Pinia/localStorage state
+        return
+      }
       syncError.value = ''
     } catch (exc) {
       syncError.value = exc instanceof Error ? exc.message : 'Using local preferences'
@@ -98,13 +115,14 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   watch([fontStyle, fontSize, palette, themeMode, readingFont], applyTheme, { immediate: true })
-  watch([fontStyle, fontSize, palette, themeMode, defaultModel, advancedView, readingFont], () => {
+  watch([fontStyle, fontSize, palette, themeMode, defaultModel, advancedView, readingFont, terminologyPack], () => {
     if (!initialized.value) return
     clearTimeout(syncTimer)
     syncTimer = setTimeout(() => void save(), 250)
   })
 
   return {
+    terminologyPack,
     readingFont,
     setReadingFont,
     fontStyle,

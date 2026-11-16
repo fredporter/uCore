@@ -12,11 +12,16 @@ plate:
     - path: "@groovebox/"
       description: "Creative workspace (music, production, groovebox)"
 
+    - path: "Originals/"
+      description: "Original files retained by intake with source provenance"
+    - path: "Documents/"
+      description: "Markdown produced by general vault intake"
+
     # ─── Core Knowledge ─────────────────────────────────────
     - path: "knowledge/"
       description: "Personal knowledge base (concepts/insights/research)"
-    - path: "binders/"
-      description: "Binder collections (active/completed/on-hold/templates)"
+    - path: "Binders/"
+      description: "Workflow Binder records and working documents"
     - path: "missions/"
       description: "Mission tracking (active/completed/templates)"
     - path: "tasks/"
@@ -51,16 +56,12 @@ plate:
       content: "# @inbox\n\nQuick capture inbox. Drop notes, ideas, and captures here.\n\n- pending/ — Unprocessed items\n- processed/ — Completed items\n- failed/ — Items that failed processing"
     - path: "knowledge/readme.md"
       content: "# Knowledge\n\nPersonal knowledge base.\n\n- concepts/ — Core concepts\n- insights/ — Key insights\n- research/ — Research notes"
-    - path: "binders/readme.md"
-      content: "# Binders\n\nBinder collections for organizing work.\n\n- active/ — Current binders\n- completed/ — Finished binders\n- on-hold/ — Paused binders\n- templates/ — Binder templates"
-    - path: "binders/active/Sandbox/_binder.yaml"
-      content: "id: sandbox\nname: Sandbox\nstatus: active\ndescription: Default user binder for new files and starter docs."
-    - path: "binders/active/Sandbox/README.md"
-      content: "---\ntitle: Sandbox\nbinder: Sandbox\nmission: Getting Started\ntags: [seed, sandbox, binder]\n---\n\n# Sandbox\n\nSandbox is your default user binder. New user files connect here when no binder is specified."
-    - path: "binders/active/Sandbox/docs/welcome-to-ucode.md"
-      content: "---\ntitle: Welcome to uCode\nbinder: Sandbox\nmission: Getting Started\ntags: [seed, ucode, welcome]\n---\n\n# Welcome to uCode\n\nThis starter document confirms your User Vault is connected to the Workflow editor through the Sandbox binder."
-    - path: "binders/active/Sandbox/docs/my-first-binder.md"
-      content: "---\ntitle: My First Binder\nbinder: Sandbox\nmission: Getting Started\ntags: [seed, binder]\n---\n\n# My First Binder\n\nA binder groups notes, tasks, references, and publishable work. Sandbox is always available as the default binder."
+    - path: "Binders/README.md"
+      content: |
+        # Binders
+
+        Run Workflow seed to create the Sandbox Binder and its starter documents.
+        Select a Workflow Binder to review imported files and web captures.
     - path: "missions/readme.md"
       content: "# Missions\n\nMission tracking.\n\n- active/ — Current missions\n- completed/ — Finished missions\n- templates/ — Mission templates"
     - path: "people/readme.md"
@@ -79,7 +80,7 @@ plate:
     - "User vault should be backed up before any destructive operation"
     - "Vault structure mirrors real on-disk layout at ~/Vault/"
     - "@-prefixed dirs are operational/system folders (inbox, groovebox)"
-    - "binders/ and missions/ are critical for Filepicker and workflow integration"
+    - "Binders/ and missions/ are critical for Filepicker and workflow integration"
     - "Seed files provide orientation for new users"
   destroy:
     salvage_keys:

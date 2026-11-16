@@ -6,15 +6,17 @@
         <h2>Feeds</h2>
         <p>Review useful signals, then turn only what matters into work.</p>
       </div>
-      <button class="usx-btn wf-standard-header__action" type="button" :disabled="loading" @click="load"><UIcon name="refresh" /> Refresh</button>
-      <UButton
-        size="sm"
-        variant="secondary"
-        :disabled="applyingRules || ruleProposalCount === 0"
-        @click="applyRules"
-      >
-        {{ applyingRules ? 'Applying…' : `Apply ${ruleProposalCount} rule ${ruleProposalCount === 1 ? 'proposal' : 'proposals'}` }}
-      </UButton>
+      <div class="wf-feeds__actions">
+        <button class="usx-btn wf-standard-header__action" type="button" :disabled="loading" @click="load"><UIcon name="refresh" /> Refresh</button>
+        <UButton
+          size="sm"
+          variant="secondary"
+          :disabled="applyingRules || ruleProposalCount === 0"
+          @click="applyRules"
+        >
+          {{ applyingRules ? 'Applying…' : `Apply ${ruleProposalCount} rule ${ruleProposalCount === 1 ? 'proposal' : 'proposals'}` }}
+        </UButton>
+      </div>
     </header>
 
     <section class="feed-monitor"><header><h3>Monitored connections</h3><button class="usx-btn" @click="router.push('/system?tab=connections')">Manage connections</button></header><p v-if="!connections.length">Choose source lists or groups in Connections. Flags and stars can then select items or trigger rules.</p><article v-for="connection in connections" :key="connection.id"><span>{{ connection.health.account || connection.provider }} · {{ connection.health.state }}</span><small v-for="(scope,kind) in connection.config.collections" :key="kind">{{ kind }}: {{ scope.lists.length }} lists · {{ scope.direction === 'both' ? 'in + out' : 'in' }} · {{ connection.config.enabled ? 'monitored' : 'paused' }}</small><button class="usx-btn" :disabled="syncing || !connection.config.enabled" @click="syncConnection(connection)">Sync</button></article></section>
@@ -40,7 +42,38 @@
       {{ syncing ? 'Syncing…' : `Sync ${selectedSource.label}` }}
     </UButton>
 
-    <p v-if="error" class="wf-feeds__notice">{{ error }}</p>
+    <p v-if="error" class="wf-feeds__notice" role="alert">{{ error }}</p>
+    <p v-if="route.query.binder">
+      Adding tasks to {{ wf.binders.find(binder => binder.id === route.query.binder)?.title || route.query.binder }}.
+      <RouterLink v-if="route.query.mission" :to="{ path: '/workflow', query: { tab: 'queue', binder: route.query.binder, mission: route.query.mission } }">Open mission queue</RouterLink>
+    </p>
+    <p v-if="promotedTask" role="status">
+      Task ready in {{ promotedTask.binder }}.
+      <RouterLink :to="{ path: '/workflow', query: { tab: 'editor', task: promotedTask.id, binder: promotedTask.binder, mission: promotedTask.mission } }">Open task</RouterLink>
+    </p>
+    <div v-if="selectedActivity" class="feed-binder-intake">
+      <strong>{{ selectedActivity.title || selectedActivity.type }}</strong>
+      <label>
+        Destination Binder
+        <select v-model="destinationBinder" :disabled="sending">
+          <option value="" disabled>Choose a Binder</option>
+          <option v-for="binder in wf.binders" :key="binder.id" :value="binder.id">
+            {{ binder.title || binder.id }}
+          </option>
+        </select>
+      </label>
+      <div class="feed-binder-intake__actions">
+        <button type="button" class="usx-btn" :disabled="sending || !destinationBinder" @click="sendToBinder">
+          <UIcon name="note_add" aria-hidden="true" /> Save Markdown
+        </button>
+        <button type="button" class="usx-btn" :disabled="sending" @click="selectedActivity = null">Cancel</button>
+      </div>
+      <p v-if="!wf.binders.length"><RouterLink to="/workflow?tab=binder">Open Binders</RouterLink> to create a destination.</p>
+    </div>
+    <p v-if="binderNotice" role="status">
+      {{ binderNotice }}
+      <RouterLink :to="{ path: '/workflow', query: { tab: 'binder', binder: savedBinder } }">Open Binder</RouterLink>
+    </p>
     <div v-if="!loading && activities.length === 0" class="wf-feeds__empty">
       No feed items yet. Sync a source when you are ready.
     </div>
@@ -55,7 +88,12 @@
             <div class="wf-feed-card__meta">{{ item.source }} · {{ formatDate(item.timestamp) }}</div>
           </div>
         </button>
-        <button class="usx-btn wf-canonical-action" type="button" title="Add to tasks" @click="toTask(item)"><UIcon name="add_task" /></button>
+        <div class="feed-row-actions">
+          <button class="usx-btn" type="button" title="Send to Binder" aria-label="Send to Binder"
+            :disabled="sending" @click="chooseBinder(item)"><UIcon name="book" aria-hidden="true" /></button>
+          <button class="usx-btn" type="button" title="Add to tasks" aria-label="Add to tasks"
+            :disabled="promoting" @click="toTask(item)"><UIcon name="add_task" aria-hidden="true" /></button>
+        </div>
       </article>
     </div>
   </section>
@@ -85,6 +123,54 @@ const syncing = ref(false);
 const applyingRules = ref(false);
 const ruleProposalCount = ref(0);
 const error = ref("");
+const selectedActivity = ref<Activity | null>(null);
+const destinationBinder = ref("");
+const savedBinder = ref("");
+const binderNotice = ref("");
+const sending = ref(false);
+const promoting = ref(false);
+const promotedTask = ref<{ id: string; binder: string; mission?: string } | null>(null);
+
+async function chooseBinder(item: Activity) {
+  error.value = "";
+  binderNotice.value = "";
+  selectedActivity.value = item;
+  destinationBinder.value = "";
+  try {
+    await wf.fetchBinders(true);
+    if (selectedActivity.value === item && wf.binders.some(binder => binder.id === wf.activeBinderId)) {
+      destinationBinder.value = wf.activeBinderId;
+    }
+  } catch {
+    error.value = "Could not load Binders.";
+  }
+}
+
+async function sendToBinder() {
+  if (!selectedActivity.value || !destinationBinder.value || sending.value) return;
+  sending.value = true;
+  error.value = "";
+  try {
+    const response = await fetch(`${UCORE_BASE}/api/feed/send-to-binder`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activity_id: selectedActivity.value.id, binder: destinationBinder.value }),
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => null);
+      throw new Error(result?.error || "Could not save to Binder.");
+    }
+    const result = await response.json();
+    savedBinder.value = result.binder;
+    binderNotice.value = result.duplicate ? "This revision is already in the Binder." : "Markdown saved to Binder.";
+    selectedActivity.value = null;
+  } catch (exc) {
+    error.value = exc instanceof Error ? exc.message : "Could not save to Binder.";
+  } finally {
+    sending.value = false;
+  }
+}
+
 const DEFAULT_SOURCES: Source[] = [
   { id: "research", label: "Research", state: "local", available: true },
   { id: "vault", label: "Vault changes", state: "local", available: true },
@@ -160,12 +246,29 @@ async function applyRules() {
 }
 
 async function toTask(item: Activity) {
+  if (promoting.value) return;
+  promoting.value = true;
+  error.value = "";
+  promotedTask.value = null;
+  const binder = String(route.query.binder || "Sandbox");
+  const mission = typeof route.query.mission === "string" ? route.query.mission : undefined;
   try {
-    const response = await fetch(`${UCORE_BASE}/api/feed/promote`, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({activity_id:item.id,priority:"medium",binder:"Sandbox"})});
-    if(!response.ok)throw new Error('Task was not saved. Please retry.');
-    await wf.fetchTasks();
-    activities.value=activities.value.filter(candidate=>candidate.id!==item.id);
-  } catch(exc) { error.value=exc instanceof Error?exc.message:'Task could not be saved'; }
+    const response = await fetch(`${UCORE_BASE}/api/feed/promote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activity_id: item.id, binder, mission }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.task_id) throw new Error(result.error || "Task could not be saved.");
+    activities.value = activities.value.filter(candidate => candidate.id !== item.id);
+    // Workflow is already mounted when promotion happens from Lists.
+    await wf.fetchTasks(true);
+    promotedTask.value = { id: result.task_id, binder: result.binder || binder, mission };
+  } catch (exc) {
+    error.value = exc instanceof Error ? exc.message : "Task could not be saved.";
+  } finally {
+    promoting.value = false;
+  }
 }
 async function syncConnection(connection:any){syncing.value=true;try{const response=await fetch(`${UCORE_BASE}/api/connections/${connection.id}/sync`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});const result=await response.json();if(!response.ok||result.state==='error')throw new Error(result.error||'Connection sync failed');await load();}catch(exc){error.value=exc instanceof Error?exc.message:'Sync unavailable';}finally{syncing.value=false;}}
 
@@ -176,8 +279,77 @@ onMounted(load);
 </script>
 
 <style scoped>
+.feed-row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-xs);
+  min-width: 0;
+}
+.feed-binder-intake {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--usx-spacing-sm);
+}
+.feed-binder-intake > strong,
+.feed-binder-intake > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.feed-binder-intake > label {
+  display: grid;
+  min-width: 0;
+  gap: var(--usx-spacing-xs);
+  margin: 0;
+}
+.feed-binder-intake select,
+.feed-binder-intake__actions .usx-btn {
+  box-sizing: border-box;
+  min-height: max(44px, var(--usx-touch-min));
+  margin: 0;
+}
+.feed-binder-intake select {
+  width: 100%;
+  min-width: 0;
+}
+.feed-binder-intake select:focus {
+  box-shadow: none;
+  border-color: var(--usx-color-border);
+  outline: 2px solid var(--usx-color-primary);
+  outline-offset: 2px;
+}
+.feed-binder-intake__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--usx-spacing-xs);
+}
+@media (max-width: 640px) {
+  .feed-binder-intake {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.feed-row-actions .usx-btn { margin: 0; }
+
 .wf-feeds { max-width: var(--usx-prose-width); margin: 0 auto; padding: clamp(var(--usx-spacing-md), 4vw, var(--usx-spacing-2xl)); }
-.wf-feeds__header { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--usx-spacing-sm); align-items: start; }
+.wf-feeds__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--usx-spacing-sm);
+}
+.wf-feeds__header > :first-child { flex: 1 1 17rem; min-width: 0; }
+.wf-feeds__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  max-width: 100%;
+}
+.wf-feeds__actions > .usx-btn { max-width: 100%; margin: 0; white-space: normal; }
 .wf-feeds__header h2, .wf-feed-card h3 { margin: 0; }
 .wf-feeds__header p { margin: var(--usx-spacing-xs) 0 0; color: var(--usx-color-on-surface-muted); }
 .wf-feeds__sources { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); gap: var(--usx-spacing-xs); margin: var(--usx-spacing-sm) 0; padding-block: var(--usx-spacing-sm); border-block: var(--usx-border-width) solid var(--usx-color-border); }
@@ -185,19 +357,52 @@ onMounted(load);
 .wf-feeds__source span { margin-left: var(--usx-spacing-xs); color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); }
 .wf-feeds__source--active { background: var(--usx-color-primary); color: var(--usx-color-on-primary); }
 .wf-feed-list { border-top: var(--usx-border-width) solid var(--usx-color-border); }
-.wf-feed-row { display: flex; align-items: center; box-sizing: border-box; width: 100%; height: var(--wf-zen-row); min-height: var(--wf-zen-row); gap: var(--usx-spacing-sm); margin: 0; padding: var(--usx-spacing-xs) var(--usx-spacing-sm); border: 0; border-bottom: var(--usx-border-width) solid var(--usx-color-border); }
-.wf-feed-row__main { display: flex; align-items: center; flex: 1; min-width: 0; gap: var(--usx-spacing-sm); }
+.wf-feed-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: var(--wf-zen-row);
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+}
+.wf-feed-row__main.usx-btn {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  min-width: 0;
+  height: auto;
+  gap: var(--usx-spacing-sm);
+  margin: 0;
+  padding: var(--usx-spacing-xs) 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  white-space: normal;
+  box-shadow: none;
+}
 .wf-feed-row__state { width: .7rem; height: .7rem; flex: 0 0 auto; border: 2px solid var(--usx-color-primary); border-radius: 50%; }
-.wf-feed-row__copy { text-align:left;justify-items:start;flex:1;display: grid; min-width: 0; gap: 2px; }
-.wf-feed-row__copy h3, .wf-feed-card__meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-feed-row__copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+.wf-feed-row__copy h3 {
+  margin: 0;
+  font-size: var(--usx-font-size-sm);
+  line-height: var(--usx-line-height-tight);
+  overflow-wrap: anywhere;
+}
+.wf-feed-card__meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wf-feed-card { display: flex; align-items: center; gap: var(--usx-spacing-md); min-height: 4rem; padding: var(--usx-spacing-md) 0; border-bottom: var(--usx-border-width) solid var(--usx-color-border); }
 .wf-feed-card__body { min-width: 0; flex: 1; }
 .wf-feed-card__meta { color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-xs); text-transform: capitalize; }
 .wf-feed-card p { margin: var(--usx-spacing-xs) 0 0; color: var(--usx-color-on-surface-muted); }
 .wf-feeds__notice, .wf-feeds__empty { padding: var(--usx-spacing-sm) 0; color: var(--usx-color-on-surface-muted); font-size: var(--usx-font-size-sm); }
-@media (max-width: 640px) { .wf-feeds__header { grid-template-columns: 1fr auto; } .wf-feeds__header > :last-child { grid-column: 1 / -1; } }
 
 .feed-monitor { display:grid; gap:8px; padding:12px 0; font-size:var(--usx-font-size-sm); }.feed-monitor header,.feed-monitor article{display:flex;align-items:center;flex-wrap:wrap;gap:8px;}.feed-monitor small{color:var(--usx-color-on-surface-muted);}.feed-monitor .usx-btn{min-height:32px;margin:0;padding:4px 8px;font-size:inherit;}
 
-.feed-detail { display:grid;gap:8px;padding:12px;border:1px solid var(--usx-color-border); }.feed-detail header {display:flex;align-items:center;justify-content:space-between;gap:8px;}.feed-detail p{white-space:pre-wrap;overflow-wrap:anywhere;}.wf-feed-row__main.usx-btn{justify-content:flex-start;align-items:center;flex:1;min-width:0;margin:0;padding:6px 0;border:0;background:transparent;text-align:left;box-shadow:none;}
+.feed-detail { display:grid;gap:8px;padding:12px;border:1px solid var(--usx-color-border); }.feed-detail header {display:flex;align-items:center;justify-content:space-between;gap:8px;}.feed-detail p{white-space:pre-wrap;overflow-wrap:anywhere;}
 </style>

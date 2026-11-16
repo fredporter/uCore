@@ -61,7 +61,7 @@
         <div class="bitchat-section bitchat-section--peers">
           <div class="bitchat-section__header">
             <span class="bitchat-section__title">LAN MESH PEERS ({{ peers.length }})</span>
-            <button class="bitchat-btn-mini font-mono" @click="loadPeers" title="Scan LAN Subnet">Scan</button>
+            <button class="usx-btn usx-btn--sm bitchat-btn-mini font-mono" @click="loadPeers" title="Scan LAN Subnet">Scan</button>
           </div>
 
           <div class="bitchat-peer-list">
@@ -233,7 +233,7 @@
       <div class="bitchat-modal">
         <div class="bitchat-modal-header">
           <h3>Save Discussion Evidence to Binder</h3>
-          <button class="bitchat-modal-close" @click="showSaveBinderModal = false">
+          <button class="usx-btn usx-btn--ghost bitchat-modal-close" aria-label="Close" @click="showSaveBinderModal = false">
             <UIcon name="close" />
           </button>
         </div>
@@ -260,8 +260,8 @@
           />
         </div>
         <div class="bitchat-modal-footer">
-          <button class="bitchat-btn bitchat-btn--ghost" @click="showSaveBinderModal = false">Cancel</button>
-          <button class="bitchat-btn bitchat-btn--primary" :disabled="!binderName.trim()" @click="executeSaveToBinder">
+          <button class="usx-btn bitchat-btn bitchat-btn--ghost" @click="showSaveBinderModal = false">Cancel</button>
+          <button class="usx-btn usx-btn--primary bitchat-btn bitchat-btn--primary" :disabled="!binderName.trim()" @click="executeSaveToBinder">
             Save Evidence
           </button>
         </div>
@@ -273,7 +273,7 @@
       <div class="bitchat-modal">
         <div class="bitchat-modal-header">
           <h3>Convert Action Item to Task</h3>
-          <button class="bitchat-modal-close" @click="showConvertTaskModal = false">
+          <button class="usx-btn usx-btn--ghost bitchat-modal-close" aria-label="Close" @click="showConvertTaskModal = false">
             <UIcon name="close" />
           </button>
         </div>
@@ -312,8 +312,8 @@
           </label>
         </div>
         <div class="bitchat-modal-footer">
-          <button class="bitchat-btn bitchat-btn--ghost" @click="showConvertTaskModal = false">Cancel</button>
-          <button class="bitchat-btn bitchat-btn--primary" @click="executeConvertToTask">
+          <button class="usx-btn bitchat-btn bitchat-btn--ghost" @click="showConvertTaskModal = false">Cancel</button>
+          <button class="usx-btn usx-btn--primary bitchat-btn bitchat-btn--primary" @click="executeConvertToTask">
             Create task
           </button>
         </div>

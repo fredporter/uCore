@@ -57,7 +57,10 @@ async def handle_workspace_file(request: web.Request) -> web.Response:
             if "name" in body:
                 result = rename_entry(source, path, str(body.get("name") or ""))
             elif "parent" in body:
-                result = move_entry(source, path, str(body.get("parent") or ""))
+                result = move_entry(
+                    source, path, str(body.get("parent") or ""),
+                    str(body.get("destination_source") or "") or None,
+                )
             else:
                 result = write_file(
                     source,

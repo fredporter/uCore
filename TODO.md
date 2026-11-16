@@ -6,6 +6,8 @@ uCore is the user application/service host. Development happens in external IDEs
 
 The current assessed cleanup sprint is [Curated applications: alignment and cleanup](docs/plans/CURATED_APPLICATIONS_CLEANUP_SPRINT_2026-11-09.md). It records working features, committed checkpoints, scaffolds, ticket dependencies, release acceptance and deferred work. Start there rather than resuming historical Dev Mode programmes.
 
+The [Global Knowledge and User Vault completion sprint](docs/plans/KNOWLEDGE_COMPLETION_SPRINT.md) tracks the organised Core edition, seed layout, shared intake and release qualification.
+
 Canonical tasks and run state remain owned by uFlow within the existing host contracts. This file is an index, not a competing task database. Sprint preparation does not seed maintainer tasks into personal user lists.
 
 Historical implementation evidence remains available in [the September product refactor plan](docs/UDOS_PRODUCT_REFACTOR_PLAN_2026-09-12.md) and the archived plans it references. Internal IDE, development-agent teams and general repository coding are retired product priorities. Preserve useful runtime capabilities, user data and prior evidence while moving them to their proper owners.

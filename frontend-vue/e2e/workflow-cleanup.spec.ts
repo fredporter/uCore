@@ -111,3 +111,42 @@ for (const [width, theme] of layouts) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
   });
 }
+
+test('a promoted feed opens in Editor and appears in its mission queue', async ({ page }) => {
+  const mission = { id: 'mission-fixture', title: 'Plan a garden', status: 'active', binder: 'garden' };
+  const activity = { id: 42, title: 'Choose seeds', type: 'signal', source: 'fixture', content: 'Compare the seed varieties.', timestamp: '2026-11-15T00:00:00Z' };
+  const task = { ...activity, id: 'feed-42', mission: mission.id, binder: mission.binder, board: 'inbox', description: activity.content, status: 'todo', tags: [] };
+  let promoted = false;
+  await page.route('**/api/**', async route => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (!path.startsWith('/api/')) return route.continue();
+    let data: unknown = {};
+    if (path === '/api/feed/query') data = { activities: promoted ? [] : [activity] };
+    else if (path === '/api/feed/promote') {
+      expect(request.postDataJSON()).toEqual({ activity_id: activity.id, binder: mission.binder, mission: mission.id });
+      promoted = true;
+      data = { task_id: task.id, binder: task.binder };
+    } else if (path === '/api/workflow/missions') data = { missions: [mission] };
+    else if (path === '/api/workflow/tasks') data = { tasks: promoted ? [task] : [] };
+    else if (path === '/api/workflow/lists') data = { boards: [{ name: 'inbox' }] };
+    else if (path === '/api/binder/list') data = { binders: [{ id: mission.binder, title: 'Garden' }] };
+    else if (path === '/api/workflows') data = { workflows: [] };
+    else if (path === '/api/workflows/runs') data = { runs: [{ run_id: 'run-fixture', workflow_name: 'Seed inventory', status: 'completed' }] };
+    else if (path.includes('/capabilities')) data = { ready: true, repair: [] };
+    else if (path === '/api/connections') data = { setup: { completed: true }, connections: [], collections: {} };
+    await route.fulfill({ json: data });
+  });
+  await page.goto('/workflow?tab=feeds&binder=garden&mission=mission-fixture');
+  await expect(page.getByRole('heading', { name: 'Feeds', exact: true })).toBeVisible({ timeout: 10000 });
+  await page.getByRole('button', { name: 'Add to tasks', exact: true }).click();
+  await page.getByRole('link', { name: 'Open task', exact: true }).click();
+  await expect(page).toHaveURL(/task=feed-42/);
+  await expect(page).toHaveURL(/binder=garden/);
+  await expect(page).toHaveURL(/mission=mission-fixture/);
+  await expect(page.getByText(activity.content, { exact: true })).toBeVisible();
+  await page.locator('.surface-tab-nav__link').filter({ hasText: 'Lists' }).click();
+  await page.getByRole('navigation', { name: 'List views' }).getByRole('button', { name: 'Queue' }).click();
+  await expect(page.getByRole('region', { name: 'Mission task queue' })).toContainText(task.title);
+  await expect(page.getByRole('region', { name: 'Workflow runs' })).toContainText('Seed inventory');
+});

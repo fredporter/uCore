@@ -17,6 +17,7 @@ from app.api.binder_api import (
     handle_binder_decisions_get,
     handle_binder_decisions_post,
     handle_binder_draft_update,
+    handle_binder_delete,
     handle_binder_export_gemini,
     handle_binder_export_obsidian,
     handle_binder_get,
@@ -59,6 +60,7 @@ class BinderAPITest(AioHTTPTestCase):
         app.router.add_get("/api/binder/list", handle_binder_list)
         app.router.add_post("/api/binder/create", handle_binder_create)
         app.router.add_get("/api/binder/{binder_id}", handle_binder_get)
+        app.router.add_delete("/api/binder/{binder_id}", handle_binder_delete)
         app.router.add_post("/api/binder/{binder_id}/intake", handle_binder_intake)
         app.router.add_post("/api/binder/{binder_id}/authorise", handle_binder_authorise)
         app.router.add_post("/api/binder/{binder_id}/run", handle_binder_run)
@@ -81,6 +83,29 @@ class BinderAPITest(AioHTTPTestCase):
         if self._temp_dir.exists():
             shutil.rmtree(self._temp_dir)
         await super().asyncTearDown()
+
+    async def test_rename_and_delete_keep_binder_content_recoverable(self):
+        response = await self.client.post("/api/binder/create", json={"id": "garden", "title": "Garden"})
+        assert response.status == 200
+        path = "/api/binder/garden"
+        renamed = await self.client.patch(f"{path}/title", json={"title": "Spring garden"})
+        assert (await renamed.json())["binder"]["title"] == "Spring garden"
+        docs = binder_engine.get_binder_documents_dir("garden")
+        docs.mkdir()
+        (docs / "seeds.md").write_text("Seeds", encoding="utf-8")
+
+        assert (await self.client.delete(path)).status == 200
+        assert (await self.client.get(path)).status == 404
+        listing = await (await self.client.get("/api/binder/list")).json()
+        assert listing["trashed_ids"] == ["garden"]
+        assert all(binder.get("id") != "garden" for binder in listing["binders"])
+        trash = binder_engine.VAULT_ROOT / "Trash" / "Binders" / "garden"
+        assert (trash / "docs" / "seeds.md").read_text(encoding="utf-8") == "Seeds"
+        assert (await self.client.post("/api/binder/create", json={"id": "garden"})).status == 409
+
+        trash.rename(binder_engine.BINDERS_ROOT / "garden")
+        restored = await (await self.client.get(path)).json()
+        assert restored["binder"]["metadata"]["title"] == "Spring garden"
 
     @patch("app.services.identity.get_full_identity", return_value={"publishing_capabilities": {"publish_local": True}})
     async def test_full_binder_api_lifecycle(self, _identity):

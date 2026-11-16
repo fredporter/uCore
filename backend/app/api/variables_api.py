@@ -128,7 +128,7 @@ async def handle_update_user_variables(request: web.Request) -> web.Response:
     allowed_keys = {
         "username", "role", "location",
         "timezone", "uid", "email",
-        "model_routing", "local_model",
+        "model_routing", "local_model", "openrouter_model",
     }
     for key, value in body.items():
         if key in allowed_keys:

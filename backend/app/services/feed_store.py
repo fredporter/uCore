@@ -155,6 +155,12 @@ class FeedServer:
 
     # ── Activity query ────────────────────────────────────────────
 
+    def get_activity(self, activity_id: int) -> dict[str, Any] | None:
+        row = self._conn.execute(
+            "SELECT * FROM user_activity WHERE id = ?", (activity_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
     async def query_feed(
         self,
         source: str | None = None,
@@ -270,26 +276,24 @@ class FeedServer:
             (task_id, activity_id),
         )
         existing = cursor.fetchone()
+        with self._conn:
+            if not existing:
+                cursor.execute(
+                    """INSERT INTO task_activity_links (task_id, activity_id, link_type)
+                       VALUES (?, ?, ?)""",
+                    (task_id, activity_id, link_type),
+                )
+            self._conn.execute(
+                "UPDATE user_activity SET processed = 1 WHERE id = ?",
+                (activity_id,),
+            )
+
         if existing:
             return {
                 "success": True,
                 "message": "Link already exists",
                 "link_id": existing["id"],
             }
-
-        cursor.execute(
-            """INSERT INTO task_activity_links (task_id, activity_id, link_type)
-               VALUES (?, ?, ?)""",
-            (task_id, activity_id, link_type),
-        )
-        self._conn.commit()
-
-        # Mark activity as processed
-        self._conn.execute(
-            "UPDATE user_activity SET processed = 1 WHERE id = ?",
-            (activity_id,),
-        )
-        self._conn.commit()
 
         log.info(
             "Feed link: task=%s activity=%s type=%s",

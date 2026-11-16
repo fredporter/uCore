@@ -8,9 +8,14 @@ import { useWorkflowStore } from '../../stores/workflow';
 import { useWorkspaceStore } from '../../stores/workspace';
 import { getEditorSurface } from '../../composables/useEditorSurface';
 
+const { routeQuery, replaceRoute } = vi.hoisted(() => ({
+  routeQuery: {} as Record<string, string>,
+  replaceRoute: vi.fn(),
+}));
+
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ query: { tab: 'editor' } }),
-  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  useRoute: () => ({ query: routeQuery }),
+  useRouter: () => ({ replace: replaceRoute, push: vi.fn() }),
 }));
 vi.mock('../../skills', () => ({
   EditorPanel: defineComponent({ name: 'EditorPanel', emits: ['save'], template: '<div />' }),
@@ -20,6 +25,9 @@ vi.mock('@/api/preflight', () => ({
 }));
 
 beforeEach(() => {
+  Object.keys(routeQuery).forEach(key => delete routeQuery[key]);
+  routeQuery.tab = 'editor';
+  replaceRoute.mockClear();
   const storage = new Map<string, string>();
   vi.stubGlobal('localStorage', { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
   setActivePinia(createPinia());
@@ -77,7 +85,7 @@ it('navigates between related tasks without clearing Editor state', async () => 
   const next = { ...first, id: 'sibling', title: 'Z sibling task' };
   store.tasks = [first, next];
   store.openTask(first);
-  const wrapper = shallowMount(WorkflowSurface);
+  const wrapper = shallowMount(WorkflowSurface, { global: { stubs: { Teleport: true } } });
   await flushPromises();
   await wrapper.find('button[aria-label="Next task"]').trigger('click');
   await flushPromises();
@@ -101,5 +109,18 @@ it('opens the shared shell browser from the empty Editor without loading another
   expect(shell.sidebarOpen).toBe(true);
   expect(useWorkspaceStore().loadTree).not.toHaveBeenCalled();
   expect(wrapper.findComponent({ name: 'WorkspaceTree' }).exists()).toBe(false);
+  wrapper.unmount();
+});
+
+it('restores a Binder research link into the Research tab and passes through its Binder', async () => {
+  Object.assign(routeQuery, { tab: 'binder', binder: 'garden', view: 'research' });
+  const wrapper = shallowMount(WorkflowSurface);
+  await flushPromises();
+  expect(useWorkflowStore().activeTab).toBe('research');
+  expect(wrapper.getComponent({ name: 'BrowserUISurface' }).props('binderId')).toBe('garden');
+  expect(replaceRoute).toHaveBeenCalledWith({
+    path: '/workflow',
+    query: expect.objectContaining({ tab: 'research', binder: 'garden', view: undefined }),
+  });
   wrapper.unmount();
 });

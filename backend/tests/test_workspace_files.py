@@ -91,3 +91,31 @@ def test_indexed_absolute_user_paths_round_trip_with_version_checks(workspace: P
     assert path.read_text() == 'Updated'
     with pytest.raises(workspace_files.WorkspaceConflictError):
         workspace_files.write_file('user', str(path), 'Stale overwrite', opened['version'])
+
+
+def test_vault_move_preserves_folder_and_rejects_protected_destination(workspace, monkeypatch):
+    user = workspace / "User"
+    shared = workspace / "Shared"
+    folder = user / "Notes"
+    folder.mkdir(parents=True)
+    shared.mkdir()
+    monkeypatch.setattr(workspace_files, "workspace_root", lambda source: user if source == "user" else None)
+    monkeypatch.setattr(workspace_files.settings, "shared_vault_root", shared)
+    (folder / "index.md").write_text("[Evidence](evidence.md)")
+    (folder / "evidence.md").write_text("Evidence")
+
+    with pytest.raises(ValueError, match="require User Vault"):
+        workspace_files.move_entry("user", "/Notes", "", "public")
+
+    (shared / "Notes").mkdir()
+    with pytest.raises(ValueError, match="already exists"):
+        workspace_files.move_entry("user", "/Notes", "", "shared")
+    assert (folder / "evidence.md").exists()
+    (shared / "Notes").rmdir()
+
+    moved = workspace_files.move_entry("user", str(folder), "", "shared")
+    assert moved["path"] == "/Notes"
+    assert not folder.exists()
+    assert (shared / "Notes/index.md").read_text() == "[Evidence](evidence.md)"
+    workspace_files.move_entry("shared", "/Notes/evidence.md", "", "user")
+    assert (user / "evidence.md").read_text() == "Evidence"

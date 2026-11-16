@@ -6,67 +6,95 @@
     }"
   >
     <SurfaceTabNav
-      :model-value="wf.activeTab"
+      :model-value="navigationTab"
       @update:model-value="wf.setTab($event as WorkflowTab)"
-      :tabs="WORKFLOW_TABS"
+      :tabs="navigationTabs"
       :orientation="shell.tabOrientation"
       @toggle-orientation="shell.toggleTabOrientation()"
     />
-    <div v-if="wf.activeTab === 'editor' && activeEditorItem" class="workflow-context" aria-label="Current item">
-      <button v-if="wf.activeBinderId" class="usx-btn" @click="wf.binders.some(binder => binder.id === wf.activeBinderId) ? wf.showBinder(wf.activeBinderId) : wf.showList('', wf.activeBinderId)"><UIcon name="book" />{{ wf.binders.find(b => b.id === wf.activeBinderId)?.title || wf.activeBinderId }}</button>
-      <button class="usx-btn" @click="wf.showList(wf.activeList, wf.activeBinderId)"><UIcon name="list" />Tasks</button>
-      <strong>{{ editorTitle }}</strong><small v-if="wf.hasEditorDraft">Unsaved</small>
-      <span class="workflow-context__actions" v-if="activeEditorTask">
-        <span>{{ contextPosition + 1 }} of {{ wf.relatedTasks.length }} · {{ wf.relatedTasks.filter(task => task.status === 'completed').length }} done</span>
-        <button class="usx-btn" aria-label="Previous task" :disabled="contextPosition <= 0" @click="navigateTask(-1)"><UIcon name="chevron_left" /></button>
-        <button class="usx-btn" aria-label="Next task" :disabled="contextPosition < 0 || contextPosition >= wf.relatedTasks.length - 1" @click="navigateTask(1)"><UIcon name="chevron_right" /></button>
-        <button class="usx-btn" :disabled="saving" @click="completeTask()">{{ activeEditorTask.status === 'completed' ? 'Reopen' : 'Mark done' }}</button>
-        <button class="usx-btn" :disabled="saving" @click="completeTask(true)">Done & next</button>
-      </span>
-    </div>
-    <!-- Content area -->
-    <div class="surface__content">
-      <form v-if="saveAsOpen" class="surface__panel" @submit.prevent="saveDraftAsFile">
-        <label>File name <input v-model="saveAsName" required aria-label="File name" /></label>
-        <UButton type="submit" :disabled="saving">Save to files</UButton>
-        <UButton type="button" variant="secondary" :disabled="saving" @click="saveAsOpen = false">Cancel</UButton>
-      </form>
-      <p v-if="saveMessage" :role="saveFailed ? 'alert' : 'status'">{{ saveMessage }}</p>
-      <CapabilityRepairPanel
-        v-if="blockedRepairs.length > 0"
-        :items="blockedRepairs"
-        :busy="wf.recheckingCapabilities"
-        @retry="onRetryPreflight"
-      />
-
+    <div class="surface__content workflow-content">
+      <Teleport v-if="wf.activeTab === 'editor' && activeEditorItem" defer
+        to="#workflow-editor-sidebar-context" :key="String(shell.sidebarOpen)" :disabled="!shell.sidebarOpen">
+      <div class="workflow-context" :class="{ 'workflow-context--compact': !shell.sidebarOpen }" aria-label="Current item">
+        <button class="usx-btn" aria-label="Open document index" title="Open document index"
+          @click="shell.setSidebarMode('vault'); shell.setSidebarOpen(true)"><UIcon name="folder_open" aria-hidden="true" /></button>
+        <button v-if="wf.activeBinderId" class="usx-btn" aria-label="Open Binder" title="Open Binder" @click="wf.binders.some(binder => binder.id === wf.activeBinderId) ? wf.showBinder(wf.activeBinderId) : wf.showList('', wf.activeBinderId)"><UIcon name="book" aria-hidden="true" /><span class="workflow-context__label">{{ wf.binders.find(b => b.id === wf.activeBinderId)?.title || wf.activeBinderId }}</span></button>
+        <button class="usx-btn" aria-label="Tasks" title="Tasks" @click="wf.showList(wf.activeList, wf.activeBinderId)"><UIcon name="list" aria-hidden="true" /><span class="workflow-context__label">Tasks</span></button>
+        <strong :title="editorTitle">{{ editorTitle }}</strong><small v-if="wf.hasEditorDraft">Unsaved</small>
+        <span class="workflow-context__actions" v-if="activeEditorTask">
+          <span>{{ contextPosition + 1 }} of {{ wf.relatedTasks.length }} · {{ wf.relatedTasks.filter(task => task.status === 'completed').length }} done</span>
+          <button class="usx-btn" aria-label="Previous task" :disabled="contextPosition <= 0" @click="navigateTask(-1)"><UIcon name="chevron_left" /></button>
+          <button class="usx-btn" aria-label="Next task" :disabled="contextPosition < 0 || contextPosition >= wf.relatedTasks.length - 1" @click="navigateTask(1)"><UIcon name="chevron_right" /></button>
+          <button class="usx-btn" :disabled="saving" :title="activeEditorTask.status === 'completed' ? 'Reopen' : 'Mark done'"
+            :aria-label="activeEditorTask.status === 'completed' ? 'Reopen' : 'Mark done'" @click="completeTask()">
+            <UIcon :name="activeEditorTask.status === 'completed' ? 'undo' : 'check'" aria-hidden="true" />
+          </button>
+          <button class="usx-btn" :disabled="saving" title="Done and next" aria-label="Done and next" @click="completeTask(true)"><UIcon name="playlist_add_check" aria-hidden="true" /></button>
+        </span>
+      </div>
+      </Teleport>
+      <BrowserUISurface
+        v-if="wf.activeTab === 'research'"
+        :key="wf.activeBinderId"
+        :binder-id="wf.activeBinderId || undefined"
+        embedded
+        class="workflow-research"
+      >
+        <CapabilityRepairPanel
+          v-if="blockedRepairs.length > 0"
+          :items="blockedRepairs"
+          :busy="wf.recheckingCapabilities"
+          @retry="onRetryPreflight"
+        />
+      </BrowserUISurface>
       <div
+        v-else
         class="workflow-layout"
         :class="{ 'workflow-layout--editor-tab': wf.activeTab === 'editor' }"
       >
+        <form v-if="saveAsOpen" class="surface__panel" @submit.prevent="saveDraftAsFile">
+          <label>File name <input v-model="saveAsName" required aria-label="File name" /></label>
+          <UButton type="submit" :disabled="saving">Save to files</UButton>
+          <UButton type="button" variant="secondary" :disabled="saving" @click="saveAsOpen = false">Cancel</UButton>
+        </form>
+        <p v-if="saveMessage" :role="saveFailed ? 'alert' : 'status'">{{ saveMessage }}</p>
+        <CapabilityRepairPanel
+          v-if="blockedRepairs.length > 0"
+          :items="blockedRepairs"
+          :busy="wf.recheckingCapabilities"
+          @retry="onRetryPreflight"
+        />
+
         <!-- Left/Main panel: the active tab content -->
+        <nav v-if="sectionViews.length" class="workflow-section-nav" :aria-label="navigationTab === 'tasks' ? 'List views' : 'Mission views'">
+          <button v-for="view in sectionViews" :key="view.id" type="button" class="usx-btn"
+            :aria-current="wf.activeTab === view.id ? 'page' : undefined" @click="wf.setTab(view.id)">
+            <UIcon :name="view.icon" aria-hidden="true" />{{ view.label }}
+          </button>
+        </nav>
         <div v-if="wf.activeTab !== 'editor'" class="workflow-panel">
           <WorkflowDashboardPanel v-if="wf.activeTab === 'mission-control'" />
           <TasksPanel v-else-if="wf.activeTab === 'tasks'" />
           <ConnectionsPanel v-else-if="wf.activeTab === 'contacts'" collection-only initial-kind="contacts" />
           <ConnectionsPanel v-else-if="wf.activeTab === 'notes'" collection-only initial-kind="notes" />
           <FeedsPanel v-else-if="wf.activeTab === 'feeds'" />
-          <WorkflowQueuePanel v-else-if="wf.activeTab === 'queue'" />
-          <BrowserUISurface v-else-if="wf.activeTab === 'research'" embedded />
-          <div v-else-if="wf.activeTab === 'binder'">
-            <div class="binder-views" role="group" aria-label="Binder views"><button class="usx-btn" :aria-pressed="route.query.view!=='research'" @click="router.replace({query:{...route.query,view:'content'}})">Content</button><button class="usx-btn" :aria-pressed="route.query.view==='research'" @click="router.replace({query:{...route.query,view:'research'}})">Research</button></div>
-            <BrowserUISurface v-if="route.query.view==='research'" embedded /><NotebookBinderPanel v-else />
-          </div>
+          <WorkflowQueuePanel v-else-if="wf.activeTab === 'queue'" class="workflow-panel__queue" />
+          <NotebookBinderPanel v-else-if="wf.activeTab === 'binder'" />
+          <LocalAssistantPanel v-else-if="wf.activeTab === 'ai'" />
+          <WorkflowSkillsPanel v-else-if="wf.activeTab === 'skills'" />
         </div>
 
         <!-- Editor tab: full-width document workspace -->
         <div
           v-if="wf.activeTab === 'editor'"
           class="workflow-panel workflow-panel--editor"
+          @click="openBinderNotebookLink"
         >
           <EditorPanel
             v-if="activeEditorItem"
             :content="editorContent"
             :title="editorTitle"
+            :document-path="activeWorkflowFile?.path"
             :read-only="editorReadOnly"
             :edit-mode="wf.editorMode"
             @update:content="onEditorContentUpdate"
@@ -88,7 +116,7 @@
             </aside>
           </Transition>
           <div v-if="!activeEditorItem" class="wf-editor-empty">
-            <UIcon name="diamond" />
+            <UIcon name="diamond" :size="48" aria-hidden="true" />
             <p>
               Open a task or binder draft to continue, or choose a file from the sidebar.
             </p>
@@ -144,15 +172,14 @@ import { getEditorSurface } from "../../composables/useEditorSurface";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import CapabilityRepairPanel from "../../skills/molecules/CapabilityRepairPanel.vue";
 import WorkflowDashboardPanel from "./panels/WorkflowDashboardPanel.vue";
-const MissionsPanel = defineAsyncComponent(
-  () => import("./panels/MissionsPanel.vue"),
-);
 const TasksPanel = defineAsyncComponent(
   () => import("./panels/TasksPanel.vue"),
 );
 const PublishPanel = defineAsyncComponent(
   () => import("./panels/PublishPanel.vue"),
 );
+const LocalAssistantPanel = defineAsyncComponent(() => import("../snackbar/panels/LocalAssistantPanel.vue"));
+const WorkflowSkillsPanel = defineAsyncComponent(() => import("./panels/WorkflowSkillsPanel.vue"));
 const NotebookBinderPanel = defineAsyncComponent(
   () => import("./panels/NotebookBinderPanel.vue"),
 );
@@ -170,12 +197,33 @@ const editorSurface = getEditorSurface();
 const route = useRoute();
 const router = useRouter();
 
-watch(() => [route.query.tab, route.query.research], ([tab, research]) => {
-  if (['contacts','notes','feeds'].includes(String(tab))) void router.replace({path:'/snackbar',query:{tab:String(tab)}});
-  if (tab==='research' || tab==='binder') void router.replace({path:'/workflow',query:{...route.query,tab:research==='dashboard'?'queue':'mission-control'}});
-}, {immediate:true});
+watch(() => route.query.tab, tab => {
+  if (["contacts", "notes"].includes(String(tab))) {
+    void router.replace({ path: "/snackbar", query: { tab: String(tab) } });
+  }
+}, { immediate: true });
 
-const VALID_WORKFLOW_TABS = new Set(WORKFLOW_TABS.map((t) => t.id));
+const missionViews = [
+  { id: "mission-control", label: "Dashboard", icon: "schedule" },
+  { id: "binder", label: "Binders", icon: "book" },
+] as const;
+const listViews = [
+  { id: "tasks", label: "Tasks", icon: "check" },
+  { id: "feeds", label: "Feeds", icon: "rss_feed" },
+  { id: "queue", label: "Queue", icon: "pending_actions" },
+] as const;
+const navigationTabs = WORKFLOW_TABS
+  .filter(tab => tab.id !== "binder" && tab.id !== "queue")
+  .map(tab => tab.id === "tasks" ? { ...tab, label: "Lists", icon: "list_alt" } : tab);
+const navigationTab = computed(() => {
+  if (wf.activeTab === "binder") return "mission-control";
+  if (wf.activeTab === "feeds" || wf.activeTab === "queue") return "tasks";
+  return wf.activeTab;
+});
+const sectionViews = computed(() => navigationTab.value === "mission-control" ? missionViews
+  : navigationTab.value === "tasks" ? listViews : []);
+
+const VALID_WORKFLOW_TABS = new Set<WorkflowTab>([...WORKFLOW_TABS.map(tab => tab.id), "feeds"]);
 
 function asWorkflowTab(tab: string): WorkflowTab | null {
   return VALID_WORKFLOW_TABS.has(tab as WorkflowTab)
@@ -183,10 +231,14 @@ function asWorkflowTab(tab: string): WorkflowTab | null {
     : null;
 }
 
+function tabFromLocation() {
+  const tab = String(route.query.tab || "").trim();
+  return asWorkflowTab(tab === "binder" && route.query.view === "research" ? "research" : tab);
+}
+
 onMounted(async () => {
-  if (["contacts", "notes", "feeds"].includes(String(route.query.tab))) return;
-  const routeTab = ["research","binder"].includes(String(route.query.tab)) ? (route.query.research === "dashboard" ? "queue" : "mission-control") : String(route.query.tab || "").trim();
-  const safeTab = asWorkflowTab(routeTab);
+  if (["contacts", "notes"].includes(String(route.query.tab))) return;
+  const safeTab = tabFromLocation();
   if (safeTab) {
     wf.setTab(safeTab);
   } else {
@@ -222,6 +274,16 @@ onMounted(async () => {
       wf.openBinderDocument(wf.activeBinderId, `${binder.metadata.title} · ${documentPart}`, binder[documentPart] || "", binder.draft_sha256 || "", documentPart === "brief");
     } else if (filePath && safeTab === "editor") {
       await workspace.selectFile({ id: filePath, path: filePath, name: filePath.split("/").pop() || "Document", type: "file" });
+      if (editorSurface.currentFile.value?.path !== filePath) {
+        const response = await fetch(`${UCORE_BASE}/api/library/file?path=${encodeURIComponent(filePath)}`, {
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!response.ok) throw new Error("Could not open the indexed document");
+        const file = await response.json();
+        if (wf.selectedTask?.id === selectionAtLoad && editorSurface.currentFile.value?.path === fileAtLoad) {
+          wf.selectFile({ ...file, id: file.path, binder: "", readOnly: true });
+        }
+      }
     }
   } catch (error) { saveFailed.value = true; saveMessage.value = error instanceof Error ? error.message : "Could not restore item"; }
   restoringLocation = false;
@@ -230,8 +292,8 @@ onMounted(async () => {
 
 function syncLocation() {
   if (restoringLocation) return;
-  const query = { ...route.query, mission: wf.activeMissionId || undefined, tab: wf.activeTab, list: wf.activeList || undefined, binder: wf.activeBinderId || undefined, task: wf.activeTab === "editor" ? wf.selectedTask?.id : undefined, document: wf.activeTab === "editor" && wf.binderDocument ? (wf.binderDocument.readOnly ? "brief" : "draft") : undefined, file: wf.activeTab === "editor" && !wf.selectedTask && !wf.binderDocument ? editorSurface.currentFile.value?.path : undefined };
-  if (["tab", "list", "binder", "mission", "task", "document", "file"].some(key => String(route.query[key] || "") !== String(query[key as keyof typeof query] || ""))) void router.replace({ path: "/workflow", query });
+  const query = { ...route.query, view: undefined, mission: wf.activeMissionId || undefined, tab: wf.activeTab, list: wf.activeList || undefined, binder: wf.activeBinderId || undefined, task: wf.activeTab === "editor" ? wf.selectedTask?.id : undefined, document: wf.activeTab === "editor" && wf.binderDocument ? (wf.binderDocument.readOnly ? "brief" : "draft") : undefined, file: wf.activeTab === "editor" && !wf.selectedTask && !wf.binderDocument ? editorSurface.currentFile.value?.path : undefined };
+  if (["tab", "list", "binder", "mission", "task", "document", "file", "view"].some(key => String(route.query[key] || "") !== String(query[key as keyof typeof query] || ""))) void router.replace({ path: "/workflow", query });
 }
 watch(() => [wf.activeTab, wf.activeMissionId, wf.activeList, wf.activeBinderId, wf.selectedTask?.id, wf.binderDocument?.path, editorSurface.currentFile.value?.path], syncLocation);
 watch(() => route.query.task, value => {
@@ -240,14 +302,16 @@ watch(() => route.query.task, value => {
 });
 
 watch(
-  () => route.query.tab,
-  (value) => {
-    const routeTab = String(value || "").trim();
-    const safeTab = asWorkflowTab(routeTab);
-    if (!safeTab) return;
-    if (wf.activeTab !== routeTab) {
-      wf.setTab(safeTab);
-    }
+  () => [route.query.tab, route.query.binder, route.query.view, route.query.mission],
+  () => {
+    const tab = tabFromLocation();
+    if (!tab) return;
+    const binder = String(route.query.binder || "");
+    if (wf.activeBinderId !== binder) wf.setTaskContext(String(route.query.list || ""), binder);
+    const mission = String(route.query.mission || "");
+    if (mission && wf.missions.some(item => item.id === mission)) wf.activeMissionId = mission;
+    if (wf.activeTab !== tab) wf.setTab(tab);
+    if (route.query.tab === "binder" && route.query.view === "research") syncLocation();
   },
 );
 
@@ -330,6 +394,27 @@ const sharedEditorFile = computed(
 const activeWorkflowFile = computed(
   () => sharedEditorFile.value || wf.selectedFile,
 );
+async function openBinderNotebookLink(event: MouseEvent) {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const anchor = event.target instanceof Element ? event.target.closest(".md-preview a[href]") : null;
+  const href = anchor?.getAttribute("href");
+  const source = activeWorkflowFile.value?.path.match(/^(\/binders\/([^/]+)\/docs\/)[^/]+$/i);
+  if (!href || !source || anchor?.hasAttribute("download")) return;
+  // Binder imports store sibling Markdown files in docs/. Other links keep their native behavior.
+  const relative = href.replace(/^\.\//, "");
+  if (!/^[^/:?#\\]+\.md$/i.test(relative)) return;
+  let filename: string;
+  try { filename = decodeURIComponent(relative); } catch { return; }
+  if (!/^[^/:?#\\\x00-\x1f]+\.md$/i.test(filename)) return;
+  event.preventDefault();
+  try {
+    await wf.openVaultDocument(source[1] + filename, filename, source[2]);
+  } catch (error) {
+    saveFailed.value = true;
+    saveMessage.value = error instanceof Error ? error.message : "Could not open the linked Binder document.";
+  }
+}
+
 const activeEditorTask = computed(() =>
   sharedEditorFile.value ? null : wf.selectedTask || null,
 );
@@ -403,27 +488,71 @@ function onRetryPreflight() {
 <style scoped>
 .workflow-panel :deep(input), .workflow-panel :deep(select), .workflow-panel :deep(textarea) { max-width: 100%; box-sizing: border-box; }
 
+.workflow-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .workflow-context { display: flex; flex-wrap: wrap; align-items: center; gap: var(--usx-spacing-xs); padding: var(--usx-spacing-sm); border-bottom: 1px solid var(--usx-color-border); }
-.workflow-context strong { overflow: hidden; text-overflow: ellipsis; }
+.workflow-context strong { min-width: 0; overflow-wrap: anywhere; }
+.workflow-context--compact .workflow-context__label { display: none; }
+.workflow-context .usx-btn { margin: 0; min-height: 32px; padding: 4px 6px; }
 .workflow-context__actions { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: var(--usx-spacing-xs); }
 .workflow-context small { color: var(--usx-color-warning); }
+
+.workflow-research {
+  --wf-zen-pad: clamp(12px, 2vw, 20px);
+  flex: 1;
+  min-width: 0;
+  height: auto;
+}
 
 /* ─── Layout ──────────────────────────────────────────────────────── */
 .workflow-layout {
   display: flex;
-  flex-direction: row;
-  height: 100%;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   gap: var(--usx-spacing-md);
 }
 
 .workflow-layout--editor-tab {
+  position: relative;
   gap: 0;
 }
 
 /* ─── Main Panel — fill full height ──────────────────────────── */
+.workflow-section-nav {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+}
+.workflow-section-nav .usx-btn {
+  margin: 0;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--usx-color-on-surface);
+  font-size: var(--usx-font-size-sm);
+}
+.workflow-section-nav [aria-current="page"] { background: var(--usx-color-surface-hover); }
+.workflow-section-nav [aria-current="page"] { color: var(--usx-color-primary); }
+
 .workflow-panel {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   overflow-y: auto;
   box-sizing: border-box;
   display: flex;
@@ -449,6 +578,8 @@ function onRetryPreflight() {
 .workflow-publish-drawer__header button { display: inline-flex; align-items: center; justify-content: center; width: var(--usx-control-size-sm); height: var(--usx-control-size-sm); min-height: 0; padding: 0; border: 0; background: transparent; color: var(--usx-color-on-surface-muted); }
 .workflow-publish-enter-active, .workflow-publish-leave-active { transition: transform 160ms ease; }
 .workflow-publish-enter-from, .workflow-publish-leave-to { transform: translateX(100%); }
+
+.workflow-panel > .workflow-panel__queue { flex: 0 0 auto; }
 
 .workflow-panel > * {
   flex: 1;
@@ -501,8 +632,9 @@ function onRetryPreflight() {
 </style>
 
 <style scoped>
-.workflow-context { flex-wrap: nowrap; min-height: 44px; box-sizing: border-box; padding: 4px 8px; overflow-x: auto; white-space: nowrap; font-size: var(--usx-font-size-sm); }
-.workflow-context strong { flex: 1 1 auto; min-width: 6rem; }
+.workflow-context { flex-wrap: nowrap; min-height: 44px; box-sizing: border-box; padding: 4px 8px; overflow: hidden; white-space: nowrap; font-size: var(--usx-font-size-sm); }
+.workflow-context strong { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.workflow-context__label, .workflow-context__actions > span { display: none; }
 .workflow-context__actions { flex: 0 0 auto; flex-wrap: nowrap; gap: 4px; }
 .workflow-context button.usx-btn { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 4px; box-sizing: border-box; height: 32px; min-height: 32px; margin: 0; padding: 0 8px; border: 0; box-shadow: none; background: transparent; font-size: inherit; line-height: 1; }
 .workflow-context button.usx-btn:hover { background: var(--usx-color-surface-variant); }

@@ -27,4 +27,5 @@ class DocsMirrorSync(BaseSkill):
         if _mirror_work is None or _mirror_work.done():
             _mirror_work = asyncio.create_task(asyncio.to_thread(sync_from_repos))
         # A timed-out caller does not spawn a second copy of the filesystem job.
-        return await asyncio.shield(_mirror_work)
+        result = await asyncio.shield(_mirror_work)
+        return {"success": result.get("status") == "completed", **result}

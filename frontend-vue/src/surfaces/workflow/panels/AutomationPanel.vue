@@ -6,7 +6,7 @@
         <h2>Automation</h2>
         <p>Run dependable routines without adding noise to your day.</p>
       </div>
-      <button class="wf-standard-header__action" type="button" @click="refresh"><UIcon name="refresh" /> Refresh</button>
+      <button class="usx-btn wf-standard-header__action" type="button" @click="refresh"><UIcon name="refresh" /> Refresh</button>
     </header>
 
     <div v-if="wf.loading" class="wf-state">Loading workflow automation…</div>
@@ -34,7 +34,7 @@
               <strong>{{ definition.name }}</strong>
               <p class="wf-card__detail">{{ definition.description || "No description" }} · {{ definition.steps.length }} steps · {{ definition.schedule || "manual" }}</p>
             </div>
-            <button class="wf-canonical-action" type="button" :title="`Open ${definition.name}`" @click="selectedDefinition = definition"><UIcon name="view_sidebar" /></button>
+            <button class="usx-btn usx-btn--ghost wf-canonical-action" type="button" :title="`Open ${definition.name}`" @click="selectedDefinition = definition"><UIcon name="view_sidebar" /></button>
           </article>
         </div>
       </section>

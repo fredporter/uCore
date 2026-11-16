@@ -26,10 +26,20 @@ it('normalizes a legacy local link without dropping the selected collection or r
   const wrapper = render(); await flushPromises();
   expect(routing.replace).toHaveBeenCalledWith({ query: { tab: 'apps', workspace: 'vault', collection: 'contacts', record: 'record-7' } });
   expect(wrapper.find('[data-test="records"]').text()).toBe('contacts');
-  expect(useShellStore().sidebarOpen).toBe(true); wrapper.unmount();
+  expect(useShellStore().sidebarOpen).toBe(false); wrapper.unmount();
 });
 it('keeps provider workspaces from opening the Vault browser', async () => {
   const wrapper = render(); await flushPromises();
   expect(useShellStore().sidebarOpen).toBe(false);
   expect(wrapper.text()).toContain('Apple Workspace'); wrapper.unmount();
+});
+
+it('opens the default Vault browser only when Browse Vault is clicked', async () => {
+  delete routing.route.query.workspace;
+  const wrapper = render(); await flushPromises();
+  const shell = useShellStore();
+  expect(shell.sidebarOpen).toBe(false);
+  await wrapper.findAll('button').find(button => button.text() === 'Browse Vault')!.trigger('click');
+  expect(shell.sidebarOpen).toBe(true);
+  wrapper.unmount();
 });

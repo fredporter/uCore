@@ -22,7 +22,7 @@ function clearAccount(){
   void router.replace({query});
 }
 function chooseCollection(collection:string){void router.replace({query:{...route.query,collection}});}
-watch(()=>route.query.workspace,value=>{if(value==='local')void router.replace({query:{...route.query,workspace:'vault'}});if(workspace.value==='vault')openVault();},{immediate:true});
+watch(()=>route.query.workspace,value=>{if(value==='local')void router.replace({query:{...route.query,workspace:'vault'}});},{immediate:true});
 async function request(path:string,body?:object){const response=await fetch(`${UCORE_BASE}${path}`,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});if(!response.ok)throw Error((await response.text()).slice(0,240));return response.json();}
 async function loadRecords(){const result=await request('/api/connections/records');records.value=result.records.filter((r:any)=>['bookmarks','reading_list'].includes(r.kind));}
 async function importFile(event:Event){const input=event.target as HTMLInputElement,file=input.files?.[0];if(!file)return;busy.value=true;error.value='';try{if(file.size>2_000_000)throw Error('Choose an HTML export under 2 MB.');const result=await request('/api/snackbar/sync/browser/import',{html:await file.text(),source:browser.value});await loadRecords();message.value=`${result.imported} added · ${result.updated} updated. No browser settings were changed.`;}catch(e){error.value=e instanceof Error?e.message:'Import unavailable';}finally{busy.value=false;input.value='';}}

@@ -101,6 +101,7 @@ def register_routes(app: web.Application) -> None:
     )
     from .metadata import (
         maintenance_status_handler,
+        maintenance_run_handler,
         system_info_handler,
         workflow_status_handler,
     )
@@ -276,6 +277,7 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/gridsmith/location/ucode-to-latlon", handle_gridsmith_ucode_to_latlon)
     app.router.add_get("/api/system", system_info_handler)
     app.router.add_get("/api/system/maintenance", maintenance_status_handler)
+    app.router.add_post("/api/system/maintenance/{skill_id}/run", maintenance_run_handler)
     app.router.add_get("/api/system/workflow", workflow_status_handler)
     app.router.add_get(
         "/api/user/workflow/status",
@@ -410,9 +412,11 @@ def register_routes(app: web.Application) -> None:
         handle_binder_export_obsidian,
         handle_binder_get,
         handle_binder_intake,
+        handle_binder_intake_check,
         handle_binder_list,
         handle_binder_publish,
         handle_binder_rename,
+        handle_binder_delete,
         handle_binder_resume,
         handle_binder_run,
         handle_binder_score,
@@ -424,7 +428,9 @@ def register_routes(app: web.Application) -> None:
     app.router.add_post("/api/binder/create", handle_binder_create)
     app.router.add_post("/api/binder/add", handle_binder_add)
     app.router.add_get("/api/binder/{binder_id}", handle_binder_get)
+    app.router.add_delete("/api/binder/{binder_id}", handle_binder_delete)
     app.router.add_post("/api/binder/{binder_id}/intake", handle_binder_intake)
+    app.router.add_get("/api/binder/{binder_id}/intake-check", handle_binder_intake_check)
     app.router.add_post("/api/binder/{binder_id}/authorise", handle_binder_authorise)
     app.router.add_post("/api/binder/{binder_id}/run", handle_binder_run)
     app.router.add_post("/api/binder/{binder_id}/resume", handle_binder_resume)

@@ -2,7 +2,7 @@
   <div class="markdown-editor">
     <!-- Toolbar: formatting buttons (prose + editable only) plus a slot for
          external controls (save, view mode, close) injected by the parent -->
-    <div class="markdown-editor__toolbar">
+    <div class="document-editor-toolbar">
       <EnhancedBangleToolbar v-if="!readOnly" @command="handleToolbarCommand">
         <template #actions><slot name="toolbar-actions" /></template>
       </EnhancedBangleToolbar>
@@ -45,6 +45,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import "@bangle.dev/core/style.css";
+import "./documentEditorToolbar.css";
 import {
   BangleEditor as MarkdownRuntime,
   BangleEditorState,
@@ -523,19 +524,6 @@ onBeforeUnmount(() => {
   background: var(--usx-color-background);
 }
 
-.markdown-editor__toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  min-height: 40px;
-  box-sizing: border-box;
-  padding: 2px 8px;
-  border-bottom: 0;
-  background: color-mix(in srgb, var(--usx-color-surface) 58%, transparent);
-  flex-shrink: 0;
-  overflow-x: auto;
-  white-space: nowrap;
-}
 .markdown-insert-overlay { position: fixed; inset: 0; z-index: 2200; display: grid; place-items: center; padding: var(--usx-spacing-lg); background: rgb(0 0 0 / 50%); }
 .markdown-insert-modal { display: grid; gap: var(--usx-spacing-md); width: min(28rem, 100%); padding: var(--usx-spacing-lg); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-lg); background: var(--usx-color-surface); }
 .markdown-insert-modal h2 { margin: 0; }.markdown-insert-modal label { display: grid; gap: var(--usx-spacing-xs); }.markdown-insert-modal input { min-height: var(--usx-touch-min); }.markdown-insert-modal__actions { display: flex; justify-content: flex-end; gap: var(--usx-spacing-sm); }
@@ -553,6 +541,7 @@ onBeforeUnmount(() => {
   flex: 1;
   width: 100%;
   min-height: 0;
+  margin: 0;
   resize: none;
   border: none;
   outline: none;
@@ -562,7 +551,7 @@ onBeforeUnmount(() => {
   font-family: var(--usx-font-family-mono);
   font-size: var(--usx-font-size-sm);
   line-height: 1.6;
-  padding: clamp(var(--usx-spacing-md), 4vw, calc(var(--usx-spacing-2xl) * 1.5));
+  padding: var(--document-editor-inset, clamp(var(--usx-spacing-md), 4vw, calc(var(--usx-spacing-2xl) * 1.5)));
   white-space: pre-wrap;
   word-break: break-word;
   tab-size: 2;
@@ -575,7 +564,7 @@ onBeforeUnmount(() => {
 :deep(.ProseMirror) {
   flex: 1;
   overflow-y: auto;
-  padding: clamp(var(--usx-spacing-md), 4vw, calc(var(--usx-spacing-2xl) * 1.5));
+  padding: var(--document-editor-inset, clamp(var(--usx-spacing-md), 4vw, calc(var(--usx-spacing-2xl) * 1.5)));
   outline: none;
   white-space: pre-wrap;
   word-break: break-word;

@@ -8,7 +8,7 @@
       <span v-if="selectedIds.length > 0" class="card-stack__selected-count">{{ selectedIds.length }} selected</span>
       <div v-if="tagFilter" class="card-stack__filters">
         <button v-for="tag in availableTags" :key="tag"
-          class="card-stack__filter-chip"
+          class="usx-btn usx-btn--ghost card-stack__filter-chip"
           :class="{ 'card-stack__filter-chip--active': localActiveTag === tag }"
           @click="localActiveTag = localActiveTag === tag ? '' : tag">{{ tag }}</button>
         <select v-model="localSortBy" class="card-stack__sort">

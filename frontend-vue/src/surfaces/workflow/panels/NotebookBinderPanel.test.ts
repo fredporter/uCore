@@ -55,7 +55,7 @@ it('opens the selected binder draft in the shared Editor with its conflict hash'
     metadata: { title: 'Project', state: 'draft_brief' }, brief: '# Brief', draft: '# Draft', draft_sha256: 'base-hash',
     requirements: [], sources: [], plan: [], evidence: [], decisions: [], editions: [],
   }, dispatches: [], items: [], catalog: [] }))));
-  const wrapper = shallowMount(NotebookBinderPanel);
+  const wrapper = shallowMount(NotebookBinderPanel, { global: { stubs: { teleport: true } } });
   await flushPromises();
   const open = wrapper.findAll('button').find(button => button.text() === 'Open draft in Editor');
   expect(open).toBeDefined();

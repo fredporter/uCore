@@ -21,6 +21,8 @@ export type WorkflowTab =
   | "notes"
   | "feeds"
   | "queue"
+  | "skills"
+  | "ai"
   | "research"
   | "editor";
 
@@ -159,8 +161,12 @@ export const WORKFLOW_TABS: { id: WorkflowTab; label: string; icon: string }[] =
   [
     { id: "mission-control", label: "Mission Control", icon: "schedule" },
     { id: "tasks", label: "Tasks", icon: "check" },
+    { id: "binder", label: "Binders", icon: "book" },
+    { id: "research", label: "Research", icon: "search" },
     { id: "queue", label: "Queue", icon: "pending_actions" },
     { id: "editor", label: "Editor", icon: "diamond" },
+    { id: "ai", label: "Assistant", icon: "chat" },
+    { id: "skills", label: "Skills", icon: "extension" },
   ];
 
 import { SNACKBAR_BASE } from "@/api/base";
@@ -246,6 +252,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   const binderStage = ref("brief");
   const binderCreateRequested = ref(false);
   const binders = ref<Array<{ id: string; title?: string; name?: string; state?: string }>>([]);
+  const trashedBinderIds = ref<string[]>([]);
   const binderDocument = ref<WorkflowFile | null>(null);
   const editorDrafts = ref<Record<string, string>>({});
   const editorBaseHashes = ref<Record<string, string>>({});
@@ -278,7 +285,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     const ranks: Record<string, number> = { "in-progress": 0, todo: 1, blocked: 2, review: 3, completed: 4 };
     return (ranks[a.status] ?? 5) - (ranks[b.status] ?? 5) || a.title.localeCompare(b.title);
   }));
-  const binderChoices = computed(() => [...new Set([...binders.value.map(binder => binder.id), ...tasks.value.map(task => task.binder || "")])].filter(Boolean).map(id => ({ id, title: binders.value.find(binder => binder.id === id)?.title || id, hasContent: binders.value.some(binder => binder.id === id) })));
+  const binderChoices = computed(() => [...new Set([...binders.value.map(binder => binder.id), ...tasks.value.map(task => task.binder || "")])].filter(id => id && !trashedBinderIds.value.includes(id)).map(id => ({ id, title: binders.value.find(binder => binder.id === id)?.title || id, hasContent: binders.value.some(binder => binder.id === id) })));
   const relatedTasks = computed(() => selectedTask.value
     ? orderedContextTasks.value.filter(task => (task.group || "") === (selectedTask.value?.group || ""))
     : orderedContextTasks.value);
@@ -292,7 +299,8 @@ export const useWorkflowStore = defineStore("workflow", () => {
 
   // Legacy list links may name a known Binder. Provider boards remain metadata.
   function setTaskContext(board = "", binder = "", resolveLegacyList = true) {
-    const resolvedBinder = binder || (resolveLegacyList && binders.value.some(item => item.id === board) ? board : "");
+    const requestedBinder = binder || (resolveLegacyList && binders.value.some(item => item.id === board) ? board : "");
+    const resolvedBinder = trashedBinderIds.value.includes(requestedBinder) ? "" : requestedBinder;
     activeBinderId.value = resolvedBinder;
     activeList.value = resolvedBinder ? "" : board;
   }
@@ -303,8 +311,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   function selectMission(id: string) {
     activeMissionId.value = id;
     const mission = missions.value.find(item => item.id === id);
-    activeBinderId.value = mission?.binder || "";
-    activeList.value = "";
+    setTaskContext("", mission?.binder || "");
   }
   async function fetchMissions() {
     const response = await fetch(`${API}/api/workflow/missions`, { signal: AbortSignal.timeout(8000) });
@@ -312,8 +319,8 @@ export const useWorkflowStore = defineStore("workflow", () => {
     const data = await response.json();
     missions.value = (data.missions || []).map((mission: any) => ({ ...mission, description: mission.title, priority: 'medium', taskIds: tasks.value.filter(task => task.mission === mission.id).map(task => task.id) }));
   }
-  async function createMission(title: string) {
-    const response = await fetch(`${API}/api/workflow/missions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title }), signal: AbortSignal.timeout(8000) });
+  async function createMission(title: string, binder?: string) {
+    const response = await fetch(`${API}/api/workflow/missions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, binder }), signal: AbortSignal.timeout(8000) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Could not create mission");
     await fetchMissions();
@@ -328,7 +335,11 @@ export const useWorkflowStore = defineStore("workflow", () => {
   function showBinder(id: string) {
     activeBinderId.value = id;
     activeList.value = "";
-    activeTab.value = "mission-control";
+    setTab("binder");
+  }
+  function requestBinderCreation() {
+    binderCreateRequested.value = true;
+    setTab("binder");
   }
   function openTask(task: WorkflowTask) {
     activeMissionId.value = task.mission || "";
@@ -357,9 +368,43 @@ export const useWorkflowStore = defineStore("workflow", () => {
       if (!response.ok) throw new Error("Could not load binders");
       const data = await response.json();
       binders.value = (data.binders || []).map((binder: any) => ({ ...binder, id: binder.id || binder.name }));
+      trashedBinderIds.value = data.trashed_ids || [];
     })();
     binderFetch = work;
     try { await work; } finally { if (binderFetch === work) binderFetch = null; }
+  }
+  async function mutateBinder(id: string, method: "PATCH" | "DELETE", title?: string) {
+    const operation = method === "PATCH" ? "rename" : "delete";
+    const response = await fetch(`${API}/api/binder/${encodeURIComponent(id)}${method === "PATCH" ? "/title" : ""}`, {
+      method,
+      ...(title === undefined ? {} : {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.error || `Could not ${operation} Binder (HTTP ${response.status})`);
+    }
+    await binderFetch?.catch(() => {});
+    return data;
+  }
+  async function renameBinder(id: string, title: string) {
+    const data = await mutateBinder(id, "PATCH", title);
+    const binder = binders.value.find(item => item.id === id);
+    if (binder) binder.title = data.binder.title;
+  }
+  async function deleteBinder(id: string) {
+    await mutateBinder(id, "DELETE");
+    binders.value = binders.value.filter(binder => binder.id !== id);
+    trashedBinderIds.value = [...new Set([...trashedBinderIds.value, id])];
+    if (activeBinderId.value === id) setTaskContext();
+    if (binderDocument.value?.binderId === id) {
+      binderDocument.value = null;
+      selectedFile.value = null;
+      editorSurface.closeEditor();
+    }
   }
   function openBinderDocument(id: string, title: string, content: string, baseHash = "", readOnly = false) {
     activeBinderId.value = id;
@@ -451,7 +496,6 @@ export const useWorkflowStore = defineStore("workflow", () => {
   }
 
   function setTab(tab: WorkflowTab) {
-    if (tab === "binder" || tab === "research") tab = "mission-control";
     if (tab === "editor" && selectedTask.value) {
       setTaskContext(selectedTask.value.board, selectedTask.value.binder || "", false);
     } else if (tab === "editor" && binderDocument.value) {
@@ -965,7 +1009,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   return {
     activeList, activeBinderId, binderStage, binderCreateRequested, binders, binderDocument, editorDrafts,
     taskLists, binderChoices, scopedTasks, orderedContextTasks, relatedTasks, locationLabel, editorKey, hasEditorDraft,
-    setTaskContext, showList, showBinder, openTask, openBinderDocument, saveBinderDocument, fetchBinders,
+    setTaskContext, showList, showBinder, requestBinderCreation, openTask, openBinderDocument, saveBinderDocument, fetchBinders, renameBinder, deleteBinder,
     createTask, duplicateTask, startTaskDrag, dropTask, fetchLists, createList,
     activeTab,
     tasks,

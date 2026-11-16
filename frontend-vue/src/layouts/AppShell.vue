@@ -35,7 +35,7 @@
       <aside v-if="globalSidebarOpen" class="app-sidebar">
         <template v-if="isKnowledgeReader">
           <SidebarModeSwitch />
-          <WorkflowNavigator v-if="shell.sidebarMode === 'workflow'" />
+          <WorkflowNavigator v-if="shell.sidebarMode !== 'vault'" :mission-mode="shell.sidebarMode === 'mission'" />
           <div v-show="shell.sidebarMode === 'vault'" id="global-library-browser" class="app-sidebar__library" />
         </template>
         <FilepickerSidebar v-else

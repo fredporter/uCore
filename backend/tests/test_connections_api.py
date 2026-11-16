@@ -119,6 +119,12 @@ async def test_setup_draft_resume_and_finish_are_profile_owned(store, tmp_path, 
     assert stories.get_story(draft["story_id"])["responses"]["city"] == "Perth"
     assert updates[-1] == ("alice", {"name": "New username"})
     assert saved_settings == [("user", {"email": "alice@example.invalid", "displayName": "New username"}, {"profile_id": "alice"})]
+    assert stories.get_variables()["display_name"] == "New username"
+    assert stories.get_variables()["email"] == "alice@example.invalid"
+    response = await api.setup(request("POST", {"save_profile": True, "display_name": "  "}))
+    assert json.loads(response.text)["display_name"] == "user-alice"
+    assert stories.get_variables()["email"] == "alice@example.invalid"
+
 
 
 @pytest.mark.asyncio

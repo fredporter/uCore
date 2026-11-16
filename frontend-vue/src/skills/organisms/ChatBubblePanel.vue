@@ -4,22 +4,36 @@
     <div class="chat-panel__header">
       <div class="chat-panel__header-spacer" />
       <button
-        v-if="activeLane === 'chat' && chatStore.hasMessages"
+        v-if="activeLane === 'chat' && (localAssistant ? chatMessages.some(msg => msg.role === 'user') && !loading : chatStore.hasMessages)"
         type="button"
         class="usx-btn chat-panel__header-action"
-        title="Clear chat history"
-        aria-label="Clear chat history"
-        @click="chatStore.clearHistory()"
+        :title="localAssistant ? 'Clear conversation' : 'Clear chat history'"
+        :aria-label="localAssistant ? 'Clear conversation' : 'Clear chat history'"
+        @click="localAssistant ? emit('clear-local') : chatStore.clearHistory()"
       >
         <UIcon name="delete_sweep" />
       </button>
     </div>
 
     <!-- ── Body ──────────────────────────────────────────────── -->
-    <div class="chat-panel__body">
-      <div v-if="activeMessages.length === 0" class="chat-panel__empty" />
+    <div ref="messagesEl" class="chat-panel__body">
+      <div v-if="localAssistant && !activeMessages.length" class="chat-panel__start">
+        <p>Ask a question, draft something, or plan your next step with your local assistant.</p>
+        <div class="chat-panel__prompts">
+          <button
+            v-for="prompt in starterPrompts"
+            :key="prompt.icon"
+            type="button"
+            class="usx-btn chat-panel__prompt"
+            @click="useStarterPrompt(prompt.text)"
+          >
+            <UIcon :name="prompt.icon" aria-hidden="true" />
+            {{ prompt.label }}
+          </button>
+        </div>
+      </div>
 
-      <div v-else ref="messagesEl" class="chat-panel__messages">
+      <div v-else class="chat-panel__messages">
         <article
           v-for="(msg, i) in activeMessages"
           :key="`${activeLane}-${i}`"
@@ -58,14 +72,15 @@
           v-model="inputText"
           class="chat-panel__input"
           :placeholder="inputPlaceholder"
-          rows="2"
+          :aria-label="localAssistant ? 'OK Assistant' : 'Message'"
+          rows="1"
           @keydown.enter.exact.prevent="sendMessage"
           @keydown.shift.enter.prevent="inputText += '\n'"
-          @input="autoResize"
         />
         <button
           class="usx-btn chat-panel__send"
           :disabled="!inputText.trim() || loading"
+          aria-label="Send message"
           title="Send (Enter)"
           @click="sendMessage"
         >
@@ -74,7 +89,7 @@
       </div>
 
       <div class="chat-panel__composer-actions">
-        <RouterLink class="usx-btn chat-panel__settings" to="/system?tab=preferences" @click="shell.setChatMode('closed')"><UIcon name="settings" />Settings</RouterLink>
+        <RouterLink class="usx-btn chat-panel__settings" :to="localAssistant ? '/workflow?tab=ai' : '/system?tab=preferences'" @click="shell.setChatMode('closed')"><UIcon name="settings" />{{ localAssistant ? "Local models" : "Settings" }}</RouterLink>
         <label class="chat-panel__presentation">
           <UIcon name="view_sidebar" />
           <select
@@ -96,14 +111,14 @@
     <!-- ── Footer: context + mode tabs ────────────────────────── -->
     <div class="chat-panel__footer-row">
       <span
-        v-if="contextLabel && contextLabel.trim().toLowerCase() !== 'code'"
+        v-if="displayContext && displayContext.trim().toLowerCase() !== 'code'"
         class="chat-panel__context"
       >
         <UIcon name="location_on" />
-        <span class="chat-panel__context-text">{{ contextLabel }}</span>
+        <span class="chat-panel__context-text">{{ displayContext }}</span>
       </span>
 
-      <div class="chat-panel__mode-toggle" role="tablist" aria-label="Assistant mode">
+      <div v-if="!localAssistant" class="chat-panel__mode-toggle" role="tablist" aria-label="Assistant mode">
         <button
           v-for="mode in CHAT_MODES"
           :key="mode.id"
@@ -140,6 +155,7 @@ interface Message {
 const props = withDefaults(
   defineProps<{
     chatMessages?: Message[];
+    localAssistant?: boolean;
     devMessages?: Message[];
     loading?: boolean;
     devAvailable?: boolean;
@@ -161,6 +177,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
+  "clear-local": [];
   "send-chat": [message: string, mode: "chat" | "plan" | "act" | "workflow"];
   "send-dev": [message: string, mode: "ask" | "plan" | "act"];
   "toggle-dev-mode": [];
@@ -175,6 +192,14 @@ function setPresentation(event: Event) {
 }
 const chatStore = useChatStore();
 const editorSurface = getEditorSurface();
+const displayContext = computed(() => {
+  if (!props.localAssistant) return props.contextLabel;
+  const path = editorSurface.currentFile.value?.path || "";
+  if (/(?:^|\/)global-knowledge\//i.test(path)) return "Global Knowledge";
+  if (/(?:^|\/)Shared\//.test(path)) return "Shared Vaults";
+  if (/(?:^|\/)Public\//.test(path)) return "Public Sites";
+  return "User Vault";
+});
 const ws = useWorkspaceStore();
 const { toast } = useToast();
 
@@ -195,6 +220,7 @@ const inputText = computed({
 
 // ─── Dynamic composer placeholder (matches Intelligence surface) ──
 const inputPlaceholder = computed(() => {
+  if (props.localAssistant) return "OK Assistant…";
   switch (activeChatMode.value) {
     case "plan": return "What should we research?";
     case "act": return "What should we do?";
@@ -220,12 +246,23 @@ function selectModel(id: string) {
   modelPickerOpen.value = false;
 }
 
-// ─── Textarea auto-resize ─────────────────────────────────────
-function autoResize(e: Event) {
-  const el = e.target as HTMLTextAreaElement;
-  el.style.height = "auto";
-  el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+const starterPrompts = [
+  { icon: "search", label: "Research a topic", text: "Help me outline a research plan for " },
+  { icon: "edit_note", label: "Draft a note", text: "Help me draft a Markdown note about " },
+  { icon: "checklist", label: "Plan next steps", text: "Help me break this goal into next steps: " },
+] as const;
+
+function useStarterPrompt(prompt: string) {
+  if (!inputText.value.trim()) inputText.value = prompt;
+  inputEl.value?.focus();
 }
+
+watch(inputText, () => {
+  const input = inputEl.value;
+  if (!input) return;
+  input.style.height = "auto";
+  input.style.height = `${Math.min(input.scrollHeight, 160)}px`;
+}, { flush: "post" });
 
 // ─── Simple message content render ────────────────────────────
 function renderMsgContent(content: string): string {
@@ -242,7 +279,7 @@ const activeMessages = computed(() => props.chatMessages);
 
 // Auto-scroll on new messages
 watch(
-  activeMessages,
+  [activeMessages, () => props.loading],
   async () => {
     await nextTick();
     if (messagesEl.value)
@@ -254,8 +291,8 @@ watch(
 function sendMessage() {
   const text = inputText.value.trim();
   if (!text || props.loading) return;
-  emit("send-chat", text, activeChatMode.value);
   inputText.value = "";
+  emit("send-chat", text, activeChatMode.value);
 }
 
 function closeChat() {
@@ -468,20 +505,57 @@ async function copyText(content: string) {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  container-type: size;
 }
 
-.chat-panel__empty {
-  flex: 1;
-}
-
-/* ─── Messages ────────────────────────────────────────────────── */
+.chat-panel__start,
 .chat-panel__messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--usx-spacing-sm) 0;
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: var(--usx-spacing-xs) 0;
   display: flex;
   flex-direction: column;
-  gap: var(--usx-spacing-sm);
+  gap: var(--usx-spacing-xs);
+}
+
+.chat-panel__start > p,
+.chat-panel__messages > :first-child {
+  margin-top: auto;
+}
+
+.chat-panel__start > p {
+  margin-bottom: 0;
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  color: var(--usx-color-on-surface);
+}
+
+.chat-panel__prompts {
+  display: none;
+}
+
+@container (min-height: 10rem) {
+  .chat-panel__prompts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--usx-spacing-xs);
+    padding-bottom: var(--usx-spacing-xs);
+  }
+}
+
+.chat-panel__prompt.usx-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  margin: 0;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
+  font-size: var(--usx-font-size-sm);
+}
+
+.chat-panel__prompt.usx-btn:hover {
+  background: var(--usx-color-surface-variant);
 }
 
 /* Message bubbles — single container */
@@ -606,7 +680,7 @@ async function copyText(content: string) {
   }
 }
 
-/* ─── Composer (frameless, glass input) ────────────────────────── */
+/* Composer */
 .chat-panel__composer {
   flex-shrink: 0;
   position: relative;
@@ -614,36 +688,37 @@ async function copyText(content: string) {
 
 .chat-panel__composer-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--usx-touch-min);
-  align-items: stretch;
-  gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-xs) 0 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-xs);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-lg);
+  background: var(--usx-color-surface);
 }
 
-.chat-panel__input {
-  flex: 1;
+.chat-panel__composer-row:focus-within {
+  border-color: var(--usx-color-primary);
+}
+
+.chat-panel__composer-row .chat-panel__input {
+  width: 100%;
   min-width: 0;
   box-sizing: border-box;
   margin: 0;
-  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
-  border: var(--usx-border-width) solid color-mix(in srgb, var(--usx-color-border) 50%, transparent);
-  border-radius: var(--usx-radius-lg);
-  background: color-mix(in srgb, var(--usx-color-surface) 60%, transparent);
-  backdrop-filter: blur(12px);
+  padding: 10px var(--usx-spacing-sm);
+  border: 0;
+  background: transparent;
   color: var(--usx-color-on-surface);
-  font-size: var(--usx-font-size-base);
-  font-family: var(--usx-font-family-sans);
+  font: inherit;
   line-height: var(--usx-line-height-tight);
   outline: none;
+  box-shadow: none;
   resize: none;
-  min-height: var(--usx-touch-min);
+  min-height: max(44px, var(--usx-touch-min));
   max-height: 160px;
 }
 
-.chat-panel__input:focus {
-  border-color: var(--usx-color-primary);
-  box-shadow: none;
-}
 .chat-panel__input::placeholder {
   color: var(--usx-color-on-surface-muted);
 }
@@ -771,55 +846,38 @@ async function copyText(content: string) {
   font-weight: var(--usx-font-weight-medium);
 }
 
-/* Send button */
-.chat-panel__send {
-  display: flex;
+.chat-panel__send.usx-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-  min-height: var(--usx-touch-min);
+  width: max(44px, var(--usx-touch-min));
+  height: max(44px, var(--usx-touch-min));
   min-height: 0;
   margin: 0;
-  border: none;
-  background: var(--usx-color-primary);
-  color: #fff;
-  border-radius: var(--usx-radius-lg);
   padding: 0;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition:
-    background var(--usx-transition-fast),
-    transform var(--usx-transition-fast);
+  border: 0;
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-primary);
+  color: var(--usx-color-on-primary);
 }
 
-.chat-panel__send--dev {
-  background: var(--usx-color-warning);
-}
-
-.chat-panel__send:hover:not(:disabled) {
+.chat-panel__send.usx-btn:hover:not(:disabled) {
   background: var(--usx-color-primary-hover);
-  transform: scale(1.04);
 }
 
-.chat-panel__send--dev:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--usx-color-warning) 85%, black);
-}
-
-.chat-panel__send:active:not(:disabled) {
-  transform: scale(0.96);
-}
-.chat-panel__send:disabled {
-  opacity: 0.45;
+.chat-panel__send.usx-btn:disabled {
+  opacity: 1;
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface-muted);
   cursor: not-allowed;
 }
 
 /* Scrollbar */
-.chat-panel__messages::-webkit-scrollbar {
+.chat-panel__body::-webkit-scrollbar {
   width: var(--usx-spacing-xs);
 }
-.chat-panel__messages::-webkit-scrollbar-thumb {
+.chat-panel__body::-webkit-scrollbar-thumb {
   background-color: var(--usx-color-border);
   border-radius: 2px;
 }
@@ -842,11 +900,6 @@ async function copyText(content: string) {
   .chat-panel__header {
     min-height: 0;
     padding: 0;
-  }
-
-  .chat-panel__composer-row {
-    gap: var(--usx-spacing-xs);
-    padding: var(--usx-spacing-xs) 0;
   }
 
   .chat-panel__msg {
@@ -876,9 +929,6 @@ async function copyText(content: string) {
 .chat-panel__mode-btn--active.usx-btn { background: var(--usx-color-surface-variant); color: var(--usx-color-primary); }
 .chat-panel__settings:hover, .chat-panel__mode-btn:hover { background: var(--usx-color-surface-variant); }
 .chat-panel__context { min-height: 32px; margin: 0; padding: 0; border: 0; background: transparent; font-size: inherit; line-height: 1; }
-.chat-panel__composer-row { align-items: end; gap: 8px; margin: 0; padding: 4px 0; }
-.chat-panel__input { min-height: 44px; padding: 8px 12px; border-radius: var(--usx-radius-md); }
-.chat-panel__send.usx-btn { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0; border: 0; border-radius: var(--usx-radius-md); background: var(--usx-color-primary); color: var(--usx-color-on-primary); }
 .chat-panel__send :deep(.u-icon), .chat-panel__header-action :deep(.u-icon), .chat-panel__msg-action :deep(.u-icon) { width: 20px; height: 20px; font-size: 20px; }
 .chat-panel__header-action.usx-btn, .chat-panel__msg-action.usx-btn { width: 32px; height: 32px; min-height: 32px; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
 .chat-panel a:focus-visible, .chat-panel button:focus-visible, .chat-panel select:focus-visible { outline: 2px solid var(--usx-color-primary); outline-offset: 1px; }

@@ -12,8 +12,8 @@
         </div>
       </div>
       <div class="header-meta">
-        <button class="m3-button" @click="handleRefresh">
-          <span class="material-symbols-outlined">refresh</span>
+        <button class="usx-btn usx-btn--secondary m3-button" @click="handleRefresh">
+          <UIcon name="refresh" />
           <span>Refresh</span>
         </button>
       </div>
@@ -27,8 +27,8 @@
       </div>
       <div class="crash-banner-content">
         <span>Restart managed runtimes below or open diagnostics for recovery guidance.</span>
-        <button class="m3-button m3-button-danger" @click="$router.push('/system/s500')">
-          <span class="material-symbols-outlined">medical_services</span>
+        <button class="usx-btn usx-btn--danger m3-button m3-button-danger" @click="$router.push('/system/s500')">
+          <UIcon name="medical_services" />
           <span>Open Crash Recovery</span>
         </button>
       </div>
@@ -78,12 +78,12 @@
               <td v-if="downServices.length > 0">
                 <div v-if="svc.status !== 'up' && svc.actions.includes('restart')" class="crash-inline-actions">
                   <button
-                    class="crash-btn"
+                    class="usx-btn usx-btn--ghost crash-btn"
                     title="Restart service"
                     :disabled="actionLoading === svc.name"
                     @click="doRestart(svc.name)"
                   >
-                    <span class="material-symbols-outlined">restart_alt</span>
+                    <UIcon name="restart_alt" />
                   </button>
                 </div>
                 <span v-else class="server-mono-cell">{{ svc.status === 'up' ? '—' : 'Manual recovery' }}</span>

@@ -121,7 +121,7 @@ it('does not replace the current Workflow item when a document cannot be read', 
   store.binders = [{ id: 'garden' }];
   store.showBinder('garden');
   await expect(store.openVaultDocument('/Binders/garden/docs/missing.md', 'missing.md', 'garden')).rejects.toThrow();
-  expect(store.activeTab).toBe('mission-control');
+  expect(store.activeTab).toBe('binder');
   expect(store.activeBinderId).toBe('garden');
 });
 

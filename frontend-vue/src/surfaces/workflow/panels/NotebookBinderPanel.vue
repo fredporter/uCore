@@ -2,32 +2,35 @@
   <div class="wf-panel notebook-binder-panel">
     <div class="wf-panel__main wf-zen-surface">
       <!-- Standard Header -->
-      <header class="wf-standard-header">
-        <div>
-          <p class="wf-standard-header__kicker">Project workspace</p>
+      <header class="binder-header">
+        <div class="binder-header__title">
           <h2>Binders</h2>
-          <p v-if="activeBinder">
-            {{ activeBinder.metadata.title }} ·
+          <p v-if="activeBinder" class="binder-header__status">
             <span class="binder-status-badge" :class="`binder-status-badge--${activeBinder.metadata.state}`">
-              {{ activeBinder.metadata.state }}
+              {{ activeBinder.metadata.state.replaceAll('_', ' ') }}
             </span>
           </p>
           <p v-else>Select or create a binder.</p>
         </div>
-        <div class="header-actions">
+        <div class="binder-header__controls">
           <select
             v-if="binders.length"
             v-model="selectedBinderId"
-            class="binder-select"
+            class="binder-select binder-select--current"
             aria-label="Current binder"
           >
+            <option v-if="!binders.some(b => (b.id || b.name) === selectedBinderId)"
+              :value="selectedBinderId" disabled>Choose a Binder</option>
             <option v-for="b in binders" :key="b.id || b.name" :value="b.id || b.name">
-              {{ b.title || b.name }} ({{ b.state || 'active' }})
+              {{ b.title || b.name }}
             </option>
           </select>
-          <button class="usx-btn usx-btn--primary wf-zen-primary" type="button" @click="showCreateModal = true">
-            <UIcon name="add" /> New Binder
-          </button>
+          <div class="binder-header__actions">
+            <BinderActions icon-only />
+            <button class="usx-btn binder-header__new" type="button" @click="showCreateModal = true">
+              <UIcon name="add" aria-hidden="true" /> New Binder
+            </button>
+          </div>
         </div>
       </header>
 
@@ -42,16 +45,40 @@
         <UIcon name="check_circle" /> {{ successMessage }}
       </div>
 
-      <section v-if="selectedBinderId" class="binder-related" @dragover.prevent @drop.prevent="dropRelatedTask">
-        <div><h3>Tasks in this binder</h3><span>{{ relatedTasks.filter(task => task.status === 'completed').length }} of {{ relatedTasks.length }} done</span></div>
-        <button class="usx-btn" @click="wf.showList('', selectedBinderId)">View tasks</button>
-        <button class="usx-btn" @click="addBinderTask"><UIcon name="add" /> Add task</button>
-        <button class="usx-btn" @click="openDraftInEditor">Open draft in Editor</button>
+      <section v-if="activeBinder && !loading" class="binder-card" aria-label="Binder missions">
+        <h3>Missions</h3>
+        <div v-for="mission in binderMissions" :key="mission.id">
+          <strong>{{ mission.title }}</strong> · {{ mission.status }}
+          <RouterLink class="usx-btn" :to="{ path: '/snackbar', query: { tab: 'feeds', binder: selectedBinderId, mission: mission.id } }">
+            <UIcon name="rss_feed" aria-hidden="true" /> Review feeds
+          </RouterLink>
+          <RouterLink class="usx-btn" :to="{ path: '/workflow', query: { tab: 'queue', binder: selectedBinderId, mission: mission.id } }">
+            <UIcon name="pending_actions" aria-hidden="true" /> Open queue
+          </RouterLink>
+        </div>
+        <form @submit.prevent="startBinderMission">
+          <label>Mission objective <input v-model.trim="missionObjective" maxlength="500" required /></label>
+          <button class="usx-btn" type="submit" :disabled="creatingMission || !missionObjective">
+            <UIcon name="flag" aria-hidden="true" /> Start mission
+          </button>
+        </form>
+      </section>
+      <section v-if="activeBinder && !loading" class="binder-card" aria-label="Tasks in this Binder" @dragover.prevent @drop.prevent="dropRelatedTask">
+        <div class="binder-card__toolbar" role="group" aria-label="Binder task actions">
+          <div class="binder-card__heading">
+            <h3>Tasks in this Binder</h3>
+            <small>{{ relatedTasks.filter(task => task.status === 'completed').length }} of {{ relatedTasks.length }} done</small>
+          </div>
+          <button class="usx-btn" @click="wf.showList('', selectedBinderId)"><UIcon name="checklist" /> View tasks</button>
+          <button class="usx-btn" @click="addBinderTask"><UIcon name="add" /> Add task</button>
+          <button class="usx-btn" @click="openDraftInEditor"><UIcon name="edit_document" /> Open draft in Editor</button>
+        </div>
         <p v-if="!relatedTasks.length">Drop tasks here to link them to this binder.</p>
         <button v-for="task in relatedTasks" :key="task.id" class="usx-btn" @click="wf.openTask(task)" draggable="true" @dragstart="wf.startTaskDrag($event, task)"><UIcon :name="task.status === 'completed' ? 'check_circle' : 'radio_button_unchecked'" /> {{ task.title }} · {{ task.status }}</button>
       </section>
-      <section v-if="activeBinder && !loading" class="binder-related" aria-label="Binder documents">
-        <h3>Documents</h3>
+      <section v-if="activeBinder && !loading" class="binder-card" aria-label="Binder documents">
+        <h3><UIcon name="description" aria-hidden="true" /> Documents</h3>
+        <p>Stored in the host vault and accessible from any local uCore profile.</p>
         <p v-if="!activeBinder.documents?.length">No saved documents yet.</p>
         <button v-for="document in activeBinder.documents || []" :key="document.path" class="usx-btn" @click="openSavedDocument(document)">
           <UIcon name="description" /> {{ document.filename }}
@@ -82,10 +109,7 @@
 
         <!-- Stage 1: Brief -->
         <section v-if="currentStage === 'brief'" class="stage-content stage-brief">
-          <div class="brief-card">
-            <h3>Brief</h3>
-            <DocumentArticle :content="activeBinder.brief" @navigate="openBinderLink" />
-          </div>
+          <DocumentArticle class="binder-document" :content="activeBinder.brief" @navigate="openBinderLink" />
         </section>
 
         <!-- Stage 2: Sources & Cryptographic Intake -->
@@ -101,7 +125,7 @@
               multiple
               @change="onFileSelected"
             />
-            <button class="wf-zen-secondary" type="button" @click="triggerFileInput">
+            <button class="usx-btn wf-zen-secondary" type="button" @click="triggerFileInput">
               Browse Files
             </button>
           </div>
@@ -137,7 +161,7 @@
             <div class="plan-actions">
               <button
                 v-if="activeBinder.metadata.state === 'draft_brief' || activeBinder.metadata.state === 'planned'"
-                class="wf-zen-secondary"
+                class="usx-btn wf-zen-secondary"
                 type="button"
                 :disabled="authorisingRun"
                 @click="authoriseRun"
@@ -147,7 +171,7 @@
               </button>
               <button
                 v-if="activeBinder.metadata.state === 'running' || activeBinder.metadata.state === 'blocked'"
-                class="wf-zen-secondary"
+                class="usx-btn wf-zen-secondary"
                 type="button"
                 :disabled="runningAssembly"
                 @click="resumeRun"
@@ -248,7 +272,7 @@
             </div>
           </div>
 
-          <DocumentArticle v-if="editableDraft" :content="editableDraft" @navigate="openBinderLink" />
+          <DocumentArticle v-if="editableDraft" class="binder-document" :content="editableDraft" @navigate="openBinderLink" />
           <p v-else>No draft yet. Open the editor to begin.</p>
 
           <div class="evidence-ledger">
@@ -287,14 +311,17 @@
               <UIcon name="share" />
               <div>
                 <h4>Universal Export Bridges</h4>
-                <p>Export project artifacts for Obsidian everyday authoring or Gemini Notebooks (NotebookLM) synthesis.</p>
+                <p>Download the Binder draft for Jupyter or NotebookLM, or generate a vault index for Obsidian.</p>
               </div>
             </div>
             <div class="export-actions">
-              <button class="wf-zen-secondary" type="button" @click="exportGemini">
-                <UIcon name="download" /> Export for Gemini Notebooks (NotebookLM)
+              <button class="usx-btn wf-zen-secondary" type="button" @click="exportGemini">
+                <UIcon name="download" /> Download Markdown for NotebookLM
               </button>
-              <button class="wf-zen-secondary" type="button" @click="exportObsidian">
+              <button class="usx-btn wf-zen-secondary" type="button" @click="exportJupyter">
+                <UIcon name="download" /> Download Jupyter notebook
+              </button>
+              <button class="usx-btn wf-zen-secondary" type="button" @click="exportObsidian">
                 <UIcon name="folder_open" /> Generate Obsidian Vault Index
               </button>
             </div>
@@ -314,7 +341,7 @@
                 <a href="/api/dispatch/feed.xml" target="_blank" class="wf-zen-subtle action-btn" title="Open Syndicated RSS 2.0 Feed with GIF enclosures">
                   <UIcon name="rss_feed" /> Syndicated RSS
                 </a>
-                <button class="wf-zen-secondary" type="button" @click="showDispatchCreator = !showDispatchCreator">
+                <button class="usx-btn wf-zen-secondary" type="button" @click="showDispatchCreator = !showDispatchCreator">
                   <UIcon :name="showDispatchCreator ? 'expand_less' : 'add'" />
                   {{ showDispatchCreator ? 'Close Studio' : 'New Dispatch' }}
                 </button>
@@ -359,7 +386,7 @@
                 <div class="dispatch-form__col">
                   <div class="bob-header-row">
                     <label>Hero Animated BOB / Element</label>
-                    <button class="wf-zen-subtle motif-toggle-btn" type="button" @click="showMotifGenerator = !showMotifGenerator">
+                    <button class="usx-btn usx-btn--ghost wf-zen-subtle motif-toggle-btn" type="button" @click="showMotifGenerator = !showMotifGenerator">
                       <UIcon name="palette" /> {{ showMotifGenerator ? 'Hide Vector Generator' : 'Generate Vector Motif' }}
                     </button>
                   </div>
@@ -383,7 +410,7 @@
                         </select>
                       </label>
                     </div>
-                    <button class="wf-zen-primary motif-gen-btn" type="button" :disabled="generatingBob" @click="generateVectorBob">
+                    <button class="usx-btn usx-btn--primary wf-zen-primary motif-gen-btn" type="button" :disabled="generatingBob" @click="generateVectorBob">
                       <UIcon name="auto_awesome" /> {{ generatingBob ? 'Quantizing...' : 'Generate &amp; Set as Hero' }}
                     </button>
                   </div>
@@ -415,7 +442,7 @@
               <div class="dispatch-content-field">
                 <div class="field-header">
                   <label>Dispatch Story Markdown (defaults to active binder draft)</label>
-                  <button class="wf-zen-subtle" type="button" @click="dispatchForm.story_markdown = editableDraft">
+                  <button class="usx-btn usx-btn--ghost wf-zen-subtle" type="button" @click="dispatchForm.story_markdown = editableDraft">
                     <UIcon name="refresh" /> Reset from Current Draft
                   </button>
                 </div>
@@ -444,7 +471,7 @@
             <div class="binder-dispatches-list">
               <div class="dispatches-header">
                 <h5>Invitations ({{ binderDispatches.length }})</h5>
-                <button class="wf-zen-subtle" type="button" @click="loadBinderDispatches">
+                <button class="usx-btn usx-btn--ghost wf-zen-subtle" type="button" @click="loadBinderDispatches">
                   <UIcon name="refresh" /> Refresh
                 </button>
               </div>
@@ -478,7 +505,7 @@
                       <UIcon name="mail" /> Preview Email
                     </a>
                     <button
-                      class="wf-zen-secondary action-btn"
+                      class="usx-btn wf-zen-secondary action-btn"
                       type="button"
                       :disabled="exportingOfflineId === disp.id"
                       @click="exportOffline(disp.id)"
@@ -488,7 +515,7 @@
                       {{ exportingOfflineId === disp.id ? 'Exporting...' : 'Export Offline' }}
                     </button>
                     <button
-                      class="wf-zen-secondary action-btn"
+                      class="usx-btn wf-zen-secondary action-btn"
                       type="button"
                       @click="toggleResponsesLedger(disp.id)"
                     >
@@ -551,7 +578,7 @@
                           </span>
                           <button
                             v-else
-                            class="wf-zen-subtle create-task-btn"
+                            class="usx-btn usx-btn--ghost wf-zen-subtle create-task-btn"
                             :disabled="creatingTaskIndex === `${disp.id}-${rIdx}`"
                             @click="convertRsvpToTask(disp.id, rIdx)"
                             title="Create a task from this response"
@@ -696,38 +723,45 @@
         </div>
       </div>
 
-      <!-- Create Binder Modal -->
-      <div v-if="showCreateModal" class="modal-backdrop" @click.self="showCreateModal = false">
-        <div class="modal-card">
-          <header class="modal-header">
-            <h3>New Binder</h3>
-            <button class="usx-btn usx-btn--ghost" type="button" aria-label="Close" @click="showCreateModal = false"><UIcon name="close" /></button>
-          </header>
-          <div class="modal-body">
-            <label>Name
-              <input v-model="newBinder.title" type="text" placeholder="My learning project" required />
-            </label>
-            <label>About this collection (optional)
-              <textarea v-model="newBinder.outcome" rows="3" placeholder="What materials belong in this Binder?" />
-            </label>
-            <label>Audience
-              <input v-model="newBinder.audience" type="text" placeholder="Me, my family or my community" />
-            </label>
-          </div>
-          <footer class="modal-footer">
-            <button class="usx-btn wf-zen-secondary" type="button" @click="showCreateModal = false">Cancel</button>
-            <button class="usx-btn usx-btn--primary wf-zen-primary" type="button" :disabled="creating" @click="createBinder">
-              {{ creating ? 'Creating...' : 'Create Binder' }}
-            </button>
-          </footer>
+      <Teleport to="body">
+        <div v-if="showCreateModal" class="modal-backdrop binder-dialog-backdrop"
+          @click.self="!creating && (showCreateModal = false)"
+          @keydown.esc.stop="!creating && (showCreateModal = false)">
+          <form class="modal-card binder-dialog" role="dialog" aria-modal="true"
+            aria-label="New Binder" @submit.prevent="createBinder">
+            <header class="modal-header">
+              <h3>New Binder</h3>
+              <button class="usx-btn binder-dialog__close" type="button" aria-label="Close"
+                :disabled="creating" @click="showCreateModal = false"><UIcon name="close" /></button>
+            </header>
+            <div class="modal-body">
+              <label>Name
+                <input v-model="newBinder.title" type="text" placeholder="My learning project" required />
+              </label>
+              <label>Description (optional)
+                <textarea v-model="newBinder.outcome" rows="2" placeholder="What belongs in this Binder?" />
+              </label>
+              <label>Audience
+                <input v-model="newBinder.audience" type="text" placeholder="Me, my family or my community" />
+              </label>
+              <p v-if="errorMessage" role="alert">{{ errorMessage }}</p>
+            </div>
+            <footer class="modal-footer">
+              <button class="usx-btn" type="button" :disabled="creating" @click="showCreateModal = false">Cancel</button>
+              <button class="usx-btn usx-btn--primary" type="submit" :disabled="creating || !newBinder.title.trim()">
+                {{ creating ? 'Creating…' : 'Create Binder' }}
+              </button>
+            </footer>
+          </form>
         </div>
-      </div>
+      </Teleport>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch, toRefs } from "vue";
+import BinderActions from "../../../skills/molecules/BinderActions.vue";
 import { useWorkflowStore } from "@/stores/workflow";
 import DocumentArticle from "@/skills/molecules/DocumentArticle.vue";
 import UIcon from "@/skills/atoms/UIcon.vue";
@@ -846,6 +880,24 @@ function getStageBadge(stageId: string): string {
 watch(() => wf.binderCreateRequested, requested => {
   if (requested) { showCreateModal.value = true; wf.binderCreateRequested = false; }
 }, { immediate: true });
+const binderMissions = computed(() => wf.missions.filter(mission => mission.binder === selectedBinderId.value));
+const missionObjective = ref("");
+const creatingMission = ref(false);
+
+async function startBinderMission() {
+  if (creatingMission.value || !selectedBinderId.value || !missionObjective.value) return;
+  creatingMission.value = true;
+  errorMessage.value = "";
+  try {
+    await wf.createMission(missionObjective.value, selectedBinderId.value);
+    missionObjective.value = "";
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : String(error);
+  } finally {
+    creatingMission.value = false;
+  }
+}
+
 const relatedTasks = computed(() => wf.tasks.filter(task => task.binder === selectedBinderId.value));
 async function dropRelatedTask(event: DragEvent) {
   try { await wf.dropTask(event, { binder: selectedBinderId.value }); }
@@ -883,17 +935,33 @@ async function fetchBinders(force = false) {
     else if (selectedBinderId.value) await loadActiveBinder();
   } catch (error) { errorMessage.value = error instanceof Error ? error.message : "Could not load binders"; }
 }
-watch(selectedBinderId, () => { void loadActiveBinder(); });
 let binderRequest = 0;
+watch(selectedBinderId, () => { void loadActiveBinder(); });
+watch(() => binders.value.find(binder => binder.id === selectedBinderId.value)?.title, title => {
+  if (title && activeBinder.value?.metadata.id === selectedBinderId.value) {
+    activeBinder.value.metadata.title = title;
+  }
+});
 
 async function loadActiveBinder() {
-  if (!selectedBinderId.value) return;
   const requestId = ++binderRequest;
+  if (!selectedBinderId.value) {
+    activeBinder.value = null;
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   errorMessage.value = "";
   conflictDetected.value = false;
   try {
     const res = await fetch(`/api/binder/${encodeURIComponent(selectedBinderId.value)}`);
+    if (res.status === 404) {
+      if (requestId === binderRequest) {
+        activeBinder.value = null;
+        errorMessage.value = "Binder unavailable. Choose another Binder or create one.";
+      }
+      return;
+    }
     if (!res.ok) throw new Error(`Failed loading binder (${res.status})`);
     const data = await res.json();
     if (requestId !== binderRequest) return;
@@ -905,9 +973,9 @@ async function loadActiveBinder() {
     loadedBaseHash.value = data.binder.draft_sha256 || "";
     await loadBinderDispatches();
   } catch (e: any) {
-    errorMessage.value = e.message || String(e);
+    if (requestId === binderRequest) errorMessage.value = e.message || String(e);
   } finally {
-    loading.value = false;
+    if (requestId === binderRequest) loading.value = false;
   }
 }
 
@@ -1091,7 +1159,7 @@ async function publishEdition(edNum: number) {
 }
 
 async function createBinder() {
-  if (!newBinder.value.title.trim()) return;
+  if (creating.value || !newBinder.value.title.trim()) return;
   newBinder.value.id = newBinder.value.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `binder-${Date.now()}`;
   creating.value = true;
   errorMessage.value = "";
@@ -1236,6 +1304,21 @@ async function exportGemini() {
   } catch (e: any) {
     errorMessage.value = e.message || String(e);
   }
+}
+
+function exportJupyter() {
+  const binder = activeBinder.value;
+  if (!binder) return;
+  const notebook = {
+    nbformat: 4,
+    nbformat_minor: 5,
+    metadata: {},
+    cells: [
+      { id: "brief", cell_type: "markdown", metadata: {}, source: binder.brief || "" },
+      { id: "draft", cell_type: "markdown", metadata: {}, source: binder.draft || "" },
+    ],
+  };
+  downloadTextFile(`${selectedBinderId.value}.ipynb`, JSON.stringify(notebook, null, 2));
 }
 
 async function exportObsidian() {
@@ -1459,9 +1542,121 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.binder-related { display: flex; flex-wrap: wrap; align-items: center; gap: var(--usx-spacing-sm); padding: var(--usx-spacing-md); border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-md); }
-.binder-related > div { margin-right: auto; }
-.binder-related h3, .binder-related p { margin: 0; }
+.binder-header {
+  display: grid;
+  gap: var(--usx-spacing-sm);
+  padding-block-end: var(--usx-spacing-sm);
+}
+
+.binder-header__title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-xs) var(--usx-spacing-sm);
+}
+
+.binder-header__title h2,
+.binder-header__title p { margin: 0; }
+
+.binder-header__controls,
+.binder-header__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-xs);
+  min-width: 0;
+}
+
+.binder-header__controls .binder-select {
+  flex: 1 1 12rem;
+  min-width: 0;
+  height: 32px;
+  min-height: 32px;
+  margin: 0;
+  padding: 4px 8px;
+  width: 100%;
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
+  border-color: var(--usx-color-border);
+}
+
+.binder-header__actions .usx-btn,
+.binder-header__actions :deep(.binder-actions .usx-btn) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--usx-spacing-xs);
+  box-sizing: border-box;
+  min-height: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0 8px;
+  white-space: nowrap;
+  font-size: var(--usx-font-size-sm);
+}
+
+.binder-header__actions .binder-header__new {
+  border: 1px solid var(--usx-color-primary);
+  border-radius: var(--usx-radius-sm);
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
+  color: var(--usx-color-primary);
+}
+.binder-header__actions .binder-header__new:hover {
+  background: color-mix(in srgb, var(--usx-color-primary) 22%, transparent);
+}
+.binder-header__actions :deep(.u-icon) { font-size: 18px; }
+
+.binder-header__actions :deep(.binder-actions .usx-btn) {
+  width: 32px;
+  padding: 0;
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
+  border: 1px solid var(--usx-color-border);
+}
+
+.binder-header__actions :deep(.binder-actions .usx-btn:hover) {
+  background: var(--usx-color-surface-variant);
+}
+
+.binder-card {
+  display: grid;
+  justify-items: start;
+  gap: var(--usx-spacing-sm);
+  min-width: 0;
+  margin-block: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-md);
+  border: 1px solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface);
+}
+
+.binder-card__toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-xs);
+  width: 100%;
+}
+
+.binder-card__heading { margin-inline-end: auto; }
+.binder-card h3, .binder-card p { margin: 0; }
+.binder-card h3 { font-size: var(--usx-font-size-base); }
+.binder-card p, .binder-card small { color: var(--usx-color-on-surface-muted); }
+.binder-card .usx-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  margin: 0;
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  font-size: var(--usx-font-size-sm);
+}
+
+.binder-select.binder-select--current:focus {
+  border-color: transparent;
+  box-shadow: none;
+  outline: 2px solid var(--usx-color-primary);
+  outline-offset: -2px;
+}
 
 .notebook-binder-panel {
   display: flex;
@@ -1491,15 +1686,10 @@ onMounted(() => {
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
+  text-transform: capitalize;
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface-muted);
 }
-
-.binder-status-badge--draft_brief { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
-.binder-status-badge--planned { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
-.binder-status-badge--running { background: rgba(234, 179, 8, 0.2); color: #eab308; }
-.binder-status-badge--ready_for_review { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
-.binder-status-badge--accepted { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
-.binder-status-badge--published { background: rgba(16, 185, 129, 0.25); color: #10b981; }
 
 .stages-nav {
   display: flex;
@@ -1559,11 +1749,33 @@ onMounted(() => {
   gap: 1.5rem;
 }
 
-.brief-card {
-  background: var(--surface-card, #1e293b);
-  border: 1px solid var(--border-subtle, #334155);
-  border-radius: 8px;
-  padding: 1.5rem;
+.stage-brief {
+  padding: 0;
+}
+
+.stage-draft {
+  padding: var(--usx-spacing-sm) 0 0;
+}
+
+.binder-document {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.binder-document :deep(.reading-prose) {
+  max-width: 72ch;
+}
+
+.binder-document :deep(.reading-contents > summary) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--usx-touch-min);
+  padding-block: var(--usx-spacing-xs);
+  line-height: 1.4;
 }
 
 .sources-upload-box {
@@ -1688,7 +1900,22 @@ onMounted(() => {
 
 .draft-actions {
   display: flex;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+}
+
+.draft-actions .usx-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  margin: 0;
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+}
+
+.draft-actions > span {
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm);
 }
 
 .draft-textarea {
@@ -1951,6 +2178,43 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+.binder-dialog-backdrop { padding: 12px; box-sizing: border-box; }
+.binder-dialog {
+  box-sizing: border-box;
+  width: min(100%, 27rem);
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: var(--usx-spacing-md);
+  gap: var(--usx-spacing-md);
+  color: var(--usx-color-on-surface);
+  background: var(--usx-color-surface);
+  border-color: var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+}
+.binder-dialog h3, .binder-dialog p { margin: 0; }
+.binder-dialog .modal-header,
+.binder-dialog .modal-footer {
+  gap: var(--usx-spacing-sm);
+}
+.binder-dialog .modal-footer { flex-wrap: wrap; }
+.binder-dialog .modal-body label { color: var(--usx-color-on-surface-muted); }
+.binder-dialog .modal-body :is(input, textarea) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  background: var(--usx-color-background);
+  color: var(--usx-color-on-surface);
+  border-color: var(--usx-color-border);
+}
+.binder-dialog :is(.modal-footer button, .binder-dialog__close) {
+  margin: 0;
+  min-height: 36px;
+  padding: 4px 12px;
+}
+.binder-dialog .binder-dialog__close { padding-inline: 8px; background: transparent; }
+.binder-dialog [role="alert"] { color: var(--usx-color-danger); }
 
 .wf-zen-primary {
   display: inline-flex;

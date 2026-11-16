@@ -3,7 +3,7 @@
     <div class="snackbar-plugins__head">
       <h3 class="surface__panel-title">Extensions</h3>
       <button
-        class="snackbar-plugins__refresh"
+        class="usx-btn usx-btn--secondary snackbar-plugins__refresh"
         :disabled="refreshing"
         @click="refresh()"
       >
@@ -43,10 +43,11 @@
     <div v-if="extStore.actionMessage" class="snackbar-plugins__toast">
       {{ extStore.actionMessage }}
       <button
-        class="snackbar-plugins__toast-close"
+        class="usx-btn usx-btn--ghost snackbar-plugins__toast-close"
+        aria-label="Close"
         @click="extStore.actionMessage = ''"
       >
-        &times;
+        <UIcon name="close" />
       </button>
     </div>
 
@@ -102,7 +103,7 @@
           <div class="snackbar-plugins__action-btns">
             <button
               v-if="!ext.is_installed"
-              class="snackbar-plugins__btn snackbar-plugins__btn--install"
+              class="usx-btn usx-btn--primary snackbar-plugins__btn snackbar-plugins__btn--install"
               :disabled="loadingAction(ext.id) !== ''"
               @click="onInstall(ext)"
             >
@@ -116,7 +117,7 @@
             </button>
             <button
               v-else
-              class="snackbar-plugins__btn snackbar-plugins__btn--repair"
+              class="usx-btn usx-btn--secondary snackbar-plugins__btn snackbar-plugins__btn--repair"
               :disabled="loadingAction(ext.id) !== ''"
               @click="onRepair(ext)"
             >
@@ -145,6 +146,7 @@
  */
 import { computed, onMounted, ref } from "vue";
 import { useExtensionStore } from "../../../stores/extensions";
+import UIcon from "../../../skills/atoms/UIcon.vue";
 
 const extStore = useExtensionStore();
 const refreshing = ref(false);

@@ -125,14 +125,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import { useSnackbarOpsStore } from "../../../stores/snackbarOps";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 import UBadge from "../../../skills/atoms/UBadge.vue";
 import UButton from "../../../skills/atoms/UButton.vue";
 
 const srv = useSnackbarOpsStore();
+const route = useRoute();
 const filter = ref("");
+watch(() => route.query.skill, skill => {
+  filter.value = typeof skill === "string" ? skill : "";
+}, { immediate: true });
 const sourceOpen = ref<string | null>(null);
 const sourceContent = ref("");
 const runLoading = ref<string | null>(null);

@@ -73,6 +73,37 @@ class TestLibraryIndexService:
         assert result["sources"][0]["files"] == 2
         assert result["sources"][0]["status"] == "ok"
 
+    def test_topic_index_tracks_legacy_metadata_and_removes_moved_paths(self):
+        from app.services.library_index import build_index, search
+
+        source = self._create_test_files("public", {
+            "global-knowledge/communication/guide.md": (
+                "---\nuid: guide-1\ntitle: Radio Guide\nneeds: [research]\n"
+                "origin_place: Perth\nversion: v2\nreferences: [guide-2]\n---\n"
+                "# Radio Guide\n\n**Category:** Communication\n**Generated:** 2025-11-24\n"
+            ),
+            "global-knowledge/communication/other.md": "# Other",
+        })
+        paths = {"public": source}
+        build_index(vault_paths=paths)
+        first, = search("*", source="public", limit=1)
+        second, = search("*", source="public", limit=1, offset=1)
+        assert first["path"] != second["path"]
+        guide, = search("guide-1", source="public")
+        assert guide["is_readonly"]
+        meta = guide["knowledge"]
+        assert (meta["uid"], meta["topic"], meta["origin_date"], meta["origin_place"]) == (
+            "guide-1", "Communication", "2025-11-24", "Perth",
+        )
+        assert meta["version"] == "v2"
+        assert meta["references"] == ["guide-2"]
+        assert meta["needs"] == ["research"]
+
+        Path(guide["path"]).rename(source / "moved.md")
+        build_index(vault_paths=paths)
+        moved, = search("guide-1", source="public")
+        assert moved["filename"] == "moved.md"
+
     def test_build_index_with_code_files(self):
         """build_index indexes TypeScript and Python files."""
         from app.services.library_index import build_index

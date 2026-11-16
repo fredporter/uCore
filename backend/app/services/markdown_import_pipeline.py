@@ -5,12 +5,18 @@ any supported input -> markdown -> vault/binder document.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from html import unescape
 from html.parser import HTMLParser
-from typing import Callable
+from typing import Any, Callable
+
+import yaml
+
+_INTAKE_FRONTMATTER = re.compile(r"^---[ \t]*\r?\n(.*?)^---[ \t]*(?:\r?\n|$)", re.M | re.S)
 
 
 @dataclass(frozen=True)
@@ -18,6 +24,84 @@ class ConversionResult:
     markdown: str
     source_format: str
     plugin_id: str
+
+
+def render_intake_markdown(
+    markdown: str,
+    metadata: dict[str, Any],
+    *,
+    source: str,
+    source_kind: str,
+    captured_at: str,
+    payload: str,
+    preserve_frontmatter: bool = False,
+) -> str:
+    """Render one frontmatter block while retaining authored metadata."""
+    authored, markdown = _read_frontmatter(markdown) if preserve_frontmatter else ({}, markdown)
+
+    frontmatter = {**metadata, **authored}
+    for key in ("binder", "vault_layer"):
+        if key in metadata:
+            frontmatter[key] = metadata[key]
+    if "intake" in authored:
+        frontmatter["previous_intake"] = authored["intake"]
+    frontmatter["intake"] = {
+        "schema_version": 1,
+        "source_kind": source_kind,
+        "source": source,
+        "captured_at": captured_at,
+        "payload_sha256": hashlib.sha256(payload.encode("utf-8")).hexdigest(),
+    }
+    front = yaml.safe_dump(frontmatter, sort_keys=False, allow_unicode=True).rstrip()
+    body = markdown.rstrip("\n") or "Imported document has no body."
+    return f"---\n{front}\n---\n\n{body}\n"
+
+
+def _read_frontmatter(markdown: str) -> tuple[dict[str, Any], str]:
+    if not markdown or markdown.partition("\n")[0].rstrip() != "---":
+        return {}, markdown
+    match = _INTAKE_FRONTMATTER.match(markdown)
+    if not match:
+        raise ValueError("Unclosed Markdown frontmatter")
+    try:
+        parsed = yaml.safe_load(match.group(1))
+    except yaml.YAMLError as exc:
+        raise ValueError("Invalid Markdown frontmatter") from exc
+    if parsed is None:
+        parsed = {}
+    if not isinstance(parsed, dict):
+        raise ValueError("Markdown frontmatter must be a mapping")
+    return parsed, markdown[match.end():].lstrip("\r\n")
+
+
+def check_intake_markdown(markdown: str) -> tuple[str, list[str]]:
+    """Check provenance fields without claiming to verify the original payload."""
+    try:
+        metadata, _ = _read_frontmatter(markdown)
+    except ValueError as exc:
+        return "invalid", [str(exc)]
+    if "intake" not in metadata:
+        return "untracked", []
+    intake = metadata["intake"]
+    if not isinstance(intake, dict):
+        return "invalid", ["Intake provenance must be a mapping."]
+    issues = []
+    if type(intake.get("schema_version")) is not int or intake["schema_version"] != 1:
+        issues.append("Unsupported intake schema version.")
+    if intake.get("source_kind") not in ("local", "web", "feed"):
+        issues.append("Unrecognised source kind.")
+    if not isinstance(intake.get("source"), str) or not intake["source"].strip():
+        issues.append("Source is missing.")
+    captured = intake.get("captured_at")
+    try:
+        if not isinstance(captured, str) or datetime.fromisoformat(captured).utcoffset() is None:
+            raise ValueError
+    except ValueError:
+        issues.append("Capture time needs an ISO timestamp with a timezone.")
+    digest = intake.get("payload_sha256")
+    if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        issues.append("Payload digest needs a SHA-256 value.")
+    return ("invalid" if issues else "complete"), issues
 
 
 class _HtmlToTextBridge(HTMLParser):
@@ -110,7 +194,7 @@ def _normalize_markdown(text: str) -> str:
 
 def _convert_markdown(content: str) -> ConversionResult:
     return ConversionResult(
-        markdown=_normalize_markdown(content),
+        markdown=content,
         source_format="markdown",
         plugin_id="builtin.markdown_passthrough",
     )
@@ -200,6 +284,9 @@ def detect_source_format(content: str) -> str:
             return "json"
         except Exception:
             pass
+
+    if _INTAKE_FRONTMATTER.match(content):
+        return "markdown"
 
     markdown_markers = (
         "# ",

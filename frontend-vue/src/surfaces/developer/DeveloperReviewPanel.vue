@@ -6,11 +6,11 @@
     <ul v-else>
       <li v-for="item in items" :key="`${item.staged}-${item.file}`">
         <div class="review__file-row">
-          <button class="review__file" @click="$emit('select', item.file)">
+          <button class="usx-btn usx-btn--ghost review__file" @click="$emit('select', item.file)">
             <UBadge :type="item.staged ? 'success' : 'warning'" size="sm">{{ item.staged ? 'staged' : item.status }}</UBadge>
             <span>{{ item.file }}</span>
           </button>
-          <button class="review__stage" :title="item.staged ? 'Unstage file' : 'Stage file'" @click="toggleStage(item)">
+          <button class="usx-btn usx-btn--ghost review__stage" :title="item.staged ? 'Unstage file' : 'Stage file'" @click="toggleStage(item)">
             <UIcon :name="item.staged ? 'remove' : 'add'" />
           </button>
         </div>

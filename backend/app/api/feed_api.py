@@ -7,6 +7,9 @@ POST /api/feed/link      — link a .tasker task to a feed activity
 """
 from __future__ import annotations
 
+import asyncio
+import hashlib
+import json
 import logging
 
 from aiohttp import web
@@ -18,10 +21,10 @@ _feed_server = None
 _profile_feed_servers = {}
 
 
-def _get_feed_server():
+def _get_feed_server(profile=None):
     global _feed_server
     from app.services.identity import get_full_identity
-    profile = get_full_identity().get('active_profile_id') or 'signed-out'
+    profile = profile or get_full_identity().get('active_profile_id') or 'signed-out'
     if profile != 'default':
         from app.services.feed_store import FeedServer, profile_feed_path
         if profile not in _profile_feed_servers:
@@ -150,6 +153,56 @@ async def handle_feed_link(request: web.Request) -> web.Response:
     return web.json_response(result)
 
 
+async def handle_feed_send_to_binder(request: web.Request) -> web.Response:
+    """Capture a stored activity as a document in an existing User Vault Binder."""
+    from app.api.connections_api import profile
+    from app.api.user_workflow import _import_markdown
+
+    owner = profile(request)
+    try:
+        body = await request.json()
+        activity_id = body["activity_id"]
+        binder = body["binder"]
+        if type(activity_id) is not int or activity_id < 1:
+            raise ValueError("Invalid activity ID")
+        if not isinstance(binder, str) or not binder.strip():
+            raise ValueError("Choose an existing Binder")
+    except (KeyError, TypeError, ValueError):
+        return web.json_response({"error": "An activity ID and Binder are required"}, status=400)
+
+    activity = _get_feed_server(owner).get_activity(activity_id)
+    if activity is None:
+        return web.json_response({"error": "Activity not found"}, status=404)
+
+    source = activity["source"]
+    origin_id = activity.get("external_id") or str(activity_id)
+    uid = hashlib.sha256(json.dumps([owner, source, origin_id]).encode("utf-8")).hexdigest()
+    snapshot = {
+        key: activity.get(key) for key in ("title", "content", "url", "timestamp", "type")
+    }
+    payload = json.dumps(snapshot, sort_keys=True, ensure_ascii=False)
+    revision = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    title = snapshot["title"] or "Feed activity"
+    return await asyncio.to_thread(
+        _import_markdown,
+        {
+            "binder": binder,
+            "require_existing_binder": True,
+            "content": snapshot["content"] or title,
+            "source_format": "text",
+            "title": title,
+            "filename": f"activity-{uid[:24]}-{revision[:24]}.md",
+        },
+        feed_entry=({
+            "uid": f"feed:{uid}",
+            "feed_entry_id": origin_id,
+            "source_url": snapshot["url"],
+            "published": snapshot["timestamp"],
+            "source_revision": revision,
+        }, source, payload),
+    )
+
+
 async def handle_feed_promote(request: web.Request) -> web.Response:
     """Promote one feed item into the canonical markdown Tasker inbox."""
     try:
@@ -159,20 +212,33 @@ async def handle_feed_promote(request: web.Request) -> web.Response:
         return web.json_response({"error": "activity_id is required"}, status=400)
 
     server = _get_feed_server()
-    rows = await server.query_feed(limit=500)
-    activity = next((row for row in rows if int(row["id"]) == activity_id), None)
+    activity = server.get_activity(activity_id)
     if not activity:
         return web.json_response({"error": "Activity not found"}, status=404)
 
     from app.services.feed_workflow import promote_activity_to_task
+
+    binder = str(body.get("binder") or "Sandbox")
+    mission = body.get("mission")
+    if mission:
+        from app.services.identity import get_full_identity
+        from app.services.workflow_manager import WorkflowManager
+
+        profile = get_full_identity().get("active_profile_id") or "default"
+        selected = next(
+            (item for item in WorkflowManager().list_missions(profile) if item["id"] == mission),
+            None,
+        )
+        if not selected or selected["binder"] != binder:
+            return web.json_response({"error": "Mission does not belong to this Binder"}, status=400)
 
     promoted = promote_activity_to_task(
         activity,
         title=body.get("title"),
         board=str(body.get("board") or "inbox"),
         priority=str(body.get("priority") or "medium"),
-        binder=str(body.get("binder") or "Sandbox"),
-        mission=body.get("mission"),
+        binder=binder,
+        mission=mission,
         due_date=body.get("due_date") or body.get("due"),
         sync_apple_reminders=bool(body.get("sync_apple_reminders", False)),
         archive_source_mail=bool(body.get("archive_source_mail", False)),
@@ -384,6 +450,7 @@ def register_feed_routes(app: web.Application) -> None:
     app.router.add_get("/api/feed/suggest", handle_feed_suggest)
     app.router.add_post("/api/feed/link", handle_feed_link)
     app.router.add_post("/api/feed/promote", handle_feed_promote)
+    app.router.add_post("/api/feed/send-to-binder", handle_feed_send_to_binder)
     app.router.add_get("/api/feed/rules", handle_feed_rules)
     app.router.add_post("/api/feed/rules/apply", handle_feed_rules_apply)
     app.router.add_get("/api/feed/runtime", handle_feed_runtime)

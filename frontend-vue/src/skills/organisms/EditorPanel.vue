@@ -78,7 +78,7 @@
           v-if="viewMode === 'split' || viewMode === 'preview'"
           class="editor-panel__prose"
         >
-          <div class="editor-panel__prose-bar">
+          <div class="document-editor-toolbar">
             <div class="editor-panel__pane-actions">
               <button v-if="viewMode === 'preview'" type="button" title="Show code" aria-label="Show code" @click="openCodePane">
                 <UIcon name="edit_note" :size="20" />
@@ -92,10 +92,33 @@
             </div>
           </div>
           <MarkdownPreview
-            :content="bodyContent"
+            :content="previewDocument.body"
             :filename="currentFilename"
             class="editor-panel__preview"
-          />
+          >
+            <template #metadata>
+              <div v-if="hasKnowledgeMetadata" class="editor-panel__metadata">
+                <div v-if="previewDocument.topic" class="editor-panel__metadata-row">
+                  <strong>Topic</strong><span class="editor-panel__tag">{{ previewDocument.topic }}</span>
+                </div>
+                <div v-if="previewDocument.tags.length" class="editor-panel__metadata-row">
+                  <strong>Tags</strong><span v-for="tag in previewDocument.tags" :key="tag" class="editor-panel__tag">{{ tag }}</span>
+                </div>
+                <div v-if="previewDocument.difficulty" class="editor-panel__metadata-row">
+                  <strong>{{ difficultyLabel }}</strong><span>{{ difficultyValue }}</span>
+                </div>
+                <div v-if="previewDocument.status || previewDocument.needs.length" class="editor-panel__metadata-row">
+                  <strong>Content status</strong><span v-if="previewDocument.status" class="editor-panel__tag">{{ previewDocument.status }}</span>
+                  <RouterLink v-for="need in previewDocument.needs" :key="need" class="usx-btn editor-panel__tag"
+                    :to="{ path: '/workflow', query: { tab: 'skills', skill: skillForNeed(need) } }">{{ need }}</RouterLink>
+                </div>
+                <details v-if="originFields.length">
+                  <summary>Document identity and origin</summary>
+                  <dl><template v-for="[label, value] in originFields" :key="label"><dt>{{ label }}</dt><dd>{{ value }}</dd></template></dl>
+                </details>
+              </div>
+            </template>
+          </MarkdownPreview>
         </div>
       </div>
 
@@ -155,6 +178,7 @@ import SummarizeModal from "../molecules/editor/SummarizeModal.vue";
 import CitationModal from "../molecules/editor/CitationModal.vue";
 import ToolbarScrapeModal from "../molecules/editor/ToolbarScrapeModal.vue";
 import CombineResearchModal from "../molecules/editor/CombineResearchModal.vue";
+import { useSettingsStore } from "../../stores/settings";
 import { useShellStore } from "../../stores/shell";
 import { useToast } from "../../composables/useToast";
 import { useWorkspaceStore, type FileNode } from "../../stores/workspace";
@@ -169,6 +193,7 @@ import {
 interface Props {
   content?: string;
   title?: string;
+  documentPath?: string;
   readOnly?: boolean;
   editMode?: "prose" | "code";
   /** Hide the title + frontmatter doc header (e.g. compact slide-in panel). */
@@ -197,6 +222,7 @@ const emit = defineEmits<{
 }>();
 
 const shell = useShellStore();
+const settings = useSettingsStore();
 const { toast } = useToast();
 const workspace = useWorkspaceStore();
 
@@ -252,6 +278,63 @@ function onEditorModeChange(mode: "prose" | "code") {
 
 // ─── Frontmatter ─────────────────────────────────────────────────────
 const frontmatter = ref<Frontmatter>(initialDocument.frontmatter);
+
+function skillForNeed(need: string) {
+  return { formatting: "attach_context", enhancement: "attach_context", research: "ask_vault" }[need.toLowerCase()];
+}
+
+const previewDocument = computed(() => {
+  const fm = frontmatter.value;
+  const body = bodyContent.value;
+  const legacyBlock = /^(\s*(?:#[ \t][^\r\n]+\r?\n\s*)?)((?:\*\*(?:Topic|Category|Difficulty|Generated):\*\*[^\r\n]*\r?\n?)+)/;
+  const legacy: Record<string, string> = {};
+  const renderedBody = body.replace(legacyBlock, (_, heading: string, metadata: string) => {
+    for (const [, label, value] of metadata.matchAll(/^\*\*(Topic|Category|Difficulty|Generated):\*\*[ \t]+([^\r\n]+)/gm)) {
+      legacy[label] = value.trim();
+    }
+    return heading;
+  });
+  const topicFolder = props.documentPath?.split("/global-knowledge/")[1]?.split("/").slice(0, -1);
+  const list = (value: unknown): string[] => (Array.isArray(value) ? value : [value])
+    .filter((item): item is string => typeof item === "string" && Boolean(item.trim())).map(item => item.trim());
+  const needs = new Set(list(fm.needs));
+  if (topicFolder?.length && /\[Placeholder\s*-/i.test(body)) needs.add("enhancement");
+  if (topicFolder?.[0] === "contributor" && !/^#\s/m.test(body) && body.trim()) needs.add("formatting");
+  return {
+    body: renderedBody,
+    topic: String(fm.topic || fm.category || legacy.Topic || legacy.Category || topicFolder?.[0] || ""),
+    tags: [...new Set(list(fm.tags))],
+    difficulty: String(fm.difficulty || legacy.Difficulty || ""),
+    generated: legacy.Generated || "",
+    status: String(fm.status || (needs.size ? "Needs review" : "")),
+    needs: [...needs],
+  };
+});
+
+const difficultyLabel = computed(() => settings.terminologyPack === "storytelling" ? "Level" : "Difficulty");
+const difficultyValue = computed(() => {
+  const value = previewDocument.value.difficulty;
+  if (settings.terminologyPack !== "storytelling") return value;
+  const levels: Record<string, string> = { basic: "Apprentice", beginner: "Apprentice", intermediate: "Guide", advanced: "Sage", expert: "Sage" };
+  return levels[value.toLowerCase()] || value;
+});
+
+const originFields = computed(() => {
+  const fm = frontmatter.value;
+  return [
+    ["Universal ID", fm.uid], ["Origin date", fm.origin_date || previewDocument.value.generated || fm.created],
+    ["Origin time", fm.origin_time], ["Origin place", fm.origin_place],
+    ["Version", fm.version], ["Revision", fm.revision],
+  ].flatMap(([label, value]): [string, string][] =>
+    typeof label === "string" && value !== "" && (typeof value === "string" || typeof value === "number")
+      ? [[label, String(value)]] : [],
+  );
+});
+
+const hasKnowledgeMetadata = computed(() => {
+  const meta = previewDocument.value;
+  return Boolean(meta.topic || meta.tags.length || meta.difficulty || meta.status || meta.needs.length || originFields.value.length);
+});
 const hasFrontmatter = computed(
   () => Object.keys(frontmatter.value).length > 0,
 );
@@ -435,22 +518,6 @@ function toggleEditMode() {
   overflow: hidden;
 }
 
-.editor-panel__prose-bar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  flex-shrink: 0;
-  min-height: var(--usx-control-size-sm);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
-  border-bottom: 0;
-  background: color-mix(in srgb, var(--usx-color-surface) 58%, transparent);
-  overflow-x: auto;
-}
-
-.editor-panel__prose-bar .editor-toolbar {
-  flex-shrink: 0;
-}
-
 .editor-panel__pane-actions {
   display: flex;
   align-items: center;
@@ -462,9 +529,12 @@ function toggleEditMode() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--usx-control-size-sm);
-  height: var(--usx-control-size-sm);
-  min-height: 0;
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  margin: 0;
+  box-shadow: none;
   padding: 0;
   border: var(--usx-border-width) solid transparent;
   border-radius: var(--usx-radius-md);
@@ -489,6 +559,17 @@ function toggleEditMode() {
   overflow-y: auto;
 }
 
+.editor-panel__preview :deep(.md-preview__prose),
+.editor-panel__preview :deep(.md-preview__slide-content) {
+  padding: var(--document-editor-inset);
+  max-width: none;
+}
+
+.editor-panel__preview :deep(.md-preview__prose > :first-child),
+.editor-panel__preview :deep(.md-preview__slide-content > :first-child) {
+  margin-block-start: 0;
+}
+
 /* ─── 2-column body layout ───────────────────────────────────────── */
 .editor-panel__body {
   flex: 1;
@@ -506,6 +587,7 @@ function toggleEditMode() {
 }
 
 .editor-panel__main {
+  --document-editor-inset: clamp(var(--usx-spacing-md), 4vw, calc(var(--usx-spacing-2xl) * 1.5));
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -604,4 +686,10 @@ function toggleEditMode() {
   width: 0;
   opacity: 0;
 }
+.editor-panel__metadata { padding: var(--document-editor-inset); padding-bottom: 0; font-size: var(--usx-font-size-sm); overflow-wrap: anywhere; }
+.editor-panel__metadata-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-bottom: 6px; }
+.editor-panel__tag { background: var(--usx-color-surface-variant); border: 1px solid var(--usx-color-border); padding: 2px 8px; border-radius: 999px; }
+.editor-panel__metadata summary { cursor: pointer; }
+.editor-panel__metadata dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 8px; }
+.editor-panel__metadata dd { margin: 0; }
 </style>

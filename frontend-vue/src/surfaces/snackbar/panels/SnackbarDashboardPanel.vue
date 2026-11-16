@@ -184,7 +184,7 @@
         </div>
         <div class="header-meta">
           <button
-            class="sync-btn"
+            class="usx-btn usx-btn--secondary sync-btn"
             :disabled="syncingActivity"
             @click="syncActivity"
           >
