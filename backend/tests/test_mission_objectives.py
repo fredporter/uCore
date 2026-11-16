@@ -35,6 +35,7 @@ async def test_mission_api_uses_active_profile_and_reports_invalid_link(tmp_path
     from app.services import identity
     monkeypatch.setattr(settings, 'data_dir', tmp_path)
     monkeypatch.setattr(identity, 'get_full_identity', lambda: {'active_profile_id': 'alice'})
+    monkeypatch.setattr(binder_engine, 'VAULT_ROOT', tmp_path)
     monkeypatch.setattr(binder_engine, 'BINDERS_ROOT', tmp_path / 'Binders')
     request = make_mocked_request('POST', '/api/workflow/missions')
     request.json = AsyncMock(return_value={'title': 'Read about local history', 'profile': 'bob'})
