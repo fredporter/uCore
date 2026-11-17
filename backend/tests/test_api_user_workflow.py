@@ -134,7 +134,7 @@ class UserWorkflowApiTest(AioHTTPTestCase):
                 assert "priority:" in text
                 assert "mission:" in text
                 assert "task:" in text
-                assert "binder:" in text
+                assert "binder:" not in text
                 assert "tags:" in text
 
     async def test_import_markdown_writes_to_binder_docs(self):
@@ -188,8 +188,8 @@ class UserWorkflowApiTest(AioHTTPTestCase):
                 })
                 assert response.status == 200
                 imported = await response.json()
-                assert imported["workspace_path"] == "/Binders/garden/docs/seeds.md"
-                assert Path(imported["path"]).parent == (root / "Binders/garden/docs").resolve()
+                assert imported["workspace_path"] == "/garden/docs/seeds.md"
+                assert Path(imported["path"]).parent == (root / "garden/docs").resolve()
                 reloaded = binder_engine.get_binder("garden")
                 assert reloaded["documents"] == [{"filename": "seeds.md", "path": imported["workspace_path"]}]
                 assert reloaded["sources"] == []  # generated notes are not evidence

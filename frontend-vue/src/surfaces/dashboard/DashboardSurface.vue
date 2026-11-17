@@ -165,7 +165,7 @@ const SURFACE_CARD_DATA: Record<
   },
   developer: {
     title: "Engineering",
-    description: "Developer tools",
+    description: "Developer tools and interface examples",
     icon: "terminal",
     route: "/documentation?tab=developer",
     color: "var(--usx-color-primary)",
@@ -198,13 +198,6 @@ const SURFACE_CARD_DATA: Record<
     route: "/banana",
     color: "var(--usx-color-warning)",
   },
-  recipes: {
-    title: "Surfaces & Recipes",
-    description: "Interface examples",
-    icon: "widgets",
-    route: "/recipes",
-    color: "var(--usx-color-primary)",
-  },
   homenest: {
     title: "HomeNest",
     description: "Media and games",
@@ -222,7 +215,7 @@ const SURFACE_CARD_DATA: Record<
 };
 
 const displaySettings = useSettingsStore();
-const advancedSurfaceIds = new Set(["developer", "snackbar", "recipes", "google", "banana"]);
+const advancedSurfaceIds = new Set(["developer", "snackbar", "google", "banana"]);
 const visibleSurfaces = computed(() => {
   const cards: Array<{
     id: string;
@@ -262,9 +255,6 @@ const visibleSurfaces = computed(() => {
   }
   if (!seen.has("banana")) {
     cards.push({ id: "banana", ...SURFACE_CARD_DATA.banana });
-  }
-  if (!seen.has("recipes")) {
-    cards.push({ id: "recipes", ...SURFACE_CARD_DATA.recipes });
   }
   if (!seen.has("sonic")) {
     cards.push({ id: "sonic", ...SURFACE_CARD_DATA.sonic });

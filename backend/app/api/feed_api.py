@@ -218,7 +218,7 @@ async def handle_feed_promote(request: web.Request) -> web.Response:
 
     from app.services.feed_workflow import promote_activity_to_task
 
-    binder = str(body.get("binder") or "Sandbox")
+    binder = str(body.get("binder") or "")
     mission = body.get("mission")
     if mission:
         from app.services.identity import get_full_identity

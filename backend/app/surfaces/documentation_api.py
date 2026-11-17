@@ -17,9 +17,9 @@ log = logging.getLogger("ucore.documentation")
 
 DOC_SITES_ROOT = settings.public_vault_root / "doc-sites"
 GLOBAL_KNOWLEDGE_ROOT = settings.public_vault_root / "global-knowledge"
-LEARNING_ROOT = settings.public_vault_root / "learning"
+LEARNING_ROOT = settings.public_vault_root / "udos-docs" / "docs" / "learning"
 DEFAULT_VAULT_SOURCE = settings.vault_root
-DEFAULT_EXPORT_OUTPUT = settings.vault_root / "Exports" / "doclang" / "vault-doclang.jsonl"
+DEFAULT_EXPORT_OUTPUT = settings.vault_root / "Memory" / "Exports" / "doclang" / "vault-doclang.jsonl"
 
 # Repos to scan for documentation indexing
 REPO_DOC_ROOTS: dict[str, Path] = {
@@ -54,10 +54,9 @@ def _list_doc_sites() -> list[dict[str, Any]]:
         for child in (DOC_SITES_ROOT.iterdir() if DOC_SITES_ROOT.is_dir() else ())
         if child.is_dir() and not child.name.startswith(".")
     }
-    for name in ("Developer-docs", "udos-docs"):
-        child = DOC_SITES_ROOT.parent / name
-        if child.is_dir():
-            candidates[name] = child
+    reference = DOC_SITES_ROOT.parent / "udos-docs"
+    if reference.is_dir():
+        candidates[reference.name] = reference
 
     sites: list[dict[str, Any]] = []
     for child in sorted(candidates.values(), key=lambda p: p.name.lower()):
@@ -288,7 +287,7 @@ async def handle_docs_root(_request: web.Request) -> web.Response:
         {
             "method": "GET",
             "path": "/api/docs/courses",
-            "description": "List learning courses from ~/Public/learning",
+            "description": "List learning courses from ~/Public/udos-docs/docs/learning",
         },
         {
             "method": "GET",
@@ -338,7 +337,7 @@ async def handle_docs_global_knowledge(_request: web.Request) -> web.Response:
 async def handle_docs_serve_site(request: web.Request) -> web.Response:
     """GET /api/docs/serve/{site}/ - serve static doc site content."""
     site = request.match_info.get("site", "")
-    if site in {"Developer-docs", "udos-docs"} and (DOC_SITES_ROOT.parent / site).is_dir():
+    if site == "udos-docs" and (DOC_SITES_ROOT.parent / site).is_dir():
         return _serve_directory_index(DOC_SITES_ROOT.parent, site)
     return _serve_directory_index(DOC_SITES_ROOT, site)
 
@@ -372,7 +371,7 @@ async def handle_docs_export(request: web.Request) -> web.Response:
 
 
 async def handle_docs_courses(_request: web.Request) -> web.Response:
-    """GET /api/docs/courses - list learning courses from ~/Public/learning/."""
+    """GET /api/docs/courses - list learning courses from ~/Public/udos-docs/docs/learning/."""
     courses = _list_courses()
     return web.json_response(
         {
@@ -481,7 +480,7 @@ def _build_dir_tree(root: Path, source: str, current_depth: int = 0, max_depth: 
         return []
 
     for entry in entries:
-        if entry.name.startswith(".") or entry.name in ("node_modules", "__pycache__", ".git"):
+        if entry.name.startswith(".") or entry.name in ("node_modules", "__pycache__", ".git", "_site"):
             continue
         if entry.is_dir():
             children = _build_dir_tree(entry, source, current_depth + 1, max_depth)
@@ -514,48 +513,36 @@ def _build_dir_tree(root: Path, source: str, current_depth: int = 0, max_depth: 
     return items
 
 
-def _group_public_developer_docs(items: list[dict[str, Any]]) -> None:
-    """Group developer materials in the Public Knowledge tree."""
-    knowledge = next((item for item in items if item["path"] == "global-knowledge"), None)
-    knowledge_items = knowledge["children"] if knowledge is not None else []
-    developer_paths = {
-        "global-knowledge/datasets",
-        "global-knowledge/tech",
-        "global-knowledge/bank-README.md",
-        "global-knowledge/KNOWLEDGE-SYSTEM.md",
-        "global-knowledge/KNOWLEDGE_LAYERING_AND_CONTRIBUTION_SPEC.md",
-        "global-knowledge/README.md",
-    }
-    developer_items = [item for item in knowledge_items if item["path"] in developer_paths]
-    udos_docs = next(
-        (item for item in items if item["path"] == "udos-docs" and item["is_dir"]),
-        None,
-    )
-    if udos_docs is not None:
-        developer_items.append(udos_docs)
-    if not developer_items:
-        return
+def _wiki_folder(name: str, path: str, children: list[dict[str, Any]], source: str = "public") -> dict[str, Any]:
+    return {"name": name, "path": path, "source": source, "is_dir": True, "children": children}
 
-    developer = next((item for item in items if item["path"] == "Developer-docs"), None)
-    if developer is None:
-        developer = {
-            "name": "Developer Docs",
-            "path": "Developer-docs",
-            "source": "public",
-            "is_dir": True,
-            "children": [],
-        }
-        anchor = knowledge if knowledge is not None else udos_docs
-        items.insert(items.index(anchor), developer)
 
-    if udos_docs is not None:
-        items.remove(udos_docs)
-    if knowledge is not None:
-        knowledge["children"] = [item for item in knowledge_items if item["path"] not in developer_paths]
-        if not knowledge["children"]:
-            items.remove(knowledge)
-    developer["children"].extend(developer_items)
-    developer["children"].sort(key=lambda item: (not item["is_dir"], item["name"].lower()))
+def _group_public_documentation(
+    items: list[dict[str, Any]], curriculum: list[dict[str, Any]],
+) -> None:
+    """Present the canonical document binders and the separate knowledge library."""
+    roots = {item["path"]: item for item in items}
+    reference = roots.get("udos-docs")
+    knowledge = roots.get("global-knowledge")
+    items.clear()
+    if reference:
+        docs = next((child for child in reference["children"] if child["path"] == "udos-docs/docs"), None)
+        if docs:
+            ucode = next((child for child in docs["children"] if child["path"] == "udos-docs/docs/uCode"), None)
+            if ucode:
+                for child in ucode["children"]:
+                    name = Path(child["path"]).name
+                    if name in {"gridcore", "spatial"}:
+                        child["name"] = {"gridcore": "GridCore uCode1", "spatial": "Spatial uCode2"}[name]
+            learning = next((child for child in docs["children"] if child["path"] == "udos-docs/docs/learning"), None)
+            if learning:
+                learning["children"].extend(curriculum)
+            elif curriculum:
+                docs["children"].append(_wiki_folder("Learning", "udos-docs/docs/learning", curriculum))
+            items.append(_wiki_folder("uDOS Documentation", docs["path"], docs["children"]))
+    if knowledge:
+        knowledge["name"] = "Global Knowledge"
+        items.append(knowledge)
 
 
 async def handle_docs_wiki_tree(_request: web.Request) -> web.Response:
@@ -590,14 +577,13 @@ async def handle_docs_wiki_tree(_request: web.Request) -> web.Response:
 
     # 3. Public Knowledge (~/Public)
     public_root = settings.public_vault_root
-    public_items = await asyncio.to_thread(_build_dir_tree, public_root, "public")
-    _group_public_developer_docs(public_items)
-    learning = next(
-        (item for item in public_items if item["path"] == "learning" and item["is_dir"]),
-        None,
-    )
-    if learning is not None:
-        public_items.remove(learning)
+    public_items = await asyncio.to_thread(_build_dir_tree, public_root, "public", max_depth=8)
+    curriculum = []
+    for source, title in (("manual", "uCode Manual"), ("sonic", "Sonic Hardware Revival")):
+        pages = await asyncio.to_thread(_build_dir_tree, _CONTENT_ROOTS[source], source)
+        if pages:
+            curriculum.append(_wiki_folder(title, "", pages, source))
+    _group_public_documentation(public_items, curriculum)
     vaults.append({
         "id": "public",
         "name": "Public Knowledge",
@@ -606,44 +592,6 @@ async def handle_docs_wiki_tree(_request: web.Request) -> web.Response:
         "exists": public_root.exists(),
         "items": public_items,
         "count": len(public_items),
-    })
-
-    # 4. Universal Curriculum & Manuals (uCode & Sonic)
-    manual_items: list[dict[str, Any]] = []
-    ucode_manual = settings.udos_root / "uCode" / "docs" / "manual"
-    if ucode_manual.exists():
-        ucode_children = await asyncio.to_thread(_build_dir_tree, ucode_manual, "manual")
-        manual_items.append({
-            "name": "uCode Beginner Manual",
-            "title": "uCode BBC BASIC & Physical Computing",
-            "path": "",
-            "source": "manual",
-            "is_dir": True,
-            "children": ucode_children,
-        })
-    sonic_manual = settings.udos_root / "SonicScrewdriver" / "docs" / "manual"
-    if sonic_manual.exists():
-        sonic_children = await asyncio.to_thread(_build_dir_tree, sonic_manual, "sonic")
-        manual_items.append({
-            "name": "Sonic Hardware Revival",
-            "title": "Sonic Screwdriver Hardware Rebirth",
-            "path": "",
-            "source": "sonic",
-            "is_dir": True,
-            "children": sonic_children,
-        })
-
-    if learning is not None:
-        manual_items.append(learning)
-
-    vaults.append({
-        "id": "manuals",
-        "name": "Universal Curriculum & Manuals",
-        "badge": "The uDos Way",
-        "source": "manual",
-        "exists": bool(manual_items),
-        "items": manual_items,
-        "count": len(manual_items),
     })
 
     return web.json_response({"vaults": vaults})

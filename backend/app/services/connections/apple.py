@@ -73,7 +73,7 @@ class AppleAdapter:
             "tasks": """const a=Application("Reminders");
 for(const l of a.lists()){if(!c.lists.includes(str(l.id())))continue;
 for(const r of l.reminders()){let due="";try{const d=r.dueDate();if(d)due=d.toISOString()}catch(e){}
-rows.push({id:str(r.id()),version:str(r.modificationDate()),data:{title:str(r.name())||"Reminder",body:str(r.body()),status:r.completed()?"completed":"todo",due:due,list:str(l.name())}}); if(rows.length>1000)throw Error("Choose smaller lists");}}""",
+rows.push({id:str(r.id()),version:str(r.modificationDate()),data:{title:str(r.name())||"Reminder",body:str(r.body()),status:r.completed()?"completed":"todo",due:due,source_list_id:str(l.id()),list:str(l.name())}}); if(rows.length>1000)throw Error("Choose smaller lists");}}""",
             "contacts": """const a=Application("Contacts"); const vip=new Set();
 if(c.vip_group){for(const g of a.groups()){if(str(g.id())===c.vip_group){for(const p of g.people())vip.add(str(p.id()));}}}
 let people=[]; if(c.lists.includes("all"))people=a.people();else for(const g of a.groups()){if(c.lists.includes(str(g.id())))people=people.concat(g.people());}

@@ -1,6 +1,6 @@
 plate:
   id: "vault.shared_workspace_seed"
-  version: "1.0.0"
+  version: "2.0.0"
   domain: "vault"
   description: "Seed structure for shared team vaults at ~/Shared/"
   vault_layer: "shared"
@@ -8,14 +8,38 @@ plate:
   structure:
     - path: "{workspace_name}/"
       description: "Workspace root"
-    - path: "{workspace_name}/Projects/"
-      description: "Team projects"
-    - path: "{workspace_name}/Knowledge/"
-      description: "Shared knowledge base"
-    - path: "{workspace_name}/Assets/"
-      description: "Shared assets and media"
-    - path: "{workspace_name}/Archive/"
-      description: "Archived workspaces"
+    - path: "{workspace_name}/binders/active/"
+      description: "Shared project binders"
+    - path: "{workspace_name}/orbs/"
+      description: "Shared knowledge orbs"
+    - path: "{workspace_name}/people/"
+      description: "Shared contact records"
+    - path: "{workspace_name}/tasks/"
+      description: "Shared task records"
+    - path: "{workspace_name}/@inbox/pending/"
+      description: "Submissions awaiting review"
+    - path: "{workspace_name}/@inbox/approved/"
+      description: "Approved submissions"
+    - path: "{workspace_name}/@inbox/rejected/"
+      description: "Declined submissions"
+    - path: "{workspace_name}/@public/"
+      description: "Material prepared for public access"
+    - path: "{workspace_name}/@teams/"
+      description: "Team collections"
+    - path: "{workspace_name}/_invites/"
+      description: "Workspace invitations"
+    - path: "{workspace_name}/#skills/"
+      description: "Shared skill references"
+  seed_files:
+    - path: "{workspace_name}/README.md"
+      content: |
+        # Shared workspace
+
+        Use this workspace for material you intend to share. Keep private drafts
+        in your User Vault. Review incoming submissions in `@inbox/pending/`
+        and record the outcome under `approved/` or `rejected/` in the inbox.
+        Keep shared project material in `binders/active/`, knowledge in `orbs/`,
+        and shared people and tasks in their corresponding folders.
   source: "builtin"
   checksum: ""
   dependencies: []

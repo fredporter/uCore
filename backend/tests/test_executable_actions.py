@@ -49,3 +49,19 @@ async def test_confirmed_executable_propagates_failure():
     assert response.status == 422
     assert json.loads(response.text)["error"] == "Failed"
     run.assert_awaited_once_with("write", action=None, execution_authorized=True)
+
+
+@pytest.mark.asyncio
+async def test_snack_dispatch_passes_text_and_returns_failures():
+    from app.services.executable_registry import run_executable
+
+    with (
+        patch("app.services.executable_registry.get_executable", return_value={"kind": "snack"}),
+        patch(
+            "app.services.executable_registry.run_system_snack",
+            return_value={"status": "error", "error": "Tool unavailable"},
+        ) as run,
+    ):
+        result = await run_executable("markdown-tools", action="validate", text="# Draft")
+    run.assert_called_once_with("markdown-tools", "validate", "# Draft")
+    assert result["success"] is False

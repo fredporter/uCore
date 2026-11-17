@@ -239,15 +239,14 @@
         </div>
         <div class="bitchat-modal-body">
           <p class="text-xs text-zinc-400 mb-3">
-            Exports {{ selectedMsgIds.length }} message(s) to
-            <code>~/Vault/binders/&lt;binder&gt;/evidence/chats/</code> as Markdown.
+            Saves {{ selectedMsgIds.length }} message(s) as Markdown. Leave Binder blank to save in Sandbox.
           </p>
 
-          <label class="bitchat-modal-label">Target Binder Name</label>
+          <label class="bitchat-modal-label">Binder ID (optional)</label>
           <input
             type="text"
             v-model="binderName"
-            placeholder="e.g. Sandbox, Research, ProjectX"
+            placeholder="e.g. research"
             class="bitchat-input mb-3"
           />
 
@@ -261,7 +260,7 @@
         </div>
         <div class="bitchat-modal-footer">
           <button class="usx-btn bitchat-btn bitchat-btn--ghost" @click="showSaveBinderModal = false">Cancel</button>
-          <button class="usx-btn usx-btn--primary bitchat-btn bitchat-btn--primary" :disabled="!binderName.trim()" @click="executeSaveToBinder">
+          <button class="usx-btn usx-btn--primary bitchat-btn bitchat-btn--primary" @click="executeSaveToBinder">
             Save Evidence
           </button>
         </div>
@@ -302,7 +301,7 @@
           <input
             type="text"
             v-model="taskBinder"
-            placeholder="e.g. Sandbox"
+            placeholder="Optional Binder ID"
             class="bitchat-input mb-3"
           />
 
@@ -355,7 +354,7 @@ const feedEl = ref<HTMLElement | null>(null)
 
 // Save to Binder Modal
 const showSaveBinderModal = ref(false)
-const binderName = ref('Sandbox')
+const binderName = ref('')
 const evidenceTitle = ref('Consensus Discussion')
 
 // Convert to Task Modal
@@ -363,7 +362,7 @@ const showConvertTaskModal = ref(false)
 const activeTaskMsg = ref<any | null>(null)
 const taskBoard = ref('inbox')
 const taskPriority = ref('medium')
-const taskBinder = ref('Sandbox')
+const taskBinder = ref('')
 const syncAppleReminders = ref(false)
 
 let ws: WebSocket | null = null
@@ -554,7 +553,7 @@ function quickSaveSingleToBinder(msg: any) {
 }
 
 async function executeSaveToBinder() {
-  if (!binderName.value.trim() || selectedMsgIds.value.length === 0) return
+  if (selectedMsgIds.value.length === 0) return
 
   try {
     const res = await fetch('/api/network/bitchat/save-to-binder', {

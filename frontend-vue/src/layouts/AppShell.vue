@@ -195,11 +195,11 @@ async function handleFileSelect(file: FileEntry) {
     binder: file.binder || "", content, version,
     readOnly: Boolean(file.is_readonly) || file.source !== "user" || !loaded,
   });
-  await router.push({ path: "/workflow", query: { tab: "editor" } });
+  await router.push({ path: "/workflow", query: { tab: "editor", file: path } });
 }
 
 async function handleNewFile(binderId: string) {
-  const binder = (binderId || "user").trim() || "user";
+  const binder = binderId.trim();
   const titleInput = window.prompt(
     "New markdown document title",
     "Untitled Note",
@@ -219,9 +219,8 @@ async function handleNewFile(binderId: string) {
     content: initialContent,
     source_format: "markdown",
     title,
-    binder,
     vault_layer: "user",
-    relative_dir: ".",
+    ...(binder ? { binder, require_existing_binder: true } : { relative_dir: "Sandbox" }),
     filename: `${safeStem}.md`,
     metadata: {
       imported_from: "filepicker.new-file",
@@ -229,7 +228,7 @@ async function handleNewFile(binderId: string) {
   });
 
   if (!create.ok || !(create.data as any)?.path) {
-    window.alert("Failed to create file in vault binder.");
+    window.alert("Failed to create the document.");
     return;
   }
 
@@ -254,7 +253,7 @@ async function handleNewFile(binderId: string) {
     content,
     readOnly: false,
   });
-  await router.push({ path: "/workflow", query: { tab: "editor" } });
+  await router.push({ path: "/workflow", query: { tab: "editor", file: path } });
 }
 </script>
 

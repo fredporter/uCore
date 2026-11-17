@@ -130,6 +130,7 @@ def test_user_seed_uses_runtime_binder_and_preserves_existing_work(tmp_path, mon
     monkeypatch.setattr(binder_engine, "VAULT_ROOT", vault)
     monkeypatch.setattr(binder_engine, "BINDERS_ROOT", vault / "Binders")
 
+    (vault / "binders" / "active" / "Sandbox").mkdir(parents=True)
     first = user_workflow._seed_user_vault_docs()
     binder = binder_engine.get_binder("Sandbox")
     assert binder["metadata"]["id"] == "Sandbox"
@@ -252,8 +253,8 @@ async def test_binder_intake_check_reports_provenance_without_editing(tmp_path, 
 @pytest.mark.asyncio
 async def test_sandbox_mission_feed_and_linked_notebook(tmp_path, monkeypatch):
     from app.api import binder_api, feed_api
-    from app.flow import workflow_api
     from app.api.tasker_api import _parse_markdown_task
+    from app.flow import workflow_api
     from app.services import workflow_manager
     from app.services.feed_store import FeedServer
 
@@ -394,6 +395,7 @@ def test_sandbox_preview_inventories_custom_legacy_content(tmp_path, monkeypatch
     monkeypatch.setattr(user_workflow.settings, "vault_root", vault)
     monkeypatch.setattr(binder_engine, "VAULT_ROOT", vault)
     monkeypatch.setattr(binder_engine, "BINDERS_ROOT", vault / "Binders")
+    (vault / "binders" / "active" / "Sandbox").mkdir(parents=True)
     user_workflow._seed_user_vault_docs()
     target = binder_engine.get_binder_documents_dir("Sandbox").parent
     legacy = vault / "binders" / "active" / "Sandbox"
@@ -430,3 +432,18 @@ def test_sandbox_preview_inventories_custom_legacy_content(tmp_path, monkeypatch
             assert (target / name).read_bytes() == destination
     assert rows["linked"]["status"] == "manual_review"
     assert not (target / "docs/project/new.md").exists()
+
+
+def test_fresh_seed_creates_plain_sandbox_and_preserves_readme(tmp_path, monkeypatch):
+    vault = tmp_path / "Vault"
+    monkeypatch.setattr(user_workflow.settings, "vault_root", vault)
+    monkeypatch.setattr(binder_engine, "VAULT_ROOT", vault)
+    monkeypatch.setattr(binder_engine, "BINDERS_ROOT", vault / "Binders")
+
+    assert user_workflow._seed_user_vault_docs()["created_count"] == 2
+    assert {path.name for path in vault.iterdir()} == {"Memory", "Sandbox"}
+    assert binder_engine.list_binders() == []
+    readme = vault / "Sandbox" / "README.md"
+    readme.write_text("My drafts", encoding="utf-8")
+    assert user_workflow._seed_user_vault_docs()["created_count"] == 0
+    assert readme.read_text(encoding="utf-8") == "My drafts"

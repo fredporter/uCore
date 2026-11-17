@@ -1,39 +1,49 @@
 <template>
   <div class="editor-panel">
-    <!-- Document header: prose title + frontmatter table (full-width).
-         Hidden when hideHeader is true or in Preview (Prose view). -->
-    <div
-      v-if="!hideHeader && viewMode !== 'preview'"
-      class="editor-panel__doc-header"
-    >
-      <div class="editor-panel__doc-titlebar">
-        <h1 class="editor-panel__doc-title">{{ docTitle }}</h1>
-        <button
-          v-if="!readOnly"
-          class="editor-panel__add-field"
-          title="Edit document properties"
-          type="button"
-          @click="frontmatterEditorOpen = true"
-        >
-          <UIcon name="add" />
-        </button>
+    <header v-if="!hideHeader || viewMode === 'preview'" class="editor-panel__doc-header">
+      <div class="editor-panel__reading-header">
+        <h1 class="editor-panel__reading-title" tabindex="0">{{ previewDocument.title }}</h1>
+        <div class="editor-panel__pane-actions">
+          <button v-if="viewMode === 'preview'" type="button" :title="canEditCopy ? 'Edit a copy' : 'Show code'" :aria-label="canEditCopy ? 'Edit a copy' : 'Show code'" @click="openCodePane">
+            <UIcon name="edit_note" :size="20" />
+          </button>
+          <button v-else-if="viewMode === 'split'" type="button" title="Collapse prose" aria-label="Collapse prose" @click="viewMode = 'edit'">
+            <UIcon name="right_panel_close" :size="20" />
+          </button>
+          <button v-if="viewMode !== 'preview'" type="button" title="Read document" aria-label="Read document" @click="viewMode = 'preview'">
+            <UIcon name="visibility" :size="20" />
+          </button>
+          <button v-if="viewMode !== 'preview' && !readOnly" type="button" title="Save" aria-label="Save" @click="handleSave">
+            <UIcon name="save" :size="20" />
+          </button>
+          <button v-if="!readOnly" type="button" title="Edit document properties" aria-label="Edit document properties" @click="frontmatterEditorOpen = true">
+            <UIcon name="tune" :size="20" />
+          </button>
+          <button type="button" title="Publish" aria-label="Publish document" @click="emit('publish')">
+            <UIcon name="publish" :size="20" />
+          </button>
+        </div>
       </div>
-      <FrontmatterPills
-        v-if="hasFrontmatter"
-        v-model="frontmatter"
-        :can-edit="!readOnly"
-        @update:model-value="onFrontmatterChange"
-      />
-      <FrontmatterEditor
-        :open="frontmatterEditorOpen"
-        :model-value="frontmatter"
-        @close="frontmatterEditorOpen = false"
-        @save="saveFrontmatter"
-      />
-    </div>
+      <div v-if="hasKnowledgeMetadata" class="editor-panel__metadata">
+        <div v-if="readingPills.length || previewDocument.needs.length" class="editor-panel__metadata-row" aria-label="Document metadata">
+          <span v-for="pill in readingPills" :key="pill" class="editor-panel__tag">{{ pill }}</span>
+          <RouterLink v-for="need in previewDocument.needs" :key="need" class="usx-btn editor-panel__tag"
+            :to="{ path: '/workflow', query: { tab: 'skills', skill: skillForNeed(need) } }">{{ need }}</RouterLink>
+        </div>
+        <details v-if="originFields.length">
+          <summary>Document identity and origin</summary>
+          <dl><template v-for="[label, value] in originFields" :key="label"><dt>{{ label }}</dt><dd>{{ value }}</dd></template></dl>
+        </details>
+      </div>
+    </header>
+    <FrontmatterEditor
+      :open="frontmatterEditorOpen"
+      :model-value="frontmatter"
+      @close="frontmatterEditorOpen = false"
+      @save="saveFrontmatter"
+    />
 
-    <!-- Body: editor | preview | research panel (no redundant topbar —
-         controls live in the MarkdownEditor toolbar below) -->
+    <!-- Editing tools remain with the Markdown input. -->
     <div class="editor-panel__body">
       <!-- Main editor column -->
       <div
@@ -55,7 +65,7 @@
           @toolbar-action="handleToolbarAction"
           @update:edit-mode="onEditorModeChange"
         >
-          <template #toolbar-actions>
+          <template v-if="hideHeader" #toolbar-actions>
             <div class="editor-panel__pane-actions">
               <button v-if="viewMode === 'split'" type="button" title="Collapse code" aria-label="Collapse code" @click="viewMode = 'preview'">
                 <UIcon name="left_panel_close" :size="20" />
@@ -78,46 +88,12 @@
           v-if="viewMode === 'split' || viewMode === 'preview'"
           class="editor-panel__prose"
         >
-          <div class="document-editor-toolbar">
-            <div class="editor-panel__pane-actions">
-              <button v-if="viewMode === 'preview'" type="button" title="Show code" aria-label="Show code" @click="openCodePane">
-                <UIcon name="edit_note" :size="20" />
-              </button>
-              <button v-else type="button" title="Collapse prose" aria-label="Collapse prose" @click="viewMode = 'edit'">
-                <UIcon name="right_panel_close" :size="20" />
-              </button>
-              <button type="button" title="Publish" aria-label="Publish document" @click="emit('publish')">
-                <UIcon name="publish" :size="20" />
-              </button>
-            </div>
-          </div>
           <MarkdownPreview
             :content="previewDocument.body"
             :filename="currentFilename"
             class="editor-panel__preview"
           >
-            <template #metadata>
-              <div v-if="hasKnowledgeMetadata" class="editor-panel__metadata">
-                <div v-if="previewDocument.topic" class="editor-panel__metadata-row">
-                  <strong>Topic</strong><span class="editor-panel__tag">{{ previewDocument.topic }}</span>
-                </div>
-                <div v-if="previewDocument.tags.length" class="editor-panel__metadata-row">
-                  <strong>Tags</strong><span v-for="tag in previewDocument.tags" :key="tag" class="editor-panel__tag">{{ tag }}</span>
-                </div>
-                <div v-if="previewDocument.difficulty" class="editor-panel__metadata-row">
-                  <strong>{{ difficultyLabel }}</strong><span>{{ difficultyValue }}</span>
-                </div>
-                <div v-if="previewDocument.status || previewDocument.needs.length" class="editor-panel__metadata-row">
-                  <strong>Content status</strong><span v-if="previewDocument.status" class="editor-panel__tag">{{ previewDocument.status }}</span>
-                  <RouterLink v-for="need in previewDocument.needs" :key="need" class="usx-btn editor-panel__tag"
-                    :to="{ path: '/workflow', query: { tab: 'skills', skill: skillForNeed(need) } }">{{ need }}</RouterLink>
-                </div>
-                <details v-if="originFields.length">
-                  <summary>Document identity and origin</summary>
-                  <dl><template v-for="[label, value] in originFields" :key="label"><dt>{{ label }}</dt><dd>{{ value }}</dd></template></dl>
-                </details>
-              </div>
-            </template>
+
           </MarkdownPreview>
         </div>
       </div>
@@ -170,7 +146,6 @@
 import { ref, watch, computed } from "vue";
 import UIcon from "../atoms/UIcon.vue";
 import MarkdownEditor from "../molecules/editor/MarkdownEditor.vue";
-import FrontmatterPills from "../molecules/editor/FrontmatterPills.vue";
 import FrontmatterEditor from "../molecules/editor/FrontmatterEditor.vue";
 import MarkdownPreview from "../molecules/MarkdownPreview.vue";
 import ResearchPanel from "../molecules/editor/ResearchPanel.vue";
@@ -195,6 +170,8 @@ interface Props {
   title?: string;
   documentPath?: string;
   readOnly?: boolean;
+  canEditCopy?: boolean;
+  startInEdit?: boolean;
   editMode?: "prose" | "code";
   /** Hide the title + frontmatter doc header (e.g. compact slide-in panel). */
   hideHeader?: boolean;
@@ -217,6 +194,7 @@ const emit = defineEmits<{
   save: [value: string];
   close: [];
   publish: [];
+  editCopy: [];
   /** Fired when the split button is clicked in singlePane mode. */
   openSplit: [];
 }>();
@@ -231,7 +209,7 @@ const initialDocument = parseDocument(props.content || "");
 const bodyContent = ref(initialDocument.body);
 const localEditMode = ref<"prose" | "code">(props.editMode);
 const viewMode = ref<"edit" | "preview" | "split">(
-  props.singlePane ? "edit" : "preview",
+  props.singlePane || props.startInEdit ? "edit" : "preview",
 );
 const researchOpen = ref(false);
 const frontmatterEditorOpen = ref(false);
@@ -266,6 +244,7 @@ function onViewModeChange(mode: "edit" | "preview" | "split") {
 }
 
 function openCodePane() {
+  if (props.canEditCopy) emit("editCopy");
   localEditMode.value = "code";
   emit("update:editMode", "code");
   viewMode.value = props.singlePane ? "edit" : "split";
@@ -301,7 +280,11 @@ const previewDocument = computed(() => {
   if (topicFolder?.length && /\[Placeholder\s*-/i.test(body)) needs.add("enhancement");
   if (topicFolder?.[0] === "contributor" && !/^#\s/m.test(body) && body.trim()) needs.add("formatting");
   return {
-    body: renderedBody,
+    title: typeof fm.title === "string" && fm.title.trim()
+      ? fm.title.trim()
+      : (renderedBody.match(/^\s*#[ \t]+([^\r\n]+)/)?.[1]?.trim()
+        || docTitle.value.replace(/[+_]+/g, " ")),
+    body: renderedBody.replace(/^\s*#[ \t]+[^\r\n]+(?:\r?\n|$)/, ""),
     topic: String(fm.topic || fm.category || legacy.Topic || legacy.Category || topicFolder?.[0] || ""),
     tags: [...new Set(list(fm.tags))],
     difficulty: String(fm.difficulty || legacy.Difficulty || ""),
@@ -311,7 +294,6 @@ const previewDocument = computed(() => {
   };
 });
 
-const difficultyLabel = computed(() => settings.terminologyPack === "storytelling" ? "Level" : "Difficulty");
 const difficultyValue = computed(() => {
   const value = previewDocument.value.difficulty;
   if (settings.terminologyPack !== "storytelling") return value;
@@ -331,13 +313,15 @@ const originFields = computed(() => {
   );
 });
 
+const readingPills = computed(() => {
+  const { topic, tags, status } = previewDocument.value;
+  return [...new Set([topic, ...tags, difficultyValue.value, status].filter(Boolean))];
+});
+
 const hasKnowledgeMetadata = computed(() => {
   const meta = previewDocument.value;
   return Boolean(meta.topic || meta.tags.length || meta.difficulty || meta.status || meta.needs.length || originFields.value.length);
 });
-const hasFrontmatter = computed(
-  () => Object.keys(frontmatter.value).length > 0,
-);
 
 function onFrontmatterChange(updated: Frontmatter) {
   frontmatter.value = updated;
@@ -365,6 +349,10 @@ watch(
     localEditMode.value = val;
   },
 );
+
+watch(() => props.documentPath, () => {
+  if (props.readOnly && !props.singlePane) viewMode.value = "preview";
+});
 
 // ─── Handlers ────────────────────────────────────────────────────────
 function onContentChange(value: string) {
@@ -499,6 +487,23 @@ function toggleEditMode() {
 </script>
 
 <style scoped>
+.editor-panel__reading-header {
+  display: flex;
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  margin-bottom: var(--usx-spacing-sm);
+}
+.editor-panel__reading-header .editor-panel__pane-actions { flex: 0 0 auto; }
+.editor-panel__reading-title {
+  flex: 1;
+  min-inline-size: 0;
+  margin: 0;
+  max-inline-size: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-size: var(--usx-font-size-xl);
+}
+
 .editor-panel {
   display: flex;
   flex-direction: column;
@@ -595,63 +600,10 @@ function toggleEditMode() {
   min-width: 0;
 }
 
-/* Document header (title + frontmatter table) — full-width block above body.
-   No background so it blends with the editor/page background. Even vertical
-   padding above and below the title. */
 .editor-panel__doc-header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-sm);
-  padding: 0 var(--usx-spacing-lg) var(--usx-spacing-md);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
-  background: transparent;
-  max-height: 40%;
-  overflow-y: auto;
+  padding: var(--usx-spacing-sm) var(--usx-spacing-lg);
   flex-shrink: 0;
-}
-
-.editor-panel__doc-titlebar {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-sm);
-}
-
-.editor-panel__doc-title {
-  margin: 0;
-  padding: 0;
-  flex: 1;
   min-width: 0;
-  font-family: var(--usx-font-family-sans);
-  font-size: var(--usx-font-size-2xl);
-  font-weight: var(--usx-font-weight-bold);
-  color: var(--usx-color-on-surface);
-  line-height: 1.2;
-  word-break: break-word;
-}
-
-/* Add-frontmatter-field icon at the right of the doc title */
-.editor-panel__add-field {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--usx-control-size-sm);
-  height: var(--usx-control-size-sm);
-  min-height: 0;
-  padding: 0;
-  border: var(--usx-border-width) dashed var(--usx-color-border);
-  border-radius: var(--usx-radius-sm);
-  background: transparent;
-  color: var(--usx-color-on-surface-muted);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition:
-    color var(--usx-transition-fast),
-    border-color var(--usx-transition-fast);
-}
-
-.editor-panel__add-field:hover {
-  color: var(--usx-color-primary);
-  border-color: var(--usx-color-primary);
 }
 
 /* Split view: Markdown + Preview side-by-side */
@@ -686,7 +638,7 @@ function toggleEditMode() {
   width: 0;
   opacity: 0;
 }
-.editor-panel__metadata { padding: var(--document-editor-inset); padding-bottom: 0; font-size: var(--usx-font-size-sm); overflow-wrap: anywhere; }
+.editor-panel__metadata { font-size: var(--usx-font-size-sm); overflow-wrap: anywhere; }
 .editor-panel__metadata-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-bottom: 6px; }
 .editor-panel__tag { background: var(--usx-color-surface-variant); border: 1px solid var(--usx-color-border); padding: 2px 8px; border-radius: 999px; }
 .editor-panel__metadata summary { cursor: pointer; }

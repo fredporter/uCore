@@ -123,6 +123,32 @@ def _derive_binder(relative_path: Path) -> str:
     return "root"
 
 
+def _document_location(frontmatter: dict[str, Any]) -> dict[str, Any] | None:
+    ucode = frontmatter.get("ucode")
+    place_ref = frontmatter.get("place_ref")
+    label = frontmatter.get("location_label") or frontmatter.get("location")
+    lat = frontmatter.get("lat")
+    lon = frontmatter.get("lon")
+    if not (ucode or place_ref or label or lat is not None or lon is not None):
+        return None
+    location = {
+        "label": str(label or ""),
+        "ucode": str(ucode) if ucode else None,
+        "lat": float(lat) if lat is not None else None,
+        "lon": float(lon) if lon is not None else None,
+        "layer": int(frontmatter.get("layer", 0)),
+        "zoom_level": int(frontmatter.get("zoom_level", 340)),
+    }
+    if isinstance(place_ref, str) and place_ref.strip():
+        location["place_ref"] = place_ref.strip()
+    return location
+
+
+def _canonical_id(frontmatter: dict[str, Any], source_id: str) -> str:
+    value = frontmatter.get("canonical_id")
+    return value.strip() if isinstance(value, str) and value.strip() else source_id
+
+
 def export_document(
     file_path: Path,
     source_dir: Path,
@@ -158,20 +184,7 @@ def export_document(
     wiki_links = extract_wiki_links(body_text)
     sections = extract_sections(body_text)
 
-    # Location
-    location: dict[str, Any] | None = None
-    ucode_val = frontmatter.get("ucode")
-    lat_val = frontmatter.get("lat")
-    lon_val = frontmatter.get("lon")
-    if ucode_val or lat_val is not None or lon_val is not None:
-        location = {
-            "label": str(frontmatter.get("location_label", "")),
-            "ucode": str(ucode_val) if ucode_val else None,
-            "lat": float(lat_val) if lat_val is not None else None,
-            "lon": float(lon_val) if lon_val is not None else None,
-            "layer": int(frontmatter.get("layer", 0)),
-            "zoom_level": int(frontmatter.get("zoom_level", 340)),
-        }
+    location = _document_location(frontmatter)
 
     # Filesystem
     filesystem = {
@@ -190,7 +203,7 @@ def export_document(
         "doclang_version": "0.1",
         "document": {
             "id": doc_id,
-            "canonical_id": doc_id,
+            "canonical_id": _canonical_id(frontmatter, doc_id),
             "title": title,
             "doc_type": doc_type,
             "status": status,
@@ -254,19 +267,7 @@ def build_doclang_document(record: dict[str, Any]) -> dict[str, Any]:
     # Title: prefer frontmatter title, then record name
     title = str(frontmatter.get("title", name or ""))
 
-    # Location
-    location: dict[str, Any] | None = None
-    ucode_val = frontmatter.get("ucode")
-    loc_label = frontmatter.get("location", "")
-    if ucode_val or loc_label:
-        location = {
-            "label": str(loc_label),
-            "ucode": str(ucode_val) if ucode_val else None,
-            "lat": None,
-            "lon": None,
-            "layer": int(frontmatter.get("layer", 0)),
-            "zoom_level": int(frontmatter.get("zoom_level", 340)),
-        }
+    location = _document_location(frontmatter)
 
     # Filesystem
     binder = frontmatter.get("binder", "")
@@ -277,11 +278,12 @@ def build_doclang_document(record: dict[str, Any]) -> dict[str, Any]:
         "spatial_path": frontmatter.get("spatial_path"),
     }
 
+    doc_id = f"vault:{rel_path}" if rel_path else ""
     return {
         "doclang_version": "0.1",
         "document": {
-            "id": f"vault:{rel_path}" if rel_path else "",
-            "canonical_id": f"vault:{rel_path}" if rel_path else "",
+            "id": doc_id,
+            "canonical_id": _canonical_id(frontmatter, doc_id),
             "title": title,
             "doc_type": str(frontmatter.get("type") or frontmatter.get("doc_type", "note")),
             "status": str(frontmatter.get("status", "published")),

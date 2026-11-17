@@ -76,7 +76,7 @@ def load_feed_rules(path: Path | None = None) -> tuple[list[FeedRule], dict[str,
                 action=str(action.get("type") or "propose-task"),
                 board=str(action.get("board") or "inbox"),
                 priority=str(action.get("priority") or "medium"),
-                binder=str(action.get("binder") or "Sandbox"),
+                binder=str(action.get("binder") or ""),
                 sync_reminders=bool(action.get("sync_reminders", False)),
                 archive_mail=bool(action.get("archive_mail", False)),
             )

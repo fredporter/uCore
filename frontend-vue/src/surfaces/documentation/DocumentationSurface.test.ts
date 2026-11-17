@@ -7,6 +7,7 @@ import DocumentationSurface from './DocumentationSurface.vue';
 import { useSettingsStore } from '../../stores/settings';
 vi.mock('../../utils/diagramHydrator', () => ({hydrateDiagrams: vi.fn()}));
 vi.mock('./LocalWikiReader.vue', () => ({default: {template:'<div>Knowledge library</div>'}}));
+vi.mock('../recipes/RecipeGallerySurface.vue', () => ({default: {template:'<h1>Recipe Gallery</h1>'}}));
 const chapters = [{name:'One',path:'01.md',source:'manual',level:'basic'}, {name:'Two',path:'02.md',source:'manual',level:'basic'}];
 beforeEach(() => {
   vi.stubGlobal('localStorage', {getItem:()=>null,setItem:vi.fn(),removeItem:vi.fn()});
@@ -17,7 +18,7 @@ async function setup(tab='learning') {
   const router=createRouter({history:createMemoryHistory(), routes:[{path:'/documentation',component:DocumentationSurface}]});
   await router.push(`/documentation?tab=${tab}`); await router.isReady();
   const wrapper=mount(DocumentationSurface,{attachTo:document.body,global:{plugins:[pinia,router]}});
-  await flushPromises(); return {wrapper,pinia};
+  await flushPromises(); return {wrapper,pinia,router};
 }
 describe('documentation navigation',()=>{
   it('keeps chapter context when entering and exiting full-screen',async()=>{
@@ -37,12 +38,21 @@ describe('documentation navigation',()=>{
     expect(wrapper.find('[aria-label="Reading view"]').exists()).toBe(false);
     wrapper.unmount();
   });
-  it('hides Advanced by default and reveals it through the display preference',async()=>{
-    const {wrapper,pinia}=await setup('developer');
+  it('reveals Engineering through the display preference and opens its Recipes tab',async()=>{
+    const {wrapper,pinia,router}=await setup('developer');
     expect(wrapper.text()).toContain('Knowledge library');
-    expect(wrapper.find('nav').text()).not.toContain('Advanced');
+    expect(wrapper.find('nav').text()).not.toContain('Engineering');
     useSettingsStore(pinia).setAdvancedView(true); await flushPromises();
-    expect(wrapper.find('nav').text()).toContain('Advanced');
+    const engineering = wrapper.findAll('nav a').find(link => link.text().includes('Engineering'))!;
+    await engineering.trigger('click'); await flushPromises();
+    const engineeringNav = wrapper.get('nav[aria-label="Engineering"]');
+    expect(wrapper.text()).toContain('Developer tools');
+    await engineeringNav.findAll('a')[1].trigger('click'); await flushPromises();
+    expect(router.currentRoute.value.query).toMatchObject({ tab: 'developer', section: 'recipes' });
+    await vi.dynamicImportSettled();
+    await flushPromises();
+    expect(wrapper.text()).toContain('Recipe Gallery');
+    expect(wrapper.text()).not.toContain('Developer tools');
     wrapper.unmount();
   });
 });

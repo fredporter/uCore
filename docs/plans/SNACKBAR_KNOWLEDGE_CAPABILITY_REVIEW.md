@@ -80,3 +80,37 @@ The Routines tab now reads the maintenance scheduler and displays
 its configured times, last outcomes and retry status. Workflow Queue
 shows research jobs and workflow runs. Schedule changes remain owned by
 the existing scheduler configuration.
+
+## Base workflow readiness review
+
+| Area | Available through existing owners | Gap before expanding |
+| --- | --- | --- |
+| Local Snacks | Markdown formatting and validation; Apple reminders, mail and contact badges, Notes and Calendar launchers; Apple Intelligence shortcuts | Apple commands require native permissions. The generic executable dispatcher now forwards text to the same handler as the dedicated Snack endpoint. Contact VIP badge heuristics are distinct from Workflow contact metadata. |
+| External and cloud adapters | Apple and Google connections, local Ollama, feed intake, separate WordPress post transport | Keep provider operations behind Connections and publication behind Binder review, uFlow and uCore-Publish. Qualify disposable Google and Apple lists, Linux availability, and an approved disposable WordPress target. |
+| Internal Skills | Vault lookup/indexing, backup, sync, clipboard maintenance, workflow guard/audit/pause and spool retention | Snackbar's merged registry presents all entries as enabled. Its generic endpoint supplies a confirmation assertion without passing caller scope to the skill runner. Catalogue roots are descriptive at this boundary. Review the exposed set and enforce caller scope and allowed roots before adding user actions or adapters. |
+| Daily operations | Workflow Queue, maintenance scheduler and connection polling | Scheduled backup, Vault sync, Tasker sync, brain sync and clipboard maintenance all require execution authorization at the registry. Automatic jobs omit it and can show Needs approval. Decide and persist scoped opt-in for scheduled effects; exercise missed runs, retries and receipts under one scheduler. |
+| Vault storage | Binder documents, intake and user planning files | Activity, dispatches and feeds still have Vault writers. Classify user-facing records versus machine state and migrate the latter through their owners to UDOS_HOME before removing the old folders. Review legacy Binder placement on case-insensitive and case-sensitive volumes. |
+
+The two sprint slices start with source-list identity in synced account task
+views and explicit DocLang canonical and spatial refs. Remaining work includes
+editable task metadata, Contacts/Binder links, scoped wiki resolution, the
+submission review state machine and deployed cloud resolution. Use the
+existing owners for each step. The starter Vault plate is an inventory;
+rendering it produces YAML, while Workflow seed creates the Sandbox files.
+
+For the existing Vault, start with a read-only inventory and a migration
+preview that records source and destination, owner, references and conflicts:
+
+- Keep `@inbox/`, `daily/` and the current Binder documents in place. Use
+  the existing Binder migration preview for the legacy hierarchy and detect
+  case-only collisions before renaming anything.
+- Move confirmed project files into their Binders or Documents after checking
+  links and attachments. Review ambiguous folders such as research, web and
+  creative projects with their owners before grouping their content.
+- Treat Activity, dispatch and feed records as separately owned. For each,
+  distinguish authored exports from queues, indexes and caches. Switch
+  machine-state readers and writers together and verify a replay against a
+  disposable Vault before moving the live data.
+- Review the legacy hidden folders by owner. Keep editor-owned configuration
+  with that editor, surface user files in visible folders, and retire legacy
+  runtime paths only after verifying their replacements.

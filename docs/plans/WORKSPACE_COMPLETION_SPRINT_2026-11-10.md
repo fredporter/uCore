@@ -1,6 +1,6 @@
 # Workspace completion sprint — 2026-11-10
 
-Status: started. Owner: uCore maintainer, with existing adapter/package owners.
+Status: local implementation qualified on 17 November 2026. Live provider and release qualification remain open. Owner: uCore maintainer, with existing adapter/package owners.
 Parent: CURATED_APPLICATIONS_CLEANUP_SPRINT_2026-11-09.md. Continues W01–W06 and the unfinished consolidation gates; it does not supersede them or create another task engine.
 
 ## Outcome
@@ -75,6 +75,22 @@ Live fixtures must be identifiable as disposable before exercising account chang
 - Global Knowledge branch `plan/selective-canon-reconciliation` passed relative link checks and maintainer wording review. Distribution provenance for the recovered corpus remains a per-item gate. No recovered corpus content is part of the proposal.
 - Live Google, Apple and WordPress qualification awaits identified disposable fixtures. Linux native adapters, independent local profile authentication and remote Drone enrollment remain open engineering work.
 
+## Wiki indexing, location and contributions
+
+Use the [DocLang Bridge export spec](../DOCLANG_BRIDGE_EXPORT_SPEC.md) for concrete source IDs, canonical document IDs, wiki links, sections and source mappings. Index each authorized copy with its revision, layer and provenance. Resolve unqualified links in Personal → Shared → Global order within the reader's access. Preserve explicit targets and headings, and report missing, ambiguous or restricted targets during review. An overlay can preserve a canonical identity while recording its own source and revision.
+
+Keep document identity, storage location, source citation, publication URL and spatial reference distinct. A document can have a Vault source, a web citation, an approved edition URL and a GridCore place reference at the same time. The Prose standard (`global-knowledge/standards/PROSE-STANDARDS.md`) governs offline citations. The [publishing contract](../UDOS_DOCUMENTATION.md#spatial-and-publishing-urls) governs guide and mirror destinations. Resolve edition links against the approved manifest and keep private paths and unapproved coordinates out of public output. Use GridCore PlaceRefs for Earth and virtual worlds. Reserve future uDOS cloud resolution for authorized lookups of stable resource and edition identities, with optional place references. Cloud addressing and transport still need a contract.
+
+Apply the role matrix in [uDOS Documentation](../UDOS_DOCUMENTATION.md). Owners edit Personal material and authorized collaborators edit Shared material within its grants. Knights can export locally and prepare proposals. Sorcerers and Wizards can release owned or delegated editions to approved cloud destinations. Only a Wizard can approve and merge a Global Knowledge patch and release the canonical revision. Use the Knowledge Layering, Wizard Maintenance & Cloud Federation spec (`global-knowledge/KNOWLEDGE_LAYERING_AND_CONTRIBUTION_SPEC.md`) for distinct public vault listing and canon patch submissions. A signed submission records the author, scope, target identity, revision, provenance and approved content or diff. Canon review checks the base revision, permissions, links, privacy and source rights before accepting, requesting changes or rejecting. A published correction references the prior edition and updates the guide and mirror through the same edition identity.
+
+## Provider lists and Contacts
+
+Qualify Google Tasks and Apple Reminders with a dedicated disposable list per test connection. Keep Linux in its own workspace and exercise the unsupported adapter state until a native task adapter is qualified. Keep imported task views scoped to provider, account and source list, with a separate combined view over the same uFlow task records. Preserve source IDs and list membership across repeat imports. Test identical titles across lists and accounts, reconnect and reimport, and verify that disconnect retains local task records.
+
+Use uFlow for task flags, tags and stars. Preserve native fields where supported and keep the other metadata local. Attach a task to a contact by stable local ID and allow the contact to be marked VIP. Treat VIP as contact metadata so task priority and contact importance can change independently. Preserve provider stars and VIP groups as source metadata without assuming they have the same meaning.
+
+In Workflow Contacts, show the tasks, feed entries and email records linked to the selected contact, with optional Binder links for related material. Allow explicit links to a Contact or Binder and use provider identity matches as suggestions for review. Keep the original records in their owning stores and enforce source access when loading the panel. Qualify explicit link and unlink, VIP filtering, overlapping identities, scoped visibility and navigation to the original task, mail, feed record or Binder.
+
 ## WordPress-first extended form
 
 Use Forminator in the selected WordPress site for the form, validation and original submission. Use its HubSpot integration to map the approved CRM fields after a successful WordPress submission. The form owner can change the WordPress layout without renaming mapped CRM properties. Site owners manage credentials through the site's integration settings and the existing uDOS credential store where uDOS calls the site.
@@ -100,3 +116,9 @@ Use a private WordPress task record with an opaque task ID, title, status, due d
 The opt-in post transport can verify WordPress authentication and draft creation. It cannot serve as the task store. The task endpoint needs authenticated create, read and update, revision checks, and isolation tests for Local, Shared and Public projections. Test Apple-only, Google-only and neither-provider routing, followed by provider recovery and a retry after a lost WordPress response.
 
 Reference: [Forminator forms and HubSpot integration](https://wpmudev.com/docs/changelog/forminator/).
+
+## Local qualification, 17 November 2026
+
+The User Vault layout, existing Binder compatibility, import and starter task behavior are covered by the backend suite (787 passed, one skipped). The frontend suite passed 168 tests on Node 22, and the production build completed. The local preview opened the Recipe Gallery from Engineering's Recipes tab. Planning governance, documentation routes, home path policy, and validation of six companion extension manifests passed. The uCore-Publish suite passed 19 tests.
+
+The release checks still require disposable Google, Apple and WordPress fixtures, the confirmed WordPress form and task API origin, and the destination HubSpot field mapping. Independent profile authentication, remote Drone enrollment, Linux platform checks, and staging edition recovery remain open. The reviewed Global Knowledge proposal is on upstream main at `3451afd`. The historical corpus remains on the recovery branch pending provenance and distribution review.

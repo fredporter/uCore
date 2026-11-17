@@ -1,7 +1,7 @@
 """Dispatch Store & Ephemeral Token Manager.
 
 Manages interactive story dispatches, ephemeral access tokens (/p/:token),
-RSVP submission records, and preserves raw originals under ~/Vault/dispatches/<id>/originals/.
+RSVP submission records, and preserves raw originals under ~/Vault/Memory/Activity/Transport/<id>/originals/.
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ class DispatchStore:
     """Sovereign store for interactive dispatches and RSVPs."""
 
     def __init__(self, root_dir: Optional[Path] = None, token_index_path: Optional[Path] = None):
-        self.root_dir = root_dir or (settings.vault_root / "dispatches")
+        self.root_dir = root_dir or (settings.vault_root / "Memory" / "Activity" / "Transport")
         self.token_index_path = token_index_path or (settings.data_dir / "dispatch_tokens.json")
         self.root_dir.mkdir(parents=True, exist_ok=True)
         self.token_index_path.parent.mkdir(parents=True, exist_ok=True)
@@ -127,7 +127,7 @@ class DispatchStore:
         except Exception as exc:
             log.warning("Could not ingest dispatch creation into feed: %s", exc)
 
-        # Update syndicated feeds in ~/Vault/feeds/
+        # Update syndicated feeds in ~/Vault/Memory/Activity/feeds/
         try:
             from app.services.dispatch_feed import dispatch_feed_service
             dispatch_feed_service.sync_to_vault()
@@ -284,7 +284,7 @@ class DispatchStore:
         answers_str = "\n".join(f"- **{k}**: {v}" for k, v in answers.items()) if answers else ""
         notes = payload.get("notes") or payload.get("email") or ""
 
-        target_binder = binder or manifest.get("binder_id") or "Sandbox"
+        target_binder = binder or manifest.get("binder_id") or ""
         dispatch_title = manifest.get("title") or dispatch_id
         task_title = f"RSVP Follow-up: {contact_name} ({dispatch_title})"
 

@@ -5,5 +5,6 @@ it('routes former gallery layouts into working surfaces, never sample state', ()
   expect(recipeDestination('task-list')).toBe('/workflow?tab=tasks');
   expect(recipeDestination('story-form')).toBe('/setup');
   expect(recipeDestination('authoring-workbench')).toBe('/workflow?tab=editor');
-  expect(recipeDestination('unknown')).toBe('/');
+  expect(recipeDestination('')).toBe('/documentation?tab=developer&section=recipes');
+  expect(recipeDestination('unknown')).toBe('/documentation?tab=developer&section=recipes');
 });

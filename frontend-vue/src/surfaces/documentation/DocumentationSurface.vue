@@ -28,6 +28,13 @@
 
       <!-- 3. Developer & Engineering Tooling Tab -->
       <div v-else-if="activeTab === 'developer'" class="documentation-content">
+        <SurfaceTabNav
+          v-model="engineeringTab"
+          :tabs="ENGINEERING_TABS"
+          aria-label="Engineering"
+        />
+        <RecipeGallerySurface v-if="engineeringTab === 'recipes'" />
+        <template v-else>
         <!-- Diagnostic & Health strip inside Developer tab -->
         <div class="doc-health-strip">
           <div class="doc-health-item">
@@ -123,6 +130,7 @@
             </div>
           </div>
         </div>
+        </template>
       </div>
     </div>
 
@@ -178,7 +186,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
+import { defineAsyncComponent, ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useSettingsStore } from "../../stores/settings";
 import DocumentArticle from "../../skills/molecules/DocumentArticle.vue";
@@ -192,16 +200,34 @@ import LocalWikiReader from "./LocalWikiReader.vue";
 
 import udosDocumentation from "../../../../docs/UDOS_DOCUMENTATION.md?raw";
 
+const RecipeGallerySurface = defineAsyncComponent(async () => {
+  const { default: component } = await import("../recipes/RecipeGallerySurface.vue");
+  return component;
+});
+
 const shell = useShellStore();
 const settings = useSettingsStore();
 const route = useRoute();
 const router = useRouter();
 
+const ENGINEERING_TABS = [
+  { id: "tools", label: "Tools", icon: "terminal" },
+  { id: "recipes", label: "Recipes", icon: "widgets" },
+];
+const engineeringTab = computed({
+  get: () => route.query.section === "recipes" ? "recipes" : "tools",
+  set: (tab: string) => {
+    const section = tab === "recipes" ? "recipes" : undefined;
+    if (route.query.section === section) return;
+    void router.replace({ query: { ...route.query, tab: "developer", section }, hash: route.hash });
+  },
+});
+
 const TABS = [
   { id: "wiki", label: "Knowledge", icon: "auto_stories" },
   { id: "learning", label: "uCode", icon: "school" },
   { id: "udos", label: "Documentation", icon: "description" },
-  { id: "developer", label: "Advanced", icon: "terminal" },
+  { id: "developer", label: "Engineering", icon: "terminal" },
 ];
 const visibleTabs = computed(() => TABS.filter(tab => tab.id !== "developer" || settings.advancedView));
 const VALID_DOC_TABS = new Set(TABS.map((tab) => tab.id));

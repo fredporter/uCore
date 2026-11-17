@@ -123,6 +123,8 @@ async def handle_binder_create(request: web.Request) -> web.Response:
         return web.json_response({"created": True, "binder": created})
     except FileExistsError as error:
         return web.json_response({"error": str(error)}, status=409)
+    except ValueError as error:
+        return web.json_response({"error": str(error)}, status=400)
     except Exception as e:
         log.exception("Error creating binder %s: %s", binder_id, e)
         return web.json_response({"error": str(e)}, status=500)

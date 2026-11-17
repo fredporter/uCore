@@ -202,8 +202,17 @@ def create_workspace_file(
         raise ValueError("Invalid binder name")
 
     target = root
-    if safe_binder:
+    if source == "user":
+        if safe_binder:
+            from app.flow.binder_engine import get_binder_documents_dir
+
+            target = get_binder_documents_dir(safe_binder)
+        else:
+            target = root / "Sandbox"
+    elif safe_binder:
         target = root / safe_binder
+    if not target.resolve().is_relative_to(root.resolve()):
+        raise ValueError("Destination must remain within the workspace")
     target.mkdir(parents=True, exist_ok=True)
 
     body = content or f"# {clean_title}\n\n"
@@ -393,13 +402,6 @@ def _get_preview(content: str, max_chars: int = 300) -> str:
     return "\n".join(lines)[:max_chars]
 
 
-def _default_binder_for(source: str) -> str | None:
-    """Return the fallback binder for files without explicit metadata."""
-    if source == "user":
-        return "Sandbox"
-    return None
-
-
 # Scanner ------------------------------------------------------------
 
 def _scan_source(source: str, base_path: Path) -> list[dict[str, Any]]:
@@ -468,8 +470,7 @@ def _scan_source(source: str, base_path: Path) -> list[dict[str, Any]]:
                 "source": source,
                 "vault_layer": source_layer,
                 "binder": (
-                    str(fm.get("binder") or "")
-                    or _default_binder_for(source)
+                    str(fm.get("binder") or "") or None
                 ),
                 "mission": str(fm.get("mission") or "") or None,
                 "tags": tags,

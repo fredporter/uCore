@@ -52,7 +52,7 @@ def test_bitchat_store_messaging_and_query(tmp_path: Path):
     store.close()
 
 
-def test_bitchat_save_to_binder(tmp_path: Path):
+def test_bitchat_save_to_binder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Verify exporting selected messages as markdown evidence into a binder."""
     db_file = tmp_path / "pods" / "bitchat.db"
     vault_root = tmp_path / "Vault"
@@ -61,6 +61,11 @@ def test_bitchat_save_to_binder(tmp_path: Path):
     m1 = store.send_message("Charlie", "Decision made: use port 53535 for local beacons.", channel="#engineering")
     m2 = store.send_message("Dana", "Confirmed, standard socket broadcast works without zeroconf wheel.", channel="#engineering")
 
+    from app.flow import binder_engine
+
+    monkeypatch.setattr(binder_engine, "VAULT_ROOT", vault_root)
+    monkeypatch.setattr(binder_engine, "BINDERS_ROOT", vault_root / "Binders")
+    binder_engine.create_binder("MeshNetwork", "Mesh Network", "Record discussions")
     res = store.save_to_binder(
         msg_ids=[m1["msg_id"], m2["msg_id"]],
         binder_name="MeshNetwork",
@@ -72,6 +77,7 @@ def test_bitchat_save_to_binder(tmp_path: Path):
     assert res["saved_count"] == 2
 
     evidence_file = Path(res["path"])
+    assert evidence_file.is_relative_to(vault_root / "MeshNetwork" / "docs")
     assert evidence_file.exists()
     content = evidence_file.read_text(encoding="utf-8")
 
@@ -165,7 +171,6 @@ async def test_bitchat_api_rest_flow(bitchat_api_client):
     # Save to Binder
     binder_resp = await bitchat_api_client.post("/api/network/bitchat/save-to-binder", json={
         "msg_ids": [msg_id],
-        "binder": "LabNotes",
         "title": "API Check Session",
     })
     assert binder_resp.status == 200

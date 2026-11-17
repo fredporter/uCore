@@ -212,7 +212,7 @@ class AppleFeedSync:
                 pass
             imported += 1
 
-        # Mirror to ~/Vault/Activity/events.jsonl and Daily_Activity.md
+        # Mirror to ~/Vault/Memory/Activity/Activity/events.jsonl and Daily_Activity.md
         try:
             from app.services.activity_markdown import (
                 append_activity_events,

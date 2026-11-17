@@ -20,7 +20,7 @@
           @click="shell.setSidebarMode('vault'); shell.setSidebarOpen(true)"><UIcon name="folder_open" aria-hidden="true" /></button>
         <button v-if="wf.activeBinderId" class="usx-btn" aria-label="Open Binder" title="Open Binder" @click="wf.binders.some(binder => binder.id === wf.activeBinderId) ? wf.showBinder(wf.activeBinderId) : wf.showList('', wf.activeBinderId)"><UIcon name="book" aria-hidden="true" /><span class="workflow-context__label">{{ wf.binders.find(b => b.id === wf.activeBinderId)?.title || wf.activeBinderId }}</span></button>
         <button class="usx-btn" aria-label="Tasks" title="Tasks" @click="wf.showList(wf.activeList, wf.activeBinderId)"><UIcon name="list" aria-hidden="true" /><span class="workflow-context__label">Tasks</span></button>
-        <strong :title="editorTitle">{{ editorTitle }}</strong><small v-if="wf.hasEditorDraft">Unsaved</small>
+        <strong v-if="activeEditorTask" :title="editorTitle">{{ editorTitle }}</strong><small v-if="wf.hasEditorDraft">Unsaved</small>
         <span class="workflow-context__actions" v-if="activeEditorTask">
           <span>{{ contextPosition + 1 }} of {{ wf.relatedTasks.length }} · {{ wf.relatedTasks.filter(task => task.status === 'completed').length }} done</span>
           <button class="usx-btn" aria-label="Previous task" :disabled="contextPosition <= 0" @click="navigateTask(-1)"><UIcon name="chevron_left" /></button>
@@ -96,6 +96,9 @@
             :title="editorTitle"
             :document-path="activeWorkflowFile?.path"
             :read-only="editorReadOnly"
+            :can-edit-copy="Boolean(editorReadOnly && activeWorkflowFile?.extension === 'md' && !wf.binderDocument)"
+            :start-in-edit="activeWorkflowFile?.path.startsWith('virtual/copy/')"
+            @edit-copy="editVaultCopy"
             :edit-mode="wf.editorMode"
             @update:content="onEditorContentUpdate"
             @update:edit-mode="onEditorModeUpdate"
@@ -258,6 +261,12 @@ onMounted(async () => {
   const documentPart = String(route.query.document || "");
   const filePath = String(route.query.file || "");
   await wf.fetchAll();
+  if (wf.activeBinderId.toLowerCase() === "sandbox" &&
+      !wf.binders.some(binder => binder.id === wf.activeBinderId) &&
+      route.query.binder === wf.activeBinderId) {
+    await router.replace({ query: { ...route.query, binder: undefined } });
+    wf.activeBinderId = "";
+  }
   wf.setTaskContext(wf.activeList, wf.activeBinderId);
   if (!wf.missions.some(mission => mission.id === wf.activeMissionId)) wf.activeMissionId = "";
   else if (!route.query.binder) wf.selectMission(wf.activeMissionId);
@@ -327,6 +336,14 @@ const saving = ref(false);
 const saveMessage = ref("");
 const saveFailed = ref(false);
 
+function editVaultCopy() {
+  const file = activeWorkflowFile.value;
+  if (!file?.readOnly) return;
+  const path = `virtual/copy/${file.path}`;
+  wf.selectFile({ ...file, id: path, path, binder: "", content: editorContent.value, readOnly: false });
+  wf.setEditorMode("code");
+}
+
 async function onEditorSave(value: string) {
   if (saving.value) return;
   saving.value = true;
@@ -342,6 +359,7 @@ async function onEditorSave(value: string) {
       if (file.readOnly) throw new Error("This file is read-only.");
       if (file.path.startsWith("virtual/")) {
         pendingDraft.value = value;
+        saveAsName.value = file.filename || "Untitled.md";
         saveAsOpen.value = true;
         saveMessage.value = "";
         return;
@@ -370,7 +388,7 @@ async function saveDraftAsFile() {
   saving.value = true;
   saveFailed.value = false;
   try {
-    const file = await workspace.createFile("/", saveAsName.value);
+    const file = await workspace.createFile("/Sandbox", saveAsName.value);
     editorSurface.updateContent(pendingDraft.value);
     saveAsOpen.value = false;
     const saved = await workspace.saveFile(file.path, pendingDraft.value);
@@ -398,8 +416,9 @@ async function openBinderNotebookLink(event: MouseEvent) {
   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   const anchor = event.target instanceof Element ? event.target.closest(".md-preview a[href]") : null;
   const href = anchor?.getAttribute("href");
-  const source = activeWorkflowFile.value?.path.match(/^(\/binders\/([^/]+)\/docs\/)[^/]+$/i);
+  const source = activeWorkflowFile.value?.path.match(/^((?:\/binders)?\/([^/]+)\/docs\/)[^/]+$/i);
   if (!href || !source || anchor?.hasAttribute("download")) return;
+  if (!source[1].toLowerCase().startsWith("/binders/") && !wf.binders.some(binder => binder.id === source[2])) return;
   // Binder imports store sibling Markdown files in docs/. Other links keep their native behavior.
   const relative = href.replace(/^\.\//, "");
   if (!/^[^/:?#\\]+\.md$/i.test(relative)) return;
