@@ -2,7 +2,7 @@
 # Ecosystem Storage Architecture
 
 **Status:** Canonical
-**Updated:** 2026-08-18
+**Updated:** 2026-11-17
 
 ## Ownership boundary
 
@@ -22,6 +22,21 @@ metadata, compatibility archives and shared toolchains.
 Credentials and operating-system integration are deliberately excluded:
 `~/.ssh`, `~/.gitconfig`, `~/.config/gh`, `~/.npmrc`, `~/.docker`, `~/.kube`,
 `~/.codex`, macOS Keychain and application-owned `~/Library` data.
+
+## Private document layout
+
+Active Binders are top-level folders identified by their Binder records.
+`Sandbox/` holds drafts and captures without a Binder. `Memory/` groups
+durable documents and exported artifacts by purpose. Host activity, dispatch
+feeds, intake originals, knowledge overlays, and publishing exports use
+their Memory collection paths. Move files with their owning service so
+future writes use the same location. Dispatch records and contribution bundles
+use `Memory/Activity/Transport/`. Retired Binder folders use
+`Memory/Archive/Archived Binders/`. Task and Mission state remains in the
+workflow runtime under `UDOS_HOME`.
+
+See the [User Vault layout](plans/USER_VAULT_LAYOUT.md) for the collection map
+and migration record.
 
 ## Compatibility links
 

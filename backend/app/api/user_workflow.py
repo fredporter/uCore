@@ -7,10 +7,10 @@ import json
 import logging
 import re
 import tarfile
-from tempfile import NamedTemporaryFile
-from threading import Lock
 from datetime import UTC, datetime
 from pathlib import Path
+from tempfile import NamedTemporaryFile
+from threading import Lock
 from typing import Any
 
 import yaml
@@ -252,10 +252,9 @@ def _seed_user_tasks(tasker_dir: Path) -> dict[str, Any]:
             "status": "todo",
             "mission": "Getting Started",
             "task": "Welcome to uCode",
-            "binder": DEFAULT_USER_BINDER,
             "priority": "high",
             "tags": ["seed", "user", "ucode"],
-            "summary": "Open the Sandbox binder and review the starter docs.",
+            "summary": "Open the Sandbox folder and review the starter guide.",
         },
         {
             "board": "sandbox",
@@ -263,10 +262,9 @@ def _seed_user_tasks(tasker_dir: Path) -> dict[str, Any]:
             "status": "todo",
             "mission": "Getting Started",
             "task": "My First Binder",
-            "binder": DEFAULT_USER_BINDER,
             "priority": "medium",
             "tags": ["seed", "binder"],
-            "summary": "Add one note, one task, and one reference to Sandbox.",
+            "summary": "Create a Binder and add one note, one task, and one reference.",
         },
         {
             "board": "sandbox",
@@ -274,7 +272,6 @@ def _seed_user_tasks(tasker_dir: Path) -> dict[str, Any]:
             "status": "review",
             "mission": "Getting Started",
             "task": "Add a Sandbox note",
-            "binder": DEFAULT_USER_BINDER,
             "priority": "medium",
             "tags": ["seed", "notes"],
             "summary": "Create or edit a Markdown note from the filepicker.",
@@ -285,7 +282,6 @@ def _seed_user_tasks(tasker_dir: Path) -> dict[str, Any]:
             "status": "completed",
             "mission": "Getting Started",
             "task": "Publish Sandbox draft",
-            "binder": DEFAULT_USER_BINDER,
             "priority": "low",
             "tags": ["seed", "publish"],
             "summary": (
@@ -410,12 +406,51 @@ def _preview_legacy_sandbox(
     return sorted(rows, key=lambda row: (Path(row["target"]) not in seed_paths, row["source"]))
 
 
+def _seed_plain_user_vault(vault: Path) -> dict[str, Any]:
+    plate_path = Path(__file__).resolve().parents[3] / "plates/vault/user_vault_seed.yaml"
+    with plate_path.open(encoding="utf-8") as stream:
+        plate = yaml.safe_load(stream)["plate"]
+    vault.mkdir(parents=True, exist_ok=True)
+    created: list[str] = []
+    existing: list[str] = []
+    conflicts: list[dict[str, str]] = []
+    for entry in plate["seed_files"]:
+        relative = Path(entry["path"])
+        path = vault / relative
+        parent = path.parent
+        matches = [item for item in vault.iterdir() if item.name.casefold() == parent.name.casefold()]
+        if matches and (matches != [parent] or parent.is_symlink() or not parent.is_dir()):
+            conflicts.append({"source": str(matches[0]), "target": str(parent), "status": "conflict"})
+            continue
+        parent.mkdir(exist_ok=True)
+        matches = [item for item in parent.iterdir() if item.name.casefold() == path.name.casefold()]
+        if matches:
+            existing.extend(map(str, matches))
+            if matches != [path] or path.is_symlink() or not path.is_file():
+                conflicts.append({"source": str(matches[0]), "target": str(path), "status": "conflict"})
+            continue
+        try:
+            with path.open("x", encoding="utf-8") as stream:
+                stream.write(entry["content"])
+        except FileExistsError:
+            existing.append(str(path))
+        else:
+            created.append(str(path))
+    return {
+        "vault_path": str(vault), "binder": "", "created_count": len(created),
+        "created": created, "existing": existing, "legacy_review": conflicts,
+    }
+
+
 def _seed_user_vault_docs() -> dict[str, Any]:
     user_vault = settings.vault_root.resolve()
     legacy_root = user_vault / "binders" / "active" / DEFAULT_USER_BINDER
     if binder_engine.VAULT_ROOT.resolve() != user_vault:
         raise ValueError("Starter Binder belongs to a different vault")
     binder_root = binder_engine.BINDERS_ROOT.resolve()
+    legacy_binder = binder_root / DEFAULT_USER_BINDER
+    if not (legacy_binder.exists() or legacy_binder.is_symlink() or legacy_root.exists() or legacy_root.is_symlink()):
+        return _seed_plain_user_vault(user_vault)
     if not binder_root.is_relative_to(user_vault) or binder_root == user_vault:
         raise ValueError("Starter Binder directory escapes the vault")
     if (binder_root / DEFAULT_USER_BINDER).is_symlink():
@@ -424,7 +459,7 @@ def _seed_user_vault_docs() -> dict[str, Any]:
         docs_dir = binder_engine.get_binder_documents_dir(DEFAULT_USER_BINDER)
     except FileNotFoundError:
         binder_engine.create_binder(
-            DEFAULT_USER_BINDER, "Sandbox", "Review starter documents and practise Binder intake.",
+            DEFAULT_USER_BINDER, "Sandbox", "Review starter documents and practise Binder intake.", legacy=True,
         )
         docs_dir = binder_engine.get_binder_documents_dir(DEFAULT_USER_BINDER)
     binder_dir = docs_dir.parent
@@ -761,7 +796,7 @@ def _import_markdown(
     source_format = str(body.get("source_format") or "auto")
     title = str(body.get("title") or "Imported Document").strip()
     filename = str(body.get("filename") or "").strip()
-    binder_raw = str(body.get("binder") or DEFAULT_USER_BINDER)
+    binder_raw = str(body.get("binder") or "").strip()
     vault_layer_id = str(body.get("vault_layer") or "user").strip()
     relative_dir = str(body.get("relative_dir") or "").strip()
     overwrite = bool(body.get("overwrite", False))
@@ -804,7 +839,7 @@ def _import_markdown(
         )
 
     try:
-        binder = _safe_binder_name(binder_raw)
+        binder = _safe_binder_name(binder_raw) if binder_raw or vault_layer_id != "user" else ""
         root = Path(str(layer.get("path") or "")).expanduser()
         root.mkdir(parents=True, exist_ok=True)
 
@@ -812,16 +847,18 @@ def _import_markdown(
         if require_existing and (vault_layer_id != "user" or relative_dir):
             raise ValueError("Existing Binder imports use its user-vault documents directory")
         if relative_dir:
-            target_dir = _safe_relative_path(root, relative_dir)
+            target_dir = _safe_relative_path(root, "Sandbox" if vault_layer_id == "user" and relative_dir == "." else relative_dir)
         elif vault_layer_id == "user":
             try:
+                if not binder:
+                    raise FileNotFoundError("No Binder selected")
                 target_dir = binder_engine.get_binder_documents_dir(binder)
                 if not target_dir.is_relative_to(root.resolve()):
                     raise ValueError("Binder belongs to a different vault")
             except FileNotFoundError:
                 if require_existing:
                     return web.json_response({"error": "Binder not found"}, status=404)
-                target_dir = root / "binders" / "active" / binder / "docs"
+                target_dir = _safe_relative_path(root, "Sandbox")
         else:
             target_dir = root / "binders" / "active" / binder / "docs"
 
@@ -843,7 +880,7 @@ def _import_markdown(
 
         frontmatter: dict[str, Any] = {
             "title": title,
-            "binder": binder,
+            **({"binder": binder} if binder and not relative_dir else {}),
             "vault_layer": vault_layer_id,
             "imported_at": datetime.now(UTC).isoformat(),
             "import_source_format": source_format,
@@ -956,11 +993,8 @@ def _jekyll_filename(collection: str, slug: str) -> str:
 def _jekyll_target_dir(root: Path, collection: str, relative_dir: str) -> Path:
     if relative_dir:
         return _safe_relative_path(root, relative_dir)
-    if collection == "posts":
-        return root / "jekyll" / "_posts"
-    if collection == "pages":
-        return root / "jekyll" / "pages"
-    return root / "jekyll" / f"_{collection}"
+    jekyll = root / "Memory" / "Exports" / "jekyll" if root == settings.vault_root.resolve() else root / "jekyll"
+    return jekyll / ("pages" if collection == "pages" else f"_{collection}")
 
 
 async def handle_user_workflow_publish_jekyll(

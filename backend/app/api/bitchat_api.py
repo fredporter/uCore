@@ -144,7 +144,7 @@ async def handle_save_to_binder(request: web.Request) -> web.Response:
     if not msg_ids or not isinstance(msg_ids, list):
         return web.json_response({"error": "msg_ids list is required"}, status=400)
 
-    binder_name = data.get("binder", "").strip() or "Sandbox"
+    binder_name = data.get("binder", "").strip()
     title = data.get("title", "").strip() or "Discussion Evidence"
 
     store = get_bitchat_store()
@@ -173,7 +173,7 @@ async def handle_convert_to_task(request: web.Request) -> web.Response:
 
     board = str(data.get("board") or "inbox")
     priority = str(data.get("priority") or "medium")
-    binder = str(data.get("binder") or "Sandbox")
+    binder = str(data.get("binder") or "")
     due_date = data.get("due_date")
     sync_apple_reminders = bool(data.get("sync_apple_reminders", False))
 

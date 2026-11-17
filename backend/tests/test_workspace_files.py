@@ -74,7 +74,8 @@ def test_workspace_rejects_moving_folder_inside_itself(workspace: Path):
 def test_workspace_rejects_stale_write(workspace: Path):
     created = workspace_files.create_entry("user", "", "Conflict.md", "file")
     opened = workspace_files.read_file("user", created["path"])
-    (workspace / "Conflict.md").write_text("external change", encoding="utf-8")
+    assert created["path"] == "/Sandbox/Conflict.md"
+    (workspace / created["path"].lstrip("/")).write_text("external change", encoding="utf-8")
 
     with pytest.raises(workspace_files.WorkspaceConflictError, match="changed"):
         workspace_files.write_file(

@@ -1,7 +1,7 @@
 """Activity Markdown View Generator with Anti-Drift User Annotation Protection.
 
 Complies with UDOS_PRODUCT_REFACTOR_PLAN_2026-09-12 Section 10:
-- Formats ~/Vault/Activity/Daily_Activity.md from ~/Vault/Activity/events.jsonl.
+- Formats ~/Vault/Memory/Activity/Activity/Daily_Activity.md from ~/Vault/Memory/Activity/Activity/events.jsonl.
 - Preserves user notes in the <!-- BEGIN USER ANNOTATIONS --> block across refreshes.
 """
 from __future__ import annotations
@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 log = logging.getLogger("ucore.activity_markdown")
 
 VAULT_ROOT = Path.home() / "Vault"
-ACTIVITY_DIR = VAULT_ROOT / "Activity"
+ACTIVITY_DIR = VAULT_ROOT / "Memory" / "Activity" / "Activity"
 EVENTS_FILE = ACTIVITY_DIR / "events.jsonl"
 DAILY_ACTIVITY_FILE = ACTIVITY_DIR / "Daily_Activity.md"
 

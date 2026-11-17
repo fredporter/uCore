@@ -94,3 +94,29 @@ def test_export_vault_to_doclang_context_writes_jsonl(tmp_path: Path):
     payload = json.loads(out_file.read_text(encoding="utf-8").strip())
     assert payload["doclang"]["document"]["title"] == "Example"
     assert "TITLE: Example" in payload["ai_context"]
+
+
+def test_disk_and_index_exports_preserve_identity_and_place(tmp_path):
+    from app.services.doclang_bridge import export_document, extract_frontmatter
+
+    file = tmp_path / "copy.md"
+    markdown = """---
+canonical_id: "vault:guide/original.md"
+place_ref: "GAME:VRT:L420-BB05-Z-2"
+lat: 0
+lon: 0
+---
+# Copy
+"""
+    file.write_text(markdown, encoding="utf-8")
+    frontmatter, body = extract_frontmatter(markdown)
+    exports = [
+        export_document(file, tmp_path),
+        build_doclang_document({"frontmatter": frontmatter, "body": body, "rel_path": "copy.md"}),
+    ]
+    for envelope in exports:
+        document = envelope["document"]
+        assert document["id"] == "vault:copy.md"
+        assert document["canonical_id"] == "vault:guide/original.md"
+        assert document["location"]["place_ref"] == "GAME:VRT:L420-BB05-Z-2"
+        assert document["location"]["lat"] == document["location"]["lon"] == 0.0

@@ -74,7 +74,8 @@ async def run_executable(
 
     # Snack plugins are synchronous; run in a thread to avoid blocking the loop.
     import asyncio
-    from functools import partial
-    return await asyncio.to_thread(
-        partial(run_system_snack, exe_id, action),
-    )
+    text = kwargs.get("text")
+    if text is not None and not isinstance(text, str):
+        return {"success": False, "error": "Snack text must be a string"}
+    result = await asyncio.to_thread(run_system_snack, exe_id, action, text)
+    return {**result, "success": result.get("status") == "success"}

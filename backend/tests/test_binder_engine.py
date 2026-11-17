@@ -50,7 +50,7 @@ def test_create_binder_canonical_records(temp_environment):
         document_type="Specification",
     )
 
-    bdir = temp_environment["binders"] / "proj-alpha"
+    bdir = temp_environment["vault"] / "proj-alpha"
     assert bdir.is_dir()
     assert (bdir / "brief.md").exists()
     assert (bdir / "requirements.json").exists()
@@ -211,7 +211,7 @@ def test_document_projection_preserves_binder_and_excludes_external_symlinks(tem
     outside.write_text("Private", encoding="utf-8")
     (docs / "outside.md").symlink_to(outside)
     loaded = binder_engine.get_binder("garden")
-    assert loaded["documents"] == [{"filename": "seeds.md", "path": "/Binders/garden/docs/seeds.md"}]
+    assert loaded["documents"] == [{"filename": "seeds.md", "path": "/garden/docs/seeds.md"}]
     assert loaded["sources"] == []
     with pytest.raises(FileNotFoundError):
         binder_engine.get_binder_documents_dir("missing")

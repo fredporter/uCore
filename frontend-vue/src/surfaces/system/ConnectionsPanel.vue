@@ -51,7 +51,13 @@
       <p v-if="account">Synced records for {{ accountLabel }}. These snapshots are read-only.</p>
       <p v-if="account && !records.length && !busy && !error">No synced records in this collection.</p>
       <p v-if="!account && !records.length && !busy">No {{ names[activeKind].toLowerCase() }} yet. Create a record here or choose source lists in Connections.</p>
-      <ul v-if="account"><li v-for="record in records" :key="record.id">{{ record.data.title || 'Untitled record' }}</li></ul>
+      <template v-if="account && activeKind === 'tasks'">
+        <section v-for="list in accountTaskLists" :key="list.key">
+          <h4>{{ list.title }}</h4>
+          <ul><li v-for="record in list.records" :key="record.id">{{ record.data.title || 'Untitled task' }}</li></ul>
+        </section>
+      </template>
+      <ul v-else-if="account"><li v-for="record in records" :key="record.id">{{ record.data.title || 'Untitled record' }}</li></ul>
       <template v-else><button v-for="record in records" :key="record.id" class="usx-btn collection-row" @click="openRecord(record)"><span>{{ record.data.title }}</span><small>{{ (record.data.flags || []).join(' · ') }} {{ record.data.starred ? 'Starred' : '' }} {{ record.data.vip ? 'VIP' : '' }}</small></button></template>
     </section>
     <form v-if="edit && !connectionsOnly && !account" class="connection-box" @submit.prevent="saveRecord"><h3>{{ edit.id ? 'Edit record' : 'New record' }}</h3><button v-if="edit.kind==='notes' && edit.file_path" type="button" class="usx-btn" @click="openInEditor(edit)">Open in Editor</button><p v-if="edit.sources?.length">Connected copies: {{ edit.sources.map((source:any)=>source.account || source.provider).join(' · ') }}</p><details v-if="edit.data.alternatives"><summary>Other preserved values</summary><dl><template v-for="(value,key) in edit.data.alternatives" :key="key"><dt>{{ key }}</dt><dd>{{ displayValue(value) }}</dd></template></dl></details><label>Title<input v-model="edit.data.title" required /></label><label>Notes<textarea v-model="edit.data.body" rows="5" /></label><label v-if="edit.kind==='tasks'">Status<select v-model="edit.data.status"><option value="todo">Open</option><option value="completed">Done</option></select></label><label v-if="edit.kind==='tasks'">Due<input type="datetime-local" :value="localDate(edit.data.due)" @change="edit.data.due=isoDate(($event.target as HTMLInputElement).value)" /></label><label v-if="edit.kind==='calendar'">Starts<input type="datetime-local" required :value="localDate(edit.data.start?.dateTime || edit.data.start?.date)" @change="edit.data.start={dateTime:isoDate(($event.target as HTMLInputElement).value)}" /></label><label v-if="edit.kind==='calendar'">Ends<input type="datetime-local" required :value="localDate(edit.data.end?.dateTime || edit.data.end?.date)" @change="edit.data.end={dateTime:isoDate(($event.target as HTMLInputElement).value)}" /></label><label v-if="edit.kind==='contacts'">Emails (one per line)<textarea v-model="emails" rows="2" /></label><label v-if="edit.kind==='contacts'">Phones (one per line)<textarea v-model="phones" rows="2" /></label>
@@ -79,6 +85,20 @@ const kinds=['tasks','contacts','notes','calendar','mail'];
 const names:Record<string,string>={tasks:'Tasks',contacts:'Contacts',notes:'Notes',calendar:'Calendar',mail:'Mail'};
 const colours=['red','orange','yellow','green','blue','purple','grey'];
 const state=ref<any>({connections:[],setup:{},counts:{}}), records=ref<any[]>([]), allRecords=ref<any[]>([]);
+const accountTaskLists = computed(() => {
+  const lists = new Map<string, { key: string; title: string; records: typeof records.value }>();
+  for (const record of records.value) {
+    const id = record.data.source_list_id;
+    const key = id ? `source:${id}` : 'unknown';
+    if (!lists.has(key)) {
+      const title = id ? (record.data.list || 'Unnamed list') : 'List identity unavailable';
+      lists.set(key, { key, title, records: [] });
+    }
+    lists.get(key)!.records.push(record);
+  }
+  return [...lists.values()];
+});
+
 const discoveries=ref<Record<string,any>>({}), previews=ref<Record<string,any>>({});
 const activeKind=ref(props.initialKind), edit=ref<any>(null), emails=ref(''), phones=ref(''), displayName=ref('');
 const pendingChoices=ref<Record<string,any[]>>({}), pendingRemote=ref<Record<string,string>>({});
@@ -104,8 +124,12 @@ function browseAccount(connection:any) {
     collection:Object.keys(connection.config.collections)[0] || 'tasks'}});
 }
 async function loadRecords(){
-  const scope = account.value ? '?' + new URLSearchParams({account:account.value}) : '';
-  allRecords.value=(await api('/records' + scope)).records;
+  const accountId = account.value;
+  const profileId = identity.activeProfileId;
+  const scope = accountId ? '?' + new URLSearchParams({account:accountId}) : '';
+  const result = await api('/records' + scope);
+  if (accountId !== account.value || profileId !== identity.activeProfileId) return;
+  allRecords.value = result.records;
   records.value=allRecords.value.filter(r=>r.kind===activeKind.value);
   state.value.counts=Object.fromEntries(kinds.map(kind=>[kind,allRecords.value.filter(r=>r.kind===kind).length]));
   const selected=records.value.find(r=>r.id===route.query.record);
@@ -143,7 +167,8 @@ function reviewPair(pair:any){mergePair.value={left:allRecords.value.find(r=>r.i
 async function mergeRecords(){await work(async()=>{await api('/records',{merge:{keep:mergePair.value.left.id,other:mergePair.value.right.id}});mergePair.value=null;state.value=await api();await loadRecords();});}
 async function resolve(conflict:any,choice:string){await work(async()=>{await api(`/${conflict.connection}/resolve`,{remote:conflict.remote,choice});state.value=await api();await loadRecords();});}
 watch(()=>props.initialKind,kind=>{activeKind.value=kind;edit.value=null;void loadRecords();});
-watch(()=>identity.activeProfileId,()=>{state.value={connections:[],setup:{}};edit.value=null;discoveries.value={};previews.value={};authUrl.value='';void load();});
+watch(account,()=>{allRecords.value=[];records.value=[];edit.value=null;void work(loadRecords);});
+watch(()=>identity.activeProfileId,()=>{allRecords.value=[];records.value=[];state.value={connections:[],setup:{}};edit.value=null;discoveries.value={};previews.value={};authUrl.value='';void load();});
 onMounted(load);
 </script>
 <style scoped>

@@ -52,7 +52,7 @@ Defined in `backend/app/api/vault_api.py` and seeded via `plates/vault/*.yaml`:
 |------|------|---------|-------------|
 | **User** | `~/Vault/` | Personal workspace — **the single source of truth**. All your binders, documents, notes, missions, tasks, daily, journals. | Read/Write |
 | **Shared** | `~/Shared/[vault-name]/` | Collaborative vaults for team projects. Each shared vault is a separate directory. | Read/Write (permission check) |
-| **Public** | `~/Public/[vault-name]/` | Published, system-provided, or community-contributed vaults. Includes `global-knowledge/`, `doc-sites/`, `learning/`, templates. | Read-only |
+| **Public** | `~/Public/[vault-name]/` | Published, system-provided, or community-contributed vaults. Includes `global-knowledge/` and `udos-docs/docs/`, including the uCode and Learning binders. | Read-only |
 
 ### User Vault Directory Structure
 
@@ -60,32 +60,21 @@ Seeded by `plates/vault/user_vault_seed.yaml`:
 
 ```
 ~/Vault/
-├── @inbox/              Quick capture (pending/processed/failed)
-├── @groovebox/          Creative workspace (music, production)
-├── knowledge/           Personal knowledge base
-│   ├── concepts/
-│   ├── insights/
-│   └── research/
-├── binders/             Project collections
-│   ├── active/          Current projects
-│   ├── completed/       Finished projects
-│   ├── on-hold/         Paused projects
-│   └── templates/       Binder templates
-├── missions/            Mission tracking
-│   ├── active/
-│   ├── completed/
-│   └── templates/
-├── tasks/               Individual task files
-├── daily/               Daily notes
-├── journals/            Journal entries
-├── people/              Contact directory
-├── agents/              AI agent definitions
-├── attachments/         File attachments
-├── scripts/             Automation scripts (.ucode)
-├── security/            Security policies
-├── templates/           Personal templates
-└── dev/                 Development scratch space
+├── Sandbox/            Drafts and experiments
+├── Memory/             Durable material managed by uDOS
+└── my-project/         A Binder created when the user starts a project
 ```
+
+New users start with `Sandbox/README.md` and `Memory/README.md`. Save every
+user document inside a Binder, Sandbox, or Memory. Store generated service
+state under the configured `UDOS_HOME`. Keep existing legacy paths readable
+during migration. See the [User Vault layout](plans/USER_VAULT_LAYOUT.md)
+for migration and conflict handling.
+
+The Memory collection map defines where services keep durable Vault files.
+BitChat evidence without a Binder and unsorted captures go to Sandbox.
+Task and Mission records live in the workflow runtime. A task or Mission
+without an assigned Binder has an empty Binder field.
 
 ## 2. Binders — Project Containers
 
@@ -99,19 +88,13 @@ A **binder** is a project container inside a vault. It groups:
 
 ### Creating a Binder
 
-Each binder has a `_binder.yaml` descriptor:
+Create the Binder from Mission Control or through the Binder API. The service
+writes `~/Vault/<id>/binder.json`, a brief, a draft, and related project records.
+Document intake writes into `~/Vault/<id>/docs/`. The filepicker opens the
+Binder index when present, then falls back to its first document.
 
-```yaml
-# ~/Vault/binders/active/MyProject/_binder.yaml
-id: my-project
-name: My Project
-status: active
-description: A new project to build something useful.
-```
-
-**Binder statuses:** `active`, `completed`, `on-hold`
-
-**Default binder:** `Sandbox` — always available at `~/Vault/binders/active/Sandbox/`
+Sandbox is an ordinary folder. Use the unassigned task view for work without
+a Binder. Older Binder records in `Binders/` remain readable by stable ID.
 
 ### Binder Document Format
 
@@ -214,18 +197,8 @@ Data sources:
 
 ### Step 1: Create a Binder
 
-```bash
-mkdir -p ~/Vault/binders/active/my-project
-```
-
-Create `~/Vault/binders/active/my-project/_binder.yaml`:
-
-```yaml
-id: my-project
-name: My Project
-status: active
-description: My first uCore project.
-```
+Open Mission Control → Binders → New Binder. Create a Binder titled
+“My Project” and use its generated ID for the examples below.
 
 ### Step 2: Create a Mission
 
@@ -278,7 +251,7 @@ Write the first document inside the binder.
 
 ### Step 4: Add a Document to the Binder
 
-Create `~/Vault/binders/active/my-project/docs/project-plan.md`:
+Create `~/Vault/my-project/docs/project-plan.md`:
 
 ```markdown
 ---

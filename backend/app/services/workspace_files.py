@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 from app.core.settings import settings
-
 from app.services.library_index import EXCLUDE_DIRS, SUPPORTED_EXTENSIONS, workspace_root
 
 
@@ -98,6 +97,11 @@ def create_entry(source: str, parent: str, name: str, kind: str) -> dict[str, An
     if not clean_name or clean_name in {".", ".."} or any(char in clean_name for char in "/\\"):
         raise ValueError("invalid name")
     parent_path = _target(source, parent, allow_root=True)
+    if kind == "file" and source == "user" and parent_path in {_root(source), _root(source) / "Sandbox"}:
+        parent_path = _target(source, "/Sandbox")
+        if parent_path != _root(source) / "Sandbox":
+            raise ValueError("Sandbox must be a folder in the User Vault")
+        parent_path.mkdir(exist_ok=True)
     if not parent_path.is_dir():
         raise ValueError("parent must be a folder")
     target = parent_path / clean_name

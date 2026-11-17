@@ -15,5 +15,5 @@ def test_seed_user_tasks_emits_canonical_markdown(tmp_path: Path):
         assert "priority:" in text
         assert "mission:" in text
         assert "task:" in text
-        assert "binder:" in text
+        assert "binder:" not in text
         assert "tags:" in text

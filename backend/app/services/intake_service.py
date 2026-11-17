@@ -2,7 +2,7 @@
 
 Complies with UDOS_PRODUCT_REFACTOR_PLAN_2026-09-12 Section 7:
 Receive -> preserve/checksum original -> extract -> normalise -> review.
-Originals are preserved untouched in ~/Vault/Originals/<doc_id>/ and never directly published.
+Originals are preserved untouched in ~/Vault/Memory/Intake/Originals/<doc_id>/ and never directly published.
 """
 
 from __future__ import annotations
@@ -20,8 +20,8 @@ from app.services.markdown_import_pipeline import convert_content_to_markdown
 log = logging.getLogger("ucore.intake_service")
 
 VAULT_ROOT = Path.home() / "Vault"
-ORIGINALS_ROOT = VAULT_ROOT / "Originals"
-DOCUMENTS_ROOT = VAULT_ROOT / "Documents"
+ORIGINALS_ROOT = VAULT_ROOT / "Memory" / "Intake" / "Originals"
+DOCUMENTS_ROOT = VAULT_ROOT / "Memory" / "Files" / "Documents"
 
 
 def _safe_filename(name: str) -> str:

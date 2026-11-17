@@ -3,7 +3,7 @@
 Provides:
 - Sovereign local SQLite message archive at $UDOS_HOME/pods/bitchat.db
 - Real-time Activity Pod ingestion into activity.db (Snackbar notification)
-- "Save to Binder": formats discussions into Markdown evidence in ~/Vault/binders/<binder>/evidence/chats/
+- "Save to Binder": formats discussions into Markdown evidence in the selected Binder or Sandbox
 - "Convert to Task": promotes chat action items into sovereign .tasker markdown tasks
 """
 from __future__ import annotations
@@ -192,7 +192,19 @@ class BitChatStore:
         date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         slug_title = "".join(c if c.isalnum() else "-" for c in title.lower()).strip("-")[:40]
 
-        evidence_dir = root / "binders" / binder_name / "evidence" / "chats"
+        destination = root / "Sandbox"
+        if binder_name and binder_name.casefold() != "sandbox":
+            from app.flow import binder_engine
+
+            try:
+                destination = binder_engine.get_binder_documents_dir(binder_name)
+            except (ValueError, FileNotFoundError):
+                return {"ok": False, "error": "Binder not found"}
+        else:
+            binder_name = ""
+        evidence_dir = (destination / "evidence" / "chats").resolve()
+        if not evidence_dir.is_relative_to(root.resolve()):
+            return {"ok": False, "error": "Evidence must remain within the User Vault"}
         evidence_dir.mkdir(parents=True, exist_ok=True)
         filename = f"{date_str}-{slug_title}.md"
         target_path = evidence_dir / filename
@@ -247,7 +259,7 @@ class BitChatStore:
         msg_id: str,
         board: str = "inbox",
         priority: str = "medium",
-        binder: str = "Sandbox",
+        binder: str = "",
         due_date: Optional[str] = None,
         sync_apple_reminders: bool = False,
     ) -> Dict[str, Any]:

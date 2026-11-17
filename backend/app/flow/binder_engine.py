@@ -30,14 +30,15 @@ class ConcurrencyConflictError(Exception):
     pass
 
 
-def get_binders_dir() -> Path:
-    BINDERS_ROOT.mkdir(parents=True, exist_ok=True)
-    return BINDERS_ROOT
-
-
 def _binder_dir(binder_id: str) -> Path:
     safe_id = re.sub(r"[^\w\-]", "_", binder_id.strip())
-    return BINDERS_ROOT / safe_id
+    root_folder = VAULT_ROOT / safe_id
+    legacy_folder = BINDERS_ROOT / safe_id
+    if (root_folder / "binder.json").is_file():
+        return root_folder
+    if legacy_folder.exists() or legacy_folder.is_symlink():
+        return legacy_folder
+    return root_folder
 
 
 def _binder_trash() -> Path:
@@ -55,9 +56,9 @@ def trashed_binder_ids() -> list[str]:
 
 def _existing_binder_dir(binder_id: str) -> Path:
     folder = _binder_dir(binder_id)
-    root = BINDERS_ROOT.resolve()
+    root = folder.parent.resolve()
     if (not binder_id.strip() or not root.is_relative_to(VAULT_ROOT.resolve())
-            or folder.resolve() != root / folder.name or folder == BINDERS_ROOT):
+            or folder.resolve() != root / folder.name or folder in {VAULT_ROOT, BINDERS_ROOT}):
         raise ValueError("Invalid Binder location")
     metadata = folder / "binder.json"
     if metadata.is_symlink() or not metadata.is_file():
@@ -98,15 +99,21 @@ def create_binder(
     document_type: str = "Proposal",
     requirements: Optional[List[Dict[str, Any]]] = None,
     non_goals: Optional[List[str]] = None,
+    *, legacy: bool = False,
 ) -> Dict[str, Any]:
     """Create a new durable project binder with its 7 canonical records."""
-    bdir = _binder_dir(binder_id)
-    if (_binder_trash() / bdir.name).exists():
-        raise FileExistsError(f"Binder '{binder_id}' is in Trash.")
-    if bdir.exists() and (bdir / "binder.json").exists():
-        raise FileExistsError(f"Binder '{binder_id}' already exists.")
-
-    bdir.mkdir(parents=True, exist_ok=True)
+    if not re.fullmatch(r"[\w-]+", binder_id):
+        raise ValueError("Use letters, numbers, hyphens, or underscores in a Binder ID")
+    if not legacy and binder_id.casefold() in {"sandbox", "memory", "binders", "trash"}:
+        raise ValueError("This name is reserved for a Vault folder")
+    bdir = (BINDERS_ROOT if legacy else VAULT_ROOT) / binder_id
+    archive = VAULT_ROOT / "Memory" / "Archive" / "Archived Binders"
+    for root in (VAULT_ROOT, BINDERS_ROOT, _binder_trash(), archive):
+        if root.is_dir() and any(item.name.casefold() == binder_id.casefold() for item in root.iterdir()):
+            raise FileExistsError(f"Binder ID '{binder_id}' is already in use.")
+    if bdir.parent.resolve() != VAULT_ROOT.resolve() / ("Binders" if legacy else ""):
+        raise ValueError("Invalid Binder location")
+    bdir.mkdir(parents=True)
     (bdir / "editions").mkdir(parents=True, exist_ok=True)
 
     # 1. brief.md (Immutable outcome specification)
@@ -213,9 +220,7 @@ def rename_binder(binder_id: str, title: str) -> Dict[str, Any]:
 
 def get_binder(binder_id: str) -> Dict[str, Any]:
     """Retrieve full durable binder state and all records."""
-    bdir = _binder_dir(binder_id)
-    if not (bdir / "binder.json").exists():
-        raise FileNotFoundError(f"Binder '{binder_id}' not found.")
+    bdir = _existing_binder_dir(binder_id)
 
     meta = json.loads((bdir / "binder.json").read_text(encoding="utf-8"))
     brief = (bdir / "brief.md").read_text(encoding="utf-8") if (bdir / "brief.md").exists() else ""
@@ -268,14 +273,20 @@ def get_binder(binder_id: str) -> Dict[str, Any]:
 
 
 def list_binders() -> List[Dict[str, Any]]:
-    """Scan and list all binders in ~/Vault/Binders."""
-    return _list_binder_metadata(get_binders_dir())
+    """List root Binders and legacy Binders, with root records taking precedence."""
+    records = {}
+    for root in (BINDERS_ROOT, VAULT_ROOT):
+        if root.is_dir() and not root.is_symlink():
+            for record in _list_binder_metadata(root):
+                if record.get("id"):
+                    records[record["id"]] = record
+    return list(records.values())
 
 
 def _list_binder_metadata(root: Path) -> list[dict[str, Any]]:
     binders = []
     for child in sorted(root.iterdir(), key=lambda p: p.name.lower()):
-        if not child.is_symlink() and child.is_dir() and (child / "binder.json").is_file():
+        if not child.is_symlink() and child.is_dir() and (child / "binder.json").is_file() and not (child / "binder.json").is_symlink():
             try:
                 meta = json.loads((child / "binder.json").read_text(encoding="utf-8"))
                 binders.append(meta)
@@ -293,9 +304,7 @@ def attach_source_to_binder(
     original_path: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Attach an ingested source document to the binder's provenance ledger."""
-    bdir = _binder_dir(binder_id)
-    if not (bdir / "binder.json").exists():
-        raise FileNotFoundError(f"Binder '{binder_id}' not found.")
+    bdir = _existing_binder_dir(binder_id)
 
     sources: List[Dict[str, Any]] = json.loads((bdir / "sources.json").read_text(encoding="utf-8"))
     citation_tag = f"[SRC-{len(sources) + 1}]"
@@ -336,9 +345,7 @@ def record_decision(
     superseded_by: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Record an architectural or content decision in decisions.json."""
-    bdir = _binder_dir(binder_id)
-    if not (bdir / "binder.json").exists():
-        raise FileNotFoundError(f"Binder '{binder_id}' not found.")
+    bdir = _existing_binder_dir(binder_id)
 
     decisions: List[Dict[str, Any]] = (
         json.loads((bdir / "decisions.json").read_text(encoding="utf-8"))
@@ -361,7 +368,7 @@ def record_decision(
 
 def list_decisions(binder_id: str) -> List[Dict[str, Any]]:
     """List all recorded decisions for a binder."""
-    bdir = _binder_dir(binder_id)
+    bdir = _existing_binder_dir(binder_id)
     if (bdir / "decisions.json").exists():
         try:
             return json.loads((bdir / "decisions.json").read_text(encoding="utf-8"))
@@ -376,9 +383,7 @@ def authorise_run(
     network_allowed: bool = False,
 ) -> Dict[str, Any]:
     """Authorize a bounded uFlow assembly run, locking requirements and scope."""
-    bdir = _binder_dir(binder_id)
-    if not (bdir / "binder.json").exists():
-        raise FileNotFoundError(f"Binder '{binder_id}' not found.")
+    bdir = _existing_binder_dir(binder_id)
 
     meta = json.loads((bdir / "binder.json").read_text(encoding="utf-8"))
     reqs = json.loads((bdir / "requirements.json").read_text(encoding="utf-8"))
@@ -407,7 +412,7 @@ def update_draft(
     expected_base_hash: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Update working draft with strict concurrency base_hash check."""
-    bdir = _binder_dir(binder_id)
+    bdir = _existing_binder_dir(binder_id)
     draft_file = bdir / "draft.md"
     if not draft_file.exists():
         raise FileNotFoundError(f"Draft for binder '{binder_id}' not found.")
@@ -437,9 +442,7 @@ def assemble_draft(
     resume_from_checkpoint: bool = False,
 ) -> Dict[str, Any]:
     """Execute a bounded assembly run in uFlow, drafting sections from sources with checkpoints."""
-    bdir = _binder_dir(binder_id)
-    if not (bdir / "binder.json").exists():
-        raise FileNotFoundError(f"Binder '{binder_id}' not found.")
+    bdir = _existing_binder_dir(binder_id)
 
     meta = json.loads((bdir / "binder.json").read_text(encoding="utf-8"))
     reqs = json.loads((bdir / "requirements.json").read_text(encoding="utf-8"))
@@ -554,7 +557,7 @@ def resume_or_reconcile_run(binder_id: str) -> Dict[str, Any]:
 
 def block_run(binder_id: str, reason: str) -> Dict[str, Any]:
     """Mark a run as blocked with reason."""
-    bdir = _binder_dir(binder_id)
+    bdir = _existing_binder_dir(binder_id)
     meta = json.loads((bdir / "binder.json").read_text(encoding="utf-8"))
     now_iso = datetime.now(UTC).isoformat()
     meta["state"] = "blocked"
@@ -567,7 +570,7 @@ def block_run(binder_id: str, reason: str) -> Dict[str, Any]:
 
 def cancel_run(binder_id: str, reason: str = "User cancelled") -> Dict[str, Any]:
     """Cancel an ongoing run."""
-    bdir = _binder_dir(binder_id)
+    bdir = _existing_binder_dir(binder_id)
     meta = json.loads((bdir / "binder.json").read_text(encoding="utf-8"))
     meta["state"] = "cancelled"
     meta["cancel_reason"] = reason
@@ -624,7 +627,7 @@ def update_section(
     expected_section_hash: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Targeted section update with section-level concurrency check."""
-    bdir = _binder_dir(binder_id)
+    bdir = _existing_binder_dir(binder_id)
     draft_file = bdir / "draft.md"
     if not draft_file.exists():
         raise FileNotFoundError(f"Draft for binder '{binder_id}' not found.")
@@ -714,7 +717,7 @@ def export_gemini_notebook(binder_id: str) -> Dict[str, Any]:
 
 def export_obsidian_binder(binder_id: str) -> Dict[str, Any]:
     """Generate an Obsidian-friendly master index note linking all binder artifacts."""
-    bdir = _binder_dir(binder_id)
+    bdir = _existing_binder_dir(binder_id)
     bdata = get_binder(binder_id)
     title = bdata.get("metadata", {}).get("title", binder_id)
 
@@ -747,9 +750,7 @@ def export_obsidian_binder(binder_id: str) -> Dict[str, Any]:
 
 def accept_edition(binder_id: str, reviewer_notes: str = "") -> Dict[str, Any]:
     """Freeze current draft into an immutable approved edition snapshot."""
-    bdir = _binder_dir(binder_id)
-    if not (bdir / "binder.json").exists():
-        raise FileNotFoundError(f"Binder '{binder_id}' not found.")
+    bdir = _existing_binder_dir(binder_id)
 
     draft_text = (bdir / "draft.md").read_text(encoding="utf-8")
     ed_dir = bdir / "editions"
@@ -794,11 +795,12 @@ def preview_edition_links(binder_id: str, edition_num: int) -> Dict[str, Any]:
 
     if type(edition_num) is not int or edition_num < 1:
         raise ValueError("Choose an accepted edition.")
-    edition_file = _binder_dir(binder_id) / "editions" / f"edition_{edition_num}.md"
+    binder_root = _existing_binder_dir(binder_id).resolve()
+    edition_file = binder_root / "editions" / f"edition_{edition_num}.md"
     manifest_file = edition_file.with_suffix(".manifest.json")
     if (
-        not edition_file.resolve().is_relative_to(BINDERS_ROOT.resolve())
-        or not manifest_file.resolve().is_relative_to(BINDERS_ROOT.resolve())
+        not edition_file.resolve().is_relative_to(binder_root)
+        or not manifest_file.resolve().is_relative_to(binder_root)
         or not edition_file.is_file()
         or not manifest_file.is_file()
     ):
@@ -827,9 +829,7 @@ def publish_edition(
     target: str = "local_static",
 ) -> Dict[str, Any]:
     """Publish an accepted edition to an offline static bundle or target destination."""
-    bdir = _binder_dir(binder_id)
-    if not (bdir / "binder.json").exists():
-        raise FileNotFoundError(f"Binder '{binder_id}' not found.")
+    bdir = _existing_binder_dir(binder_id)
 
     meta = json.loads((bdir / "binder.json").read_text(encoding="utf-8"))
     ed_dir = bdir / "editions"

@@ -250,7 +250,7 @@ async function toTask(item: Activity) {
   promoting.value = true;
   error.value = "";
   promotedTask.value = null;
-  const binder = String(route.query.binder || "Sandbox");
+  const binder = String(route.query.binder || "");
   const mission = typeof route.query.mission === "string" ? route.query.mission : undefined;
   try {
     const response = await fetch(`${UCORE_BASE}/api/feed/promote`, {

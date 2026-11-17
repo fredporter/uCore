@@ -1,7 +1,7 @@
 """Knowledge Overlay Federation Engine & Resolution Service.
 
 Implements the sovereign three-tier cascading knowledge architecture:
-  Layer 2: Sovereign Personal Overrides (~/Vault/knowledge/)  [Full Precedence]
+  Layer 2: Sovereign Personal Overrides (~/Vault/Memory/Reference/knowledge/)  [Full Precedence]
   Layer 1: Shared / Community Layer     (~/Shared/knowledge/) [Filter Overlay]
   Layer 0: Canonical Base Knowledge     (~/Public/global-knowledge/) [Read-Only Baseline]
 
@@ -10,7 +10,7 @@ In accordance with AGENTS.md and KNOWLEDGE_LAYERING_AND_CONTRIBUTION_SPEC.md:
 - Local edits are non-destructive and create/update Layer 2 files.
 - Reverting a Layer 2 file immediately restores the Layer 0 (or Layer 1) baseline.
 - Submission packaging outputs manifest.json, diff.patch, and provenance.json
-  under ~/Vault/dispatches/submissions/ without dot-directory concealment.
+  under ~/Vault/Memory/Activity/Transport/submissions/ without dot-directory concealment.
 - AI preflight linting sanitizes private paths (/Users/...) and credentials.
 """
 
@@ -74,12 +74,12 @@ class KnowledgeOverlayResolver:
         self.vault_root = (
             vault_knowledge_root.expanduser().resolve()
             if vault_knowledge_root
-            else (user_vault_root() / "knowledge").resolve()
+            else (user_vault_root() / "Memory" / "Reference" / "knowledge").resolve()
         )
         self.submissions_root = (
             submissions_root.expanduser().resolve()
             if submissions_root
-            else (user_vault_root() / "dispatches" / "submissions").resolve()
+            else (user_vault_root() / "Memory" / "Activity" / "Transport" / "submissions").resolve()
         )
 
     def layer_root(self, layer: int) -> Path:
@@ -363,7 +363,7 @@ class KnowledgeOverlayResolver:
         """Bundle personal overlay into a signed cryptographic submission package.
 
         Package structure:
-          ~/Vault/dispatches/submissions/<submission_id>/
+          ~/Vault/Memory/Activity/Transport/submissions/<submission_id>/
             manifest.json
             diff.patch
             provenance.json
@@ -456,7 +456,7 @@ class KnowledgeOverlayResolver:
         """List all active personal (Layer 2) and community (Layer 1) overlays."""
         overlays: list[dict[str, Any]] = []
 
-        # Check Layer 2 (~/Vault/knowledge)
+        # Check Layer 2 (~/Vault/Memory/Reference/knowledge)
         if self.vault_root.exists():
             for p in sorted(self.vault_root.rglob("*.md")):
                 if p.is_file() and not any(part.startswith(".") for part in p.parts):
@@ -500,7 +500,7 @@ class KnowledgeOverlayResolver:
         return overlays
 
     def list_submissions(self) -> list[dict[str, Any]]:
-        """List existing submission packages under ~/Vault/dispatches/submissions/."""
+        """List existing submission packages under ~/Vault/Memory/Activity/Transport/submissions/."""
         if not self.submissions_root.exists():
             return []
 

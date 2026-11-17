@@ -207,11 +207,11 @@
           </div>
         </div>
         <div class="activity-footer-note">
-          Synced events recorded in <code>~/Vault/Activity/events.jsonl</code> · View <code>~/Vault/Activity/Daily_Activity.md</code>
+          Synced events recorded in <code>~/Vault/Memory/Activity/Activity/events.jsonl</code> · View <code>~/Vault/Memory/Activity/Activity/Daily_Activity.md</code>
         </div>
       </div>
       <div v-else class="activity-empty">
-        <p>No activity events synced yet. Click "Sync Activity" to ingest local events into ~/Vault/Activity/.</p>
+        <p>No activity events synced yet. Click "Sync Activity" to ingest local events into ~/Vault/Memory/Activity/Activity/.</p>
       </div>
     </div>
   </div>
@@ -274,7 +274,7 @@ async function syncActivity() {
       body: JSON.stringify({ sources: ["calendar", "mail"] }),
     });
     if (res.ok) {
-      syncMessage.value = "Apple Activity synchronized cleanly into ~/Vault/Activity/Daily_Activity.md (user notes preserved).";
+      syncMessage.value = "Apple Activity synchronized cleanly into ~/Vault/Memory/Activity/Activity/Daily_Activity.md (user notes preserved).";
       await fetchActivity();
       setTimeout(() => { syncMessage.value = ""; }, 4000);
     } else {

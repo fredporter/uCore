@@ -117,7 +117,7 @@
           <div class="sources-upload-box" @dragover.prevent @drop.prevent="onDropFiles">
             <UIcon name="cloud_upload" :size="32" />
             <p><strong>Drop document files here</strong> or choose files for cryptographic intake</p>
-            <span class="subtext">Originals byte-preserved in ~/Vault/Originals/ with SHA-256 integrity</span>
+            <span class="subtext">Originals byte-preserved in ~/Vault/Memory/Intake/Originals/ with SHA-256 integrity</span>
             <input
               ref="fileInputRef"
               type="file"
@@ -911,7 +911,9 @@ async function addBinderTask() {
 }
 async function openBinderLink(href: string) {
   try {
-    const root = `/Binders/${encodeURIComponent(selectedBinderId.value)}/`;
+    const documentPath = activeBinder.value?.documents?.[0]?.path;
+    if (!documentPath) throw new Error("This Binder has no attached documents.");
+    const root = documentPath.slice(0, documentPath.lastIndexOf("/docs/") + 1);
     const path = decodeURIComponent(new URL(href, `https://workspace.invalid${root}draft.md`).pathname);
     const document = activeBinder.value?.documents?.find((item: { path: string }) => item.path === path);
     if (!document) throw new Error("This document is not attached to the selected Binder.");

@@ -2,7 +2,7 @@
 
 Generates decentralized RSS 2.0 XML and JSON Feed v1.1 formats for all
 published dispatches and binder editions, including GIF enclosures and Prose descriptions.
-Saves local feed files under ~/Vault/feeds/dispatches.xml.
+Saves local feed files under ~/Vault/Memory/Activity/feeds/dispatches.xml.
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ class DispatchFeedService:
     """Syndication engine publishing sovereign dispatches as RSS & JSON feeds."""
 
     def __init__(self, feeds_dir: Optional[Path] = None):
-        self.feeds_dir = feeds_dir or (settings.vault_root / "feeds")
+        self.feeds_dir = feeds_dir or (settings.vault_root / "Memory" / "Activity" / "feeds")
         self.feeds_dir.mkdir(parents=True, exist_ok=True)
 
     def generate_rss_2_0(self, host_url: str = "") -> str:
@@ -108,7 +108,7 @@ class DispatchFeedService:
         }
 
     def sync_to_vault(self, host_url: str = "") -> Dict[str, str]:
-        """Persist generated RSS and JSON feeds into ~/Vault/feeds/."""
+        """Persist generated RSS and JSON feeds into ~/Vault/Memory/Activity/feeds/."""
         rss_xml = self.generate_rss_2_0(host_url)
         json_feed = self.generate_json_feed(host_url)
 

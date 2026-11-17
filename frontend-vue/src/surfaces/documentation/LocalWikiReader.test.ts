@@ -2,8 +2,11 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia } from "pinia";
 import { afterEach, expect, it, vi } from "vitest";
+import { useWorkflowStore } from "../../stores/workflow";
 import LocalWikiReader from "./LocalWikiReader.vue";
 
+const router = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("vue-router", () => ({ useRouter: () => router }));
 vi.mock("../../utils/diagramHydrator", () => ({ hydrateDiagrams: vi.fn() }));
 
 afterEach(() => {
@@ -42,7 +45,7 @@ it("opens an offline Markdown link at its exact path in the current source", asy
       ok: true,
       json: async () => ({
         content: params.get("path") === map
-          ? "# Map Reading\n\n[Compass Use](compass_use.md)\n\n[Source](https://example.org/guide)"
+          ? "# Map Reading\n\n[Compass Use](compass_use.html)\n\n[Source](https://example.org/guide)"
           : "# Compass Use\n\n[Map Reading](./map_reading.md)",
       }),
     };
@@ -53,7 +56,7 @@ it("opens an offline Markdown link at its exact path in the current source", asy
   try {
     await flushPromises();
     expect(wrapper.get(".offline-citation-chip").text()).toContain("example.org");
-    await wrapper.get('a[href="compass_use.md"]').trigger("click");
+    await wrapper.get('a[href="compass_use.html"]').trigger("click");
     await flushPromises();
     expect(fetchDocument).toHaveBeenLastCalledWith(
       "/api/docs/content?source=public&path=" + encodeURIComponent(compass),
@@ -63,6 +66,13 @@ it("opens an offline Markdown link at its exact path in the current source", asy
     await wrapper.get('a[href="./map_reading.md"]').trigger("click");
     await flushPromises();
     expect(wrapper.get("article h1").text()).toBe("Map Reading");
+
+    await wrapper.get('[aria-label="Open in Editor"]').trigger("click");
+    expect(router.push).toHaveBeenCalledWith({ path: "/workflow", query: { tab: "editor" } });
+    expect(useWorkflowStore().selectedFile).toMatchObject({
+      path: "virtual/copy/public/" + map, filename: "map_reading.md", readOnly: false,
+      content: expect.stringContaining("# Map Reading"),
+    });
   } finally {
     wrapper.unmount();
   }

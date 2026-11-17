@@ -424,15 +424,16 @@ async def _execute_tool(tool_name: str, arguments: dict) -> str:
 
 
     if tool_name == "save_to_vault":
-        from pathlib import Path
+        from app.core.settings import settings
         title = arguments.get("title", "").strip()
         content = arguments.get("content", "").strip()
         folder = arguments.get("folder", "").strip()
         if not title or not content:
             return json.dumps({"error": "title and content are required"})
-        vault_dir = Path.home() / "Vault"
-        if folder:
-            vault_dir = vault_dir / folder
+        sandbox = settings.vault_root.resolve() / "Sandbox"
+        vault_dir = (sandbox / folder).resolve()
+        if sandbox.is_symlink() or not vault_dir.is_relative_to(sandbox):
+            return json.dumps({"error": "Choose a folder inside Sandbox"})
         vault_dir.mkdir(parents=True, exist_ok=True)
         # Sanitize filename
         safe_name = "".join(c for c in title if c.isalnum() or c in " _-").strip()[:80]
@@ -447,7 +448,7 @@ async def _execute_tool(tool_name: str, arguments: dict) -> str:
             "saved": True,
             "title": title,
             "file": str(file_path),
-            "vault_path": f"~/{file_path.relative_to(Path.home())}",
+            "vault_path": f"Vault/{file_path.relative_to(settings.vault_root.resolve())}",
             "size": len(full_content),
         })
 

@@ -218,7 +218,7 @@ const DEFAULT_EDITOR_FILE: WorkflowFile = {
   path: "virtual/Welcome to uCode.md",
   filename: "Welcome to uCode.md",
   extension: "md",
-  binder: "Sandbox",
+  binder: "",
   content: `# Welcome to uCode
 
 Start writing in the Markdown editor right away.
@@ -900,7 +900,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
     selectedTask.value = null;
     selectedFile.value = {
       ...file,
-      binder: file.binder || "Sandbox",
+      binder: file.binder || "",
     };
     editorSurface.openFile({
       path: selectedFile.value.path,

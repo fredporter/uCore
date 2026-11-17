@@ -3,9 +3,11 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ConnectionsPanel from './ConnectionsPanel.vue';
-vi.mock('vue-router',()=>({useRouter:()=>({push:vi.fn()}),useRoute:()=>({query:{}})}));
+const { route } = vi.hoisted(() => ({ route: { query: {} as Record<string, string> } }));
+vi.mock('vue-router',()=>({useRouter:()=>({push:vi.fn()}),useRoute:()=>route}));
 
 beforeEach(()=>{
+  route.query = {};
   vi.stubGlobal('localStorage',{getItem:()=>null,setItem:vi.fn()});
 });
 describe('connection setup',()=>{
@@ -34,4 +36,27 @@ describe('connection setup',()=>{
     expect(fetchMock.mock.calls.some(call=>call[0].includes('/authorize'))).toBe(false);
     wrapper.unmount();
   });
+});
+
+it('keeps same-name task lists separate within an account', async () => {
+  route.query = { account: 'google-fixture' };
+  const records = [
+    { id: 'tasks:list-1/one', kind: 'tasks', data: { title: 'First task', list: 'Today', source_list_id: 'list-1' } },
+    { id: 'tasks:list-2/two', kind: 'tasks', data: { title: 'Second task', list: 'Today', source_list_id: 'list-2' } },
+  ];
+  const fetchMock = vi.fn(async (url: string) => ({
+    ok: true,
+    json: async () => url.endsWith('/records?account=google-fixture')
+      ? { records }
+      : { setup: { completed: true }, connections: [], counts: {} },
+  }));
+  vi.stubGlobal('fetch', fetchMock);
+  const wrapper = mount(ConnectionsPanel, {
+    props: { collectionOnly: true, initialKind: 'tasks' },
+    global: { plugins: [createPinia()] },
+  });
+  await flushPromises();
+  const lists = wrapper.findAll('ul');
+  expect(lists.map(list => list.text())).toEqual(['First task', 'Second task']);
+  wrapper.unmount();
 });

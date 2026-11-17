@@ -66,3 +66,40 @@ def test_course_catalog_only_reads_learning_roots(tmp_path, monkeypatch):
     courses = docs._list_courses()
     assert {course['source'] for course in courses} == {'manual', 'sonic', 'learning'}
     assert len(courses) == 3
+
+
+def test_public_documentation_consolidates_binders(tmp_path, monkeypatch):
+    from app.surfaces import documentation_api as docs
+
+    paths = [
+        "Developer-docs/guide/devstudio-guide.md",
+        "udos-docs/docs/uCode/uCode-User-Manual.md",
+        "udos-docs/docs/uCode/spatial/runtime.md",
+        "udos-docs/docs/uCode/gridcore/runtime.md",
+        "udos-docs/docs/uCore/specs/surface.md",
+        "udos-docs/docs/uCode/tutorials/ucode-mini-game.md",
+        "udos-docs/docs/learning/lesson.md",
+        "global-knowledge/datasets/reference.md",
+    ]
+    for name in paths:
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# Document\n", encoding="utf-8")
+    monkeypatch.setitem(docs._CONTENT_ROOTS, "public", tmp_path)
+    items = docs._build_dir_tree(tmp_path, "public")
+    manual = {"path": "manual.md", "source": "manual", "is_dir": False}
+    docs._group_public_documentation(items, [manual])
+
+    documentation, knowledge = items
+    assert documentation["name"] == "uDOS Documentation"
+    assert knowledge["name"] == "Global Knowledge"
+
+    def leaves(item):
+        if not item["is_dir"]:
+            return {item["path"]}
+        return set().union(*(leaves(child) for child in item["children"]))
+
+    assert leaves(documentation) == set(paths[1:7]) | {"manual.md"}
+    assert leaves(knowledge) == {paths[7]}
+    ucode = next(child for child in documentation["children"] if child["path"].endswith("/uCode"))
+    assert {"GridCore uCode1", "Spatial uCode2"} <= {child["name"] for child in ucode["children"]}

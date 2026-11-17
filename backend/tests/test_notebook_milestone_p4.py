@@ -61,7 +61,7 @@ def test_milestone_p4_complete_lifecycle(temp_environment):
         non_goals=["Commercial proprietary cloud dependencies", "Unverified climate projections"],
     )
 
-    bdir = temp_environment["binders"] / binder_id
+    bdir = temp_environment["vault"] / binder_id
     assert bdir.is_dir()
     assert (bdir / "brief.md").exists()
     assert (bdir / "requirements.json").exists()

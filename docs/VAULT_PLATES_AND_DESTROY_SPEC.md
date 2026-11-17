@@ -40,30 +40,30 @@ Plate domain: `vault` (added to PlateMeta domain Literal)
 
 ### 3.1 User Vault Seed Plate — `vault.user_vault_seed`
 
-**File:** `plates/vault/user_vault_seed.yaml` (v2.0.0)
+**File:** `plates/vault/user_vault_seed.yaml` (v3.0.0)
 
-Mirrors the real on-disk `~/Vault/` structure with 15 directories:
-
-| Category | Directories |
-|----------|-------------|
-| **Operational** | `@inbox/` (pending/processed/failed), `@groovebox/` (creative workspace) |
-| **Core Knowledge** | `knowledge/` (concepts/insights/research), `binders/` (active/completed/on-hold/templates), `missions/` (active/completed/templates), `tasks/`, `daily/`, `journals/` |
-| **People & Agents** | `people/`, `agents/` |
-| **Assets** | `attachments/`, `scripts/`, `security/` |
-| **Templates & Dev** | `templates/`, `dev/` |
+New Vaults start with `Sandbox/` and `Memory/`, each with a README.
+User-created Binders live directly under the Vault root. Workflow owns tasks and project links. The existing scheduler
+owns maintenance jobs. The seed layout does not migrate existing Vaults.
 
 ### 3.2 Shared Workspace Vault Plate — `vault.shared_workspace_seed`
 
-**File:** `plates/vault/shared_workspace_seed.yaml` (v1.0.0)
+**File:** `plates/vault/shared_workspace_seed.yaml` (v2.0.0)
 
 Template-based structure for team workspaces under `~/Shared/`:
 
 ```
 {workspace_name}/
-├── Projects/
-├── Knowledge/
-├── Assets/
-└── Archive/
+├── README.md
+├── binders/active/
+├── orbs/
+├── people/
+├── tasks/
+├── @inbox/{pending,approved,rejected}/
+├── @public/
+├── @teams/
+├── _invites/
+└── #skills/
 ```
 
 ### 3.3 Public Publishing Framework Plate — `vault.public_publishing_framework`

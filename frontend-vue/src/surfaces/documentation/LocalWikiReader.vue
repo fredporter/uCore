@@ -236,6 +236,15 @@
         </div>
 
         <article v-else class="wiki-article">
+          <div class="wiki-document-heading">
+            <h1 tabindex="0">{{ readingTitle }}</h1>
+            <button v-if="documentLoaded && activePath.toLowerCase().endsWith('.md')" type="button"
+              class="usx-btn wiki-btn" aria-label="Open in Editor" title="Open in Editor"
+              @click="openInEditor"><UIcon name="edit_note" aria-hidden="true" /></button>
+          </div>
+          <div v-if="readingPills.length" class="wiki-article__tags" aria-label="Document metadata">
+            <span v-for="pill in readingPills" :key="pill" class="wiki-chip">{{ pill }}</span>
+          </div>
           <!-- Article Breadcrumb & Provenance Banner -->
           <div class="wiki-article__header">
             <div class="wiki-breadcrumb">
@@ -587,7 +596,7 @@
                 <span class="tier-badge">Layer 2</span>
                 <h4>Personal</h4>
               </div>
-              <p class="tier-path"><code>~/Vault/knowledge/</code></p>
+              <p class="tier-path"><code>~/Vault/Memory/Reference/knowledge/</code></p>
               <div class="tier-stat">
                 <span class="stat-number">{{ fedSummary?.layers?.layer_2_personal?.articles_count || 0 }}</span>
                 <span class="stat-label">articles</span>
@@ -680,7 +689,7 @@
               Exported Contribution Bundles ({{ fedSubmissions.length }})
             </h4>
             <div v-if="fedSubmissions.length === 0" class="wiki-fed-empty">
-              No contribution bundles exported yet. Bundles are saved in <code>~/Vault/dispatches/submissions/</code>.
+              No contribution bundles exported yet. Bundles are saved in <code>~/Vault/Memory/Activity/Transport/submissions/</code>.
             </div>
             <div v-else class="wiki-fed-table-wrapper">
               <table class="wiki-fed-table">
@@ -717,6 +726,8 @@
 
 <script setup lang="ts">
 import { computed, h, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+import { useWorkflowStore } from "../../stores/workflow";
 import { useShellStore } from "../../stores/shell";
 import { useSettingsStore } from "../../stores/settings";
 import DocumentProperties from "../../skills/molecules/DocumentProperties.vue";
@@ -765,6 +776,19 @@ const settings = useSettingsStore();
 const shell = useShellStore();
 const readerRoot = ref<HTMLElement | null>(null);
 const readingDocument = computed(() => parseReadingDocument(rawMarkdown.value));
+const leadingReadingHeading = computed(() => readingDocument.value.body.match(/^\s*#[ \t]+([^\r\n]+)(?:\r?\n|$)/));
+const readingBody = computed(() => readingDocument.value.body.slice(leadingReadingHeading.value?.[0].length || 0));
+const readingTitle = computed(() => {
+  const title = readingDocument.value.frontmatter.title;
+  return typeof title === "string" && title.trim()
+    ? title.trim()
+    : leadingReadingHeading.value?.[1].trim() || activeTitle.value;
+});
+const readingPills = computed(() => {
+  const { topic, category, tags, difficulty, status } = readingDocument.value.frontmatter;
+  return [...new Set([topic || category, ...(Array.isArray(tags) ? tags : [tags]), difficulty, status]
+    .filter((value): value is string => typeof value === "string" && Boolean(value.trim())))];
+});
 const readingSequence = computed(() => {
   const entries: TreeItem[] = [];
   function visit(items: TreeItem[], source: string) { for (const item of items) { if (item.is_dir) visit(item.children || [], item.source || source); else entries.push({ ...item, source: item.source || source }); } }
@@ -966,7 +990,7 @@ function sourceLabel(src: string): string {
 const headings = computed<HeadingItem[]>(() => {
   if (!rawMarkdown.value) return [];
   const list: HeadingItem[] = [];
-  const lines = readingDocument.value.body.split("\n");
+  const lines = readingBody.value.split("\n");
 
   for (const line of lines) {
     const match = line.match(/^(#{1,3})\s+(.+)$/);
@@ -996,7 +1020,7 @@ const wikiProseRef = ref<HTMLElement | null>(null);
 const renderedHtml = computed(() => {
   if (!rawMarkdown.value) return "";
 
-  let processed = readingDocument.value.body;
+  let processed = readingBody.value;
 
   // 1. Transform internal [[WikiLink]] syntax to clickable local links
   processed = processed.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, target, alias) => {
@@ -1075,7 +1099,7 @@ function handleProseClick(event: MouseEvent) {
   }
 
   const href = target.getAttribute("href") || "";
-  const path = relativeArticlePath(href);
+  const path = relativeArticlePath(href.replace(/\.html$/i, ".md"));
   if (!path) return;
   event.preventDefault();
 
@@ -1247,6 +1271,22 @@ function layerBadgeLabel(layer: number | null, isOverlaid: boolean) {
   return "Document";
 }
 
+const router = useRouter();
+const workflow = useWorkflowStore();
+const documentLoaded = ref(false);
+
+async function openInEditor() {
+  const filename = activePath.value.split("/").pop() || "Untitled.md";
+  if (activeSource.value === "vault") {
+    await router.push({ path: "/workflow", query: { tab: "editor", file: `/${activePath.value}` } });
+    return;
+  }
+  const path = `virtual/copy/${activeSource.value}/${activePath.value}`;
+  workflow.selectFile({ id: path, path, filename, extension: "md", binder: "", content: rawMarkdown.value, readOnly: false });
+  workflow.setEditorMode("code");
+  await router.push({ path: "/workflow", query: { tab: "editor" } });
+}
+
 let documentRequest = 0;
 async function selectDocument(
   source: string,
@@ -1259,6 +1299,7 @@ async function selectDocument(
   activePath.value = path;
   activeTitle.value = title || path.split("/").pop() || "Untitled";
   loadingContent.value = true;
+  documentLoaded.value = false;
   showingCanonOnly.value = forceCanon;
 
   try {
@@ -1268,6 +1309,7 @@ async function selectDocument(
       const data = await resp.json();
       if (request !== documentRequest) return;
       rawMarkdown.value = data.content || "";
+      documentLoaded.value = true;
       activeOverlay.value = data.overlay || null;
     } else if (request === documentRequest) {
       rawMarkdown.value = `# Unable to load document\n\nPath: \`${path}\``;
@@ -1541,6 +1583,9 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.wiki-document-heading { display: flex; align-items: center; gap: var(--usx-spacing-sm); }
+.wiki-document-heading h1 { flex: 1; min-inline-size: 0; overflow-x: auto; white-space: nowrap; margin: 0; }
+
 .local-wiki-reader {
   display: flex;
   flex-direction: column;

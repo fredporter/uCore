@@ -128,7 +128,8 @@ Rules:
 1. Prefer the vault-relative path for markdown-canonical documents.
 2. Prefer the repo-relative path for canonical engineering docs.
 3. If multiple layers mirror the same document, keep one canonical id and
-   record the other ids in metadata.
+   record the other ids in metadata. An explicit frontmatter
+   `canonical_id` preserves this identity across exported copies.
 
 ## Front Matter Normalization
 
@@ -213,6 +214,8 @@ Rules:
 3. `layer` and `zoom_level` should align with the existing GridUI spatial
    model.
 4. Documents may omit `location` entirely if no spatial meaning exists.
+5. An authored `place_ref` can identify an Earth or virtual GridCore place.
+   The exporter preserves the field for later validation and resolution.
 
 ## Spatial Filesystem Rules
 

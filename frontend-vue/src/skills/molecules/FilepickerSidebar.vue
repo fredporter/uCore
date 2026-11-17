@@ -104,7 +104,7 @@
         <button
           v-if="row.type === 'folder'"
           class="filepicker-sidebar__folder"
-          @click="toggleFolder('user', row.path)"
+          @click="openUserFolder(row)"
         >
           <UIcon
             :name="
@@ -211,15 +211,7 @@
         </div>
         <div v-show="expandedSections.has(ws.source)" :id="`${vaultContentId}-${ws.source}`"
           class="filepicker-sidebar__workspace-body">
-          <template v-if="ws.source === 'public'">
-            <a v-for="site in publicSites" :key="site.id" class="usx-btn filepicker-sidebar__related-link"
-              :href="`${UCORE_BASE}/api/docs/serve/${encodeURIComponent(site.id)}/`" target="_blank" rel="noopener">
-              <UIcon name="language" aria-hidden="true" />
-              <span>{{ site.name }}</span>
-            </a>
-            <p v-if="!ws.count && !publicSites.length" class="filepicker-sidebar__empty">{{ publicSitesMessage }}</p>
-          </template>
-          <p v-else-if="!ws.count" class="filepicker-sidebar__empty">No indexed Markdown files</p>
+          <p v-if="!ws.count" class="filepicker-sidebar__empty">No indexed Markdown files</p>
           <div
             v-for="row in ws.rows"
             :key="row.id"
@@ -351,20 +343,6 @@ const router = useRouter();
 
 // ─── Refs ───────────────────────────────────────────────────────────
 const files = ref<FileEntry[]>([]);
-const publicSites = ref<{ id: string; name: string }[]>([]);
-const publicSitesMessage = ref("Loading public sites…");
-
-async function fetchPublicSites() {
-  try {
-    const response = await fetch(`${UCORE_BASE}/api/docs/sites`, { signal: AbortSignal.timeout(5000) });
-    if (!response.ok) throw new Error("Site index unavailable");
-    const data = await response.json();
-    publicSites.value = data.sites;
-    publicSitesMessage.value = "No public sites found";
-  } catch {
-    publicSitesMessage.value = "Could not load public sites";
-  }
-}
 const loading = ref(false);
 const error = ref<string | null>(null);
 const indexStatus = ref<"ok" | "not-built" | "unknown">("unknown");
@@ -575,7 +553,7 @@ async function checkIndex() {
 }
 
 function handleNewFile() {
-  emit("newFile", wf.activeBinderId || "user");
+  emit("newFile", wf.activeBinderId || "");
 }
 
 /** Open the same canonical binder creation form used by Workflow. */
@@ -663,6 +641,32 @@ function handleDoubleClick(file: FileEntry) {
   emit("fileSelect", file);
 }
 
+async function openUserFolder(row: FolderTreeRow) {
+  const match = row.path.match(/^(?:binders\/)?([^/]+)$/i);
+  const binder = match && wf.binders.find(item => item.id === match[1]);
+  if (!binder) {
+    toggleFolder("user", row.path);
+    return;
+  }
+  try {
+    const response = await fetch(`${UCORE_BASE}/api/binder/${encodeURIComponent(binder.id)}`, { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) throw new Error("Could not open the Binder");
+    const { binder: detail } = await response.json();
+    const documents: { filename: string; path: string }[] = detail.documents || [];
+    const document = documents.find(item => /^index\.md$/i.test(item.filename)) || documents[0];
+    if (document) {
+      if (!isFolderExpanded("user", row.path)) toggleFolder("user", row.path);
+      await wf.openVaultDocument(document.path, document.filename, binder.id);
+      await router.push({ path: "/workflow", query: { tab: "editor", binder: binder.id, file: document.path } });
+    } else {
+      wf.showBinder(binder.id);
+      await router.push({ path: "/workflow", query: { tab: "binder", binder: binder.id } });
+    }
+  } catch (error) {
+    mirrorMessage.value = error instanceof Error ? error.message : "Could not open the Binder";
+  }
+}
+
 function folderKey(source: string, path: string): string {
   return `${source}:${path}`;
 }
@@ -693,7 +697,8 @@ function toggleFolder(source: string, path: string) {
 
 onMounted(async () => {
   loadMarkdownOpenMode();
-  await Promise.all([fetchWorkspaces(), fetchPublicSites()]);
+  if (!wf.binders.length) void wf.fetchBinders().catch(() => {});
+  await fetchWorkspaces();
   await checkIndex();
   if (indexStatus.value === "ok") {
     await fetchFiles();
@@ -756,7 +761,7 @@ const currentIndexedFile = computed(() => files.value.find(
 
 watch(currentIndexedFile, (file) => {
   if (!file) return;
-  const section = isGlobalKnowledge(file) ? "global-knowledge" : file.source;
+  const section = publicSection(file);
   if (section === "user") vaultExpanded.value = true;
   else expandedSections.value.add(section);
 });
@@ -944,11 +949,18 @@ const userRows = computed<TreeRow[]>(() =>
 const defaultSections = [
   { source: "shared", label: "Shared Vaults" },
   { source: "global-knowledge", label: "Global Knowledge" },
-  { source: "public", label: "Public Sites" },
+  { source: "udos-documentation", label: "uDOS Documentation" },
 ];
 
+function publicSection(file: FileEntry) {
+  if (file.source !== "public") return file.source;
+  const path = file.path.toLowerCase();
+  if (path.includes("/udos-docs/docs/")) return "udos-documentation";
+  return path.split("/").includes("global-knowledge") ? "global-knowledge" : "public";
+}
+
 function isGlobalKnowledge(file: FileEntry) {
-  return file.source === "public" && file.path.split("/").includes("global-knowledge");
+  return publicSection(file) === "global-knowledge";
 }
 
 const addedSections = computed<AddedSection[]>(() => {
@@ -957,14 +969,12 @@ const addedSections = computed<AddedSection[]>(() => {
   );
   const sections = [
     ...defaultSections.map((section) => ({ ...section, builtIn: true })),
-    ...registered.map((workspace) => ({ source: workspace.source, label: workspace.name, builtIn: false })),
+    ...registered.map((workspace) => ({ source: workspace.source, label: workspace.source === "public" ? "Public Vaults" : workspace.name, builtIn: false })),
   ];
   return sections.map((section) => {
     const entries = files.value.filter((file) => {
       if (!isVisibleFile(file)) return false;
-      if (section.source === "global-knowledge") return isGlobalKnowledge(file);
-      if (section.source === "public") return file.source === "public" && !isGlobalKnowledge(file);
-      return file.source === section.source;
+      return publicSection(file) === section.source;
     });
     return {
       ...section,
@@ -991,7 +1001,7 @@ function autoExpandFirstLevel(results: FileEntry[]) {
     const root = commonRoot(list.map((f) => f.path));
     for (const f of list) {
       const parts = relPath(f, root).split("/").filter(Boolean);
-      if (parts.length > 1) {
+      if (parts.length > 1 && !(source === "user" && parts[0].toLowerCase() === "memory")) {
         firstLevel.add(`${source}:${parts[0]}`);
       }
     }

@@ -171,6 +171,7 @@ class GoogleAdapter:
                                 if item.get("status") == "completed"
                                 else "todo",
                                 "due": item.get("due", ""),
+                                "source_list_id": collection,
                                 "list": list_info.get("title")
                                 or scope.get("list_titles", {}).get(collection, collection),
                             },

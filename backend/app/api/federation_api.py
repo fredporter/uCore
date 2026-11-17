@@ -2,7 +2,7 @@
 
 Provides endpoints for:
 - Cascading resolution across Layer 2 (Personal) > Layer 1 (Shared) > Layer 0 (Canon)
-- Saving non-destructive personal overrides in ~/Vault/knowledge/
+- Saving non-destructive personal overrides in ~/Vault/Memory/Reference/knowledge/
 - Reverting personal overrides to restore canonical baseline
 - Automated AI preflight linting (privacy scrub, Prose casing, offline assets)
 - Cryptographic submission bundle packaging for community/wizard contribution

@@ -100,8 +100,8 @@ def register_routes(app: web.Application) -> None:
         handle_ollama_status,
     )
     from .metadata import (
-        maintenance_status_handler,
         maintenance_run_handler,
+        maintenance_status_handler,
         system_info_handler,
         workflow_status_handler,
     )
@@ -407,6 +407,7 @@ def register_routes(app: web.Application) -> None:
         handle_binder_create,
         handle_binder_decisions_get,
         handle_binder_decisions_post,
+        handle_binder_delete,
         handle_binder_draft_update,
         handle_binder_export_gemini,
         handle_binder_export_obsidian,
@@ -416,7 +417,6 @@ def register_routes(app: web.Application) -> None:
         handle_binder_list,
         handle_binder_publish,
         handle_binder_rename,
-        handle_binder_delete,
         handle_binder_resume,
         handle_binder_run,
         handle_binder_score,

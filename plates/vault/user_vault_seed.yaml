@@ -1,87 +1,45 @@
 plate:
   id: "vault.user_vault_seed"
-  version: "2.0.0"
+  version: "3.0.0"
   domain: "vault"
-  description: "Seed structure for a new user vault at ~/Vault/ — mirrors real on-disk layout"
+  description: "Sandbox and Memory starter for a new User Vault"
   vault_layer: "user"
   vault_path: "~/Vault/"
   structure:
-    # ─── Operational / System ───────────────────────────────
-    - path: "@inbox/"
-      description: "Quick capture inbox (pending/processed/failed)"
-    - path: "@groovebox/"
-      description: "Creative workspace (music, production, groovebox)"
-
-    - path: "Originals/"
-      description: "Original files retained by intake with source provenance"
-    - path: "Documents/"
-      description: "Markdown produced by general vault intake"
-
-    # ─── Core Knowledge ─────────────────────────────────────
-    - path: "knowledge/"
-      description: "Personal knowledge base (concepts/insights/research)"
-    - path: "Binders/"
-      description: "Workflow Binder records and working documents"
-    - path: "missions/"
-      description: "Mission tracking (active/completed/templates)"
-    - path: "tasks/"
-      description: "Task tracking"
-    - path: "daily/"
-      description: "Daily notes"
-    - path: "journals/"
-      description: "Journal entries"
-
-    # ─── People & Agents ────────────────────────────────────
-    - path: "people/"
-      description: "Contacts and people directory"
-    - path: "agents/"
-      description: "AI agent definitions and templates"
-
-    # ─── Assets & Attachments ───────────────────────────────
-    - path: "attachments/"
-      description: "File attachments"
-    - path: "scripts/"
-      description: "Automation scripts (.ucode files)"
-    - path: "security/"
-      description: "Security policies and configurations"
-
-    # ─── Templates & Dev ────────────────────────────────────
-    - path: "templates/"
-      description: "Personal templates"
-    - path: "dev/"
-      description: "Development scratch space"
+    - path: "Sandbox/"
+      description: "Permanent workspace for drafts and experiments"
+    - path: "Memory/"
+      description: "Durable documents managed by uDOS"
 
   seed_files:
-    - path: "@inbox/readme.md"
-      content: "# @inbox\n\nQuick capture inbox. Drop notes, ideas, and captures here.\n\n- pending/ — Unprocessed items\n- processed/ — Completed items\n- failed/ — Items that failed processing"
-    - path: "knowledge/readme.md"
-      content: "# Knowledge\n\nPersonal knowledge base.\n\n- concepts/ — Core concepts\n- insights/ — Key insights\n- research/ — Research notes"
-    - path: "Binders/README.md"
+    - path: "Sandbox/README.md"
       content: |
-        # Binders
+        # Welcome to your User Vault
 
-        Run Workflow seed to create the Sandbox Binder and its starter documents.
-        Select a Workflow Binder to review imported files and web captures.
-    - path: "missions/readme.md"
-      content: "# Missions\n\nMission tracking.\n\n- active/ — Current missions\n- completed/ — Finished missions\n- templates/ — Mission templates"
-    - path: "people/readme.md"
-      content: "# People\n\nContacts and people directory."
-    - path: "agents/readme.md"
-      content: "# Agents\n\nAI agent definitions and templates."
-    - path: "scripts/readme.md"
-      content: "# Scripts\n\nAutomation scripts (.ucode files)."
-    - path: "security/readme.md"
-      content: "# Security\n\nSecurity policies and configurations."
+        - Sandbox is your permanent folder for drafts and experiments.
+        - Create a Binder in Workflow when a project needs its own documents,
+          tasks, and references. Each Binder has its own folder at the Vault root.
+        - Memory holds saved captures, reference notes, exports, and records
+          managed by uDOS. Its subfolders are created as needed.
+        - Save documents inside Sandbox, a Binder, or Memory.
+        - Use GridCore uCode1 and Spatial uCode2 for the two uCode pathways.
+
+    - path: "Memory/README.md"
+      content: |
+        # Memory
+
+        This folder holds durable material you may want to revisit. Intake,
+        Activity, Reference, Workflow, Personal, Files, and Exports are
+        created when their owning surface needs them. Active service state
+        lives under the configured uDOS runtime home.
 
   source: "builtin"
   checksum: ""
   dependencies: []
   lessons:
-    - "User vault should be backed up before any destructive operation"
-    - "Vault structure mirrors real on-disk layout at ~/Vault/"
-    - "@-prefixed dirs are operational/system folders (inbox, groovebox)"
-    - "Binders/ and missions/ are critical for Filepicker and workflow integration"
-    - "Seed files provide orientation for new users"
+    - "New seed layouts do not migrate or delete existing user files"
+    - "uFlow owns tasks and schedules; configured runtime state belongs under UDOS_HOME"
+    - "Retained intake originals remain inspectable on disk"
   destroy:
     salvage_keys:
       - vault_layer

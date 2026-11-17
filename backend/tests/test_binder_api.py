@@ -16,8 +16,8 @@ from app.api.binder_api import (
     handle_binder_create,
     handle_binder_decisions_get,
     handle_binder_decisions_post,
-    handle_binder_draft_update,
     handle_binder_delete,
+    handle_binder_draft_update,
     handle_binder_export_gemini,
     handle_binder_export_obsidian,
     handle_binder_get,
@@ -103,7 +103,7 @@ class BinderAPITest(AioHTTPTestCase):
         assert (trash / "docs" / "seeds.md").read_text(encoding="utf-8") == "Seeds"
         assert (await self.client.post("/api/binder/create", json={"id": "garden"})).status == 409
 
-        trash.rename(binder_engine.BINDERS_ROOT / "garden")
+        trash.rename(binder_engine.VAULT_ROOT / "garden")
         restored = await (await self.client.get(path)).json()
         assert restored["binder"]["metadata"]["title"] == "Spring garden"
 

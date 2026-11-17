@@ -13,7 +13,7 @@ def promote_activity_to_task(
     title: str | None = None,
     board: str = "inbox",
     priority: str = "medium",
-    binder: str = "Sandbox",
+    binder: str = "",
     mission: str | None = None,
     due_date: str | None = None,
     rule_id: str | None = None,
