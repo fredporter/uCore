@@ -55,7 +55,7 @@ Offline-first includes prepared installers, dependencies, model weights, fonts, 
 | HomeNest | Standalone Steam/media living-room product | Preserve existing revival handover; optional uDos integration |
 | udos-home-assistant | Adapter to the existing upstream Home Assistant/Matter products | Optional HomeNest TV/controller surface; upstream HA owns automations and device state |
 | Groovebox | Standalone music production suite | Practical music workflow, independent release and interchange; no core release dependency |
-| uVector | Standalone image generation and uDos image standardisation tool | Unified technical drawings, diagrams and scientific-style illustrations for published vaults; own release |
+| uCode+ | Standalone image generation and uDos image standardisation tool | Unified technical drawings, diagrams and scientific-style illustrations for published vaults; own release |
 | uCode2 | Advanced spatial/runtime capabilities | Assess actual consumers and preserve useful features; later release scope must be explicit |
 | Other extensions | Identity, budget, agents, Dreamscape and remaining domain functions | Classify actual code as shared capability, optional product, scaffold or retirement candidate |
 
@@ -63,7 +63,7 @@ Product separation does not automatically require new repositories, daemons or i
 
 ### Product preservation and independent entry points
 
-Every product needs a concrete job for a user who does not know uDos: make music (Groovebox), create coherent technical illustrations (uVector), use a TV for games/media and optional home controls (HomeNest), revive hardware (Sonic), collect desktop activity (Snackbar), or publish a researched library. An extension is an integration/packaging relationship, not a limit on the product's ambition or independence.
+Every product needs a concrete job for a user who does not know uDos: make music (Groovebox), create coherent technical illustrations (uCode+), use a TV for games/media and optional home controls (HomeNest), revive hardware (Sonic), collect desktop activity (Snackbar), or publish a researched library. An extension is an integration/packaging relationship, not a limit on the product's ambition or independence.
 
 Preserve the current UI language and useful surfaces. Capture a baseline of existing routes, screenshots, interactions and supported workflows before changing boundaries. Extract/reuse components and preserve behavior; do not replace the UI with a new design because the ownership table changed. Explicitly remove/repurpose only the agreed developer surfaces and their responsibilities. Shared USX/prose tokens and GridCore contracts unify products without requiring one giant application.
 
@@ -82,7 +82,7 @@ Before implementation Gemini must independently reassess this plan and reread th
 - Compare the current user journeys with this plan. Identify reusable controls before removing their presentation.
 - Inventory every meaningful feature and UI surface, including unfinished but valuable work. Record preservation/movement and concrete standalone use cases; do not equate simplification with removing product capability.
 - Inspect existing Sonic/HomeNest/HA handovers and WordPress publishing work; reconcile ownership and parallel work.
-- Assess missed lanes including Groovebox, uVector, uCode2, identity, budget, agents, Dreamscape, HA, HomeNest, branding/docs repositories and legacy publishing/infrastructure.
+- Assess missed lanes including Groovebox, uCode+, uCode2, identity, budget, agents, Dreamscape, HA, HomeNest, branding/docs repositories and legacy publishing/infrastructure.
 - Check current upstream versions, installation links, compatibility, licences and support status through primary sources. Never use the age of a source clone as proof of suitability.
 - Identify required hardware, credentials, test fixtures and release channels without inventing their availability.
 
@@ -92,7 +92,7 @@ Produce a dated assessment with: repository/commit/dirty-state inventory; implem
 
 Every proposed change to this plan must say what evidence motivates it, what benefit it provides, what scope it adds/removes, and whether it changes an agreed user decision. Preserve the user's chosen Obsidian/external-development/offline-first direction unless an explicit reconsideration is requested.
 
-The assessment must recommend an independent release order based on actual readiness. The notebook demonstration is a core-track milestone, not a gate that prevents Groovebox, uVector, HomeNest or any other qualified product releasing first.
+The assessment must recommend an independent release order based on actual readiness. The notebook demonstration is a core-track milestone, not a gate that prevents Groovebox, uCode+, HomeNest or any other qualified product releasing first.
 
 Present the assessment and recommendations before runtime work. If implementation has not separately been authorized, stop after assessment. Do not repeatedly ask the user to reapprove settled decisions. An improvement proposal is not permission to broaden implementation.
 
@@ -213,7 +213,7 @@ Views: Brief; Sources; Plan/Tasks; Draft; Review & Publish. Chat is a convenient
 
 Use readable Markdown and small open manifests as appropriate. Long-form inputs remain available; summaries point back to them. Do not cram all machine state into prose or turn every relationship into a custom file format.
 
-uVector outputs are optional cited/labelled assets of a binder. Keep the distinction between extracted source graphics, generated illustration and verified data plots; a uniform style must not convert imagined details into evidence.
+uCode+ outputs are optional cited/labelled assets of a binder. Keep the distinction between extracted source graphics, generated illustration and verified data plots; a uniform style must not convert imagined details into evidence.
 
 ### Execution state machine
 
@@ -325,9 +325,9 @@ Keep upstream HA authoritative for entities, automations, integrations and devic
 
 HomeNest remains useful without HA; HA remains useful without HomeNest/uCore. Initial proof: invoke an explicitly selected scene or light from the TV/controller surface, show real state/errors and survive HA disconnection. Cross-product sequences such as a movie-night scene may use uFlow when installed; simple HA controls must not acquire a mandatory workflow-host dependency.
 
-### uVector: unified illustrations as an independent product
+### uCode+: unified illustrations as an independent product
 
-uVector is a first-class image generation and standardisation product, not merely a deferred spatial experiment. Its purpose is to turn varied source/reference material into consistent, compact graphics for topic libraries: technical drawings, diagrams and scientific-style illustrations with a coherent visual language. It complements the currently text-focused uDos Prose presentation and GridCore's distinct graphics/runtime language; it does not replace either.
+uCode+ is a first-class image generation and standardisation product, not merely a deferred spatial experiment. Its purpose is to turn varied source/reference material into consistent, compact graphics for topic libraries: technical drawings, diagrams and scientific-style illustrations with a coherent visual language. It complements the currently text-focused uDos Prose presentation and GridCore's distinct graphics/runtime language; it does not replace either.
 
 Standalone use: select a style profile and inputs/brief, generate or transform an illustration, review it, and export portable assets for any documentation or publishing tool. uDos integration inserts approved assets into a binder/edition. Model providers, vector/raster converters and publication adapters are optional declared capabilities. Qualify offline transforms separately from generation that may require a local model or explicitly selected cloud service.
 
@@ -380,7 +380,7 @@ These are workstreams, not a requirement that all products progress in a single 
 | P8 Portal/commercial | Local Portal proof then commercial WordPress hosting | Access/isolation/restore tests; independent hosting operations and licence qualification |
 | P9 Closure | Vendor dispositions, documentation supersession, independent release catalogue | Builds without Vendor/sibling source; owners, artifacts, support matrix and unmet gates recorded |
 
-Parallel *product tracks* (not an instruction to spawn agents): Groovebox music suite, uVector illustration tool, HomeNest media/TV with optional HA controls, and other assessment-qualified products each get a repository-owned release slice and gates. UI/feature preservation applies to every track. Coordinate shared-contract changes, but do not make these tracks wait for P8 or the complete notebook roadmap.
+Parallel *product tracks* (not an instruction to spawn agents): Groovebox music suite, uCode+ illustration tool, HomeNest media/TV with optional HA controls, and other assessment-qualified products each get a repository-owned release slice and gates. UI/feature preservation applies to every track. Coordinate shared-contract changes, but do not make these tracks wait for P8 or the complete notebook roadmap.
 
 Cross-cutting Vendor audit begins in P0; adopted dependencies can move earlier, final deletions wait for proof. HomeNest/HA/Groovebox retain their own release tracks. Portal, commercial hosting and mesh research do not block the first notebook release.
 

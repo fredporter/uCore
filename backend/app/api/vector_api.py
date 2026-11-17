@@ -25,7 +25,7 @@ log = logging.getLogger("ucore.vector")
 
 # Locate canonical palettes from uVector repo, falling back to local copy
 CANONICAL_PALETTES_PATH = (
-    Path(__file__).resolve().parents[4] / "uVector" / "palettes" / "canonical_palettes.json"
+    (Path(__file__).resolve().parents[4] / "uCodePlus" if (Path(__file__).resolve().parents[4] / "uCodePlus").exists() else Path(__file__).resolve().parents[4] / "uVector") / "palettes" / "canonical_palettes.json"
 )
 
 BASE_STYLE_PRESETS: Dict[str, Dict[str, Any]] = {
@@ -573,11 +573,11 @@ async def handle_vector_convert(request: web.Request) -> web.Response:
     # 1. Try headless Rust engine if available
     if target in ("ascii", "teletext", "gridcore", "celx", "describe"):
         uvcore_bin = (
-            Path(__file__).resolve().parents[4] / "uVector" / "target" / "debug" / "uvcore"
+            (Path(__file__).resolve().parents[4] / "uCodePlus" if (Path(__file__).resolve().parents[4] / "uCodePlus").exists() else Path(__file__).resolve().parents[4] / "uVector") / "target" / "debug" / "uvcore"
         )
         if not uvcore_bin.exists():
             uvcore_release = (
-                Path(__file__).resolve().parents[4] / "uVector" / "target" / "release" / "uvcore"
+                (Path(__file__).resolve().parents[4] / "uCodePlus" if (Path(__file__).resolve().parents[4] / "uCodePlus").exists() else Path(__file__).resolve().parents[4] / "uVector") / "target" / "release" / "uvcore"
             )
             if uvcore_release.exists():
                 uvcore_bin = uvcore_release
@@ -850,9 +850,9 @@ async def handle_vector_quantize_teletext_g1(request: web.Request) -> web.Respon
         return web.json_response({"error": "svg is required"}, status=400)
 
     # 1. Try headless uvcore binary
-    uvcore_bin = Path(__file__).resolve().parents[4] / "uVector" / "target" / "debug" / "uvcore"
+    uvcore_bin = (Path(__file__).resolve().parents[4] / "uCodePlus" if (Path(__file__).resolve().parents[4] / "uCodePlus").exists() else Path(__file__).resolve().parents[4] / "uVector") / "target" / "debug" / "uvcore"
     if not uvcore_bin.exists():
-        uvcore_bin = Path(__file__).resolve().parents[4] / "uVector" / "target" / "release" / "uvcore"
+        uvcore_bin = (Path(__file__).resolve().parents[4] / "uCodePlus" if (Path(__file__).resolve().parents[4] / "uCodePlus").exists() else Path(__file__).resolve().parents[4] / "uVector") / "target" / "release" / "uvcore"
 
     if uvcore_bin.exists():
         import tempfile
@@ -921,9 +921,9 @@ async def handle_vector_quantize_bob(request: web.Request) -> web.Response:
         return web.json_response({"error": "svg is required"}, status=400)
 
     # 1. Try headless uvcore binary
-    uvcore_bin = Path(__file__).resolve().parents[4] / "uVector" / "target" / "debug" / "uvcore"
+    uvcore_bin = (Path(__file__).resolve().parents[4] / "uCodePlus" if (Path(__file__).resolve().parents[4] / "uCodePlus").exists() else Path(__file__).resolve().parents[4] / "uVector") / "target" / "debug" / "uvcore"
     if not uvcore_bin.exists():
-        uvcore_bin = Path(__file__).resolve().parents[4] / "uVector" / "target" / "release" / "uvcore"
+        uvcore_bin = (Path(__file__).resolve().parents[4] / "uCodePlus" if (Path(__file__).resolve().parents[4] / "uCodePlus").exists() else Path(__file__).resolve().parents[4] / "uVector") / "target" / "release" / "uvcore"
 
     if uvcore_bin.exists():
         import tempfile
@@ -993,8 +993,50 @@ async def handle_vector_quantize_bob(request: web.Request) -> web.Response:
     })
 
 
+async def handle_spatial_scene(request: web.Request) -> web.Response:
+    """Lift a 2D grid/uvox into a 3D spatial voxel scene."""
+    try:
+        body = await request.json()
+        fixture_data = body.get("manifest")
+        wall_height = int(body.get("wall_height", 3))
+
+        code_root = Path(__file__).resolve().parents[4]
+        ucode_plus_py = code_root / "uCodePlus" / "python"
+        if ucode_plus_py.exists() and str(ucode_plus_py) not in sys.path:
+            sys.path.insert(0, str(ucode_plus_py))
+
+        from importer.uvox import validate_uvox
+        from lifter.voxel_lifter import LifterConfig, VoxelLifter
+
+        if not fixture_data:
+            # Generate a default test spatial scene
+            from spatial.scene import SpatialScene, Voxel
+            scene = SpatialScene("ucode_plus_spatial_demo", width=10, height=5, depth=10)
+            for x in range(10):
+                for z in range(10):
+                    scene.add_voxel(Voxel(x, 0, z, "minecraft:smooth_stone"))
+            scene.add_voxel(Voxel(5, 1, 5, "minecraft:gold_block"))
+            return web.json_response({
+                "status": "success",
+                "scene": scene.to_dict(),
+                "engine": "ucode_plus_spatial",
+            })
+
+        manifest = validate_uvox(fixture_data)
+        lifter = VoxelLifter(LifterConfig(wall_height=wall_height))
+        scene = lifter.lift(manifest)
+        return web.json_response({
+            "status": "success",
+            "scene": scene.to_dict(),
+            "engine": "ucode_plus_spatial",
+        })
+    except Exception as e:
+        log.exception("Spatial scene generation error: %s", e)
+        return web.json_response({"error": str(e)}, status=500)
+
+
 def register_vector_routes(app: web.Application) -> None:
-    """Register uVector API routes."""
+    """Register uCode+ vector and spatial API routes."""
     app.router.add_get("/api/vector/status", handle_vector_status)
     app.router.add_get("/api/vector/presets", handle_vector_presets)
     app.router.add_get("/api/vector/palettes", handle_vector_palettes)
@@ -1007,5 +1049,6 @@ def register_vector_routes(app: web.Application) -> None:
     app.router.add_post("/api/vector/quantize/teletext-g1", handle_vector_quantize_teletext_g1)
     app.router.add_post("/api/vector/quantize/bob", handle_vector_quantize_bob)
     app.router.add_post("/api/vector/save", handle_vector_save)
-    log.debug("uVector API routes registered")
+    app.router.add_post("/api/vector/spatial/lift", handle_spatial_scene)
+    log.debug("uCode+ vector & spatial API routes registered")
 

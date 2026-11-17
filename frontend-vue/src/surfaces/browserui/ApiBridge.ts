@@ -469,6 +469,20 @@ export async function quantizeVectorToBob(
   return res.json()
 }
 
+export async function liftSpatialScene(options?: {
+  manifest?: any
+  wall_height?: number
+}): Promise<{ status: string; scene: any; engine: string }> {
+  const res = await fetch(`${BASE}/api/vector/spatial/lift`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(options || {}),
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`Spatial scene lift failed (HTTP ${res.status})`)
+  return res.json()
+}
+
 export async function syncGoogleDriveVault(vaultPath?: string): Promise<DriveVaultSyncResult> {
   const res = await fetch(`${BASE}/api/google/drive/scan`, {
     method: "POST",

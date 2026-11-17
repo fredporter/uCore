@@ -4,7 +4,7 @@ Read-only assessment of top-level Code repositories, GitHub account fredporter, 
 
 ## Synchronization and preservation
 
-Live GitHub default-branch SHAs were compared with local main for 13 repositories. Twelve match: uCore, uCode, SonicScrewdriver, uCore-Google, uCore-Publish, SnackMachine, uCode2, uVector, HomeNest, Groovebox, wpmudev-agent and fredporter. Matching source commits do not prove all local branches, tags, assets or releases are backed up.
+Live GitHub default-branch SHAs were compared with local main for 13 repositories. Twelve match: uCore, uCode, SonicScrewdriver, uCore-Google, uCore-Publish, SnackMachine, uCode2, uCode+, HomeNest, Groovebox, wpmudev-agent and fredporter. Matching source commits do not prove all local branches, tags, assets or releases are backed up.
 
 uCore main matches remote 513a1c6; its current local plan/curation-roles-distribution branch contains three additional commits: c191175, c48a34e, bcef217. Those implement the sprint extension, Mission-led workflow and documentation/matrix. This assessment is additional local documentation. Review/publish this branch before treating the sprint additions as remotely available.
 
@@ -18,7 +18,7 @@ Global Knowledge is the exception: local main 5e6abf3 differs from remote main c
 | uCode | Essential language/runtime and learning owner | Keep independent; retain tested native BASIC integration and explicit host/runtime boundary. |
 | SonicScrewdriver | Essential hardware revival/provisioning product | Retain; qualify safe USB/media operations before advertising them. Current README explicitly says no disk-writing capability. Correct GitHub description, which still calls it an API gateway/security layer. |
 | global-knowledge | Essential canon/standards/dataset source; immediate reconciliation priority | Preserve divergent history and untracked material; inventory/deduplicate; build reviewed editions and separate standards from ordinary user documentation. |
-| uVector | Useful optional engine with actual uCore integration references | Retain; qualify packaging, Rust/Python bridge and GridCore conversions; no need to absorb it into uCore. |
+| uCode+ | Useful optional engine with actual uCore integration references | Retain; qualify packaging, Rust/Python bridge and GridCore conversions; no need to absorb it into uCore. |
 | uCore-Google | Useful optional cloud integration, not core identity/workflow owner | Retain and audit each operation; align with Sorcerer/Wizard and Knight-through-Drone rules, provider consent and truthful remote status. README scope is not proof of production behavior. |
 | uCore-Publish | Useful compiler/export owner plus unfinished cloud adapter | Retain; qualify clean-edition/privacy pipeline and replace fabricated cloud success before enabling remote publication. |
 | SnackMachine | Optional packaging/catalog extension; legacy snack vocabulary overlaps new governed skill/recipe work | Decide package contract and responsibility against uCore registry, installer and uFlow. Consolidate overlapping catalogs/contracts before considering archival. Do not recreate a task engine or generic shell. |

@@ -1,7 +1,7 @@
 <template>
   <div class="surface banana-surface">
     <div class="surface__content">
-      <h2>uCode2</h2>
+      <h2>uCode+ Spatial & Vector Studio</h2>
       <BananaStudio scope="vector" />
     </div>
   </div>

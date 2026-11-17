@@ -1,5 +1,5 @@
 /**
- * @component BananaStudio / VectorStudio — uVector Illustration Engine
+ * @component BananaStudio / VectorStudio — uCode+ Illustration Engine
  * Generates and transforms technical drawings, diagrams, and GridCore assets.
  * Adheres to Mono Core visual style presets (Blueprint, Teletext, Linocut Paper, Pixel Art, Line Art).
  * Amber CRT phosphor is strictly excluded per sovereign design doctrine.
@@ -12,9 +12,9 @@
         <div class="banana-studio__title-wrap">
           <UIcon name="draw" :size="24" class="banana-studio__hero-icon" />
           <div>
-            <h2 class="surface__panel-title">{{ scope==='grid' ? 'GridCore tools' : scope==='vector' ? 'Vector tools' : 'uVector Illustration & Asset Studio' }}</h2>
+            <h2 class="surface__panel-title">{{ scope==='grid' ? 'GridCore tools' : scope==='vector' ? 'uCode+ Vector & Spatial Studio' : 'uCode+ Illustration & Asset Studio' }}</h2>
             <p class="surface__panel-description">
-              Create drawings and GridCore illustrations.
+              Create drawings, scalable vector graphics, and GridCore illustrations.
             </p>
           </div>
         </div>
@@ -59,6 +59,15 @@
         @click="activeMode = 'quantize'"
       >
         <UIcon name="grain" /> V2B & BOB Quantizer
+      </button>
+      <button
+        type="button"
+        class="banana-studio__mode-tab"
+        :class="{ 'banana-studio__mode-tab--active': activeMode === 'spatial' }"
+        v-if="scope!=='grid'"
+        @click="activeMode = 'spatial'"
+      >
+        <UIcon name="view_in_ar" /> Spatial 3D Scene
       </button>
     </div>
 
@@ -309,6 +318,38 @@
           </div>
         </div>
 
+        <!-- MODE 5: Spatial 3D Scene Lifter -->
+        <div v-else-if="activeMode === 'spatial'" class="banana-studio__mode-section">
+          <h3 class="banana-studio__section-title">Spatial 3D Voxel Lifter (uCode+)</h3>
+          <p class="banana-studio__mode-desc">
+            Lift 2D GridCore matrices and NetHack dungeon floors into true 3D spatial voxel scenes and Minecraft datapacks.
+          </p>
+
+          <div class="banana-studio__options-row">
+            <div>
+              <label class="banana-studio__option-label">Wall Height (Blocks)</label>
+              <input
+                v-model.number="spatialWallHeight"
+                type="number"
+                class="banana-studio__text-input"
+                min="1"
+                max="10"
+              />
+            </div>
+          </div>
+
+          <div class="banana-studio__actions flex gap-2 flex-wrap">
+            <button
+              type="button"
+              class="usx-btn usx-btn--primary"
+              :disabled="generating"
+              @click="handleSpatialLift"
+            >
+              <UIcon :name="generating ? 'sync' : 'view_in_ar'" /> Lift Spatial Scene
+            </button>
+          </div>
+        </div>
+
         <span v-if="statusMessage" class="banana-studio__status-msg">{{ statusMessage }}</span>
       </section>
 
@@ -357,6 +398,14 @@
             <button
               type="button"
               class="banana-studio__tab-btn"
+              :class="{ 'banana-studio__tab-btn--active': previewTab === 'spatial' }"
+              @click="previewTab = 'spatial'"
+            >
+              Spatial 3D Scene
+            </button>
+            <button
+              type="button"
+              class="banana-studio__tab-btn"
               :class="{ 'banana-studio__tab-btn--active': previewTab === 'ascii' }"
               v-if="scope!=='vector'"
               @click="previewTab = 'ascii'"
@@ -381,7 +430,7 @@
 
         <div v-else-if="generating" class="banana-studio__generating-box">
           <USpinner :size="36" />
-          <p>Synthesizing geometry using uVector Rust engine and {{ activePresetMeta?.name }} rules...</p>
+          <p>Synthesizing geometry using uCode+ Rust engine and {{ activePresetMeta?.name }} rules...</p>
         </div>
 
         <div v-else-if="activeAsset" class="banana-studio__asset-card">
@@ -497,6 +546,37 @@
             </div>
           </div>
 
+          <!-- View Tab 5: Spatial 3D Scene -->
+          <div v-else-if="previewTab === 'spatial'" class="banana-studio__spatial-wrapper">
+            <div v-if="activeAsset.spatial" class="banana-studio__spatial-content">
+              <div class="banana-studio__meta-row">
+                <span class="banana-studio__meta-key">Scene Name:</span>
+                <span class="banana-studio__meta-val">{{ activeAsset.spatial.name }}</span>
+              </div>
+              <div class="banana-studio__meta-row">
+                <span class="banana-studio__meta-key">Dimensions (W×H×D):</span>
+                <span class="banana-studio__meta-val">{{ activeAsset.spatial.dimensions?.width }} × {{ activeAsset.spatial.dimensions?.height }} × {{ activeAsset.spatial.dimensions?.depth }} blocks</span>
+              </div>
+              <div class="banana-studio__meta-row">
+                <span class="banana-studio__meta-key">Total Voxels:</span>
+                <span class="banana-studio__meta-val font-mono">{{ activeAsset.spatial.total_voxels }} blocks</span>
+              </div>
+              <div class="banana-studio__meta-row">
+                <span class="banana-studio__meta-key">Block Palette:</span>
+                <span class="banana-studio__meta-val font-mono">{{ Object.keys(activeAsset.spatial.palette || {}).length }} block types</span>
+              </div>
+              <div class="banana-studio__bob-hex-card">
+                <div class="banana-studio__bob-hex-header">
+                  <span>3D Voxel Coordinate Sample</span>
+                </div>
+                <pre class="banana-studio__bob-hex font-mono">{{ JSON.stringify(activeAsset.spatial.voxels?.slice(0, 15), null, 2) }}</pre>
+              </div>
+            </div>
+            <div v-else class="banana-studio__preview-empty">
+              <p>No 3D spatial scene generated yet. Switch to "Spatial 3D Scene" mode and click "Lift Spatial Scene".</p>
+            </div>
+          </div>
+
           <!-- Asset metadata & action buttons -->
           <div class="banana-studio__asset-meta">
             <div class="banana-studio__meta-row">
@@ -558,6 +638,7 @@ import {
   quantizeVectorToLattice,
   quantizeVectorToTeletext,
   quantizeVectorToBob,
+  liftSpatialScene,
   type BananaAssetResult,
 } from "../ApiBridge"
 
@@ -665,6 +746,7 @@ const quantizeHeight = ref<number>(256)
 const quantizePlanes = ref<number>(2)
 const quantizeThreshold = ref<number>(128)
 const quantizeSourceSvg = ref<string>("")
+const spatialWallHeight = ref<number>(3)
 
 const activePresetMeta = computed(() =>
   PRESETS.find((p) => p.id === (activeAsset.value?.style_preset || selectedPreset.value))
@@ -694,7 +776,7 @@ function aspectCss(ratio: string) {
 async function handleGenerate() {
   if (!promptText.value.trim() || generating.value) return
   generating.value = true
-  statusMessage.value = "Synthesizing vector geometry via uVector..."
+  statusMessage.value = "Synthesizing vector geometry via uCode+..."
   try {
     const res = await generateVectorAsset(promptText.value, selectedPreset.value, selectedAspect.value)
     activeAsset.value = res
@@ -887,6 +969,37 @@ async function handleQuantizeBob() {
     }
   } catch (err: any) {
     statusMessage.value = `BOB export error: ${err?.message || err}`
+  } finally {
+    generating.value = false
+  }
+}
+
+async function handleSpatialLift() {
+  generating.value = true
+  statusMessage.value = "Lifting 2D grid into 3D spatial voxel scene via uCode+..."
+  try {
+    const res = await liftSpatialScene({ wall_height: spatialWallHeight.value })
+    if (res.status === "success") {
+      if (!activeAsset.value) {
+        activeAsset.value = {
+          status: "success",
+          model: "ucode_plus_spatial",
+          style_preset: "mono_blueprint",
+          asset_id: `spatial-${Date.now()}`,
+          prompt: `Spatial 3D Voxel Scene (${res.scene.dimensions?.width}×${res.scene.dimensions?.height}×${res.scene.dimensions?.depth})`,
+          spatial: res.scene,
+        }
+        history.value.unshift(activeAsset.value)
+      } else {
+        activeAsset.value.spatial = res.scene
+      }
+      previewTab.value = "spatial"
+      statusMessage.value = `3D Spatial Scene lifted: ${res.scene.total_voxels} voxels (${res.scene.name})`
+    } else {
+      statusMessage.value = "Failed to generate spatial scene"
+    }
+  } catch (err: any) {
+    statusMessage.value = `Spatial lift error: ${err?.message || err}`
   } finally {
     generating.value = false
   }

@@ -335,7 +335,7 @@ const TABS = [
 ]
 
 function selectTab(tab: string) {
-  if (tab === "studio") { void router.push('/ucode2'); return; }
+  if (tab === "studio") { void router.push('/ucode-plus'); return; }
   if (tab === "knowledge") navigateToWiki()
   else if (tab === "cards" || tab === "studio" || tab === "dashboard") activeTab.value = tab
 }

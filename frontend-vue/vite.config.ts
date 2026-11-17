@@ -49,7 +49,7 @@ export default defineConfig({
       // Local src alias
       { find: "@", replacement: path.resolve(__dirname, "src") },
       // Cross-repo aliases (resolve to ~/Code/<repo>)
-      { find: "@uCode3", replacement: path.resolve(CODE_ROOT, "uCode3") },
+      { find: "@uCodePlus", replacement: path.resolve(CODE_ROOT, "uCodePlus") },
       {
         find: "@HomeNest",
         replacement: path.resolve(CODE_ROOT, "uConnect/homenest-console"),

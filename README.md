@@ -21,7 +21,7 @@ Start with the [User Setup and quickstart](docs/guides/QUICKSTART.md). For Googl
 | **Network & BitChat** | `backend/app/services/mesh_*`, `bitchat_*` | Local LAN subnet beacon discovery, zero-cloud BitChat P2P messaging, and binder bridges |
 | **Google & DreamBeans** | `uCore-Google` | Google Workspace bridge + DreamBeans autonomous morning briefing integration |
 
-Independent domain products (`SonicScrewdriver`, `Groovebox`, `uVector`, `HomeNest`) follow an uncoupled, independent release path.
+Independent domain products (`SonicScrewdriver`, `Groovebox`, `uCode+`, `HomeNest`) follow an uncoupled, independent release path.
 
 ## Workspace & Storage Boundary (AGENTS.md)
 

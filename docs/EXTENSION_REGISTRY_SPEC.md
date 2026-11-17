@@ -279,13 +279,13 @@ Wave execution guidance:
 Execution should prefer explicit repair flows over fallback behavior for
 required capability paths.
 
-## uVector Position (Current)
+## uCode+ Position (Current)
 
-`uVector` is currently best treated as an **extension-class engine candidate**
+`uCode+` is currently best treated as an **extension-class engine candidate**
 aligned with future uCode rendering profiles, not as a `udos-*` domain
 plugin.
 
-Evidence from `uVector` repository:
+Evidence from `uCode+` repository:
 
 1. `Cargo.toml` and crate metadata position it as `uvcore`, a universal
    vector conversion engine.
@@ -296,11 +296,11 @@ Evidence from `uVector` repository:
 
 Current recommended interpretation:
 
-1. uVector aligns with future uCode and grid-runtime rendering
+1. uCode+ aligns with future uCode and grid-runtime rendering
    concerns.
-2. uVector may also be consumed by Google/Nano-Banana image-generation flows
+2. uCode+ may also be consumed by Google/Nano-Banana image-generation flows
    as a conversion/post-processing engine.
-3. uVector is a strong fit for vector/font asset conversion into bitmap/grid
+3. uCode+ is a strong fit for vector/font asset conversion into bitmap/grid
    uCode-compatible formats.
 4. Do not force immediate migration; document as extension-class and onboard
    via manifest when integration wave starts.

@@ -8,7 +8,7 @@ import BananaStudio from "./BananaStudio.vue"
 describe("BananaStudio / VectorStudio", () => {
   it("renders the 5 Mono Core style presets and excludes Amber CRT", () => {
     const wrapper = mount(BananaStudio)
-    expect(wrapper.text()).toContain("uVector Illustration & Asset Studio")
+    expect(wrapper.text()).toContain("uCode+ Illustration & Asset Studio")
     expect(wrapper.text()).toContain("Ceefax Teletext")
     expect(wrapper.text()).toContain("Architectural Blueprint")
     expect(wrapper.text()).toContain("Editorial Linocut Paper")

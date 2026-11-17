@@ -224,7 +224,7 @@ async def handle_get_motifs(request: web.Request) -> web.Response:
         return web.json_response({"status": "ok", "motifs": MOTIF_PRESETS})
     except Exception:
         import sys
-        uvector_py = Path(__file__).resolve().parents[4] / "uVector" / "python"
+        uvector_py = Path(__file__).resolve().parents[4] / ("uCodePlus" if (Path(__file__).resolve().parents[4] / "uCodePlus").exists() else "uVector") / "python"
         if uvector_py.exists() and str(uvector_py) not in sys.path:
             sys.path.insert(0, str(uvector_py))
         try:
@@ -254,7 +254,7 @@ async def handle_generate_bob(request: web.Request) -> web.Response:
         )
     except Exception:
         import sys
-        uvector_py = Path(__file__).resolve().parents[4] / "uVector" / "python"
+        uvector_py = Path(__file__).resolve().parents[4] / ("uCodePlus" if (Path(__file__).resolve().parents[4] / "uCodePlus").exists() else "uVector") / "python"
         if uvector_py.exists() and str(uvector_py) not in sys.path:
             sys.path.insert(0, str(uvector_py))
         from uvector_bob import compile_svg_to_bob, compile_svgs_to_gif, generate_vector_motif

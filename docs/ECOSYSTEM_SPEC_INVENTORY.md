@@ -24,7 +24,7 @@ code root:
 | Lane | Repositories |
 | --- | --- |
 | Core authorities | `uCore`, `uCode`, `uFlow`, `uKnowledge` |
-| Shared/runtime capabilities | `uVector`, `SnackMachine` |
+| Shared/runtime capabilities | `uCode+`, `SnackMachine` |
 | Domain products | `HomeNest`, `SonicScrewdriver`, `Groovebox` |
 | Extensions | `udos-agents`, `udos-budget`, `udos-identity`, `udos-publishing`, `udos-vaults` |
 | Personal/site project requiring classification | `fredporter` |

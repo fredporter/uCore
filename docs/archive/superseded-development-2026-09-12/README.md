@@ -2,7 +2,7 @@
 
 The user has replaced the internal IDE/Dev Mode direction with external Antigravity development and independently releasable products. This is a documentation archive, not deletion of the implementation or its useful features.
 
-Start with the [current Gemini handover](../../HANDOVER_GEMINI_PRODUCT_REFACTOR_2026-09-12.md) and [product refactor plan](../../UDOS_PRODUCT_REFACTOR_PLAN_2026-09-12.md). Preserve current UI identity, product features and review/safety controls. Groovebox is a music production suite; uVector is an image generation/standardisation product; HomeNest may expose existing Home Assistant controls.
+Start with the [current Gemini handover](../../HANDOVER_GEMINI_PRODUCT_REFACTOR_2026-09-12.md) and [product refactor plan](../../UDOS_PRODUCT_REFACTOR_PLAN_2026-09-12.md). Preserve current UI identity, product features and review/safety controls. Groovebox is a music production suite; uCode+ is an image generation/standardisation product; HomeNest may expose existing Home Assistant controls.
 
 ## Preserved documents
 

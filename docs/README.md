@@ -49,7 +49,7 @@ Target product authority: [September 12 refactor plan](UDOS_PRODUCT_REFACTOR_PLA
 
 Start with the [Gemini handover — 12 September 2026](HANDOVER_GEMINI_PRODUCT_REFACTOR_2026-09-12.md) and [complete product refactor plan](UDOS_PRODUCT_REFACTOR_PLAN_2026-09-12.md).
 
-This is separation and completion of existing products, not another rebuild. Preserve useful features and the emerging UI. After a fresh Code-folder assessment, develop and release from individual repositories. Groovebox is a music production suite; uVector generates/standardises coherent illustrations; HomeNest can optionally expose existing Home Assistant controls.
+This is separation and completion of existing products, not another rebuild. Preserve useful features and the emerging UI. After a fresh Code-folder assessment, develop and release from individual repositories. Groovebox is a music production suite; uCode+ generates/standardises coherent illustrations; HomeNest can optionally expose existing Home Assistant controls.
 
 Internal IDE/Dev Mode plans are superseded. Their preserved evidence is indexed in the [development archive](archive/superseded-development-2026-09-12/README.md). Existing architecture/runbook documents describe the current implementation unless reconciled with the new plan; they do not authorize resuming the old development program.
 

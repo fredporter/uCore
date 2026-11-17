@@ -18,7 +18,7 @@ Purpose: keep core infrastructure simple and robust while enabling focused plugi
    - `udos-dreamscape`
    - `udos-publishing` (scaffolded baseline)
 5. Workflow/knowledge/runtime boundaries are already hard-cut to external providers (`uFlow`, `uKnowledge`, `ucode_runtime`).
-6. `uVector` exists as a separate engine repository (`uvcore`) and is currently positioned as an extension-class runtime candidate (not a `udos-*` domain plugin).
+6. `uCode+` exists as a separate engine repository (`uvcore`) and is currently positioned as an extension-class runtime candidate (not a `udos-*` domain plugin).
 
 ### 1.1B Taxonomy lock (Extension vs Plugin)
 
@@ -66,7 +66,7 @@ Purpose: keep core infrastructure simple and robust while enabling focused plugi
    - Continue mapping-system phases (GridCore-first, future 3D/uCode2-profile compatibility).
 5. `uFlow` and `uKnowledge`
    - Only if workflow/knowledge orchestration endpoints need bridge updates for Dreamscape.
-6. `uVector`
+6. `uCode+`
    - Keep as extension-class engine track aligned with uCode2/uCode3-era rendering/runtime evolution.
    - Prepare onboarding path as an external extension when integration wave starts.
 
@@ -131,7 +131,7 @@ uCore does not own:
    - Required workflow extension ownership (`kind: workflow`).
 2. `uKnowledge`
    - Required knowledge extension ownership (`kind: knowledge`).
-3. `uVector` (`uvcore`)
+3. `uCode+` (`uvcore`)
    - Extension-class engine candidate for vector/image conversion and multi-target rendering.
    - Aligns with future uCode2/uCode3 display/runtime needs.
    - Likely support lanes include:
