@@ -12,5 +12,5 @@ export function recipeDestination(recipe: string): string {
     'teletext-mode7': '/ucode?tab=teletext',
     'terminal-ansi': '/ucode?tab=terminal',
   };
-  return destinations[recipe] || '/';
+  return Object.hasOwn(destinations, recipe) ? destinations[recipe]! : '/documentation?tab=developer&section=recipes';
 }

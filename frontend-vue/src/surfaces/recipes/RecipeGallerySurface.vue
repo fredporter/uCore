@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import UIcon from '../../skills/atoms/UIcon.vue'
 import {
   SAMPLE_TASK_LIST,
   SAMPLE_PROSE_DOCUMENT,
@@ -83,7 +84,7 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
     <!-- Top Gallery Control Bar -->
     <header class="gallery-topbar">
       <div class="gallery-brand">
-        <span class="material-symbols-outlined gallery-logo-icon">style</span>
+        <UIcon name="style" class="gallery-logo-icon" />
         <div>
           <h1 class="gallery-title">Recipe Gallery</h1>
           <span class="gallery-subtitle">Unified Declarative Surface System Showroom</span>
@@ -93,20 +94,20 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
       <!-- Primary Lane Switcher: USX vs GridCore (Strictly Separated) -->
       <div class="lane-switcher">
         <button
-          class="lane-btn"
+          class="usx-btn lane-btn"
           :class="{ active: selectedLane === 'usx' }"
           @click="selectedLane = 'usx'"
         >
-          <span class="material-symbols-outlined">web</span>
+          <UIcon name="web" />
           <span>USX Layouts</span>
           <span class="lane-counter">8</span>
         </button>
         <button
-          class="lane-btn"
+          class="usx-btn lane-btn"
           :class="{ active: selectedLane === 'gridcore' }"
           @click="selectedLane = 'gridcore'"
         >
-          <span class="material-symbols-outlined">grid_on</span>
+          <UIcon name="grid_on" />
           <span>GridCore Layouts</span>
           <span class="lane-counter">2</span>
         </button>
@@ -119,36 +120,36 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
           <span class="control-label">Viewport:</span>
           <div class="segmented-btn-group">
             <button
-              class="seg-btn"
+              class="usx-btn seg-btn"
               :class="{ active: selectedViewport === '360px' }"
               @click="selectedViewport = '360px'"
               title="Mobile (360px)"
             >
-              <span class="material-symbols-outlined">smartphone</span>
+              <UIcon name="smartphone" />
             </button>
             <button
-              class="seg-btn"
+              class="usx-btn seg-btn"
               :class="{ active: selectedViewport === '768px' }"
               @click="selectedViewport = '768px'"
               title="Tablet (768px)"
             >
-              <span class="material-symbols-outlined">tablet</span>
+              <UIcon name="tablet" />
             </button>
             <button
-              class="seg-btn"
+              class="usx-btn seg-btn"
               :class="{ active: selectedViewport === '1200px' }"
               @click="selectedViewport = '1200px'"
               title="Desktop (1200px)"
             >
-              <span class="material-symbols-outlined">desktop_windows</span>
+              <UIcon name="desktop_windows" />
             </button>
             <button
-              class="seg-btn"
+              class="usx-btn seg-btn"
               :class="{ active: selectedViewport === '100%' }"
               @click="selectedViewport = '100%'"
               title="Fluid (100%)"
             >
-              <span class="material-symbols-outlined">fit_screen</span>
+              <UIcon name="fit_screen" />
             </button>
           </div>
         </div>
@@ -156,24 +157,22 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
         <!-- USX Mode Toggle: Strictly Light / Dark mode (Never on GridCore) -->
         <div v-if="selectedLane === 'usx'" class="control-group">
           <button
-            class="mode-toggle-btn"
+            class="usx-btn mode-toggle-btn"
             @click="toggleUsxMode"
             :title="`Switch to ${usxMode === 'dark' ? 'Light' : 'Dark'} mode`"
           >
-            <span class="material-symbols-outlined">
-              {{ usxMode === 'dark' ? 'light_mode' : 'dark_mode' }}
-            </span>
+            <UIcon :name="usxMode === 'dark' ? 'light_mode' : 'dark_mode'" />
             <span>{{ usxMode === 'dark' ? 'Light Mode' : 'Dark Mode' }}</span>
           </button>
         </div>
 
         <!-- JSON Inspector Toggle -->
         <button
-          class="json-toggle-btn"
+          class="usx-btn json-toggle-btn"
           :class="{ active: showJson }"
           @click="showJson = !showJson"
         >
-          <span class="material-symbols-outlined">data_object</span>
+          <UIcon name="data_object" />
           <span>Recipe JSON</span>
         </button>
       </div>
@@ -184,51 +183,51 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
       <div class="paradigm-group">
         <span class="paradigm-label">USX Core Surfaces:</span>
         <button
-          class="recipe-tab-btn"
+          class="usx-btn recipe-tab-btn"
           :class="{ active: selectedRecipeKey === 'task-list' }"
           @click="selectedRecipeKey = 'task-list'"
         >
-          <span class="material-symbols-outlined">checklist</span>
+          <UIcon name="checklist" />
           <span>Task List</span>
         </button>
         <button
-          class="recipe-tab-btn"
+          class="usx-btn recipe-tab-btn"
           :class="{ active: selectedRecipeKey === 'authoring-workbench' }"
           @click="selectedRecipeKey = 'authoring-workbench'"
         >
-          <span class="material-symbols-outlined">history_edu</span>
+          <UIcon name="history_edu" />
           <span>Authoring Workbench</span>
         </button>
         <button
-          class="recipe-tab-btn"
+          class="usx-btn recipe-tab-btn"
           :class="{ active: selectedRecipeKey === 'prose-document' }"
           @click="selectedRecipeKey = 'prose-document'"
         >
-          <span class="material-symbols-outlined">article</span>
+          <UIcon name="article" />
           <span>Prose Document</span>
         </button>
         <button
-          class="recipe-tab-btn"
+          class="usx-btn recipe-tab-btn"
           :class="{ active: selectedRecipeKey === 'card-matrix' }"
           @click="selectedRecipeKey = 'card-matrix'"
         >
-          <span class="material-symbols-outlined">grid_view</span>
+          <UIcon name="grid_view" />
           <span>Card Matrix</span>
         </button>
         <button
-          class="recipe-tab-btn"
+          class="usx-btn recipe-tab-btn"
           :class="{ active: selectedRecipeKey === 'settings-form' }"
           @click="selectedRecipeKey = 'settings-form'"
         >
-          <span class="material-symbols-outlined">tune</span>
+          <UIcon name="tune" />
           <span>Settings Form</span>
         </button>
         <button
-          class="recipe-tab-btn"
+          class="usx-btn recipe-tab-btn"
           :class="{ active: selectedRecipeKey === 'system-page' }"
           @click="selectedRecipeKey = 'system-page'"
         >
-          <span class="material-symbols-outlined">search_off</span>
+          <UIcon name="search_off" />
           <span>System Page (S100)</span>
         </button>
       </div>
@@ -236,19 +235,19 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
       <div class="paradigm-group">
         <span class="paradigm-label">Intake & Overlays:</span>
         <button
-          class="recipe-tab-btn"
+          class="usx-btn recipe-tab-btn"
           :class="{ active: selectedRecipeKey === 'story-form' }"
           @click="selectedRecipeKey = 'story-form'"
         >
-          <span class="material-symbols-outlined">dynamic_form</span>
+          <UIcon name="dynamic_form" />
           <span>Story Form (Typeform)</span>
         </button>
         <button
-          class="recipe-tab-btn"
+          class="usx-btn recipe-tab-btn"
           :class="{ active: selectedRecipeKey === 'alerts-suite' }"
           @click="selectedRecipeKey = 'alerts-suite'"
         >
-          <span class="material-symbols-outlined">notifications_active</span>
+          <UIcon name="notifications_active" />
           <span>Alerts & Notifications</span>
         </button>
       </div>
@@ -259,30 +258,30 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
       <div class="paradigm-group">
         <span class="paradigm-label">GridCore Character Matrix:</span>
         <button
-          class="recipe-tab-btn tab-retro"
+          class="usx-btn recipe-tab-btn tab-retro"
           :class="{ active: selectedRecipeKey === 'teletext-mode7' }"
           @click="selectedRecipeKey = 'teletext-mode7'"
         >
-          <span class="material-symbols-outlined">tv</span>
+          <UIcon name="tv" />
           <span>Teletext (Mode 7 / BBC Ceefax)</span>
         </button>
         <button
-          class="recipe-tab-btn tab-retro"
+          class="usx-btn recipe-tab-btn tab-retro"
           :class="{ active: selectedRecipeKey === 'terminal-ansi' }"
           @click="selectedRecipeKey = 'terminal-ansi'"
         >
-          <span class="material-symbols-outlined">terminal</span>
+          <UIcon name="terminal" />
           <span>Terminal (ANSI / C64)</span>
         </button>
       </div>
       <div class="gridcore-info-chip">
-        <span class="material-symbols-outlined">info</span>
+        <UIcon name="info" />
         <span>GridCore executes on fixed 40×25 or 42×27 cell matrix canvases without USX styling crossover.</span>
       </div>
     </nav>
 
     <!-- Main Inspection Stage -->
-    <main class="gallery-stage">
+    <div class="gallery-stage">
       <!-- Simulated Viewport Frame -->
       <div
         class="viewport-frame"
@@ -347,7 +346,7 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
         </div>
         <pre class="json-content"><code>{{ JSON.stringify(currentRecipe, null, 2) }}</code></pre>
       </aside>
-    </main>
+    </div>
   </div>
 </template>
 
