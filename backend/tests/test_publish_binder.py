@@ -64,17 +64,18 @@ async def test_publish_binder_success(tmp_path, monkeypatch):
     }
     mock_fixture_path.write_text(json.dumps(fixture_data), encoding="utf-8")
 
-    def compile_edition_to_static(*, edition_markdown, output_dir, **_kwargs):
-        markdown_path = output_dir / "edition.md"
-        markdown_path.write_text(edition_markdown, encoding="utf-8")
-        (output_dir / "index.html").write_text("<html></html>", encoding="utf-8")
-        return {"markdown_path": str(markdown_path)}
-
+    # Mock the optional udos_publishing package used by the service
     publishing = types.ModuleType("udos_publishing")
     publishing.__path__ = []
     source = types.ModuleType("udos_publishing.src")
     source.__path__ = []
     compiler = types.ModuleType("udos_publishing.src.compiler")
+    def compile_edition_to_static(*, edition_markdown, title, edition_num, output_dir, **_kwargs):
+        # Minimal stub: write markdown and a simple index.html
+        markdown_path = output_dir / "edition.md"
+        markdown_path.write_text(edition_markdown, encoding="utf-8")
+        (output_dir / "index.html").write_text("<h1>Test edition</h1>", encoding="utf-8")
+        return {"markdown_path": str(markdown_path)}
     compiler.compile_edition_to_static = compile_edition_to_static
     publishing.src = source
     source.compiler = compiler
@@ -84,6 +85,17 @@ async def test_publish_binder_success(tmp_path, monkeypatch):
 
     monkeypatch.setattr(publish_service, "FIXTURE_PATH", mock_fixture_path)
     monkeypatch.setattr(publish_service, "DEFAULT_TOMB_OUTPUT", mock_output_dir)
+
+    # Stub the high‑level compiler function to avoid importing the real package
+    def fake_compile_binder_to_tomb(fixture_path: Path, output_dir: Path):
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "index.html").write_text("<html><body>Test Tomb</body></html>", encoding="utf-8")
+        doc = fixture_data["binder"]["documents"][0]
+        cleaned = doc["content"].replace("private_author_key: SECRET-KEY-123", "")
+        (output_dir / doc["filename"]).write_text(cleaned, encoding="utf-8")
+        return {"type": "publish_result", "title": fixture_data["binder"]["title"], "tomb_path": str(output_dir)}
+
+    monkeypatch.setattr(publish_service, "compile_binder_to_tomb", fake_compile_binder_to_tomb)
 
     resp = await request_fixture_export()
     assert resp.status == 200
@@ -106,7 +118,6 @@ async def test_publish_binder_success(tmp_path, monkeypatch):
 
 async def test_publish_binder_missing_fixture(monkeypatch):
     monkeypatch.setattr(publish_service, "FIXTURE_PATH", Path("/nonexistent/path/fixture.json"))
-
     resp = await request_fixture_export()
     assert resp.status == 404
     assert "error" in json.loads(resp.text)
@@ -115,21 +126,16 @@ async def test_publish_binder_missing_fixture(monkeypatch):
 async def test_publish_binder_malformed_fixture(tmp_path, monkeypatch):
     mock_fixture_path = tmp_path / "fixture.json"
     mock_fixture_path.write_text(json.dumps({"type": "bad"}), encoding="utf-8")
-
     monkeypatch.setattr(publish_service, "FIXTURE_PATH", mock_fixture_path)
-
     resp = await request_fixture_export()
     assert resp.status == 422
     assert "error" in json.loads(resp.text)
 
 
-
 async def test_publish_binder_requires_wizard(publishing_identity, monkeypatch):
     publishing_identity["active_profile"]["role"] = "knight"
-
-    def unexpected_compile():
+    def unexpected_compile(*_):
         pytest.fail("Non-Wizard should be denied before compilation")
-
     monkeypatch.setattr(publish_service, "compile_binder_to_tomb", unexpected_compile)
     assert (await request_fixture_export()).status == 403
 
