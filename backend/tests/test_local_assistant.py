@@ -127,16 +127,24 @@ async def test_offline_chat_and_settings_follow_active_profile(monkeypatch, tmp_
         pytest.fail("Offline input attempted to use Ollama")
 
     monkeypatch.setattr(service, "chat", no_model)
+    replies = []
+
+    def offline_reply(message, *, verbose):
+        replies.append((message, verbose))
+        return f"Offline reply: {message}"
+
+    monkeypatch.setattr(api, "_resolve_callable", lambda _path: offline_reply)
     settings = {"verbose": True, "chat_mode": "offline", "model": ""}
     await api.update_settings(request(settings))
     chat = {"messages": [{"role": "user", "content": "calculate 6 * 7"}]}
     response = await api.chat(request(chat))
-    assert json.loads(response.text)["content"] == "Evaluated 6 * 7.\n42"
+    assert json.loads(response.text)["content"] == "Offline reply: calculate 6 * 7"
 
     owner = "second"
     role = "guest"
     response = await api.chat(request(chat))
-    assert json.loads(response.text)["content"] == "42"
+    assert json.loads(response.text)["content"] == "Offline reply: calculate 6 * 7"
+    assert replies == [("calculate 6 * 7", True), ("calculate 6 * 7", False)]
     with pytest.raises(web.HTTPForbidden):
         await api.update_settings(request({**settings, "chat_mode": "ollama"}))
     with pytest.raises(web.HTTPForbidden):

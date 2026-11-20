@@ -9,6 +9,8 @@ Covers:
 from __future__ import annotations
 
 import json
+import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -61,6 +63,24 @@ async def test_publish_binder_success(tmp_path, monkeypatch):
         }
     }
     mock_fixture_path.write_text(json.dumps(fixture_data), encoding="utf-8")
+
+    def compile_edition_to_static(*, edition_markdown, output_dir, **_kwargs):
+        markdown_path = output_dir / "edition.md"
+        markdown_path.write_text(edition_markdown, encoding="utf-8")
+        (output_dir / "index.html").write_text("<html></html>", encoding="utf-8")
+        return {"markdown_path": str(markdown_path)}
+
+    publishing = types.ModuleType("udos_publishing")
+    publishing.__path__ = []
+    source = types.ModuleType("udos_publishing.src")
+    source.__path__ = []
+    compiler = types.ModuleType("udos_publishing.src.compiler")
+    compiler.compile_edition_to_static = compile_edition_to_static
+    publishing.src = source
+    source.compiler = compiler
+    monkeypatch.setitem(sys.modules, "udos_publishing", publishing)
+    monkeypatch.setitem(sys.modules, "udos_publishing.src", source)
+    monkeypatch.setitem(sys.modules, "udos_publishing.src.compiler", compiler)
 
     monkeypatch.setattr(publish_service, "FIXTURE_PATH", mock_fixture_path)
     monkeypatch.setattr(publish_service, "DEFAULT_TOMB_OUTPUT", mock_output_dir)
