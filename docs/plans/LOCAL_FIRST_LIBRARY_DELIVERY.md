@@ -127,6 +127,9 @@ Replace bracketed fields before sending each prompt. Supply the coordinator's co
 
 ## Antigravity and Codex handover
 
+See the [recovery and qualification runbook](LOCAL_FIRST_RECOVERY_AND_QUALIFICATION.md)
+for Git delivery, credential recovery and acceptance stories.
+
 Use this repo and plan as the shared record. Read the workspace AGENTS.md, this
 plan and the relevant source before proposing changes. Use Antigravity for an
 assigned implementation or local browser check. Use Codex to reconcile the

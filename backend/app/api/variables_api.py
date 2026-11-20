@@ -16,6 +16,7 @@ import socket
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 from aiohttp import web
 
@@ -27,10 +28,33 @@ _VARIABLE_STORE_FILE = _VARIABLE_STORE_DIR / "variables.json"
 _INSTALL_META_FILE = _VARIABLE_STORE_DIR / "install_meta.json"
 
 
-def _ensure_store() -> None:
-    """Ensure the data directory and default variable store exist."""
-    _VARIABLE_STORE_DIR.mkdir(parents=True, exist_ok=True)
-    if not _VARIABLE_STORE_FILE.exists():
+def _write_object(path: Path, value: dict) -> None:
+    """Replace a complete document so other readers never see a partial write."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = None
+    try:
+        with NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False) as stream:
+            temp_path = Path(stream.name)
+            json.dump(value, stream, indent=2)
+            stream.write("\n")
+        temp_path.replace(path)
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+
+
+def _read_object(path: Path) -> dict:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError("Variable store must contain a JSON object")
+    return value
+
+
+def _load_variables() -> dict:
+    """Create defaults only for a missing file and preserve unreadable state."""
+    try:
+        return _read_object(_VARIABLE_STORE_FILE)
+    except FileNotFoundError:
         default_vars = {
             "username": os.environ.get("USER", "user"),
             "role": "developer",
@@ -44,10 +68,13 @@ def _ensure_store() -> None:
                 "UCORE_OLLAMA_MODEL", "qwen2.5-coder:3b",
             ),
         }
-        _VARIABLE_STORE_FILE.write_text(json.dumps(default_vars, indent=2))
+        _write_object(_VARIABLE_STORE_FILE, default_vars)
+        return default_vars
 
-    # Installation meta — written once on first start
-    if not _INSTALL_META_FILE.exists():
+def _load_install_meta() -> dict:
+    try:
+        return _read_object(_INSTALL_META_FILE)
+    except FileNotFoundError:
         install_meta = {
             "hostname": socket.gethostname(),
             "platform": platform.system(),
@@ -66,39 +93,26 @@ def _ensure_store() -> None:
                 ).resolve(),
             ),
         }
-        _INSTALL_META_FILE.write_text(json.dumps(install_meta, indent=2))
+        _write_object(_INSTALL_META_FILE, install_meta)
+        return install_meta
 
 
-def _load_variables() -> dict:
-    """Load user variables from store."""
-    _ensure_store()
-    try:
-        return json.loads(_VARIABLE_STORE_FILE.read_text())
-    except (json.JSONDecodeError, FileNotFoundError):
-        return {}
-
-
-def _save_variables(vars: dict) -> None:
-    """Save user variables to store."""
-    _ensure_store()
-    _VARIABLE_STORE_FILE.write_text(json.dumps(vars, indent=2))
-
-
-def _load_install_meta() -> dict:
-    """Load installation metadata (read-only)."""
-    _ensure_store()
-    try:
-        return json.loads(_INSTALL_META_FILE.read_text())
-    except (json.JSONDecodeError, FileNotFoundError):
-        return {}
+def _store_unavailable() -> web.Response:
+    return web.json_response(
+        {"error": "Local variables are unavailable. Check the local variable store and retry."},
+        status=503,
+    )
 
 
 # ─── Handlers ────────────────────────────────────────────────────────
 
 async def handle_get_variables(request: web.Request) -> web.Response:
     """GET /api/variables — return all variables (user + install)."""
-    user_vars = _load_variables()
-    install_vars = _load_install_meta()
+    try:
+        user_vars = _load_variables()
+        install_vars = _load_install_meta()
+    except (OSError, ValueError):
+        return _store_unavailable()
     return web.json_response({
         "user": user_vars,
         "installation": install_vars,
@@ -107,7 +121,10 @@ async def handle_get_variables(request: web.Request) -> web.Response:
 
 async def handle_get_user_variables(request: web.Request) -> web.Response:
     """GET /api/variables/user — return user variables."""
-    return web.json_response(_load_variables())
+    try:
+        return web.json_response(_load_variables())
+    except (OSError, ValueError):
+        return _store_unavailable()
 
 
 async def handle_update_user_variables(request: web.Request) -> web.Response:
@@ -123,18 +140,22 @@ async def handle_update_user_variables(request: web.Request) -> web.Response:
             status=400,
         )
 
-    current = _load_variables()
     # Only allow known user variable keys
     allowed_keys = {
         "username", "role", "location",
         "timezone", "uid", "email",
         "model_routing", "local_model", "openrouter_model",
     }
-    for key, value in body.items():
-        if key in allowed_keys:
-            current[key] = str(value)
-
-    _save_variables(current)
+    updates = {key: value for key, value in body.items() if key in allowed_keys}
+    if any(not isinstance(value, str) for value in updates.values()):
+        return web.json_response({"error": "Local variable values must be strings."}, status=400)
+    try:
+        current = _load_variables()
+        if updates:
+            current.update(updates)
+            _write_object(_VARIABLE_STORE_FILE, current)
+    except (OSError, ValueError):
+        return _store_unavailable()
     return web.json_response({"status": "ok", "variables": current})
 
 
@@ -142,4 +163,7 @@ async def handle_get_install_variables(
     request: web.Request,
 ) -> web.Response:
     """GET /api/variables/install — return installation (read-only)."""
-    return web.json_response(_load_install_meta())
+    try:
+        return web.json_response(_load_install_meta())
+    except (OSError, ValueError):
+        return _store_unavailable()

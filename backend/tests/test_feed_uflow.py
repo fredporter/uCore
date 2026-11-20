@@ -8,7 +8,8 @@ import pytest
 
 from app.api import feed_api
 from app.services.feed_store import FeedServer
-from app.services.spool_writer import write_spool
+from app.services.spool_reader import read_spool
+from app.services.spool_writer import write_spool_batch
 
 
 class StubRequest:
@@ -111,9 +112,13 @@ async def test_review_rss_and_explicit_promotion_return_written_receipts(monkeyp
     retry = json.loads((await feed_api.handle_feed_promote(request)).text)
     assert retry["existing"] is True
     assert retry["task_id"] == promotion["task_id"]
-    spool = (tmp_path / "logs" / "spool.log").read_text(encoding="utf-8")
-    for result in [first, repeated, promotion, retry]:
-        assert f"[{result['spool_receipt']}]" in spool
+    refreshed = json.loads((await feed_api.handle_feed_rss(StubRequest(payload))).text)
+    assert refreshed["processed"] is True
+    assert len(list((tmp_path / "tasks").glob("*/*.md"))) == 1
+    write_spool_batch([{"module": "test", "message": "A later event"}])
+    for result in [first, repeated, promotion, retry, refreshed]:
+        entries = read_spool(tmp_path / "logs", search=result["spool_receipt"])
+        assert any(entry.source == "spool.log" for entry in entries)
 
 
 @pytest.mark.asyncio

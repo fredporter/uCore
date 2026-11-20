@@ -1,6 +1,8 @@
 <template>
   <div v-if="isStandalone" class="app-shell app-shell--standalone">
-    <router-view />
+    <SurfaceErrorBoundary>
+      <router-view />
+    </SurfaceErrorBoundary>
   </div>
   <div v-else ref="shellEl" class="app-shell" :class="{ 'sidebar-open': globalSidebarOpen }">
     <GlobalToolbar
@@ -40,7 +42,10 @@
         />
       </aside>
       <main class="app-main">
-        <router-view />
+        <RecoverySurface v-if="runtimeWarning && route.matched.length === 0" unavailable @retry="reloadPage" />
+        <SurfaceErrorBoundary v-else>
+          <router-view />
+        </SurfaceErrorBoundary>
       </main>
     </div>
     </div>
@@ -76,6 +81,8 @@ import { useToast } from "../composables/useToast";
 import { useWorkspaceStore } from "../stores/workspace";
 import { useWorkflowStore } from "../stores/workflow";
 import { useRouter, useRoute } from "vue-router";
+import SurfaceErrorBoundary from "./SurfaceErrorBoundary.vue";
+import RecoverySurface from "../surfaces/recovery/RecoverySurface.vue";
 import GlobalToolbar from "../skills/organisms/GlobalToolbar.vue";
 import FilepickerSidebar from "../skills/molecules/FilepickerSidebar.vue";
 import SnackbarHost from "../skills/molecules/SnackbarHost.vue";

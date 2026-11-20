@@ -35,15 +35,9 @@ def write_spool(
     tag_str = " ".join(f"[{t}]" for t in (tags or []))
     log_line = f"{timestamp} [{level}] {module}: {message} {tag_str}\n"
 
-    # Append to main log
-    log_file = log_dir / "spool.log"
-    existing = log_file.read_text(encoding="utf-8") if log_file.exists() else ""
-    log_file.write_text(existing + log_line, encoding="utf-8")
-
-    # Also append to module-specific log
-    module_log = log_dir / f"{module}.log"
-    existing_mod = module_log.read_text(encoding="utf-8") if module_log.exists() else ""
-    module_log.write_text(existing_mod + log_line, encoding="utf-8")
+    for filename in dict.fromkeys(("spool.log", f"{module}.log")):
+        with (log_dir / filename).open("a", encoding="utf-8") as log_file:
+            log_file.write(log_line)
 
 
 def write_spool_batch(
@@ -72,7 +66,7 @@ def write_spool_batch(
         lines.append(f"{timestamp} [{level}] {module}: {message} {tag_str}\n")
 
     if lines:
-        log_file = log_dir / "spool.log"
-        log_file.write_text("".join(lines), encoding="utf-8")
+        with (log_dir / "spool.log").open("a", encoding="utf-8") as log_file:
+            log_file.writelines(lines)
 
     return len(lines)

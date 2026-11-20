@@ -57,7 +57,9 @@
     </details>
     <p v-if="error" class="wf-feeds__notice" role="alert">{{ error }}</p>
     <p v-if="importedItem" class="feed-operation-result" role="status">
-      Imported feed item {{ importedItem.id }} for review.
+      {{ importedItem.processed
+        ? `Updated feed item ${importedItem.id}, which had already been reviewed.`
+        : `Imported feed item ${importedItem.id} for review.` }}
       <span v-if="importedItem.receipt">Spool receipt {{ importedItem.receipt }}</span>
     </p>
     <p v-if="route.query.binder">
@@ -66,7 +68,10 @@
     </p>
     <p v-if="promotedTask" class="feed-operation-result" role="status">
       {{ promotedTask.existing ? "Task already exists." : "Task created." }}
-      <RouterLink v-if="!promoting" :to="{ path: '/workflow', query: { tab: 'editor', task: promotedTask.id, binder: promotedTask.binder || undefined, mission: promotedTask.mission } }">Open task</RouterLink>
+      <RouterLink v-if="loadedTask" :to="{ path: '/workflow', query: { tab: 'editor', task: loadedTask.id, binder: loadedTask.binder || undefined, mission: loadedTask.mission || undefined } }">Open task</RouterLink>
+      <button v-else-if="!promoting" type="button" class="usx-btn" :disabled="refreshingTask" @click="loadPromotedTask">
+        <UIcon name="refresh" aria-hidden="true" /> {{ refreshingTask ? "Loading task…" : "Retry loading task" }}
+      </button>
       <span v-if="promotedTask.receipt">Spool receipt {{ promotedTask.receipt }}</span>
     </p>
     <div v-if="selectedActivity" class="feed-binder-intake">
@@ -110,7 +115,7 @@
           <button class="usx-btn" type="button" title="Send to Binder" aria-label="Send to Binder"
             :disabled="sending" @click="chooseBinder(item)"><UIcon name="book" aria-hidden="true" /></button>
           <button class="usx-btn" type="button" title="Add to tasks" aria-label="Add to tasks"
-            :disabled="promoting" @click="toTask(item)"><UIcon name="add_task" aria-hidden="true" /></button>
+            :disabled="promoting || refreshingTask" @click="toTask(item)"><UIcon name="add_task" aria-hidden="true" /></button>
         </div>
       </article>
     </div>
@@ -147,11 +152,13 @@ const savedBinder = ref("");
 const binderNotice = ref("");
 const sending = ref(false);
 const promoting = ref(false);
-const promotedTask = ref<{ id: string; binder: string; mission?: string; existing: boolean; receipt?: string } | null>(null);
+const promotedTask = ref<{ id: string; existing: boolean; receipt?: string } | null>(null);
+const loadedTask = computed(() => wf.tasks.find(task => task.id === promotedTask.value?.id));
+const refreshingTask = ref(false);
 const rssInput = ref<HTMLInputElement | null>(null);
 const rssFile = ref<File | null>(null);
 const importing = ref(false);
-const importedItem = ref<{ id: number; receipt?: string } | null>(null);
+const importedItem = ref<{ id: number; processed: boolean; receipt?: string } | null>(null);
 
 async function importRss() {
   const file = rssFile.value;
@@ -181,7 +188,9 @@ async function importRss() {
     if (!response.ok || typeof result?.activity_id !== "number") {
       throw new Error(result?.error || "Could not import the RSS item.");
     }
-    importedItem.value = { id: result.activity_id, receipt: result.spool_receipt };
+    importedItem.value = {
+      id: result.activity_id, processed: result.processed === true, receipt: result.spool_receipt,
+    };
     rssFile.value = null;
     if (rssInput.value) rssInput.value.value = "";
     filter.value = "";
@@ -304,7 +313,7 @@ async function applyRules() {
 }
 
 async function toTask(item: Activity) {
-  if (promoting.value) return;
+  if (promoting.value || refreshingTask.value) return;
   promoting.value = true;
   error.value = "";
   promotedTask.value = null;
@@ -321,16 +330,27 @@ async function toTask(item: Activity) {
     activities.value = activities.value.filter(candidate => candidate.id !== item.id);
     promotedTask.value = {
       id: result.task_id,
-      binder: result.binder ?? "",
-      mission: result.existing ? undefined : mission,
       existing: result.existing === true,
       receipt: result.spool_receipt,
     };
-    await wf.fetchTasks(true);
+    await loadPromotedTask();
   } catch (exc) {
     error.value = exc instanceof Error ? exc.message : "Task could not be saved.";
   } finally {
     promoting.value = false;
+  }
+}
+async function loadPromotedTask() {
+  if (refreshingTask.value) return;
+  refreshingTask.value = true;
+  error.value = "";
+  try {
+    await wf.fetchTasks(true);
+    if (!loadedTask.value) throw new Error("Task saved. The task list could not load it yet.");
+  } catch {
+    error.value = "Task saved. The task list could not load it yet.";
+  } finally {
+    refreshingTask.value = false;
   }
 }
 async function syncConnection(connection:any){syncing.value=true;try{const response=await fetch(`${UCORE_BASE}/api/connections/${connection.id}/sync`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});const result=await response.json();if(!response.ok||result.state==='error')throw new Error(result.error||'Connection sync failed');await load();}catch(exc){error.value=exc instanceof Error?exc.message:'Sync unavailable';}finally{syncing.value=false;}}
