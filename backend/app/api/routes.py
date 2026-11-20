@@ -176,6 +176,15 @@ def register_routes(app: web.Application) -> None:
 
     # Central config
     app.router.add_get("/api/config", handle_get_config)
+    # Spatial tap and handshake endpoints
+    from .spatial import (
+        handle_spatial_handshake_challenge,
+        handle_spatial_handshake_verify,
+        handle_spatial_tap,
+    )
+    app.router.add_post("/api/spatial/tap", handle_spatial_tap)
+    app.router.add_post("/api/spatial/handshake/challenge", handle_spatial_handshake_challenge)
+    app.router.add_post("/api/spatial/handshake/verify", handle_spatial_handshake_verify)
     # Variables API
     app.router.add_get("/api/variables", handle_get_variables)
     app.router.add_get("/api/variables/user", handle_get_user_variables)
@@ -686,3 +695,11 @@ def register_routes(app: web.Application) -> None:
     except ImportError as e:
         log.debug("Knowledge Federation routes not available: %s", e)
 
+    # ── Publishing & Library Delivery API ─────────────────────────────
+    try:
+        from .publish_api import register_publish_routes
+
+        register_publish_routes(app)
+        log.debug("Publishing API routes registered")
+    except ImportError as e:
+        log.debug("Publishing API routes not available: %s", e)

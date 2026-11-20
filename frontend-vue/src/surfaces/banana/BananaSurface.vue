@@ -1,14 +1,15 @@
 <template>
   <div class="surface banana-surface">
     <div class="surface__content">
-      <h2>uCode+ Spatial & Vector Studio</h2>
-      <BananaStudio scope="vector" />
+      <BananaStudio class="banana-surface__studio" scope="vector" />
+      <SimulatedTapPanel />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import BananaStudio from "../browserui/panels/BananaStudio.vue"
+import SimulatedTapPanel from "./SimulatedTapPanel.vue"
 </script>
 
 <style scoped>
@@ -22,9 +23,15 @@ import BananaStudio from "../browserui/panels/BananaStudio.vue"
 }
 
 .banana-surface .surface__content {
-  padding: var(--usx-spacing-lg);
+  display: grid;
+  gap: var(--usx-spacing-md);
+  box-sizing: border-box;
+  padding: var(--usx-spacing-md);
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+}
+.banana-surface__studio {
+  padding: 0;
 }
 </style>

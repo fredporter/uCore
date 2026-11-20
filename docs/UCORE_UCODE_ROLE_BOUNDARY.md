@@ -34,7 +34,9 @@ uCore is the platform daemon + extension registry + UI hub. It never executes gr
 |----------|-------------------------------|
 | Ceefax route registrar | `ucode_runtime.ceefax.register_ceefax_routes` |
 | BBCSDL route registrar | `ucode_runtime.bbcsdl.register_bbcsdl_routes` |
-| Terminal WS handler | `ucode_runtime.terminal_runtime.handle_terminal_runtime_ws` |
+| BBC BASIC Terminal WS handler | `ucode_runtime.terminal_runtime.handle_terminal_runtime_ws` |
+| Offline Terminal WS handler | `ucode_runtime.offline_terminal.handle_offline_terminal_ws` |
+| Offline text rules | `ucode_runtime.offline_assistant.reply` |
 | Ceefax store factory | `ucode_runtime.ceefax.CeefaxStore` |
 
 The uCode repo is located via `UCORE_UCODE_PATH` (default `~/Code/uCode`). These registrars are a hard dependency: if uCode is absent, uCore's backend cannot start.
@@ -85,6 +87,10 @@ flowchart LR
 - The **surface** (uCore frontend) renders them via the `<gridui-canvas>` Web Component.
 
 ---
+
+## Local input and task execution
+
+Terminal opens in Local input and can switch to BBC BASIC. uCore supplies the active profile's reply-detail preference at connection time. OK Assistant chat uses the same local rule function in offline mode. These requests compute text replies in memory. Skills that operate on user data and unattended task runs belong to the governed [uFlow execution plan](plans/OK_ASSISTANCE_AND_LOCAL_RUNS.md).
 
 ## Ownership rules
 

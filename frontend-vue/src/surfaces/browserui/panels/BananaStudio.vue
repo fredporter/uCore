@@ -6,13 +6,18 @@
  */
 <template>
   <div class="banana-studio">
-    <!-- Hero panel -->
-    <section class="banana-studio__hero surface__panel">
+    <header v-if="scope === 'vector'" class="banana-studio__heading">
+      <h2 class="surface__panel-title">uCode+ Studio</h2>
+      <p class="surface__panel-description">
+        Create drawings, scalable vector graphics, and GridCore illustrations.
+      </p>
+    </header>
+    <section v-else class="banana-studio__hero surface__panel">
       <div class="banana-studio__hero-top">
         <div class="banana-studio__title-wrap">
           <UIcon name="draw" :size="24" class="banana-studio__hero-icon" />
           <div>
-            <h2 class="surface__panel-title">{{ scope==='grid' ? 'GridCore tools' : scope==='vector' ? 'uCode+ Vector & Spatial Studio' : 'uCode+ Illustration & Asset Studio' }}</h2>
+            <h2 class="surface__panel-title">{{ scope==='grid' ? 'GridCore tools' : 'uCode+ Illustration & Asset Studio' }}</h2>
             <p class="surface__panel-description">
               Create drawings, scalable vector graphics, and GridCore illustrations.
             </p>
@@ -82,16 +87,14 @@
               v-for="preset in PRESETS"
               :key="preset.id"
               type="button"
-              class="banana-studio__preset-card"
+              class="usx-btn banana-studio__preset-card"
               :class="{ 'banana-studio__preset-card--active': selectedPreset === preset.id }"
+              :aria-pressed="selectedPreset === preset.id"
               @click="selectPreset(preset.id)"
             >
-              <div
-                class="banana-studio__preset-swatch"
-                :style="{ background: preset.swatchBg, borderColor: preset.swatchBorder }"
-              >
-                <UIcon :name="preset.icon" :style="{ color: preset.swatchColor }" />
-              </div>
+              <span class="banana-studio__preset-icon" aria-hidden="true">
+                <UIcon :name="preset.icon" />
+              </span>
               <div class="banana-studio__preset-info">
                 <div class="banana-studio__preset-name">{{ preset.name }}</div>
                 <div class="banana-studio__preset-desc">{{ preset.description }}</div>
@@ -171,16 +174,14 @@
               v-for="preset in PRESETS"
               :key="preset.id"
               type="button"
-              class="banana-studio__preset-card"
+              class="usx-btn banana-studio__preset-card"
               :class="{ 'banana-studio__preset-card--active': selectedPreset === preset.id }"
+              :aria-pressed="selectedPreset === preset.id"
               @click="selectPreset(preset.id)"
             >
-              <div
-                class="banana-studio__preset-swatch"
-                :style="{ background: preset.swatchBg, borderColor: preset.swatchBorder }"
-              >
-                <UIcon :name="preset.icon" :style="{ color: preset.swatchColor }" />
-              </div>
+              <span class="banana-studio__preset-icon" aria-hidden="true">
+                <UIcon :name="preset.icon" />
+              </span>
               <div class="banana-studio__preset-info">
                 <div class="banana-studio__preset-name">{{ preset.name }}</div>
               </div>
@@ -647,9 +648,6 @@ interface PresetDefinition {
   name: string
   description: string
   icon: string
-  swatchBg: string
-  swatchBorder: string
-  swatchColor: string
   chips: string[]
 }
 
@@ -659,9 +657,6 @@ const PRESETS: PresetDefinition[] = [
     name: "Architectural Blueprint",
     description: "Cyan and white technical drafting linework on deep Prussian navy",
     icon: "architecture",
-    swatchBg: "#0a2342",
-    swatchBorder: "#00e5ff",
-    swatchColor: "#ffffff",
     chips: [
       "Space station docking module orthographic blueprint schematic",
       "Isometric microprocessor architecture diagram with bus lines",
@@ -673,9 +668,6 @@ const PRESETS: PresetDefinition[] = [
     name: "Ceefax Teletext",
     description: "8-color broadcast aesthetic with blocky 40x25 character grid",
     icon: "grid_view",
-    swatchBg: "#000000",
-    swatchBorder: "#00ffff",
-    swatchColor: "#ffff00",
     chips: [
       "Retro teletext city skyline with glowing broadcast grid",
       "Teletext flight tracking radar screen with pixel glyphs",
@@ -687,9 +679,6 @@ const PRESETS: PresetDefinition[] = [
     name: "Editorial Linocut Paper",
     description: "Deep black woodcut print with stipple shading on archival cream paper",
     icon: "article",
-    swatchBg: "#faf8f5",
-    swatchBorder: "#222222",
-    swatchColor: "#111111",
     chips: [
       "Botanical fern illustration in black ink woodblock print",
       "Astronomical armillary sphere engraving on warm paper",
@@ -701,9 +690,6 @@ const PRESETS: PresetDefinition[] = [
     name: "16-Color Pixel Grid",
     description: "Sharp nostalgic retro game pixel sprites with clean geometric silhouette",
     icon: "sports_esports",
-    swatchBg: "#1e1e2e",
-    swatchBorder: "#f38ba8",
-    swatchColor: "#f9e2af",
     chips: [
       "16-color pixel art space rover on martian regolith terrain",
       "Retro 8-bit laboratory workstation computer console",
@@ -715,9 +701,6 @@ const PRESETS: PresetDefinition[] = [
     name: "Monochrome Technical Line Art",
     description: "Crisp black on white vector CAD line art and mechanical schematic",
     icon: "draw",
-    swatchBg: "#ffffff",
-    swatchBorder: "#000000",
-    swatchColor: "#000000",
     chips: [
       "Exploded view mechanical gearbox assembly line drawing",
       "Aeronautical jet engine cross-section technical diagram",
@@ -728,8 +711,8 @@ const PRESETS: PresetDefinition[] = [
 
 const ASPECT_RATIOS = ["16:9", "4:3", "1:1", "2:1", "3:4"]
 
-const activeMode = ref<"generate" | "trace" | "font_map" | "quantize">(props.scope==='grid'?'font_map':'generate')
-const previewTab = ref<"svg" | "teletext" | "lattice" | "bob" | "ascii" | "inspector">("svg")
+const activeMode = ref<"generate" | "trace" | "font_map" | "quantize" | "spatial">(props.scope==='grid'?'font_map':'generate')
+const previewTab = ref<"svg" | "teletext" | "lattice" | "bob" | "ascii" | "inspector" | "spatial">("svg")
 const selectedPreset = ref("mono_blueprint")
 const selectedAspect = ref("16:9")
 const promptText = ref("")
@@ -1079,6 +1062,13 @@ async function saveToVault() {
   width: 100%;
 }
 
+.banana-studio__heading {
+  display: grid;
+  gap: var(--usx-spacing-xs);
+}
+
+.banana-studio__heading > * { margin: 0; }
+
 .banana-studio__hero {
   background: var(--usx-color-surface);
   border: var(--usx-border-width) solid var(--usx-color-border);
@@ -1154,7 +1144,7 @@ async function saveToVault() {
 .banana-studio__mode-desc {
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
-  margin-top: 0;
+  margin: 0;
 }
 
 .banana-studio__workspace {
@@ -1174,6 +1164,15 @@ async function saveToVault() {
   gap: var(--usx-spacing-sm);
 }
 
+.banana-studio__mode-section {
+  display: grid;
+  gap: var(--usx-spacing-sm);
+}
+
+.banana-studio__mode-section > .banana-studio__section-title:not(:first-child) {
+  margin-block-start: var(--usx-spacing-sm);
+}
+
 .banana-studio__section-title {
   font-size: var(--usx-font-size-sm);
   font-weight: var(--usx-font-weight-semibold);
@@ -1185,53 +1184,66 @@ async function saveToVault() {
 
 .banana-studio__presets {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--usx-spacing-xs);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: var(--usx-spacing-sm);
 }
 
-.banana-studio__preset-card {
-  display: flex;
-  justify-content: flex-start;
-  color: var(--usx-color-on-surface);
-  align-items: center;
-  gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+.usx-btn.banana-studio__preset-card {
+  display: flow-root;
+  align-content: start;
+  min-width: 0;
+  padding: var(--usx-spacing-sm);
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-sm);
   background: var(--usx-color-surface-variant);
-  cursor: pointer;
+  color: var(--usx-color-on-surface);
   text-align: left;
-  transition: border-color 0.15s, background-color 0.15s;
+  white-space: normal;
+  box-shadow: none;
+  text-shadow: none;
+  filter: none;
 }
 
-.banana-studio__preset-card:hover {
-  background: var(--usx-color-surface-hover);
+.usx-btn.banana-studio__preset-card:hover {
+  border-color: var(--usx-color-on-surface-muted);
+  box-shadow: none;
+  filter: none;
 }
 
-.banana-studio__preset-card--active {
+.usx-btn.banana-studio__preset-card--active,
+.usx-btn.banana-studio__preset-card--active:hover {
   border-color: var(--usx-color-primary);
-  background: var(--usx-color-surface-selected, rgba(0, 180, 216, 0.1));
 }
 
-.banana-studio__preset-swatch {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--usx-radius-sm);
-  border: 1px solid;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+.usx-btn.banana-studio__preset-card:focus-visible {
+  border-color: var(--usx-color-primary);
+  border-style: dashed;
+  outline: none;
+  box-shadow: none;
+}
+
+.banana-studio__preset-icon {
+  float: inline-start;
+  display: grid;
+  place-items: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  margin-inline-end: var(--usx-spacing-sm);
+  margin-block-end: var(--usx-spacing-xs);
+  color: var(--usx-color-on-surface);
 }
 
 .banana-studio__preset-name {
   font-size: var(--usx-font-size-sm);
   font-weight: var(--usx-font-weight-semibold);
+  line-height: 1.25;
 }
 
 .banana-studio__preset-desc {
+  margin-top: var(--usx-spacing-xs);
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
+  line-height: 1.4;
 }
 
 .banana-studio__textarea,

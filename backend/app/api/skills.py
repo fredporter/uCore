@@ -10,7 +10,7 @@ import logging
 from aiohttp import web
 
 from app.services.health import get_health_summary
-from app.skills.registry import get_skill, run_skill_by_id
+from app.skills.registry import SERVER_RUN_FIELDS, get_skill, run_skill_by_id
 from app.skills.state import read_state
 
 log = logging.getLogger("ucore.skills")
@@ -35,7 +35,8 @@ async def handle_run_named_skill(request: web.Request) -> web.Response:
     except Exception:
         return web.json_response({"error": "Invalid JSON body"}, status=400)
 
-    skill_name = body.get("skill", "").strip()
+    skill_name = body.get("skill", "") if isinstance(body, dict) else ""
+    skill_name = skill_name.strip() if isinstance(skill_name, str) else ""
     if not skill_name:
         return web.json_response({"error": "skill name is required"}, status=400)
 
@@ -52,6 +53,9 @@ async def _run_skill_by_id(
         except Exception:
             body = {}
 
+    if not isinstance(body, dict):
+        return web.json_response({"error": "Expected an object"}, status=400)
+
     # Try Python skill registry first (for builtin skills)
     skill = get_skill(skill_id)
     if skill:
@@ -63,6 +67,8 @@ async def _run_skill_by_id(
                     kwargs.setdefault(k, v)
         else:
             kwargs = body
+        if SERVER_RUN_FIELDS.intersection(kwargs):
+            return web.json_response({"error": "Skill parameters include a server-owned field"}, status=400)
         # Enforce confirmation for skills that require explicit user approval
         requires_confirm = getattr(skill.meta, "requires_confirmation", False) or skill.meta.category in ("mutating", "destructive", "write")
         # Confirmation can be provided via JSON body {"confirm": true} or header X-User-Confirm: true

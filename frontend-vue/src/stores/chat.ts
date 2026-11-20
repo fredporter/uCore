@@ -104,7 +104,6 @@ export const useChatStore = defineStore('chat', () => {
     { id: 'gpt-4o', provider: 'openrouter', name: 'GPT-4o', cost: 'mid-range' },
   ])
   const selectedModel = ref('auto')
-  const okAssistantModel = ref('')
   const conversations = ref<Conversation[]>(loadConversations(profileId.value))
   const activeConversation = ref<string | null>(null)
   const budgetStatus = ref<BudgetStatus>({ ok: true, daily_remaining: null, warning: null })
@@ -447,7 +446,6 @@ export const useChatStore = defineStore('chat', () => {
     prompts,
     models,
     selectedModel,
-    okAssistantModel,
     conversations,
     activeConversation,
     budgetStatus,

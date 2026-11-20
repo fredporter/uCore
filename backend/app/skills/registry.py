@@ -15,6 +15,7 @@ _registry: dict[str, BaseSkill] = {}
 _loaded = False
 BUILTIN_SKILL_PATH = Path(__file__).parent / "builtin"
 CATALOGUE_PATH = Path(__file__).parent / "catalogue.json"
+SERVER_RUN_FIELDS = frozenset({"execution_authorized", "context"})
 
 
 def _catalogue_modules() -> list[dict]:
@@ -77,8 +78,11 @@ def _ensure():
 
 def list_skills() -> list[dict]:
     _ensure()
-    return [
-        {
+    skill_list: list[dict] = []
+    for s in _registry.values():
+        # Some test‑only skills may not have a catalogue entry; fall back to defaults.
+        catalogue = getattr(s, "_catalogue_entry", {}) or {}
+        skill_info = {
             "id": s.meta.id,
             "name": s.meta.name,
             "description": s.meta.description,
@@ -86,9 +90,13 @@ def list_skills() -> list[dict]:
             "timeout": s.meta.timeout,
             "requires_confirmation": getattr(s.meta, "requires_confirmation", False),
             "category_priority": _get_category_priority(s.meta.category),
+            "owner": catalogue.get("owner", "unknown"),
+            "lane": catalogue.get("lane", "unknown"),
+            "risk": catalogue.get("risk", "unknown"),
+            "lifecycle": catalogue.get("lifecycle", "unknown"),
         }
-        for s in _registry.values()
-    ]
+        skill_list.append(skill_info)
+    return skill_list
 
 
 def _get_category_priority(category: str) -> int:

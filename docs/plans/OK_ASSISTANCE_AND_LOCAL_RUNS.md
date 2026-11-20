@@ -1,0 +1,33 @@
+# OK Assistance and local task runs
+
+Assessment and delivery plan, 18 November 2026.
+
+## Current behavior
+
+| Surface | Available behavior | Limit relevant to autonomy |
+| --- | --- | --- |
+| uCode Terminal and OK Assistant chat | Shared offline rules for calculations, comparisons and small text transformations. Terminal opens in Local input. BBC BASIC is selectable for lessons and programs. | The offline rules accept one bounded line and return a result or examples. They have no file, task, shell or network operations. |
+| OK Assistant using Ollama | Optional loopback chat and three-stage Roundtable draft from selected material. | Chat and Roundtable return text. Roundtable roles are drafting perspectives. They carry no execution authority. |
+| Skills and Snacks | Built-in Skills run through a Python registry. The catalogue records owner, lane, lifecycle, risk and intended data roots. System Snacks use a separate dispatcher. | Catalogue roots and risk are descriptive today. Skill metadata and category supply existing confirmation gates. Some paths lack a server-owned execution context. |
+| uFlow workflows | Saved definitions run registered Skills in order on an explicit request. uFlow records each step, the run result and logs in its existing database. | The handler awaits the sequence in the request. Definitions and runs in this path need profile ownership and durable execution before unattended use. The saved schedule field alone does not start a run. |
+
+The former Terminal default forwarded every input line to the BBC BASIC parser. In Local input mode, enter `help`, `calculate 6 * 7`, `is 42 >= 40?`, `PRINT "Hello"`, or `count words in plan the run`. Unsupported input returns examples. Local input uses the existing uCore service and Python runtime with no native BASIC binary, model download, or internet access.
+
+The OK Assistant panel stores its preferences in the active uDOS profile. The offline chat mode is the default. **Explain offline replies** adds a short account of the applied rule. Terminal picks it up when its connection opens. The preferred local model is optional. Guest profiles can use offline input and save reply preferences. User, Knight, Sorcerer, Developer, Owner and Wizard profiles can use local Ollama. Owner and Wizard can manage shared Ollama downloads. These capabilities use the uDOS role from the active local session. WordPress roles apply to publishing surfaces.
+
+## Target run contract
+
+1. **Describe the outcome.** Accept the user's words, bounded input and optional selected material. Return a clarifying question when a required value is missing. Use the offline rules for known simple operations. An installed local model can help draft a recipe for interpretation-heavy requests. Validate its output as data.
+2. **Resolve a recipe.** uFlow binds registered Skill IDs and typed parameters to an objective and input snapshot. Include the profile, permitted workspace and inputs, output destination, network policy, time and step limits, and permitted effects. Start with one small, audited allowlist of data-only operations. Require explicit eligibility per Skill and parameter shape. A catalogue `read` label alone is insufficient. For example, Vault Discovery includes a nugget extraction option and output directory.
+3. **Check authority.** Derive the execution context from the profile and role on the server. Check the capability, Skill lane, parameters, resolved paths, and budget at admission and before each step. The initial lane runs offline, with no network providers. User output belongs in the profile's Vault or permitted Shared scope. Wizard curation of Public canon stays in external development tooling. Existing confirmation requirements remain in force. A role name, narrative instruction, or saved argument supplies no execution grant.
+4. **Run under uFlow.** An authorized recipe can advance through its bounded steps without further prompts. Steps consume explicit inputs and produce typed outputs. Branch on a declared result or condition. Pause for missing data or an effect outside the grant. Provide cancel and retry through the existing run lifecycle. Persist checkpoints, attempts, receipts and an idempotency key for writes. Reclaim safe work after interruption and stop when the grant expires or a capability is revoked.
+5. **Report the result.** Use deterministic run events for progress and receipts. The brief view shows the outcome and any required action. An explanatory view adds the selected recipe, step decisions, actual outputs and reasons for pauses or failures. A local model may phrase an explanation from those events. The receipt is authoritative.
+
+## Delivery order and acceptance
+
+- **Delivered with this change.** Provide shared offline input, profile settings, explicit Terminal mode selection and visible Skill catalogue metadata in the API. Reject server-owned execution fields in request and saved workflow parameters.
+- **Next.** Review the first Skills and parameter schemas for local execution. Enforce a server-owned profile context at each execution entry point. Bind workflow definitions, runs and controls to the profile. Keep reviewed recipes versioned with their owner, allowed effects and removal procedure. Verify that a guest, a different profile, and a caller supplying nested execution fields cannot change authority.
+- **Then.** Use the existing uFlow run store and uCore hosting lifecycle for claim, checkpoint, pause, cancel and recovery. Begin with one active local run and bounded per-step and overall timeouts. Verify completion with the tab closed, restart recovery, replay of a single idempotent output, and cancellation. Test with networking disabled and Ollama stopped on the lowest supported device class.
+- **Afterward.** Connect user wording and optional Ollama recipe suggestions to the validated run contract. Verify that ambiguous requests stop for one useful question, and that concise and detailed replies describe the same persisted outcome. Add scheduled execution only after profile grants, revocation and recovery work for a single run.
+
+uCore hosts the UI and existing services. uFlow owns task and run state. uCode owns the offline input rules and terminal transport. Preferences and run records use the existing settings-resolved stores under `UDOS_HOME`. The initial delivery adds no background worker. Remove the offline provider through the uCore route binding and uCode runtime module. Clear the `ok_assistant` profile variable to restore default preferences. Later run storage changes need a migration, retention limit and rollback procedure before rollout.

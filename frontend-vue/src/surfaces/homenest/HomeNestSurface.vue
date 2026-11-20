@@ -3,7 +3,7 @@
     <header class="homenest-header">
       <div class="homenest-header__title-group">
         <h1 class="homenest-header__title">HomeNest</h1>
-        <UBadge type="success" size="sm">Media & Steam Living-Room Console</UBadge>
+        <p>Media and Steam living-room console</p>
       </div>
     </header>
 
@@ -11,19 +11,19 @@
       <!-- Status Summary -->
       <div class="homenest-summary-grid">
         <div class="homenest-stat-card">
-          <div class="homenest-stat-value text-success">{{ lifecycleState.toUpperCase() }}</div>
+          <div class="homenest-stat-value">{{ lifecycleState.toUpperCase() }}</div>
           <div class="homenest-stat-label">Presentation State</div>
         </div>
         <div class="homenest-stat-card">
-          <div class="homenest-stat-value text-info">{{ activePresentation || 'None' }}</div>
+          <div class="homenest-stat-value">{{ activePresentation || 'None' }}</div>
           <div class="homenest-stat-label">Active Session</div>
         </div>
         <div class="homenest-stat-card">
-          <div class="homenest-stat-value text-primary">{{ queue.length }}</div>
+          <div class="homenest-stat-value">{{ queue.length }}</div>
           <div class="homenest-stat-label">Queued Media</div>
         </div>
         <div class="homenest-stat-card">
-          <div class="homenest-stat-value text-warning">{{ focusTarget }}</div>
+          <div class="homenest-stat-value">{{ focusTarget }}</div>
           <div class="homenest-stat-label">Input Focus</div>
         </div>
       </div>
@@ -34,7 +34,7 @@
           <h2>Presentation Lifecycle Controls</h2>
           <UBadge :type="running ? 'success' : 'neutral'" size="sm">{{ running ? 'LIVE' : 'IDLE' }}</UBadge>
         </div>
-        <div class="homenest-card-content flex gap-3 p-4">
+        <div class="homenest-card-content">
           <button
             class="usx-btn usx-btn--primary"
             :disabled="running && activePresentation === 'steam-console'"
@@ -72,14 +72,14 @@
           </button>
         </div>
         <div class="homenest-event-list">
-          <div v-if="queue.length === 0" class="p-4 text-xs text-zinc-500 text-center font-mono">
+          <div v-if="queue.length === 0" class="homenest-empty">
             No media currently queued.
           </div>
           <div v-for="(item, i) in queue" :key="i" class="homenest-event-row">
-            <span class="homenest-event-time font-mono">{{ item.queued_at?.slice(11, 19) || '12:00:00' }}</span>
+            <span class="homenest-event-time">{{ item.queued_at?.slice(11, 19) || '12:00:00' }}</span>
             <UBadge type="info" size="sm">{{ item.status || 'queued' }}</UBadge>
-            <span class="homenest-event-msg font-medium">{{ item.item_id }}</span>
-            <span class="text-xs text-zinc-400 font-mono">Target: {{ item.target_client }}</span>
+            <span class="homenest-event-msg">{{ item.item_id }}</span>
+            <span class="homenest-event-target">Target: {{ item.target_client }}</span>
           </div>
         </div>
       </div>
@@ -135,101 +135,136 @@ function addSampleMedia() {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--usx-color-surface-base, var(--usx-color-bg, #0d0e11));
-  color: var(--usx-color-on-surface, #e2e4e9);
-  padding: var(--usx-spacing-md);
-  gap: var(--usx-spacing-md);
-  max-width: var(--usx-max-width);
-  margin: 0 auto;
-  width: 100%;
-}
-.homenest-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: var(--usx-spacing-sm);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
-}
-.homenest-header__title-group {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-sm);
-}
-.homenest-header__title {
-  font-size: var(--usx-font-size-xl);
-  font-weight: 600;
-  margin: 0;
+  min-width: 0;
+  overflow: auto;
+  background: var(--usx-color-background);
   color: var(--usx-color-on-surface);
+  font-family: var(--usx-font-family-sans);
 }
-.homenest-surface-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-md);
+
+.homenest-header {
+  padding: var(--usx-spacing-md);
+  border-block-end: var(--usx-border-width) solid var(--usx-color-border);
 }
-.homenest-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--usx-spacing-sm);
-}
+
+.homenest-header__title-group,
 .homenest-stat-card {
-  background: var(--usx-color-surface);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  display: grid;
+  gap: var(--usx-spacing-xs);
 }
+
+.homenest-header__title,
+.homenest-header p,
+.homenest-card-header h2 {
+  margin: 0;
+}
+
+.homenest-header__title,
 .homenest-stat-value {
   font-size: var(--usx-font-size-xl);
-  font-weight: 700;
-  font-family: monospace;
+  font-weight: var(--usx-font-weight-semibold);
 }
-.text-success {
-  color: var(--usx-color-success);
-}
-.text-info {
-  color: var(--usx-color-info);
-}
-.text-primary {
-  color: var(--usx-color-primary);
-}
-.text-warning {
-  color: var(--usx-color-warning);
-}
-.homenest-stat-label {
-  font-size: var(--usx-font-size-xs);
+
+.homenest-header p,
+.homenest-stat-label,
+.homenest-event-time,
+.homenest-event-target,
+.homenest-empty {
   color: var(--usx-color-on-surface-muted);
-}
-.homenest-card {
-  background: var(--usx-color-surface);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  overflow: hidden;
-}
-.homenest-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
-}
-.homenest-card-header h2 {
   font-size: var(--usx-font-size-sm);
-  font-weight: 600;
-  margin: 0;
 }
-.homenest-event-list {
+
+.homenest-surface-body,
+.homenest-summary-grid,
+.homenest-card {
+  display: grid;
+  gap: var(--usx-spacing-md);
+  min-width: 0;
+}
+
+.homenest-surface-body { padding: var(--usx-spacing-md); }
+
+.homenest-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+}
+
+.homenest-stat-card,
+.homenest-card {
+  padding: var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+  overflow-wrap: anywhere;
+}
+
+.homenest-stat-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.homenest-card-header,
+.homenest-card-content {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-sm);
 }
+
+.homenest-card-header { justify-content: space-between; }
+
+.homenest-card-header h2 {
+  font-size: var(--usx-font-size-base);
+  font-weight: var(--usx-font-weight-semibold);
+}
+
+.homenest-card .usx-btn {
+  min-block-size: var(--usx-touch-min);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  border-radius: var(--usx-radius-sm);
+  font-size: var(--usx-font-size-sm);
+  line-height: var(--usx-line-height-tight);
+  box-shadow: none;
+}
+
+.homenest-card .usx-btn--primary:hover:not(:disabled) {
+  color: var(--usx-color-on-primary);
+}
+
+.homenest-card .usx-btn--danger:not(:disabled) {
+  border-color: var(--usx-color-danger);
+  color: var(--usx-color-danger);
+  background: var(--usx-color-surface);
+}
+
+.homenest-card .usx-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.homenest-card .usx-btn:focus-visible {
+  outline: 2px solid var(--usx-color-primary);
+  outline-offset: 2px;
+}
+
 .homenest-event-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content max-content minmax(0, 1fr) minmax(0, 11rem);
   align-items: center;
   gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+  padding-block: var(--usx-spacing-sm);
+  border-block-start: var(--usx-border-width) solid var(--usx-color-border);
   font-size: var(--usx-font-size-sm);
 }
-.homenest-event-time {
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-xs);
+
+.homenest-event-time { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 720px) {
+  .homenest-event-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .homenest-event-msg,
+  .homenest-event-target {
+    grid-column: 1 / -1;
+  }
 }
 </style>

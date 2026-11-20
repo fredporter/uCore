@@ -129,7 +129,6 @@ watch(() => identity.activeProfileId, () => {
   requestId++;
   okMessages.value = [];
   okLoading.value = false;
-  assistChat.okAssistantModel = "";
 });
 const showWelcome = computed(() => !okMessages.value.length && !assistChat.input.trim());
 const overlayWelcomeTitle = "OK Assistant";
@@ -154,7 +153,7 @@ async function sendChat(text: string) {
     const response = await fetch(`${UCORE_BASE}/api/assistant/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages, model: assistChat.okAssistantModel }),
+      body: JSON.stringify({ messages }),
       signal: AbortSignal.timeout(100000),
     });
     if (!response.ok) {

@@ -42,14 +42,32 @@
       {{ syncing ? 'Syncing…' : `Sync ${selectedSource.label}` }}
     </UButton>
 
+    <details class="feed-import">
+      <summary>Import a saved RSS item</summary>
+      <form @submit.prevent="importRss">
+        <label>
+          RSS item or pilot fixture JSON file
+          <input ref="rssInput" type="file" accept=".json,application/json"
+            :disabled="importing" @change="rssFile = ($event.target as HTMLInputElement).files?.[0] || null" />
+        </label>
+        <button type="submit" class="usx-btn" :disabled="!rssFile || importing">
+          <UIcon name="upload_file" aria-hidden="true" /> {{ importing ? "Importing…" : "Import for review" }}
+        </button>
+      </form>
+    </details>
     <p v-if="error" class="wf-feeds__notice" role="alert">{{ error }}</p>
+    <p v-if="importedItem" class="feed-operation-result" role="status">
+      Imported feed item {{ importedItem.id }} for review.
+      <span v-if="importedItem.receipt">Spool receipt {{ importedItem.receipt }}</span>
+    </p>
     <p v-if="route.query.binder">
       Adding tasks to {{ wf.binders.find(binder => binder.id === route.query.binder)?.title || route.query.binder }}.
       <RouterLink v-if="route.query.mission" :to="{ path: '/workflow', query: { tab: 'queue', binder: route.query.binder, mission: route.query.mission } }">Open mission queue</RouterLink>
     </p>
-    <p v-if="promotedTask" role="status">
-      Task ready in {{ promotedTask.binder }}.
-      <RouterLink :to="{ path: '/workflow', query: { tab: 'editor', task: promotedTask.id, binder: promotedTask.binder, mission: promotedTask.mission } }">Open task</RouterLink>
+    <p v-if="promotedTask" class="feed-operation-result" role="status">
+      {{ promotedTask.existing ? "Task already exists." : "Task created." }}
+      <RouterLink v-if="!promoting" :to="{ path: '/workflow', query: { tab: 'editor', task: promotedTask.id, binder: promotedTask.binder || undefined, mission: promotedTask.mission } }">Open task</RouterLink>
+      <span v-if="promotedTask.receipt">Spool receipt {{ promotedTask.receipt }}</span>
     </p>
     <div v-if="selectedActivity" class="feed-binder-intake">
       <strong>{{ selectedActivity.title || selectedActivity.type }}</strong>
@@ -129,7 +147,52 @@ const savedBinder = ref("");
 const binderNotice = ref("");
 const sending = ref(false);
 const promoting = ref(false);
-const promotedTask = ref<{ id: string; binder: string; mission?: string } | null>(null);
+const promotedTask = ref<{ id: string; binder: string; mission?: string; existing: boolean; receipt?: string } | null>(null);
+const rssInput = ref<HTMLInputElement | null>(null);
+const rssFile = ref<File | null>(null);
+const importing = ref(false);
+const importedItem = ref<{ id: number; receipt?: string } | null>(null);
+
+async function importRss() {
+  const file = rssFile.value;
+  if (!file || importing.value) return;
+  importing.value = true;
+  error.value = "";
+  importedItem.value = null;
+  try {
+    if (file.size > 2 * 1024 * 1024) throw new Error("Choose a JSON file under 2 MiB.");
+    const saved = JSON.parse(await file.text());
+    const item = saved?.rss_item ?? saved;
+    const guid = item?.guid ?? item?.external_id;
+    const summary = item?.summary ?? item?.content;
+    if (typeof guid !== "string" || !guid.trim() ||
+        ![item?.title, summary].some(value => typeof value === "string" && value.trim())) {
+      throw new Error("The file must contain one RSS item with a GUID and a title or summary.");
+    }
+    const response = await fetch(`${UCORE_BASE}/api/feed/rss`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        guid, title: item.title, summary, url: item.url, topic: item.topic,
+        provenance: item.provenance, waypoint_ref: item.waypoint_ref, review_only: true,
+      }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || typeof result?.activity_id !== "number") {
+      throw new Error(result?.error || "Could not import the RSS item.");
+    }
+    importedItem.value = { id: result.activity_id, receipt: result.spool_receipt };
+    rssFile.value = null;
+    if (rssInput.value) rssInput.value.value = "";
+    filter.value = "";
+    await load();
+  } catch (exc) {
+    error.value = exc instanceof SyntaxError ? "Choose a valid RSS item JSON file."
+      : exc instanceof Error ? exc.message : "Could not import the RSS item.";
+  } finally {
+    importing.value = false;
+  }
+}
 
 async function chooseBinder(item: Activity) {
   error.value = "";
@@ -175,11 +238,6 @@ const DEFAULT_SOURCES: Source[] = [
   { id: "research", label: "Research", state: "local", available: true },
   { id: "vault", label: "Vault changes", state: "local", available: true },
   { id: "workflow", label: "Workflow", state: "local", available: true },
-];
-const DEFAULT_ACTIVITIES: Activity[] = [
-  { id: -1, source: "research", type: "signal", title: "Review saved research", content: "Revisit recently collected topics and promote only useful findings into a Binder.", timestamp: new Date().toISOString() },
-  { id: -2, source: "vault", type: "change", title: "New vault notes", content: "Summarise recent notes and connect them to an active mission or task.", timestamp: new Date().toISOString() },
-  { id: -3, source: "workflow", type: "review", title: "Weekly workflow review", content: "Check blocked and in-progress work before choosing the next action.", timestamp: new Date().toISOString() },
 ];
 const selectedSource = computed(() => sources.value.find((source) => source.id === filter.value));
 
@@ -258,12 +316,17 @@ async function toTask(item: Activity) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ activity_id: item.id, binder, mission }),
     });
-    const result = await response.json();
-    if (!response.ok || !result.task_id) throw new Error(result.error || "Task could not be saved.");
+    const result = await response.json().catch(() => null);
+    if (!response.ok || typeof result?.task_id !== "string") throw new Error(result?.error || "Task could not be saved.");
     activities.value = activities.value.filter(candidate => candidate.id !== item.id);
-    // Workflow is already mounted when promotion happens from Lists.
+    promotedTask.value = {
+      id: result.task_id,
+      binder: result.binder ?? "",
+      mission: result.existing ? undefined : mission,
+      existing: result.existing === true,
+      receipt: result.spool_receipt,
+    };
     await wf.fetchTasks(true);
-    promotedTask.value = { id: result.task_id, binder: result.binder || binder, mission };
   } catch (exc) {
     error.value = exc instanceof Error ? exc.message : "Task could not be saved.";
   } finally {
@@ -279,6 +342,28 @@ onMounted(load);
 </script>
 
 <style scoped>
+.feed-import form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--usx-spacing-sm);
+}
+.feed-import label {
+  display: grid;
+  min-width: 0;
+  gap: var(--usx-spacing-xs);
+}
+.feed-import input {
+  max-width: 100%;
+}
+.feed-operation-result {
+  overflow-wrap: anywhere;
+}
+.feed-operation-result span {
+  display: block;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm);
+}
 .feed-row-actions {
   display: flex;
   align-items: center;

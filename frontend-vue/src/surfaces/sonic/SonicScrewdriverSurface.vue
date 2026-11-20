@@ -3,13 +3,14 @@
     <header class="sonic-header">
       <div class="sonic-header__title-group">
         <h1 class="sonic-header__title">SonicScrewdriver</h1>
-        <UBadge type="info" size="sm">USB Bootloader & Device Toolkit</UBadge>
+        <p>USB bootloader and device toolkit</p>
       </div>
       <div class="sonic-header__actions">
         <a
           class="usx-btn usx-btn--sm usx-btn--secondary"
           href="https://github.com/uDosGo/SonicScrewdriver"
           target="_blank"
+          rel="noopener noreferrer"
           title="Open SonicScrewdriver on GitHub"
         >
           <UIcon name="open_in_new" />
@@ -42,16 +43,12 @@
       <!-- Events Card -->
       <div class="sonic-card">
         <div class="sonic-card-header">
-          <h2>Recent Spool Events</h2>
-          <button class="usx-btn usx-btn--sm usx-btn--secondary" @click="refresh">
-            <UIcon name="refresh" />
-            <span>Refresh</span>
-          </button>
+          <h2>Sample Spool events</h2>
         </div>
         <div class="sonic-event-list">
           <div v-for="(event, i) in events" :key="i" class="sonic-event-row">
-            <span class="sonic-event-time font-mono">{{ event.timestamp.slice(0, 19) }}</span>
-            <span :class="['sonic-badge', eventBadgeClass(event.level)]">{{ event.level }}</span>
+            <time class="sonic-event-time" :datetime="event.timestamp">{{ event.timestamp.slice(0, 19).replace("T", " ") }}</time>
+            <UBadge :type="eventBadgeType(event.level)" size="sm">{{ event.level }}</UBadge>
             <span class="sonic-event-msg">{{ event.message }}</span>
             <span class="sonic-event-tags">
               <span v-for="tag in event.tags" :key="tag" class="sonic-tag">{{ tag }}</span>
@@ -78,21 +75,7 @@
         </table>
       </div>
 
-      <!-- Quick Links -->
-      <div class="sonic-card">
-        <div class="sonic-card-header">
-          <h2>Quick Actions</h2>
-        </div>
-        <div class="sonic-actions">
-          <a href="https://github.com/uDosGo/SonicScrewdriver" target="_blank" class="usx-btn usx-btn--primary">
-            <UIcon name="open_in_new" />
-            <span>GitHub Repository</span>
-          </a>
-          <span class="sonic-actions-hint">
-            Full CLI tools available at <code>~/Code/SonicScrewdriver/cli/</code>
-          </span>
-        </div>
-      </div>
+      <p class="sonic-cli-hint">CLI tools are available in <code>~/Code/SonicScrewdriver/cli/</code>.</p>
     </div>
   </div>
 </template>
@@ -104,7 +87,6 @@
  * @category surfaces
  * @usage Routed at '/sonic'
  */
-import { ref, computed } from 'vue'
 import UIcon from '../../skills/atoms/UIcon.vue'
 import UBadge from '../../skills/atoms/UBadge.vue'
 
@@ -116,7 +98,7 @@ interface SpoolEvent {
   tags: string[]
 }
 
-const events = ref<SpoolEvent[]>([
+const events: SpoolEvent[] = [
   { timestamp: "2026-07-12T19:20:00+08:00", module: "sonic.usb", level: "INFO",  message: "USB create completed successfully for /dev/sdb", tags: ["usb", "create", "success"] },
   { timestamp: "2026-07-12T19:19:55+08:00", module: "sonic.usb", level: "INFO",  message: "Installing SonicScrewloader to ESP", tags: ["usb", "bootloader", "install"] },
   { timestamp: "2026-07-12T19:19:50+08:00", module: "sonic.usb", level: "INFO",  message: "Formatting partitions", tags: ["usb", "format", "lifecycle"] },
@@ -129,26 +111,22 @@ const events = ref<SpoolEvent[]>([
   { timestamp: "2026-07-12T16:14:00+08:00", module: "sonic.mint", level: "INFO", message: "Mint ISO build completed: sonic-mint.iso", tags: ["mint", "build", "success"] },
   { timestamp: "2026-07-12T15:00:00+08:00", module: "sonic.device", level: "WARNING", message: "Device repurpose: router-001 -> openwrt", tags: ["device", "repurpose", "lifecycle"] },
   { timestamp: "2026-07-12T14:30:00+08:00", module: "skills-mcp", level: "ERROR", message: "MCP tool failed: sonic.device.flash (120ms)", tags: ["mcp", "skill", "execution", "failed"] },
-])
+]
 
-const moduleBreakdown = computed(() => {
+const moduleBreakdown = (() => {
   const map: Record<string, number> = {}
-  events.value.forEach(e => {
+  events.forEach(e => {
     map[e.module] = (map[e.module] || 0) + 1
   })
   return Object.entries(map).sort((a, b) => b[1] - a[1])
-})
+})()
 
-function eventBadgeClass(level: string) {
+function eventBadgeType(level: string) {
   switch (level) {
-    case 'ERROR': case 'CRITICAL': return 'sonic-badge--error'
-    case 'WARNING': return 'sonic-badge--warning'
-    default: return 'sonic-badge--info'
+    case 'ERROR': case 'CRITICAL': return 'error'
+    case 'WARNING': return 'warning'
+    default: return 'info'
   }
-}
-
-function refresh() {
-  events.value = [...events.value]
 }
 </script>
 
@@ -157,202 +135,170 @@ function refresh() {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
+  overflow: auto;
   background: var(--usx-color-background);
   color: var(--usx-color-on-surface);
-  overflow: hidden;
+  font-family: var(--usx-font-family-sans);
 }
 
 .sonic-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-  background: var(--usx-color-surface);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
-  flex-shrink: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-md);
+  border-block-end: var(--usx-border-width) solid var(--usx-color-border);
 }
 
 .sonic-header__title-group {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-sm);
+  display: grid;
+  gap: var(--usx-spacing-xs);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .sonic-header__title {
   font-size: var(--usx-font-size-xl);
-  font-weight: 600;
+  font-weight: var(--usx-font-weight-semibold);
+}
+
+.sonic-header__title,
+.sonic-header p,
+.sonic-card-header h2,
+.sonic-cli-hint {
   margin: 0;
-  color: var(--usx-color-on-surface);
 }
 
-.sonic-header__actions {
-  display: flex;
+.sonic-header .usx-btn {
+  display: inline-flex;
   align-items: center;
-  gap: var(--usx-spacing-xs);
-}
-
-.sonic-surface-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--usx-spacing-xl);
-  display: flex;
-  flex-direction: column;
-  gap: var(--usx-spacing-md);
-}
-
-/* Stats Grid */
-.sonic-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--usx-spacing-md);
-}
-
-.sonic-stat-card {
-  background: var(--usx-color-surface);
+  gap: var(--usx-icon-gap);
+  min-block-size: var(--usx-touch-min);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
   border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  padding: var(--usx-spacing-lg);
-  text-align: center;
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
+  font-size: var(--usx-font-size-sm);
+  text-decoration: none;
+  box-sizing: border-box;
 }
+
+.sonic-header .usx-btn:hover {
+  border-color: var(--usx-color-primary);
+}
+
+.sonic-header .usx-btn:focus-visible {
+  outline: 2px solid var(--usx-color-primary);
+  outline-offset: 2px;
+}
+
+.sonic-surface-body,
+.sonic-summary-grid,
+.sonic-card {
+  display: grid;
+  gap: var(--usx-spacing-md);
+  min-width: 0;
+}
+
+.sonic-surface-body { padding: var(--usx-spacing-md); }
+
+.sonic-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
+}
+
+.sonic-stat-card,
+.sonic-card {
+  padding: var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+}
+
+.sonic-stat-card { display: grid; gap: var(--usx-spacing-xs); }
 
 .sonic-stat-value {
-  font-size: 32px;
+  font-size: var(--usx-font-size-xl);
   font-weight: var(--usx-font-weight-bold);
-  margin-bottom: var(--usx-spacing-xs);
+  font-variant-numeric: tabular-nums;
 }
 
-.sonic-stat-label {
-  font-size: var(--usx-font-size-caption);
+.sonic-header p,
+.sonic-stat-label,
+.sonic-event-time,
+.sonic-cli-hint {
   color: var(--usx-color-on-surface-muted);
-  text-transform: uppercase;
+  font-size: var(--usx-font-size-sm);
 }
 
 .sonic-stat-value--info { color: var(--usx-color-info); }
-.sonic-stat-value--ok   { color: var(--usx-color-success); }
+.sonic-stat-value--ok { color: var(--usx-color-success); }
 .sonic-stat-value--warn { color: var(--usx-color-warning); }
-.sonic-stat-value--err  { color: var(--usx-color-danger); }
-
-/* Cards */
-.sonic-card {
-  background: var(--usx-color-surface);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  padding: var(--usx-spacing-lg);
-}
-
-.sonic-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--usx-spacing-md);
-  padding-bottom: var(--usx-spacing-md);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
-}
+.sonic-stat-value--err { color: var(--usx-color-danger); }
 
 .sonic-card-header h2 {
   font-size: var(--usx-font-size-base);
-  font-weight: var(--usx-font-weight-bold);
-  margin: 0;
+  font-weight: var(--usx-font-weight-semibold);
 }
 
-.sonic-btn {
-  background: var(--usx-color-primary);
-  color: var(--usx-color-on-primary);
-  border: none;
-  border-radius: var(--usx-radius-sm);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
-  font-size: var(--usx-font-size-sm);
-  font-family: inherit;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-}
-
-.sonic-btn:hover { opacity: 0.85; }
-
-/* Events */
 .sonic-event-row {
   display: grid;
-  grid-template-columns: 140px 70px 1fr 120px;
-  gap: var(--usx-spacing-md);
-  align-items: center;
-  padding: var(--usx-spacing-xs) 0;
-  border-bottom: 1px solid var(--usx-color-border);
+  grid-template-columns: max-content max-content minmax(0, 1fr) minmax(0, 9rem);
+  align-items: start;
+  gap: var(--usx-spacing-sm);
+  padding-block: var(--usx-spacing-sm);
+  border-block-start: var(--usx-border-width) solid var(--usx-color-border);
   font-size: var(--usx-font-size-sm);
+  overflow-wrap: anywhere;
 }
 
-.sonic-event-time { color: var(--usx-color-on-surface-muted); }
-.sonic-event-msg  { color: var(--usx-color-on-surface); }
+.sonic-event-time { font-variant-numeric: tabular-nums; }
 
 .sonic-event-tags {
   display: flex;
-  gap: var(--usx-spacing-xs);
   flex-wrap: wrap;
+  gap: var(--usx-spacing-xs);
 }
 
 .sonic-tag {
+  padding: var(--usx-spacing-1) var(--usx-spacing-xs);
+  border-radius: var(--usx-radius-sm);
   background: var(--usx-color-surface-variant);
   color: var(--usx-color-on-surface-muted);
-  padding: 1px var(--usx-spacing-sm);
-  border-radius: var(--usx-radius-sm);
-  font-size: 10px;
-  text-transform: uppercase;
+  font-size: var(--usx-font-size-xs);
 }
 
-.sonic-badge {
-  padding: 2px var(--usx-spacing-sm);
-  border-radius: var(--usx-radius-sm);
-  font-size: 10px;
-  font-weight: var(--usx-font-weight-bold);
-  text-transform: uppercase;
-  text-align: center;
-}
-
-.sonic-badge--info    { background: var(--usx-color-info); color: var(--usx-color-on-info); }
-.sonic-badge--warning { background: var(--usx-color-warning); color: #000; }
-.sonic-badge--error   { background: var(--usx-color-danger); color: var(--usx-color-on-danger); }
-
-/* Table */
 .sonic-table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--usx-font-size-sm);
+  overflow-wrap: anywhere;
 }
 
-.sonic-table th {
-  text-align: left;
-  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
-  color: var(--usx-color-on-surface-muted);
-  font-weight: var(--usx-font-weight-bold);
-  font-size: var(--usx-font-size-caption);
-  text-transform: uppercase;
+.sonic-table :is(th, td) {
+  padding: var(--usx-spacing-sm);
+  border-block-start: var(--usx-border-width) solid var(--usx-color-border);
+  text-align: start;
 }
 
-.sonic-table td {
-  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
-  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+.sonic-table :is(th, td):last-child {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
 }
 
-.sonic-module-name  { color: var(--usx-color-primary); font-weight: var(--usx-font-weight-bold); }
-.sonic-module-count { color: var(--usx-color-on-surface); font-weight: var(--usx-font-weight-bold); }
+.sonic-cli-hint { overflow-wrap: anywhere; }
 
-.sonic-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--usx-spacing-md);
-}
+@media (max-width: 720px) {
+  .sonic-event-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
 
-.sonic-actions-hint {
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
-}
-
-.sonic-actions-hint code {
-  background: var(--usx-color-surface-variant);
-  padding: 2px var(--usx-spacing-sm);
-  border-radius: var(--usx-radius-sm);
+  .sonic-event-msg,
+  .sonic-event-tags {
+    grid-column: 1 / -1;
+  }
 }
 </style>

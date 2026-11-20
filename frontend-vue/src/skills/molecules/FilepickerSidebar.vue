@@ -306,7 +306,7 @@
  * @emits {string} newFile - New file requested
  * @usage <FilepickerSidebar :open="true" @file-select="handleFileSelect" />
  */
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { ref, computed, onMounted, watch, useId } from "vue";
 import { useShellStore } from "../../stores/shell";
 import SidebarModeSwitch from "./SidebarModeSwitch.vue";
@@ -325,21 +325,24 @@ import type { FileEntry } from "../../types/filepicker";
 interface Props {
   open?: boolean;
   compact?: boolean;
+  reader?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   open: true,
   compact: false,
+  reader: false,
 });
 
 const emit = defineEmits<{
-  fileSelect: [file: FileEntry];
+  fileSelect: [file: FileEntry, openEditor?: boolean];
   newFile: [binderId: string];
 }>();
 const wf = useWorkflowStore();
 const editorSurface = getEditorSurface();
 const shell = useShellStore();
 const router = useRouter();
+const route = useRoute();
 
 // ─── Refs ───────────────────────────────────────────────────────────
 const files = ref<FileEntry[]>([]);
@@ -350,6 +353,9 @@ const mirrorMessage = ref("");
 const vaultExpanded = ref(false);
 const relatedExpanded = ref(false);
 const expandedSections = ref<Set<string>>(new Set());
+watch(() => props.reader, reading => {
+  if (reading) expandedSections.value.add("global-knowledge");
+}, { immediate: true });
 
 function toggleSection(source: string) {
   const sections = new Set(expandedSections.value);
@@ -626,13 +632,13 @@ async function handleRemoveWorkspace(source: string) {
 
 function handleFileSelect(file: FileEntry) {
   selectedFile.value = file;
-  wf.setEditorMode(resolveModeForFile(file));
+  if (!props.reader || !file.relative_path) wf.setEditorMode(resolveModeForFile(file));
   emit("fileSelect", { ...file });
 }
 
 function openInMode(file: FileEntry, mode: "prose" | "code") {
   wf.setEditorMode(mode);
-  emit("fileSelect", { ...file });
+  emit("fileSelect", { ...file }, true);
 }
 
 function handleDoubleClick(file: FileEntry) {
@@ -642,6 +648,10 @@ function handleDoubleClick(file: FileEntry) {
 }
 
 async function openUserFolder(row: FolderTreeRow) {
+  if (props.reader) {
+    toggleFolder("user", row.path);
+    return;
+  }
   const match = row.path.match(/^(?:binders\/)?([^/]+)$/i);
   const binder = match && wf.binders.find(item => item.id === match[1]);
   if (!binder) {
@@ -755,9 +765,13 @@ function topicKey(topic: string) {
   return topic.trim().toLowerCase().replace(/[\s_]+/g, "-");
 }
 
-const currentIndexedFile = computed(() => files.value.find(
-  (file) => file.path === (editorSurface.currentFile.value?.path || wf.selectedFile?.path || selectedFile.value?.path),
-));
+const currentIndexedFile = computed(() => {
+  if (props.reader) {
+    return files.value.find(file => file.reader_source === route.query.source && file.relative_path === route.query.article);
+  }
+  const path = editorSurface.currentFile.value?.path || wf.selectedFile?.path || selectedFile.value?.path;
+  return files.value.find(file => file.path === path);
+});
 
 watch(currentIndexedFile, (file) => {
   if (!file) return;

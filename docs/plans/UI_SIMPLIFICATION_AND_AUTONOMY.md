@@ -60,6 +60,8 @@ Acceptance: one useful heading and at most one necessary introductory sentence p
 
 ## 4. Make background work recoverable and bounded (P0/P1)
 
+The [OK Assistance and local task runs plan](OK_ASSISTANCE_AND_LOCAL_RUNS.md) defines the profile, recipe and Skill checks for the offline lane, plus the run events that support concise and explanatory replies.
+
 Confirmed inspection targets:
 
 - research_api.py creates a task per enqueue and tracks it in a process-local set. research_queue.py persists jobs but the inspected path has no worker concurrency limit, startup resumption or lease-based recovery. Inspect router-level model limits before setting the final aggregate limit.

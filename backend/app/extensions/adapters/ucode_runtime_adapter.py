@@ -106,7 +106,24 @@ def register_terminal_runtime_routes(app: Any) -> None:
     terminal_handler = _resolve_callable(terminal_handler_path)
 
     if terminal_handler is not None:
-        app.router.add_get("/api/terminal/runtime/ws", terminal_handler)
+        offline_handler = _resolve_callable("ucode_runtime.offline_terminal.handle_offline_terminal_ws")
+
+        async def terminal(request):
+            if request.query.get("mode") != "local":
+                return await terminal_handler(request)
+            if offline_handler is None:
+                from aiohttp import web
+
+                raise web.HTTPServiceUnavailable(text="The uCode offline input runtime is unavailable.")
+            from app.services.assistant_profile import preferences
+            from app.services.identity import get_full_identity
+
+            owner = get_full_identity().get("active_profile_id")
+            if owner:
+                request["ucode_offline_verbose"] = preferences(owner)["verbose"]
+            return await offline_handler(request)
+
+        app.router.add_get("/api/terminal/runtime/ws", terminal)
         log.info("Terminal runtime route registered (provider=external-runtime)")
         return
 

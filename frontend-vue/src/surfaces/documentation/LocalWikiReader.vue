@@ -14,6 +14,12 @@
         </button>
 
 
+        <button v-if="activePath" type="button" class="usx-btn wiki-btn"
+          aria-label="Global Knowledge library index" title="Global Knowledge library index"
+          @click="openLibraryIndex">
+          <UIcon name="local_library" aria-hidden="true" />
+          <span class="wiki-btn__text">Library index</span>
+        </button>
       </div>
 
       <nav v-if="activePath" class="wiki-reading-nav" aria-label="Reading sequence">
@@ -144,7 +150,8 @@
         <button
           type="button"
           class="usx-btn wiki-btn wiki-btn--icon"
-          title="Refresh Vaults Tree"
+          title="Refresh library"
+          aria-label="Refresh library"
           :disabled="loadingTree"
           @click="loadTree"
         >
@@ -154,86 +161,30 @@
     </header>
 
     <div class="wiki-body">
-      <!-- Left Sidebar: Multi-Vault Explorer -->
-      <Teleport v-if="shell.sidebarOpen && !zenMode" to="#global-library-browser">
-      <aside class="wiki-sidebar">
-
-
-        <div class="wiki-tree-filter">
-          <UIcon name="filter_list" size="xs" />
-          <input
-            v-model="filterQuery"
-            type="text"
-            placeholder="Filter tree..."
-            class="wiki-tree-filter-input"
-          />
-          <button
-            v-if="filterQuery"
-            type="button"
-            class="wiki-search-clear"
-            @click="filterQuery = ''"
-          >
-            <UIcon name="close" size="xs" />
-          </button>
-        </div>
-
-        <div v-if="loadingTree" class="wiki-loading">
-          <UIcon name="sync" /> Loading library…
-        </div>
-
-        <div v-else-if="filteredVaults.length === 0" class="wiki-empty-tree">
-          No articles match "{{ filterQuery }}".
-        </div>
-
-        <div v-else class="wiki-tree">
-          <div v-for="vault in filteredVaults" :key="vault.id" class="wiki-vault-group">
-            <div
-              class="wiki-vault-header"
-              @click="toggleGroup(vault.id)"
-            >
-              <UIcon :name="isGroupOpen(vault.id) ? 'expand_more' : 'chevron_right'" size="xs" />
-              <span class="wiki-vault-name">{{ vault.name }}</span>
-              <span class="wiki-vault-badge">{{ vault.badge }}</span>
-            </div>
-
-            <div v-if="isGroupOpen(vault.id)" class="wiki-vault-items">
-              <template v-for="item in vault.items" :key="item.path">
-                <WikiTreeItem
-                  :item="item"
-                  :active-source="activeSource"
-                  :active-path="activePath"
-                  @select="selectDocument"
-                />
-              </template>
-            </div>
-          </div>
-        </div>
-      </aside>
-      </Teleport>
-
       <!-- Main Article Reader -->
       <main class="wiki-content">
         <div v-if="loadingContent" class="wiki-loading-content">
           <UIcon name="sync" /> Loading document…
         </div>
 
-        <div v-else-if="!activePath" class="wiki-placeholder">
-          <div class="wiki-placeholder__icon">
-            <UIcon name="auto_stories" />
-          </div>
-          <h2>Knowledge</h2>
-          <p>Browse your saved knowledge, or search the library.</p>
-          <div class="wiki-placeholder__actions">
-            <button
-              v-if="firstArticle"
-              type="button"
-              class="usx-btn usx-btn--primary wiki-btn wiki-btn--primary"
-              @click="selectDocument(firstArticle.source, firstArticle.path, firstArticle.title)"
-            >
-              <UIcon name="menu_book" /> Open {{ firstArticle.title }}
+        <section v-else-if="!activePath" class="wiki-library-index" aria-labelledby="wiki-library-title">
+          <h1 id="wiki-library-title" ref="libraryTitle" tabindex="-1">Global Knowledge</h1>
+          <p v-if="loadingTree" role="status">Loading library…</p>
+          <p v-else-if="treeError" role="alert">{{ treeError }}</p>
+          <p v-else-if="!libraryEntries.length">The Global Knowledge collection is unavailable. Check the library in Public and refresh.</p>
+          <template v-else>
+            <button v-if="!zenMode" type="button" class="usx-btn wiki-index-browse" @click="browseFiles">
+              <UIcon name="folder_open" aria-hidden="true" /> Browse files
             </button>
-          </div>
-        </div>
+            <h2>Topics</h2>
+            <ul class="wiki-index-topics">
+              <li v-for="{ item, overview } in libraryTopics" :key="item.path">
+                <RouterLink v-if="overview" :to="articleLocation(overview.source, overview.path)">{{ item.name }}</RouterLink>
+                <span v-else>{{ item.name }}</span>
+              </li>
+            </ul>
+          </template>
+        </section>
 
         <article v-else class="wiki-article">
           <div class="wiki-document-heading">
@@ -373,6 +324,7 @@
           <div v-if="searching" class="wiki-search-loading">
             <UIcon name="sync" /> Searching local FTS index...
           </div>
+          <div v-else-if="searchError" class="wiki-search-empty" role="alert">{{ searchError }}</div>
           <div v-else-if="searchQuery && searchResults.length === 0" class="wiki-search-empty">
             <UIcon name="search_off" :size="32" />
             <p>No matches found for "<strong>{{ searchQuery }}</strong>"</p>
@@ -391,23 +343,29 @@
           <ul v-else class="wiki-results-list">
             <li
               v-for="(item, idx) in searchResults"
-              :key="item.id || item.path"
+              :key="item.id"
               class="wiki-result-item"
               :class="{ 'wiki-result-item--selected': selectedResultIndex === idx }"
               @mouseenter="selectedResultIndex = idx"
-              @click="chooseSearchResult(item)"
             >
-              <div class="wiki-result-item__top">
-                <span class="wiki-result-item__title" v-html="highlightSearchTerm(item.title, searchQuery)" />
-                <span class="wiki-result-item__badge">{{ item.badge }}</span>
-              </div>
-              <p class="wiki-result-item__snippet" v-html="item.snippet" />
-              <div class="wiki-result-item__meta">
-                <span class="wiki-result-item__path">{{ item.rel_path }}</span>
-                <span v-if="item.modified_at" class="wiki-result-item__date">
-                  {{ new Date(item.modified_at).toLocaleDateString() }}
+              <button
+                type="button"
+                class="usx-btn usx-btn--ghost wiki-result-open"
+                :disabled="!canOpenSearchResult(item)"
+                @click="chooseSearchResult(item)"
+              >
+                <span class="wiki-result-item__top">
+                  <span class="wiki-result-item__title">{{ item.title }}</span>
+                  <span class="wiki-result-item__badge">{{ item.type === "file" ? "File" : item.type }} · {{ librarySourceLabels[item.source] || item.source }}</span>
                 </span>
-              </div>
+                <span class="wiki-result-item__snippet">{{ item.preview }}</span>
+                <span class="wiki-result-item__meta">
+                  <span class="wiki-result-item__path">{{ item.relative_path }}</span>
+                  <span v-if="item.modified_at" class="wiki-result-item__date">
+                    {{ new Date(item.modified_at).toLocaleDateString() }}
+                  </span>
+                </span>
+              </button>
             </li>
           </ul>
         </div>
@@ -416,7 +374,7 @@
         <footer class="wiki-search-modal__footer">
           <div class="footer-left">
             <UIcon name="cloud_off" size="xs" />
-            <span>100% Offline · SQLite FTS5 · Zero Telemetry</span>
+            <span>{{ indexStatus }}</span>
           </div>
           <div class="footer-right">
             <span><kbd class="wiki-kbd-mini">↑</kbd><kbd class="wiki-kbd-mini">↓</kbd> Navigate</span>
@@ -672,7 +630,7 @@
                       <button
                         type="button"
                         class="usx-btn usx-btn--ghost wiki-btn wiki-btn--xs wiki-btn--ghost"
-                        @click="selectDocument(item.layer === 2 ? 'vault' : 'shared', item.path, item.rel_path); showFederationModal = false"
+                        @click="openArticle(item.layer === 2 ? 'vault' : 'shared', item.path); showFederationModal = false"
                       >
                         Open
                       </button>
@@ -725,8 +683,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { ucoreApi } from "../../api/client";
 import { useWorkflowStore } from "../../stores/workflow";
 import { useShellStore } from "../../stores/shell";
 import { useSettingsStore } from "../../stores/settings";
@@ -763,10 +722,9 @@ interface HeadingItem {
 }
 
 const loadingTree = ref(true);
+const treeError = ref("");
 const loadingContent = ref(false);
 const vaults = ref<VaultGroup[]>([]);
-const openGroups = ref<Set<string>>(new Set(["personal", "manuals", "public", "shared"]));
-const openFolders = ref<Set<string>>(new Set());
 
 const activeSource = ref<string>("");
 const activePath = ref<string>("");
@@ -775,6 +733,16 @@ const rawMarkdown = ref<string>("");
 const settings = useSettingsStore();
 const shell = useShellStore();
 const readerRoot = ref<HTMLElement | null>(null);
+const libraryTitle = ref<HTMLElement | null>(null);
+const libraryEntries = computed(() => vaults.value
+  .find(vault => vault.source === "public")?.items
+  .find(item => item.is_dir && item.source === "public" && item.path === "global-knowledge")
+  ?.children ?? []);
+const libraryTopics = computed(() => libraryEntries.value.filter(item => item.is_dir).map(item => ({
+  item,
+  overview: item.children?.find(child => !child.is_dir && /^index\.md$/i.test(child.name))
+    ?? item.children?.find(child => !child.is_dir && /^readme\.md$/i.test(child.name)),
+})));
 const readingDocument = computed(() => parseReadingDocument(rawMarkdown.value));
 const leadingReadingHeading = computed(() => readingDocument.value.body.match(/^\s*#[ \t]+([^\r\n]+)(?:\r?\n|$)/));
 const readingBody = computed(() => readingDocument.value.body.slice(leadingReadingHeading.value?.[0].length || 0));
@@ -797,98 +765,18 @@ const readingSequence = computed(() => {
   return entries.filter(item => item.source === activeSource.value && (activeSource.value === 'manual' || item.path.split('/').slice(0, -1).join('/') === parent));
 });
 const readingPosition = computed(() => readingSequence.value.findIndex(item => item.path === activePath.value));
-function navigateArticle(offset: number) { const item = readingSequence.value[readingPosition.value + offset]; if (item) void selectDocument(item.source, item.path, item.title || item.name); }
+function navigateArticle(offset: number) { const item = readingSequence.value[readingPosition.value + offset]; if (item) void openArticle(item.source, item.path); }
 function readingKeydown(event: KeyboardEvent) { if (showSearchModal.value || showFederationModal.value || showSubmissionModal.value || showDiffModal.value) return; containReaderKeys(event, readerRoot.value, zenMode.value, () => { zenMode.value = false; }); }
 
 
-const filterQuery = ref<string>("");
-const zenMode = ref<boolean>(false);
+const zenMode = ref(false);
 const showProperties = ref(false), showContents = ref(false);
 const fontFamily = computed(() => settings.readingFont || "serif");
 
-// ── Recursive Tree Item Subcomponent ──────────────────────────────────
-const WikiTreeItem = {
-  name: "WikiTreeItem",
-  props: {
-    item: { type: Object as () => TreeItem, required: true },
-    activeSource: { type: String, default: "" },
-    activePath: { type: String, default: "" },
-  },
-  emits: ["select"],
-  setup(props: { item: TreeItem; activeSource: string; activePath: string }, { emit }: any) {
-    const isFolder = computed(() => props.item.is_dir);
-    const isOpen = computed(() => openFolders.value.has(props.item.path));
-    const isActive = computed(
-      () =>
-        !props.item.is_dir &&
-        props.activeSource === props.item.source &&
-        props.activePath === props.item.path
-    );
-
-    function toggle() {
-      if (isFolder.value) {
-        if (openFolders.value.has(props.item.path)) {
-          openFolders.value.delete(props.item.path);
-        } else {
-          openFolders.value.add(props.item.path);
-        }
-      } else {
-        emit("select", props.item.source, props.item.path, props.item.title || props.item.name);
-      }
-    }
-
-    return () => {
-      if (isFolder.value) {
-        return h("div", { class: "wiki-tree-folder" }, [
-          h(
-            "div",
-            {
-              class: ["wiki-tree-row", "wiki-tree-row--folder"],
-              onClick: toggle,
-            },
-            [
-              h(UIcon, {
-                name: isOpen.value ? "folder_open" : "folder",
-                size: "xs",
-              }),
-              h("span", { class: "wiki-tree-label" }, props.item.name),
-            ]
-          ),
-          isOpen.value && props.item.children
-            ? h(
-                "div",
-                { class: "wiki-tree-children" },
-                props.item.children.map((child) =>
-                  h(WikiTreeItem, {
-                    item: child,
-                    activeSource: props.activeSource,
-                    activePath: props.activePath,
-                    onSelect: (src: string, p: string, t: string) => emit("select", src, p, t),
-                  })
-                )
-              )
-            : null,
-        ]);
-      }
-
-      return h(
-        "div",
-        {
-          class: [
-            "wiki-tree-row",
-            "wiki-tree-row--file",
-            isActive.value ? "wiki-tree-row--active" : "",
-          ],
-          onClick: toggle,
-        },
-        [
-          h(UIcon, { name: "description", size: "xs" }),
-          h("span", { class: "wiki-tree-label" }, props.item.title || props.item.name),
-        ]
-      );
-    };
-  },
-};
+function browseFiles() {
+  shell.setSidebarMode("vault");
+  shell.setSidebarOpen(true);
+}
 
 // ── Word count and Reading Time ──────────────────────────────────────
 const wordCount = computed(() => {
@@ -900,74 +788,6 @@ const estimatedMinutes = computed(() => {
   if (wordCount.value === 0) return 0;
   return Math.ceil(wordCount.value / 200);
 });
-
-// ── Find First Article for quick start ────────────────────────────────
-const firstArticle = computed(() => {
-  for (const v of vaults.value) {
-    const found = findFirstFile(v.items);
-    if (found) return found;
-  }
-  return null;
-});
-
-function findFirstFile(items: TreeItem[]): TreeItem | null {
-  for (const item of items) {
-    if (!item.is_dir) return item;
-    if (item.children) {
-      const sub = findFirstFile(item.children);
-      if (sub) return sub;
-    }
-  }
-  return null;
-}
-
-// ── Tree Filter ───────────────────────────────────────────────────────
-function filterItems(items: TreeItem[], query: string): TreeItem[] {
-  const result: TreeItem[] = [];
-  const q = query.toLowerCase();
-
-  for (const item of items) {
-    if (item.is_dir && item.children) {
-      const filteredChildren = filterItems(item.children, query);
-      if (filteredChildren.length > 0 || item.name.toLowerCase().includes(q)) {
-        result.push({
-          ...item,
-          children: filteredChildren.length > 0 ? filteredChildren : item.children,
-        });
-      }
-    } else if (
-      item.name.toLowerCase().includes(q) ||
-      (item.title && item.title.toLowerCase().includes(q))
-    ) {
-      result.push(item);
-    }
-  }
-  return result;
-}
-
-const filteredVaults = computed(() => {
-  if (!filterQuery.value.trim()) return vaults.value;
-  const q = filterQuery.value.trim();
-  return vaults.value
-    .map((v) => ({
-      ...v,
-      items: filterItems(v.items, q),
-    }))
-    .filter((v) => v.items.length > 0);
-});
-
-// ── Group Toggles ─────────────────────────────────────────────────────
-function isGroupOpen(groupId: string): boolean {
-  return openGroups.value.has(groupId);
-}
-
-function toggleGroup(groupId: string) {
-  if (openGroups.value.has(groupId)) {
-    openGroups.value.delete(groupId);
-  } else {
-    openGroups.value.add(groupId);
-  }
-}
 
 function sourceLabel(src: string): string {
   switch (src) {
@@ -1106,7 +926,7 @@ function handleProseClick(event: MouseEvent) {
   for (const vault of vaults.value) {
     const item = searchTreeForPath(vault.items, activeSource.value, path);
     if (item) {
-      void selectDocument(item.source, item.path, item.title || item.name, showingCanonOnly.value);
+      void openArticle(item.source, item.path, showingCanonOnly.value);
       return;
     }
   }
@@ -1149,7 +969,7 @@ function findAndOpenWikiTarget(name: string) {
   for (const vault of vaults.value) {
     const item = searchTreeForName(vault.items, cleanName);
     if (item) {
-      selectDocument(item.source, item.path, item.title || item.name);
+      openArticle(item.source, item.path);
       return;
     }
   }
@@ -1176,21 +996,14 @@ function searchTreeForName(items: TreeItem[], name: string): TreeItem | null {
 // ── API Actions ───────────────────────────────────────────────────────
 async function loadTree() {
   loadingTree.value = true;
+  treeError.value = "";
   try {
     const resp = await fetch("/api/docs/wiki/tree");
-    if (resp.ok) {
-      const data = await resp.json();
-      vaults.value = data.vaults || [];
-      // Auto-open first article if none selected
-      if (!activePath.value && firstArticle.value) {
-        selectDocument(
-          firstArticle.value.source,
-          firstArticle.value.path,
-          firstArticle.value.title || firstArticle.value.name
-        );
-      }
-    }
+    if (!resp.ok) throw new Error(`Library request returned ${resp.status}`);
+    const data = await resp.json();
+    vaults.value = data.vaults || [];
   } catch (err) {
+    treeError.value = "Could not load the Global Knowledge index. Refresh the library to retry.";
     console.error("Failed to load multi-vault tree:", err);
   } finally {
     loadingTree.value = false;
@@ -1272,6 +1085,7 @@ function layerBadgeLabel(layer: number | null, isOverlaid: boolean) {
 }
 
 const router = useRouter();
+const route = useRoute();
 const workflow = useWorkflowStore();
 const documentLoaded = ref(false);
 
@@ -1288,18 +1102,55 @@ async function openInEditor() {
 }
 
 let documentRequest = 0;
+
+function articleLocation(source: string, path: string, canonical = false) {
+  return { query: { ...route.query, tab: "wiki", source, article: path, canonical: canonical ? "true" : undefined } };
+}
+
+function openArticle(source: string, path: string, canonical = false) {
+  return router.push(articleLocation(source, path, canonical));
+}
+
+function clearArticle() {
+  ++documentRequest;
+  activePath.value = "";
+  activeSource.value = "";
+  activeTitle.value = "";
+  rawMarkdown.value = "";
+  activeOverlay.value = null;
+  loadingContent.value = false;
+  documentLoaded.value = false;
+  showingCanonOnly.value = false;
+}
+
+async function openLibraryIndex() {
+  await router.push({ query: { ...route.query, source: undefined, article: undefined, canonical: undefined } });
+  await nextTick();
+  readerRoot.value?.querySelector(".wiki-content")?.scrollTo({ top: 0 });
+  libraryTitle.value?.focus();
+}
+
+watch(() => [route.query.source, route.query.article, route.query.canonical], ([source, path, canonical]) => {
+  if (typeof source === "string" && typeof path === "string" && path) {
+    void selectDocument(source, path, canonical === "true");
+  } else {
+    clearArticle();
+  }
+}, { immediate: true });
+
 async function selectDocument(
   source: string,
   path: string,
-  title?: string,
   forceCanon: boolean = false
 ) {
   const request = ++documentRequest;
   activeSource.value = source;
   activePath.value = path;
-  activeTitle.value = title || path.split("/").pop() || "Untitled";
+  activeTitle.value = path.split("/").pop() || "Untitled";
   loadingContent.value = true;
   documentLoaded.value = false;
+  rawMarkdown.value = "";
+  activeOverlay.value = null;
   showingCanonOnly.value = forceCanon;
 
   try {
@@ -1308,6 +1159,12 @@ async function selectDocument(
     if (resp.ok) {
       const data = await resp.json();
       if (request !== documentRequest) return;
+      if (data.error || data.is_dir) {
+        rawMarkdown.value = "# Unable to load document";
+        activeOverlay.value = null;
+        return;
+      }
+      activeTitle.value = data.title || activeTitle.value;
       rawMarkdown.value = data.content || "";
       documentLoaded.value = true;
       activeOverlay.value = data.overlay || null;
@@ -1320,15 +1177,17 @@ async function selectDocument(
     rawMarkdown.value = `# Network Error\n\nCould not fetch document \`${path}\`.`;
     activeOverlay.value = null;
   } finally {
-    if (request === documentRequest) loadingContent.value = false;
-    await nextTick();
-    readerRoot.value?.querySelector('.wiki-content')?.scrollTo({ top: 0 });
+    if (request === documentRequest) {
+      loadingContent.value = false;
+      await nextTick();
+      if (request === documentRequest) readerRoot.value?.querySelector('.wiki-content')?.scrollTo({ top: 0 });
+    }
   }
 }
 
 async function toggleCanonOnly() {
   const nextState = !showingCanonOnly.value;
-  await selectDocument(activeSource.value, activePath.value, activeTitle.value, nextState);
+  await openArticle(activeSource.value, activePath.value, nextState);
 }
 
 function openDiffModal() {
@@ -1378,7 +1237,7 @@ async function confirmRevertToCanon() {
     if (resp.ok) {
       const data = await resp.json();
       activeOverlay.value = data.resolved || null;
-      await selectDocument(activeSource.value, activePath.value, activeTitle.value, false);
+      await selectDocument(activeSource.value, activePath.value);
     }
   } catch (err) {
     console.error("Revert error:", err);
@@ -1469,7 +1328,32 @@ async function openFederationOverviewModal() {
 const showSearchModal = ref(false);
 const searchQuery = ref("");
 const searchZone = ref<"all" | "personal" | "public" | "manuals" | "shared">("all");
-const searchResults = ref<any[]>([]);
+interface LibrarySearchResult {
+  id: string;
+  type: string;
+  title: string;
+  source: string;
+  reader_source: string | null;
+  relative_path: string | null;
+  preview?: string;
+  modified_at?: string;
+}
+
+const librarySourceLabels: Record<string, string> = {
+  user: "~/Vault",
+  shared: "~/Shared",
+  public: "~/Public",
+  manual: "uCode Manual",
+  sonic: "Sonic Screwdriver",
+};
+const readerSources = new Set(["vault", "shared", "public", "manual", "sonic"]);
+const searchSources = { all: undefined, personal: "user", public: "public", manuals: "manual", shared: "shared" };
+
+const searchResults = ref<LibrarySearchResult[]>([]);
+const searchError = ref("");
+const indexStatus = ref("Local index");
+let searchRequest = 0;
+let indexStatusRequest = 0;
 const searching = ref(false);
 const selectedResultIndex = ref(0);
 const searchInputRef = ref<HTMLInputElement | null>(null);
@@ -1479,6 +1363,8 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 function openSearchModal() {
   showSearchModal.value = true;
   selectedResultIndex.value = 0;
+  void refreshIndexStatus();
+  void runSearch();
   nextTick(() => {
     searchInputRef.value?.focus();
   });
@@ -1495,7 +1381,6 @@ function setSearchZone(zone: "all" | "personal" | "public" | "manuals" | "shared
 
 function runQuickSearch(query: string) {
   searchQuery.value = query;
-  runSearch();
 }
 
 function navigateResults(delta: number) {
@@ -1512,49 +1397,67 @@ function selectCurrentResult() {
   }
 }
 
-function chooseSearchResult(item: any) {
-  closeSearchModal();
-  selectDocument(item.source, item.rel_path, item.title);
+function canOpenSearchResult(item: LibrarySearchResult): boolean {
+  return item.type === "file"
+    && readerSources.has(item.reader_source || "")
+    && !!item.relative_path
+    && item.relative_path.split("/").every((segment) => !!segment && segment !== "." && segment !== "..")
+    && !item.relative_path.includes("\\");
 }
 
-function highlightSearchTerm(text: string, term: string): string {
-  if (!text || !term.trim()) return text || "";
-  const escaped = term.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return text.replace(new RegExp(`(${escaped})`, "gi"), "<mark>$1</mark>");
+function chooseSearchResult(item: LibrarySearchResult) {
+  if (!canOpenSearchResult(item) || !item.reader_source || !item.relative_path) return;
+  closeSearchModal();
+  void openArticle(item.reader_source, item.relative_path);
+}
+
+async function refreshIndexStatus() {
+  const request = ++indexStatusRequest;
+  indexStatus.value = "Local index";
+  try {
+    const result = await ucoreApi.library.stats();
+    if (request !== indexStatusRequest || !result.ok) return;
+    const stats = result.data as { status?: string; last_build?: string | null };
+    if (stats?.status === "not-built") {
+      indexStatus.value = "Local index has not been built";
+    } else if (stats?.last_build) {
+      const built = new Date(stats.last_build);
+      if (!Number.isNaN(built.getTime())) indexStatus.value = `Index built ${built.toLocaleString()}`;
+    }
+  } catch {
+    // Index status is supplemental. Search remains available.
+  }
 }
 
 async function runSearch() {
+  const request = ++searchRequest;
   const q = searchQuery.value.trim();
-  if (!q) {
-    searchResults.value = [];
-    searching.value = false;
-    return;
-  }
+  searchResults.value = [];
+  searchError.value = "";
+  searching.value = !!q;
+  if (!q) return;
 
-  searching.value = true;
   try {
-    let url = `/api/docs/wiki/search?q=${encodeURIComponent(q)}&limit=25`;
-    if (searchZone.value !== "all") {
-      url += `&vault=${encodeURIComponent(searchZone.value)}`;
-    }
-    const resp = await fetch(url);
-    if (resp.ok) {
-      const data = await resp.json();
-      searchResults.value = data.results || [];
-      selectedResultIndex.value = 0;
-    }
-  } catch (err) {
-    console.error("Search failed:", err);
+    const result = await ucoreApi.library.search(q, searchSources[searchZone.value], 25);
+    if (request !== searchRequest) return;
+    if (!result.ok) throw new Error("Library search unavailable");
+    const data = result.data as { results?: LibrarySearchResult[] };
+    searchResults.value = Array.isArray(data?.results) ? data.results : [];
+    selectedResultIndex.value = 0;
+  } catch {
+    if (request === searchRequest) searchError.value = "Could not search the local library. Try again.";
   } finally {
-    searching.value = false;
+    if (request === searchRequest) searching.value = false;
   }
 }
 
 watch(searchQuery, () => {
+  ++searchRequest;
+  searchResults.value = [];
+  searchError.value = "";
+  searching.value = !!searchQuery.value.trim();
   if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    runSearch();
-  }, 150);
+  debounceTimer = setTimeout(runSearch, 150);
 });
 
 function onKeydown(e: KeyboardEvent) {
@@ -1577,6 +1480,9 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  ++searchRequest;
+  ++indexStatusRequest;
+  if (debounceTimer) clearTimeout(debounceTimer);
   window.removeEventListener("keydown", onKeydown);
   document.removeEventListener("keydown", readingKeydown);
 });
@@ -1727,114 +1633,6 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.wiki-sidebar {
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  background: var(--usx-color-surface);
-  border-right: 1px solid #30363d;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
-.wiki-sidebar__header {
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #21262d;
-}
-
-.wiki-sidebar__title {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #8b949e;
-}
-
-.wiki-badge--offline {
-  font-size: 10px;
-  padding: 2px 6px;
-  background: rgba(63, 185, 80, 0.15);
-  color: #3fb950;
-  border: 1px solid rgba(63, 185, 80, 0.3);
-  border-radius: 10px;
-}
-
-.wiki-tree {
-  padding: 8px 0;
-}
-
-.wiki-vault-group {
-  margin-bottom: 6px;
-}
-
-.wiki-vault-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #e6edf3;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.wiki-vault-header:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.wiki-vault-name {
-  flex: 1;
-}
-
-.wiki-vault-badge {
-  font-size: 10px;
-  color: #8b949e;
-  background: #21262d;
-  padding: 1px 6px;
-  border-radius: 4px;
-}
-
-.wiki-vault-items {
-  padding-left: 8px;
-}
-
-/* ── Tree Rows ─────────────────────────────────────────────────────── */
-:deep(.wiki-tree-row) {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  font-size: 12px;
-  color: #8b949e;
-  cursor: pointer;
-  border-radius: 4px;
-  margin: 1px 4px;
-  user-select: none;
-}
-
-:deep(.wiki-tree-row:hover) {
-  background: #21262d;
-  color: #c9d1d9;
-}
-
-:deep(.wiki-tree-row--active) {
-  background: rgba(88, 166, 255, 0.15) !important;
-  color: #58a6ff !important;
-  font-weight: 500;
-}
-
-:deep(.wiki-tree-children) {
-  padding-left: 12px;
-  border-left: 1px dashed #30363d;
-  margin-left: 10px;
-}
-
-/* ── Content / Reading Area ────────────────────────────────────────── */
 .wiki-content {
   flex: 1;
   overflow-y: auto;
@@ -2549,44 +2347,34 @@ onUnmounted(() => {
   border-radius: 2px;
 }
 
-/* ── Placeholder Screen ────────────────────────────────────────────── */
-.wiki-placeholder {
-  text-align: center;
-  padding: 64px 24px;
-  max-width: 540px;
-  margin: auto;
+.wiki-library-index {
+  max-inline-size: 72ch;
+  padding: var(--usx-spacing-md);
+  margin-inline: auto;
 }
 
-.wiki-placeholder__icon {
-  font-size: 48px;
-  color: #58a6ff;
-  margin-bottom: 16px;
+.wiki-library-index h1 {
+  margin: 0 0 var(--usx-spacing-md);
 }
 
-.wiki-placeholder h2 {
-  font-size: 22px;
-  margin-bottom: 12px;
-  color: #f0f6fc;
+.wiki-index-browse {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  margin: 0 0 var(--usx-spacing-md);
+}
+.wiki-library-index h2 {
+  margin: 0 0 var(--usx-spacing-sm);
+}
+.wiki-index-topics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: var(--usx-spacing-sm) var(--usx-spacing-md);
+  margin: 0;
+  padding-inline-start: 1.25rem;
 }
 
-.wiki-placeholder p {
-  color: #8b949e;
-  line-height: 1.6;
-  margin-bottom: 12px;
-}
-
-.wiki-placeholder__note {
-  font-size: 13px;
-  color: #3fb950 !important;
-}
-
-.wiki-placeholder__actions {
-  margin-top: 24px;
-}
-
-.wiki-loading-content,
-.wiki-loading,
-.wiki-empty-tree {
+.wiki-loading-content {
   padding: 24px;
   text-align: center;
   color: #8b949e;
@@ -2628,26 +2416,6 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 4px;
-}
-
-.wiki-tree-filter {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  padding: 4px 8px;
-  margin: 8px 12px;
-}
-
-.wiki-tree-filter-input {
-  background: transparent;
-  border: none;
-  color: #c9d1d9;
-  font-size: 12px;
-  width: 100%;
-  outline: none;
 }
 
 /* ── Offline Search Modal (Cmd+K) ────────────────────────────────── */
@@ -2791,11 +2559,15 @@ onUnmounted(() => {
 .wiki-result-item {
   padding: 10px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  cursor: pointer;
   transition: background 0.12s ease;
-  display: flex;
-  flex-direction: column;
+}
+
+.wiki-result-open {
+  display: grid;
+  width: 100%;
   gap: 4px;
+  text-align: left;
+  white-space: normal;
 }
 
 .wiki-result-item:hover,
@@ -2813,15 +2585,6 @@ onUnmounted(() => {
   font-weight: 600;
   color: #f0f6fc;
   font-size: 14px;
-}
-
-.wiki-result-item__title :deep(mark),
-.wiki-result-item__snippet :deep(mark) {
-  background: rgba(56, 189, 248, 0.35);
-  color: #f0f6fc;
-  padding: 0 2px;
-  border-radius: 2px;
-  font-weight: 600;
 }
 
 .wiki-result-item__badge {
@@ -2900,7 +2663,6 @@ onUnmounted(() => {
 .wiki-reading-nav { display: flex; align-items: center; gap: var(--usx-spacing-xs); white-space: nowrap; font-size: var(--usx-font-size-sm); }
 .wiki-reading-nav .usx-btn { padding: var(--usx-spacing-xs); }
 .wiki-prose { max-width: 72ch; line-height: 1.7; text-align: left; }
-.wiki-placeholder { text-align: left; }
 
 .wiki-toolbar { display: flex; align-items: center; flex-wrap: nowrap; box-sizing: border-box; height: 44px; min-height: 44px; flex-shrink: 0; gap: 8px; margin: 0; padding: 6px 8px; font-size: var(--usx-font-size-sm); line-height: 1; }
 .wiki-toolbar__left, .wiki-toolbar__right, .wiki-reading-nav, .wiki-font-toggle { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 4px; min-height: 0; height: 32px; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
@@ -2916,14 +2678,6 @@ onUnmounted(() => {
 .wiki-toolbar .wiki-kbd { margin: 0; padding: 2px 4px; font-size: var(--usx-font-size-xs); line-height: 1; }
 @media (max-width: 60rem) { .wiki-toolbar .wiki-btn__text, .wiki-search-trigger__text, .wiki-toolbar .wiki-kbd { display: none; } }
 @media (max-width: 30rem) { .wiki-toolbar { gap: 4px; } .wiki-toolbar__center { display: none; } .wiki-toolbar__right { margin-left: auto; } .wiki-toolbar button.usx-btn { padding-inline: 5px; } }
-/* One shared sidebar; match shell typography and control density. */
-.wiki-sidebar { font-family: var(--usx-font-family, system-ui, sans-serif); font-size: var(--usx-font-size-sm); border: 0; color: var(--usx-color-on-surface); }
-.wiki-tree-filter { display: flex; align-items: center; gap: 6px; flex-shrink: 0; box-sizing: border-box; height: 36px; min-height: 36px; padding: 4px 8px; margin: 8px; border: 1px solid var(--usx-color-border); border-radius: var(--usx-radius-sm); background: var(--usx-color-surface); }
-.wiki-tree-filter input { flex: 1; min-width: 0; width: 100%; height: 26px; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent; color: inherit; font: inherit; }
-.wiki-vault-header { min-height: 30px; box-sizing: border-box; font-size: var(--usx-font-size-sm); padding: 5px 8px; color: var(--usx-color-on-surface); background: transparent; }
-.wiki-vault-badge { font-size: var(--usx-font-size-xs); color: var(--usx-color-on-surface-muted); background: transparent; padding: 0; }
-.wiki-sidebar :deep(.wiki-tree-row) { box-sizing: border-box; width: calc(100% - 8px); min-width: 0; min-height: 30px; font-size: var(--usx-font-size-sm); font-family: inherit; padding: 5px 8px; color: var(--usx-color-on-surface-muted); }
-.wiki-sidebar :deep(.wiki-tree-row--active) { color: var(--usx-color-primary); background: var(--usx-color-surface-hover); }
 
 .wiki-content { min-width: 0; padding: 0; }
 .wiki-content .wiki-article { box-sizing: border-box; width: 100%; max-width: none; margin: 0; border-radius: 0; padding: var(--usx-spacing-md); }
