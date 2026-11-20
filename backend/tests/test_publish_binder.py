@@ -86,17 +86,6 @@ async def test_publish_binder_success(tmp_path, monkeypatch):
     monkeypatch.setattr(publish_service, "FIXTURE_PATH", mock_fixture_path)
     monkeypatch.setattr(publish_service, "DEFAULT_TOMB_OUTPUT", mock_output_dir)
 
-    # Stub the high‑level compiler function to avoid importing the real package
-    def fake_compile_binder_to_tomb(fixture_path: Path, output_dir: Path):
-        output_dir.mkdir(parents=True, exist_ok=True)
-        (output_dir / "index.html").write_text("<html><body>Test Tomb</body></html>", encoding="utf-8")
-        doc = fixture_data["binder"]["documents"][0]
-        cleaned = doc["content"].replace("private_author_key: SECRET-KEY-123", "")
-        (output_dir / doc["filename"]).write_text(cleaned, encoding="utf-8")
-        return {"type": "publish_result", "title": fixture_data["binder"]["title"], "tomb_path": str(output_dir)}
-
-    monkeypatch.setattr(publish_service, "compile_binder_to_tomb", fake_compile_binder_to_tomb)
-
     resp = await request_fixture_export()
     assert resp.status == 200
     data = json.loads(resp.text)
