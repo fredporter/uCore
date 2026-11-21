@@ -9,7 +9,7 @@
 
     <div class="ci-header">
       <label for="ci-repository">Repository</label>
-      <select id="ci-repository" class="ci-repository-select" v-model="repo" :disabled="loading" @change="refreshStatus">
+      <select id="ci-repository" class="ci-repository-select" v-model="repo" @change="refreshStatus">
         <option v-for="entry in projectRepositories" :key="entry.id" :value="entry.id">
           {{ entry.label }}
         </option>
@@ -18,22 +18,26 @@
 
     <div class="ci-header">
       <label for="ci-branch-view">Branch view</label>
-      <select id="ci-branch-view" class="ci-repository-select" v-model="branchView" :disabled="loading" @change="refreshStatus">
+      <select id="ci-branch-view" class="ci-repository-select" v-model="branchView" @change="refreshStatus">
         <option value="default">Default branch</option>
         <option value="working">Working branch</option>
       </select>
     </div>
 
     <p v-if="loading" role="status">Checking GitHub Actions…</p>
-    <p v-else-if="error" role="alert">{{ error }}</p>
-    <template v-else-if="status">
-      <p>Branch: <code>{{ status.branch }}</code></p>
+    <p v-if="error" role="alert">{{ error }}</p>
+    <template v-if="snapshot">
+      <p role="status">
+        <span v-if="error">Showing saved results. </span>Last successful refresh
+        <time :datetime="snapshot.refreshedAt.toISOString()">{{ snapshot.refreshedAt.toLocaleString() }}</time>
+      </p>
+      <p>Branch: <code>{{ snapshot.status.branch }}</code></p>
       <a v-if="actionsUrl" :href="actionsUrl" target="_blank" rel="noopener noreferrer">
         Open in GitHub Actions
       </a>
-      <p v-if="status.runs.length === 0">No runs returned for this branch.</p>
+      <p v-if="snapshot.status.runs.length === 0">No runs returned for this branch.</p>
       <ul v-else>
-        <li v-for="run in status.runs" :key="run.databaseId" class="ci-run">
+        <li v-for="run in snapshot.status.runs" :key="run.databaseId" class="ci-run">
           <a v-if="githubUrl(run.url)" :href="githubUrl(run.url)" target="_blank" rel="noopener noreferrer">
             {{ run.workflowName }}
           </a>
@@ -50,14 +54,25 @@ import { computed, onMounted, ref } from "vue";
 import { UCORE_BASE } from "../../api/base";
 import UIcon from "../../skills/atoms/UIcon.vue";
 
+type GitHubErrorCode = "network" | "auth" | "timeout" | "cli_missing" | "branch_unavailable" | "unknown";
+
 interface RepoStatus {
   configured: boolean;
-  error?: string;
+  error_code?: GitHubErrorCode;
   branch: string;
   repository?: { url: string };
   runs_available?: boolean;
   runs: Array<{ databaseId: number; workflowName: string; status: string; conclusion: string; url: string }>;
 }
+
+const recoveryMessages: Record<GitHubErrorCode, string> = {
+  network: "Could not reach GitHub. Check your internet connection or DNS, then refresh.",
+  auth: "GitHub sign-in is required. Run gh auth status on the uCore host to check your session, then refresh.",
+  timeout: "GitHub status took too long to load. Try refreshing again.",
+  cli_missing: "GitHub CLI is unavailable on the uCore host. Install or restore gh, then refresh.",
+  branch_unavailable: "This branch view is unavailable. Select the other view or check the repository branch, then refresh.",
+  unknown: "GitHub workflow runs could not be loaded. Check the GitHub remote and CLI on the uCore host, then refresh.",
+};
 
 // IDs match physical workspace checkouts accepted by the developer API.
 const projectRepositories = [
@@ -74,11 +89,14 @@ const projectRepositories = [
 ];
 const repo = ref("uCore");
 const branchView = ref<"default" | "working">("default");
-const status = ref<RepoStatus | null>(null);
+const selectionKey = computed(() => `${repo.value}:${branchView.value}`);
+const snapshots = ref(new Map<string, { status: RepoStatus; refreshedAt: Date }>());
+const snapshot = computed(() => snapshots.value.get(selectionKey.value));
 const loading = ref(false);
 const error = ref("");
+let requestId = 0;
 const actionsUrl = computed(() => {
-  const url = githubUrl(status.value?.repository?.url);
+  const url = githubUrl(snapshot.value?.status.repository?.url);
   return url ? url.replace(/\/$/, "") + "/actions" : "";
 });
 
@@ -93,25 +111,34 @@ function githubUrl(value?: string) {
 }
 
 async function refreshStatus() {
-  if (loading.value) return;
+  const id = ++requestId;
+  const key = selectionKey.value;
   loading.value = true;
-  status.value = null;
   error.value = "";
   try {
     const response = await fetch(`${UCORE_BASE}/api/developer/repos/${encodeURIComponent(repo.value)}/github?branch_view=${branchView.value}`);
     if (!response.ok) throw new Error("GitHub status unavailable");
     const data: RepoStatus = await response.json();
-    if (!data.configured) {
-      error.value = "GitHub status is unavailable. Check this repository’s remote and GitHub CLI connection, then retry.";
-    } else if (data.runs_available === false || !Array.isArray(data.runs)) {
-      error.value = data.error || "GitHub repository found, but workflow runs could not be loaded. Try again.";
+    if (id !== requestId) return;
+    if (!data.configured || data.runs_available === false || !Array.isArray(data.runs)) {
+      const saved = snapshots.value.get(key);
+      if (saved && data.configured && data.branch && !["unknown", "HEAD"].includes(data.branch) &&
+          data.branch !== saved.status.branch) {
+        snapshots.value.delete(key);
+      }
+      const code = data.error_code;
+      error.value = code && Object.hasOwn(recoveryMessages, code)
+        ? recoveryMessages[code]
+        : recoveryMessages.unknown;
     } else {
-      status.value = data;
+      snapshots.value.set(key, { status: data, refreshedAt: new Date() });
     }
   } catch {
-    error.value = "Could not load GitHub status. Check the local uCore service and try again.";
+    if (id === requestId) {
+      error.value = "Could not load GitHub status. Check the local uCore service and try again.";
+    }
   } finally {
-    loading.value = false;
+    if (id === requestId) loading.value = false;
   }
 }
 
