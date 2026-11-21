@@ -3,10 +3,13 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
+import pytest
+
 from app.api import developer_api
 
 
-def test_repo_github_status_reports_actions_and_pr(monkeypatch, tmp_path):
+@pytest.mark.parametrize(("branch_view", "branch"), [("default", "main"), ("working", "codex/github-alignment")])
+def test_repo_github_status_reports_actions_and_pr(monkeypatch, tmp_path, branch_view, branch):
     repo = tmp_path / "uCore"
     repo.mkdir()
     monkeypatch.setattr(developer_api, "_repo_path", lambda _name: repo)
@@ -22,12 +25,17 @@ def test_repo_github_status_reports_actions_and_pr(monkeypatch, tmp_path):
         [{"number": 3, "title": "Align GitHub", "state": "OPEN", "isDraft": False, "url": "https://github.com/fredporter/uCore/pull/3", "statusCheckRollup": []}],
     ]
 
-    def fake_run(*_args, **_kwargs):
+    def fake_run(command, **_kwargs):
+        for flag in ("--branch", "--head"):
+            if flag in command:
+                assert command[command.index(flag) + 1] == branch
         return SimpleNamespace(returncode=0, stdout=json.dumps(responses.pop(0)), stderr="")
 
     monkeypatch.setattr(developer_api.subprocess, "run", fake_run)
 
-    payload = developer_api._repo_github_status("uCore")
+    payload = developer_api._repo_github_status("uCore", branch_view)
+
+    assert payload["branch"] == branch
 
     assert payload["configured"] is True
     assert payload["repository"]["nameWithOwner"] == "fredporter/uCore"

@@ -31,6 +31,7 @@
         <p v-if="preferences.syncError" role="status">{{ preferences.syncError }} · Settings are kept on this device.</p>
       </section>
       <AppsManagerPanel v-if="currentTab === 'apps'" />
+      <GitHubCIPanel v-if="currentTab === 'github'" />
       <!-- Pages Browser -->
       <div v-if="currentTab === 'pages'" class="system-panel system-tab-shell">
         <h3 class="surface__panel-title">System Pages</h3>
@@ -76,13 +77,7 @@
               class="system-readiness-item"
             >
               <span class="system-readiness-cap">{{ cap.capability }}</span>
-              <form v-if="cap.capability === 'llm.openrouter'" class="readiness-repair" @submit.prevent="saveOpenRouterModel">
-                <label for="openrouter-model">OpenRouter model</label>
-                <input id="openrouter-model" v-model="openRouterModel" placeholder="provider/model" required />
-                <button class="usx-btn" type="submit" :disabled="repairingOpenRouter">Save and re-check</button>
-                <p v-if="openRouterRepairError" role="alert">{{ openRouterRepairError }}</p>
-              </form>
-              <span v-else class="system-readiness-action">
+              <span class="system-readiness-action">
                 {{
                   cap.repair?.[0]?.action ||
                   "Complete repair steps and re-check."
@@ -91,7 +86,18 @@
             </li>
           </ul>
 
-          <button class="usx-btn system-action-btn" @click="fetchReadiness">
+          <div class="system-readiness-summary">
+            <span>Ollama: {{ checkingOllama ? "checking" : ollama?.online ? `online · ${ollama.models.length} installed models` : "unavailable" }}</span>
+            <span>OpenRouter (optional): {{ openRouterReadiness?.ready ? "configured" : openRouterReadiness ? "setup needed" : "not checked" }}</span>
+          </div>
+          <p class="system-muted-copy">Provider checks report host availability and configuration. They do not verify uCode+ inference.</p>
+          <form v-if="openRouterReadiness && !openRouterReadiness.ready" class="readiness-repair" @submit.prevent="saveOpenRouterModel">
+            <label for="openrouter-model">OpenRouter model</label>
+            <input id="openrouter-model" v-model="openRouterModel" placeholder="provider/model" required />
+            <button class="usx-btn" type="submit" :disabled="repairingOpenRouter">Save and re-check</button>
+            <p v-if="openRouterRepairError" role="alert">{{ openRouterRepairError }}</p>
+          </form>
+          <button class="usx-btn system-action-btn" @click="refreshReadiness">
             Re-check readiness
           </button>
         </div>
@@ -336,6 +342,7 @@ export const SYSTEM_TABS: TabDef[] = [
   { id: "preferences", label: "Settings", icon: "tune" },
   { id: "apps", label: "Apps", icon: "apps" },
   { id: "pages", label: "Pages", icon: "dashboard" },
+  { id: "github", label: "GitHub", icon: "code" },
   { id: "configuration", label: "Configuration", icon: "tune" },
   { id: "identity", label: "Profiles", icon: "person" },
 ];
@@ -344,6 +351,7 @@ export const SYSTEM_TABS: TabDef[] = [
 <script setup lang="ts">
 import { computed, ref, reactive, watch, onMounted } from "vue";
 import OAuthSettingsPanel from "./OAuthSettingsPanel.vue";
+import GitHubCIPanel from "./GitHubCIPanel.vue";
 import { useRouter, useRoute } from "vue-router";
 import { useSettingsStore } from "../../stores/settings";
 import { useShellStore } from "../../stores/shell";
@@ -399,9 +407,11 @@ const readinessError = ref("");
 
 const blockedCapabilities = computed<CapabilityPreflightResult[]>(() => {
   return (readinessSnapshot.value?.capabilities || []).filter(
-    (cap) => !cap.ready,
+    (cap) => !cap.ready && cap.capability !== "llm.openrouter",
   );
 });
+
+const openRouterReadiness = computed(() => readinessSnapshot.value?.capabilities.find(cap => cap.capability === "llm.openrouter"));
 
 const readinessBlockedCount = computed(() => blockedCapabilities.value.length);
 
@@ -615,6 +625,11 @@ async function saveOpenRouterModel() {
   } finally {
     repairingOpenRouter.value = false;
   }
+}
+
+function refreshReadiness() {
+  void fetchReadiness();
+  void fetchOllamaStatus();
 }
 
 async function fetchReadiness() {
