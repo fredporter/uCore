@@ -116,7 +116,7 @@ _DEFAULT_EXTENSION_REPO_NAMES: set[str] = {
     "udos-google",
     "udos-dreamscape",
     "udos-publishing",
-    "uCore-Publish",
+    "uCorePub",
     "udos-agents",
     "udos-vaults",
 }

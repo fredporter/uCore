@@ -90,6 +90,17 @@
 
       <div class="chat-panel__composer-actions">
         <RouterLink class="usx-btn chat-panel__settings" :to="localAssistant ? '/workflow?tab=ai' : '/system?tab=preferences'" @click="shell.setChatMode('closed')"><UIcon name="settings" />{{ localAssistant ? "Local models" : "Settings" }}</RouterLink>
+        <label v-if="localAssistant" class="chat-panel__specialist-select">
+          <UIcon name="psychology" />
+          <select
+            v-model="selectedSpecialist"
+            aria-label="Assistant specialist"
+          >
+            <option value="">General Assistant</option>
+            <option value="format-smith">Format Smith (Markdown)</option>
+          </select>
+          <UIcon name="expand_more" class="chat-panel__presentation-chevron" />
+        </label>
         <label class="chat-panel__presentation">
           <UIcon name="view_sidebar" />
           <select
@@ -118,7 +129,30 @@
         <span class="chat-panel__context-text">{{ displayContext }}</span>
       </span>
 
-      <div v-if="!localAssistant" class="chat-panel__mode-toggle" role="tablist" aria-label="Assistant mode">
+      <div v-if="localAssistant" class="chat-panel__mode-toggle" role="tablist" aria-label="Assistant specialist">
+        <button
+          type="button"
+          class="usx-btn chat-panel__mode-btn"
+          :class="{ 'chat-panel__mode-btn--active': !selectedSpecialist }"
+          role="tab"
+          :aria-selected="!selectedSpecialist ? 'true' : 'false'"
+          @click="selectedSpecialist = ''"
+        >
+          General
+        </button>
+        <button
+          type="button"
+          class="usx-btn chat-panel__mode-btn"
+          :class="{ 'chat-panel__mode-btn--active': selectedSpecialist === 'format-smith' }"
+          role="tab"
+          :aria-selected="selectedSpecialist === 'format-smith' ? 'true' : 'false'"
+          @click="selectedSpecialist = 'format-smith'"
+        >
+          Format Smith
+        </button>
+      </div>
+
+      <div v-else class="chat-panel__mode-toggle" role="tablist" aria-label="Assistant mode">
         <button
           v-for="mode in CHAT_MODES"
           :key="mode.id"
@@ -178,7 +212,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   "clear-local": [];
-  "send-chat": [message: string, mode: "chat" | "plan" | "act" | "workflow"];
+  "send-chat": [message: string, mode?: "chat" | "plan" | "act" | "workflow", specialist?: string];
   "send-dev": [message: string, mode: "ask" | "plan" | "act"];
   "toggle-dev-mode": [];
   "update:activeLane": [lane: "chat" | "dev"];
@@ -218,9 +252,15 @@ const inputText = computed({
   set: (v: string) => { chatStore.input = v; },
 });
 
+const selectedSpecialist = ref<"" | "format-smith">("");
+
 // ─── Dynamic composer placeholder (matches Intelligence surface) ──
 const inputPlaceholder = computed(() => {
-  if (props.localAssistant) return "OK Assistant…";
+  if (props.localAssistant) {
+    return selectedSpecialist.value === "format-smith"
+      ? "Paste notes to format as Markdown…"
+      : "OK Assistant…";
+  }
   switch (activeChatMode.value) {
     case "plan": return "What should we research?";
     case "act": return "What should we do?";
@@ -246,11 +286,19 @@ function selectModel(id: string) {
   modelPickerOpen.value = false;
 }
 
-const starterPrompts = [
-  { icon: "search", label: "Research a topic", text: "Help me outline a research plan for " },
-  { icon: "edit_note", label: "Draft a note", text: "Help me draft a Markdown note about " },
-  { icon: "checklist", label: "Plan next steps", text: "Help me break this goal into next steps: " },
-] as const;
+const starterPrompts = computed(() => {
+  if (selectedSpecialist.value === "format-smith") {
+    return [
+      { icon: "format_align_left", label: "Format notes", text: "# Notes 2026-11-21\n* attendee: Alice and Bob\n* budget: $1,250 (estimated?)" },
+      { icon: "checklist", label: "Format action items", text: "Action items:\n- Alice: review roadmap\n- Bob: estimate budget (~$500?)" },
+    ];
+  }
+  return [
+    { icon: "search", label: "Research a topic", text: "Help me outline a research plan for " },
+    { icon: "edit_note", label: "Draft a note", text: "Help me draft a Markdown note about " },
+    { icon: "checklist", label: "Plan next steps", text: "Help me break this goal into next steps: " },
+  ];
+});
 
 function useStarterPrompt(prompt: string) {
   if (!inputText.value.trim()) inputText.value = prompt;
@@ -292,7 +340,7 @@ function sendMessage() {
   const text = inputText.value.trim();
   if (!text || props.loading) return;
   inputText.value = "";
-  emit("send-chat", text, activeChatMode.value);
+  emit("send-chat", text, activeChatMode.value, selectedSpecialist.value);
 }
 
 function closeChat() {
@@ -920,9 +968,9 @@ async function copyText(content: string) {
 
 .chat-panel__composer-actions, .chat-panel__footer-row { display: flex; align-items: center; gap: 8px; box-sizing: border-box; min-height: 40px; padding: 4px 0; margin: 0; font-family: var(--usx-font-family-sans); font-size: var(--usx-font-size-sm); line-height: 1; }
 .chat-panel__composer-actions { flex-wrap: nowrap; }
-.chat-panel__settings.usx-btn, .chat-panel__mode-btn.usx-btn, .chat-panel__presentation { display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; height: 32px; min-height: 32px; margin: 0; padding: 0 8px; border: 0; border-radius: var(--usx-radius-sm); background: transparent; box-shadow: none; color: var(--usx-color-on-surface-muted); font: inherit; line-height: 1; text-decoration: none; }
-.chat-panel__presentation { position: relative; padding: 0 4px; }
-.chat-panel__presentation select { box-sizing: border-box; height: 32px; min-height: 32px; min-width: 0; width: auto; margin: 0; padding: 0 22px 0 4px; border: 0; border-radius: var(--usx-radius-sm); background: transparent; box-shadow: none; font: inherit; line-height: normal; }
+.chat-panel__settings.usx-btn, .chat-panel__mode-btn.usx-btn, .chat-panel__presentation, .chat-panel__specialist-select { display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; height: 32px; min-height: 32px; margin: 0; padding: 0 8px; border: 0; border-radius: var(--usx-radius-sm); background: transparent; box-shadow: none; color: var(--usx-color-on-surface-muted); font: inherit; line-height: 1; text-decoration: none; }
+.chat-panel__presentation, .chat-panel__specialist-select { position: relative; padding: 0 4px; }
+.chat-panel__presentation select, .chat-panel__specialist-select select { box-sizing: border-box; height: 32px; min-height: 32px; min-width: 0; width: auto; margin: 0; padding: 0 22px 0 4px; border: 0; border-radius: var(--usx-radius-sm); background: transparent; box-shadow: none; font: inherit; line-height: normal; }
 .chat-panel__presentation-chevron { position: absolute; right: 4px; pointer-events: none; }
 .chat-panel__composer-actions :deep(.u-icon), .chat-panel__footer-row :deep(.u-icon) { width: 18px; height: 18px; font-size: 18px; line-height: 1; }
 .chat-panel__mode-toggle { gap: 2px; margin: 0; }

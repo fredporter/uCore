@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body {font-family: var(--ui-font); margin:0; padding:0.5rem;}
+    .status {font-weight: bold;}
+    button {margin:0.2rem;}
+    a {margin-left:0.5rem;}
+  </style>
+</head>
+<body>
+  <div id="status">Loading…</div>
+  <div id="actions"></div>
+  <script>
+    (async () => {
+      const repo = "fredbook/SonicScrewdriver"; // adjust if needed
+      const tokenPath = `${process.env.UDOS_HOME}/.github/token`;
+      const token = await fetch(`file://${tokenPath}`).then(r=>r.text());
+      const api = `https://api.github.com/repos/${repo}/actions/runs?per_page=1`;
+      const res = await fetch(api, {headers: {Authorization: `token ${token}`} });
+      const data = await res.json();
+      const run = data.workflow_runs?.[0];
+      const statusEl = document.getElementById('status');
+      if (!run) {statusEl.textContent = 'No recent runs'; return;}
+      statusEl.innerHTML = `Latest run: <span class="status">${run.conclusion || run.status}</span>`;
+      const actions = document.getElementById('actions');
+      // Open in GitHub
+      const openBtn = document.createElement('button');
+      openBtn.textContent = 'Open in GitHub';
+      openBtn.onclick = () => window.open(run.html_url, '_blank');
+      actions.appendChild(openBtn);
+      if (run.status !== 'completed') {
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.onclick = async () => {
+          await fetch(run.url, {method: 'POST', headers:{Authorization:`token ${token}`}});
+          location.reload();
+        };
+        actions.appendChild(cancelBtn);
+      } else {
+        const rerunBtn = document.createElement('button');
+        rerunBtn.textContent = 'Re‑run';
+        rerunBtn.onclick = async () => {
+          await fetch(`${run.url}/rerun`, {method: 'POST', headers:{Authorization:`token ${token}`}});
+          location.reload();
+        };
+        actions.appendChild(rerunBtn);
+      }
+      const copilotLink = document.createElement('a');
+      copilotLink.href = 'https://docs.github.com/en/copilot';
+      copilotLink.target = '_blank';
+      copilotLink.textContent = 'Copilot Docs';
+      actions.appendChild(copilotLink);
+    })();
+  </script>
+</body>
+</html>
