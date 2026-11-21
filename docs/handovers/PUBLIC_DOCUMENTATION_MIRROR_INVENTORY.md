@@ -84,7 +84,7 @@ Counts above are from the initial inventory.
 
 - Wiki articles and course content read repository sources. Generated editions are served from the configured Public root under `doc-sites/`.
 - Public Global Knowledge remains an installed reader source. The three installed-only standards were copied to the Global Knowledge repo. The revised bank README and unrelated runtime and Shared seed material remain separate.
-- Verify fresh remote refs and GitHub Pages settings before archiving the remote. The cached remote tip matches the verified local snapshot.
+- The reported remote tip matches the verified archive. Remote archival is pending confirmation.
 
 ## Remote verification
 
@@ -92,4 +92,4 @@ Counts above are from the initial inventory.
 - Latest commit SHA (main): 203b65349258704953c4bc7aaf5365e2c7a1dee4
 - GitHub Pages: not enabled (no Pages configuration found)
 
-**Cleanup action**: The old checkout `~/Public/udos-docs` remains on disk but this session has read‑only access to `~/Public`. Please delete it locally (e.g., `rm -rf ~/Public/udos-docs`) before archiving.
+The retired Public checkout has been removed. The verified archive retains the original checkout and Git history.
