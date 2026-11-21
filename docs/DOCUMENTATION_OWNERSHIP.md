@@ -30,7 +30,11 @@ runtime, while uCode+ owns spatial and vector development.
 - [Extension registration](EXTENSION_REGISTRY_SPEC.md)
 - [MCP setup](MCP_SETUP.md)
 
-## Format Smith handovers
+## Sprint 1A – Format Smith
 
-- Sprint 1A merged in [PR #49](https://github.com/fredporter/uCore/pull/49). The [Sprint 1A tag](https://github.com/fredporter/uCore/tree/sprint-1a-format-smith) records the docs-mirror cleanup commit `c8e644b`.
-- Sprint 1B continues in [PR #50](https://github.com/fredporter/uCore/pull/50), which adds the handover and browser verification steps.
+- [Sprint 1A handover](handovers/ANTIGRAVITY_SPRINT_1A_FORMAT_SMITH.md) merged in [PR #49](https://github.com/fredporter/uCore/pull/49).
+- [PR #48](https://github.com/fredporter/uCore/pull/48) merged the docs-mirror cleanup. The [Sprint 1A tag](https://github.com/fredporter/uCore/tree/sprint-1a-format-smith) records the original cleanup commit `c8e644b`.
+
+## Sprint 1B – Format Smith
+
+- [Sprint 1B handover](handovers/ANTIGRAVITY_SPRINT_1B_FORMAT_SMITH.md) and [PR #50](https://github.com/fredporter/uCore/pull/50) track the follow-up on `sprint/ok-assistant-format-smith-1b`.
