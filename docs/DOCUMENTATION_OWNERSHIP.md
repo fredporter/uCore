@@ -29,3 +29,8 @@ runtime, while uCode+ owns spatial and vector development.
 - [Workflow and Binder integration](VAULT_BINDER_WORKFLOW_INTEGRATION.md)
 - [Extension registration](EXTENSION_REGISTRY_SPEC.md)
 - [MCP setup](MCP_SETUP.md)
+
+## Format Smith handovers
+
+- Sprint 1A merged in [PR #49](https://github.com/fredporter/uCore/pull/49). The [Sprint 1A tag](https://github.com/fredporter/uCore/tree/sprint-1a-format-smith) records the docs-mirror cleanup commit `c8e644b`.
+- Sprint 1B continues in [PR #50](https://github.com/fredporter/uCore/pull/50), which adds the handover and browser verification steps.
