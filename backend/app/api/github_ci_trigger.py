@@ -2,13 +2,13 @@ import os
 import subprocess
 import json
 import time
-from pathlib import Path
 
 # Simple helper to trigger a GitHub Actions run via repository_dispatch
 
 def trigger_ci(repo: str, event_type: str = "uDos-publish") -> dict:
-    token_path = Path(os.getenv('UDOS_HOME', '~/.udos')).expanduser() / '.github' / 'token'
-    token = token_path.read_text().strip()
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if not token:
+        raise RuntimeError("Set GH_TOKEN or GITHUB_TOKEN for GitHub CI requests")
     api = f'https://api.github.com/repos/{repo}/dispatches'
     payload = json.dumps({"event_type": event_type})
     result = subprocess.run([
@@ -22,8 +22,9 @@ def trigger_ci(repo: str, event_type: str = "uDos-publish") -> dict:
 
 
 def wait_for_latest_run(repo: str, timeout: int = 600, poll_interval: int = 10) -> dict:
-    token_path = Path(os.getenv('UDOS_HOME', '~/.udos')).expanduser() / '.github' / 'token'
-    token = token_path.read_text().strip()
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if not token:
+        raise RuntimeError("Set GH_TOKEN or GITHUB_TOKEN for GitHub CI requests")
     api = f'https://api.github.com/repos/{repo}/actions/runs?per_page=1'
     elapsed = 0
     while elapsed < timeout:
