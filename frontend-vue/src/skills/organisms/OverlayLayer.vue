@@ -133,7 +133,7 @@ watch(() => identity.activeProfileId, () => {
 const showWelcome = computed(() => !okMessages.value.length && !assistChat.input.trim());
 const overlayWelcomeTitle = "OK Assistant";
 
-async function sendChat(text: string) {
+async function sendChat(text: string, _mode?: string, specialist?: string) {
   if (okLoading.value) return;
   if (text.length > 12000) {
     toast("Keep your message under 12,000 characters.", "error");
@@ -150,15 +150,18 @@ async function sendChat(text: string) {
   okMessages.value.push({ role: "user", content: text });
   okLoading.value = true;
   try {
+    const payload: { messages: Msg[]; specialist?: string } = { messages };
+    if (specialist) payload.specialist = specialist;
     const response = await fetch(`${UCORE_BASE}/api/assistant/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(100000),
     });
     if (!response.ok) {
       if (response.status === 401) throw new Error("Choose a local profile to use OK Assistant.");
       if (response.status === 404) throw new Error("Restart uCore to load OK Assistant chat.");
+      if (response.status === 504) throw new Error("Format Smith timed out. Check the local Ollama service.");
       throw new Error((await response.text()).slice(0, 240) || "OK Assistant is unavailable.");
     }
     const data = await response.json();
@@ -166,7 +169,7 @@ async function sendChat(text: string) {
   } catch (error) {
     if (id === requestId) {
       okMessages.value.pop();
-      if (!assistChat.input) assistChat.input = text;
+      assistChat.input = text;
       toast(error instanceof TypeError ? "Could not reach uCore." : error instanceof Error ? error.message : "OK Assistant is unavailable.", "error");
     }
   } finally {
