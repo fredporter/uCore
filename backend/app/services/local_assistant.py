@@ -28,6 +28,26 @@ ROLES = [
     {"id": "create", "name": "Creator", "instruction": "Use the evidence to draft useful creative output or a small practical project plan. Respect the user's interests and constraints. No general software development or host commands."},
     {"id": "review", "name": "Reviewer", "instruction": "Review the evidence and draft for unsupported claims, clarity and usefulness. Return an improved final draft with sources, uncertainties and a small next action. Agreement between roles is not factual verification."},
 ]
+
+SPECIALISTS: dict[str, dict[str, Any]] = {
+    "format-smith": {
+        "id": "format-smith",
+        "name": "Format Smith",
+        "role": "Markdown Specialist",
+        "description": "Format pasted notes as structured Markdown, preserving names, dates, amounts, and uncertainty.",
+        "preferred_model": "format-smith",
+        "system_prompt": (
+            "You are Format Smith, the Markdown formatting specialist for uDOS OK Assistant.\n"
+            "Transform the user notes into clean, well-structured Markdown.\n"
+            "Strict rules:\n"
+            "- Retain all source facts, headings, bullet points, names, dates, amounts, and figures exactly.\n"
+            "- Preserve all uncertainty, ambiguity, approximations, and caveats (such as 'approx', 'maybe', 'TBD', '?') without resolving or dropping them.\n"
+            "- Do not invent, fabricate, or assume new facts, dialogue, or events not present in the input.\n"
+            "- Output ONLY the formatted Markdown without conversational preamble or postscript."
+        ),
+    },
+}
+
 _roundtable_lock = asyncio.Lock()
 _pull_lock = asyncio.Lock()
 
@@ -51,7 +71,27 @@ async def inventory() -> dict:
         response.raise_for_status()
         models = response.json().get("models", [])
     models = [{**m, "coding_focused": any(s in m.get("name", "").lower() for s in ("coder", "codellama", "codegemma")), "local_chat": is_local_chat(m)} for m in models]
-    return {"online": True, "models": models, "library": [], "roles": [{k: v for k, v in role.items() if k != "instruction"} for role in ROLES], "mode": "local-only", "roundtable": "selected-content-preview", "downloads": "explicit-official-model-reference", "storage_owner": "ollama", "note": "Installed models are discovered from Ollama. Reviewed offline packs will come from application manifests; no fixed model recommendations are embedded."}
+    return {
+        "online": True,
+        "models": models,
+        "library": [],
+        "roles": [{k: v for k, v in role.items() if k != "instruction"} for role in ROLES],
+        "specialists": [
+            {
+                "id": s["id"],
+                "name": s["name"],
+                "role": s["role"],
+                "description": s["description"],
+                "installed": any(m["name"] == s["preferred_model"] or m["name"].startswith(f"{s['preferred_model']}:") for m in models),
+            }
+            for s in SPECIALISTS.values()
+        ],
+        "mode": "local-only",
+        "roundtable": "selected-content-preview",
+        "downloads": "explicit-official-model-reference",
+        "storage_owner": "ollama",
+        "note": "Installed models are discovered from Ollama. Reviewed offline packs will come from application manifests; no fixed model recommendations are embedded.",
+    }
 
 
 def validate_model_reference(name: str) -> None:
@@ -123,30 +163,74 @@ def validate_messages(messages: list) -> list:
     return messages
 
 
-async def chat(messages: list, model: str = "") -> dict:
+async def chat(messages: list, model: str = "", specialist: str = "") -> dict:
     messages = validate_messages(messages)
     models = (await inventory())["models"]
     available = [item["name"] for item in models if item["local_chat"]]
-    selected = model or select_model(models, "project")
-    if selected not in available:
+
+    spec_info = SPECIALISTS.get(specialist) if specialist else None
+
+    # Resolve model:
+    # 1. If explicit model requested and available, use it.
+    # 2. If specialist requested: prefer specialist's preferred_model if installed,
+    #    otherwise fall back to an installed coding/general chat model (e.g. qwen2.5-coder).
+    # 3. Otherwise use default selected model.
+    pref = spec_info.get("preferred_model", "") if spec_info else ""
+    pref_match = [m for m in available if m == pref or m.startswith(f"{pref}:")]
+
+    if model and model in available:
+        selected = model
+    elif pref_match:
+        selected = pref_match[0]
+    elif spec_info:
+        qwen_models = [m for m in available if "qwen" in m.lower() or "coder" in m.lower()]
+        selected = qwen_models[0] if qwen_models else (select_model(models, "project") if available else "")
+    else:
+        selected = model or select_model(models, "project")
+
+    if not selected or selected not in available:
+        if specialist:
+            spec_name = spec_info["name"] if spec_info else specialist
+            raise ValueError(f"No local model installed for {spec_name}. Choose or install an Ollama chat model.")
         raise ValueError("Choose an installed Ollama chat model in OK Assistant.")
-    async with httpx.AsyncClient(timeout=90, trust_env=False) as client:
-        response = await client.post(f"{local_url()}/api/chat", json={
-            "model": selected,
-            "stream": False,
-            "keep_alive": "2m",
-            "options": {"num_ctx": 8192, "num_predict": 768},
-            "messages": [{
-                "role": "system",
-                "content": "You are OK Assistant for uDOS. Help with questions, drafts and plans. "
-                           "Do not claim to browse, run actions or access files. Use only the conversation as context.",
-            }, *({key: message[key] for key in ("role", "content")} for message in messages)],
-        })
-        response.raise_for_status()
+
+    if spec_info:
+        system_content = spec_info["system_prompt"]
+    else:
+        system_content = (
+            "You are OK Assistant for uDOS. Help with questions, drafts and plans. "
+            "Do not claim to browse, run actions or access files. Use only the conversation as context."
+        )
+
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(90, connect=5), trust_env=False) as client:
+            response = await client.post(f"{local_url()}/api/chat", json={
+                "model": selected,
+                "stream": False,
+                "keep_alive": "2m",
+                "options": {
+                    "num_ctx": 8192,
+                    "num_predict": 768,
+                    "temperature": 0.1 if specialist == "format-smith" else 0.7,
+                },
+                "messages": [{
+                    "role": "system",
+                    "content": system_content,
+                }, *({key: message[key] for key in ("role", "content")} for message in messages)],
+            })
+            response.raise_for_status()
+    except httpx.TimeoutException:
+        raise TimeoutError(f"The local model request timed out after 90 seconds.")
+    except httpx.HTTPStatusError as exc:
+        raise ValueError(f"Ollama returned HTTP {exc.response.status_code}")
+
     content = str(response.json().get("message", {}).get("content") or "").strip()
     if not content:
         raise ValueError("Ollama returned an empty reply.")
-    return {"content": content, "model": selected}
+    result = {"content": content, "model": selected}
+    if specialist:
+        result["specialist"] = specialist
+    return result
 
 
 async def roundtable(goal: str, material: str, model: str, purpose: str = "project") -> dict:

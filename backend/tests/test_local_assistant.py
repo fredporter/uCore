@@ -150,3 +150,68 @@ async def test_offline_chat_and_settings_follow_active_profile(monkeypatch, tmp_
     with pytest.raises(web.HTTPForbidden):
         await api.pull(request({"model": "example:small", "confirm": True}))
     assert assistant_profile.preferences("first") == settings
+
+
+@pytest.mark.asyncio
+async def test_format_smith_invocation_and_preservation(monkeypatch):
+    requests = []
+
+    def respond(request):
+        requests.append(request)
+        if request.url.path == "/api/tags":
+            return httpx.Response(200, json={"models": [
+                {"name": "format-smith", "size": 12345},
+                {"name": "qwen2.5-coder:1.5b", "size": 98765},
+            ]})
+        data = json.loads(request.content)
+        assert data["options"]["temperature"] == 0.1
+        assert "Format Smith" in data["messages"][0]["content"]
+        assert "Retain all source facts" in data["messages"][0]["content"]
+        return httpx.Response(200, json={"message": {
+            "content": "# Sprint Notes 2026-11-21\n* attendee: Alice and Bob\n* budget: $1,250 (estimated?)"
+        }})
+
+    original = httpx.AsyncClient
+    monkeypatch.setattr(service.httpx, "AsyncClient", lambda **kwargs: original(
+        transport=httpx.MockTransport(respond), **kwargs,
+    ))
+
+    turns = [{"role": "user", "content": "sprint notes 2026-11-21 Alice Bob budget $1250 (estimated?)"}]
+    result = await service.chat(turns, specialist="format-smith")
+    assert result["specialist"] == "format-smith"
+    assert result["model"] == "format-smith"
+    assert "$1,250" in result["content"]
+    assert "2026-11-21" in result["content"]
+    assert "estimated?" in result["content"]
+
+    inv = await service.inventory()
+    assert any(s["id"] == "format-smith" and s["installed"] for s in inv["specialists"])
+
+
+@pytest.mark.asyncio
+async def test_format_smith_missing_model_and_timeout_errors(monkeypatch):
+    def respond(request):
+        if request.url.path == "/api/tags":
+            return httpx.Response(200, json={"models": []})
+        return httpx.Response(200, json={})
+
+    original = httpx.AsyncClient
+    monkeypatch.setattr(service.httpx, "AsyncClient", lambda **kwargs: original(
+        transport=httpx.MockTransport(respond), **kwargs,
+    ))
+
+    turns = [{"role": "user", "content": "raw notes"}]
+    with pytest.raises(ValueError, match="No local model installed for Format Smith"):
+        await service.chat(turns, specialist="format-smith")
+
+    # Test timeout error
+    def timeout_respond(request):
+        if request.url.path == "/api/tags":
+            return httpx.Response(200, json={"models": [{"name": "qwen2.5-coder:1.5b"}]})
+        raise httpx.ReadTimeout("Request timed out")
+
+    monkeypatch.setattr(service.httpx, "AsyncClient", lambda **kwargs: original(
+        transport=httpx.MockTransport(timeout_respond), **kwargs,
+    ))
+    with pytest.raises(TimeoutError, match="timed out"):
+        await service.chat(turns, specialist="format-smith")
