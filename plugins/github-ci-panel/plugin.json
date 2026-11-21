@@ -1,0 +1,12 @@
+{
+  "id": "agus/github-ci-panel",
+  "name": "GitHub CI Panel",
+  "description": "Side‑pane UI that shows the latest GitHub Actions CI run for SonicScrewdriver, with controls to open, re‑run, cancel and link to Copilot.",
+  "version": "0.1.0",
+  "entry": "src/panel.html",
+  "permissions": ["network", "clipboard"],
+  "ui": {
+    "sidePane": true,
+    "title": "GitHub CI"
+  }
+}

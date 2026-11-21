@@ -199,7 +199,7 @@ const SURFACE_CARD_DATA: Record<
     color: "var(--usx-color-warning)",
   },
   homenest: {
-    title: "HomeNest",
+    title: "HomeNook",
     description: "Media and games",
     icon: "tv",
     route: "/homenest",

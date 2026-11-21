@@ -737,7 +737,7 @@ def _import_feed(body: dict[str, Any]) -> web.Response:
     except ModuleNotFoundError as exc:
         if exc.name not in {"udos_publishing", "udos_publishing.src.feed_codec"}:
             raise
-        return web.json_response({"error": "Feed import requires the uCore-Publish feed codec"}, status=503)
+        return web.json_response({"error": "Feed import requires the uCorePub feed codec"}, status=503)
 
     binder = body.get("binder")
     source = body.get("feed_source")

@@ -215,4 +215,3 @@ async def test_format_smith_missing_model_and_timeout_errors(monkeypatch):
     ))
     with pytest.raises(TimeoutError, match="timed out"):
         await service.chat(turns, specialist="format-smith")
-

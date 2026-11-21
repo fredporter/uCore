@@ -247,7 +247,7 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
   },
   {
     id: "homenest",
-    name: "HomeNest",
+    name: "HomeNook",
     kind: "surface",
     required: false,
     icon: "tv",
