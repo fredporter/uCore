@@ -178,6 +178,19 @@ class TestLibraryIndexService:
         user_results = search("note", source="user")
         assert all(r["source"] == "user" for r in user_results)
 
+    def test_registered_knowledge_collection_routes_to_public_reader(self, monkeypatch):
+        from app.services.library_index import build_index, search
+
+        root = self._create_test_files("public", {
+            "global-knowledge/navigation/map_reading.md": "# Map Reading",
+        })
+        monkeypatch.setattr("app.services.library_index.settings.public_vault_root", root)
+        build_index(vault_paths={"global-knowledge": root / "global-knowledge"})
+
+        entry, = search("*", source="global-knowledge")
+        assert entry["reader_source"] == "public"
+        assert entry["relative_path"] == "global-knowledge/navigation/map_reading.md"
+
     def test_get_stats_no_index(self):
         """get_stats returns not-built status when index doesn't exist."""
         from app.services.library_index import get_stats

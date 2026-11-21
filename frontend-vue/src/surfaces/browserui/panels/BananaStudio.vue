@@ -1,20 +1,25 @@
 /**
- * @component BananaStudio / VectorStudio — uVector Illustration Engine
+ * @component BananaStudio / VectorStudio — uCode+ Illustration Engine
  * Generates and transforms technical drawings, diagrams, and GridCore assets.
  * Adheres to Mono Core visual style presets (Blueprint, Teletext, Linocut Paper, Pixel Art, Line Art).
  * Amber CRT phosphor is strictly excluded per sovereign design doctrine.
  */
 <template>
   <div class="banana-studio">
-    <!-- Hero panel -->
-    <section class="banana-studio__hero surface__panel">
+    <header v-if="scope === 'vector'" class="banana-studio__heading">
+      <h2 class="surface__panel-title">uCode+ Studio</h2>
+      <p class="surface__panel-description">
+        Create drawings, scalable vector graphics, and GridCore illustrations.
+      </p>
+    </header>
+    <section v-else class="banana-studio__hero surface__panel">
       <div class="banana-studio__hero-top">
         <div class="banana-studio__title-wrap">
           <UIcon name="draw" :size="24" class="banana-studio__hero-icon" />
           <div>
-            <h2 class="surface__panel-title">{{ scope==='grid' ? 'GridCore tools' : scope==='vector' ? 'Vector tools' : 'uVector Illustration & Asset Studio' }}</h2>
+            <h2 class="surface__panel-title">{{ scope==='grid' ? 'GridCore tools' : 'uCode+ Illustration & Asset Studio' }}</h2>
             <p class="surface__panel-description">
-              Create drawings and GridCore illustrations.
+              Create drawings, scalable vector graphics, and GridCore illustrations.
             </p>
           </div>
         </div>
@@ -60,6 +65,15 @@
       >
         <UIcon name="grain" /> V2B & BOB Quantizer
       </button>
+      <button
+        type="button"
+        class="banana-studio__mode-tab"
+        :class="{ 'banana-studio__mode-tab--active': activeMode === 'spatial' }"
+        v-if="scope!=='grid'"
+        @click="activeMode = 'spatial'"
+      >
+        <UIcon name="view_in_ar" /> Spatial 3D Scene
+      </button>
     </div>
 
     <div class="banana-studio__workspace">
@@ -73,16 +87,14 @@
               v-for="preset in PRESETS"
               :key="preset.id"
               type="button"
-              class="banana-studio__preset-card"
+              class="usx-btn banana-studio__preset-card"
               :class="{ 'banana-studio__preset-card--active': selectedPreset === preset.id }"
+              :aria-pressed="selectedPreset === preset.id"
               @click="selectPreset(preset.id)"
             >
-              <div
-                class="banana-studio__preset-swatch"
-                :style="{ background: preset.swatchBg, borderColor: preset.swatchBorder }"
-              >
-                <UIcon :name="preset.icon" :style="{ color: preset.swatchColor }" />
-              </div>
+              <span class="banana-studio__preset-icon" aria-hidden="true">
+                <UIcon :name="preset.icon" />
+              </span>
               <div class="banana-studio__preset-info">
                 <div class="banana-studio__preset-name">{{ preset.name }}</div>
                 <div class="banana-studio__preset-desc">{{ preset.description }}</div>
@@ -162,16 +174,14 @@
               v-for="preset in PRESETS"
               :key="preset.id"
               type="button"
-              class="banana-studio__preset-card"
+              class="usx-btn banana-studio__preset-card"
               :class="{ 'banana-studio__preset-card--active': selectedPreset === preset.id }"
+              :aria-pressed="selectedPreset === preset.id"
               @click="selectPreset(preset.id)"
             >
-              <div
-                class="banana-studio__preset-swatch"
-                :style="{ background: preset.swatchBg, borderColor: preset.swatchBorder }"
-              >
-                <UIcon :name="preset.icon" :style="{ color: preset.swatchColor }" />
-              </div>
+              <span class="banana-studio__preset-icon" aria-hidden="true">
+                <UIcon :name="preset.icon" />
+              </span>
               <div class="banana-studio__preset-info">
                 <div class="banana-studio__preset-name">{{ preset.name }}</div>
               </div>
@@ -309,6 +319,38 @@
           </div>
         </div>
 
+        <!-- MODE 5: Spatial 3D Scene Lifter -->
+        <div v-else-if="activeMode === 'spatial'" class="banana-studio__mode-section">
+          <h3 class="banana-studio__section-title">Spatial 3D Voxel Lifter (uCode+)</h3>
+          <p class="banana-studio__mode-desc">
+            Lift 2D GridCore matrices and NetHack dungeon floors into true 3D spatial voxel scenes and Minecraft datapacks.
+          </p>
+
+          <div class="banana-studio__options-row">
+            <div>
+              <label class="banana-studio__option-label">Wall Height (Blocks)</label>
+              <input
+                v-model.number="spatialWallHeight"
+                type="number"
+                class="banana-studio__text-input"
+                min="1"
+                max="10"
+              />
+            </div>
+          </div>
+
+          <div class="banana-studio__actions flex gap-2 flex-wrap">
+            <button
+              type="button"
+              class="usx-btn usx-btn--primary"
+              :disabled="generating"
+              @click="handleSpatialLift"
+            >
+              <UIcon :name="generating ? 'sync' : 'view_in_ar'" /> Lift Spatial Scene
+            </button>
+          </div>
+        </div>
+
         <span v-if="statusMessage" class="banana-studio__status-msg">{{ statusMessage }}</span>
       </section>
 
@@ -357,6 +399,14 @@
             <button
               type="button"
               class="banana-studio__tab-btn"
+              :class="{ 'banana-studio__tab-btn--active': previewTab === 'spatial' }"
+              @click="previewTab = 'spatial'"
+            >
+              Spatial 3D Scene
+            </button>
+            <button
+              type="button"
+              class="banana-studio__tab-btn"
               :class="{ 'banana-studio__tab-btn--active': previewTab === 'ascii' }"
               v-if="scope!=='vector'"
               @click="previewTab = 'ascii'"
@@ -381,7 +431,7 @@
 
         <div v-else-if="generating" class="banana-studio__generating-box">
           <USpinner :size="36" />
-          <p>Synthesizing geometry using uVector Rust engine and {{ activePresetMeta?.name }} rules...</p>
+          <p>Synthesizing geometry using uCode+ Rust engine and {{ activePresetMeta?.name }} rules...</p>
         </div>
 
         <div v-else-if="activeAsset" class="banana-studio__asset-card">
@@ -497,6 +547,37 @@
             </div>
           </div>
 
+          <!-- View Tab 5: Spatial 3D Scene -->
+          <div v-else-if="previewTab === 'spatial'" class="banana-studio__spatial-wrapper">
+            <div v-if="activeAsset.spatial" class="banana-studio__spatial-content">
+              <div class="banana-studio__meta-row">
+                <span class="banana-studio__meta-key">Scene Name:</span>
+                <span class="banana-studio__meta-val">{{ activeAsset.spatial.name }}</span>
+              </div>
+              <div class="banana-studio__meta-row">
+                <span class="banana-studio__meta-key">Dimensions (W×H×D):</span>
+                <span class="banana-studio__meta-val">{{ activeAsset.spatial.dimensions?.width }} × {{ activeAsset.spatial.dimensions?.height }} × {{ activeAsset.spatial.dimensions?.depth }} blocks</span>
+              </div>
+              <div class="banana-studio__meta-row">
+                <span class="banana-studio__meta-key">Total Voxels:</span>
+                <span class="banana-studio__meta-val font-mono">{{ activeAsset.spatial.total_voxels }} blocks</span>
+              </div>
+              <div class="banana-studio__meta-row">
+                <span class="banana-studio__meta-key">Block Palette:</span>
+                <span class="banana-studio__meta-val font-mono">{{ Object.keys(activeAsset.spatial.palette || {}).length }} block types</span>
+              </div>
+              <div class="banana-studio__bob-hex-card">
+                <div class="banana-studio__bob-hex-header">
+                  <span>3D Voxel Coordinate Sample</span>
+                </div>
+                <pre class="banana-studio__bob-hex font-mono">{{ JSON.stringify(activeAsset.spatial.voxels?.slice(0, 15), null, 2) }}</pre>
+              </div>
+            </div>
+            <div v-else class="banana-studio__preview-empty">
+              <p>No 3D spatial scene generated yet. Switch to "Spatial 3D Scene" mode and click "Lift Spatial Scene".</p>
+            </div>
+          </div>
+
           <!-- Asset metadata & action buttons -->
           <div class="banana-studio__asset-meta">
             <div class="banana-studio__meta-row">
@@ -558,6 +639,7 @@ import {
   quantizeVectorToLattice,
   quantizeVectorToTeletext,
   quantizeVectorToBob,
+  liftSpatialScene,
   type BananaAssetResult,
 } from "../ApiBridge"
 
@@ -566,9 +648,6 @@ interface PresetDefinition {
   name: string
   description: string
   icon: string
-  swatchBg: string
-  swatchBorder: string
-  swatchColor: string
   chips: string[]
 }
 
@@ -578,9 +657,6 @@ const PRESETS: PresetDefinition[] = [
     name: "Architectural Blueprint",
     description: "Cyan and white technical drafting linework on deep Prussian navy",
     icon: "architecture",
-    swatchBg: "#0a2342",
-    swatchBorder: "#00e5ff",
-    swatchColor: "#ffffff",
     chips: [
       "Space station docking module orthographic blueprint schematic",
       "Isometric microprocessor architecture diagram with bus lines",
@@ -592,9 +668,6 @@ const PRESETS: PresetDefinition[] = [
     name: "Ceefax Teletext",
     description: "8-color broadcast aesthetic with blocky 40x25 character grid",
     icon: "grid_view",
-    swatchBg: "#000000",
-    swatchBorder: "#00ffff",
-    swatchColor: "#ffff00",
     chips: [
       "Retro teletext city skyline with glowing broadcast grid",
       "Teletext flight tracking radar screen with pixel glyphs",
@@ -606,9 +679,6 @@ const PRESETS: PresetDefinition[] = [
     name: "Editorial Linocut Paper",
     description: "Deep black woodcut print with stipple shading on archival cream paper",
     icon: "article",
-    swatchBg: "#faf8f5",
-    swatchBorder: "#222222",
-    swatchColor: "#111111",
     chips: [
       "Botanical fern illustration in black ink woodblock print",
       "Astronomical armillary sphere engraving on warm paper",
@@ -620,9 +690,6 @@ const PRESETS: PresetDefinition[] = [
     name: "16-Color Pixel Grid",
     description: "Sharp nostalgic retro game pixel sprites with clean geometric silhouette",
     icon: "sports_esports",
-    swatchBg: "#1e1e2e",
-    swatchBorder: "#f38ba8",
-    swatchColor: "#f9e2af",
     chips: [
       "16-color pixel art space rover on martian regolith terrain",
       "Retro 8-bit laboratory workstation computer console",
@@ -634,9 +701,6 @@ const PRESETS: PresetDefinition[] = [
     name: "Monochrome Technical Line Art",
     description: "Crisp black on white vector CAD line art and mechanical schematic",
     icon: "draw",
-    swatchBg: "#ffffff",
-    swatchBorder: "#000000",
-    swatchColor: "#000000",
     chips: [
       "Exploded view mechanical gearbox assembly line drawing",
       "Aeronautical jet engine cross-section technical diagram",
@@ -647,8 +711,8 @@ const PRESETS: PresetDefinition[] = [
 
 const ASPECT_RATIOS = ["16:9", "4:3", "1:1", "2:1", "3:4"]
 
-const activeMode = ref<"generate" | "trace" | "font_map" | "quantize">(props.scope==='grid'?'font_map':'generate')
-const previewTab = ref<"svg" | "teletext" | "lattice" | "bob" | "ascii" | "inspector">("svg")
+const activeMode = ref<"generate" | "trace" | "font_map" | "quantize" | "spatial">(props.scope==='grid'?'font_map':'generate')
+const previewTab = ref<"svg" | "teletext" | "lattice" | "bob" | "ascii" | "inspector" | "spatial">("svg")
 const selectedPreset = ref("mono_blueprint")
 const selectedAspect = ref("16:9")
 const promptText = ref("")
@@ -665,6 +729,7 @@ const quantizeHeight = ref<number>(256)
 const quantizePlanes = ref<number>(2)
 const quantizeThreshold = ref<number>(128)
 const quantizeSourceSvg = ref<string>("")
+const spatialWallHeight = ref<number>(3)
 
 const activePresetMeta = computed(() =>
   PRESETS.find((p) => p.id === (activeAsset.value?.style_preset || selectedPreset.value))
@@ -694,7 +759,7 @@ function aspectCss(ratio: string) {
 async function handleGenerate() {
   if (!promptText.value.trim() || generating.value) return
   generating.value = true
-  statusMessage.value = "Synthesizing vector geometry via uVector..."
+  statusMessage.value = "Synthesizing vector geometry via uCode+..."
   try {
     const res = await generateVectorAsset(promptText.value, selectedPreset.value, selectedAspect.value)
     activeAsset.value = res
@@ -892,6 +957,37 @@ async function handleQuantizeBob() {
   }
 }
 
+async function handleSpatialLift() {
+  generating.value = true
+  statusMessage.value = "Lifting 2D grid into 3D spatial voxel scene via uCode+..."
+  try {
+    const res = await liftSpatialScene({ wall_height: spatialWallHeight.value })
+    if (res.status === "success") {
+      if (!activeAsset.value) {
+        activeAsset.value = {
+          status: "success",
+          model: "ucode_plus_spatial",
+          style_preset: "mono_blueprint",
+          asset_id: `spatial-${Date.now()}`,
+          prompt: `Spatial 3D Voxel Scene (${res.scene.dimensions?.width}×${res.scene.dimensions?.height}×${res.scene.dimensions?.depth})`,
+          spatial: res.scene,
+        }
+        history.value.unshift(activeAsset.value)
+      } else {
+        activeAsset.value.spatial = res.scene
+      }
+      previewTab.value = "spatial"
+      statusMessage.value = `3D Spatial Scene lifted: ${res.scene.total_voxels} voxels (${res.scene.name})`
+    } else {
+      statusMessage.value = "Failed to generate spatial scene"
+    }
+  } catch (err: any) {
+    statusMessage.value = `Spatial lift error: ${err?.message || err}`
+  } finally {
+    generating.value = false
+  }
+}
+
 function copyBobHex() {
   if (!activeAsset.value?.bob?.data_hex) return
   navigator.clipboard.writeText(activeAsset.value.bob.data_hex)
@@ -965,6 +1061,13 @@ async function saveToVault() {
   padding: var(--usx-spacing-md);
   width: 100%;
 }
+
+.banana-studio__heading {
+  display: grid;
+  gap: var(--usx-spacing-xs);
+}
+
+.banana-studio__heading > * { margin: 0; }
 
 .banana-studio__hero {
   background: var(--usx-color-surface);
@@ -1041,7 +1144,7 @@ async function saveToVault() {
 .banana-studio__mode-desc {
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
-  margin-top: 0;
+  margin: 0;
 }
 
 .banana-studio__workspace {
@@ -1061,6 +1164,15 @@ async function saveToVault() {
   gap: var(--usx-spacing-sm);
 }
 
+.banana-studio__mode-section {
+  display: grid;
+  gap: var(--usx-spacing-sm);
+}
+
+.banana-studio__mode-section > .banana-studio__section-title:not(:first-child) {
+  margin-block-start: var(--usx-spacing-sm);
+}
+
 .banana-studio__section-title {
   font-size: var(--usx-font-size-sm);
   font-weight: var(--usx-font-weight-semibold);
@@ -1072,53 +1184,66 @@ async function saveToVault() {
 
 .banana-studio__presets {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--usx-spacing-xs);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: var(--usx-spacing-sm);
 }
 
-.banana-studio__preset-card {
-  display: flex;
-  justify-content: flex-start;
-  color: var(--usx-color-on-surface);
-  align-items: center;
-  gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+.usx-btn.banana-studio__preset-card {
+  display: flow-root;
+  align-content: start;
+  min-width: 0;
+  padding: var(--usx-spacing-sm);
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-sm);
   background: var(--usx-color-surface-variant);
-  cursor: pointer;
+  color: var(--usx-color-on-surface);
   text-align: left;
-  transition: border-color 0.15s, background-color 0.15s;
+  white-space: normal;
+  box-shadow: none;
+  text-shadow: none;
+  filter: none;
 }
 
-.banana-studio__preset-card:hover {
-  background: var(--usx-color-surface-hover);
+.usx-btn.banana-studio__preset-card:hover {
+  border-color: var(--usx-color-on-surface-muted);
+  box-shadow: none;
+  filter: none;
 }
 
-.banana-studio__preset-card--active {
+.usx-btn.banana-studio__preset-card--active,
+.usx-btn.banana-studio__preset-card--active:hover {
   border-color: var(--usx-color-primary);
-  background: var(--usx-color-surface-selected, rgba(0, 180, 216, 0.1));
 }
 
-.banana-studio__preset-swatch {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--usx-radius-sm);
-  border: 1px solid;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+.usx-btn.banana-studio__preset-card:focus-visible {
+  border-color: var(--usx-color-primary);
+  border-style: dashed;
+  outline: none;
+  box-shadow: none;
+}
+
+.banana-studio__preset-icon {
+  float: inline-start;
+  display: grid;
+  place-items: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  margin-inline-end: var(--usx-spacing-sm);
+  margin-block-end: var(--usx-spacing-xs);
+  color: var(--usx-color-on-surface);
 }
 
 .banana-studio__preset-name {
   font-size: var(--usx-font-size-sm);
   font-weight: var(--usx-font-weight-semibold);
+  line-height: 1.25;
 }
 
 .banana-studio__preset-desc {
+  margin-top: var(--usx-spacing-xs);
   font-size: var(--usx-font-size-xs);
   color: var(--usx-color-on-surface-muted);
+  line-height: 1.4;
 }
 
 .banana-studio__textarea,

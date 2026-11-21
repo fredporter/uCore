@@ -31,6 +31,7 @@
         <p v-if="preferences.syncError" role="status">{{ preferences.syncError }} · Settings are kept on this device.</p>
       </section>
       <AppsManagerPanel v-if="currentTab === 'apps'" />
+      <GitHubCIPanel v-if="currentTab === 'github'" />
       <!-- Pages Browser -->
       <div v-if="currentTab === 'pages'" class="system-panel system-tab-shell">
         <h3 class="surface__panel-title">System Pages</h3>
@@ -76,13 +77,7 @@
               class="system-readiness-item"
             >
               <span class="system-readiness-cap">{{ cap.capability }}</span>
-              <form v-if="cap.capability === 'llm.openrouter'" class="readiness-repair" @submit.prevent="saveOpenRouterModel">
-                <label for="openrouter-model">OpenRouter model</label>
-                <input id="openrouter-model" v-model="openRouterModel" placeholder="provider/model" required />
-                <button class="usx-btn" type="submit" :disabled="repairingOpenRouter">Save and re-check</button>
-                <p v-if="openRouterRepairError" role="alert">{{ openRouterRepairError }}</p>
-              </form>
-              <span v-else class="system-readiness-action">
+              <span class="system-readiness-action">
                 {{
                   cap.repair?.[0]?.action ||
                   "Complete repair steps and re-check."
@@ -91,7 +86,18 @@
             </li>
           </ul>
 
-          <button class="usx-btn system-action-btn" @click="fetchReadiness">
+          <div class="system-readiness-summary">
+            <span>Ollama: {{ checkingOllama ? "checking" : ollama?.online ? `online · ${ollama.models.length} installed models` : "unavailable" }}</span>
+            <span>OpenRouter (optional): {{ openRouterReadiness?.ready ? "configured" : openRouterReadiness ? "setup needed" : "not checked" }}</span>
+          </div>
+          <p class="system-muted-copy">Provider checks report host availability and configuration. They do not verify uCode+ inference.</p>
+          <form v-if="openRouterReadiness && !openRouterReadiness.ready" class="readiness-repair" @submit.prevent="saveOpenRouterModel">
+            <label for="openrouter-model">OpenRouter model</label>
+            <input id="openrouter-model" v-model="openRouterModel" placeholder="provider/model" required />
+            <button class="usx-btn" type="submit" :disabled="repairingOpenRouter">Save and re-check</button>
+            <p v-if="openRouterRepairError" role="alert">{{ openRouterRepairError }}</p>
+          </form>
+          <button class="usx-btn system-action-btn" @click="refreshReadiness">
             Re-check readiness
           </button>
         </div>
@@ -143,6 +149,10 @@
 
       <section v-if="currentTab === 'configuration'" class="system-panel system-tab-shell">
         <h3 class="surface__panel-title">Device</h3>
+        <p v-if="installVariablesError" class="system-muted-copy" role="status">{{ installVariablesError }}</p>
+        <button v-if="installVariablesError" type="button" class="usx-btn" :disabled="loadingInstallVariables" @click="fetchVariables">
+          <UIcon name="refresh" /> Retry device details
+        </button>
         <div class="system-settings-form">
           <div v-if="installVariables.hostname" class="settings-row"><span>Hostname</span><output>{{ installVariables.hostname }}</output></div>
           <div v-if="installVariables.platform" class="settings-row"><span>Platform</span><output>{{ installVariables.platform }}</output></div>
@@ -171,8 +181,11 @@
         <p class="system-muted-copy">
           Encrypted secret storage. Values are masked by default.
         </p>
-        <h4 class="system-section-title">GitHub publishing</h4>
-        <p class="system-muted-copy">{{ loadingSecrets ? 'Checking credentials…' : secrets.some(secret => secret.key === 'GITHUB_TOKEN') ? 'GitHub token stored' : 'Add a GitHub token for publishing.' }}</p>
+        <h4 class="system-section-title">GitHub integration token</h4>
+        <p class="system-muted-copy">{{ loadingSecrets ? 'Loading credentials…' : secrets.some(secret => secret.key === 'GITHUB_TOKEN') ? 'GitHub token stored. Connection status is unverified.' : 'Add a token for uCore integrations.' }}</p>
+        <p class="system-muted-copy">Git pushes use the credentials configured in your development environment.</p>
+        <p v-if="secretSaveError" class="system-muted-copy" role="alert">{{ secretSaveError }}</p>
+        <p v-if="secretSaved" class="system-muted-copy" role="status">{{ secretSaved }}</p>
         <button type="button" class="usx-btn" @click="newSecretKey = 'GITHUB_TOKEN'; newSecretValue = ''; showAddSecret = true"><UIcon name="key" />Set GitHub token</button>
         <div class="system-secrets-actions">
           <button class="system-action-btn" @click="showAddSecret = true">
@@ -194,7 +207,7 @@
             type="password"
             class="system-var-input"
           />
-          <button class="system-save-btn" @click="addSecret">Save</button>
+          <button class="system-save-btn" :disabled="savingSecret || !newSecretKey.trim() || !newSecretValue.trim()" @click="addSecret">{{ savingSecret ? 'Saving…' : 'Save' }}</button>
           <button class="system-edit-btn" @click="showAddSecret = false">
             Cancel
           </button>
@@ -329,6 +342,7 @@ export const SYSTEM_TABS: TabDef[] = [
   { id: "preferences", label: "Settings", icon: "tune" },
   { id: "apps", label: "Apps", icon: "apps" },
   { id: "pages", label: "Pages", icon: "dashboard" },
+  { id: "github", label: "GitHub", icon: "code" },
   { id: "configuration", label: "Configuration", icon: "tune" },
   { id: "identity", label: "Profiles", icon: "person" },
 ];
@@ -337,6 +351,7 @@ export const SYSTEM_TABS: TabDef[] = [
 <script setup lang="ts">
 import { computed, ref, reactive, watch, onMounted } from "vue";
 import OAuthSettingsPanel from "./OAuthSettingsPanel.vue";
+import GitHubCIPanel from "./GitHubCIPanel.vue";
 import { useRouter, useRoute } from "vue-router";
 import { useSettingsStore } from "../../stores/settings";
 import { useShellStore } from "../../stores/shell";
@@ -392,9 +407,11 @@ const readinessError = ref("");
 
 const blockedCapabilities = computed<CapabilityPreflightResult[]>(() => {
   return (readinessSnapshot.value?.capabilities || []).filter(
-    (cap) => !cap.ready,
+    (cap) => !cap.ready && cap.capability !== "llm.openrouter",
   );
 });
+
+const openRouterReadiness = computed(() => readinessSnapshot.value?.capabilities.find(cap => cap.capability === "llm.openrouter"));
 
 const readinessBlockedCount = computed(() => blockedCapabilities.value.length);
 
@@ -408,6 +425,8 @@ function goTo(path: string) {
 
 // ── Variables ────────────────────────────────────────────────────
 const installVariables = ref<Record<string, string>>({});
+const installVariablesError = ref("");
+const loadingInstallVariables = ref(false);
 const ollama = ref<{ online: boolean; models: { name: string }[] } | null>(null);
 const checkingOllama = ref(false);
 
@@ -423,6 +442,9 @@ const revealingSecret = ref<string | null>(null);
 const showAddSecret = ref(false);
 const newSecretKey = ref("");
 const newSecretValue = ref("");
+const savingSecret = ref(false);
+const secretSaveError = ref("");
+const secretSaved = ref("");
 
 function toggleRevealSecret(key: string) {
   if (revealingSecret.value === key) {
@@ -435,20 +457,33 @@ function toggleRevealSecret(key: string) {
 async function addSecret() {
   const key = newSecretKey.value.trim();
   const value = newSecretValue.value.trim();
-  if (!key || !value) return;
+  if (!key || !value || savingSecret.value) return;
+  savingSecret.value = true;
+  secretSaveError.value = "";
+  secretSaved.value = "";
   try {
-    const res = await fetch(`${API_BASE}/api/secrets/${key}`, {
+    const res = await fetch(`${API_BASE}/api/secrets/${encodeURIComponent(key)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ value }),
     });
-    if (res.ok) {
-      secrets.value.push({ key, scope: "user", value: "••••••••" });
-      newSecretKey.value = "";
-      newSecretValue.value = "";
-      showAddSecret.value = false;
+    if (!res.ok) {
+      secretSaveError.value = `The secret could not be saved (HTTP ${res.status}). Check the local service and try again.`;
+      return;
     }
-  } catch {}
+    const existing = secrets.value.findIndex(secret => secret.key === key);
+    const updated = { key, scope: secrets.value[existing]?.scope ?? "user", value: "••••••••" };
+    if (existing < 0) secrets.value.push(updated);
+    else secrets.value[existing] = updated;
+    newSecretKey.value = "";
+    newSecretValue.value = "";
+    showAddSecret.value = false;
+    secretSaved.value = `${key} saved to the uCore Secret Store.`;
+  } catch {
+    secretSaveError.value = "The local secret service is unavailable. Check the connection and retry.";
+  } finally {
+    savingSecret.value = false;
+  }
 }
 
 async function deleteSecret(key: string) {
@@ -592,6 +627,11 @@ async function saveOpenRouterModel() {
   }
 }
 
+function refreshReadiness() {
+  void fetchReadiness();
+  void fetchOllamaStatus();
+}
+
 async function fetchReadiness() {
   readinessLoading.value = true;
   readinessError.value = "";
@@ -617,15 +657,22 @@ async function fetchReadiness() {
 }
 
 async function fetchVariables() {
+  if (loadingInstallVariables.value) return;
+  loadingInstallVariables.value = true;
   try {
-    const res = await fetch(`${API_BASE}/api/variables`, {
+    const res = await fetch(`${API_BASE}/api/variables/install`, {
       signal: AbortSignal.timeout(3000),
     });
-    if (res.ok) {
-      const data = await res.json();
-      installVariables.value = data.installation || {};
-    }
-  } catch {}
+    if (!res.ok) throw new Error("Device details unavailable");
+    const data = await res.json();
+    if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Invalid device details");
+    installVariables.value = data;
+    installVariablesError.value = "";
+  } catch {
+    installVariablesError.value = "Device details are unavailable. Timezone and appearance still use your current device settings.";
+  } finally {
+    loadingInstallVariables.value = false;
+  }
 }
 
 async function fetchOllamaStatus() {

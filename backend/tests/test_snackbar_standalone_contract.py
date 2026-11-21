@@ -34,7 +34,7 @@ def test_launcher_discovery_hides_absent(tmp_path):
         assert item["installed"] is True
         assert item["id"] in ("obsidian", "ucore", "ucode", "ucode2", "udos-publishing", "ucore-publish",
                               "homenest", "uvector", "groovebox", "sonicscrewdriver",
-                              "snackmachine", "apple-notes", "apple-reminders", "apple-calendar", "apple-mail")
+                              "snackmachine", "apple-notes", "apple-reminders", "apple-calendar", "apple-mail", "ucode_plus")
 
     all_items = get_active_launchers(include_absent=True)
     assert len(all_items) >= len(launchers)

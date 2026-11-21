@@ -633,11 +633,11 @@
                 <button
                   class="usx-btn usx-btn--primary wf-zen-primary"
                   type="button"
-                  :disabled="publishingEdition === ed.edition"
+                  :disabled="publishingEdition !== null"
                   @click="publishEdition(ed.edition)"
                 >
                   <UIcon name="public" />
-                  {{ publishingEdition === ed.edition ? 'Publishing...' : 'Publish Static Site' }}
+                  {{ publishingEdition === ed.edition ? 'Exporting…' : 'Export to Public' }}
                 </button>
               </div>
               <section v-if="editionLinkPreview?.binder === selectedBinderId && editionLinkPreview.edition === ed.edition"
@@ -672,7 +672,7 @@
             </div>
           </div>
 
-          <div v-if="publicationReceipt" class="publication-receipt-card">
+          <div v-if="publicationReceipt?.binder_id === selectedBinderId" class="publication-receipt-card" role="status">
             <header>
               <UIcon name="check_circle" />
               <strong>Publication receipt</strong>
@@ -681,12 +681,7 @@
               <div><strong>Target:</strong> {{ publicationReceipt.target }}</div>
               <div><strong>Published At:</strong> {{ publicationReceipt.published_at }}</div>
               <div><strong>Static Output:</strong> <code>{{ publicationReceipt.output_path }}</code></div>
-              <div>
-                <strong>Local URL:</strong>
-                <a :href="publicationReceipt.output_url" target="_blank" rel="noopener">
-                  {{ publicationReceipt.output_url }}
-                </a>
-              </div>
+              <p>Open the static output in your local file browser.</p>
             </div>
           </div>
         </section>
@@ -1138,23 +1133,28 @@ async function reviewEditionLinks(edition: number) {
 }
 
 async function publishEdition(edNum: number) {
-  if (!selectedBinderId.value) return;
+  const binder = selectedBinderId.value;
+  if (!binder || publishingEdition.value !== null) return;
   publishingEdition.value = edNum;
+  publicationReceipt.value = null;
   errorMessage.value = "";
   successMessage.value = "";
   try {
-    const res = await fetch(`/api/binder/${encodeURIComponent(selectedBinderId.value)}/publish`, {
+    const res = await fetch(`/api/binder/${encodeURIComponent(binder)}/publish`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ edition: edNum, target: "local_static" }),
     });
-    if (!res.ok) throw new Error(`Publish failed (${res.status})`);
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Export failed (${res.status})`);
+    if (selectedBinderId.value !== binder) return;
     publicationReceipt.value = data.receipt;
-    successMessage.value = `Edition ${edNum} successfully published to ~/Public/editions!`;
+    successMessage.value = `Edition ${edNum} exported to the local Public editions folder.`;
     await loadActiveBinder();
-  } catch (e: any) {
-    errorMessage.value = e.message || String(e);
+  } catch (error) {
+    if (selectedBinderId.value === binder) {
+      errorMessage.value = error instanceof Error ? error.message : "Could not export the edition";
+    }
   } finally {
     publishingEdition.value = null;
   }

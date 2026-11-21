@@ -4,27 +4,27 @@
     <header class="bitchat-toolbar">
       <div class="bitchat-toolbar__left">
         <h1 class="bitchat-title">BitChat</h1>
-        <UBadge type="success" size="sm">Decentralized LAN Mesh</UBadge>
+        <p>Local mesh messaging</p>
       </div>
 
       <div class="bitchat-toolbar__center">
         <div class="bitchat-status-indicator" :class="{ 'is-live': isWsConnected }">
           <span class="bitchat-status-dot"></span>
-          <span class="bitchat-status-text font-mono">
-            {{ isWsConnected ? 'LIVE MESH (WS)' : 'MESH POLLING' }}
+          <span class="bitchat-status-text">
+            {{ isWsConnected ? 'Live mesh' : 'Polling mesh' }}
           </span>
         </div>
-        <span class="bitchat-node-info font-mono text-zinc-400 text-xs">
+        <span class="bitchat-node-info">
           Node: {{ localNodeName || 'Initializing...' }}
         </span>
       </div>
 
       <div class="bitchat-toolbar__right">
-        <button class="usx-btn usx-btn--sm usx-btn--primary bitchat-btn bitchat-btn--accent" @click="triggerBeacon" :disabled="isBroadcasting">
+        <button class="usx-btn usx-btn--sm usx-btn--primary" @click="triggerBeacon" :disabled="isBroadcasting">
           <UIcon name="cell_tower" />
           <span>{{ isBroadcasting ? 'Beaconing...' : 'Announce Beacon' }}</span>
         </button>
-        <button class="usx-btn usx-btn--sm usx-btn--secondary bitchat-btn" @click="refreshAll" title="Refresh peers and messages">
+        <button class="usx-btn usx-btn--sm usx-btn--secondary" @click="refreshAll" title="Refresh peers and messages">
           <UIcon name="refresh" />
           <span>Refresh</span>
         </button>
@@ -44,13 +44,13 @@
             <button
               v-for="ch in channels"
               :key="ch.id"
-              class="bitchat-channel-item"
-              :class="{ active: currentChannel === ch.id }"
+              class="usx-btn bitchat-channel-item"
+              :aria-pressed="currentChannel === ch.id"
               @click="switchChannel(ch.id)"
             >
-              <span class="bitchat-channel-hash">#</span>
+              <UIcon name="tag" aria-hidden="true" />
               <span class="bitchat-channel-name">{{ ch.name }}</span>
-              <span v-if="ch.id === currentChannel && messages.length > 0" class="bitchat-channel-badge font-mono">
+              <span v-if="ch.id === currentChannel && messages.length > 0" class="bitchat-channel-badge">
                 {{ messages.length }}
               </span>
             </button>
@@ -61,11 +61,11 @@
         <div class="bitchat-section bitchat-section--peers">
           <div class="bitchat-section__header">
             <span class="bitchat-section__title">LAN MESH PEERS ({{ peers.length }})</span>
-            <button class="usx-btn usx-btn--sm bitchat-btn-mini font-mono" @click="loadPeers" title="Scan LAN Subnet">Scan</button>
+            <button class="usx-btn usx-btn--sm" @click="loadPeers" title="Refresh LAN peers"><UIcon name="radar" /> Scan</button>
           </div>
 
           <div class="bitchat-peer-list">
-            <div v-if="peers.length === 0" class="bitchat-empty-peers font-mono text-zinc-500 text-xs p-3">
+            <div v-if="peers.length === 0" class="bitchat-empty-peers">
               Scanning local subnet...
             </div>
             <div
@@ -76,12 +76,12 @@
             >
               <div class="bitchat-peer-header">
                 <span class="bitchat-peer-dot" :class="`peer-${peer.status}`"></span>
-                <span class="bitchat-peer-name font-medium">{{ peer.node_name }}</span>
-                <span v-if="peer.is_local" class="bitchat-badge-self font-mono">HOST</span>
+                <span class="bitchat-peer-name">{{ peer.node_name }}</span>
+                <span v-if="peer.is_local" class="bitchat-badge-self">HOST</span>
               </div>
-              <div class="bitchat-peer-meta font-mono text-zinc-400 text-xs">
+              <div class="bitchat-peer-meta">
                 <span>{{ peer.ip }}:{{ peer.port }}</span>
-                <span class="bitchat-peer-status font-semibold" :class="`status-text-${peer.status}`">
+                <span class="bitchat-peer-status" :class="`status-text-${peer.status}`">
                   {{ peer.status.toUpperCase() }}
                 </span>
               </div>
@@ -96,24 +96,24 @@
       </aside>
 
       <!-- Center: Message Stream & Composer -->
-      <main class="bitchat-main">
+      <section class="bitchat-main" aria-label="Conversation">
         <!-- Chat Header Bar -->
         <div class="bitchat-chat-header">
           <div class="bitchat-chat-title-group">
-            <span class="bitchat-chat-title font-mono">{{ currentChannel }}</span>
-            <span class="bitchat-chat-desc text-zinc-400 text-xs">
+            <span class="bitchat-chat-title">{{ currentChannel }}</span>
+            <span class="bitchat-chat-desc">
               Nearby messaging
             </span>
           </div>
 
           <!-- Selection Controls for "Save to Binder" -->
           <div class="bitchat-selection-actions">
-            <span v-if="selectedMsgIds.length > 0" class="font-mono text-xs text-emerald-400">
+            <span v-if="selectedMsgIds.length > 0" class="bitchat-muted">
               {{ selectedMsgIds.length }} selected
             </span>
             <button
               v-if="selectedMsgIds.length > 0"
-              class="usx-btn usx-btn--sm usx-btn--primary bitchat-btn bitchat-btn--primary font-mono text-xs"
+              class="usx-btn usx-btn--sm usx-btn--primary"
               @click="openSaveToBinderModal"
             >
               <UIcon name="folder" />
@@ -121,7 +121,7 @@
             </button>
             <button
               v-if="selectedMsgIds.length > 0"
-              class="usx-btn usx-btn--sm usx-btn--secondary bitchat-btn bitchat-btn--ghost font-mono text-xs"
+              class="usx-btn usx-btn--sm usx-btn--secondary"
               @click="clearSelection"
             >
               Clear
@@ -136,7 +136,7 @@
               <UIcon name="forum" />
             </div>
             <div class="bitchat-empty-title">No messages in {{ currentChannel }} yet</div>
-            <div class="bitchat-empty-subtitle text-zinc-400 text-xs">
+            <div class="bitchat-empty-subtitle">
               Broadcast a message across your local mesh network or save notes into your binders.
             </div>
           </div>
@@ -152,44 +152,42 @@
               <input
                 type="checkbox"
                 :checked="selectedMsgIds.includes(msg.msg_id)"
+                :aria-label="`Select message from ${msg.sender_name}`"
                 @change="toggleSelectMessage(msg.msg_id)"
               />
             </label>
 
-            <!-- Message Body -->
-            <div class="bitchat-msg-content-wrap">
-              <div class="bitchat-msg-header">
-                <span class="bitchat-msg-sender font-medium">{{ msg.sender_name }}</span>
-                <span class="bitchat-msg-time font-mono text-xs text-zinc-400">
-                  {{ formatTimestamp(msg.timestamp) }}
-                </span>
-                <span v-if="msg.saved_to_binder" class="bitchat-tag bitchat-tag--saved font-mono" title="Saved to Binder Evidence">
-                  <UIcon name="folder" /> EVIDENCE
-                </span>
-                <span v-if="msg.task_id" class="bitchat-tag bitchat-tag--task font-mono" title="Linked task">
-                  <UIcon name="bolt" /> {{ msg.task_id }}
-                </span>
-              </div>
+            <div class="bitchat-msg-header">
+              <span class="bitchat-msg-sender">{{ msg.sender_name }}</span>
+              <span class="bitchat-msg-time">
+                {{ formatTimestamp(msg.timestamp) }}
+              </span>
+              <span v-if="msg.saved_to_binder" class="bitchat-tag bitchat-tag--saved" title="Saved to Binder Evidence">
+                <UIcon name="folder" /> EVIDENCE
+              </span>
+              <span v-if="msg.task_id" class="bitchat-tag bitchat-tag--task" title="Linked task">
+                <UIcon name="bolt" /> {{ msg.task_id }}
+              </span>
+            </div>
 
-              <div class="bitchat-msg-body">{{ msg.content }}</div>
+            <div class="bitchat-msg-body">{{ msg.content }}</div>
 
-              <!-- Message Quick Actions -->
-              <div class="bitchat-msg-actions">
-                <button
-                  class="usx-btn usx-btn--sm usx-btn--secondary bitchat-msg-btn font-mono"
-                  @click="openConvertTaskModal(msg)"
-                  title="Promote to .tasker markdown task"
-                >
-                  <UIcon name="bolt" /> Convert to Task
-                </button>
-                <button
-                  class="usx-btn usx-btn--sm usx-btn--secondary bitchat-msg-btn font-mono"
-                  @click="quickSaveSingleToBinder(msg)"
-                  title="Save single message to binder evidence"
-                >
-                  <UIcon name="folder" /> Save to Binder
-                </button>
-              </div>
+            <!-- Message Quick Actions -->
+            <div class="bitchat-msg-actions">
+              <button
+                class="usx-btn usx-btn--sm usx-btn--secondary"
+                @click="openConvertTaskModal(msg)"
+                title="Promote to .tasker markdown task"
+              >
+                <UIcon name="bolt" /> Convert to Task
+              </button>
+              <button
+                class="usx-btn usx-btn--sm usx-btn--secondary"
+                @click="quickSaveSingleToBinder(msg)"
+                title="Save single message to binder evidence"
+              >
+                <UIcon name="folder" /> Save to Binder
+              </button>
             </div>
           </div>
         </div>
@@ -197,12 +195,13 @@
         <!-- Input Composer -->
         <footer class="bitchat-composer">
           <div class="bitchat-composer-sender">
-            <label class="text-zinc-400 text-xs font-mono">From:</label>
+            <label class="bitchat-muted" for="bitchat-sender">From</label>
             <input
               type="text"
+              id="bitchat-sender"
               v-model="senderName"
               placeholder="Your identity..."
-              class="bitchat-input-sender font-mono"
+              class="bitchat-input-sender"
             />
           </div>
 
@@ -213,10 +212,11 @@
               rows="2"
               placeholder="Type a message... (Press Enter to broadcast)"
               class="bitchat-textarea"
+              aria-label="Message"
             ></textarea>
 
             <button
-              class="usx-btn usx-btn--primary bitchat-btn bitchat-btn--send font-mono"
+              class="usx-btn usx-btn--primary bitchat-send"
               :disabled="!draftText.trim()"
               @click="handleSendMessage"
             >
@@ -225,42 +225,42 @@
             </button>
           </div>
         </footer>
-      </main>
+      </section>
     </div>
 
     <!-- Modal: Save to Binder -->
     <div v-if="showSaveBinderModal" class="bitchat-modal-backdrop" @click.self="showSaveBinderModal = false">
-      <div class="bitchat-modal">
+      <div class="bitchat-modal" role="dialog" aria-modal="true" aria-labelledby="bitchat-save-heading">
         <div class="bitchat-modal-header">
-          <h3>Save Discussion Evidence to Binder</h3>
+          <h3 id="bitchat-save-heading">Save Discussion Evidence to Binder</h3>
           <button class="usx-btn usx-btn--ghost bitchat-modal-close" aria-label="Close" @click="showSaveBinderModal = false">
             <UIcon name="close" />
           </button>
         </div>
         <div class="bitchat-modal-body">
-          <p class="text-xs text-zinc-400 mb-3">
+          <p class="bitchat-muted">
             Saves {{ selectedMsgIds.length }} message(s) as Markdown. Leave Binder blank to save in Sandbox.
           </p>
 
-          <label class="bitchat-modal-label">Binder ID (optional)</label>
+          <label class="bitchat-modal-label" for="bitchat-binder-id">Binder ID (optional)</label>
           <input
             type="text"
-            v-model="binderName"
+            id="bitchat-binder-id" v-model="binderName"
             placeholder="e.g. research"
-            class="bitchat-input mb-3"
+            class="bitchat-input"
           />
 
-          <label class="bitchat-modal-label">Discussion Title</label>
+          <label class="bitchat-modal-label" for="bitchat-evidence-title">Discussion Title</label>
           <input
             type="text"
-            v-model="evidenceTitle"
+            id="bitchat-evidence-title" v-model="evidenceTitle"
             placeholder="e.g. Protocol Consensus & Architecture Notes"
-            class="bitchat-input mb-3"
+            class="bitchat-input"
           />
         </div>
         <div class="bitchat-modal-footer">
-          <button class="usx-btn bitchat-btn bitchat-btn--ghost" @click="showSaveBinderModal = false">Cancel</button>
-          <button class="usx-btn usx-btn--primary bitchat-btn bitchat-btn--primary" @click="executeSaveToBinder">
+          <button class="usx-btn usx-btn--secondary" @click="showSaveBinderModal = false">Cancel</button>
+          <button class="usx-btn usx-btn--primary" @click="executeSaveToBinder">
             Save Evidence
           </button>
         </div>
@@ -269,50 +269,50 @@
 
     <!-- Modal: Convert to Task -->
     <div v-if="showConvertTaskModal" class="bitchat-modal-backdrop" @click.self="showConvertTaskModal = false">
-      <div class="bitchat-modal">
+      <div class="bitchat-modal" role="dialog" aria-modal="true" aria-labelledby="bitchat-task-heading">
         <div class="bitchat-modal-header">
-          <h3>Convert Action Item to Task</h3>
+          <h3 id="bitchat-task-heading">Convert Action Item to Task</h3>
           <button class="usx-btn usx-btn--ghost bitchat-modal-close" aria-label="Close" @click="showConvertTaskModal = false">
             <UIcon name="close" />
           </button>
         </div>
         <div class="bitchat-modal-body" v-if="activeTaskMsg">
-          <div class="bitchat-task-preview mb-3 p-3 bg-zinc-900 border border-zinc-800 rounded">
-            <span class="text-xs font-mono text-zinc-500">ORIGINAL MESSAGE:</span>
-            <p class="text-sm mt-1 text-zinc-200">{{ activeTaskMsg.content }}</p>
+          <div class="bitchat-task-preview">
+            <span>ORIGINAL MESSAGE:</span>
+            <p>{{ activeTaskMsg.content }}</p>
           </div>
 
-          <label class="bitchat-modal-label">Target Board</label>
-          <select v-model="taskBoard" class="bitchat-input mb-3">
+          <label class="bitchat-modal-label" for="bitchat-target-board">Target Board</label>
+          <select id="bitchat-target-board" v-model="taskBoard" class="bitchat-input">
             <option value="inbox">Inbox</option>
             <option value="today">Today</option>
             <option value="backlog">Backlog</option>
           </select>
 
-          <label class="bitchat-modal-label">Priority</label>
-          <select v-model="taskPriority" class="bitchat-input mb-3">
+          <label class="bitchat-modal-label" for="bitchat-priority">Priority</label>
+          <select id="bitchat-priority" v-model="taskPriority" class="bitchat-input">
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
             <option value="urgent">Urgent</option>
           </select>
 
-          <label class="bitchat-modal-label">Associated Binder</label>
+          <label class="bitchat-modal-label" for="bitchat-task-binder">Associated Binder</label>
           <input
             type="text"
-            v-model="taskBinder"
+            id="bitchat-task-binder" v-model="taskBinder"
             placeholder="Optional Binder ID"
-            class="bitchat-input mb-3"
+            class="bitchat-input"
           />
 
-          <label class="bitchat-checkbox-row mb-3">
+          <label class="bitchat-checkbox-row">
             <input type="checkbox" v-model="syncAppleReminders" />
-            <span class="text-xs text-zinc-300">Bi-directional Sync to Apple Reminders (via Host PIM)</span>
+            <span>Bi-directional Sync to Apple Reminders (via Host PIM)</span>
           </label>
         </div>
         <div class="bitchat-modal-footer">
-          <button class="usx-btn bitchat-btn bitchat-btn--ghost" @click="showConvertTaskModal = false">Cancel</button>
-          <button class="usx-btn usx-btn--primary bitchat-btn bitchat-btn--primary" @click="executeConvertToTask">
+          <button class="usx-btn usx-btn--secondary" @click="showConvertTaskModal = false">Cancel</button>
+          <button class="usx-btn usx-btn--primary" @click="executeConvertToTask">
             Create task
           </button>
         </div>
@@ -320,7 +320,7 @@
     </div>
 
     <!-- Notification Toast -->
-    <div v-if="toastMessage" class="bitchat-toast font-mono text-xs">
+    <div v-if="toastMessage" class="bitchat-toast" role="status">
       {{ toastMessage }}
     </div>
   </div>
@@ -329,7 +329,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import UIcon from '../../skills/atoms/UIcon.vue'
-import UBadge from '../../skills/atoms/UBadge.vue'
 
 // Channels
 const channels = [
@@ -644,618 +643,331 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--usx-color-bg, #0b0c0e);
-  color: var(--usx-color-text, #e2e4e9);
-  font-family: var(--usx-font-sans, system-ui, sans-serif);
+  min-height: 0;
+  background: var(--usx-color-background);
+  color: var(--usx-color-on-surface);
+  font-family: var(--usx-font-family-sans);
 }
 
-.bitchat-toolbar {
+.bitchat-toolbar,
+.bitchat-toolbar__left,
+.bitchat-toolbar__center,
+.bitchat-toolbar__right,
+.bitchat-chat-header,
+.bitchat-section__header,
+.bitchat-selection-actions,
+.bitchat-peer-header,
+.bitchat-peer-meta,
+.bitchat-peer-services,
+.bitchat-msg-header,
+.bitchat-msg-actions,
+.bitchat-composer-sender,
+.bitchat-composer-input-row,
+.bitchat-modal-header,
+.bitchat-modal-footer,
+.bitchat-checkbox-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-sm);
+}
+
+.bitchat-toolbar,
+.bitchat-chat-header,
+.bitchat-section__header,
+.bitchat-peer-meta,
+.bitchat-modal-header {
   justify-content: space-between;
-  padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(18, 20, 24, 0.95);
-  backdrop-filter: blur(8px);
 }
 
-.bitchat-toolbar__left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+.bitchat-toolbar,
+.bitchat-chat-header,
+.bitchat-composer,
+.bitchat-modal-header,
+.bitchat-modal-footer {
+  padding: var(--usx-spacing-md);
+  background: var(--usx-color-surface);
+}
+
+.bitchat-toolbar,
+.bitchat-chat-header,
+.bitchat-modal-header {
+  border-block-end: var(--usx-border-width) solid var(--usx-color-border);
+}
+
+.bitchat-title,
+.bitchat-toolbar p,
+.bitchat-modal h3,
+.bitchat-modal p {
+  margin: 0;
 }
 
 .bitchat-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: var(--usx-font-size-lg);
 }
 
-.bitchat-badge {
-  font-size: 0.7rem;
-  padding: 0.15rem 0.45rem;
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 3px;
-}
-
-.bitchat-toolbar__center {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.bitchat-toolbar p,
+.bitchat-muted,
+.bitchat-node-info,
+.bitchat-peer-meta,
+.bitchat-chat-desc,
+.bitchat-empty-subtitle,
+.bitchat-empty-peers,
+.bitchat-msg-time {
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm);
 }
 
 .bitchat-status-indicator {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 9999px;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #fbbf24;
+  gap: var(--usx-spacing-xs);
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
 }
 
-.bitchat-status-indicator.is-live {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #34d399;
+.bitchat-status-indicator.is-live,
+.status-text-online {
+  color: var(--usx-color-success);
 }
 
-.bitchat-status-dot {
-  width: 6px;
-  height: 6px;
+.bitchat-status-dot,
+.bitchat-peer-dot {
+  width: 0.45em;
+  height: 0.45em;
+  flex: none;
   border-radius: 50%;
   background: currentColor;
 }
 
-.bitchat-toolbar__right {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+.peer-online { color: var(--usx-color-success); }
+.peer-idle, .status-text-idle { color: var(--usx-color-warning); }
+.peer-offline, .status-text-offline { color: var(--usx-color-on-surface-muted); }
 
-.bitchat-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: var(--usx-color-text, #e2e4e9);
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.bitchat-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.bitchat-btn--accent {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.4);
-  color: #60a5fa;
-}
-
-.bitchat-btn--accent:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.3);
-}
-
-.bitchat-btn--primary {
-  background: rgba(16, 185, 129, 0.25);
-  border-color: rgba(16, 185, 129, 0.5);
-  color: #34d399;
-}
-
-.bitchat-btn--primary:hover:not(:disabled) {
-  background: rgba(16, 185, 129, 0.35);
-}
-
-.bitchat-btn--ghost {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.bitchat-btn-mini {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #9ca3af;
-  padding: 0.1rem 0.35rem;
-  border-radius: 3px;
-  font-size: 0.65rem;
-  cursor: pointer;
-}
-
-.bitchat-btn-mini:hover {
-  color: #fff;
-  border-color: #fff;
-}
-
-/* ── Workspace ── */
 .bitchat-workspace {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(13rem, 24%) minmax(0, 1fr);
   flex: 1;
-  overflow: hidden;
+  min-height: 0;
 }
 
 .bitchat-sidebar {
-  width: 280px;
-  min-width: 240px;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(14, 15, 18, 0.85);
-  display: flex;
-  flex-direction: column;
+  overflow: auto;
+  border-inline-end: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-surface);
 }
 
-.bitchat-section {
-  padding: 1rem 0.75rem;
+.bitchat-section,
+.bitchat-channel-list,
+.bitchat-peer-list,
+.bitchat-peer-card,
+.bitchat-composer,
+.bitchat-modal-body {
+  display: grid;
+  gap: var(--usx-spacing-sm);
+  min-width: 0;
 }
 
-.bitchat-section--peers {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  flex: 1;
-  overflow-y: auto;
+.bitchat-section,
+.bitchat-feed,
+.bitchat-modal-body {
+  padding: var(--usx-spacing-md);
 }
 
-.bitchat-section__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-  padding: 0 0.25rem;
+.bitchat-section + .bitchat-section,
+.bitchat-composer,
+.bitchat-modal-footer {
+  border-block-start: var(--usx-border-width) solid var(--usx-color-border);
 }
 
-.bitchat-section__title {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: #6b7280;
-}
-
-.bitchat-channel-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.bitchat-channel-item {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 0.4rem 0.6rem;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  color: #9ca3af;
-  cursor: pointer;
-  font-size: 0.85rem;
-  text-align: left;
-  transition: all 0.15s ease;
-}
-
-.bitchat-channel-item:hover {
-  background: rgba(255, 255, 255, 0.04);
-  color: #e2e4e9;
-}
-
-.bitchat-channel-item.active {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font-weight: 600;
-}
-
-.bitchat-channel-hash {
-  color: #4b5563;
-  margin-right: 0.4rem;
-  font-weight: bold;
-}
-
-.bitchat-channel-name {
-  flex: 1;
-}
-
-.bitchat-channel-badge {
-  font-size: 0.65rem;
-  padding: 0.1rem 0.35rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 9999px;
-  color: #9ca3af;
-}
-
-.bitchat-peer-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.bitchat-peer-card {
-  padding: 0.6rem;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.bitchat-peer-card.is-local {
-  border-color: rgba(59, 130, 246, 0.25);
-  background: rgba(59, 130, 246, 0.04);
-}
-
-.bitchat-peer-header {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 0.2rem;
-}
-
-.bitchat-peer-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-.peer-online { background: #34d399; }
-.peer-idle { background: #fbbf24; }
-.peer-offline { background: #6b7280; }
-
-.status-text-online { color: #34d399; }
-.status-text-idle { color: #fbbf24; }
-.status-text-offline { color: #6b7280; }
-
+.bitchat-section__title,
+.bitchat-chat-title,
+.bitchat-msg-sender,
 .bitchat-peer-name {
-  font-size: 0.8rem;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: var(--usx-font-weight-semibold);
 }
 
-.bitchat-badge-self {
-  font-size: 0.6rem;
-  padding: 0.05rem 0.25rem;
-  border-radius: 2px;
-  background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
+.bitchat-wrapper .usx-btn {
+  box-sizing: border-box;
+  min-block-size: var(--usx-touch-min);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  gap: var(--usx-icon-gap);
+  border-radius: var(--usx-radius-sm);
+  font-size: var(--usx-font-size-sm);
+  line-height: var(--usx-line-height-tight);
+  box-shadow: none;
 }
 
-.bitchat-peer-meta {
-  display: flex;
-  justify-content: space-between;
+.bitchat-wrapper .usx-btn--secondary {
+  background: var(--usx-color-surface);
 }
 
-.bitchat-peer-services {
-  display: flex;
-  gap: 0.25rem;
-  margin-top: 0.3rem;
-  flex-wrap: wrap;
+.bitchat-wrapper .usx-btn--primary:hover:not(:disabled) {
+  color: var(--usx-color-on-primary);
 }
 
-.bitchat-service-pill {
-  font-size: 0.6rem;
-  font-family: monospace;
-  background: rgba(255, 255, 255, 0.05);
-  color: #9ca3af;
-  padding: 0.05rem 0.25rem;
-  border-radius: 2px;
+.bitchat-wrapper .usx-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-/* ── Main Chat Pane ── */
-.bitchat-main {
-  flex: 1;
+.bitchat-wrapper .usx-btn:focus-visible {
+  outline: 2px solid var(--usx-color-primary);
+  outline-offset: 2px;
+}
+
+.usx-btn.bitchat-channel-item {
+  width: 100%;
+  justify-content: flex-start;
+  border-color: transparent;
+  background: transparent;
+}
+
+.usx-btn.bitchat-channel-item[aria-pressed="true"],
+.bitchat-msg.is-selected {
+  border-color: var(--usx-color-primary);
+}
+
+.usx-btn.bitchat-channel-item[aria-pressed="true"] {
+  background: var(--usx-color-surface-variant);
+  font-weight: var(--usx-font-weight-semibold);
+}
+
+.bitchat-channel-name { flex: 1; text-align: start; }
+
+.bitchat-peer-card,
+.bitchat-msg,
+.bitchat-task-preview {
+  padding: var(--usx-spacing-sm);
+  background: var(--usx-color-surface);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  overflow-wrap: anywhere;
+}
+
+.bitchat-badge-self,
+.bitchat-service-pill,
+.bitchat-channel-badge,
+.bitchat-tag {
+  padding: var(--usx-spacing-xs);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-xs);
+}
+
+.bitchat-main,
+.bitchat-feed {
   display: flex;
   flex-direction: column;
-  background: var(--usx-color-bg, #0b0c0e);
-}
-
-.bitchat-chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.bitchat-chat-title {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-right: 0.75rem;
-}
-
-.bitchat-selection-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  min-width: 0;
+  min-height: 0;
 }
 
 .bitchat-feed {
   flex: 1;
-  overflow-y: auto;
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  overflow: auto;
+  gap: var(--usx-spacing-sm);
+}
+
+.bitchat-chat-title-group,
+.bitchat-empty-feed {
+  display: grid;
+  gap: var(--usx-spacing-xs);
+  min-width: 0;
 }
 
 .bitchat-empty-feed {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
+  margin: auto;
   text-align: center;
-  color: #6b7280;
-}
-
-.bitchat-empty-icon {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.bitchat-empty-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #9ca3af;
+  justify-items: center;
 }
 
 .bitchat-msg {
-  display: flex;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  transition: all 0.15s ease;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--usx-spacing-sm);
 }
 
-.bitchat-msg:hover {
-  background: rgba(255, 255, 255, 0.04);
-}
+.bitchat-msg-select { grid-column: 1; grid-row: 1; min-height: 0; }
+.bitchat-msg > :not(.bitchat-msg-select) { grid-column: 2; min-width: 0; }
+.bitchat-msg-body { white-space: pre-wrap; }
+.bitchat-wrapper input[type="checkbox"] { accent-color: var(--usx-color-primary); }
 
-.bitchat-msg.is-selected {
-  background: rgba(16, 185, 129, 0.05);
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-.bitchat-msg-select input {
-  cursor: pointer;
-  accent-color: #10b981;
-}
-
-.bitchat-msg-content-wrap {
-  flex: 1;
-}
-
-.bitchat-msg-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.35rem;
-}
-
-.bitchat-msg-sender {
-  font-size: 0.85rem;
-  color: #e5e7eb;
-}
-
-.bitchat-tag {
-  font-size: 0.6rem;
-  padding: 0.05rem 0.3rem;
-  border-radius: 2px;
-}
-
-.bitchat-tag--saved {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.bitchat-tag--task {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-.bitchat-msg-body {
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: #d1d5db;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.bitchat-msg-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  opacity: 0.4;
-  transition: opacity 0.15s ease;
-}
-
-.bitchat-msg:hover .bitchat-msg-actions {
-  opacity: 1;
-}
-
-.bitchat-msg-btn {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #9ca3af;
-  font-size: 0.68rem;
-  padding: 0.15rem 0.45rem;
-  border-radius: 3px;
-  cursor: pointer;
-}
-
-.bitchat-msg-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}
-
-/* ── Composer ── */
-.bitchat-composer {
-  padding: 0.75rem 1.25rem 1rem 1.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(14, 15, 18, 0.95);
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.bitchat-composer-sender {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.bitchat-input-sender {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e2e4e9;
-  font-size: 0.75rem;
-  padding: 0.15rem 0.45rem;
-  border-radius: 3px;
-  width: 140px;
-}
-
-.bitchat-composer-input-row {
-  display: flex;
-  gap: 0.5rem;
-}
-
+.bitchat-input,
+.bitchat-input-sender,
 .bitchat-textarea {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 4px;
-  color: #e2e4e9;
-  font-size: 0.88rem;
-  padding: 0.5rem 0.75rem;
-  outline: none;
-  resize: none;
-  font-family: inherit;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--usx-spacing-sm);
+  background: var(--usx-color-background);
+  color: var(--usx-color-on-surface);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  font: inherit;
 }
 
-.bitchat-textarea:focus {
-  border-color: rgba(59, 130, 246, 0.5);
+.bitchat-input:focus-visible,
+.bitchat-input-sender:focus-visible,
+.bitchat-textarea:focus-visible {
+  outline: var(--usx-border-width) solid var(--usx-color-primary);
+  outline-offset: 1px;
 }
 
-.bitchat-btn--send {
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  padding: 0 1.25rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.15s ease;
+.bitchat-textarea { width: 100%; resize: vertical; }
+.bitchat-composer-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
 }
 
-.bitchat-btn--send:hover:not(:disabled) {
-  background: #1d4ed8;
-}
+.bitchat-composer-input-row .bitchat-send { min-inline-size: 5.5rem; }
 
-.bitchat-btn--send:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* ── Modals ── */
 .bitchat-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   z-index: 999;
-  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: var(--usx-spacing-md);
+  background: color-mix(in srgb, var(--usx-color-background) 75%, transparent);
 }
 
 .bitchat-modal {
-  background: #13151a;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  width: 440px;
-  max-width: 90vw;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
+  width: min(100%, 28rem);
+  max-height: 90dvh;
+  overflow: auto;
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface);
 }
 
-.bitchat-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.85rem 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
+.bitchat-modal-footer { justify-content: flex-end; }
 
-.bitchat-modal-header h3 {
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.bitchat-modal-close {
-  background: transparent;
-  border: none;
-  color: #9ca3af;
-  font-size: 1.2rem;
-  cursor: pointer;
-}
-
-.bitchat-modal-body {
-  padding: 1.25rem;
-}
-
-.bitchat-modal-label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #9ca3af;
-  margin-bottom: 0.25rem;
-}
-
-.bitchat-input {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #e2e4e9;
-  font-size: 0.85rem;
-  padding: 0.45rem 0.65rem;
-  border-radius: 4px;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.bitchat-checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-}
-
-.bitchat-checkbox-row input {
-  accent-color: #10b981;
-}
-
-.bitchat-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.2);
-}
-
-/* ── Toast ── */
 .bitchat-toast {
   position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  background: #1f2937;
-  color: #f3f4f6;
-  border: 1px solid #374151;
-  padding: 0.6rem 1rem;
-  border-radius: 6px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  inset-block-end: var(--usx-spacing-lg);
+  inset-inline-start: var(--usx-spacing-md);
+  max-inline-size: calc(100% - 2 * var(--usx-spacing-md));
   z-index: 1000;
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 680px) {
+  .bitchat-wrapper { overflow: auto; }
+  .bitchat-workspace { grid-template-columns: minmax(0, 1fr); flex: none; }
+  .bitchat-sidebar {
+    max-block-size: 14rem;
+    border-inline-end: 0;
+    border-block-end: var(--usx-border-width) solid var(--usx-color-border);
+  }
+  .bitchat-main { min-block-size: 24rem; }
+  .bitchat-feed { max-block-size: 50dvh; }
 }
 </style>

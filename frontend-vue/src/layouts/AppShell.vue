@@ -1,6 +1,8 @@
 <template>
   <div v-if="isStandalone" class="app-shell app-shell--standalone">
-    <router-view />
+    <SurfaceErrorBoundary>
+      <router-view />
+    </SurfaceErrorBoundary>
   </div>
   <div v-else ref="shellEl" class="app-shell" :class="{ 'sidebar-open': globalSidebarOpen }">
     <GlobalToolbar
@@ -33,18 +35,17 @@
       }"
     >
       <aside v-if="globalSidebarOpen" class="app-sidebar">
-        <template v-if="isKnowledgeReader">
-          <SidebarModeSwitch />
-          <WorkflowNavigator v-if="shell.sidebarMode !== 'vault'" :mission-mode="shell.sidebarMode === 'mission'" />
-          <div v-show="shell.sidebarMode === 'vault'" id="global-library-browser" class="app-sidebar__library" />
-        </template>
-        <FilepickerSidebar v-else
+        <FilepickerSidebar
+          :reader="isKnowledgeReader"
           @file-select="handleFileSelect"
           @new-file="handleNewFile"
         />
       </aside>
       <main class="app-main">
-        <router-view />
+        <RecoverySurface v-if="runtimeWarning && route.matched.length === 0" unavailable @retry="reloadPage" />
+        <SurfaceErrorBoundary v-else>
+          <router-view />
+        </SurfaceErrorBoundary>
       </main>
     </div>
     </div>
@@ -80,9 +81,9 @@ import { useToast } from "../composables/useToast";
 import { useWorkspaceStore } from "../stores/workspace";
 import { useWorkflowStore } from "../stores/workflow";
 import { useRouter, useRoute } from "vue-router";
+import SurfaceErrorBoundary from "./SurfaceErrorBoundary.vue";
+import RecoverySurface from "../surfaces/recovery/RecoverySurface.vue";
 import GlobalToolbar from "../skills/organisms/GlobalToolbar.vue";
-import SidebarModeSwitch from "../skills/molecules/SidebarModeSwitch.vue";
-import WorkflowNavigator from "../skills/molecules/WorkflowNavigator.vue";
 import FilepickerSidebar from "../skills/molecules/FilepickerSidebar.vue";
 import SnackbarHost from "../skills/molecules/SnackbarHost.vue";
 import OverlayLayer from "../skills/organisms/OverlayLayer.vue";
@@ -106,7 +107,7 @@ const { toast } = useToast();
 const shellEl = ref<HTMLElement | null>(null);
 useSwipe(shellEl, { right: () => shell.setSidebarOpen(true), left: () => shell.setSidebarOpen(false) });
 const RUNTIME_WARNING_KEY = "ucore.runtime.warning";
-const isKnowledgeReader = computed(() => ["/documentation", "/docs"].includes(route.path) && (!route.query.tab || route.query.tab === "wiki"));
+const isKnowledgeReader = computed(() => ["/documentation", "/docs"].includes(route.path) && (!route.query.tab || ["wiki", "knowledge", "guide"].includes(String(route.query.tab))));
 const isStandalone = computed(
   () => route.meta.layout === "standalone" || route.path.startsWith("/p/"),
 );
@@ -166,7 +167,13 @@ function handleGlobalSidebarToggle() {
   shell.toggleSidebar();
 }
 
-async function handleFileSelect(file: FileEntry) {
+async function handleFileSelect(file: FileEntry, openEditor = false) {
+  if (isKnowledgeReader.value && !openEditor && file.relative_path && file.reader_source) {
+    await router.push({ query: {
+      ...route.query, tab: "wiki", source: file.reader_source, article: file.relative_path, canonical: undefined,
+    } });
+    return;
+  }
   let content = file.preview || "";
   let path = file.path;
   let version: string | undefined;
@@ -366,7 +373,6 @@ async function handleNewFile(binderId: string) {
   }
 }
 
-.app-sidebar__library { flex: 1; min-height: 0; overflow: hidden; }
 .app-sidebar {
   display: flex;
   flex-direction: column;
@@ -414,7 +420,6 @@ async function handleNewFile(binderId: string) {
   display: contents;
 }
 
-.app-body--tabs-first .app-sidebar__library { flex: 1; min-height: 0; overflow: hidden; }
 .app-sidebar {
   display: flex;
   flex-direction: column;
@@ -455,7 +460,6 @@ async function handleNewFile(binderId: string) {
   display: contents;
 }
 
-.app-body--tabs-top .app-sidebar__library { flex: 1; min-height: 0; overflow: hidden; }
 .app-sidebar {
   display: flex;
   flex-direction: column;

@@ -62,5 +62,11 @@ def test_seed_readiness_checks_owners_without_installing(tmp_path, monkeypatch):
         result["knowledge_library"] and result["gridcore_protocols"] and result["gridcore_mapping"]
     )
     assert result["maps"][0]["id"] == "world-map"
-    (seeds / "world-map.json").write_text("{}")
-    assert seed_readiness()["maps"] == []
+    source = seeds / "world-map.json"
+    invalid_cell = json.loads(source.read_text())
+    invalid_cell["layers"][0]["cells"][0]["col"] = 40
+    for invalid in ([], None, invalid_cell):
+        source.write_text(json.dumps(invalid))
+        assert seed_readiness()["maps"] == []
+    (library / "standards/GRIDCORE-STANDARDS.json").write_text("[]")
+    assert not seed_readiness()["gridcore_protocols"]

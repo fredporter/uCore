@@ -230,7 +230,7 @@ def _github_json(repo_path: Path, *args: str) -> Any:
         return None
 
 
-def _repo_github_status(repo_name: str) -> dict[str, Any]:
+def _repo_github_status(repo_name: str, branch_view: str = "working") -> dict[str, Any]:
     """Return the GitHub/Actions state used by the Developer surface."""
     repo_path = _repo_path(repo_name)
     branch = _git_output(repo_path, "rev-parse", "--abbrev-ref", "HEAD") or "unknown"
@@ -247,6 +247,16 @@ def _repo_github_status(repo_name: str) -> dict[str, Any]:
             "configured": False,
             "branch": branch,
             "error": "GitHub CLI is unavailable, unauthenticated, or the remote is not on GitHub",
+        }
+
+    if branch_view == "default":
+        branch = (repository.get("defaultBranchRef") or {}).get("name") or "unknown"
+    if branch in {"HEAD", "unknown"}:
+        return {
+            "repo": repo_name, "configured": True, "branch": branch,
+            "repository": repository, "pull_request": None, "runs": [],
+            "runs_available": False,
+            "error": "No branch is available for this view.",
         }
 
     runs = _github_json(
@@ -280,6 +290,7 @@ def _repo_github_status(repo_name: str) -> dict[str, Any]:
         "repository": repository,
         "pull_request": prs[0] if isinstance(prs, list) and prs else None,
         "runs": runs if isinstance(runs, list) else [],
+        "runs_available": isinstance(runs, list),
     }
 
 
@@ -1024,7 +1035,10 @@ async def handle_repo_github_status(request: web.Request) -> web.Response:
     """GET /api/developer/repos/{repo_name}/github — PR and Actions state."""
     repo_name = request.match_info["repo_name"]
     try:
-        payload = _repo_github_status(repo_name)
+        branch_view = request.query.get("branch_view", "working")
+        if branch_view not in {"default", "working"}:
+            return web.json_response({"error": "Choose default or working branch."}, status=400)
+        payload = _repo_github_status(repo_name, branch_view)
     except FileNotFoundError:
         return web.json_response(
             {"error": f"Repository not found: {repo_name}"},

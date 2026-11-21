@@ -12,6 +12,7 @@ import {
 } from "vue-router";
 import DashboardSurface from "../surfaces/dashboard/DashboardSurface.vue";
 import WorkflowSurface from "../surfaces/workflow/WorkflowSurface.vue";
+import RecoverySurface from "../surfaces/recovery/RecoverySurface.vue";
 
 const routes: RouteRecordRaw[] = [
   { path: "/setup", name: "user-setup", component: () => import("../surfaces/system/UserSetupSurface.vue"), meta: { title: "User Setup", layout: "standalone" } },
@@ -124,7 +125,7 @@ const routes: RouteRecordRaw[] = [
     path: "/browserui/:pathMatch(.*)*",
     redirect: (to) => {
       const { tab, research, ...query } = to.query;
-      if (tab === "studio") return "/ucode2";
+      if (tab === "studio") return "/ucode-plus";
       return { path: "/workflow", query: { ...query, tab: tab === "dashboard" ? "queue" : "research" }, hash: to.hash };
     },
   },
@@ -141,10 +142,11 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "Google Studio", icon: "cloud" },
   },
   {
-    path: "/ucode2/:pathMatch(.*)*", name:"ucode2", component:()=>import("../surfaces/banana/BananaSurface.vue"), meta:{title:"uCode2",icon:"view_in_ar"},
+    path: "/ucode-plus/:pathMatch(.*)*", name:"ucode-plus", component:()=>import("../surfaces/banana/BananaSurface.vue"), meta:{title:"uCode+",icon:"view_in_ar"},
   },
-  { path:"/banana/:pathMatch(.*)*",redirect:"/ucode2" },
-  { path:"/vector/:pathMatch(.*)*",redirect:"/ucode2" },
+  { path:"/ucode2/:pathMatch(.*)*",redirect:"/ucode-plus" },
+  { path:"/banana/:pathMatch(.*)*",redirect:"/ucode-plus" },
+  { path:"/vector/:pathMatch(.*)*",redirect:"/ucode-plus" },
   { path: "/docs/:pathMatch(.*)*", redirect: to => ({ path: "/documentation", query: to.query, hash: to.hash }) },
   {
     path: "/documentation/:pathMatch(.*)*",
@@ -184,6 +186,12 @@ const routes: RouteRecordRaw[] = [
     redirect: (to) =>
       `/system/${String(to.params.pathMatch || "").toLowerCase()}`,
   },
+  {
+    path: "/:pathMatch(.*)*",
+    name: "not-found",
+    component: RecoverySurface,
+    meta: { title: "Page not found" },
+  },
 ];
 
 export const router = createRouter({
@@ -194,7 +202,7 @@ export const router = createRouter({
 router.beforeEach((to) => {
   if (to.name === "workflow" && to.query.tab === "research" && to.query.research) {
     const { research, ...query } = to.query;
-    if (research === "studio") return "/ucode2";
+    if (research === "studio") return "/ucode-plus";
     return { path: to.path, query: { ...query, tab: research === "dashboard" ? "queue" : "research" }, hash: to.hash, replace: true };
   }
 
@@ -254,7 +262,7 @@ router.onError((error, to) => {
   if (lastReloadTarget === target) {
     window.sessionStorage.removeItem(DYNAMIC_IMPORT_RELOAD_KEY);
     publishRuntimeWarning(
-      "A surface failed to load due to stale dev dependencies. Restart with 'pnpm -C frontend-vue run dev:clean -- --host 127.0.0.1 --port 4173'.",
+      "A surface failed to load. Reload the page to retry. If the error continues, restart the uCore frontend and open the page again.",
     );
     return;
   }
@@ -264,7 +272,8 @@ router.onError((error, to) => {
 });
 
 // Update document title
-router.afterEach((to) => {
+router.afterEach((to, _from, failure) => {
+  if (failure) return;
   if (typeof window !== "undefined") {
     window.sessionStorage.removeItem(DYNAMIC_IMPORT_RELOAD_KEY);
   }

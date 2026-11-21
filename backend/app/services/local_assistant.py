@@ -107,7 +107,7 @@ async def maintain_models(action: str, names: list[str]):
             raise ValueError(f"{name}: the model service ended before confirming success")
 
 
-async def chat(messages: list, model: str = "") -> dict:
+def validate_messages(messages: list) -> list:
     if not isinstance(messages, list) or not 1 <= len(messages) <= 8:
         raise ValueError("Send up to eight chat messages.")
     if any(
@@ -120,6 +120,11 @@ async def chat(messages: list, model: str = "") -> dict:
         raise ValueError("Send only user and assistant messages with text.")
     if messages[-1]["role"] != "user" or sum(len(m["content"]) for m in messages) > 12000:
         raise ValueError("End with a user message and keep the conversation under 12,000 characters.")
+    return messages
+
+
+async def chat(messages: list, model: str = "") -> dict:
+    messages = validate_messages(messages)
     models = (await inventory())["models"]
     available = [item["name"] for item in models if item["local_chat"]]
     selected = model or select_model(models, "project")

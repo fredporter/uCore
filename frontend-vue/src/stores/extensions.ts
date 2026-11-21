@@ -198,14 +198,14 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
     description: "Mission scaffolding & daily briefing",
   },
   {
-    id: "uvector",
-    name: "uVector",
+    id: "ucode_plus",
+    name: "uCode+",
     kind: "surface",
     required: false,
     icon: "draw",
-    route: "/vector",
+    route: "/ucode-plus",
     activation_required: false,
-    description: "Universal Vector Core — technical drawings, SVG vector engine & GridCore presets",
+    description: "uCode+ Spatial & Vector Studio — spatial computing, scalable vector geometry & Banana Studio",
   },
   {
     id: "banana",

@@ -485,7 +485,7 @@ async def handle_list_workflows(request: web.Request) -> web.Response:
 
 async def handle_run_workflow(request: web.Request) -> web.Response:
     """POST /api/workflows/{id}/run — run workflow steps sequentially."""
-    from app.skills.registry import run_skill_by_id
+    from app.skills.registry import SERVER_RUN_FIELDS, run_skill_by_id
 
     workflow_id = request.match_info.get("workflow_id", "")
     manager = get_workflow_manager()
@@ -513,7 +513,10 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
         params = step.get("params") or {}
         step_started = datetime.now(UTC).isoformat()
         try:
-            result = await run_skill_by_id(str(skill_id), **params)
+            if not isinstance(params, dict) or SERVER_RUN_FIELDS.intersection(params):
+                result = {"success": False, "error": "Invalid workflow skill parameters"}
+            else:
+                result = await run_skill_by_id(str(skill_id), **params)
             success = bool(result.get("success", True))
             row = {
                 "index": idx,

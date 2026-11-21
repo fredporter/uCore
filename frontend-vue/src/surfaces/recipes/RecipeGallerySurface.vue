@@ -75,278 +75,264 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
 </script>
 
 <template>
-  <div
-    class="gallery-page"
-    :class="[
-      selectedLane === 'usx' ? (usxMode === 'dark' ? 'theme-dark' : 'theme-light') : 'gridcore-lane',
-    ]"
-  >
-    <!-- Top Gallery Control Bar -->
-    <header class="gallery-topbar">
-      <div class="gallery-brand">
-        <UIcon name="style" class="gallery-logo-icon" />
-        <div>
-          <h1 class="gallery-title">Recipe Gallery</h1>
-          <span class="gallery-subtitle">Unified Declarative Surface System Showroom</span>
-        </div>
-      </div>
+  <header class="gallery-topbar">
+    <div class="gallery-brand">
+      <h3 class="gallery-title">Recipe Gallery</h3>
+      <p class="gallery-subtitle">Preview USX and GridCore recipes.</p>
+    </div>
 
-      <!-- Primary Lane Switcher: USX vs GridCore (Strictly Separated) -->
-      <div class="lane-switcher">
-        <button
-          class="usx-btn lane-btn"
-          :class="{ active: selectedLane === 'usx' }"
-          @click="selectedLane = 'usx'"
-        >
-          <UIcon name="web" />
-          <span>USX Layouts</span>
-          <span class="lane-counter">8</span>
-        </button>
-        <button
-          class="usx-btn lane-btn"
-          :class="{ active: selectedLane === 'gridcore' }"
-          @click="selectedLane = 'gridcore'"
-        >
-          <UIcon name="grid_on" />
-          <span>GridCore Layouts</span>
-          <span class="lane-counter">2</span>
-        </button>
-      </div>
+    <!-- Primary Lane Switcher: USX vs GridCore (Strictly Separated) -->
+    <div class="lane-switcher">
+      <button
+        class="usx-btn lane-btn"
+        :aria-pressed="selectedLane === 'usx'"
+        @click="selectedLane = 'usx'"
+      >
+        <UIcon name="web" />
+        <span>USX Layouts</span>
+      </button>
+      <button
+        class="usx-btn lane-btn"
+        :aria-pressed="selectedLane === 'gridcore'"
+        @click="selectedLane = 'gridcore'"
+      >
+        <UIcon name="grid_on" />
+        <span>GridCore Layouts</span>
+      </button>
+    </div>
 
-      <!-- Controls: Viewport, Theme (USX Only), & JSON -->
-      <div class="gallery-controls">
-        <!-- Viewport Switcher -->
-        <div class="control-group">
-          <span class="control-label">Viewport:</span>
-          <div class="segmented-btn-group">
-            <button
-              class="usx-btn seg-btn"
-              :class="{ active: selectedViewport === '360px' }"
-              @click="selectedViewport = '360px'"
-              title="Mobile (360px)"
-            >
-              <UIcon name="smartphone" />
-            </button>
-            <button
-              class="usx-btn seg-btn"
-              :class="{ active: selectedViewport === '768px' }"
-              @click="selectedViewport = '768px'"
-              title="Tablet (768px)"
-            >
-              <UIcon name="tablet" />
-            </button>
-            <button
-              class="usx-btn seg-btn"
-              :class="{ active: selectedViewport === '1200px' }"
-              @click="selectedViewport = '1200px'"
-              title="Desktop (1200px)"
-            >
-              <UIcon name="desktop_windows" />
-            </button>
-            <button
-              class="usx-btn seg-btn"
-              :class="{ active: selectedViewport === '100%' }"
-              @click="selectedViewport = '100%'"
-              title="Fluid (100%)"
-            >
-              <UIcon name="fit_screen" />
-            </button>
-          </div>
-        </div>
-
-        <!-- USX Mode Toggle: Strictly Light / Dark mode (Never on GridCore) -->
-        <div v-if="selectedLane === 'usx'" class="control-group">
+    <!-- Controls: Viewport, Theme (USX Only), & JSON -->
+    <div class="gallery-controls">
+      <!-- Viewport Switcher -->
+      <div class="control-group">
+        <span class="control-label">Viewport:</span>
+        <div class="segmented-btn-group">
           <button
-            class="usx-btn mode-toggle-btn"
-            @click="toggleUsxMode"
-            :title="`Switch to ${usxMode === 'dark' ? 'Light' : 'Dark'} mode`"
+            class="usx-btn seg-btn"
+            :class="{ active: selectedViewport === '360px' }"
+            @click="selectedViewport = '360px'"
+            title="Mobile (360px)"
           >
-            <UIcon :name="usxMode === 'dark' ? 'light_mode' : 'dark_mode'" />
-            <span>{{ usxMode === 'dark' ? 'Light Mode' : 'Dark Mode' }}</span>
+            <UIcon name="smartphone" />
+          </button>
+          <button
+            class="usx-btn seg-btn"
+            :class="{ active: selectedViewport === '768px' }"
+            @click="selectedViewport = '768px'"
+            title="Tablet (768px)"
+          >
+            <UIcon name="tablet" />
+          </button>
+          <button
+            class="usx-btn seg-btn"
+            :class="{ active: selectedViewport === '1200px' }"
+            @click="selectedViewport = '1200px'"
+            title="Desktop (1200px)"
+          >
+            <UIcon name="desktop_windows" />
+          </button>
+          <button
+            class="usx-btn seg-btn"
+            :class="{ active: selectedViewport === '100%' }"
+            @click="selectedViewport = '100%'"
+            title="Fluid (100%)"
+          >
+            <UIcon name="fit_screen" />
           </button>
         </div>
-
-        <!-- JSON Inspector Toggle -->
-        <button
-          class="usx-btn json-toggle-btn"
-          :class="{ active: showJson }"
-          @click="showJson = !showJson"
-        >
-          <UIcon name="data_object" />
-          <span>Recipe JSON</span>
-        </button>
       </div>
-    </header>
 
-    <!-- Sub-Navigation: USX Recipes Lane -->
-    <nav v-if="selectedLane === 'usx'" class="recipe-nav-tabs">
-      <div class="paradigm-group">
-        <span class="paradigm-label">USX Core Surfaces:</span>
+      <!-- USX Mode Toggle: Strictly Light / Dark mode (Never on GridCore) -->
+      <div v-if="selectedLane === 'usx'" class="control-group">
         <button
-          class="usx-btn recipe-tab-btn"
-          :class="{ active: selectedRecipeKey === 'task-list' }"
-          @click="selectedRecipeKey = 'task-list'"
+          class="usx-btn mode-toggle-btn"
+          @click="toggleUsxMode"
+          :title="`Switch to ${usxMode === 'dark' ? 'Light' : 'Dark'} mode`"
         >
-          <UIcon name="checklist" />
-          <span>Task List</span>
-        </button>
-        <button
-          class="usx-btn recipe-tab-btn"
-          :class="{ active: selectedRecipeKey === 'authoring-workbench' }"
-          @click="selectedRecipeKey = 'authoring-workbench'"
-        >
-          <UIcon name="history_edu" />
-          <span>Authoring Workbench</span>
-        </button>
-        <button
-          class="usx-btn recipe-tab-btn"
-          :class="{ active: selectedRecipeKey === 'prose-document' }"
-          @click="selectedRecipeKey = 'prose-document'"
-        >
-          <UIcon name="article" />
-          <span>Prose Document</span>
-        </button>
-        <button
-          class="usx-btn recipe-tab-btn"
-          :class="{ active: selectedRecipeKey === 'card-matrix' }"
-          @click="selectedRecipeKey = 'card-matrix'"
-        >
-          <UIcon name="grid_view" />
-          <span>Card Matrix</span>
-        </button>
-        <button
-          class="usx-btn recipe-tab-btn"
-          :class="{ active: selectedRecipeKey === 'settings-form' }"
-          @click="selectedRecipeKey = 'settings-form'"
-        >
-          <UIcon name="tune" />
-          <span>Settings Form</span>
-        </button>
-        <button
-          class="usx-btn recipe-tab-btn"
-          :class="{ active: selectedRecipeKey === 'system-page' }"
-          @click="selectedRecipeKey = 'system-page'"
-        >
-          <UIcon name="search_off" />
-          <span>System Page (S100)</span>
+          <UIcon :name="usxMode === 'dark' ? 'light_mode' : 'dark_mode'" />
+          <span>{{ usxMode === 'dark' ? 'Light Mode' : 'Dark Mode' }}</span>
         </button>
       </div>
 
-      <div class="paradigm-group">
-        <span class="paradigm-label">Intake & Overlays:</span>
-        <button
-          class="usx-btn recipe-tab-btn"
-          :class="{ active: selectedRecipeKey === 'story-form' }"
-          @click="selectedRecipeKey = 'story-form'"
-        >
-          <UIcon name="dynamic_form" />
-          <span>Story Form (Typeform)</span>
-        </button>
-        <button
-          class="usx-btn recipe-tab-btn"
-          :class="{ active: selectedRecipeKey === 'alerts-suite' }"
-          @click="selectedRecipeKey = 'alerts-suite'"
-        >
-          <UIcon name="notifications_active" />
-          <span>Alerts & Notifications</span>
-        </button>
-      </div>
-    </nav>
-
-    <!-- Sub-Navigation: GridCore Lane (Dedicated Character Matrix Recipes) -->
-    <nav v-else class="recipe-nav-tabs gridcore-nav-tabs">
-      <div class="paradigm-group">
-        <span class="paradigm-label">GridCore Character Matrix:</span>
-        <button
-          class="usx-btn recipe-tab-btn tab-retro"
-          :class="{ active: selectedRecipeKey === 'teletext-mode7' }"
-          @click="selectedRecipeKey = 'teletext-mode7'"
-        >
-          <UIcon name="tv" />
-          <span>Teletext (Mode 7 / BBC Ceefax)</span>
-        </button>
-        <button
-          class="usx-btn recipe-tab-btn tab-retro"
-          :class="{ active: selectedRecipeKey === 'terminal-ansi' }"
-          @click="selectedRecipeKey = 'terminal-ansi'"
-        >
-          <UIcon name="terminal" />
-          <span>Terminal (ANSI / C64)</span>
-        </button>
-      </div>
-      <div class="gridcore-info-chip">
-        <UIcon name="info" />
-        <span>GridCore executes on fixed 40×25 or 42×27 cell matrix canvases without USX styling crossover.</span>
-      </div>
-    </nav>
-
-    <!-- Main Inspection Stage -->
-    <div class="gallery-stage">
-      <!-- Simulated Viewport Frame -->
-      <div
-        class="viewport-frame"
-        :style="{ maxWidth: selectedViewport }"
+      <!-- JSON Inspector Toggle -->
+      <button
+        class="usx-btn json-toggle-btn"
+        :class="{ active: showJson }"
+        @click="showJson = !showJson"
       >
-        <div class="viewport-canvas">
-          <!-- USX Recipe Components -->
-          <template v-if="selectedLane === 'usx'">
-            <TaskListRecipeView
-              v-if="selectedRecipeKey === 'task-list'"
-              :recipe="currentRecipe as any"
-            />
-            <AuthoringRecipeView
-              v-else-if="selectedRecipeKey === 'authoring-workbench'"
-              :recipe="currentRecipe as any"
-            />
-            <ProseDocumentRecipeView
-              v-else-if="selectedRecipeKey === 'prose-document'"
-              :recipe="currentRecipe as any"
-            />
-            <CardMatrixRecipeView
-              v-else-if="selectedRecipeKey === 'card-matrix'"
-              :recipe="currentRecipe as any"
-            />
-            <SettingsFormRecipeView
-              v-else-if="selectedRecipeKey === 'settings-form'"
-              :recipe="currentRecipe as any"
-            />
-            <StoryRecipeView
-              v-else-if="selectedRecipeKey === 'story-form'"
-              :recipe="currentRecipe as any"
-            />
-            <SystemPageRecipeView
-              v-else-if="selectedRecipeKey === 'system-page'"
-              :recipe="currentRecipe as any"
-            />
-            <AlertsRecipeView
-              v-else-if="selectedRecipeKey === 'alerts-suite'"
-              :recipe="currentRecipe as any"
-            />
-          </template>
-
-          <!-- GridCore Recipe Components -->
-          <template v-else>
-            <TeletextRecipeView
-              v-if="selectedRecipeKey === 'teletext-mode7'"
-              :recipe="currentRecipe as any"
-            />
-            <TerminalRecipeView
-              v-else-if="selectedRecipeKey === 'terminal-ansi'"
-              :recipe="currentRecipe as any"
-            />
-          </template>
-        </div>
-      </div>
-
-      <!-- JSON Inspector Drawer -->
-      <aside v-if="showJson" class="json-inspector-drawer">
-        <div class="json-drawer-header">
-          <h3>Declarative Recipe Payload</h3>
-          <span class="paradigm-pill">{{ currentParadigm.toUpperCase() }}</span>
-        </div>
-        <pre class="json-content"><code>{{ JSON.stringify(currentRecipe, null, 2) }}</code></pre>
-      </aside>
+        <UIcon name="data_object" />
+        <span>Recipe JSON</span>
+      </button>
     </div>
+  </header>
+
+  <!-- Sub-Navigation: USX Recipes Lane -->
+  <nav v-if="selectedLane === 'usx'" class="recipe-nav-tabs">
+    <div class="paradigm-group">
+      <span class="paradigm-label">USX Core Surfaces:</span>
+      <button
+        class="usx-btn recipe-tab-btn"
+        :class="{ active: selectedRecipeKey === 'task-list' }"
+        @click="selectedRecipeKey = 'task-list'"
+      >
+        <UIcon name="checklist" />
+        <span>Task List</span>
+      </button>
+      <button
+        class="usx-btn recipe-tab-btn"
+        :class="{ active: selectedRecipeKey === 'authoring-workbench' }"
+        @click="selectedRecipeKey = 'authoring-workbench'"
+      >
+        <UIcon name="history_edu" />
+        <span>Authoring Workbench</span>
+      </button>
+      <button
+        class="usx-btn recipe-tab-btn"
+        :class="{ active: selectedRecipeKey === 'prose-document' }"
+        @click="selectedRecipeKey = 'prose-document'"
+      >
+        <UIcon name="article" />
+        <span>Prose Document</span>
+      </button>
+      <button
+        class="usx-btn recipe-tab-btn"
+        :class="{ active: selectedRecipeKey === 'card-matrix' }"
+        @click="selectedRecipeKey = 'card-matrix'"
+      >
+        <UIcon name="grid_view" />
+        <span>Card Matrix</span>
+      </button>
+      <button
+        class="usx-btn recipe-tab-btn"
+        :class="{ active: selectedRecipeKey === 'settings-form' }"
+        @click="selectedRecipeKey = 'settings-form'"
+      >
+        <UIcon name="tune" />
+        <span>Settings Form</span>
+      </button>
+      <button
+        class="usx-btn recipe-tab-btn"
+        :class="{ active: selectedRecipeKey === 'system-page' }"
+        @click="selectedRecipeKey = 'system-page'"
+      >
+        <UIcon name="search_off" />
+        <span>System Page (S100)</span>
+      </button>
+    </div>
+
+    <div class="paradigm-group">
+      <span class="paradigm-label">Intake & Overlays:</span>
+      <button
+        class="usx-btn recipe-tab-btn"
+        :class="{ active: selectedRecipeKey === 'story-form' }"
+        @click="selectedRecipeKey = 'story-form'"
+      >
+        <UIcon name="dynamic_form" />
+        <span>Story Form (Typeform)</span>
+      </button>
+      <button
+        class="usx-btn recipe-tab-btn"
+        :class="{ active: selectedRecipeKey === 'alerts-suite' }"
+        @click="selectedRecipeKey = 'alerts-suite'"
+      >
+        <UIcon name="notifications_active" />
+        <span>Alerts & Notifications</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Sub-Navigation: GridCore Lane (Dedicated Character Matrix Recipes) -->
+  <nav v-else class="recipe-nav-tabs gridcore-nav-tabs">
+    <div class="paradigm-group">
+      <span class="paradigm-label">GridCore Character Matrix:</span>
+      <button
+        class="usx-btn recipe-tab-btn tab-retro"
+        :class="{ active: selectedRecipeKey === 'teletext-mode7' }"
+        @click="selectedRecipeKey = 'teletext-mode7'"
+      >
+        <UIcon name="tv" />
+        <span>Teletext (Mode 7 / BBC Ceefax)</span>
+      </button>
+      <button
+        class="usx-btn recipe-tab-btn tab-retro"
+        :class="{ active: selectedRecipeKey === 'terminal-ansi' }"
+        @click="selectedRecipeKey = 'terminal-ansi'"
+      >
+        <UIcon name="terminal" />
+        <span>Terminal (ANSI / C64)</span>
+      </button>
+    </div>
+    <div class="gridcore-info-chip">
+      <UIcon name="info" />
+      <span>GridCore executes on fixed 40×25 or 42×27 cell matrix canvases without USX styling crossover.</span>
+    </div>
+  </nav>
+
+  <!-- Main Inspection Stage -->
+  <div class="gallery-stage">
+    <!-- Simulated Viewport Frame -->
+    <div
+      class="viewport-frame"
+      :class="selectedLane === 'usx' ? 'theme-' + usxMode : 'gridcore-lane'"
+      :style="{ maxWidth: selectedViewport }"
+    >
+        <!-- USX Recipe Components -->
+      <template v-if="selectedLane === 'usx'">
+        <TaskListRecipeView
+          v-if="selectedRecipeKey === 'task-list'"
+          :recipe="currentRecipe as any"
+        />
+        <AuthoringRecipeView
+          v-else-if="selectedRecipeKey === 'authoring-workbench'"
+          :recipe="currentRecipe as any"
+        />
+        <ProseDocumentRecipeView
+          v-else-if="selectedRecipeKey === 'prose-document'"
+          :recipe="currentRecipe as any"
+        />
+        <CardMatrixRecipeView
+          v-else-if="selectedRecipeKey === 'card-matrix'"
+          :recipe="currentRecipe as any"
+        />
+        <SettingsFormRecipeView
+          v-else-if="selectedRecipeKey === 'settings-form'"
+          :recipe="currentRecipe as any"
+        />
+        <StoryRecipeView
+          v-else-if="selectedRecipeKey === 'story-form'"
+          :recipe="currentRecipe as any"
+        />
+        <SystemPageRecipeView
+          v-else-if="selectedRecipeKey === 'system-page'"
+          :recipe="currentRecipe as any"
+        />
+        <AlertsRecipeView
+          v-else-if="selectedRecipeKey === 'alerts-suite'"
+          :recipe="currentRecipe as any"
+        />
+      </template>
+
+      <!-- GridCore Recipe Components -->
+      <template v-else>
+        <TeletextRecipeView
+          v-if="selectedRecipeKey === 'teletext-mode7'"
+          :recipe="currentRecipe as any"
+        />
+        <TerminalRecipeView
+          v-else-if="selectedRecipeKey === 'terminal-ansi'"
+          :recipe="currentRecipe as any"
+        />
+      </template>
+    </div>
+
+    <!-- JSON Inspector Drawer -->
+    <aside v-if="showJson" class="json-inspector-drawer">
+      <div class="json-drawer-header">
+        <h3>Declarative Recipe Payload</h3>
+        <span class="paradigm-pill">{{ currentParadigm.toUpperCase() }}</span>
+      </div>
+      <pre class="json-content"><code>{{ JSON.stringify(currentRecipe, null, 2) }}</code></pre>
+    </aside>
   </div>
 </template>
 
@@ -394,100 +380,57 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
   --usx-color-outline-variant: rgba(255, 255, 255, 0.12);
 }
 
-/* Page Layout */
-.gallery-page {
-  min-height: 100%;
-  flex: 1;
-  background: var(--usx-color-background, #14161a);
-  color: var(--usx-color-on-surface, #e2e2e6);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  display: flex;
-  flex-direction: column;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-/* Topbar */
-.gallery-topbar {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.85rem 1.5rem;
-  background: var(--usx-color-surface, #1e2025);
-  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
-  flex-wrap: wrap;
-  gap: 1rem;
+/* Gallery controls inherit the active workspace theme. */
+.gallery-topbar,
+.gallery-brand {
+  display: grid;
+  min-width: 0;
+  gap: var(--usx-spacing-md);
 }
 
 .gallery-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  gap: var(--usx-spacing-xs);
 }
 
-.gallery-logo-icon {
-  font-size: 32px;
-  color: var(--usx-color-primary, #a8c7fa);
-}
-
-.gallery-title {
+.gallery-title,
+.gallery-subtitle {
   margin: 0;
-  font-size: 1.15rem;
-  font-weight: 600;
 }
 
 .gallery-subtitle {
-  font-size: 0.78rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
 }
 
-/* Primary Lane Switcher */
 .lane-switcher {
   display: flex;
-  background: var(--usx-color-surface-container, #282a30);
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.15));
-  border-radius: 8px;
-  padding: 3px;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: var(--usx-spacing-sm);
 }
 
-.lane-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--usx-color-on-surface-variant, #8e9199);
-  font-size: 0.84rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
+.usx-btn.lane-btn {
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: 0;
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
+  box-shadow: none;
 }
 
-.lane-btn.active {
-  background: var(--usx-color-primary, #a8c7fa);
-  color: #041e49;
-  font-weight: 600;
+.usx-btn.lane-btn:hover {
+  border-color: var(--usx-color-on-surface-muted);
+  box-shadow: none;
 }
 
-.lane-btn .material-symbols-outlined {
-  font-size: 1.1rem;
-}
-
-.lane-counter {
-  font-size: 0.72rem;
-  padding: 1px 6px;
-  border-radius: 9999px;
-  background: rgba(0, 0, 0, 0.15);
-  font-weight: 700;
+.usx-btn.lane-btn[aria-pressed="true"] {
+  border-color: var(--usx-color-primary);
 }
 
 .gallery-controls {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: var(--usx-spacing-sm);
   flex-wrap: wrap;
 }
 
@@ -587,7 +530,7 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  padding: 0.65rem 1.5rem;
+  padding: var(--usx-spacing-sm);
   background: var(--usx-color-surface, #1e2025);
   border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
   overflow-x: auto;
@@ -672,48 +615,33 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
   flex: 1;
   min-height: 0;
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start;
+  gap: var(--usx-spacing-md);
   position: relative;
-  background: var(--usx-color-background, #14161a);
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1.5rem 1rem;
+  padding: 0;
   box-sizing: border-box;
 }
 
 .viewport-frame {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  padding: 0 1rem;
+  min-width: 0;
+  color: var(--usx-color-on-surface);
   transition: max-width 0.25s ease-in-out;
-}
-
-.viewport-canvas {
-  background: var(--usx-color-surface, #1e2025);
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  min-height: 520px;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  box-sizing: border-box;
 }
 
 /* JSON Drawer */
 .json-inspector-drawer {
-  width: 360px;
+  width: min(100%, 360px);
   flex-shrink: 0;
   border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
   border-radius: 12px;
   background: var(--usx-color-surface, #1e2025);
   display: flex;
   flex-direction: column;
-  margin-left: 1rem;
   position: sticky;
   top: 0;
   max-height: calc(100vh - 160px);

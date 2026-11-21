@@ -8,7 +8,7 @@ import BananaStudio from "./BananaStudio.vue"
 describe("BananaStudio / VectorStudio", () => {
   it("renders the 5 Mono Core style presets and excludes Amber CRT", () => {
     const wrapper = mount(BananaStudio)
-    expect(wrapper.text()).toContain("uVector Illustration & Asset Studio")
+    expect(wrapper.text()).toContain("uCode+ Illustration & Asset Studio")
     expect(wrapper.text()).toContain("Ceefax Teletext")
     expect(wrapper.text()).toContain("Architectural Blueprint")
     expect(wrapper.text()).toContain("Editorial Linocut Paper")
@@ -30,10 +30,11 @@ describe("BananaStudio / VectorStudio", () => {
   it("renders the studio mode tabs", () => {
     const wrapper = mount(BananaStudio)
     const modeTabs = wrapper.findAll(".banana-studio__mode-tab")
-    expect(modeTabs.length).toBe(4)
+    expect(modeTabs.length).toBe(5)
     expect(wrapper.text()).toContain("Text-to-Vector")
     expect(wrapper.text()).toContain("Bitmap Tracing")
     expect(wrapper.text()).toContain("GridCore Font & Icon Map")
     expect(wrapper.text()).toContain("V2B & BOB Quantizer")
+    expect(wrapper.text()).toContain("Spatial 3D Scene")
   })
 })

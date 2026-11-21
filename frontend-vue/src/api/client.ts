@@ -76,6 +76,19 @@ export const snackbarApi = {
 export const ucoreApi = {
   baseUrl: UCORE_API,
   health: () => request(`${UCORE_API}/health`),
+  spatial: {
+    simulateTap: (body: { event_id: string; marker_envelope: { version: "1.0"; marker_id: string } }) =>
+      request<{
+        event_id: string;
+        waypoint_ref: string;
+        authorised_resource_refs: string[];
+        registered_position?: { lat: number; lon: number } | null;
+        replayed: boolean;
+      }>(`${UCORE_API}/api/spatial/tap`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+  },
   userWorkflow: {
     importMarkdown: (body: {
       content: string;

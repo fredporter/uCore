@@ -16,6 +16,7 @@ from app.services.executable_registry import (
     list_executables,
     run_executable,
 )
+from app.skills.registry import SERVER_RUN_FIELDS
 
 log = logging.getLogger("ucore.api.executables")
 
@@ -60,9 +61,11 @@ async def handle_run_executable(request: web.Request) -> web.Response:
             },
             status=409,
         )
+    if SERVER_RUN_FIELDS.intersection(body):
+        return web.json_response({"success": False, "error": "Parameters include a server-owned field"}, status=400)
     action = body.get("action")
     kwargs = {
-        key: value for key, value in body.items() if key not in ("action", "execution_authorized")
+        key: value for key, value in body.items() if key != "action"
     }
     result = await run_executable(exe_id, action=action, execution_authorized=authorized, **kwargs)
     return web.json_response(result, status=200 if result.get("success", True) else 422)

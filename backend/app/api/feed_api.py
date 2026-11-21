@@ -11,10 +11,23 @@ import asyncio
 import hashlib
 import json
 import logging
+from uuid import uuid4
 
 from aiohttp import web
 
 log = logging.getLogger("ucore.api.feed")
+
+
+def _record_feed_event(module: str, message: str, tags: list[str]) -> str | None:
+    from app.services.spool_writer import write_spool
+
+    receipt = f"feed-receipt-{uuid4().hex}"
+    try:
+        write_spool(level="INFO", module=module, message=message, tags=[*tags, receipt])
+    except (OSError, UnicodeError):
+        log.warning("Could not record feed event in Spool", exc_info=True)
+        return None
+    return receipt
 
 # Lazy singleton
 _feed_server = None
@@ -244,7 +257,11 @@ async def handle_feed_promote(request: web.Request) -> web.Response:
         archive_source_mail=bool(body.get("archive_source_mail", False)),
     )
     await server.link_task_to_activity(task_id=promoted["task_id"], activity_id=activity_id)
-    return web.json_response({"ok": True, **promoted})
+    action = "Opened existing task" if promoted.get("existing") else "Promoted feed item"
+    receipt = _record_feed_event(
+        "uflow", f"{action} for activity {activity_id}", [f"activity-{activity_id}"]
+    )
+    return web.json_response({"ok": True, **promoted, "spool_receipt": receipt})
 
 
 async def handle_feed_rules(request: web.Request) -> web.Response:
@@ -443,8 +460,142 @@ async def handle_feed_export_notes(request: web.Request) -> web.Response:
     return web.json_response(res, status=200 if res.get("ok") else 500)
 
 
+async def handle_feed_rss(request: web.Request) -> web.Response:
+    """POST /api/feed/rss — Accept an RSS item JSON payload and ingest via feed_store.ingest_activity_sync."""
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON body"}, status=400)
+
+    if not isinstance(body, dict):
+        return web.json_response({"error": "RSS item must be a JSON object"}, status=400)
+
+    # Validate required RSS item fields or map from payload
+    # Expected RSS item format can have guid, title, summary/content, url, topic, provenance, etc.
+    guid = body.get("guid") or body.get("external_id")
+    title = body.get("title", "")
+    content = body.get("summary") or body.get("content", "")
+    url = body.get("url", "")
+    topic = body.get("topic", "rss")
+
+    if body.get("review_only") is True and (
+        not isinstance(guid, str) or not guid.strip()
+        or not all(isinstance(field, str) for field in (title, content, url, topic))
+    ):
+        return web.json_response({"error": "RSS item must have a GUID and text fields"}, status=400)
+    if not title and not content:
+        return web.json_response({"error": "title or summary/content is required"}, status=400)
+
+    # Respect generic fixture / fixture integration if guid matches or source is provided
+    metadata = body.get("metadata", {})
+    if not isinstance(metadata, dict):
+        return web.json_response({"error": "RSS metadata must be a JSON object"}, status=400)
+    if "provenance" in body:
+        metadata["provenance"] = body["provenance"]
+    if "waypoint_ref" in body:
+        metadata["waypoint_ref"] = body["waypoint_ref"]
+    if topic:
+        metadata["topic"] = topic
+
+    try:
+        importance = float(body.get("importance", 0.6))
+    except (TypeError, ValueError):
+        importance = 0.6
+
+    server = _get_feed_server()
+
+    # Check if this RSS item triggers feed workflow and creates proposal / spool entry
+    result = server.ingest_activity_sync(
+        source="rss",
+        type="rss_item",
+        title=title,
+        content=content,
+        url=url,
+        importance=importance,
+        metadata=metadata,
+        external_id=guid,
+    )
+
+    activity_id = result["id"]
+
+    if body.get("review_only") is True:
+        activity = server.get_activity(activity_id)
+        processed = bool(activity and activity.get("processed"))
+        action = "Already reviewed RSS item updated" if processed else "RSS item available for review"
+        receipt = _record_feed_event(
+            "feed", f"{action} (activity {activity_id})", ["rss", f"activity-{activity_id}"]
+        )
+        return web.json_response({
+            "ok": True,
+            "activity_id": activity_id,
+            "processed": processed,
+            "spool_receipt": receipt,
+        })
+
+    # Run feed workflow rules and promote / spool if rules match or auto-execute / requested
+    from app.services.feed_rules import evaluate_feed_rules, load_feed_rules
+    from app.services.feed_workflow import promote_activity_to_task
+    from app.services.spool_writer import write_spool
+
+    rules, config = load_feed_rules()
+    activity = server.get_activity(activity_id)
+    proposals = evaluate_feed_rules([activity] if activity else [], rules)
+
+    promoted_task = None
+    applied_rules = []
+
+    for proposal in proposals:
+        # Write spool entry for rule / proposal event
+        write_spool(
+            level="INFO",
+            module="feed",
+            message=f"RSS item ingested and proposal created for activity {activity_id} via rule {proposal['rule_id']}",
+            tags=["rss", "uflow", proposal["rule_id"], f"activity-{activity_id}"]
+        )
+
+        # If auto_execute or requested or standard uFlow pipeline promotion
+        if config.get("auto_execute") or proposal.get("action") in {"propose-task", "create-task"}:
+            promoted = promote_activity_to_task(
+                activity,
+                title=proposal["title"],
+                board=proposal["board"],
+                priority=proposal["priority"],
+                binder=proposal["binder"],
+                rule_id=proposal["rule_id"],
+                sync_apple_reminders=proposal.get("sync_reminders", False),
+                archive_source_mail=proposal.get("archive_mail", False),
+            )
+            await server.link_task_to_activity(task_id=promoted["task_id"], activity_id=activity_id, link_type="rule")
+            promoted_task = promoted
+            applied_rules.append(proposal["rule_id"])
+
+            write_spool(
+                level="INFO",
+                module="uflow",
+                message=f"Promoted RSS activity {activity_id} to uFlow task {promoted['task_id']}",
+                tags=["uflow", "task", promoted["task_id"]]
+            )
+
+    if not proposals:
+        write_spool(
+            level="INFO",
+            module="feed",
+            message=f"RSS item ingested (activity {activity_id}), no matching feed rules",
+            tags=["rss", f"activity-{activity_id}"]
+        )
+
+    return web.json_response({
+        "ok": True,
+        "activity_id": activity_id,
+        "proposals": proposals,
+        "promoted_task": promoted_task,
+        "applied_rules": applied_rules,
+    })
+
+
 def register_feed_routes(app: web.Application) -> None:
     """Register Feed API routes."""
+    app.router.add_post("/api/feed/rss", handle_feed_rss)
     app.router.add_post("/api/feed/ingest", handle_feed_ingest)
     app.router.add_get("/api/feed/query", handle_feed_query)
     app.router.add_get("/api/feed/suggest", handle_feed_suggest)

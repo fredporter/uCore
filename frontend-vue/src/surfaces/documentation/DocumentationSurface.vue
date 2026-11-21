@@ -6,12 +6,13 @@
     }"
   >
     <SurfaceTabNav
+      class="documentation-tab-nav"
       v-model="activeTab"
       :tabs="visibleTabs"
       :orientation="shell.tabOrientation"
       @toggle-orientation="shell.toggleTabOrientation()"
     />
-    <div class="documentation-content-inner" :class="{ 'documentation-content-inner--reader': activeTab === 'wiki' }">
+    <div class="documentation-content-inner" :class="{ 'documentation-content-inner--reader': activeTab === 'wiki', 'documentation-content-inner--engineering': activeTab === 'developer' }">
       <!-- 1. Local Wikipedia Tab (Default Serene View) -->
       <div v-if="activeTab === 'wiki'" class="doc-wiki-wrapper">
         <LocalWikiReader />
@@ -35,101 +36,94 @@
         />
         <RecipeGallerySurface v-if="engineeringTab === 'recipes'" />
         <template v-else>
-        <!-- Diagnostic & Health strip inside Developer tab -->
-        <div class="doc-health-strip">
-          <div class="doc-health-item">
-            <span class="doc-health-label">Sites API</span>
-            <UBadge :type="statusType(apiStatus.sites)">
-              {{ statusText(apiStatus.sites) }}
-            </UBadge>
-          </div>
-          <div class="doc-health-item">
-            <span class="doc-health-label">Knowledge API</span>
-            <UBadge :type="statusType(apiStatus.knowledge)">
-              {{ statusText(apiStatus.knowledge) }}
-            </UBadge>
-          </div>
-          <div class="doc-health-item">
-            <span class="doc-health-label">Courses API</span>
-            <UBadge :type="statusType(apiStatus.courses)">
-              {{ statusText(apiStatus.courses) }}
-            </UBadge>
-          </div>
-          <div class="doc-health-item">
-            <span class="doc-health-label">Export API</span>
-            <UBadge :type="statusType(apiStatus.export)">
-              {{ statusText(apiStatus.export) }}
-            </UBadge>
-          </div>
-        </div>
+          <header class="doc-engineering-heading">
+            <h3>Developer tools</h3>
+            <p>Use Codex or your desktop development tools to extend uCore.</p>
+          </header>
 
-        <div class="doc-export-summary" v-if="lastExportAt">
-          <UIcon name="schedule" />
-          <span>Last export: {{ lastExportAt }}</span>
-        </div>
-
-        <!-- Developer & Engineering Tooling Content -->
-        <div class="doc-section doc-developer-section">
-          <div class="doc-hero-banner">
-            <UIcon name="terminal" class="doc-hero-icon" />
-            <div class="doc-hero-text">
-              <h3 style="margin: 0 0 0.5rem 0;">Developer tools</h3>
-              <p style="margin: 0; color: var(--usx-color-on-surface-muted);">
-                Use Codex or your desktop development tools to extend uCore.
-              </p>
+          <!-- Diagnostic & Health strip inside Developer tab -->
+          <div class="doc-health-strip">
+            <div class="doc-health-item">
+              <span class="doc-health-label">Sites API</span>
+              <UBadge :type="statusType(apiStatus.sites)">
+                {{ statusText(apiStatus.sites) }}
+              </UBadge>
+            </div>
+            <div class="doc-health-item">
+              <span class="doc-health-label">Knowledge API</span>
+              <UBadge :type="statusType(apiStatus.knowledge)">
+                {{ statusText(apiStatus.knowledge) }}
+              </UBadge>
+            </div>
+            <div class="doc-health-item">
+              <span class="doc-health-label">Courses API</span>
+              <UBadge :type="statusType(apiStatus.courses)">
+                {{ statusText(apiStatus.courses) }}
+              </UBadge>
+            </div>
+            <div class="doc-health-item">
+              <span class="doc-health-label">Export API</span>
+              <UBadge :type="statusType(apiStatus.export)">
+                {{ statusText(apiStatus.export) }}
+              </UBadge>
             </div>
           </div>
 
-          <div class="doc-tool-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--usx-spacing-md); margin-top: var(--usx-spacing-md);">
-            <div class="doc-tool-card" style="padding: var(--usx-spacing-md); background: var(--usx-color-surface-variant); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md);">
-              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <UIcon name="computer" />
-                <h4 style="margin: 0;">Antigravity IDE & Codex</h4>
+          <div class="doc-export-summary" v-if="lastExportAt">
+            <UIcon name="schedule" />
+            <span>Last export: {{ lastExportAt }}</span>
+          </div>
+
+          <!-- Developer & Engineering Tooling Content -->
+          <section class="doc-developer-section" aria-label="Developer tools">
+            <div class="doc-tool-grid">
+              <div class="doc-tool-card">
+                <div class="doc-tool-card-heading">
+                  <UIcon name="computer" />
+                  <h4>Antigravity IDE & Codex</h4>
+                </div>
+                <p>External desktop IDE with pair programming, architectural planning, multi-repository intelligence, and visual artifacts.</p>
+                <div><code>AGENTS.md contract compliant</code></div>
               </div>
-              <p style="font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); margin-bottom: 0.75rem;">External desktop IDE with pair programming, architectural planning, multi-repository intelligence, and visual artifacts.</p>
-              <div><code style="font-size: var(--usx-font-size-xs);">AGENTS.md contract compliant</code></div>
-            </div>
 
-            <div class="doc-tool-card" style="padding: var(--usx-spacing-md); background: var(--usx-color-surface-variant); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md);">
-              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <UIcon name="code" />
-                <h4 style="margin: 0;">Antigravity CLI (agy)</h4>
+              <div class="doc-tool-card">
+                <div class="doc-tool-card-heading">
+                  <UIcon name="code" />
+                  <h4>Antigravity CLI (agy)</h4>
+                </div>
+                <p>CLI execution environment for autonomous tasks, cron schedules, background workers, and subagent orchestration.</p>
+                <div><code>agy run / agy agent</code></div>
               </div>
-              <p style="font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); margin-bottom: 0.75rem;">CLI execution environment for autonomous tasks, cron schedules, background workers, and subagent orchestration.</p>
-              <div><code style="font-size: var(--usx-font-size-xs);">agy run / agy agent</code></div>
-            </div>
 
-            <div class="doc-tool-card" style="padding: var(--usx-spacing-md); background: var(--usx-color-surface-variant); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md);">
-              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <UIcon name="hub" />
-                <h4 style="margin: 0;">Model Context Protocol (MCP)</h4>
+              <div class="doc-tool-card">
+                <div class="doc-tool-card-heading">
+                  <UIcon name="hub" />
+                  <h4>Model Context Protocol (MCP)</h4>
+                </div>
+                <p>Standardized integration protocols connecting external IDEs and agents directly to uCore APIs, vaults, and repositories.</p>
+                <div><code>mcp-server-git / mcp-filesystem</code></div>
               </div>
-              <p style="font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); margin-bottom: 0.75rem;">Standardized integration protocols connecting external IDEs and agents directly to uCore APIs, vaults, and repositories.</p>
-              <div><code style="font-size: var(--usx-font-size-xs);">mcp-server-git / mcp-filesystem</code></div>
-            </div>
 
-            <div class="doc-tool-card" style="padding: var(--usx-spacing-md); background: var(--usx-color-surface-variant); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md);">
-              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <UIcon name="article" />
-                <h4 style="margin: 0;">Obsidian Baseline Authoring</h4>
+              <div class="doc-tool-card">
+                <div class="doc-tool-card-heading">
+                  <UIcon name="article" />
+                  <h4>Obsidian Baseline Authoring</h4>
+                </div>
+                <p>Obsidian is the primary user authoring standard for notes, binders, and canvases. Filesystem authority with zero database lock-in.</p>
+                <div><code>~/Vault · ~/Shared · ~/Public</code></div>
               </div>
-              <p style="font-size: var(--usx-font-size-sm); color: var(--usx-color-on-surface-muted); margin-bottom: 0.75rem;">Obsidian is the primary user authoring standard for notes, binders, and canvases. Filesystem authority with zero database lock-in.</p>
-              <div><code style="font-size: var(--usx-font-size-xs);">~/Vault · ~/Shared · ~/Public</code></div>
             </div>
-          </div>
 
-          <div class="doc-section doc-section--spaced" style="margin-top: var(--usx-spacing-lg);">
-            <h4 class="doc-section-title">Workspace storage</h4>
-            <div style="padding: var(--usx-spacing-md); background: var(--usx-color-surface-variant); border-left: 4px solid var(--usx-color-primary); border-radius: var(--usx-radius-sm);">
-              <ul style="margin: 0; padding-left: 1.25rem; font-size: var(--usx-font-size-sm);">
-                <li><strong>Repository Source:</strong> All repos belong under <code>~/Code/&lt;repo&gt;</code>.</li>
-                <li><strong>Mutable State:</strong> Owned by <code>UDOS_HOME</code> (default <code>~/Code/.udos</code>). Never write state directly to <code>$HOME</code>.</li>
-                <li><strong>User Documents:</strong> Pure UTF-8 markdown in <code>~/Vault</code>, <code>~/Shared</code>, and <code>~/Public</code>.</li>
-                <li><strong>Validation:</strong> Run <code>python3 scripts/check_home_path_policy.py</code> before committing path changes.</li>
+            <div class="doc-section">
+              <h4 class="doc-section-title">Workspace storage</h4>
+              <ul class="doc-storage-list">
+                  <li><strong>Repository Source:</strong> All repos belong under <code>~/Code/&lt;repo&gt;</code>.</li>
+                  <li><strong>Mutable State:</strong> Owned by <code>UDOS_HOME</code> (default <code>~/Code/.udos</code>). Never write state directly to <code>$HOME</code>.</li>
+                  <li><strong>User Documents:</strong> Pure UTF-8 markdown in <code>~/Vault</code>, <code>~/Shared</code>, and <code>~/Public</code>.</li>
+                  <li><strong>Validation:</strong> Run <code>python3 scripts/check_home_path_policy.py</code> before committing path changes.</li>
               </ul>
             </div>
-          </div>
-        </div>
+          </section>
         </template>
       </div>
     </div>
@@ -522,8 +516,41 @@ watch([activeTab, () => settings.advancedView], ([tab, advanced]) => { if (tab =
   overflow: hidden;
 }
 
+.documentation-surface.surface--tab-nav-vertical {
+  flex-direction: row;
+}
+
+.documentation-tab-nav.surface-tab-nav--vertical {
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  gap: var(--usx-spacing-xs);
+}
+
+.documentation-tab-nav.surface-tab-nav--vertical :deep(.surface-tab-nav__link) {
+  display: grid;
+  grid-template-columns: 1.25em minmax(0, 1fr);
+  align-items: center;
+  gap: var(--usx-spacing-sm);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border-radius: var(--usx-radius-sm);
+}
+
+@media (max-width: 640px) {
+  .documentation-tab-nav.surface-tab-nav--vertical {
+    min-width: 0;
+    max-inline-size: 40%;
+  }
+
+  .documentation-tab-nav.surface-tab-nav--vertical :deep(.surface-tab-nav__link) {
+    padding-inline: var(--usx-spacing-xs);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
 .documentation-content-inner {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: var(--usx-spacing-xl);
@@ -534,6 +561,78 @@ watch([activeTab, () => settings.advancedView], ([tab, advanced]) => { if (tab =
   display: flex;
   flex-direction: column;
   gap: var(--usx-spacing-md);
+}
+
+.documentation-content-inner.documentation-content-inner--engineering {
+  padding: var(--usx-spacing-md);
+}
+
+.doc-developer-section,
+.doc-engineering-heading {
+  display: grid;
+  gap: var(--usx-spacing-md);
+  min-width: 0;
+}
+
+.doc-engineering-heading {
+  gap: var(--usx-spacing-xs);
+}
+
+.doc-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: var(--usx-spacing-md);
+}
+
+.doc-tool-card,
+.doc-storage-list {
+  padding: var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface);
+}
+
+.doc-tool-card {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--usx-spacing-sm);
+  min-width: 0;
+}
+
+.doc-tool-card-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--usx-spacing-sm);
+}
+
+.doc-tool-card-heading > :first-child {
+  flex-shrink: 0;
+}
+
+.doc-engineering-heading > *,
+.doc-tool-card h4,
+.doc-tool-card p,
+.doc-storage-list {
+  margin: 0;
+}
+
+.doc-engineering-heading p,
+.doc-tool-card p {
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm);
+}
+
+.doc-tool-card code {
+  font-size: var(--usx-font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.doc-storage-list {
+  display: grid;
+  gap: var(--usx-spacing-xs);
+  padding-inline-start: var(--usx-spacing-xl);
+  font-size: var(--usx-font-size-sm);
+  overflow-wrap: anywhere;
 }
 
 .doc-health-strip {

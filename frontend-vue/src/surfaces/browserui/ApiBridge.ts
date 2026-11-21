@@ -163,6 +163,14 @@ export interface GroundedSearchResult {
   live_grounded?: boolean
 }
 
+interface SpatialScene {
+  name: string
+  dimensions?: { width: number; height: number; depth: number }
+  total_voxels: number
+  palette?: Record<string, unknown>
+  voxels?: unknown[]
+}
+
 export interface BananaAssetResult {
   status: string
   model: string
@@ -191,6 +199,7 @@ export interface BananaAssetResult {
     fill_ratio: number
     rows: string[]
   }
+  spatial?: SpatialScene
   bob?: {
     width: number
     height: number
@@ -466,6 +475,20 @@ export async function quantizeVectorToBob(
     signal: AbortSignal.timeout(15000),
   })
   if (!res.ok) throw new Error(`BOB blitter export failed (HTTP ${res.status})`)
+  return res.json()
+}
+
+export async function liftSpatialScene(options?: {
+  manifest?: any
+  wall_height?: number
+}): Promise<{ status: string; scene: SpatialScene; engine: string }> {
+  const res = await fetch(`${BASE}/api/vector/spatial/lift`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(options || {}),
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`Spatial scene lift failed (HTTP ${res.status})`)
   return res.json()
 }
 

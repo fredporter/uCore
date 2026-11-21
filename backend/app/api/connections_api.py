@@ -22,8 +22,9 @@ from app.services.connections.store import CollectionStore
 from app.services.identity import get_full_identity
 
 
-def profile(request):
-    identity = get_full_identity()
+def profile(request, *, identity=None):
+    if identity is None:
+        identity = get_full_identity()
     if not identity.get("authenticated") or not identity.get("active_profile_id"):
         raise web.HTTPUnauthorized(text="Choose a local user profile first")
     # The caller cannot select another profile through a header or query string.

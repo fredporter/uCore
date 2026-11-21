@@ -4,7 +4,7 @@ Status: accepted direction; implementation and adapter qualification pending, ex
 
 ## Repository and surface organisation
 
-Keep existing repository locations and independent product histories. uCore owns shell surfaces, identity, resource registry and bundled uFlow execution. uCode owns language learning/runtime. Sonic owns media/device provisioning. global-knowledge owns canonical content/standards source and editions. uCore-Google remains an optional Google adapter owner; uCore-Publish owns edition compilation/publication adapters; uVector remains an optional conversion engine. HomeNest and Groovebox remain independent products. Review SnackMachine packaging overlap and uCode2 scope before any archival.
+Keep existing repository locations and independent product histories. uCore owns shell surfaces, identity, resource registry and bundled uFlow execution. uCode owns language learning/runtime. Sonic owns media/device provisioning. global-knowledge owns canonical content/standards source and editions. uCore-Google remains an optional Google adapter owner; uCore-Publish owns edition compilation/publication adapters; uCode+ remains an optional conversion engine. HomeNest and Groovebox remain independent products. Review SnackMachine packaging overlap and uCode2 scope before any archival.
 
 No new Apple Workspace, Drone, Beacon, BitChat or vault-management repository is needed now. Start Apple surface/host adapters inside uCore's existing connection contracts. Extract a package only if independent distribution/maintenance makes the boundary worthwhile. Do not create another identity database, task engine, agent tree, sync scheduler or environment.
 

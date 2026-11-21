@@ -784,7 +784,13 @@ def search(
                 rows = []
 
     results = []
+    roots = get_default_vault_paths()
     for row in rows:
+        path = Path(row["path"])
+        reader_source = row["source"]
+        if reader_source not in roots or not path.is_relative_to(roots[reader_source]):
+            reader_source = next((name for name, root in roots.items() if path.is_relative_to(root)), None)
+        relative_path = path.relative_to(roots[reader_source]).as_posix() if reader_source is not None else None
         title = ""
         fm = {}
         if "frontmatter_json" in row.keys() and row["frontmatter_json"]:
@@ -805,8 +811,11 @@ def search(
         )
 
         results.append({
+            "type": row["type"],
             "id": row["id"],
             "path": row["path"],
+            "reader_source": "vault" if reader_source == "user" else reader_source,
+            "relative_path": relative_path,
             "filename": row["filename"],
             "title": title,
             "source": row["source"],

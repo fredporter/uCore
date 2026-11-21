@@ -20,6 +20,8 @@ export interface KnowledgeMetadata {
 export interface FileEntry {
   id: string
   path: string
+  relative_path?: string | null
+  reader_source?: string | null
   filename: string
   title?: string
   knowledge?: KnowledgeMetadata

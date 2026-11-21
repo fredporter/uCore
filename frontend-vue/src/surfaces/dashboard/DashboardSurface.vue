@@ -192,10 +192,10 @@ const SURFACE_CARD_DATA: Record<
     color: "var(--usx-color-info)",
   },
   banana: {
-    title: "Banana Studio",
-    description: "Create images and graphics",
+    title: "uCode+ Studio",
+    description: "Spatial & vector graphics, image generation",
     icon: "image",
-    route: "/banana",
+    route: "/ucode-plus",
     color: "var(--usx-color-warning)",
   },
   homenest: {

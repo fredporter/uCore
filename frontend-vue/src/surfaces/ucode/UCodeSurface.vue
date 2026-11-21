@@ -812,6 +812,14 @@
           </template>
         </div>
         <div class="surface__canvas">
+          <label v-if="activeTab === 'terminal'">
+            Terminal mode
+            <select v-model="terminalMode" @change="restartTerminal">
+              <option value="local">Local input</option>
+              <option value="basic">BBC BASIC</option>
+              <option v-if="terminalMode === 'capsule'" value="capsule" disabled>Software</option>
+            </select>
+          </label>
           <textarea
             v-if="activeTab === 'terminal'"
             ref="terminalInputCapture"
@@ -1209,7 +1217,7 @@ async function launchSelectedSoftware(): Promise<void> {
       throw new Error(payload.reason || `Launch API returned ${response.status}`);
     }
     softwareLaunchMessage.value = `Opening ${title.title} in Terminal…`;
-    terminalSessionKind = "capsule";
+    terminalMode.value = "capsule";
     terminalActiveCapsuleId = payload.titleId;
     activeTab.value = "terminal";
     await nextTick();
@@ -1273,7 +1281,8 @@ let terminalSocket: WebSocket | null = null;
 const terminalRuntimeState = ref("disconnected");
 let terminalReconnectTimer: number | null = null;
 let terminalReconnectAttempt = 0;
-let terminalSessionKind: "shell" | "capsule" = "shell";
+const terminalMode = ref<"local" | "basic" | "capsule">("local");
+let terminalSessionKind: "local" | "basic" | "capsule" = "local";
 let terminalActiveCapsuleId: string | null = null;
 let terminalSnapshot: TerminalSnapshot | null = null;
 let terminalPendingInput = "";
@@ -3939,6 +3948,7 @@ function focusGridContainer() {
 /* ─── Terminal Tab ────────────────────────────────────────────────── */
 function terminalWebSocketUrl() {
   const url = new URL("/api/terminal/runtime/ws", UCORE_API);
+  if (terminalMode.value === "local") url.searchParams.set("mode", "local");
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   return url.toString();
 }
@@ -4209,7 +4219,7 @@ function loadTerminalWelcome() {
   terminalBuffer = createBuffer(TERMINAL_COLS, TERMINAL_ROWS);
   terminalRender();
   terminalPrintCentered("**** UCODE GRIDCORE TERMINAL ****", 4, 0);
-  terminalPrintCentered("UCODE · BBC BASIC", 7, 0);
+  terminalPrintCentered(terminalMode.value === "basic" ? "UCODE · BBC BASIC" : "UCODE · LOCAL INPUT", 7, 0);
   terminalPrintLine("READY.", 4, 0);
   terminalPrintLine("", 7, 0); // line gap before the prompt
   terminalCursorY = 4;
@@ -4253,12 +4263,20 @@ function saveTerminalView() {
   };
 }
 
+function restartTerminal() {
+  const mode = terminalMode.value;
+  disconnectTerminalRuntime("Changing Terminal mode");
+  terminalMode.value = mode;
+  terminalSnapshot = null;
+  loadTerminalRuntime();
+}
+
 function connectTerminalRuntime(capsuleId?: string) {
   if (terminalReconnectTimer !== null) {
     window.clearTimeout(terminalReconnectTimer);
     terminalReconnectTimer = null;
   }
-  const requestedKind = capsuleId ? "capsule" : "shell";
+  const requestedKind = capsuleId ? "capsule" : terminalMode.value;
   if (
     terminalSocket &&
     terminalSocket.readyState <= WebSocket.OPEN &&
@@ -4278,6 +4296,7 @@ function connectTerminalRuntime(capsuleId?: string) {
   }
   const socket = terminalSocket;
   socket.addEventListener("open", () => {
+    if (terminalSocket !== socket) return;
     terminalReconnectAttempt = 0;
     terminalRuntimeState.value = "connected";
     if (terminalSessionKind === "capsule" && terminalActiveCapsuleId) {
@@ -4301,6 +4320,7 @@ function connectTerminalRuntime(capsuleId?: string) {
     terminalInputCapture.value?.focus();
   });
   socket.addEventListener("message", (event) => {
+    if (terminalSocket !== socket) return;
     try {
       const payload = JSON.parse(String(event.data));
       if (payload.type === "ready")
@@ -4333,6 +4353,7 @@ function connectTerminalRuntime(capsuleId?: string) {
     }
   });
   socket.addEventListener("error", () => {
+    if (terminalSocket !== socket) return;
     terminalRuntimeState.value = "error";
   });
 }
@@ -4357,10 +4378,11 @@ function disconnectTerminalRuntime(reason = "Terminal tab inactive") {
   terminalReconnectAttempt = 0;
   stopTerminalCursorBlink();
   terminalRuntimeState.value = "disconnected";
-  if (!terminalSocket) return;
-  terminalSocket.close(1000, reason);
+  terminalSocket?.close(1000, reason);
   terminalSocket = null;
-  terminalSessionKind = "shell";
+  terminalPendingInput = "";
+  if (terminalMode.value === "capsule") terminalMode.value = "local";
+  terminalSessionKind = terminalMode.value;
   terminalActiveCapsuleId = null;
 }
 
@@ -4405,7 +4427,9 @@ function onTerminalCompositionEnd(event: CompositionEvent) {
 
 function onTerminalKeydown(event: KeyboardEvent) {
   if (activeTab.value !== "terminal") return;
-  if (event.metaKey || event.altKey) return;
+  if (event.metaKey || event.altKey || event.isComposing) return;
+  if (terminalSessionKind === "local" && event.key === "Tab") return;
+  if (terminalSessionKind === "local" && event.ctrlKey && event.key.toLowerCase() !== "c") return;
   if (event.ctrlKey && event.key.length === 1) {
     const code = event.key.toUpperCase().charCodeAt(0);
     if (code >= 64 && code <= 95) {

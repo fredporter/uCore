@@ -99,3 +99,54 @@ async def test_model_snack_updates_explicit_installed_batch(monkeypatch):
     assert [event["model"] for event in events] == pulled
     with pytest.raises(ValueError, match="Only installed"):
         await anext(service.maintain_models("update", ["uninstalled:small"]))
+
+
+@pytest.mark.asyncio
+async def test_offline_chat_and_settings_follow_active_profile(monkeypatch, tmp_path):
+    from aiohttp import web
+    from aiohttp.test_utils import make_mocked_request
+
+    from app.api import local_assistant_api as api
+    from app.services import assistant_profile
+
+    owner = "first"
+    role = "user"
+    monkeypatch.setenv("UDOS_IDENTITY_DATA_FILE", str(tmp_path / "profile.json"))
+    monkeypatch.setattr(api, "get_full_identity", lambda: {
+        "authenticated": True, "active_profile_id": owner, "active_profile": {"role": role},
+    })
+
+    def request(payload):
+        req = make_mocked_request("POST", "/api/assistant/chat")
+        async def read():
+            return payload
+        req.json = read
+        return req
+
+    async def no_model(*args, **kwargs):
+        pytest.fail("Offline input attempted to use Ollama")
+
+    monkeypatch.setattr(service, "chat", no_model)
+    replies = []
+
+    def offline_reply(message, *, verbose):
+        replies.append((message, verbose))
+        return f"Offline reply: {message}"
+
+    monkeypatch.setattr(api, "_resolve_callable", lambda _path: offline_reply)
+    settings = {"verbose": True, "chat_mode": "offline", "model": ""}
+    await api.update_settings(request(settings))
+    chat = {"messages": [{"role": "user", "content": "calculate 6 * 7"}]}
+    response = await api.chat(request(chat))
+    assert json.loads(response.text)["content"] == "Offline reply: calculate 6 * 7"
+
+    owner = "second"
+    role = "guest"
+    response = await api.chat(request(chat))
+    assert json.loads(response.text)["content"] == "Offline reply: calculate 6 * 7"
+    assert replies == [("calculate 6 * 7", True), ("calculate 6 * 7", False)]
+    with pytest.raises(web.HTTPForbidden):
+        await api.update_settings(request({**settings, "chat_mode": "ollama"}))
+    with pytest.raises(web.HTTPForbidden):
+        await api.pull(request({"model": "example:small", "confirm": True}))
+    assert assistant_profile.preferences("first") == settings

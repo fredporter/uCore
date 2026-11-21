@@ -84,7 +84,7 @@ describe("BitChatSurface", () => {
 
     // Verify UI header
     expect(wrapper.text()).toContain("BitChat");
-    expect(wrapper.text()).toContain("Decentralized LAN Mesh");
+    expect(wrapper.text()).toContain("Local mesh messaging");
 
     // Verify discovered peers
     expect(wrapper.text()).toContain("uDos Studio Host");
@@ -147,7 +147,7 @@ describe("BitChatSurface", () => {
     expect(wrapper.text()).toContain("Save to Binder");
 
     // Click Save to Binder
-    const saveBtn = wrapper.findAll(".bitchat-btn").find((b) => b.text().includes("Save to Binder"));
+    const saveBtn = wrapper.findAll(".bitchat-selection-actions .usx-btn").find((b) => b.text().includes("Save to Binder"));
     expect(saveBtn).toBeDefined();
     await saveBtn!.trigger("click");
 
