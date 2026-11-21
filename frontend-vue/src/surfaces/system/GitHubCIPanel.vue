@@ -97,13 +97,13 @@ const recoveryMessages: Record<GitHubErrorCode, string> = {
 const projectRepositories = [
   { id: "uCore", label: "uCore" },
   { id: "uCode", label: "uCode" },
-  { id: "uCodePlus", label: "uCode+ (uVector)" },
+  { id: "uCodePlus", label: "uCode+" },
   { id: "SonicScrewdriver", label: "SonicScrewdriver" },
   { id: "global-knowledge", label: "Global Knowledge" },
-  { id: "uCore-Publish", label: "uCore-Publish" },
-  { id: "uCore-Google", label: "uCore-Google" },
+  { id: "uCorePub", label: "uCorePub" },
+  { id: "uCoreGoo", label: "uCoreGoo" },
   { id: "SnackMachine", label: "SnackMachine" },
-  { id: "HomeNest", label: "HomeNest" },
+  { id: "HomeNook", label: "HomeNook" },
   { id: "Groovebox", label: "Groovebox" },
 ];
 const repo = ref("uCore");
