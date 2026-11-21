@@ -298,7 +298,7 @@ def _repo_github_status(repo_name: str, branch_view: str = "working") -> dict[st
         "--limit",
         "5",
         "--json",
-        "databaseId,workflowName,status,conclusion,headBranch,event,createdAt,url",
+        "databaseId,workflowName,status,conclusion,headBranch,headSha,event,createdAt,url",
     )
     prs, _ = _github_json(
         repo_path,

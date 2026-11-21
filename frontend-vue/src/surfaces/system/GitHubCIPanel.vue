@@ -43,6 +43,15 @@
           </a>
           <span v-else>{{ run.workflowName }}</span>
           <span>{{ (run.conclusion || run.status).replaceAll("_", " ") }}</span>
+          <RouterLink v-if="followUps[run.url]?.taskId" class="usx-btn"
+            :to="{ path: '/workflow', query: { tab: 'queue', task: followUps[run.url].taskId } }">
+            <UIcon name="task_alt" /> Open uFlow task
+          </RouterLink>
+          <button v-else-if="run.conclusion === 'failure' && run.headSha && run.headBranch && githubUrl(run.url)"
+            type="button" class="usx-btn" :disabled="followUps[run.url]?.pending" @click="createFollowUp(run)">
+            <UIcon name="add_task" /> {{ followUps[run.url]?.pending ? "Creating…" : "Create follow-up" }}
+          </button>
+          <p v-if="followUps[run.url]?.failed" role="alert">Could not create the uFlow task. Try again.</p>
         </li>
       </ul>
     </template>
@@ -56,13 +65,23 @@ import UIcon from "../../skills/atoms/UIcon.vue";
 
 type GitHubErrorCode = "network" | "auth" | "timeout" | "cli_missing" | "branch_unavailable" | "unknown";
 
+interface WorkflowRun {
+  databaseId: number;
+  workflowName: string;
+  status: string;
+  conclusion: string;
+  url: string;
+  headBranch?: string;
+  headSha?: string;
+}
+
 interface RepoStatus {
   configured: boolean;
   error_code?: GitHubErrorCode;
   branch: string;
   repository?: { url: string };
   runs_available?: boolean;
-  runs: Array<{ databaseId: number; workflowName: string; status: string; conclusion: string; url: string }>;
+  runs: WorkflowRun[];
 }
 
 const recoveryMessages: Record<GitHubErrorCode, string> = {
@@ -107,6 +126,27 @@ function githubUrl(value?: string) {
     return url.origin === "https://github.com" ? url.href : "";
   } catch {
     return "";
+  }
+}
+
+const followUps = ref<Record<string, { pending?: boolean; failed?: boolean; taskId?: string }>>({});
+
+async function createFollowUp(run: WorkflowRun) {
+  if (followUps.value[run.url]?.pending) return;
+  followUps.value[run.url] = { pending: true };
+  try {
+    const response = await fetch(`${UCORE_BASE}/api/workflow/tasks/github-follow-up`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: run.url, branch: run.headBranch, commit: run.headSha }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) throw new Error("Follow-up unavailable");
+    const data = await response.json();
+    if (typeof data.updated?.id !== "string" || !data.updated.id) throw new Error("Missing task ID");
+    followUps.value[run.url] = { taskId: data.updated.id };
+  } catch {
+    followUps.value[run.url] = { failed: true };
   }
 }
 

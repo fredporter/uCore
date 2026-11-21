@@ -124,3 +124,35 @@ def test_repo_github_status_reports_missing_default_branch(monkeypatch, tmp_path
     assert payload["branch"] == "unknown"
     assert payload["runs_available"] is False
     assert payload["error_code"] == "branch_unavailable"
+
+
+@pytest.mark.asyncio
+async def test_follow_up_is_idempotent_and_profile_scoped(monkeypatch, tmp_path):
+    from app.api import tasker_api
+    from app.services import identity
+
+    profile = "default"
+    monkeypatch.setattr(identity, "get_full_identity", lambda: {"active_profile_id": profile})
+    monkeypatch.setattr(tasker_api, "default_tasker_dir", lambda: tmp_path)
+
+    async def payload():
+        return {
+            "url": "https://github.com/fredporter/uCore/actions/runs/123",
+            "branch": "main",
+            "commit": "a" * 40,
+        }
+
+    request = SimpleNamespace(json=payload)
+    first = await tasker_api.handle_github_follow_up(request)
+    repeat = await tasker_api.handle_github_follow_up(request)
+    assert (first.status, repeat.status) == (201, 200)
+    task = json.loads(first.body)["updated"]
+    assert json.loads(repeat.body)["updated"]["id"] == task["id"]
+    assert "Repository: fredporter/uCore" in task["body"]
+    assert "Commit: " + "a" * 40 in task["body"]
+
+    profile = "second"
+    other = await tasker_api.handle_github_follow_up(request)
+    assert other.status == 201
+    assert json.loads(other.body)["updated"]["id"] != task["id"]
+    assert len(list(tmp_path.glob("inbox/*.md"))) == 2

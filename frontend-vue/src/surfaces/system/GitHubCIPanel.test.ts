@@ -126,3 +126,27 @@ it("clears saved results when GitHub confirms the working branch has changed", a
   expect(wrapper.text()).not.toContain("Branch: feature/old");
   wrapper.unmount();
 });
+
+it("creates a uFlow follow-up with the failed run context", async () => {
+  const url = "https://github.com/fredporter/uCore/actions/runs/123";
+  const headSha = "a".repeat(40);
+  const run = { databaseId: 123, workflowName: "CI", status: "completed",
+    conclusion: "failure", url, headBranch: "main", headSha };
+  const fetchStatus = vi.fn()
+    .mockResolvedValueOnce(Response.json({ configured: true, branch: "main", runs: [run] }))
+    .mockResolvedValueOnce(Response.json({ updated: { id: "task-123" } }, { status: 201 }));
+  vi.stubGlobal("fetch", fetchStatus);
+  const wrapper = mount(GitHubCIPanel, { global: { stubs: ["RouterLink"], renderStubDefaultSlot: true } });
+  await flushPromises();
+
+  expect(wrapper.get(".ci-run button").text()).toContain("Create follow-up");
+  await wrapper.get(".ci-run button").trigger("click");
+  await flushPromises();
+
+  const [endpoint, options] = fetchStatus.mock.calls[1];
+  expect(endpoint).toContain("/api/workflow/tasks/github-follow-up");
+  expect(options.method).toBe("POST");
+  expect(JSON.parse(options.body)).toEqual({ url, branch: "main", commit: headSha });
+  expect(wrapper.text()).toContain("Open uFlow task");
+  wrapper.unmount();
+});
