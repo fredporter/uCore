@@ -36,7 +36,7 @@
     </section>
     <section>
       <h3>Package and publish feeds</h3>
-      <p>Run from uCore-Publish with a reviewed edition manifest.</p>
+      <p>Run from uCorePub with a reviewed edition manifest.</p>
       <pre>python3 -m udos_publishing.src.edition_feed --manifest reviewed.json --edition-root edition --package output</pre>
       <p>The package includes RSS, Atom and JSON Feed files. Open the Binder to review and publish an edition.</p>
       <RouterLink class="usx-btn" :to="{ path: '/workflow', query: { tab: 'binder', binder: binder || undefined } }">Open Binders</RouterLink>

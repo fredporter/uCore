@@ -51,7 +51,7 @@
   "publishing_mirror": {
     "extensions": ["ucore-publish", "udos-publishing"],
     "tools": [],
-    "repos": ["uCore-Publish", "udos-publishing"],
+    "repos": ["uCorePub", "udos-publishing"],
     "variables": [],
     "secrets": []
   },

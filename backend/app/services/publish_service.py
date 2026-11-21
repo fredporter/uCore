@@ -53,7 +53,7 @@ def compile_binder_to_tomb(output_dir: Optional[Path] = None) -> Dict[str, Any]:
     # Combine document contents or compile primary document
     # Using the compiler from udos_publishing
     import sys
-    publishing_path = settings.udos_root / "uCore-Publish"
+    publishing_path = settings.udos_root / "uCorePub"
     if str(publishing_path) not in sys.path:
         sys.path.append(str(publishing_path))
 
