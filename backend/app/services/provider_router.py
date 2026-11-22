@@ -443,6 +443,16 @@ class ProviderRouter:
     ):
         """Stream chat completion tokens."""
         model_name = model or self._default_model(provider)
+        if provider in {"openrouter", "ollama"}:
+            config = self.get_provider_required(provider)
+            if not model_name.startswith(f"{provider}/"):
+                model_name = f"{provider}/{model_name}"
+            kwargs.setdefault("api_base", config.base_url)
+            kwargs.setdefault("timeout", config.timeout)
+            if provider == "openrouter":
+                if not config.api_key:
+                    raise ValueError("OpenRouter API key is unavailable")
+                kwargs.setdefault("api_key", config.api_key)
         if self._litellm_available:
             from litellm import acompletion
             response = await acompletion(
@@ -458,6 +468,8 @@ class ProviderRouter:
             result = await self._chat_http(
                 messages, model_name, provider, **kwargs,
             )
+            if result.get("error"):
+                raise RuntimeError(result["error"])
             yield result.get("content", "")
 
     async def _chat_litellm(

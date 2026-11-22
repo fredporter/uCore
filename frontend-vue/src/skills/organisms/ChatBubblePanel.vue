@@ -101,6 +101,16 @@
           </select>
           <UIcon name="expand_more" class="chat-panel__presentation-chevron" />
         </label>
+        <label v-if="localAssistant && cloudModels.length && !selectedSpecialist" class="chat-panel__specialist-select">
+          <UIcon name="cloud" />
+          <select :value="cloudModel" :disabled="loading" aria-label="Assistant model"
+            @change="emit('update:cloudModel', ($event.target as HTMLSelectElement).value)">
+            <option value="">Local Assistant</option>
+            <option v-for="model in cloudModels" :key="model.id" :value="model.id">
+              {{ model.name || model.id }} ({{ model.provider }})
+            </option>
+          </select>
+        </label>
         <label class="chat-panel__presentation">
           <UIcon name="view_sidebar" />
           <select
@@ -177,7 +187,7 @@ import type { ChatPresentation } from "../../stores/shell";
 import { getEditorSurface } from "../../composables/useEditorSurface";
 import { useWorkspaceStore } from "../../stores/workspace";
 import { useToast } from "../../composables/useToast";
-import { useChatStore } from "../../stores/chat";
+import { useChatStore, type ModelOption } from "../../stores/chat";
 import { renderMarkdown } from "../../composables/useMarkdown";
 import UIcon from "../atoms/UIcon.vue";
 
@@ -190,6 +200,8 @@ const props = withDefaults(
   defineProps<{
     chatMessages?: Message[];
     localAssistant?: boolean;
+    cloudModel?: string;
+    cloudModels?: ModelOption[];
     devMessages?: Message[];
     loading?: boolean;
     devAvailable?: boolean;
@@ -200,6 +212,8 @@ const props = withDefaults(
   }>(),
   {
     chatMessages: () => [],
+    cloudModel: "",
+    cloudModels: () => [],
     devMessages: () => [],
     loading: false,
     devAvailable: false,
@@ -212,6 +226,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   "clear-local": [];
+  "update:cloudModel": [model: string];
   "send-chat": [message: string, mode?: "chat" | "plan" | "act" | "workflow", specialist?: string];
   "send-dev": [message: string, mode: "ask" | "plan" | "act"];
   "toggle-dev-mode": [];

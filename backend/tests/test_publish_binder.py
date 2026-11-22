@@ -20,6 +20,8 @@ from aiohttp.test_utils import make_mocked_request
 from app.api import publish_api
 from app.services import publish_service
 
+pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture(autouse=True)
 def publishing_identity(monkeypatch):

@@ -76,7 +76,7 @@ export function renderMarkdown(text: string): string {
   }
 
   const htmlParts: string[] = [];
-  let inCodeBlock = false;
+  let fenceLength = 0;
   let codeBuffer: string[] = [];
   let codeLang = "";
   let inTable = false;
@@ -92,23 +92,26 @@ export function renderMarkdown(text: string): string {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Code blocks
-    if (line.startsWith("```")) {
-      if (inCodeBlock) {
-        // Closing fence – render the fenced content as markdown (allow nested markdown)
+    const fence = line.match(/^(`{3,})(.*)$/);
+    if (fenceLength) {
+      if (fence && fence[1].length >= fenceLength && !fence[2].trim()) {
         const inner = codeBuffer.join("\n");
-        htmlParts.push(renderMarkdown(inner));
+        htmlParts.push(
+          codeLang === "markdown" || codeLang === "md"
+            ? renderMarkdown(inner)
+            : `<pre><code>${escapeHtml(inner)}</code></pre>`,
+        );
         codeBuffer = [];
-        inCodeBlock = false;
+        fenceLength = 0;
       } else {
-        flushTable();
-        inCodeBlock = true;
-        codeLang = line.slice(3).trim();
+        codeBuffer.push(line);
       }
       continue;
     }
-    if (inCodeBlock) {
-      codeBuffer.push(escapeHtml(line));
+    if (fence) {
+      flushTable();
+      fenceLength = fence[1].length;
+      codeLang = fence[2].trim().toLowerCase();
       continue;
     }
 
@@ -175,8 +178,8 @@ export function renderMarkdown(text: string): string {
   }
 
   // Flush remaining
-  if (inCodeBlock) {
-    htmlParts.push(`<pre><code>${codeBuffer.join("\n")}</code></pre>`);
+  if (fenceLength) {
+    htmlParts.push(`<pre><code>${escapeHtml(codeBuffer.join("\n"))}</code></pre>`);
   }
   flushTable();
 

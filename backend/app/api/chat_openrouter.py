@@ -6,23 +6,14 @@ Adds:
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 
 from aiohttp import web
 
+from .local_assistant_api import active_assistant_profile
+
 log = logging.getLogger("ucore.chat_openrouter")
-
-
-def _is_openrouter_model(model: str | None) -> bool:
-    if not model:
-        return False
-    openrouter_providers = {
-        "cognitivecomputations", "microsoft", "deepseek", "mistralai",
-        "anthropic", "google", "openai", "meta-llama", "qwen",
-    }
-    return any(model.startswith(p + "/") for p in openrouter_providers)
 
 
 async def handle_chat_stream(request: web.Request) -> web.StreamResponse:
@@ -41,17 +32,25 @@ async def handle_chat_stream(request: web.Request) -> web.StreamResponse:
     except Exception:
         return web.Response(status=400, text="Invalid JSON body")
 
-    message: str = body.get("message", "").strip()
+    if not isinstance(body, dict) or not isinstance(body.get("message"), str):
+        return web.Response(status=400, text="message is required")
+    message = body["message"].strip()
     if not message:
         return web.Response(status=400, text="message is required")
 
     model: str | None = body.get("model")
     history: list = body.get("history") or body.get("messages") or []
+    if not isinstance(history, list):
+        history = []
+    if model is not None and not isinstance(model, str):
+        return web.Response(status=400, text="Invalid model")
     history = [
         {"role": m["role"], "content": str(m.get("content", ""))[:16000]}
         for m in history[-16:]
         if isinstance(m, dict) and m.get("role") in {"user", "assistant"}
     ]
+
+    active_assistant_profile(request, "local_models")
 
     # Build messages list
     from .chat import _select_system_prompt
@@ -78,47 +77,30 @@ async def handle_chat_stream(request: web.Request) -> web.StreamResponse:
     from ..services.provider_router import ProviderRouter
 
     router = ProviderRouter()
-    use_openrouter = _is_openrouter_model(model)
+    use_openrouter = bool(model and (
+        model.startswith("openrouter/")
+        or any(item["id"] == model and item["provider"].startswith("openrouter")
+               for item in router.list_models())
+    ))
     provider = "openrouter" if use_openrouter else "ollama"
-    effective_model = model
+    emitted = False
 
     try:
-        # Check if provider_router supports async streaming
-        if hasattr(router, "chat_stream"):
-            async for token in router.chat_stream(
-                messages=chat_messages, model=effective_model, provider=provider
-            ):
+        async for token in router.chat_stream(messages=chat_messages, model=model, provider=provider):
+            if token:
                 await emit({"token": token})
-        else:
-            # Fallback: single non-streaming call, emit full response as one token
-            response = await router.chat(
-                messages=chat_messages, model=effective_model, provider=provider
-            )
-            if response.get("error") and use_openrouter:
-                raise RuntimeError(response["error"])
-            content = response.get("content", "")
-            # Emit word-by-word for a streaming feel
-            for word in content.split(" "):
-                await emit({"token": word + " "})
-                await asyncio.sleep(0)
-
+                emitted = True
     except Exception as exc:
-        if use_openrouter:
-            log.warning("OpenRouter failed (%s), falling back to Ollama", exc)
-            await emit({"system": "OpenRouter unavailable – switched to local model."})
-            # Retry with Ollama
+        log.warning("Chat stream failed for %s: %s", provider, type(exc).__name__)
+        if use_openrouter and not emitted:
+            await emit({"system": "OpenRouter unavailable. Switching to a local model."})
             try:
-                response = await router.chat(
-                    messages=chat_messages, model=None, provider="ollama"
-                )
-                content = response.get("content", "")
-                for word in content.split(" "):
-                    await emit({"token": word + " "})
-                    await asyncio.sleep(0)
-            except Exception as fallback_exc:
-                await emit({"error": f"Fallback also failed: {fallback_exc}"})
+                async for token in router.chat_stream(messages=chat_messages, provider="ollama"):
+                    await emit({"token": token})
+            except Exception:
+                await emit({"error": "The local model is also unavailable."})
         else:
-            await emit({"error": str(exc)})
+            await emit({"error": "The model stopped responding. Try again when it is available."})
 
     await resp.write(b"data: [DONE]\n\n")
     await resp.write_eof()
@@ -129,6 +111,7 @@ async def handle_models_cloud(request: web.Request) -> web.Response:
     """GET /api/models/cloud — list OpenRouter cloud models with cost tier."""
     from ..services.provider_router import ProviderRouter
 
+    active_assistant_profile(request, "local_models")
     try:
         router = ProviderRouter()
         all_models = router.list_models()
