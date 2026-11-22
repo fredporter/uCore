@@ -16,6 +16,7 @@ ALLOWED_MANIFEST_FIELDS = {
     "optional",
     "api_prefix",
     "route_registrar",
+    "platform",
 }
 REQUIRED_MANIFEST_FIELDS = {"id", "name", "kind"}
 
@@ -72,6 +73,9 @@ class ExtensionManifest:
 
     route_registrar: str | None = None
     """Dotted path to a `register_routes(app)` callable."""
+
+    platform: str | None = None
+    """Optional sys.platform value required to activate this extension."""
 
     @staticmethod
     def _is_dotted_path(value: str) -> bool:
@@ -155,6 +159,10 @@ class ExtensionManifest:
                     "Field 'route_registrar' must be a dotted path like 'pkg.mod.register_routes'",
                 )
 
+        platform = data.get("platform")
+        if platform is not None and (not isinstance(platform, str) or not platform.strip()):
+            raise ValueError("Field 'platform' must be a non-empty string")
+
         if data["id"] in set(dependencies):
             raise ValueError("Manifest cannot depend on itself")
 
@@ -175,4 +183,5 @@ class ExtensionManifest:
             optional=data.get("optional", True),
             api_prefix=data.get("api_prefix"),
             route_registrar=data.get("route_registrar"),
+            platform=data.get("platform"),
         )

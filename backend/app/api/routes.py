@@ -699,10 +699,6 @@ def register_routes(app: web.Application) -> None:
     except ImportError as e:
         log.debug("Knowledge Federation routes not available: %s", e)
 
-    # ── Documentation API ───────────────────────────────────────────
-    app.router.add_get("/documentation", handle_documentation)
-    app.router.add_get("/documentation/{tab:.*}", handle_documentation)
-
     # ── Publishing & Library Delivery API ─────────────────────────────
     try:
         from .publish_api import register_publish_routes

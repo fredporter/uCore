@@ -35,13 +35,17 @@ from app.services.host_pim import HostPIMService
 log = logging.getLogger("ucore.api.host")
 
 _pim_service: HostPIMService | None = None
+_fallback_service = HostPIMService()
 
 
-def get_host_pim_service() -> HostPIMService:
-    global _pim_service
-    if _pim_service is None:
-        _pim_service = HostPIMService()
-    return _pim_service
+def get_host_pim_service(request: web.Request | None = None):
+    if _pim_service is not None:
+        return _pim_service
+    if request is not None and "ucore-mac-capabilities" in request.app.router:
+        from udos_mac.src.routes import get_host_pim_service as get_mac_service
+
+        return get_mac_service()
+    return _fallback_service
 
 
 def set_host_pim_service(service: HostPIMService | None) -> None:
@@ -51,14 +55,14 @@ def set_host_pim_service(service: HostPIMService | None) -> None:
 
 async def handle_host_capabilities(request: web.Request) -> web.Response:
     """GET /api/host/capabilities — Discover host OS capabilities non-invasively."""
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     caps = svc.probe_capabilities()
     return web.json_response(caps)
 
 
 async def handle_safari_active(request: web.Request) -> web.Response:
     """GET /api/host/safari/active — Query the URL and title of Safari's active tab."""
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     data = svc.get_active_safari_tab()
     status = 200 if data.get("ok") else (200 if not data.get("running") else 500)
     return web.json_response(data, status=status)
@@ -72,7 +76,7 @@ async def handle_safari_intake(request: web.Request) -> web.Response:
         body = {}
 
     notes = body.get("notes", "")
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     result = svc.intake_safari_to_research(notes=notes)
 
     if not result.get("ok"):
@@ -112,7 +116,7 @@ async def handle_notes_export(request: web.Request) -> web.Response:
     body_md = body.get("body", "")
     folder = body.get("folder")
 
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     res = svc.export_to_apple_notes(title=title, body_markdown=body_md, folder=folder)
     return web.json_response(res, status=200 if res.get("ok") else 500)
 
@@ -132,7 +136,7 @@ async def handle_reminders_export(request: web.Request) -> web.Response:
     list_name = body.get("list_name")
     due_date = body.get("due_date")
 
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     res = svc.export_to_apple_reminders(
         title=title, notes=notes, list_name=list_name, due_date=due_date
     )
@@ -151,7 +155,7 @@ async def handle_reminders_intake(request: web.Request) -> web.Response:
     except ValueError:
         limit = 25
 
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     res = svc.intake_apple_reminders(list_name=list_name, limit=limit, completed=completed)
     status = 200 if res.get("ok") else 500
     return web.json_response(res, status=status)
@@ -168,7 +172,7 @@ async def handle_notes_intake(request: web.Request) -> web.Response:
     except ValueError:
         limit = 15
 
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     res = svc.intake_apple_notes(folder=folder, limit=limit, search=search)
     status = 200 if res.get("ok") else 500
     return web.json_response(res, status=status)
@@ -188,7 +192,7 @@ async def handle_host_notify(request: web.Request) -> web.Response:
     if not message:
         return web.json_response({"ok": False, "error": "message is required"}, status=400)
 
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     res = svc.notify(title=title, message=message, subtitle=subtitle)
     return web.json_response(res, status=200 if res.get("ok") else 500)
 
@@ -206,14 +210,14 @@ async def handle_host_say(request: web.Request) -> web.Response:
     if not text:
         return web.json_response({"ok": False, "error": "text is required"}, status=400)
 
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     res = svc.say(text=text, voice=voice)
     return web.json_response(res, status=200 if res.get("ok") else 500)
 
 
 async def handle_host_shortcuts(request: web.Request) -> web.Response:
     """GET /api/host/shortcuts — List available host shortcuts."""
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     shortcuts = svc.list_shortcuts()
     return web.json_response({"ok": True, "shortcuts": shortcuts, "count": len(shortcuts)})
 
@@ -230,7 +234,7 @@ async def handle_host_shortcuts_run(request: web.Request) -> web.Response:
         return web.json_response({"ok": False, "error": "Shortcut name is required"}, status=400)
 
     input_text = body.get("input", "")
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     res = svc.run_shortcut(name=name, input_text=input_text)
     return web.json_response(res, status=200 if res.get("ok") else 500)
 
@@ -246,7 +250,7 @@ async def handle_mail_archive(request: web.Request) -> web.Response:
     if not message_id:
         return web.json_response({"ok": False, "error": "message_id is required"}, status=400)
 
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     res = svc.archive_apple_mail(message_id=message_id)
     return web.json_response(res, status=200 if res.get("ok") else 500)
 
@@ -263,7 +267,7 @@ async def handle_mail_flag(request: web.Request) -> web.Response:
     if not message_id:
         return web.json_response({"ok": False, "error": "message_id is required"}, status=400)
 
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     res = svc.flag_apple_mail(message_id=message_id, flag_index=flag_index)
     return web.json_response(res, status=200 if res.get("ok") else 500)
 
@@ -278,7 +282,7 @@ async def handle_mail_intake(request: web.Request) -> web.Response:
     limit = int(body.get("limit", 25))
     unread_only = bool(body.get("unread_only", True))
 
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     res = svc.intake_apple_mail(limit=limit, unread_only=unread_only)
     return web.json_response(res, status=200 if res.get("ok") else 500)
 
@@ -292,7 +296,7 @@ async def handle_imessage_intake(request: web.Request) -> web.Response:
 
     limit = int(body.get("limit", 25))
 
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     res = svc.intake_imessage(limit=limit)
     return web.json_response(res, status=200 if res.get("ok") else 500)
 
@@ -310,14 +314,14 @@ async def handle_reminders_sync_outbound(request: web.Request) -> web.Response:
 
     default_list = body.get("default_list", "uDos")
 
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     res = svc.sync_apple_reminders_outbound(tasks=tasks, default_list=default_list)
     return web.json_response(res, status=200 if res.get("ok") else 500)
 
 
 async def handle_sync_status(request: web.Request) -> web.Response:
     """GET /api/host/sync/status — Aggregate sync status for Apple PIM, Drive, BitChat mesh."""
-    svc = get_host_pim_service()
+    svc = get_host_pim_service(request)
     res = svc.get_sync_status()
     return web.json_response(res)
 

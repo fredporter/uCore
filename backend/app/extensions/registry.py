@@ -93,6 +93,7 @@ class ExtensionRegistry:
 
     def __init__(self) -> None:
         self._manifests: dict[str, ExtensionManifest] = {}
+        self._manifest_roots: dict[str, Path] = {}
         self._loaded: dict[str, bool] = {}
         self._errors: dict[str, str] = {}
         self._register_builtins()
@@ -204,8 +205,11 @@ class ExtensionRegistry:
                 try:
                     raw = json.loads(manifest_file.read_text())
                     manifest = ExtensionManifest.from_dict(raw)
+                    if manifest.platform and manifest.platform != sys.platform:
+                        continue
                     if manifest.id not in self._manifests:
                         self._manifests[manifest.id] = manifest
+                        self._manifest_roots[manifest.id] = manifest_file.resolve().parent
                         discovered += 1
                         log.info(
                             "Discovered extension: %s (%s)",
@@ -248,6 +252,8 @@ class ExtensionRegistry:
         """
         results: dict[str, bool] = {}
         for ext_id, manifest in self._manifests.items():
+            if manifest.platform and manifest.platform != sys.platform:
+                continue
             if ext_id in self._loaded:
                 results[ext_id] = self._loaded[ext_id]
                 continue
@@ -294,6 +300,8 @@ class ExtensionRegistry:
         local repo path to sys.path and retries before failing.
         """
         for ext_id, manifest in self._manifests.items():
+            if manifest.platform and manifest.platform != sys.platform:
+                continue
             if manifest.route_registrar is None:
                 continue
             try:
@@ -309,6 +317,9 @@ class ExtensionRegistry:
                 )
             except ImportError:
                 # Path-discovery fallback for external split-repo packages
+                root = self._manifest_roots.get(ext_id)
+                if root is not None and str(root) not in sys.path:
+                    sys.path.insert(0, str(root))
                 _add_external_path(ext_id)
                 try:
                     mod_path, func_name = manifest.route_registrar.rsplit(".", 1)
