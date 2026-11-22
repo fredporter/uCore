@@ -2,7 +2,7 @@
 # Installed globally via npm: npm install -g kanban
 # Runtime URL: http://127.0.0.1:3484
 
-version: "1.0.0"
+version: "1.0.1"
 
 # Server Configuration
 server:
@@ -24,6 +24,14 @@ board:
       wip_limit: 3
     - name: "Done"
       wip_limit: 0
+
+# Board Status (updated after backlog completion)
+board_status:
+  total_tasks: 58
+  completed_today: 14
+  in_progress: 2
+  pending_review: 1
+  backlog_remaining: 41
 
 # Integration with uCore Tasker
 tasker:
