@@ -95,9 +95,9 @@ export function renderMarkdown(text: string): string {
     // Code blocks
     if (line.startsWith("```")) {
       if (inCodeBlock) {
-        htmlParts.push(
-          `<pre><code${codeLang ? ` class="lang-${codeLang}"` : ""}>${codeBuffer.join("\n")}</code></pre>`,
-        );
+        // Closing fence – render the fenced content as markdown (allow nested markdown)
+        const inner = codeBuffer.join("\n");
+        htmlParts.push(renderMarkdown(inner));
         codeBuffer = [];
         inCodeBlock = false;
       } else {
