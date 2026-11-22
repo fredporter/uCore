@@ -41,6 +41,16 @@ def get_workflow_manager():
     return _manager
 
 
+def _active_owner() -> str:
+    """Resolve workflow authority from uCore; never from caller parameters."""
+    from app.services.identity import get_full_identity
+
+    identity = get_full_identity()
+    if not identity.get("authenticated", True):
+        raise web.HTTPForbidden(text="Authenticate a local profile to use workflows")
+    return str(identity.get("active_profile_id") or "default")
+
+
 def record_import_job(
     task_id: str,
     status: str = "queued",
@@ -464,6 +474,7 @@ async def handle_create_workflow(request: web.Request) -> web.Response:
         steps=steps,
         description=str(body.get("description", "")).strip(),
         schedule=str(body.get("schedule", "manual")).strip() or "manual",
+        owner=_active_owner(),
     )
     _append_workflow_log(
         workflow_id,
@@ -479,7 +490,7 @@ async def handle_create_workflow(request: web.Request) -> web.Response:
 async def handle_list_workflows(request: web.Request) -> web.Response:
     """GET /api/workflows — list persistent workflow definitions."""
     manager = get_workflow_manager()
-    workflows = manager.list_workflows()
+    workflows = manager.list_workflows(owner=_active_owner())
     return web.json_response({"workflows": workflows, "count": len(workflows)})
 
 
@@ -489,7 +500,8 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
 
     workflow_id = request.match_info.get("workflow_id", "")
     manager = get_workflow_manager()
-    workflow = manager.get_workflow(workflow_id)
+    owner = _active_owner()
+    workflow = manager.get_workflow(workflow_id, owner=owner)
     if not workflow:
         return web.json_response({"error": "Workflow not found"}, status=404)
 
@@ -579,6 +591,7 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
         finished_at=datetime.now(UTC).isoformat(),
         status=status,
         steps=run_rows,
+        owner=owner,
     )
 
     _append_workflow_log(
@@ -598,7 +611,8 @@ async def handle_workflow_logs(request: web.Request) -> web.Response:
     """GET /api/workflows/{id}/logs — persistent logs and run history."""
     workflow_id = request.match_info.get("workflow_id", "")
     manager = get_workflow_manager()
-    workflow = manager.get_workflow(workflow_id)
+    owner = _active_owner()
+    workflow = manager.get_workflow(workflow_id, owner=owner)
     if not workflow:
         return web.json_response({"error": "Workflow not found"}, status=404)
 
@@ -608,7 +622,7 @@ async def handle_workflow_logs(request: web.Request) -> web.Response:
         limit = 100
 
     logs = manager.get_logs(workflow_id, limit=limit)
-    runs = manager.get_run_history(workflow_id, limit=limit)
+    runs = manager.get_run_history(workflow_id, limit=limit, owner=owner)
     return web.json_response(
         {
             "workflow_id": workflow_id,
@@ -632,7 +646,7 @@ async def handle_workflow_runs(request: web.Request) -> web.Response:
     except ValueError:
         limit = 100
 
-    runs = manager.get_all_runs(limit=limit)
+    runs = manager.get_all_runs(limit=limit, owner=_active_owner())
     return web.json_response(
         {
             "runs": runs,

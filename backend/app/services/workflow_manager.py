@@ -53,7 +53,8 @@ class WorkflowManager:
                     description TEXT DEFAULT '',
                     schedule TEXT DEFAULT 'manual',
                     created_at TEXT NOT NULL,
-                    steps TEXT NOT NULL
+                    steps TEXT NOT NULL,
+                    owner TEXT NOT NULL DEFAULT 'default'
                 )
                 """,
             )
@@ -84,11 +85,20 @@ class WorkflowManager:
                     finished_at TEXT NOT NULL,
                     status TEXT NOT NULL,
                     steps TEXT NOT NULL,
+                    owner TEXT NOT NULL DEFAULT 'default',
                     FOREIGN KEY (workflow_id)
                         REFERENCES workflows(id)
                 )
                 """,
             )
+            for table in ("workflows", "workflow_runs"):
+                columns = {
+                    row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+                }
+                if "owner" not in columns:
+                    conn.execute(
+                        f"ALTER TABLE {table} ADD COLUMN owner TEXT NOT NULL DEFAULT 'default'"
+                    )
             conn.execute("""CREATE TABLE IF NOT EXISTS missions (
                 id TEXT PRIMARY KEY, profile TEXT NOT NULL, title TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'active', binder TEXT NOT NULL DEFAULT '',
@@ -131,8 +141,9 @@ class WorkflowManager:
         steps: list[dict[str, Any]],
         description: str = "",
         schedule: str = "manual",
+        owner: str = "default",
     ) -> dict[str, Any]:
-        """Create a new workflow definition."""
+        """Create a workflow definition owned by one server-resolved profile."""
         created_at = datetime.now(UTC).isoformat()
         steps_json = json.dumps(steps)
 
@@ -152,13 +163,14 @@ class WorkflowManager:
                     "created_at": row["created_at"],
                     "steps": steps_exist,
                     "step_count": len(steps_exist),
+                    "owner": row["owner"],
                 }
 
             conn.execute(
                 """
                 INSERT INTO workflows
-                (id, name, description, schedule, created_at, steps)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (id, name, description, schedule, created_at, steps, owner)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     workflow_id,
@@ -167,6 +179,7 @@ class WorkflowManager:
                     schedule,
                     created_at,
                     steps_json,
+                    owner,
                 ),
             )
             conn.commit()
@@ -179,15 +192,18 @@ class WorkflowManager:
             "created_at": created_at,
             "steps": steps,
             "step_count": len(steps),
+            "owner": owner,
         }
 
-    def get_workflow(self, workflow_id: str) -> dict[str, Any] | None:
-        """Fetch a workflow definition by ID."""
+    def get_workflow(self, workflow_id: str, owner: str | None = None) -> dict[str, Any] | None:
+        """Fetch a definition, optionally confined to its owning profile."""
+        query = "SELECT * FROM workflows WHERE id = ?"
+        params: tuple[Any, ...] = (workflow_id,)
+        if owner is not None:
+            query += " AND owner = ?"
+            params = (workflow_id, owner)
         with self._connect() as conn:
-            row = conn.execute(
-                "SELECT * FROM workflows WHERE id = ?",
-                (workflow_id,),
-            ).fetchone()
+            row = conn.execute(query, params).fetchone()
 
         if not row:
             return None
@@ -201,18 +217,22 @@ class WorkflowManager:
             "created_at": row["created_at"],
             "steps": steps,
             "step_count": len(steps),
+            "owner": row["owner"],
         }
 
-    def list_workflows(self) -> list[dict[str, Any]]:
-        """List all workflow definitions, sorted by creation time."""
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT id, name, description, schedule, created_at, steps
+    def list_workflows(self, owner: str | None = None) -> list[dict[str, Any]]:
+        """List definitions for one profile, or all for internal maintenance."""
+        query = """
+                SELECT id, name, description, schedule, created_at, steps, owner
                 FROM workflows
-                ORDER BY created_at DESC
-                """,
-            ).fetchall()
+        """
+        params: tuple[Any, ...] = ()
+        if owner is not None:
+            query += " WHERE owner = ?"
+            params = (owner,)
+        query += " ORDER BY created_at DESC"
+        with self._connect() as conn:
+            rows = conn.execute(query, params).fetchall()
 
         workflows = []
         for row in rows:
@@ -226,6 +246,7 @@ class WorkflowManager:
                     "created_at": row["created_at"],
                     "steps": steps,
                     "step_count": len(steps),
+                    "owner": row["owner"],
                 },
             )
         return workflows
@@ -312,6 +333,7 @@ class WorkflowManager:
         finished_at: str,
         status: str,
         steps: list[dict[str, Any]],
+        owner: str = "default",
     ) -> dict[str, Any]:
         """Save a completed workflow run."""
         steps_json = json.dumps(steps)
@@ -335,8 +357,8 @@ class WorkflowManager:
                 """
                 INSERT INTO workflow_runs
                 (run_id, workflow_id, workflow_name, started_at,
-                 finished_at, status, steps)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                 finished_at, status, steps, owner)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     run_id,
@@ -346,6 +368,7 @@ class WorkflowManager:
                     finished_at,
                     status,
                     steps_json,
+                    owner,
                 ),
             )
             conn.commit()
@@ -364,21 +387,24 @@ class WorkflowManager:
         self,
         workflow_id: str,
         limit: int = 100,
+        owner: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Fetch recent run history for a workflow."""
+        """Fetch recent run history within the requested ownership boundary."""
         safe_limit = max(1, min(limit, 500))
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
+        query = """
                 SELECT run_id, workflow_id, workflow_name, started_at,
                        finished_at, status, steps
                 FROM workflow_runs
                 WHERE workflow_id = ?
-                ORDER BY started_at DESC
-                LIMIT ?
-                """,
-                (workflow_id, safe_limit),
-            ).fetchall()
+        """
+        params: list[Any] = [workflow_id]
+        if owner is not None:
+            query += " AND owner = ?"
+            params.append(owner)
+        query += " ORDER BY started_at DESC LIMIT ?"
+        params.append(safe_limit)
+        with self._connect() as conn:
+            rows = conn.execute(query, tuple(params)).fetchall()
 
         runs = []
         for row in rows:
@@ -399,20 +425,23 @@ class WorkflowManager:
     def get_all_runs(
         self,
         limit: int = 100,
+        owner: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Fetch recent runs across all workflows."""
+        """Fetch recent runs for one profile, or all for internal maintenance."""
         safe_limit = max(1, min(limit, 500))
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
+        query = """
                 SELECT run_id, workflow_id, workflow_name, started_at,
                        finished_at, status, steps
                 FROM workflow_runs
-                ORDER BY started_at DESC
-                LIMIT ?
-                """,
-                (safe_limit,),
-            ).fetchall()
+        """
+        params: list[Any] = []
+        if owner is not None:
+            query += " WHERE owner = ?"
+            params.append(owner)
+        query += " ORDER BY started_at DESC LIMIT ?"
+        params.append(safe_limit)
+        with self._connect() as conn:
+            rows = conn.execute(query, tuple(params)).fetchall()
 
         runs = []
         for row in rows:

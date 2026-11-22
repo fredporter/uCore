@@ -31,3 +31,99 @@ The OK Assistant panel stores its preferences in the active uDOS profile. The of
 - **Afterward.** Connect user wording and optional Ollama recipe suggestions to the validated run contract. Verify that ambiguous requests stop for one useful question, and that concise and detailed replies describe the same persisted outcome. Add scheduled execution only after profile grants, revocation and recovery work for a single run.
 
 uCore hosts the UI and existing services. uFlow owns task and run state. uCode owns the offline input rules and terminal transport. Preferences and run records use the existing settings-resolved stores under `UDOS_HOME`. The initial delivery adds no background worker. Remove the offline provider through the uCore route binding and uCode runtime module. Clear the `ok_assistant` profile variable to restore default preferences. Later run storage changes need a migration, retention limit and rollback procedure before rollout.
+
+## Automation services
+
+The full external-signal-to-device pilot requires Huginn, UnlimitedPipe,
+persistent-scheduler, uCore/uFlow, and Home Assistant/Matter. A recipe that
+turns on a light every morning starts at the timing stage. A recipe that
+reacts to a public feed goes through observation and change detection before
+uFlow schedules its effect. Home Assistant retains ownership of its local
+automations and Matter fabric. The uDOS stack owns the workflows authored in
+uFlow. Keep core startup, manual local runs, and HomeNook media independent of
+pipeline availability.
+
+**HomeNook ownership.** Complete the HomeNest → HomeNook rename across active
+product references. Keep the uDOS-facing Home Assistant gateway, Matter bridge
+contracts, deployment guidance, and integration tests in HomeNook. uFlow owns
+workflow orchestration and consumes the gateway contract. Upstream Home
+Assistant and Matter Server retain device and fabric ownership.
+
+```mermaid
+flowchart LR
+    Feed[Public site or RSS] --> H[Huginn]
+    H -->|Observations| P[UnlimitedPipe]
+    P -->|Validated transitions| U[uCore and uFlow]
+    U -->|Schedule request| S[persistent-scheduler adapter]
+    S -->|Due occurrence| U
+    U -->|Approved action| HA[Home Assistant]
+    HA -->|Matter controller| D[Matter device]
+    HA -->|Observed entity state| U
+```
+
+| Stage | Responsibility and ownership |
+| --- | --- |
+| External observation | A separately deployed Huginn sidecar runs `WebsiteAgent` and `RssAgent`. Its `PostAgent` delivers structured observations to the validation adapter. The uCore integration maintainer owns the scenarios and connector lifecycle. Huginn's `WebhookAgent` is available for inbound sources. [Huginn](https://github.com/huginn/huginn) |
+| Validation and change detection | The uCore integration maintainer owns a pinned UnlimitedPipe pipeline and its versioned schemas. Normalize the fields the workflow uses, keep provenance, and compare by stable source and subject with `diff`. Run on Huginn delivery in the pilot. For a source assigned to scheduled polling, use a single polling owner. An optional public-web MCP path can provide provenance to an assistant through separate read-only configuration and state. [UnlimitedPipe](https://github.com/Fuyuki0/unlimitedpipe) |
+| Orchestration | uCore authenticates producer identities. uFlow owns trigger bindings, profile grants, workflow versions, runs and receipts. An event is data. Its sender supplies no workflow, grant, entity, action or parameter override. Match the event against a user-approved binding and use the existing run contract. |
+| Durable timing | Evaluate a small uCodePlus-owned Rust adapter around `persistent-scheduler`. uFlow owns the desired schedule and its revisions. The adapter persists timing registrations and supplies due occurrences via a versioned local interface. Prototype the interface and recovery with a pinned upstream revision before adoption. Upstream advertises persistence and cron. The API, delivery guarantees and timing targets are uDOS integration work. [persistent-scheduler](https://github.com/rustmailer/persistent-scheduler) |
+| Device execution and feedback | Use the existing HomeNook Home Assistant gateway where it meets the contract. The first adapter uses Home Assistant service calls and state observation. Home Assistant and its supported Matter Server own commissioning, fabric and device communication over Wi-Fi or Thread. Select a verified controller and server version for the deployment. Assess MCP separately against the same grant and receipt requirements. [Home Assistant REST API](https://contributors.home-assistant.io/core/internals/rest-api/) · [Matter integration](https://www.home-assistant.io/integrations/matter/) |
+
+### Handoffs and recovery
+
+- **Observation to transition.** Carry a schema version, stable observation ID,
+  source and subject IDs, observation time, source URL and normalized values.
+  Key the baseline by source, subject and pipeline version. Establish a
+  baseline on first observation. Quarantine invalid or stale inputs, and
+  suppress equivalent values. Persist an accepted transition with a stable
+  transition ID and pending delivery before marking the observation processed.
+  Test how the pinned `diff` implementation handles state updates and crashes.
+  Make baseline advancement and pending delivery recoverable together, with
+  the adapter owning the recovery contract.
+- **Transition to workflow.** Authenticate each producer and restrict which
+  source IDs it can submit. Acknowledge after durable admission or a recorded
+  suppression. Retry transient failures with bounded backoff. Deduplicate by
+  producer, transition ID and trigger binding, including transport replay.
+  Persist correlation from the observation to the run. Reject out-of-order
+  transitions that would supersede newer state.
+- **Workflow to due occurrence.** Use the host clock. Store the intended
+  timezone with each calendar schedule and include its revision in occurrence
+  identity. Reconcile registrations after restart and ignore obsolete
+  revisions. Deduplicate run admission against the occurrence ID. Start with
+  one local calendar schedule and one delayed execution window. Skip missed
+  windows and overlapping runs, with a receipt. For daylight saving changes,
+  skip nonexistent local times and use the first occurrence of an ambiguous
+  time. Sunset requires a separately verified location and calculation source.
+- **Run to device state.** Recheck the grant and event freshness at dispatch.
+  Start with one explicitly allowed light and a desired-state operation such
+  as `light.turn_on`. Record command acceptance separately from observed
+  state. After an uncertain outcome, read state before considering a retry.
+  Stop at a bounded confirmation deadline and report an unconfirmed outcome
+  if state remains unavailable. A Home Assistant state observation confirms
+  reported state and carries no guarantee about physical conditions beyond it.
+
+### Delivery gates
+
+| Gate | Deliver and verify |
+| --- | --- |
+| A. Durable local runs | Bind grants to profiles, persist claims and receipts, and recover one active run through uCore's lifecycle. Verify restart, cancellation, revocation and duplicate submission. The SnackMachine Shortcuts pilot uses this same admission contract. |
+| B. Observation and timing, with simulated execution | Feed controlled RSS and website fixtures through Huginn and UnlimitedPipe. Verify baseline, unchanged input, one field transition, burst limits, malformed input and duplicate or reordered messages. Schedule one approved workflow through the Rust adapter. Restart each component on either side of acknowledgement and verify one admitted run per occurrence. Exercise sleep, missed windows, clock changes and daylight saving boundaries. Measure due-to-admission latency on the target host and agree a tolerance before rollout. |
+| C. Closed-loop Matter pilot | Use a controlled source transition to schedule a single approved Matter light action during a short test window. Verify the complete trace and resulting Home Assistant state. Repeat with an unavailable device, a stale event, a disabled workflow, revoked access, and a lost service response. Verify standalone clock-triggered execution through the same adapter. |
+| D. Broader rollout | Add trigger types and device actions individually with an owner, effect review, acceptance checks and operating budget. Keep public-web MCP queries outside device authorization. |
+
+Start with one active run and bounded payloads, queue depth, retries, and
+retention. Measure sidecar RSS, CPU, disk growth, source polling traffic, and
+timing jitter on the target deployment before setting operating budgets.
+Keep managed adapter state under settings-resolved `UDOS_HOME` and upstream
+service data in the owning deployment. Store credentials through each
+service's existing secret mechanism. Keep raw observations and tokens out of
+operational logs. Show each stage's availability, next due time, suppressions
+and outcomes in uCore using correlation IDs. Stop new admissions when a
+required stage is unavailable and preserve receipts for inspection.
+
+Rollback starts by disabling the affected uFlow bindings and schedules,
+revoking integration grants, and cancelling eligible pending runs. Stop the
+sidecar or timing adapter once its pending deliveries are recorded. Keep
+uFlow history, manual local execution, and Home Assistant's native controls
+available. Remove managed adapter state only after applying its retention and
+export policy.
