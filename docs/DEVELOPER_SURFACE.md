@@ -2,6 +2,14 @@
 
 # Developer Surface — uCore
 
+The Documentation surface’s Engineering tab points developers to
+`~/Code/uDOS.code-workspace`, the shared `~/Code/AGENTS.md`, and the canonical
+[Development Engineering guide](../../DEV_ENGINEERING.md). Use VS Code with
+Copilot for quick edits, Cline in VS Code or Cline CLI for longer development
+rounds, and Terminal for Git and verification. The reviewed `ucdev` launcher
+runs fixed Engineering commands; `ucusr` lists and explicitly runs only the
+active profile's uFlow workflows. Neither launcher owns workflow state.
+
 Current chat contract: [Sprint 3A](DEV_CHAT_SPECIAL_SPRINT_PROPOSAL_2026-09.md)
 uses the single global chat with User/Developer scope and Ask/Plan/Act intent.
 Construction activity appears there; repository tools remain supporting surfaces.

@@ -47,6 +47,9 @@ describe('documentation navigation',()=>{
     await engineering.trigger('click'); await flushPromises();
     const engineeringNav = wrapper.get('nav[aria-label="Engineering"]');
     expect(wrapper.text()).toContain('Developer tools');
+    expect(wrapper.text()).toContain('Cline CLI');
+    expect(wrapper.text()).toContain('Command launcher');
+    expect(wrapper.text()).toContain('uFlow owns personal workflows');
     await engineeringNav.findAll('a')[1].trigger('click'); await flushPromises();
     expect(router.currentRoute.value.query).toMatchObject({ tab: 'developer', section: 'recipes' });
     await vi.dynamicImportSettled();

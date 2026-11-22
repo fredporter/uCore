@@ -1,0 +1,32 @@
+[
+  {
+    "id": "status",
+    "name": "Repository status",
+    "description": "Show modified and untracked files without changing the checkout",
+    "argv": ["git", "status", "--short"]
+  },
+  {
+    "id": "check-paths",
+    "name": "Check path policy",
+    "description": "Validate repository paths against the uDOS workspace contract",
+    "argv": ["python3", "scripts/check_home_path_policy.py"]
+  },
+  {
+    "id": "test",
+    "name": "Backend tests",
+    "description": "Run the uCore backend test suite",
+    "argv": ["pnpm", "test"]
+  },
+  {
+    "id": "lint",
+    "name": "Backend lint",
+    "description": "Run Ruff against the uCore backend",
+    "argv": ["pnpm", "lint"]
+  },
+  {
+    "id": "build",
+    "name": "Frontend build",
+    "description": "Type-check and build the Vue frontend",
+    "argv": ["pnpm", "build"]
+  }
+]

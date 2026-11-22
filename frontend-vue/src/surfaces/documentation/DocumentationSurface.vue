@@ -38,7 +38,7 @@
         <template v-else>
           <header class="doc-engineering-heading">
             <h3>Developer tools</h3>
-            <p>Use Codex or your desktop development tools to extend uCore.</p>
+            <p>Develop uDOS in VS Code. Open the shared workspace from macOS Terminal.</p>
           </header>
 
           <!-- Diagnostic & Health strip inside Developer tab -->
@@ -80,19 +80,28 @@
               <div class="doc-tool-card">
                 <div class="doc-tool-card-heading">
                   <UIcon name="computer" />
-                  <h4>Antigravity IDE & Codex</h4>
+                  <h4>VS Code and GitHub Copilot</h4>
                 </div>
-                <p>External desktop IDE with pair programming, architectural planning, multi-repository intelligence, and visual artifacts.</p>
-                <div><code>AGENTS.md contract compliant</code></div>
+                <p>Use Copilot inline suggestions and Chat for quick edits, small fixes, and focused explanations.</p>
+                <div><code>code ~/Code/uDOS.code-workspace</code></div>
               </div>
 
               <div class="doc-tool-card">
                 <div class="doc-tool-card-heading">
                   <UIcon name="code" />
-                  <h4>Antigravity CLI (agy)</h4>
+                  <h4>Cline in VS Code and Cline CLI</h4>
                 </div>
-                <p>CLI execution environment for autonomous tasks, cron schedules, background workers, and subagent orchestration.</p>
-                <div><code>agy run / agy agent</code></div>
+                <p>Use scoped development rounds in either client. Review the plan, keep approvals bounded, and verify with repository checks.</p>
+                <div><code>cline --cwd ~/Code -p "plan this change"</code></div>
+              </div>
+
+              <div class="doc-tool-card">
+                <div class="doc-tool-card-heading">
+                  <UIcon name="terminal" />
+                  <h4>Command launcher</h4>
+                </div>
+                <p>Select reviewed Engineering commands with ucdev, or active-profile personal workflows with ucusr. uFlow owns personal workflows and run receipts.</p>
+                <div><code>uc · ucdev · ucusr</code></div>
               </div>
 
               <div class="doc-tool-card">
@@ -100,8 +109,7 @@
                   <UIcon name="hub" />
                   <h4>Model Context Protocol (MCP)</h4>
                 </div>
-                <p>Standardized integration protocols connecting external IDEs and agents directly to uCore APIs, vaults, and repositories.</p>
-                <div><code>mcp-server-git / mcp-filesystem</code></div>
+                <p>Connect approved tools through uCore service contracts and the active profile’s permissions.</p>
               </div>
 
               <div class="doc-tool-card">
