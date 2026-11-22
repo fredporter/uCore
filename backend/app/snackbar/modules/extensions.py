@@ -46,11 +46,11 @@ KNOWN_EXTERNAL: list[dict] = [
     },
     {
         "id": "homenest",
-        "name": "HomeNest",
+        "name": "HomeNook",
         "kind": "application",
         "icon": "tv",
         "description": "Home media server & living-room controller UI",
-        "repo": "HomeNest",
+        "repo": "HomeNook",
         "manifest_path": "ucore-extension.json",
         "deps": [],
     },

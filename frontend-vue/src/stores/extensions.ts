@@ -247,11 +247,11 @@ const BUILTIN_MANIFESTS: ExtensionManifest[] = [
   },
   {
     id: "homenest",
-    name: "HomeNest",
+    name: "HomeNook",
     kind: "surface",
     required: false,
     icon: "tv",
-    route: "/homenest",
+    route: "/homenook",
     activation_required: false,
     description: "Standalone media player and Steam living-room console",
   },

@@ -89,12 +89,12 @@ def get_active_launchers(include_absent: bool = False) -> List[Dict[str, Any]]:
         },
         {
             "id": "homenest",
-            "name": "HomeNest",
+            "name": "HomeNook",
             "category": "ecosystem",
             "icon": "tv",
             "description": "Living-room media server & entertainment hub",
             "type": "repo",
-            "repo_path": code_root / "HomeNest",
+            "repo_path": code_root / "HomeNook",
         },
         {
             "id": "ucode_plus",

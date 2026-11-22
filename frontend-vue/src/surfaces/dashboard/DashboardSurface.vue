@@ -167,7 +167,7 @@ const SURFACE_CARD_DATA: Record<
     title: "Engineering",
     description: "Developer tools and interface examples",
     icon: "terminal",
-    route: "/documentation?tab=developer",
+    route: "/engineering",
     color: "var(--usx-color-primary)",
   },
   markdown: {
@@ -199,10 +199,10 @@ const SURFACE_CARD_DATA: Record<
     color: "var(--usx-color-warning)",
   },
   homenest: {
-    title: "HomeNest",
+    title: "HomeNook",
     description: "Media and games",
     icon: "tv",
-    route: "/homenest",
+    route: "/homenook",
     color: "var(--usx-color-info)",
   },
   bitchat: {

@@ -28,5 +28,11 @@
     "name": "Frontend build",
     "description": "Type-check and build the Vue frontend",
     "argv": ["pnpm", "build"]
+  },
+  {
+    "id": "kanban",
+    "name": "Cline Kanban Board",
+    "description": "Open Cline Kanban board for autonomous dev flow visualization",
+    "argv": ["open", "http://127.0.0.1:3484/ucore"]
   }
 ]

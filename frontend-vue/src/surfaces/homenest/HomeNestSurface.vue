@@ -2,7 +2,7 @@
   <div class="homenest-surface-wrapper">
     <header class="homenest-header">
       <div class="homenest-header__title-group">
-        <h1 class="homenest-header__title">HomeNest</h1>
+        <h1 class="homenest-header__title">HomeNook</h1>
         <p>Media and Steam living-room console</p>
       </div>
     </header>
