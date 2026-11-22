@@ -21,6 +21,9 @@ Enable fenced Format Smith replies to render as proper Markdown (including nes
 - Browser screenshots (desktop & narrow) will be added after the verification run.
 - Ollama output will be linked.
 
+**Advanced Settings Verification**
+![OK Assistant preferences](/Users/fredbook/.gemini/antigravity/brain/89a41df9-1a9c-4e7d-91cf-866ff4f101de/browser_sandbox/screenshots/ok_assistant_prefs.png)
+
 ## References
 - Previous Sprint 1D hand‑over: [ANTIGRAVITY_SPRINT_1D_FORMAT_SMITH.md](../handovers/ANTIGRAVITY_SPRINT_1D_FORMAT_SMITH.md)
 - Ownership guide: https://github.com/fredporter/uCore/blob/main/docs/DOCUMENTATION_OWNERSHIP.md
