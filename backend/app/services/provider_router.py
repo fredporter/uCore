@@ -132,7 +132,7 @@ class ProviderRouter:
             name="ollama", type="ollama",
             base_url=os.environ.get("OLLAMA_BASE_URL", settings.ollama_base_url),
             default_model=settings.ollama_default_model, priority=1,
-            models=["qwen2.5-coder:3b", "qwen2.5-coder:7b-instruct-q4_K_M",
+            models=["format-smith", "qwen2.5-coder:3b", "qwen2.5-coder:7b-instruct-q4_K_M",
                     "llama3.2", "mistral"],
         )
         or_key = os.environ.get("OPENROUTER_API_KEY", "")

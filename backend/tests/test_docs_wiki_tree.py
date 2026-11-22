@@ -68,38 +68,29 @@ def test_course_catalog_only_reads_learning_roots(tmp_path, monkeypatch):
     assert len(courses) == 3
 
 
-def test_public_documentation_consolidates_binders(tmp_path, monkeypatch):
+def test_public_documentation_uses_repository_sources(tmp_path, monkeypatch):
     from app.surfaces import documentation_api as docs
 
-    paths = [
-        "Developer-docs/guide/devstudio-guide.md",
-        "udos-docs/docs/uCode/uCode-User-Manual.md",
-        "udos-docs/docs/uCode/spatial/runtime.md",
-        "udos-docs/docs/uCode/gridcore/runtime.md",
-        "udos-docs/docs/uCore/specs/surface.md",
-        "udos-docs/docs/uCode/tutorials/ucode-mini-game.md",
-        "udos-docs/docs/learning/lesson.md",
-        "global-knowledge/datasets/reference.md",
-    ]
-    for name in paths:
-        path = tmp_path / name
+    public = tmp_path / "public"
+    repo = tmp_path / "uCode" / "docs"
+    for path, content in (
+        (public / "udos-docs/docs/uCode/runtime.md", "# Old copy"),
+        (public / "global-knowledge/reference.md", "# Reference"),
+        (repo / "runtime.md", "# Canonical runtime"),
+    ):
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("# Document\n", encoding="utf-8")
-    monkeypatch.setitem(docs._CONTENT_ROOTS, "public", tmp_path)
-    items = docs._build_dir_tree(tmp_path, "public")
-    manual = {"path": "manual.md", "source": "manual", "is_dir": False}
-    docs._group_public_documentation(items, [manual])
+        path.write_text(content, encoding="utf-8")
+
+    monkeypatch.setitem(docs._CONTENT_ROOTS, "public", public)
+    monkeypatch.setitem(docs._CONTENT_ROOTS, "ucode-docs", repo)
+    items = docs._build_dir_tree(public, "public")
+    pages = docs._build_dir_tree(repo, "ucode-docs")
+    docs._group_public_documentation(items, [docs._wiki_folder("uCode", "", pages, "ucode-docs")])
 
     documentation, knowledge = items
     assert documentation["name"] == "uDOS Documentation"
     assert knowledge["name"] == "Global Knowledge"
-
-    def leaves(item):
-        if not item["is_dir"]:
-            return {item["path"]}
-        return set().union(*(leaves(child) for child in item["children"]))
-
-    assert leaves(documentation) == set(paths[1:7]) | {"manual.md"}
-    assert leaves(knowledge) == {paths[7]}
-    ucode = next(child for child in documentation["children"] if child["path"].endswith("/uCode"))
-    assert {"GridCore uCode1", "Spatial uCode2"} <= {child["name"] for child in ucode["children"]}
+    assert documentation["children"][0]["children"][0]["path"] == "runtime.md"
+    assert docs._read_doc_content("ucode-docs", "runtime.md")["content"] == "# Canonical runtime"
+    assert docs._read_doc_content("public", "udos-docs/docs/uCode/runtime.md")["content"] == "# Canonical runtime"
+    assert docs._read_doc_content("public", "udos-docs/docs/uCode/../runtime.md")["status"] == "bad_path"

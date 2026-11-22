@@ -9,6 +9,8 @@ Covers:
 from __future__ import annotations
 
 import json
+import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -62,6 +64,25 @@ async def test_publish_binder_success(tmp_path, monkeypatch):
     }
     mock_fixture_path.write_text(json.dumps(fixture_data), encoding="utf-8")
 
+    # Mock the optional udos_publishing package used by the service
+    publishing = types.ModuleType("udos_publishing")
+    publishing.__path__ = []
+    source = types.ModuleType("udos_publishing.src")
+    source.__path__ = []
+    compiler = types.ModuleType("udos_publishing.src.compiler")
+    def compile_edition_to_static(*, edition_markdown, title, edition_num, output_dir, **_kwargs):
+        # Minimal stub: write markdown and a simple index.html
+        markdown_path = output_dir / "edition.md"
+        markdown_path.write_text(edition_markdown, encoding="utf-8")
+        (output_dir / "index.html").write_text("<h1>Test edition</h1>", encoding="utf-8")
+        return {"markdown_path": str(markdown_path)}
+    compiler.compile_edition_to_static = compile_edition_to_static
+    publishing.src = source
+    source.compiler = compiler
+    monkeypatch.setitem(sys.modules, "udos_publishing", publishing)
+    monkeypatch.setitem(sys.modules, "udos_publishing.src", source)
+    monkeypatch.setitem(sys.modules, "udos_publishing.src.compiler", compiler)
+
     monkeypatch.setattr(publish_service, "FIXTURE_PATH", mock_fixture_path)
     monkeypatch.setattr(publish_service, "DEFAULT_TOMB_OUTPUT", mock_output_dir)
 
@@ -86,7 +107,6 @@ async def test_publish_binder_success(tmp_path, monkeypatch):
 
 async def test_publish_binder_missing_fixture(monkeypatch):
     monkeypatch.setattr(publish_service, "FIXTURE_PATH", Path("/nonexistent/path/fixture.json"))
-
     resp = await request_fixture_export()
     assert resp.status == 404
     assert "error" in json.loads(resp.text)
@@ -95,21 +115,16 @@ async def test_publish_binder_missing_fixture(monkeypatch):
 async def test_publish_binder_malformed_fixture(tmp_path, monkeypatch):
     mock_fixture_path = tmp_path / "fixture.json"
     mock_fixture_path.write_text(json.dumps({"type": "bad"}), encoding="utf-8")
-
     monkeypatch.setattr(publish_service, "FIXTURE_PATH", mock_fixture_path)
-
     resp = await request_fixture_export()
     assert resp.status == 422
     assert "error" in json.loads(resp.text)
 
 
-
 async def test_publish_binder_requires_wizard(publishing_identity, monkeypatch):
     publishing_identity["active_profile"]["role"] = "knight"
-
-    def unexpected_compile():
+    def unexpected_compile(*_):
         pytest.fail("Non-Wizard should be denied before compilation")
-
     monkeypatch.setattr(publish_service, "compile_binder_to_tomb", unexpected_compile)
     assert (await request_fixture_export()).status == 403
 

@@ -209,8 +209,8 @@ def _git_output(repo_path: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
-def _github_json(repo_path: Path, *args: str) -> Any:
-    """Run one read-only gh query against a repository remote."""
+def _github_json(repo_path: Path, *args: str) -> tuple[Any, str | None]:
+    """Run a read-only gh query and classify failures without exposing stderr."""
     try:
         result = subprocess.run(
             ["gh", *args],
@@ -220,21 +220,47 @@ def _github_json(repo_path: Path, *args: str) -> Any:
             timeout=10,
             check=False,
         )
-    except (OSError, subprocess.TimeoutExpired):
-        return None
+    except FileNotFoundError:
+        return None, "cli_missing"
+    except subprocess.TimeoutExpired:
+        return None, "timeout"
+    except OSError:
+        return None, "unknown"
     if result.returncode != 0:
-        return None
+        diagnostic = result.stderr.lower()
+        if result.returncode == 4 or any(
+            marker in diagnostic for marker in (
+                "http 401", "bad credentials", "authentication required",
+                "gh auth login", "not logged in", "no auth",
+            )
+        ):
+            return None, "auth"
+        if any(
+            marker in diagnostic for marker in (
+                "i/o timeout", "connection timed out", "context deadline exceeded",
+            )
+        ):
+            return None, "timeout"
+        if any(
+            marker in diagnostic for marker in (
+                "could not resolve host", "no such host", "error connecting to",
+                "network is unreachable", "connection refused", "connection reset",
+                "temporary failure in name resolution",
+            )
+        ):
+            return None, "network"
+        return None, "unknown"
     try:
-        return json.loads(result.stdout)
+        return json.loads(result.stdout), None
     except json.JSONDecodeError:
-        return None
+        return None, "unknown"
 
 
-def _repo_github_status(repo_name: str) -> dict[str, Any]:
+def _repo_github_status(repo_name: str, branch_view: str = "working") -> dict[str, Any]:
     """Return the GitHub/Actions state used by the Developer surface."""
     repo_path = _repo_path(repo_name)
     branch = _git_output(repo_path, "rev-parse", "--abbrev-ref", "HEAD") or "unknown"
-    repository = _github_json(
+    repository, repository_error = _github_json(
         repo_path,
         "repo",
         "view",
@@ -247,9 +273,23 @@ def _repo_github_status(repo_name: str) -> dict[str, Any]:
             "configured": False,
             "branch": branch,
             "error": "GitHub CLI is unavailable, unauthenticated, or the remote is not on GitHub",
+            "error_code": repository_error or "unknown",
         }
 
-    runs = _github_json(
+    if branch_view == "default":
+        default_ref = repository.get("defaultBranchRef")
+        name = default_ref.get("name") if isinstance(default_ref, dict) else None
+        branch = name if isinstance(name, str) and name else "unknown"
+    if branch in {"HEAD", "unknown"}:
+        return {
+            "repo": repo_name, "configured": True, "branch": branch,
+            "repository": repository, "pull_request": None, "runs": [],
+            "runs_available": False,
+            "error": "No branch is available for this view.",
+            "error_code": "branch_unavailable",
+        }
+
+    runs, runs_error = _github_json(
         repo_path,
         "run",
         "list",
@@ -258,9 +298,9 @@ def _repo_github_status(repo_name: str) -> dict[str, Any]:
         "--limit",
         "5",
         "--json",
-        "databaseId,workflowName,status,conclusion,headBranch,event,createdAt,url",
+        "databaseId,workflowName,status,conclusion,headBranch,headSha,event,createdAt,url",
     )
-    prs = _github_json(
+    prs, _ = _github_json(
         repo_path,
         "pr",
         "list",
@@ -273,14 +313,18 @@ def _repo_github_status(repo_name: str) -> dict[str, Any]:
         "--json",
         "number,title,state,isDraft,url,statusCheckRollup",
     )
-    return {
+    payload = {
         "repo": repo_name,
         "configured": True,
         "branch": branch,
         "repository": repository,
         "pull_request": prs[0] if isinstance(prs, list) and prs else None,
         "runs": runs if isinstance(runs, list) else [],
+        "runs_available": isinstance(runs, list),
     }
+    if not payload["runs_available"]:
+        payload["error_code"] = runs_error or "unknown"
+    return payload
 
 
 def _repo_file_count(repo_path: Path, limit: int = 500) -> int:
@@ -1024,7 +1068,10 @@ async def handle_repo_github_status(request: web.Request) -> web.Response:
     """GET /api/developer/repos/{repo_name}/github — PR and Actions state."""
     repo_name = request.match_info["repo_name"]
     try:
-        payload = _repo_github_status(repo_name)
+        branch_view = request.query.get("branch_view", "working")
+        if branch_view not in {"default", "working"}:
+            return web.json_response({"error": "Choose default or working branch."}, status=400)
+        payload = _repo_github_status(repo_name, branch_view)
     except FileNotFoundError:
         return web.json_response(
             {"error": f"Repository not found: {repo_name}"},

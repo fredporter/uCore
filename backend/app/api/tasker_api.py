@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import uuid
 from datetime import date, datetime
 from pathlib import Path
@@ -566,7 +567,7 @@ async def handle_update_task(request: web.Request) -> web.Response:
     })
 
 
-def _create_workflow_task(base: Path, body: dict[str, Any]) -> dict[str, Any]:
+def _create_workflow_task(base: Path, body: dict[str, Any], *, github_run: str | None = None) -> dict[str, Any]:
     """Create user work through uFlow's canonical Markdown storage."""
     from app.services.identity import get_full_identity
     from app.services.tasker_ops import write_task_markdown
@@ -577,6 +578,14 @@ def _create_workflow_task(base: Path, body: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Task title is required")
     board = str(body.get("board") or "inbox").strip()
     task_id = str(uuid.uuid4())
+    if github_run:
+        task_id = str(uuid.uuid5(uuid.NAMESPACE_URL, json.dumps([profile, github_run.lower()])))
+        existing_path = _find_task_file(base, task_id)
+        if existing_path:
+            existing = _parse_markdown_task(existing_path)
+            if existing.get("profile", "default") != profile:
+                raise ValueError("Follow-up belongs to another profile")
+            return {"updated": existing, "existing": True}
     result = write_task_markdown(
         title=title, board=board, status="todo", body=str(body.get("body") or ""),
         source="user", source_id=task_id, tasker_dir=str(base),
@@ -642,6 +651,33 @@ async def handle_create_workflow_task(request: web.Request) -> web.Response:
         if not isinstance(body, dict):
             raise ValueError("Expected a task object")
         return web.json_response(_create_workflow_task(default_tasker_dir(), body), status=201)
+    except (ValueError, TypeError) as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
+
+async def handle_github_follow_up(request: web.Request) -> web.Response:
+    try:
+        data = await request.json()
+        if not isinstance(data, dict):
+            raise ValueError("Expected a GitHub run object")
+        url = str(data.get("url") or "")
+        match = re.fullmatch(
+            r"https://github\.com/([A-Za-z0-9_-]+/[A-Za-z0-9_.-]+)/actions/runs/([1-9][0-9]*)",
+            url,
+        )
+        branch = str(data.get("branch") or "")
+        commit = str(data.get("commit") or "")
+        if not match or not branch or len(branch) > 255 or any(ord(c) < 32 for c in branch):
+            raise ValueError("A GitHub Actions run URL and branch are required")
+        if not re.fullmatch(r"[0-9a-fA-F]{40}", commit):
+            raise ValueError("A full commit SHA is required")
+        repo = match[1]
+        result = _create_workflow_task(default_tasker_dir(), {
+            "title": f"Investigate failed GitHub Actions run {match[2]}",
+            "body": f"Repository: {repo}\nBranch: {branch}\nCommit: {commit}\nRun: <{url}>",
+            "tags": ["github-actions"],
+        }, github_run=url)
+        return web.json_response(result, status=200 if result.get("existing") else 201)
     except (ValueError, TypeError) as exc:
         return web.json_response({"error": str(exc)}, status=400)
 
@@ -843,6 +879,7 @@ def register_tasker_routes(app: web.Application) -> None:
     app.router.add_get("/api/workflow/lists", handle_workflow_lists)
     app.router.add_post("/api/workflow/lists", handle_create_workflow_list)
     app.router.add_post("/api/workflow/tasks", handle_create_workflow_task)
+    app.router.add_post("/api/workflow/tasks/github-follow-up", handle_github_follow_up)
     app.router.add_post("/api/workflow/tasks/{task_id}/duplicate", handle_duplicate_workflow_task)
     app.router.add_patch("/api/workflow/tasks/{task_id}", handle_update_task)
     app.router.add_post("/api/workflow/tasks/action-to-task", handle_action_to_task)

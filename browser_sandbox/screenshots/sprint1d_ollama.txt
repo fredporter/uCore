@@ -1,0 +1,7 @@
+```markdown
+# Budget review
+
+- **18 November 2026**: Alice estimated $1,250 (approx).
+- **Bob proposed $1,500, maybe**.
+- **Approval**: TBD.
+```

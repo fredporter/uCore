@@ -745,6 +745,7 @@ onMounted(() => {
 }
 
 .dispatch-deck-content {
+  font-family: var(--usx-font-family-reading, var(--usx-font-family-serif));
   text-align: center;
   max-width: 900px;
 }

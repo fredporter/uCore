@@ -12,7 +12,7 @@
       :orientation="shell.tabOrientation"
       @toggle-orientation="shell.toggleTabOrientation()"
     />
-    <div class="documentation-content-inner" :class="{ 'documentation-content-inner--reader': activeTab === 'wiki' }">
+    <div class="documentation-content-inner" :class="{ 'documentation-content-inner--reader': activeTab === 'wiki', 'documentation-content-inner--engineering': activeTab === 'developer' }">
       <!-- 1. Local Wikipedia Tab (Default Serene View) -->
       <div v-if="activeTab === 'wiki'" class="doc-wiki-wrapper">
         <LocalWikiReader />

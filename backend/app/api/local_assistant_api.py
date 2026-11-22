@@ -127,18 +127,24 @@ async def chat(request):
     owner, capabilities = active_assistant_profile(request)
     value = await read_body(request)
     preferences = assistant_profile.preferences(owner)
+    specialist = str(value.get("specialist") or "").strip().lower()
+    if specialist and specialist not in service.SPECIALISTS:
+        raise web.HTTPBadRequest(text=f"Unknown assistant specialist: {specialist}")
     try:
         messages = service.validate_messages(value.get("messages"))
-        if preferences["chat_mode"] == "ollama" and capabilities["local_models"]:
-            return web.json_response(await service.chat(messages, preferences["model"]))
+        requested_model = str(value.get("model") or preferences["model"]).strip()
+        if (preferences["chat_mode"] == "ollama" or specialist) and capabilities["local_models"]:
+            return web.json_response(await service.chat(messages, model=requested_model, specialist=specialist))
         reply = _resolve_callable("ucode_runtime.offline_assistant.reply")
         if reply is None:
             raise web.HTTPServiceUnavailable(text="The uCode offline input runtime is unavailable.")
         content = reply(messages[-1]["content"], verbose=preferences["verbose"])
-        return web.json_response({"content": content, "mode": "offline", "model": None})
+        return web.json_response({"content": content, "mode": "offline", "model": None, "specialist": specialist or None})
     except ValueError as exc:
         raise web.HTTPBadRequest(text=str(exc)) from None
-    except (httpx.HTTPError, TimeoutError):
+    except (httpx.TimeoutException, TimeoutError):
+        raise web.HTTPGatewayTimeout(text="The local assistant timed out. Check the local service and try again.")
+    except (httpx.HTTPError, OSError):
         raise web.HTTPServiceUnavailable(text="Ollama is unavailable. Check the local service.") from None
 
 

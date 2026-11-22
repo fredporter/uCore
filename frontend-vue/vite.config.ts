@@ -1,11 +1,22 @@
 import vue from "@vitejs/plugin-vue";
 import path from "path";
+import { createRequire } from "node:module";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 const PORT = parseInt(process.env.VITE_PORT || "5175", 10);
 const API_ORIGIN = process.env.VITE_API_ORIGIN || "http://localhost:8484";
 const CODE_ROOT = path.resolve(__dirname, "../..");
+
+const require = createRequire(import.meta.url);
+const fontAssetRoots = [
+  "material-symbols/outlined.css",
+  "@fontsource/inter/400.css",
+  "@fontsource/jetbrains-mono/400.css",
+  "@fontsource/merriweather/400.css",
+  "@fontsource/press-start-2p/400.css",
+  "@fontsource/vt323/400.css",
+].map((entry) => path.dirname(require.resolve(entry)));
 
 export default defineConfig({
   plugins: [
@@ -93,7 +104,7 @@ export default defineConfig({
     port: PORT,
     strictPort: true,
     host: "localhost",
-    fs: { allow: [".."] },
+    fs: { allow: [path.resolve(__dirname, ".."), ...fontAssetRoots] },
     hmr: { host: "localhost" },
     proxy: {
       // Route API calls to aiohttp backend in local dev.

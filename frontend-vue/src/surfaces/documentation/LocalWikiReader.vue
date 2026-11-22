@@ -1,5 +1,5 @@
 <template>
-  <div ref="readerRoot" class="local-wiki-reader" :class="{ 'local-wiki-reader--zen': zenMode, [`font-${fontFamily}`]: true }">
+  <div ref="readerRoot" class="local-wiki-reader" :class="{ 'local-wiki-reader--zen': zenMode }">
     <!-- Top Reader Header / Toolbar -->
     <header class="wiki-toolbar" role="toolbar" aria-label="Knowledge reader">
       <div class="wiki-toolbar__left">
@@ -771,7 +771,6 @@ function readingKeydown(event: KeyboardEvent) { if (showSearchModal.value || sho
 
 const zenMode = ref(false);
 const showProperties = ref(false), showContents = ref(false);
-const fontFamily = computed(() => settings.readingFont || "serif");
 
 function browseFiles() {
   shell.setSidebarMode("vault");
@@ -1502,12 +1501,8 @@ onUnmounted(() => {
 }
 
 /* ── Typography Modes ──────────────────────────────────────────────── */
-.local-wiki-reader.font-serif .wiki-prose {
-  font-family: var(--usx-font-family-serif, Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif);
-}
-
-.local-wiki-reader.font-sans .wiki-prose {
-  font-family: var(--usx-font-family-sans, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+.wiki-prose {
+  font-family: var(--usx-font-family-reading, var(--usx-font-family-serif));
 }
 
 /* ── Top Toolbar ───────────────────────────────────────────────────── */

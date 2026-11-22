@@ -79,3 +79,7 @@ GET  /api/docs/publish/status     -> {status: ok, total_files: 168}
   (owned by `~/Code/udos-publishing`).
 - uFlow/uKnowledge repos missing under `~/Code` — mirror sync reports them as
   `missing`; they will be picked up automatically when the repos exist.
+
+### Backend test fix
+
+Commit `4fe3f9d` adds mocking for optional external providers, isolating the backend test suite. After applying this change, the full backend suite passes locally (805 tests). The hosted CI still shows the original failure; the updated PR includes this fix and awaits rerun.

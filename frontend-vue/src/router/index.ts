@@ -12,6 +12,7 @@ import {
 } from "vue-router";
 import DashboardSurface from "../surfaces/dashboard/DashboardSurface.vue";
 import WorkflowSurface from "../surfaces/workflow/WorkflowSurface.vue";
+import RecoverySurface from "../surfaces/recovery/RecoverySurface.vue";
 
 const routes: RouteRecordRaw[] = [
   { path: "/setup", name: "user-setup", component: () => import("../surfaces/system/UserSetupSurface.vue"), meta: { title: "User Setup", layout: "standalone" } },
@@ -192,6 +193,12 @@ const routes: RouteRecordRaw[] = [
     redirect: (to) =>
       `/system/${String(to.params.pathMatch || "").toLowerCase()}`,
   },
+  {
+    path: "/:pathMatch(.*)*",
+    name: "not-found",
+    component: RecoverySurface,
+    meta: { title: "Page not found" },
+  },
 ];
 
 export const router = createRouter({
@@ -268,7 +275,7 @@ router.onError((error, to) => {
   if (lastReloadTarget === target) {
     window.sessionStorage.removeItem(DYNAMIC_IMPORT_RELOAD_KEY);
     publishRuntimeWarning(
-      "A surface failed to load due to stale dev dependencies. Restart with 'pnpm -C frontend-vue run dev:clean -- --host 127.0.0.1 --port 4173'.",
+      "A surface failed to load. Reload the page to retry. If the error continues, restart the uCore frontend and open the page again.",
     );
     return;
   }
@@ -278,7 +285,8 @@ router.onError((error, to) => {
 });
 
 // Update document title
-router.afterEach((to) => {
+router.afterEach((to, _from, failure) => {
+  if (failure) return;
   if (typeof window !== "undefined") {
     window.sessionStorage.removeItem(DYNAMIC_IMPORT_RELOAD_KEY);
   }

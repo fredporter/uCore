@@ -14,7 +14,13 @@ afterEach(() => {
 it("imports a saved item for review and links its explicitly promoted task", async () => {
   const pinia = createPinia();
   setActivePinia(pinia);
-  vi.spyOn(useWorkflowStore(), "fetchTasks").mockResolvedValue();
+  const workflow = useWorkflowStore();
+  vi.spyOn(workflow, "fetchTasks").mockResolvedValueOnce().mockImplementation(async () => {
+    workflow.tasks = [{
+      id: "feed-12", title: "Read local news", status: "todo", priority: "medium",
+      board: "inbox", tags: [], description: "An offline story",
+    }];
+  });
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [{ path: "/workflow", component: FeedsPanel }],
@@ -56,6 +62,9 @@ it("imports a saved item for review and links its explicitly promoted task", asy
   await flushPromises();
   expect(wrapper.text()).toContain("Task created.");
   expect(wrapper.text()).toContain("task-receipt");
+  expect(wrapper.get('[role="alert"]').text()).toContain("Task saved");
+  await wrapper.findAll("button").find(button => button.text().includes("Retry loading task"))!.trigger("click");
+  await flushPromises();
   expect(wrapper.findAll("a").find(link => link.text() === "Open task")?.attributes("href")).toContain("task=feed-12");
   expect(wrapper.find('[aria-label="Add to tasks"]').exists()).toBe(false);
   wrapper.unmount();

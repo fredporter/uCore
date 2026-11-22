@@ -16,7 +16,7 @@ def location_catalog(roots=None):
         try:
             country_lines = (root / "iso3166.tab").read_text().splitlines()
             zone_lines = (root / "zone.tab").read_text().splitlines()
-        except OSError:
+        except (OSError, UnicodeError):
             continue
         for line in country_lines:
             if line and not line.startswith("#"):
@@ -70,10 +70,50 @@ def timezone_suggestion(zone, catalog):
     return None
 
 
+def _usable_map(data):
+    if not isinstance(data, dict) or (
+        data.get("format") != "ucode-layer-map-v1"
+        or data.get("projection") != "equirectangular"
+    ):
+        return False
+    bounds = data.get("bounds")
+    name, cols, rows = (data.get(key) for key in ("name", "cols", "rows"))
+    if (
+        not isinstance(name, str) or not name.strip()
+        or type(cols) is not int or type(rows) is not int
+        or not (1 <= cols <= 1000 and 1 <= rows <= 1000)
+        or not isinstance(bounds, dict)
+    ):
+        return False
+    for minimum, maximum, limit in (("latMin", "latMax", 90), ("lonMin", "lonMax", 180)):
+        lower, upper = bounds.get(minimum), bounds.get(maximum)
+        if not (
+            type(lower) in (int, float) and type(upper) in (int, float)
+            and -limit <= lower < upper <= limit
+        ):
+            return False
+    layers = data.get("layers")
+    if not isinstance(layers, list) or not layers:
+        return False
+    has_cells = False
+    for layer in layers:
+        if not isinstance(layer, dict) or not isinstance(layer.get("cells"), list):
+            return False
+        for cell in layer["cells"]:
+            if not isinstance(cell, dict):
+                return False
+            if not all(
+                type(cell.get(key)) is int and 0 <= cell[key] < limit
+                for key, limit in (("col", cols), ("row", rows), ("pattern", 64))
+            ):
+                return False
+            has_cells = True
+    return has_cells
+
+
 def seed_readiness():
     """Inspect installed Layer 0 knowledge and owning uCode map seeds, without writes."""
     import json
-    import math
     import os
 
     from app.core.settings import settings
@@ -84,7 +124,10 @@ def seed_readiness():
     standards = library / "standards" / "GRIDCORE-STANDARDS.json"
     try:
         standard = json.loads(standards.read_text())
-        protocols = bool(standard.get("spatial_mapping")) and bool(standard.get("geometry"))
+        protocols = isinstance(standard, dict) and all(
+            isinstance(standard.get(key), dict) and bool(standard[key])
+            for key in ("spatial_mapping", "geometry")
+        )
     except (OSError, ValueError, TypeError):
         protocols = False
     try:
@@ -102,30 +145,7 @@ def seed_readiness():
         try:
             source = ucode / "seeds" / "gridcore" / "layers" / (name + ".json")
             data = json.loads(source.read_text())
-            if (
-                data.get("format") != "ucode-layer-map-v1"
-                or data.get("projection") != "equirectangular"
-            ):
-                continue
-            bounds = data["bounds"]
-            cols, rows = data["cols"], data["rows"]
-            if not all(
-                isinstance(bounds[k], (int, float)) and math.isfinite(bounds[k])
-                for k in ["latMin", "latMax", "lonMin", "lonMax"]
-            ) or not (bounds["latMin"] < bounds["latMax"] and bounds["lonMin"] < bounds["lonMax"]):
-                continue
-            if (
-                not isinstance(cols, int)
-                or not isinstance(rows, int)
-                or not (1 <= cols <= 1000 and 1 <= rows <= 1000)
-                or not isinstance(data.get("layers"), list)
-                or not any(
-                    isinstance(layer, dict)
-                    and isinstance(layer.get("cells"), list)
-                    and layer["cells"]
-                    for layer in data["layers"]
-                )
-            ):
+            if not _usable_map(data):
                 continue
             maps.append(
                 {
@@ -133,9 +153,9 @@ def seed_readiness():
                     "name": data["name"],
                     "format": data["format"],
                     "projection": data["projection"],
-                    "bounds": bounds,
-                    "cols": cols,
-                    "rows": rows,
+                    "bounds": data["bounds"],
+                    "cols": data["cols"],
+                    "rows": data["rows"],
                 }
             )
         except (OSError, ValueError, KeyError, TypeError):

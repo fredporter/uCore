@@ -519,12 +519,16 @@ async def handle_feed_rss(request: web.Request) -> web.Response:
     activity_id = result["id"]
 
     if body.get("review_only") is True:
+        activity = server.get_activity(activity_id)
+        processed = bool(activity and activity.get("processed"))
+        action = "Already reviewed RSS item updated" if processed else "RSS item available for review"
         receipt = _record_feed_event(
-            "feed", f"RSS item available for review (activity {activity_id})", ["rss", f"activity-{activity_id}"]
+            "feed", f"{action} (activity {activity_id})", ["rss", f"activity-{activity_id}"]
         )
         return web.json_response({
             "ok": True,
             "activity_id": activity_id,
+            "processed": processed,
             "spool_receipt": receipt,
         })
 
