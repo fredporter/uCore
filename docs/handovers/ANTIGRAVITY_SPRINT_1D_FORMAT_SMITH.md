@@ -31,12 +31,11 @@ The synthetic input was the same for all three runs.
 - Approval: TBD.
 ```
 
-## Follow-up
+## Verification gaps
 
-- [ ] Render Format Smith output as formatted Markdown when the model wraps the answer in a Markdown fence.
-- [ ] Recheck Material Symbols and draft recovery in the review browser.
-- [ ] Verify static-site discovery and serving against the legacy fallback and configured `doc-sites/` root.
-- [ ] Refresh the documentation inventory after changes.
+This run covered specialist selection, the composer placeholder, and fact
+preservation. Draft recovery, static-site fallback coverage, and the
+documentation inventory were outside this run.
 
 ## References
 
