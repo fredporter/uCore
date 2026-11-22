@@ -38,3 +38,7 @@ runtime, while uCode+ owns spatial and vector development.
 ## Sprint 1B – Format Smith
 
 - [Sprint 1B handover](handovers/ANTIGRAVITY_SPRINT_1B_FORMAT_SMITH.md) and [PR #50](https://github.com/fredporter/uCore/pull/50) track the follow-up on `sprint/ok-assistant-format-smith-1b`.
+
+## Sprint 1D – Format Smith
+
+- [Sprint 1D handover](handovers/ANTIGRAVITY_SPRINT_1D_FORMAT_SMITH.md) merged in [PR #52](https://github.com/fredporter/uCore/pull/52).
