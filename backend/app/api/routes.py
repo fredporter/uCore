@@ -318,6 +318,10 @@ def register_routes(app: web.Application) -> None:
     app.router.add_get("/api/chat/modes", handle_chat_modes)
     app.router.add_get("/api/chat/prompts", handle_chat_prompts)
     app.router.add_get("/api/models", handle_models)
+    # Sprint 1G – OpenRouter streaming + cloud model listing
+    from .chat_openrouter import handle_chat_stream, handle_models_cloud
+    app.router.add_post("/api/chat/stream", handle_chat_stream)
+    app.router.add_get("/api/models/cloud", handle_models_cloud)
     app.router.add_post("/api/skills/{skill_id}/run", handle_run_skill)
     app.router.add_post("/api/skills/run", handle_run_named_skill)
     # Health and skill state endpoints

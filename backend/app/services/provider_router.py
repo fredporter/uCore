@@ -151,9 +151,11 @@ class ProviderRouter:
                 # Budget
                 "anthropic/claude-3.5-haiku",
                 "google/gemini-2.0-flash-001",
+                "google/gemini-2.5-flash",
                 # Mid-range
                 "anthropic/claude-sonnet-4-20250514",
                 "openai/gpt-4o",
+                "meta-llama/llama-3.3-70b-instruct",
                 # Premium
                 "anthropic/claude-opus-4-20250514",
                 "openai/gpt-4.5-preview",
@@ -234,6 +236,8 @@ class ProviderRouter:
             "mistralai/mistral-7b-instruct": "ultra-cheap",
             "anthropic/claude-3.5-haiku": "budget",
             "google/gemini-2.0-flash-001": "budget",
+            "google/gemini-2.5-flash": "budget",
+            "meta-llama/llama-3.3-70b-instruct": "mid-range",
             "anthropic/claude-sonnet-4-20250514": "mid-range",
             "openai/gpt-4o": "mid-range",
             "anthropic/claude-opus-4-20250514": "premium",

@@ -1,0 +1,26 @@
+{
+  "openrouter": {
+    "enabled": true,
+    "api_key_env": "OPENROUTER_API_KEY",
+    "base_url": "https://openrouter.ai/api/v1",
+    "default_model": "meta-llama/llama-3.3-70b-instruct",
+    "models": [
+      {
+        "id": "meta-llama/llama-3.3-70b-instruct",
+        "label": "Llama 3.3 70B",
+        "provider": "Meta"
+      },
+      {
+        "id": "openai/gpt-4o",
+        "label": "GPT-4o",
+        "provider": "OpenAI"
+      },
+      {
+        "id": "google/gemini-2.5-flash",
+        "label": "Gemini 2.5 Flash",
+        "provider": "Google"
+      }
+    ],
+    "free_tier_enabled": false
+  }
+}

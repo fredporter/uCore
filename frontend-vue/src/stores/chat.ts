@@ -391,6 +391,28 @@ export const useChatStore = defineStore('chat', () => {
         }
       }
     } catch { /* keep defaults */ }
+
+    // Sprint 1G – also load OpenRouter cloud models
+    try {
+      const cloudRes = await fetch(`${SNACKBAR_API}/api/models/cloud`, { signal: AbortSignal.timeout(3000) })
+      if (cloudRes.ok) {
+        const cloudData = await cloudRes.json()
+        if (cloudData.models?.length > 0) {
+          const existing = new Set(models.value.map((m: ModelOption) => m.id))
+          const cloudModels = cloudData.models
+            .filter((m: ModelOption) => !existing.has(m.id))
+            .map((m: ModelOption) => ({
+              id: m.id,
+              provider: m.provider ?? 'openrouter',
+              name: (m as any).label ?? m.id,
+              cost: m.cost ?? 'unknown',
+            }))
+          if (cloudModels.length > 0) {
+            models.value = [...models.value, ...cloudModels]
+          }
+        }
+      }
+    } catch { /* keep defaults */ }
   }
 
   async function localAssistantFallback(message: string): Promise<string> {
