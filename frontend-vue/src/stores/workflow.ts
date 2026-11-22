@@ -601,6 +601,8 @@ export const useWorkflowStore = defineStore("workflow", () => {
             group: t.group || "",
             workspace: t.workspace,
             workflowType: t.workflow_type || t.workflowType,
+            approval_status: t.approval_status,
+            action_type: t.action_type,
             summary: t.summary,
             notes: t.notes,
             assetPaths: Array.isArray(t.asset_paths)
@@ -679,7 +681,9 @@ export const useWorkflowStore = defineStore("workflow", () => {
       workspace: String(
         updated.workspace || existing?.workspace || "User Vault",
       ),
-      workflowType: (updated.workflowType ||
+      approval_status: updated.approval_status ?? existing?.approval_status,
+      action_type: updated.action_type ?? existing?.action_type,
+      workflowType: (updated.workflow_type || updated.workflowType ||
         existing?.workflowType ||
         "user") as "user" | "developer" | "system" | "autonomous",
       summary: String(updated.summary || existing?.summary || ""),

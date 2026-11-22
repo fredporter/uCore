@@ -81,6 +81,29 @@
       </div>
       <div v-if="wf.binderChoices.length" class="task-destinations" aria-label="Move or copy to a Binder"><span>Move to Binder:</span><button v-for="binder in wf.binderChoices" :key="binder.id" class="usx-btn" @click="wf.showList('',binder.id)" @dragover.prevent @drop.prevent="dropInto($event, { binder: binder.id })">{{ binder.title || binder.id }}</button><small>Hold Option/Alt while dropping to copy.</small></div>
 
+      <section v-if="storyTask" class="surface__panel workflow-task-story" aria-label="Workflow Story Form">
+        <StoryWizard
+          inline
+          :steps="[{ title: storyTitle(storyTask), subtitle: storyTask.title }]"
+          :finish-label="needsApproval(storyTask) ? 'Approve action' : storyStatus === 'completed' ? 'Complete task' : 'Resume task'"
+          :busy="storyBusy"
+          @finish="advanceStory"
+        >
+          <template #step-0>
+            <p>{{ storyTask.description || storyTask.summary || 'Complete the required check before advancing this task.' }}</p>
+            <div class="workflow-task-story__actions">
+              <button class="usx-btn" @click="wf.openTask(storyTask)"><UIcon name="description" /> Open task</button>
+              <RouterLink class="usx-btn" to="/system?tab=preferences"><UIcon name="settings" /> System Settings</RouterLink>
+              <RouterLink v-if="preferences.advancedView" class="usx-btn" to="/system?tab=pages"><UIcon name="dashboard" /> System Pages</RouterLink>
+              <RouterLink v-if="preferences.advancedView" class="usx-btn" to="/system?tab=configuration"><UIcon name="admin_panel_settings" /> Configuration</RouterLink>
+              <button v-if="needsApproval(storyTask)" class="usx-btn" :disabled="storyBusy" @click="advanceStory(false)"><UIcon name="close" /> Reject action</button>
+              <button class="usx-btn" :disabled="storyBusy" @click="storyTask = null"><UIcon name="close" /> Close form</button>
+            </div>
+            <p v-if="storyError" role="alert">{{ storyError }}</p>
+          </template>
+        </StoryWizard>
+      </section>
+
       <div v-if="viewMode === 'list'" class="task-list">
         <section v-for="group in taskGroups" :key="group.name" class="task-group" @dragover.prevent @drop.prevent="dropInto($event, { group: group.name === 'Ungrouped' ? '' : group.name })">
           <h3>{{ group.name }} <small>{{ group.tasks.length }}</small></h3>
@@ -188,16 +211,9 @@
                 <button
                   type="button"
                   class="usx-btn usx-btn--sm usx-btn--primary"
-                  @click="handleApproveTask(task)"
+                  @click="openTaskStory(task)"
                 >
-                  <UIcon name="check" /> Approve
-                </button>
-                <button
-                  type="button"
-                  class="usx-btn usx-btn--sm usx-btn--secondary"
-                  @click="handleRejectTask(task)"
-                >
-                  <UIcon name="close" /> Reject
+                  <UIcon name="auto_stories" /> Review in Story Form
                 </button>
               </div>
             </div>
@@ -214,7 +230,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
+import { RouterLink } from "vue-router";
+import StoryWizard from "../../../skills/organisms/StoryWizard.vue";
+import { useSettingsStore } from "../../../stores/settings";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 import UBadge from "../../../skills/atoms/UBadge.vue";
 import { useWorkflowStore, type WorkflowTask } from "../../../stores/workflow";
@@ -227,6 +246,11 @@ import {
 } from "../../browserui/ApiBridge";
 
 const wf = useWorkflowStore();
+const preferences = useSettingsStore();
+const storyTask = ref<WorkflowTask | null>(null);
+const storyBusy = ref(false);
+const storyStatus = ref("in-progress");
+const storyError = ref("");
 const viewMode = ref<"list" | "kanban">("list");
 const statuses = ["todo", "in-progress", "review", "blocked", "completed"];
 const dragError = ref<string | null>(null);
@@ -238,38 +262,57 @@ const executingAction = ref(false);
 const syncFeedback = ref<string | null>(null);
 
 
-const pendingApprovals = computed(() =>
-  (wf.tasks || []).filter(
-    (t) =>
-      ["pending", "pending_approval"].includes(t.approval_status || "") ||
-      (t.workflowType === "autonomous" && t.status === "in-progress"),
-  ),
-);
-
-async function handleApproveTask(task: WorkflowTask) {
-  try {
-    const res: any = await ucoreApi.workflow.approveTask(task.id);
-    if (res?.ok) {
-      syncFeedback.value = `Approved action for: ${task.title}`;
-      await wf.fetchTasks();
-    }
-  } catch (err: any) {
-    syncFeedback.value = `Approval error: ${err?.message || err}`;
-  }
+function needsApproval(task: WorkflowTask) {
+  return ["pending", "pending_approval"].includes(task.approval_status || "") ||
+    (task.workflowType === "autonomous" && task.status === "in-progress");
 }
 
-async function handleRejectTask(task: WorkflowTask) {
+const pendingApprovals = computed(() => wf.tasks.filter(needsApproval));
+
+const storyTags: Record<string, string> = {
+  "visual-check": "Visual check",
+  "user-task": "User action required",
+  "key-required": "Credential required",
+};
+
+function storyTitle(task: WorkflowTask) {
+  for (const tag of task.tags ?? []) {
+    if (Object.hasOwn(storyTags, tag)) return storyTags[tag];
+  }
+  if (needsApproval(task)) return "Approval required";
+  if (task.status === "blocked") return "Resolve blocker";
+  return task.status === "review" ? "Review required" : "";
+}
+
+async function openTaskStory(task: WorkflowTask, status = "in-progress") {
+  if (storyBusy.value) return;
+  storyError.value = "";
+  storyTask.value = task;
+  storyStatus.value = status;
+  await nextTick();
+  document.querySelector(".workflow-task-story")?.scrollIntoView({ block: "nearest" });
+}
+
+async function advanceStory(approve = true) {
+  const task = storyTask.value;
+  if (!task || storyBusy.value) return;
+  storyBusy.value = true;
+  storyError.value = "";
   try {
-    const res: any = await ucoreApi.workflow.rejectTask(
-      task.id,
-      "Rejected by user in Tasks",
-    );
-    if (res?.ok) {
-      syncFeedback.value = `Rejected task: ${task.title}`;
+    if (needsApproval(task)) {
+      const result = approve
+        ? await ucoreApi.workflow.approveTask(task.id)
+        : await ucoreApi.workflow.rejectTask(task.id, "Rejected by user in Story Form");
+      if (!result?.ok) throw new Error("Could not update the task approval.");
       await wf.fetchTasks();
+    } else {
+      await wf.patchTask(task.id, { status: storyStatus.value });
     }
-  } catch (err: any) {
-    syncFeedback.value = `Rejection error: ${err?.message || err}`;
+    storyTask.value = null;
+  } catch (error) {
+    storyError.value = error instanceof Error ? error.message : "Could not advance this task.";
+  } finally {
+    storyBusy.value = false;
   }
 }
 
@@ -287,6 +330,10 @@ async function newTask() {
 }
 async function changeTask(task: WorkflowTask, patch: { status?: string; board?: string; group?: string; binder?: string }) {
   dragError.value = null;
+  if (storyTitle(task) && (patch.status === "in-progress" || patch.status === "completed")) {
+    await openTaskStory(task, patch.status);
+    return;
+  }
   try { await wf.patchTask(task.id, patch); }
   catch (error) { dragError.value = error instanceof Error ? error.message : "Could not update task"; }
 }
@@ -345,7 +392,10 @@ function priorityBadgeType(priority: string): "error" | "warning" | "info" {
   return "info";
 }
 
-function openTaskEditor(task: WorkflowTask) { wf.openTask(task); }
+function openTaskEditor(task: WorkflowTask) {
+  if (storyTitle(task)) void openTaskStory(task);
+  else wf.openTask(task);
+}
 function openInEditorTab(task: WorkflowTask) { wf.openTask(task); }
 
 async function triggerRemindersSync() {
@@ -416,6 +466,7 @@ async function handleApproveAction(task: WorkflowTask) {
 </script>
 
 <style scoped>
+.workflow-task-story__actions { display: flex; flex-wrap: wrap; gap: var(--usx-spacing-sm); }
 .task-scope, .task-destinations { display: flex; flex-wrap: wrap; align-items: center; gap: var(--usx-spacing-sm); padding-block: var(--usx-spacing-sm); }
 .task-scope label { display: flex; align-items: center; gap: var(--usx-spacing-xs); }
 .task-group { min-height: 4rem; border-top: 1px solid var(--usx-color-border); padding: var(--usx-spacing-sm); }

@@ -1,7 +1,7 @@
 <template>
-  <div class="story-wizard">
+  <div class="story-wizard" :class="{ 'story-wizard--inline': inline }">
     <!-- Top progress bar -->
-    <div class="story-wizard__progress-bar">
+    <div v-if="steps.length > 1" class="story-wizard__progress-bar">
       <div
         class="story-wizard__progress-fill"
         :style="{ width: `${progressPct}%` }"
@@ -10,7 +10,7 @@
 
     <!-- Header: title + step counter -->
     <div class="story-wizard__header">
-      <div class="story-wizard__step-label">
+      <div v-if="steps.length > 1" class="story-wizard__step-label">
         <span class="story-wizard__step-num">{{ currentStep + 1 }}</span>
         <span class="story-wizard__step-of">of {{ steps.length }}</span>
       </div>
@@ -21,7 +21,7 @@
     </div>
 
     <!-- Step dot indicators -->
-    <div class="story-wizard__dots" role="tablist">
+    <div v-if="steps.length > 1" class="story-wizard__dots" role="tablist">
       <button
         v-for="(step, i) in steps"
         :key="i"
@@ -57,6 +57,7 @@
     <!-- Navigation footer -->
     <div class="story-wizard__nav">
       <button
+        v-if="steps.length > 1"
         class="usx-btn story-wizard__nav-btn"
         :disabled="currentStep === 0 || busy"
         @click="prev"
@@ -104,6 +105,7 @@ const props = withDefaults(defineProps<{
   nextDisabled?: boolean;
   busy?: boolean;
   allowJump?: boolean;
+  inline?: boolean;
 }>(), {
   modelValue: 0,
   finishLabel: 'Done',
@@ -258,10 +260,20 @@ function goTo(i: number) {
 }
 
 .story-wizard__slide {
+  font-family: var(--usx-font-family-reading, var(--usx-font-family-serif));
   position: absolute;
   inset: 0;
   overflow-y: auto;
   padding: var(--usx-spacing-xl);
+}
+
+.story-wizard--inline {
+  height: auto;
+}
+
+.story-wizard--inline .story-wizard__slide {
+  position: relative;
+  overflow-wrap: anywhere;
 }
 
 .story-wizard__slide--lead {

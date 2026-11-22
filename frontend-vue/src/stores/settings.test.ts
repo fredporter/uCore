@@ -44,9 +44,14 @@ describe("settings sync", () => {
     const store=useSettingsStore();
     await store.initialize();
     expect(store.readingFont).toBe('sans');
-    store.setReadingFont('serif');
+    store.setReadingFont('mono');
+    store.terminologyPack = 'technical';
     await store.save();
-    expect(JSON.parse(fetchMock.mock.calls.at(-1)?.[1]?.body).preferences.readingFont).toBe('serif');
+    expect(JSON.parse(fetchMock.mock.calls.at(-1)?.[1]?.body).preferences).toMatchObject({
+      readingFont: 'mono',
+      terminologyPack: 'technical',
+    });
+    expect(document.documentElement.style.getPropertyValue('--usx-font-family-reading')).toBe('var(--usx-font-family-mono)');
   });
 
 });

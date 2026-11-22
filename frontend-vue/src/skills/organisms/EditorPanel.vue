@@ -294,11 +294,17 @@ const previewDocument = computed(() => {
   };
 });
 
+const difficultyLabels = {
+  standard: null,
+  storytelling: { basic: "Apprentice", beginner: "Apprentice", intermediate: "Guide", advanced: "Sage", expert: "Sage" },
+  plain: { basic: "Getting started", beginner: "Getting started", intermediate: "Some experience", advanced: "More experience", expert: "More experience" },
+  technical: { basic: "Foundations", beginner: "Foundations", intermediate: "Practitioner", advanced: "Specialist", expert: "Expert" },
+} satisfies Record<typeof settings.terminologyPack, Record<string, string> | null>;
+
 const difficultyValue = computed(() => {
   const value = previewDocument.value.difficulty;
-  if (settings.terminologyPack !== "storytelling") return value;
-  const levels: Record<string, string> = { basic: "Apprentice", beginner: "Apprentice", intermediate: "Guide", advanced: "Sage", expert: "Sage" };
-  return levels[value.toLowerCase()] || value;
+  const labels: Record<string, string> | null = difficultyLabels[settings.terminologyPack];
+  return labels?.[value.toLowerCase()] || value;
 });
 
 const originFields = computed(() => {

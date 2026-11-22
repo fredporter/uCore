@@ -303,6 +303,7 @@ onMounted(update);
 
 <style scoped>
 .md-preview {
+  font-family: var(--usx-font-family-reading, var(--usx-font-family-serif));
   height: 100%;
   overflow-y: auto;
   background-color: var(--usx-color-background);

@@ -18,12 +18,11 @@
           <label class="settings-row"><span>Show Advanced</span><input type="checkbox" :checked="preferences.advancedView" @change="preferences.setAdvancedView(($event.target as HTMLInputElement).checked)" /></label>
           <p class="system-muted-copy">Show engineering, diagnostics, configuration and administration tools.</p>
           <label class="settings-row"><span>Appearance</span><select :value="preferences.themeMode" @change="preferences.setThemeMode(($event.target as HTMLSelectElement).value as 'light' | 'dark' | 'auto')"><option value="dark">Dark</option><option value="light">Light</option><option value="auto">Automatic</option></select></label>
-          <label class="settings-row"><span>Reading font</span><select :value="preferences.readingFont" @change="preferences.setReadingFont(($event.target as HTMLSelectElement).value as 'serif' | 'sans')"><option value="serif">Serif</option><option value="sans">Sans</option></select></label>
+          <label class="settings-row"><span>Reading font</span><select :value="preferences.readingFont" @change="preferences.setReadingFont(($event.target as HTMLSelectElement).value as ReadingFont)"><option value="serif">Serif</option><option value="sans">Sans</option><option value="mono">Mono</option></select></label>
           <label class="settings-row">
             <span>Terminology pack</span>
             <select v-model="preferences.terminologyPack">
-              <option value="standard">Standard</option>
-              <option value="storytelling">Storytelling</option>
+              <option v-for="(label, pack) in terminologyPacks" :key="pack" :value="pack">{{ label }}</option>
             </select>
           </label>
           <label class="settings-row"><span>Text size</span><input type="number" min="12" max="24" :value="preferences.fontSize" @change="preferences.setFontSize(Number(($event.target as HTMLInputElement).value))" /></label>
@@ -353,7 +352,7 @@ import { computed, ref, reactive, watch, onMounted } from "vue";
 import OAuthSettingsPanel from "./OAuthSettingsPanel.vue";
 import GitHubCIPanel from "./GitHubCIPanel.vue";
 import { useRouter, useRoute } from "vue-router";
-import { useSettingsStore } from "../../stores/settings";
+import { terminologyPacks, useSettingsStore, type ReadingFont } from "../../stores/settings";
 import { useShellStore } from "../../stores/shell";
 import { useIdentityStore } from "../../stores/identity";
 import { SNACKBAR_BASE, UCORE_BASE } from "../../api/base";
