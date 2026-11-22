@@ -114,6 +114,9 @@ jobs:
       - name: Run backend tests
         run: backend/.venv/bin/python -m pytest -q backend/tests
 
+      - name: Run uCode+ OpenRouter client tests
+        run: backend/.venv/bin/python -m pytest -q ucode_plus/tests
+
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest
