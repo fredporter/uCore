@@ -6,6 +6,22 @@ Provides endpoints for:
 - Apple Notes export (/api/host/notes/export)
 - Apple Reminders export (/api/host/reminders/export)
 - Host notification and speech (/api/host/notify, /api/host/say)
+
+## Platform Addon Migration
+
+macOS-specific PIM and automation features (this module and
+``app/services/host_pim.py``) are being migrated to the ``uCoreMac``
+platform addon repository (``/Users/fredbook/Code/uCoreMac``), following
+the same optional-plugin pattern as ``uCoreGoo`` for Google services.
+
+uCore core remains cross-platform. Platform-native features live in
+dedicated addons:
+
+- macOS: ``uCoreMac`` (Apple PIM, Shortcuts, Apple Intelligence bridge)
+- Linux: ``uCoreLin`` (Zen/Firefox, notify-send, spd-say)
+
+This uCore module remains for backward compatibility during the transition.
+New platform-specific code should be added to the appropriate addon, not here.
 """
 
 from __future__ import annotations
