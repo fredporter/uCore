@@ -90,13 +90,19 @@ async def handle_chat_stream(request: web.Request) -> web.StreamResponse:
             if token:
                 await emit({"token": token})
                 emitted = True
+        if not emitted:
+            raise ValueError("Model returned an empty stream")
     except Exception as exc:
         log.warning("Chat stream failed for %s: %s", provider, type(exc).__name__)
         if use_openrouter and not emitted:
             await emit({"system": "OpenRouter unavailable. Switching to a local model."})
             try:
                 async for token in router.chat_stream(messages=chat_messages, provider="ollama"):
-                    await emit({"token": token})
+                    if token:
+                        await emit({"token": token})
+                        emitted = True
+                if not emitted:
+                    raise ValueError("Local model returned an empty stream")
             except Exception:
                 await emit({"error": "The local model is also unavailable."})
         else:
@@ -115,10 +121,10 @@ async def handle_models_cloud(request: web.Request) -> web.Response:
     try:
         router = ProviderRouter()
         all_models = router.list_models()
-        cloud_models = [
-            m for m in all_models
-            if m.get("provider", "").startswith("openrouter")
-        ]
+        cloud_models = {
+            m["id"]: m for m in all_models if m.get("provider", "").startswith("openrouter")
+        }
+        cloud_models = list(cloud_models.values())
         return web.json_response({"models": cloud_models, "count": len(cloud_models)})
     except Exception as exc:
         log.error("Cloud models error: %s", exc)

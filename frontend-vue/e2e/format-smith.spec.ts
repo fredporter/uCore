@@ -3,9 +3,10 @@ import { expect, test } from "@playwright/test";
 for (const width of [1280, 390]) {
   test(`Format Smith renders a reviewed reply at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 844 });
+    await page.route("**/api/health", route => route.fulfill({ json: { status: "ok" } }));
     await page.route("**/api/**", async route => {
       const path = new URL(route.request().url()).pathname;
-      if (!path.startsWith("/api/")) { await route.continue(); return; }
+      if (!path.startsWith("/api/") || path === "/api/health") { await route.fallback(); return; }
       if (path === "/api/assistant/chat") {
         expect(route.request().postDataJSON()).toMatchObject({
           specialist: "format-smith",
@@ -28,36 +29,50 @@ for (const width of [1280, 390]) {
     await page.getByRole("button", { name: "Send message" }).click();
     await expect(page.getByRole("heading", { name: "Workshop notes" })).toBeVisible();
     await expect(page.getByText("Keep the source links")).toBeVisible();
-    await page.screenshot({ path: testInfo.outputPath("format-smith.png") });
+    await page.screenshot({ animations: "disabled", path: testInfo.outputPath("format-smith.png") });
   });
 }
 
-test("OK Assistant shows the local fallback for a selected cloud model", async ({ page }) => {
-  await page.route("**/api/**", async route => {
-    const path = new URL(route.request().url()).pathname;
-    if (!path.startsWith("/api/")) { await route.continue(); return; }
-    if (path === "/api/chat/stream") {
-      expect(route.request().postDataJSON()).toEqual({
-        model: "fixture/cloud-model", message: "Draft a heading", history: [],
-      });
-      await route.fulfill({
-        contentType: "text/event-stream",
-        body: 'data: {"system":"OpenRouter unavailable. Switching to a local model."}\n\ndata: {"token":"# Local heading"}\n\ndata: [DONE]\n\n',
-      });
-      return;
+for (const partial of [false, true]) {
+  const scenario = partial ? "partial cloud reply" : "local fallback";
+  test(`OK Assistant shows the ${scenario}`, async ({ page }, testInfo) => {
+    await page.route("**/api/health", route => route.fulfill({ json: { status: "ok" } }));
+    if (partial) await page.setViewportSize({ width: 390, height: 844 });
+    await page.route("**/api/**", async route => {
+      const path = new URL(route.request().url()).pathname;
+      if (!path.startsWith("/api/") || path === "/api/health") { await route.fallback(); return; }
+      if (path === "/api/chat/stream") {
+        expect(route.request().postDataJSON()).toEqual({
+          model: "fixture/cloud-model", message: "Draft a heading", history: [],
+        });
+        await route.fulfill({
+          contentType: "text/event-stream",
+          body: partial
+            ? 'data: {"token":"# Cloud draft"}\n\ndata: {"error":"The model stopped responding. Try again when it is available."}\n\ndata: [DONE]\n\n'
+            : 'data: {"system":"OpenRouter unavailable. Switching to a local model."}\n\ndata: {"token":"# Local heading"}\n\ndata: [DONE]\n\n',
+        });
+        return;
+      }
+      const json = path === "/api/models/cloud"
+        ? { models: [{ id: "fixture/cloud-model", provider: "openrouter" }] }
+        : path === "/api/connections"
+          ? { setup: { completed: true }, connections: [], collections: {} }
+          : {};
+      await route.fulfill({ json });
+    });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Open assistant" }).click();
+    await page.getByRole("combobox", { name: "Assistant model" }).selectOption("fixture/cloud-model");
+    await page.getByRole("textbox", { name: "OK Assistant" }).fill("Draft a heading");
+    await page.getByRole("button", { name: "Send message" }).click();
+    if (partial) {
+      await expect(page.getByRole("heading", { name: "Cloud draft" })).toBeVisible();
+      await expect(page.getByText("The model stopped responding. Try again when it is available.")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Local heading" })).toHaveCount(0);
+    } else {
+      await expect(page.getByText("OpenRouter unavailable. Switching to a local model.")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Local heading" })).toBeVisible();
     }
-    const json = path === "/api/models/cloud"
-      ? { models: [{ id: "fixture/cloud-model", provider: "openrouter" }] }
-      : path === "/api/connections"
-        ? { setup: { completed: true }, connections: [], collections: {} }
-        : {};
-    await route.fulfill({ json });
+    await page.screenshot({ animations: "disabled", path: testInfo.outputPath(partial ? "partial-cloud.png" : "local-fallback.png") });
   });
-  await page.goto("/");
-  await page.getByRole("button", { name: "Open assistant" }).click();
-  await page.getByRole("combobox", { name: "Assistant model" }).selectOption("fixture/cloud-model");
-  await page.getByRole("textbox", { name: "OK Assistant" }).fill("Draft a heading");
-  await page.getByRole("button", { name: "Send message" }).click();
-  await expect(page.getByText("OpenRouter unavailable. Switching to a local model.")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Local heading" })).toBeVisible();
-});
+}

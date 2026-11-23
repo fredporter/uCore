@@ -146,8 +146,7 @@ export const useChatStore = defineStore('chat', () => {
     { id: 'auto', provider: 'local Ollama', name: 'Local Assistant', cost: 'free' },
     { id: 'llama3.2', provider: 'ollama', name: 'Llama 3.2', cost: 'free' },
     { id: 'mistral', provider: 'ollama', name: 'Mistral', cost: 'free' },
-    { id: 'dolphin-mixtral-8x7b', provider: 'openrouter-free', name: 'Dolphin Mixtral 8x7B', cost: 'free' },
-    { id: 'phi-3-medium-128k-instruct', provider: 'openrouter-free', name: 'Phi-3 Medium 128K', cost: 'free' },
+    { id: 'openrouter/free', provider: 'openrouter-free', name: 'OpenRouter Free Models', cost: 'free' },
     { id: 'gpt-4o', provider: 'openrouter', name: 'GPT-4o', cost: 'mid-range' },
   ])
   const selectedModel = ref('auto')
@@ -421,7 +420,7 @@ export const useChatStore = defineStore('chat', () => {
             .map((m: ModelOption) => ({
               id: m.id,
               provider: m.provider ?? 'openrouter',
-              name: (m as any).label ?? m.id,
+              name: m.name ?? m.id,
               cost: m.cost ?? 'unknown',
             }))
           if (cloudModels.length > 0) {

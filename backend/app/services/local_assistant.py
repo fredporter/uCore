@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+from typing import Any
 from urllib.parse import urlparse
 
 import httpx
@@ -220,7 +221,7 @@ async def chat(messages: list, model: str = "", specialist: str = "") -> dict:
             })
             response.raise_for_status()
     except httpx.TimeoutException:
-        raise TimeoutError(f"The local model request timed out after 90 seconds.")
+        raise TimeoutError("The local model request timed out after 90 seconds.")
     except httpx.HTTPStatusError as exc:
         raise ValueError(f"Ollama returned HTTP {exc.response.status_code}")
 

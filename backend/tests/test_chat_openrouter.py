@@ -11,8 +11,9 @@ from app.services import provider_router
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("partial", [False, True])
-async def test_cloud_failure_preserves_partial_response(monkeypatch, partial):
+@pytest.mark.parametrize("outcome", ["empty", "rate-limited", "partial"])
+async def test_cloud_failure_preserves_partial_response(monkeypatch, outcome):
+    partial = outcome == "partial"
     calls = []
 
     class Router:
@@ -23,6 +24,8 @@ async def test_cloud_failure_preserves_partial_response(monkeypatch, partial):
             calls.append((provider, model, messages[-1]["content"]))
             if provider == "ollama":
                 yield "Local answer"
+                return
+            if outcome == "empty":
                 return
             if partial:
                 yield "Cloud draft"

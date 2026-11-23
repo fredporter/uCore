@@ -107,7 +107,7 @@
             @change="emit('update:cloudModel', ($event.target as HTMLSelectElement).value)">
             <option value="">Local Assistant</option>
             <option v-for="model in cloudModels" :key="model.id" :value="model.id">
-              {{ model.name || model.id }} ({{ model.provider }})
+              {{ model.name || model.id }}
             </option>
           </select>
         </label>
@@ -982,7 +982,7 @@ async function copyText(content: string) {
 .chat-panel__dev-context select { max-width: 220px; }
 
 .chat-panel__composer-actions, .chat-panel__footer-row { display: flex; align-items: center; gap: 8px; box-sizing: border-box; min-height: 40px; padding: 4px 0; margin: 0; font-family: var(--usx-font-family-sans); font-size: var(--usx-font-size-sm); line-height: 1; }
-.chat-panel__composer-actions { flex-wrap: nowrap; }
+
 .chat-panel__settings.usx-btn, .chat-panel__mode-btn.usx-btn, .chat-panel__presentation, .chat-panel__specialist-select { display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; height: 32px; min-height: 32px; margin: 0; padding: 0 8px; border: 0; border-radius: var(--usx-radius-sm); background: transparent; box-shadow: none; color: var(--usx-color-on-surface-muted); font: inherit; line-height: 1; text-decoration: none; }
 .chat-panel__presentation, .chat-panel__specialist-select { position: relative; padding: 0 4px; }
 .chat-panel__presentation select, .chat-panel__specialist-select select { box-sizing: border-box; height: 32px; min-height: 32px; min-width: 0; width: auto; margin: 0; padding: 0 22px 0 4px; border: 0; border-radius: var(--usx-radius-sm); background: transparent; box-shadow: none; font: inherit; line-height: normal; }

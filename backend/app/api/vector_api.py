@@ -15,6 +15,7 @@ import logging
 import os
 import re
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -264,9 +265,6 @@ def _generate_deterministic_svg(
 
     elif style == "mono_teletext":
         # 40x25 character grid teletext aesthetics
-        cell_w = width // 40
-        cell_h = height // 25
-
         # Border frame
         elements.append(
             f'<rect x="{margin}" y="{margin}" width="{frame_w}" height="{frame_h}" '
@@ -486,7 +484,6 @@ async def handle_vector_trace(request: web.Request) -> web.Response:
         return web.json_response({"error": "Invalid JSON body"}, status=400)
 
     image_data = body.get("image_data") or ""
-    threshold = int(body.get("threshold", 128))
     style = str(body.get("style") or "mono_blueprint")
 
     # Generate vector trace
@@ -748,12 +745,18 @@ DOT_LATTICE_SPEC: Dict[str, Any] = {
 def _sub_blocks_to_g1_mosaic(bits: list[bool]) -> tuple[int, str]:
     """Map 6 sub-blocks (2 columns x 3 rows) to Teletext G1 character code and glyph."""
     bitmask = 0
-    if bits[0]: bitmask |= 1 << 0
-    if bits[1]: bitmask |= 1 << 1
-    if bits[2]: bitmask |= 1 << 2
-    if bits[3]: bitmask |= 1 << 3
-    if bits[4]: bitmask |= 1 << 4
-    if bits[5]: bitmask |= 1 << 6
+    if bits[0]:
+        bitmask |= 1 << 0
+    if bits[1]:
+        bitmask |= 1 << 1
+    if bits[2]:
+        bitmask |= 1 << 2
+    if bits[3]:
+        bitmask |= 1 << 3
+    if bits[4]:
+        bitmask |= 1 << 4
+    if bits[5]:
+        bitmask |= 1 << 6
 
     char_code = 0x20 + (bitmask & 0x5F)
     glyph_map = {
@@ -928,26 +931,27 @@ async def handle_vector_quantize_bob(request: web.Request) -> web.Response:
     if uvcore_bin.exists():
         import tempfile
         try:
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".svg", delete=False) as tmp:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".svg", encoding="utf-8") as tmp:
                 tmp.write(svg)
-                tmp_path = tmp.name
+                tmp.flush()
 
-            res = subprocess.run(
-                [
-                    str(uvcore_bin),
-                    tmp_path,
-                    "--format", "bob",
-                    "--palette", palette_id,
-                    "--width-dots", str(width_dots),
-                    "--height-dots", str(height_dots),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
+                res = subprocess.run(
+                    [
+                        str(uvcore_bin),
+                        tmp.name,
+                        "--format", "bob",
+                        "--palette", palette_id,
+                        "--width-dots", str(width_dots),
+                        "--height-dots", str(height_dots),
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
             if res.returncode == 0:
                 try:
                     bob_data = json.loads(res.stdout)
+                    bob_data.update(id=bob_id, name=bob_name)
                     return web.json_response({
                         "status": "success",
                         "bob": bob_data,
