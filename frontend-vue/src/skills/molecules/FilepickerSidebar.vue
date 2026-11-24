@@ -1201,7 +1201,7 @@ function getFileIcon(ext: string, filename?: string): string {
   color: var(--usx-color-on-surface-muted);
 }
 .filepicker-sidebar .filepicker-sidebar__move-btn.usx-btn:hover {
-  background: var(--usx-color-border);
+  background: var(--usx-color-surface-hover);
   color: var(--usx-color-on-surface);
 }
 .filepicker-sidebar__toolbar {

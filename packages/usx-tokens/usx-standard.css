@@ -512,6 +512,7 @@ section {
 
 button,
 [role="button"],
+.usx-btn,
 .usx-button,
 .button {
   padding: var(--usx-btn-padding);
@@ -570,6 +571,35 @@ button[type="submit"] {
 .button--primary:hover,
 button[type="submit"]:hover {
   background: var(--usx-color-primary-hover);
+}
+
+/* Secondary Button — outlined, the default surface treatment */
+.usx-btn--secondary,
+.button--secondary {
+  border-color: var(--usx-color-border);
+  background: transparent;
+  color: var(--usx-color-on-surface);
+}
+
+.usx-btn--secondary:hover,
+.button--secondary:hover {
+  border-color: var(--usx-color-primary);
+  background: transparent;
+  color: var(--usx-color-primary);
+}
+
+/* Danger Button */
+.usx-btn--danger,
+.button--danger {
+  border-color: var(--usx-color-danger);
+  background: transparent;
+  color: var(--usx-color-danger);
+}
+
+.usx-btn--danger:hover,
+.button--danger:hover {
+  background: color-mix(in srgb, var(--usx-color-danger) 12%, transparent);
+  color: var(--usx-color-danger);
 }
 
 /* ─────────────────────────────────────────────────────────────────────

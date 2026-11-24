@@ -28,4 +28,47 @@
 
   /* ===== PRIMARY (slightly brighter for dark) ===== */
   --usx-color-primary: #4d94ff;
+
+  /* ===== BOOTSTRAP 6 DARK STOPS =====
+     Dark mode swaps to the 400 stop for foreground/fill and the 900 stop for
+     contrast, so each role stays readable in both directions. */
+  --usx-color-primary: var(--usx-color-blue-400);
+  --usx-color-primary-hover: var(--usx-color-blue-300);
+  --usx-color-primary-active: var(--usx-color-blue-200);
+  --usx-color-primary-disabled: var(--usx-color-blue-800);
+  --usx-color-primary-surface: var(--usx-color-blue-900);
+  --usx-color-primary-border: var(--usx-color-blue-700);
+  --usx-color-on-primary: var(--usx-color-blue-900);
+
+  --usx-color-secondary: var(--usx-color-gray-400);
+  --usx-color-secondary-hover: var(--usx-color-gray-300);
+  --usx-color-secondary-active: var(--usx-color-gray-200);
+  --usx-color-secondary-disabled: var(--usx-color-gray-700);
+  --usx-color-secondary-surface: var(--usx-color-gray-800);
+  --usx-color-secondary-border: var(--usx-color-gray-700);
+  --usx-color-on-secondary: var(--usx-color-gray-900);
+
+  --usx-color-success: var(--usx-color-green-400);
+  --usx-color-success-hover: var(--usx-color-green-300);
+  --usx-color-success-surface: var(--usx-color-green-900);
+  --usx-color-success-border: var(--usx-color-green-700);
+  --usx-color-on-success: var(--usx-color-green-900);
+
+  --usx-color-warning: var(--usx-color-amber-400);
+  --usx-color-warning-hover: var(--usx-color-amber-300);
+  --usx-color-warning-surface: var(--usx-color-amber-900);
+  --usx-color-warning-border: var(--usx-color-amber-700);
+  --usx-color-on-warning: var(--usx-color-amber-900);
+
+  --usx-color-danger: var(--usx-color-red-400);
+  --usx-color-danger-hover: var(--usx-color-red-300);
+  --usx-color-danger-surface: var(--usx-color-red-900);
+  --usx-color-danger-border: var(--usx-color-red-700);
+  --usx-color-on-danger: var(--usx-color-red-900);
+
+  --usx-color-info: var(--usx-color-cyan-400);
+  --usx-color-info-hover: var(--usx-color-cyan-300);
+  --usx-color-info-surface: var(--usx-color-cyan-900);
+  --usx-color-info-border: var(--usx-color-cyan-700);
+  --usx-color-on-info: var(--usx-color-cyan-900);
 }

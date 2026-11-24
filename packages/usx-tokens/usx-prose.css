@@ -1,196 +1,398 @@
 /* ═══════════════════════════════════════════════════════════════════
-   usx-prose.css — USX Markdown / GitHub-Style Prose Primitives
+   usx-prose.css — the Prose contract
    ═══════════════════════════════════════════════════════════════════
-   Layered over usx-tokens and usx-standard.css.
-   Provides GitHub/Markdown typography, callouts, tables, and code blocks.
+   Markdown and longform rendering for every uDos surface.
+   Implements PROSE-STANDARDS.md on the --usx-* token set only:
+   no colour literals, no platform-only font references, no theme fork.
+
+   Import after usx-standard.css. Layered with usx-standard.css, which
+   also carries the measure rule for .usx-prose / .prose.
    ═══════════════════════════════════════════════════════════════════ */
 
-.usx-prose {
-  font-family: var(--usx-font-family-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
-  color: var(--usx-color-on-surface, #e2e2e6);
-  line-height: 1.65;
-  font-size: 0.9375rem;
-  max-width: 100%;
+.usx-prose,
+.prose {
+  /* Measure: 70–72ch per PROSE-STANDARDS.md §1 */
+  max-inline-size: var(--usx-prose-width);
+  margin-inline: auto;
+
+  /* Reading stack: bundled Inter / Merriweather / JetBrains Mono */
+  font-family: var(--usx-font-family-reading, var(--usx-font-family-serif));
+  font-size: var(--usx-font-size-base);
+  line-height: var(--usx-line-height-relaxed);
+  color: var(--usx-color-on-surface);
+  overflow-wrap: break-word;
 }
 
+.usx-prose--full,
+.usx-prose.usx-prose--full {
+  max-inline-size: none;
+}
+
+/* ─── Headings: 1.25–1.35 line height, never tighter than the body ── */
 .usx-prose h1,
 .usx-prose h2,
 .usx-prose h3,
-.usx-prose h4 {
-  color: var(--usx-color-on-surface, #ffffff);
-  font-weight: 600;
-  line-height: 1.3;
-  margin-top: 1.5em;
-  margin-bottom: 0.6em;
+.usx-prose h4,
+.usx-prose h5,
+.usx-prose h6 {
+  margin-block: var(--usx-spacing-lg) var(--usx-spacing-sm);
+  color: var(--usx-color-on-surface);
+  font-family: var(--usx-font-family-sans);
+  font-weight: var(--usx-font-weight-semibold);
+  line-height: var(--usx-line-height-tight);
+  letter-spacing: var(--usx-letter-spacing-tight);
+  text-wrap: balance;
 }
 
 .usx-prose h1 {
-  font-size: 1.65rem;
-  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
-  padding-bottom: 0.3em;
+  font-size: var(--usx-font-size-2xl);
 }
 
 .usx-prose h2 {
-  font-size: 1.35rem;
-  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
-  padding-bottom: 0.25em;
+  padding-block-end: var(--usx-spacing-xs);
+  border-block-end: var(--usx-border-width) solid var(--usx-color-border-light);
+  font-size: var(--usx-font-size-xl);
 }
 
 .usx-prose h3 {
-  font-size: 1.15rem;
+  font-size: var(--usx-font-size-lg);
 }
 
+.usx-prose h4,
+.usx-prose h5,
+.usx-prose h6 {
+  font-size: var(--usx-font-size-base);
+}
+
+.usx-prose h5,
+.usx-prose h6 {
+  color: var(--usx-color-on-surface-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--usx-letter-spacing-wide);
+}
+
+.usx-prose > :first-child {
+  margin-block-start: 0;
+}
+
+/* ─── Body rhythm: 1em paragraph spacing, never <br> chains ──────── */
 .usx-prose p {
-  margin-top: 0;
-  margin-bottom: 1em;
+  margin-block: 0 var(--usx-spacing-md);
+  text-wrap: pretty;
+}
+
+.usx-prose strong,
+.usx-prose b {
+  font-weight: var(--usx-font-weight-semibold);
+}
+
+.usx-prose em,
+.usx-prose i {
+  font-style: italic;
+}
+
+.usx-prose small {
+  font-size: var(--usx-font-size-sm);
+  color: var(--usx-color-on-surface-muted);
 }
 
 .usx-prose a {
-  color: var(--usx-color-primary, #9ecaff);
+  color: var(--usx-color-primary);
   text-decoration: none;
+  text-underline-offset: 0.15em;
 }
 
-.usx-prose a:hover {
+.usx-prose a:hover,
+.usx-prose a:focus-visible {
   text-decoration: underline;
 }
 
-/* ─── GitHub-Flavored Callout Alerts ────────────────────────────── */
+.usx-prose :focus-visible {
+  outline: var(--usx-border-width-thick) solid var(--usx-color-primary);
+  outline-offset: 2px;
+  border-radius: var(--usx-radius-sm);
+}
+
+
+/* ─── Callouts: GitHub-style alerts on semantic status tokens ────── */
 .usx-callout {
-  padding: 0.85rem 1.1rem;
-  margin-bottom: 1.25rem;
-  border-radius: 6px;
-  border-left: 4px solid;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.03));
-  font-size: 0.9rem;
-  line-height: 1.55;
+  margin-block: 0 var(--usx-spacing-lg);
+  padding: var(--usx-spacing-md) var(--usx-spacing-lg);
+  border-inline-start: calc(var(--usx-border-width-thick) * 2) solid
+    var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface);
+  font-family: var(--usx-font-family-sans);
+  font-size: var(--usx-font-size-sm);
+  line-height: var(--usx-line-height-normal);
+}
+
+.usx-callout > :last-child {
+  margin-block-end: 0;
 }
 
 .usx-callout-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  margin-bottom: 0.35rem;
+  gap: var(--usx-spacing-sm);
+  margin-block-end: var(--usx-spacing-xs);
+  font-weight: var(--usx-font-weight-semibold);
+  font-size: var(--usx-font-size-xs);
+  letter-spacing: var(--usx-letter-spacing-wide);
   text-transform: uppercase;
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
 }
 
 .usx-callout-header .material-symbols-outlined {
-  font-size: 18px;
+  font-size: var(--usx-icon-size-sm);
 }
 
 .usx-callout-note {
-  border-color: #2f81f7;
-  background: rgba(47, 129, 247, 0.08);
-  color: var(--usx-color-on-surface, #e2e2e6);
+  border-inline-start-color: var(--usx-color-info);
+  background: color-mix(in srgb, var(--usx-color-info) 8%, var(--usx-color-surface));
 }
-.usx-callout-note .usx-callout-header { color: #58a6ff; }
+
+.usx-callout-note .usx-callout-header {
+  color: var(--usx-color-info);
+}
 
 .usx-callout-tip {
-  border-color: #238636;
-  background: rgba(35, 134, 54, 0.08);
-  color: var(--usx-color-on-surface, #e2e2e6);
+  border-inline-start-color: var(--usx-color-success);
+  background: color-mix(in srgb, var(--usx-color-success) 8%, var(--usx-color-surface));
 }
-.usx-callout-tip .usx-callout-header { color: #3fb950; }
+
+.usx-callout-tip .usx-callout-header {
+  color: var(--usx-color-success);
+}
 
 .usx-callout-important {
-  border-color: #8957e5;
-  background: rgba(137, 87, 229, 0.08);
-  color: var(--usx-color-on-surface, #e2e2e6);
+  border-inline-start-color: var(--usx-color-accent);
+  background: color-mix(in srgb, var(--usx-color-accent) 8%, var(--usx-color-surface));
 }
-.usx-callout-important .usx-callout-header { color: #a371f7; }
+
+.usx-callout-important .usx-callout-header {
+  color: var(--usx-color-accent);
+}
 
 .usx-callout-warning {
-  border-color: #d29922;
-  background: rgba(210, 153, 34, 0.08);
-  color: var(--usx-color-on-surface, #e2e2e6);
+  border-inline-start-color: var(--usx-color-warning);
+  background: color-mix(in srgb, var(--usx-color-warning) 8%, var(--usx-color-surface));
 }
-.usx-callout-warning .usx-callout-header { color: #d29922; }
+
+.usx-callout-warning .usx-callout-header {
+  color: var(--usx-color-warning);
+}
 
 .usx-callout-caution {
-  border-color: #da3633;
-  background: rgba(218, 54, 51, 0.08);
-  color: var(--usx-color-on-surface, #e2e2e6);
+  border-inline-start-color: var(--usx-color-danger);
+  background: color-mix(in srgb, var(--usx-color-danger) 8%, var(--usx-color-surface));
 }
-.usx-callout-caution .usx-callout-header { color: #f85149; }
 
-/* ─── Prose Tables ──────────────────────────────────────────────── */
+.usx-callout-caution .usx-callout-header {
+  color: var(--usx-color-danger);
+}
+
+
+/* ─── Lists ─────────────────────────────────────────────────────── */
+.usx-prose ul,
+.usx-prose ol {
+  margin-block: 0 var(--usx-spacing-md);
+  padding-inline-start: var(--usx-spacing-lg);
+}
+
+.usx-prose li {
+  margin-block: var(--usx-spacing-xs);
+}
+
+.usx-prose li > ul,
+.usx-prose li > ol {
+  margin-block: var(--usx-spacing-xs) 0;
+}
+
+.usx-prose dt {
+  font-weight: var(--usx-font-weight-semibold);
+}
+
+.usx-prose dd {
+  margin-inline-start: var(--usx-spacing-lg);
+  margin-block-end: var(--usx-spacing-sm);
+}
+
+/* ─── Tables ────────────────────────────────────────────────────── */
 .usx-prose table {
-  width: 100%;
+  inline-size: 100%;
+  margin-block: var(--usx-spacing-lg);
   border-collapse: collapse;
-  margin: 1.25rem 0;
-  font-size: 0.875rem;
+  font-family: var(--usx-font-family-sans);
+  font-size: var(--usx-font-size-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 .usx-prose th,
 .usx-prose td {
-  padding: 0.65rem 0.85rem;
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.12));
-  text-align: left;
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  text-align: start;
+  vertical-align: top;
 }
 
 .usx-prose th {
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.05));
-  font-weight: 600;
-  color: var(--usx-color-on-surface, #ffffff);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface);
+  font-weight: var(--usx-font-weight-semibold);
 }
 
-.usx-prose tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.02);
+.usx-prose tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--usx-color-on-surface) 2%, transparent);
 }
 
-/* ─── Code Snippets & Monospace ─────────────────────────────────── */
-.usx-prose code {
-  font-family: var(--usx-font-family-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
-  font-size: 0.85em;
-  padding: 0.2em 0.4em;
-  border-radius: 4px;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.08));
-  color: var(--usx-color-primary, #b3d7ff);
+/* ─── Code: 1.45 line height per PROSE-STANDARDS.md §1 ──────────── */
+.usx-prose code,
+.usx-prose kbd,
+.usx-prose samp {
+  font-family: var(--usx-font-family-mono);
+  font-size: 0.875em;
+  padding: 0.1em 0.35em;
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface);
 }
 
 .usx-prose pre {
-  background: var(--usx-color-surface-container, #161b22);
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.12));
-  border-radius: 8px;
-  padding: 1rem;
+  margin-block: var(--usx-spacing-lg);
+  padding: var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface-variant);
   overflow-x: auto;
-  margin: 1.25rem 0;
-  line-height: 1.5;
+  line-height: var(--usx-line-height-code);
+  tab-size: 2;
 }
 
 .usx-prose pre code {
-  background: transparent;
   padding: 0;
+  border: 0;
   border-radius: 0;
-  color: #e6edf3;
-  font-size: 0.85rem;
+  background: transparent;
+  color: var(--usx-color-on-surface);
+  font-size: var(--usx-font-size-sm);
+  line-height: inherit;
 }
 
-/* ─── Frontmatter Header Card ───────────────────────────────────── */
+.usx-prose kbd {
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  box-shadow: 0 var(--usx-border-width) 0 var(--usx-color-border);
+}
+
+/* ─── Rules, media and disclosure ───────────────────────────────── */
+.usx-prose hr {
+  margin-block: var(--usx-spacing-xl);
+  border: 0;
+  border-block-start: var(--usx-border-width) solid var(--usx-color-border-light);
+}
+
+.usx-prose img,
+.usx-prose svg,
+.usx-prose video,
+.usx-prose canvas {
+  max-inline-size: 100%;
+  block-size: auto;
+}
+
+.usx-prose figure {
+  margin-block: var(--usx-spacing-lg);
+}
+
+.usx-prose figcaption {
+  margin-block-start: var(--usx-spacing-xs);
+  color: var(--usx-color-on-surface-muted);
+  font-family: var(--usx-font-family-sans);
+  font-size: var(--usx-font-size-sm);
+}
+
+.usx-prose details {
+  margin-block: var(--usx-spacing-md);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+}
+
+.usx-prose summary {
+  cursor: pointer;
+  font-weight: var(--usx-font-weight-medium);
+}
+
+.usx-prose mark {
+  padding: 0 0.15em;
+  background: color-mix(in srgb, var(--usx-color-warning) 24%, transparent);
+  color: var(--usx-color-on-surface);
+}
+
+
+/* ─── Frontmatter: metadata chrome, sans, never prose rhythm ─────── */
 .usx-frontmatter-card {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1.5rem;
-  border-radius: 8px;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
-  font-size: 0.8rem;
+  gap: var(--usx-spacing-sm);
+  margin-block: 0 var(--usx-spacing-lg);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
+  background: var(--usx-color-surface);
+  font-family: var(--usx-font-family-sans);
+  font-size: var(--usx-font-size-xs);
 }
 
 .usx-frontmatter-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.55rem;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--usx-color-on-surface-variant, #c4c6d0);
+  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-1) var(--usx-spacing-sm);
+  border-radius: var(--usx-radius-full);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface-muted);
 }
 
 .usx-frontmatter-chip strong {
-  color: var(--usx-color-on-surface, #ffffff);
+  color: var(--usx-color-on-surface);
+  font-weight: var(--usx-font-weight-semibold);
 }
+
+/* ─── Offline citation protocol (PROSE-STANDARDS.md §3) ─────────── */
+.usx-prose .wiki-link {
+  color: var(--usx-color-primary);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 0.15em;
+}
+
+.usx-prose .wiki-citation {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--usx-spacing-xs);
+  padding: 0 var(--usx-spacing-sm);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface-muted);
+  font-family: var(--usx-font-family-sans);
+  font-size: var(--usx-font-size-xs);
+  font-style: normal;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.usx-prose .wiki-citation[data-source="web"] {
+  border-color: var(--usx-color-border-dark);
+}
+
+.usx-prose .wiki-citation[data-source="vault"] {
+  border-color: var(--usx-color-primary);
+  color: var(--usx-color-primary);
+}
+
+.usx-prose .wiki-citation[data-source="shared"] {
+  border-color: var(--usx-color-success);
+  color: var(--usx-color-success);
+}
+

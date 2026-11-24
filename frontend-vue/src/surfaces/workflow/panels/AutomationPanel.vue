@@ -90,6 +90,6 @@ onMounted(refresh);
 .wf-card { display: flex; align-items: center; justify-content: space-between; gap: var(--usx-spacing-md); min-height: 4rem; padding: var(--usx-spacing-sm) var(--usx-spacing-xs); border: 0; border-bottom: var(--usx-border-width) solid var(--usx-color-border); background: transparent; }
 .wf-card__meta { display: flex; align-items: center; gap: var(--usx-spacing-sm); }
 .wf-state { padding: var(--usx-spacing-lg); color: var(--usx-color-on-surface-muted); border: var(--usx-border-width) dashed var(--usx-color-border); border-radius: var(--usx-radius-md); }
-.wf-state--error { color: var(--usx-color-error); }
+.wf-state--error { color: var(--usx-color-danger); }
 .wf-starter { color: var(--usx-color-primary); }
 </style>

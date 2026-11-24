@@ -44,7 +44,7 @@ async function submit() {
 </script>
 
 <style scoped>
-.dialog-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: rgba(0,0,0,.55); }
+.dialog-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: color-mix(in srgb, var(--usx-color-scrim) 55%, transparent); }
 .dialog { width: min(30rem, calc(100vw - 2rem)); padding: var(--usx-spacing-md); background: var(--usx-color-surface); color: var(--usx-color-on-surface); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); }
 .dialog h3 { margin-top: 0; }.dialog label,.dialog input { display: block; width: 100%; }.dialog input { margin-top: var(--usx-spacing-xs); padding: var(--usx-spacing-sm); background: var(--usx-color-background); color: inherit; border: var(--usx-border-width) solid var(--usx-color-border); }.dialog footer { display: flex; justify-content: end; gap: var(--usx-spacing-sm); margin-top: var(--usx-spacing-md); }.dialog__error { color: var(--usx-color-danger); }
 </style>

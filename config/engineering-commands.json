@@ -12,6 +12,12 @@
     "argv": ["python3", "scripts/check_home_path_policy.py"]
   },
   {
+    "id": "check-content",
+    "name": "Check Prose and GridCore contract",
+    "description": "Validate Prose token references, colour literals, lattice palette and theme contrast",
+    "argv": ["python3", "scripts/check_content_contract.py"]
+  },
+  {
     "id": "test",
     "name": "Backend tests",
     "description": "Run the uCore backend test suite",

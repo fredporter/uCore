@@ -26,7 +26,7 @@
     </template>
 
     <!-- Prose / fallback: full rendered HTML -->
-    <div v-else class="md-preview__prose" v-html="html" />
+    <div v-else class="md-preview__prose usx-prose" v-html="html" />
 
     <!-- Loading state -->
     <div v-if="loading" class="md-preview__loading">
@@ -110,111 +110,19 @@ onMounted(update);
 <style>
 /* ─── Prose content styles (global: apply inside v-html) ─────────── */
 
-.md-preview__prose h1,
-.md-preview__prose h2,
-.md-preview__prose h3,
-.md-preview__prose h4 {
-  color: var(--usx-color-on-surface);
-  margin: var(--usx-spacing-lg) 0 var(--usx-spacing-sm);
-  font-weight: var(--usx-font-weight-semibold);
-  line-height: 1.3;
-}
+/* Typography is owned by the Prose contract
+   (@udos/usx-tokens/usx-prose.css). Only uDOS document policy lives here. */
 
-.md-preview__prose h1 {
-  font-size: var(--usx-font-size-2xl);
-}
-.md-preview__prose h2 {
-  font-size: var(--usx-font-size-xl);
-  border-bottom: 1px solid var(--usx-color-border);
-  padding-bottom: var(--usx-spacing-xs);
-}
-.md-preview__prose h3 {
-  font-size: var(--usx-font-size-lg);
-}
-
-.md-preview__prose p {
-  margin: var(--usx-spacing-sm) 0;
-  color: var(--usx-color-on-surface);
-  line-height: 1.7;
-}
-
-.md-preview__prose a {
-  color: var(--usx-color-primary);
-}
-
-.md-preview__prose code {
-  font-family: var(--usx-font-family-mono);
-  font-size: 0.875em;
-  background-color: var(--usx-color-surface-variant);
-  padding: 2px 5px;
-  border-radius: var(--usx-radius-sm);
-}
-
-.md-preview__prose pre {
-  background-color: var(--usx-color-surface-variant);
-  border-radius: var(--usx-radius-md);
-  padding: var(--usx-spacing-md);
-  overflow-x: auto;
-  margin: var(--usx-spacing-md) 0;
-}
-
-.md-preview__prose pre code {
-  background: none;
-  padding: 0;
-  font-size: var(--usx-font-size-sm);
-}
-
-.md-preview__prose blockquote {
-  border-left: 3px solid var(--usx-color-border);
-  margin: var(--usx-spacing-md) 0;
-  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
-  color: var(--usx-color-on-surface-muted);
-}
-
-.md-preview__prose table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: var(--usx-spacing-md) 0;
-  font-size: var(--usx-font-size-sm);
-}
-
-.md-preview__prose th,
-.md-preview__prose td {
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-  border: 1px solid var(--usx-color-border);
-}
-
-.md-preview__prose th {
-  background-color: var(--usx-color-surface-variant);
-  font-weight: var(--usx-font-weight-semibold);
-}
-
-.md-preview__prose ul,
-.md-preview__prose ol {
-  padding-left: var(--usx-spacing-xl);
-  margin: var(--usx-spacing-sm) 0;
-}
-
-.md-preview__prose li {
-  margin: var(--usx-spacing-xs) 0;
-  line-height: 1.6;
-}
-
-.md-preview__prose hr {
-  border: none;
-  border-top: 1px solid var(--usx-color-border);
-  margin: var(--usx-spacing-xl) 0;
-}
 
 /* In uDOS prose, thematic/page-break markers remain authoring metadata.
    Story/print renderers retain their own separators and pagination. */
-.md-preview--prose .md-preview__prose hr {
+.md-preview--prose :is(.md-preview__prose, .usx-prose) hr {
   display: none;
 }
 
-.md-preview--prose .md-preview__prose h2 {
-  border-bottom: 0;
-  padding-bottom: 0;
+.md-preview--prose :is(.md-preview__prose, .usx-prose) h2 {
+  border-block-end: 0;
+  padding-block-end: 0;
 }
 
 /* ─── Callouts ───────────────────────────────────────────────────── */
@@ -223,42 +131,43 @@ onMounted(update);
   display: flex;
   flex-direction: column;
   gap: var(--usx-spacing-xs);
-  margin: var(--usx-spacing-md) 0;
+  margin-block: var(--usx-spacing-md);
   padding: var(--usx-spacing-md);
   border-radius: var(--usx-radius-md);
-  border-left: 4px solid var(--usx-color-info);
-  background-color: color-mix(in srgb, var(--usx-color-info) 8%, transparent);
+  border-inline-start: calc(var(--usx-border-width-thick) * 2) solid
+    var(--usx-color-info);
+  background-color: color-mix(in srgb, var(--usx-color-info) 8%, var(--usx-color-surface));
 }
 
 .md-callout--warning {
-  border-left-color: var(--usx-color-warning);
+  border-inline-start-color: var(--usx-color-warning);
   background-color: color-mix(
     in srgb,
     var(--usx-color-warning) 8%,
-    transparent
+    var(--usx-color-surface)
   );
 }
 
 .md-callout--caution {
-  border-left-color: var(--usx-color-danger);
-  background-color: color-mix(in srgb, var(--usx-color-danger) 8%, transparent);
+  border-inline-start-color: var(--usx-color-danger);
+  background-color: color-mix(in srgb, var(--usx-color-danger) 8%, var(--usx-color-surface));
 }
 
 .md-callout--tip {
-  border-left-color: var(--usx-color-success);
+  border-inline-start-color: var(--usx-color-success);
   background-color: color-mix(
     in srgb,
     var(--usx-color-success) 8%,
-    transparent
+    var(--usx-color-surface)
   );
 }
 
 .md-callout--important {
-  border-left-color: var(--usx-color-primary);
+  border-inline-start-color: var(--usx-color-primary);
   background-color: color-mix(
     in srgb,
     var(--usx-color-primary) 8%,
-    transparent
+    var(--usx-color-surface)
   );
 }
 
@@ -271,7 +180,7 @@ onMounted(update);
 }
 
 .md-callout__label .material-symbols-outlined {
-  font-size: 16px;
+  font-size: var(--usx-icon-size-sm);
 }
 
 .md-callout--note .md-callout__label {
@@ -292,7 +201,7 @@ onMounted(update);
 
 .md-callout__body {
   font-size: var(--usx-font-size-sm);
-  line-height: 1.6;
+  line-height: var(--usx-line-height-normal);
   color: var(--usx-color-on-surface);
 }
 
@@ -311,8 +220,8 @@ onMounted(update);
 
 .md-preview__prose {
   padding: clamp(var(--usx-spacing-md), 4vw, calc(var(--usx-spacing-2xl) * 1.5));
-  max-width: 72ch;
-  margin: 0 auto;
+  max-inline-size: var(--usx-prose-width);
+  margin-inline: auto;
 }
 
 /* ─── Story slide viewer ──────────────────────────────────────── */
@@ -386,10 +295,10 @@ onMounted(update);
 /* ─── Diagram & Chart containers ───────────────────────────────── */
 
 .md-diagram {
-  margin: var(--usx-spacing-lg) 0;
+  margin-block: var(--usx-spacing-lg);
   border-radius: var(--usx-radius-md);
-  background: var(--usx-color-surface, #0b1120);
-  border: 1px solid var(--usx-color-border, #334155);
+  background: var(--usx-color-surface);
+  border: var(--usx-border-width) solid var(--usx-color-border);
   overflow: hidden;
   position: relative;
 }
@@ -412,19 +321,19 @@ onMounted(update);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 12px;
-  background: var(--usx-color-surface-variant, #1e293b);
-  border-bottom: 1px solid var(--usx-color-border, #334155);
-  font-size: 11px;
-  font-family: var(--usx-font-family-mono, monospace);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-md);
+  background: var(--usx-color-surface-variant);
+  border-block-end: var(--usx-border-width) solid var(--usx-color-border);
+  font-size: var(--usx-font-size-xs);
+  font-family: var(--usx-font-family-mono);
 }
 
 .md-diagram__label {
-  color: var(--usx-color-primary, #00e5ff);
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  color: var(--usx-color-primary);
+  font-weight: var(--usx-font-weight-semibold);
+  letter-spacing: var(--usx-letter-spacing-wide);
   text-transform: uppercase;
-  font-size: 10px;
+  font-size: var(--usx-font-size-xs);
 }
 
 .md-diagram__actions {
@@ -438,25 +347,25 @@ onMounted(update);
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  border-radius: var(--usx-radius-sm, 4px);
+  border-radius: var(--usx-radius-sm);
   background: transparent;
-  border: 1px solid var(--usx-color-border, #334155);
-  color: var(--usx-color-text-muted, #94a3b8);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  color: var(--usx-color-on-surface-muted);
   font-size: 11px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .md-diagram__btn:hover {
-  background: var(--usx-color-surface-hover, #334155);
-  color: var(--usx-color-text, #f8fafc);
-  border-color: var(--usx-color-primary, #00e5ff);
+  background: var(--usx-color-surface-hover);
+  color: var(--usx-color-on-surface);
+  border-color: var(--usx-color-primary);
 }
 
 .md-diagram__source {
   padding: var(--usx-spacing-sm);
-  border-top: 1px solid var(--usx-color-border, #334155);
-  background: #0b1120;
+  border-block-start: var(--usx-border-width) solid var(--usx-color-border);
+  background: var(--usx-color-background);
 }
 
 .md-diagram__source pre {
@@ -470,23 +379,24 @@ onMounted(update);
   align-items: center;
   gap: 8px;
   padding: var(--usx-spacing-sm);
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
+  color: var(--usx-color-danger);
+  background: color-mix(in srgb, var(--usx-color-danger) 10%, transparent);
   font-size: 12px;
 }
 
 /* ─── Teletext Screen Display ──────────────────────────────────── */
 
 .teletext-screen {
-  background: #000000 !important;
-  color: #ffffff !important;
+  /* Lattice palette is canon, not theme (GRIDCORE-STANDARDS.json). */
+  background: var(--gridcore-palette-0) !important;
+  color: var(--gridcore-palette-7) !important;
   font-family: "VT323", "Press Start 2P", monospace !important;
   font-size: 16px !important;
-  line-height: 1.25 !important;
-  letter-spacing: 0.05em;
+  line-height: var(--usx-line-height-tight) !important;
+  letter-spacing: var(--usx-letter-spacing-wide);
   padding: var(--usx-spacing-md) !important;
-  border: 2px solid #334155;
-  border-radius: 4px;
+  border: var(--usx-border-width-thick) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
   overflow-x: auto;
 }
 

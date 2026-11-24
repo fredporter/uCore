@@ -19,8 +19,8 @@
   --usx-chat-bubble-button-radius: 9999px;
   --usx-chat-bubble-button-bg: var(--usx-color-primary);
   --usx-chat-bubble-button-bg-hover: var(--usx-color-primary-hover);
-  --usx-chat-bubble-button-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  --usx-chat-bubble-button-shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.3);
+  --usx-chat-bubble-button-shadow: 0 8px 32px color-mix(in srgb, var(--usx-color-scrim) 20%, transparent);
+  --usx-chat-bubble-button-shadow-hover: 0 12px 48px color-mix(in srgb, var(--usx-color-scrim) 30%, transparent);
 
   /* Chat Bubble Badge */
   --usx-chat-bubble-badge-bg: var(--usx-color-danger);
@@ -37,7 +37,7 @@
   --usx-chat-panel-border: none;
 
   /* Chat Bubble Overlay */
-  --usx-chat-overlay-bg: rgba(0, 0, 0, 0.78);
+  --usx-chat-overlay-bg: color-mix(in srgb, var(--usx-color-scrim) 78%, transparent);
 
   /* Z-Index Stack */
   --usx-zindex-chat-overlay: 999;
@@ -53,8 +53,8 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --usx-chat-panel-bg: var(--usx-color-surface);
-    --usx-chat-bubble-button-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    --usx-chat-overlay-bg: rgba(0, 0, 0, 0.86);
+    --usx-chat-bubble-button-shadow: 0 8px 32px color-mix(in srgb, var(--usx-color-scrim) 40%, transparent);
+    --usx-chat-overlay-bg: color-mix(in srgb, var(--usx-color-scrim) 86%, transparent);
   }
 }
 

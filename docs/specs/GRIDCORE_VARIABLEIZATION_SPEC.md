@@ -139,12 +139,39 @@ Palette variables model current editor swatch presentation only. They do not red
 - `--gridcore-preset-popover-min-width`
 - `--gridcore-prose-heading-size`
 
+### 4.8 Lattice geometry
+Geometry comes from `GRIDCORE-STANDARDS.json` and is exposed as pixels so user
+font scaling cannot distort the lattice.
+
+- `--gridcore-dot`
+- `--gridcore-cell-square`
+- `--gridcore-cell-tall-width`
+- `--gridcore-cell-tall-height`
+- `--gridcore-pitch-column`
+- `--gridcore-pitch-row`
+- `--gridcore-teletext-columns`
+- `--gridcore-teletext-rows`
+- `--gridcore-zoom`
+
+### 4.9 Bridge and typography groups
+These exist in `gridcore.css` and were previously undocumented:
+
+- `--gridcore-space-1`, `--gridcore-space-xs` … `--gridcore-space-2xl`
+- `--gridcore-font-size-body`, `--gridcore-font-size-code`
+- `--gridcore-font-size-h1` … `--gridcore-font-size-h4`
+- `--gridcore-line-height-tight`, `--gridcore-line-height-body`, `--gridcore-line-height-prose`
+- `--gridcore-color-danger`
+- `--gridcore-control-inline-gap`
+
 ## 5. Implementation Rules
 
 1. New GridCore internals must not add fresh hardcoded px/hex constants when an existing `--gridcore-*` variable applies.
 2. Do not rename existing palette index classes or GridCore renderer hooks in this phase.
 3. Preserve behavior; this phase is variableization only.
 4. Keep spec and implementation in lockstep: when adding a new `--gridcore-*` variable, add it to this document.
+5. **Reference direction is one-way:** `--gridcore-*` may read `--usx-*` (as the bridge in `gridcore.css` does); `--usx-*` must never read `--gridcore-*`. Prose is the outer contract, GridCore is the inner one.
+6. **Palette is canon, not theme.** `--gridcore-palette-0..7` mirror `GRIDCORE-STANDARDS.json → palette`. The checker fails on drift; the lattice never follows a prose theme.
+7. **Zoom is integer.** A lattice container declares `[data-lattice]` with `--gridcore-zoom` of `1`, `2` or `3`. Fractional scaling blurs the 4px dot and is a defect, not a preference.
 
 ## 6. Migration Plan
 

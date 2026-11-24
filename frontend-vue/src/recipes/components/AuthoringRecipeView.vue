@@ -379,7 +379,6 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 </template>
 
 <style scoped>
-@import '@udos/usx-tokens/usx-prose.css';
 
 .authoring-recipe-wrapper {
   position: relative;
@@ -398,9 +397,9 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: var(--usx-color-surface-container-high, #2b2930);
-  color: var(--usx-color-primary, #d0bcff);
-  border: 1px solid var(--usx-color-primary, #d0bcff);
+  background: var(--usx-color-surface-hover);
+  color: var(--usx-color-primary);
+  border: 1px solid var(--usx-color-primary);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   padding: 0.75rem 1.25rem;
   border-radius: 8px;
@@ -409,7 +408,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 }
 .toast-icon {
   font-size: 1.25rem;
-  color: var(--usx-color-primary, #d0bcff);
+  color: var(--usx-color-primary);
 }
 .fade-enter-active,
 .fade-leave-active {
@@ -437,16 +436,17 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   gap: 0.35rem;
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
-  background: var(--usx-color-surface-container, #211f26);
+  background: var(--usx-color-surface);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.78rem;
-  color: var(--usx-color-on-surface-variant, #cac4d0);
+  color: var(--usx-color-on-surface-muted);
 }
 .usx-frontmatter-chip strong {
-  color: var(--usx-color-primary, #d0bcff);
+  color: var(--usx-color-primary);
 }
 
 /* Enhanced Bangle Toolbar */
+  gap: var(--usx-spacing-xs);
 .authoring-toolbar {
   display: flex;
   align-items: center;
@@ -465,7 +465,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 .toolbar-divider {
   width: 1px;
   height: 22px;
-  background: var(--usx-color-outline-variant, #49454f);
+  background: var(--usx-color-border);
   margin: 0 0.35rem;
 }
 .toolbar-spacer {
@@ -478,27 +478,27 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   padding: 0.35rem 0.5rem;
   border: none;
   background: transparent;
-  color: var(--usx-color-on-surface, #e6e1e5);
+  color: var(--usx-color-on-surface);
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.82rem;
   transition: background 0.15s ease;
 }
 .tb-btn:hover {
-  background: var(--usx-color-surface-container-highest, #36343b);
+  background: var(--usx-color-surface-hover);
 }
 .tb-btn .material-symbols-outlined {
   font-size: 1.15rem;
 }
 .tb-accent {
-  background: var(--usx-color-surface-container-high, #2b2930);
-  color: var(--usx-color-primary, #d0bcff);
+  background: var(--usx-color-surface-hover);
+  color: var(--usx-color-primary);
   font-weight: 500;
-  border: 1px solid var(--usx-color-outline-variant, #49454f);
+  border: 1px solid var(--usx-color-border);
 }
 .tb-accent:hover {
-  background: var(--usx-color-primary-container, #4f378b);
-  color: var(--usx-color-on-primary-container, #eaddff);
+  background: var(--usx-color-surface-hover);
+  color: var(--usx-color-primary);
 }
 .tb-label {
   font-size: 0.78rem;
@@ -564,12 +564,12 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 .markdown-textarea {
   width: 100%;
   min-height: 440px;
-  background: var(--usx-color-surface-container, #211f26);
-  color: var(--usx-color-on-surface, #e6e1e5);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.88rem;
   line-height: 1.6;
-  border: 1px solid var(--usx-color-outline-variant, #49454f);
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
   padding: 1rem;
   resize: vertical;
@@ -585,18 +585,18 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.82rem;
-  color: var(--usx-color-on-surface-variant, #cac4d0);
+  color: var(--usx-color-on-surface-muted);
   margin-top: 0.35rem;
 }
 .callout-provenance-meta a {
-  color: var(--usx-color-primary, #d0bcff);
+  color: var(--usx-color-primary);
 }
 .sep {
-  color: var(--usx-color-outline, #79747e);
+  color: var(--usx-color-on-surface-muted);
 }
 .footnote-ref {
   font-size: 0.75rem;
-  color: var(--usx-color-primary, #d0bcff);
+  color: var(--usx-color-primary);
   font-weight: bold;
   cursor: pointer;
 }
@@ -608,7 +608,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 .document-footnotes hr {
   border: 0;
   height: 1px;
-  background: var(--usx-color-outline-variant, #49454f);
+  background: var(--usx-color-border);
   margin-bottom: 1rem;
 }
 .document-footnotes h4 {
@@ -617,7 +617,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 }
 .document-footnotes ol {
   padding-left: 1.25rem;
-  color: var(--usx-color-on-surface-variant, #cac4d0);
+  color: var(--usx-color-on-surface-muted);
 }
 .document-footnotes li {
   margin-bottom: 0.35rem;
@@ -644,18 +644,18 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   gap: 0.4rem;
 }
 .provenance-icon {
-  color: var(--usx-color-primary, #d0bcff);
+  color: var(--usx-color-primary);
   font-size: 1.3rem;
 }
 .provenance-header h3 {
   font-size: 1.05rem;
   font-weight: 600;
   margin: 0;
-  color: var(--usx-color-on-surface, #e6e1e5);
+  color: var(--usx-color-on-surface);
 }
 .provenance-badge {
-  background: var(--usx-color-surface-container-highest, #36343b);
-  color: var(--usx-color-on-surface-variant, #cac4d0);
+  background: var(--usx-color-surface-hover);
+  color: var(--usx-color-on-surface-muted);
   font-size: 0.75rem;
   padding: 0.2rem 0.5rem;
   border-radius: 9999px;
@@ -663,7 +663,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 }
 .provenance-description {
   font-size: 0.8rem;
-  color: var(--usx-color-on-surface-variant, #cac4d0);
+  color: var(--usx-color-on-surface-muted);
   line-height: 1.4;
   margin: 0;
 }
@@ -678,9 +678,9 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   padding: 0.25rem 0.6rem;
   font-size: 0.78rem;
   border-radius: 9999px;
-  border: 1px solid var(--usx-color-outline-variant, #49454f);
-  background: var(--usx-color-surface-container, #211f26);
-  color: var(--usx-color-on-surface-variant, #cac4d0);
+  border: 1px solid var(--usx-color-border);
+  background: var(--usx-color-surface);
+  color: var(--usx-color-on-surface-muted);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -698,8 +698,8 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   gap: 0.85rem;
 }
 .citation-card {
-  background: var(--usx-color-surface-container, #211f26);
-  border: 1px solid var(--usx-color-outline-variant, #49454f);
+  background: var(--usx-color-surface);
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
   padding: 0.85rem;
   display: flex;
@@ -708,7 +708,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   transition: border-color 0.15s ease;
 }
 .citation-card.selected {
-  border-color: var(--usx-color-primary, #d0bcff);
+  border-inline-start-color: var(--usx-color-primary);
 }
 .card-top-row {
   display: flex;
@@ -721,7 +721,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   gap: 0.25rem;
   font-size: 0.72rem;
   text-transform: uppercase;
-  color: var(--usx-color-secondary, #ccc2dc);
+  color: var(--usx-color-on-surface-muted);
   font-weight: 600;
 }
 .type-icon {
@@ -732,14 +732,14 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   align-items: center;
   gap: 0.3rem;
   font-size: 0.75rem;
-  color: var(--usx-color-on-surface-variant, #cac4d0);
+  color: var(--usx-color-on-surface-muted);
   cursor: pointer;
 }
 .citation-title {
   font-size: 0.9rem;
   font-weight: 600;
   margin: 0;
-  color: var(--usx-color-on-surface, #e6e1e5);
+  color: var(--usx-color-on-surface);
 }
 .citation-authors,
 .citation-url {
@@ -747,14 +747,14 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   align-items: center;
   gap: 0.3rem;
   font-size: 0.78rem;
-  color: var(--usx-color-on-surface-variant, #cac4d0);
+  color: var(--usx-color-on-surface-muted);
 }
 .meta-icon {
   font-size: 0.9rem;
-  color: var(--usx-color-outline, #79747e);
+  color: var(--usx-color-on-surface-muted);
 }
 .citation-url a {
-  color: var(--usx-color-primary, #d0bcff);
+  color: var(--usx-color-primary);
   text-decoration: underline;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -762,7 +762,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 }
 .citation-note {
   font-size: 0.75rem;
-  color: var(--usx-color-on-surface-variant, #cac4d0);
+  color: var(--usx-color-on-surface-muted);
   font-style: italic;
   margin: 0;
 }
@@ -770,8 +770,8 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 /* Formatted Output Box */
 .formatted-output-box {
   margin-top: 0.25rem;
-  background: var(--usx-color-surface-container-high, #2b2930);
-  border: 1px solid var(--usx-color-outline-variant, #49454f);
+  background: var(--usx-color-surface-hover);
+  border: 1px solid var(--usx-color-border);
   border-radius: 4px;
   padding: 0.45rem 0.6rem;
 }
@@ -780,14 +780,14 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   align-items: center;
   justify-content: space-between;
   font-size: 0.72rem;
-  color: var(--usx-color-outline, #79747e);
+  color: var(--usx-color-on-surface-muted);
   margin-bottom: 0.25rem;
 }
 .icon-action-btn {
   background: transparent;
   border: none;
   cursor: pointer;
-  color: var(--usx-color-on-surface-variant, #cac4d0);
+  color: var(--usx-color-on-surface-muted);
   padding: 0;
   display: flex;
 }
@@ -799,7 +799,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   font-size: 0.75rem;
   white-space: pre-wrap;
   word-break: break-word;
-  color: var(--usx-color-on-surface, #e6e1e5);
+  color: var(--usx-color-on-surface);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -818,24 +818,24 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   padding: 0.3rem 0.5rem;
   font-size: 0.75rem;
   border-radius: 4px;
-  border: 1px solid var(--usx-color-outline-variant, #49454f);
-  background: var(--usx-color-surface-container-high, #2b2930);
-  color: var(--usx-color-on-surface, #e6e1e5);
+  border: 1px solid var(--usx-color-border);
+  background: var(--usx-color-surface-hover);
+  color: var(--usx-color-on-surface);
   cursor: pointer;
 }
 .card-btn .material-symbols-outlined {
   font-size: 0.85rem;
 }
 .card-btn-primary {
-  background: var(--usx-color-primary-container, #4f378b);
-  color: var(--usx-color-on-primary-container, #eaddff);
-  border-color: var(--usx-color-primary, #d0bcff);
+  background: var(--usx-color-surface-hover);
+  color: var(--usx-color-primary);
+  border-color: var(--usx-color-primary);
 }
 
 /* Synthesis Box */
 .synthesis-box {
-  background: var(--usx-color-surface-container, #211f26);
-  border: 1px solid var(--usx-color-outline-variant, #49454f);
+  background: var(--usx-color-surface);
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
   padding: 0.85rem;
   display: flex;
@@ -846,7 +846,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  color: var(--usx-color-primary, #d0bcff);
+  color: var(--usx-color-primary);
 }
 .synthesis-header h4 {
   margin: 0;
@@ -854,7 +854,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 }
 .synthesis-desc {
   font-size: 0.75rem;
-  color: var(--usx-color-on-surface-variant, #cac4d0);
+  color: var(--usx-color-on-surface-muted);
   margin: 0;
 }
 .synthesis-action-btn {
@@ -865,8 +865,8 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   padding: 0.45rem 0.75rem;
   border-radius: 4px;
   border: none;
-  background: var(--usx-color-primary, #d0bcff);
-  color: var(--usx-color-on-primary, #381e72);
+  background: var(--usx-color-surface-hover);
+  color: var(--usx-color-primary);
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;

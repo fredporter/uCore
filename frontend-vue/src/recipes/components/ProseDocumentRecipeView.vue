@@ -59,7 +59,6 @@ defineProps<{
 </template>
 
 <style scoped>
-@import '@udos/usx-tokens/usx-prose.css';
 
 .prose-recipe-container {
   padding: 0.5rem 0;

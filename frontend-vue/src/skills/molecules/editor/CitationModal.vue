@@ -36,7 +36,7 @@ function insert() { if (url.value.trim()) emit("insert", preview.value); }
 </script>
 
 <style scoped>
-.citation-overlay { position: fixed; inset: 0; z-index: 2100; display: grid; place-items: center; padding: var(--usx-spacing-lg); background: rgb(0 0 0 / 50%); }
+.citation-overlay { position: fixed; inset: 0; z-index: 2100; display: grid; place-items: center; padding: var(--usx-spacing-lg); background: color-mix(in srgb, var(--usx-color-scrim) 50%, transparent); }
 .citation-modal { display: grid; gap: var(--usx-spacing-md); width: min(32rem, 100%); padding: var(--usx-spacing-lg); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-lg); background: var(--usx-color-surface); }
 header, footer { display: flex; align-items: center; justify-content: space-between; gap: var(--usx-spacing-sm); } h2 { margin: 0; } label { display: grid; gap: var(--usx-spacing-xs); } input, select { min-height: var(--usx-touch-min); } header button { margin-left: auto; } footer { justify-content: flex-end; }
 .citation-modal__preview { padding: var(--usx-spacing-md); border-radius: var(--usx-radius-md); background: var(--usx-color-surface-variant); color: var(--usx-color-on-surface); }

@@ -186,7 +186,7 @@ function save() {
 .fm-editor input, .fm-editor textarea { width: 100%; box-sizing: border-box; }
 .fm-editor__yaml textarea { min-height: 12rem; font-family: var(--usx-font-family-mono); }
 .fm-editor__preview pre { max-height: 10rem; overflow: auto; padding: var(--usx-spacing-sm); background: var(--usx-color-surface-variant); }
-.fm-editor__errors { color: var(--usx-color-error); }
+.fm-editor__errors { color: var(--usx-color-danger); }
 .fm-editor__footer { border-top: var(--usx-border-width) solid var(--usx-color-border); justify-content: flex-end; }
 .fm-editor__save { background: var(--usx-color-primary); color: var(--usx-color-on-primary); }
 @media (max-width: 40rem) { .fm-editor__field { grid-template-columns: 1fr auto; } .fm-editor__field label { grid-column: 1; } .fm-editor__field button { grid-column: 2; grid-row: 1 / span 2; } }

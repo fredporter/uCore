@@ -83,12 +83,12 @@ function onBackdropClick() {
   align-items: center;
   justify-content: center;
   padding: var(--usx-spacing-lg);
-  background-color: rgba(0, 0, 0, 0.45);
+  background-color: color-mix(in srgb, var(--usx-color-scrim) 45%, transparent);
   backdrop-filter: blur(2px);
 }
 
 .alert-overlay--blocking {
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: color-mix(in srgb, var(--usx-color-scrim) 70%, transparent);
 }
 
 /* ─── Modal card ──────────────────────────────────────────────── */
@@ -101,7 +101,7 @@ function onBackdropClick() {
   background-color: var(--usx-color-surface);
   border: 1px solid var(--usx-color-border);
   border-radius: var(--usx-radius-lg);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 16px 48px color-mix(in srgb, var(--usx-color-scrim) 25%, transparent);
   width: 100%;
   max-width: 440px;
   border-top: 4px solid var(--usx-color-info);

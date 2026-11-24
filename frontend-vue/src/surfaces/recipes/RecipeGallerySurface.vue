@@ -340,22 +340,22 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
 /* ── USX Themes: Dark & Light Mode Only ── */
 .theme-dark {
   --usx-color-background: #14161a;
-  --usx-color-surface: #1e2025;
+  --usx-color-surface: var(--usx-color-surface);
   --usx-color-surface-container: #282a30;
   --usx-color-surface-container-high: #32353c;
-  --usx-color-on-surface: #e2e2e6;
-  --usx-color-on-surface-variant: #8e9199;
-  --usx-color-primary: #a8c7fa;
+  --usx-color-on-surface: var(--usx-color-on-surface);
+  --usx-color-on-surface-variant: var(--usx-color-on-surface-muted);
+  --usx-color-primary: var(--usx-color-primary);
   --usx-color-primary-container: #0842a0;
   --usx-color-on-primary-container: #d3e3fd;
   --usx-color-outline: #8e9199;
-  --usx-color-outline-variant: rgba(255, 255, 255, 0.12);
+  --usx-color-outline-variant: color-mix(in srgb, var(--usx-color-on-surface) 12%, transparent);
   --usx-border-color: #32353c;
 }
 
 .theme-light {
   --usx-color-background: #f8f9fa;
-  --usx-color-surface: #ffffff;
+  --usx-color-surface: var(--usx-color-on-surface);
   --usx-color-surface-container: #edeef2;
   --usx-color-surface-container-high: #e2e3e7;
   --usx-color-on-surface: #191c20;
@@ -364,18 +364,19 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
   --usx-color-primary-container: #d3e3fd;
   --usx-color-on-primary-container: #041e49;
   --usx-color-outline: #74777f;
-  --usx-color-outline-variant: rgba(0, 0, 0, 0.12);
-  --usx-border-color: #e2e3e7;
+  --usx-color-outline-variant: color-mix(in srgb, var(--usx-color-scrim) 12%, transparent);
+  --usx-color-border: #d7d9df;
+  --usx-color-on-surface-muted: #595e68;
 }
 
 /* GridCore lane root container */
 .gridcore-lane {
   --usx-color-background: #0f1115;
   --usx-color-surface: #16181d;
-  --usx-color-surface-container: #1e2025;
+  --usx-color-surface-container: var(--usx-color-surface);
   --usx-color-surface-container-high: #282a30;
-  --usx-color-on-surface: #e2e2e6;
-  --usx-color-on-surface-variant: #8e9199;
+  --usx-color-on-surface: var(--usx-color-on-surface);
+  --usx-color-on-surface-variant: var(--usx-color-on-surface-muted);
   --usx-color-primary: #00ff66;
   --usx-color-outline-variant: rgba(255, 255, 255, 0.12);
 }
@@ -389,7 +390,10 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
 }
 
 .gallery-brand {
-  gap: var(--usx-spacing-xs);
+  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  background: var(--usx-color-surface);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-md);
 }
 
 .gallery-title,
@@ -467,7 +471,7 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
 }
 
 .seg-btn.active {
-  background: var(--usx-color-primary, #a8c7fa);
+  background: var(--usx-color-primary, var(--usx-color-primary));
   color: #041e49;
 }
 
@@ -531,7 +535,7 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
   align-items: center;
   gap: 1.5rem;
   padding: var(--usx-spacing-sm);
-  background: var(--usx-color-surface, #1e2025);
+  background: var(--usx-color-surface, var(--usx-color-surface));
   border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
   overflow-x: auto;
   scrollbar-width: thin;
@@ -568,7 +572,7 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   font-weight: 600;
   margin-right: 0.25rem;
   white-space: nowrap;
@@ -637,7 +641,7 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
 .json-inspector-drawer {
   width: min(100%, 360px);
   flex-shrink: 0;
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 10%, transparent));
   border-radius: 12px;
   background: var(--usx-color-surface, #1e2025);
   display: flex;
@@ -654,7 +658,7 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
   align-items: center;
   justify-content: space-between;
   padding: 0.85rem 1.25rem;
-  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 10%, transparent));
   flex-shrink: 0;
 }
 

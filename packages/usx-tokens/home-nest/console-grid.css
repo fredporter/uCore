@@ -87,7 +87,7 @@
   border-color: var(--usx-color-primary);
   background: var(--usx-color-surface-hover);
   transform: scale(1.02);
-  box-shadow: 0 0 24px rgba(77, 148, 255, 0.15);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--usx-color-primary) 15%, transparent);
 }
 
 .hn-launcher__tile-icon {
@@ -129,7 +129,7 @@
 .hn-poster-card--focused {
   border-color: var(--usx-color-primary);
   transform: scale(1.03);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  box-shadow: var(--usx-shadow-md);
 }
 
 .hn-poster-card__image {

@@ -115,25 +115,25 @@
 }
 
 .hn-button-hint__key--a {
-  background: #22c55e22;
+  background: color-mix(in srgb, var(--usx-color-success) 13%, transparent);
   border-color: var(--usx-color-success);
   color: var(--usx-color-success);
 }
 
 .hn-button-hint__key--b {
-  background: #ef444422;
+  background: color-mix(in srgb, var(--usx-color-danger) 13%, transparent);
   border-color: var(--usx-color-danger);
   color: var(--usx-color-danger);
 }
 
 .hn-button-hint__key--x {
-  background: #3b82f622;
+  background: color-mix(in srgb, var(--usx-color-info) 13%, transparent);
   border-color: var(--usx-color-info);
   color: var(--usx-color-info);
 }
 
 .hn-button-hint__key--y {
-  background: #eab30822;
+  background: color-mix(in srgb, var(--usx-color-warning) 13%, transparent);
   border-color: var(--usx-color-warning);
   color: var(--usx-color-warning);
 }

@@ -1115,9 +1115,9 @@ async function handleApproveAction(task: WorkflowTask) {
   margin-bottom: var(--space-2, 0.5rem);
   font-size: 0.75rem;
   border-radius: var(--usx-radius-sm, 4px);
-  background: color-mix(in srgb, #10b981 12%, transparent);
-  color: #10b981;
-  border: 1px solid color-mix(in srgb, #10b981 30%, transparent);
+  background: color-mix(in srgb, var(--usx-color-success) 12%, transparent);
+  color: var(--usx-color-success);
+  border: 1px solid color-mix(in srgb, var(--usx-color-success) 30%, transparent);
 }
 
 .wf-code-editor__actions {
@@ -1134,14 +1134,14 @@ async function handleApproveAction(task: WorkflowTask) {
   font-size: 0.75rem;
   font-weight: 500;
   border-radius: var(--usx-radius-sm, 4px);
-  border: 1px solid #10b981;
-  background: #10b981;
-  color: #ffffff;
+  border: 1px solid var(--usx-color-success);
+  background: var(--usx-color-success);
+  color: var(--usx-color-on-surface);
   cursor: pointer;
 }
 
 .wf-btn-action-approve:hover:not(:disabled) {
-  background: #059669;
+  background: var(--usx-color-success-hover);
 }
 
 .wf-action-executed-badge {
@@ -1151,8 +1151,8 @@ async function handleApproveAction(task: WorkflowTask) {
   font-size: 0.7rem;
   padding: 0.15rem 0.4rem;
   border-radius: var(--usx-radius-sm, 4px);
-  background: color-mix(in srgb, #10b981 15%, transparent);
-  color: #10b981;
+  background: color-mix(in srgb, var(--usx-color-success) 15%, transparent);
+  color: var(--usx-color-success);
 }
 
 .wf-editor-sync-rem-btn {
@@ -1263,7 +1263,7 @@ async function handleApproveAction(task: WorkflowTask) {
   background: var(--usx-color-surface);
   color: var(--usx-color-primary);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--usx-color-scrim) 8%, transparent);
 }
 
 .wf-header-actions {
@@ -1309,7 +1309,7 @@ async function handleApproveAction(task: WorkflowTask) {
 
 .wf-approval-section__title h3 {
   margin: 0;
-  font-size: var(--usx-font-size-md);
+  font-size: var(--usx-font-size-base);
   font-weight: 600;
   color: var(--usx-color-on-surface);
 }

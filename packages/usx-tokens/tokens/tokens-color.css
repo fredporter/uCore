@@ -8,18 +8,129 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 :root {
+  /* ═══════════════════════════════════════════════════════════════════
+     Bootstrap 6 colour palette (v6.0.0-alpha.1)
+     ═══════════════════════════════════════════════════════════════════
+     Base hues are Bootstrap's oklch() definitions; every stop is the same
+     white-tint / black-shade mix Bootstrap generates, converted to sRGB
+     so the values resolve everywhere. USX declares the stops it consumes.
+
+     Bootstrap maps theme names onto stops and assigns semantic roles
+     (fg, bg-subtle, border, contrast) per colour mode:
+       primary=blue   success=green   danger=red
+       warning=yellow info=cyan       secondary=gray
+     USX keeps that mapping. Reference:
+     https://getbootstrap.com/docs/6.0/customize/color/
+     ═══════════════════════════════════════════════════════════════════ */
+
+  /* blue */
+  --usx-color-blue-025: #eff9ff;
+  --usx-color-blue-050: #e4f4ff;
+  --usx-color-blue-100: #c9eaff;
+  --usx-color-blue-200: #8fd3ff;
+  --usx-color-blue-300: #49bcff;
+  --usx-color-blue-400: #00a3ff;
+  --usx-color-blue-500: #0087fe;
+  --usx-color-blue-600: #006ac9;
+  --usx-color-blue-700: #004e97;
+  --usx-color-blue-800: #003468;
+  --usx-color-blue-900: #001c3d;
+
+  /* green */
+  --usx-color-green-025: #f1fbf5;
+  --usx-color-green-050: #e7f8ee;
+  --usx-color-green-100: #cff1dd;
+  --usx-color-green-200: #9ce2bc;
+  --usx-color-green-300: #60d29b;
+  --usx-color-green-400: #00c27b;
+  --usx-color-green-500: #00b15a;
+  --usx-color-green-600: #008c45;
+  --usx-color-green-700: #006832;
+  --usx-color-green-800: #004620;
+  --usx-color-green-900: #00270f;
+
+  /* red */
+  --usx-color-red-025: #fff4f3;
+  --usx-color-red-050: #ffecec;
+  --usx-color-red-100: #ffdad8;
+  --usx-color-red-200: #ffb4b3;
+  --usx-color-red-300: #fa8d8e;
+  --usx-color-red-400: #f1626a;
+  --usx-color-red-500: #e62845;
+  --usx-color-red-600: #b61e35;
+  --usx-color-red-700: #891425;
+  --usx-color-red-800: #5e0a17;
+  --usx-color-red-900: #360309;
+
+  /* yellow */
+  --usx-color-yellow-025: #fffcf2;
+  --usx-color-yellow-050: #fffbe9;
+  --usx-color-yellow-100: #fff6d3;
+  --usx-color-yellow-200: #ffeca4;
+  --usx-color-yellow-300: #ffe16b;
+  --usx-color-yellow-400: #ffd600;
+  --usx-color-yellow-500: #ffc900;
+  --usx-color-yellow-600: #df9f00;
+  --usx-color-yellow-700: #a87700;
+  --usx-color-yellow-800: #745100;
+  --usx-color-yellow-900: #442e00;
+
+  /* amber */
+  --usx-color-amber-025: #fffaf2;
+  --usx-color-amber-050: #fff7ea;
+  --usx-color-amber-100: #ffefd4;
+  --usx-color-amber-200: #ffdda7;
+  --usx-color-amber-300: #ffcc76;
+  --usx-color-amber-400: #ffb932;
+  --usx-color-amber-500: #ffa500;
+  --usx-color-amber-600: #ca8200;
+  --usx-color-amber-700: #986100;
+  --usx-color-amber-800: #694100;
+  --usx-color-amber-900: #3d2400;
+
+  /* cyan */
+  --usx-color-cyan-025: #f0fbff;
+  --usx-color-cyan-050: #e5f9ff;
+  --usx-color-cyan-100: #cbf2ff;
+  --usx-color-cyan-200: #92e4fe;
+  --usx-color-cyan-300: #42d5fd;
+  --usx-color-cyan-400: #00c6fb;
+  --usx-color-cyan-500: #00b4f8;
+  --usx-color-cyan-600: #008ec4;
+  --usx-color-cyan-700: #006a93;
+  --usx-color-cyan-800: #004865;
+  --usx-color-cyan-900: #00283b;
+
+  /* gray */
+  --usx-color-gray-025: #f6f7f8;
+  --usx-color-gray-050: #f1f2f3;
+  --usx-color-gray-100: #e2e5e7;
+  --usx-color-gray-200: #c6cbcf;
+  --usx-color-gray-300: #abb2b8;
+  --usx-color-gray-400: #909aa2;
+  --usx-color-gray-500: #77828c;
+  --usx-color-gray-600: #5d666e;
+  --usx-color-gray-700: #444b51;
+  --usx-color-gray-800: #2d3136;
+  --usx-color-gray-900: #171a1d;
+
   /* ===== PRIMARY ===== */
-  --usx-color-primary: #0d6efd;
-  --usx-color-primary-hover: #0b5ed7;
-  --usx-color-primary-active: #0a58ca;
-  --usx-color-primary-disabled: #8bb9fe;
+  --usx-color-primary: var(--usx-color-blue-600);
+  --usx-color-primary-hover: var(--usx-color-blue-700);
+  --usx-color-primary-active: var(--usx-color-blue-800);
+  --usx-color-primary-disabled: var(--usx-color-blue-200);
+  --usx-color-primary-surface: var(--usx-color-blue-050);
+  --usx-color-primary-border: var(--usx-color-blue-300);
   --usx-color-on-primary: #ffffff;
 
-  /* ===== SECONDARY ===== */
-  --usx-color-secondary: #6c757d;
-  --usx-color-secondary-hover: #5c636a;
-  --usx-color-secondary-active: #565e64;
-  --usx-color-secondary-disabled: #b3b9bf;
+
+  /* ===== SECONDARY (Bootstrap 6: gray) ===== */
+  --usx-color-secondary: var(--usx-color-gray-600);
+  --usx-color-secondary-hover: var(--usx-color-gray-700);
+  --usx-color-secondary-active: var(--usx-color-gray-800);
+  --usx-color-secondary-disabled: var(--usx-color-gray-300);
+  --usx-color-secondary-surface: var(--usx-color-gray-050);
+  --usx-color-secondary-border: var(--usx-color-gray-300);
   --usx-color-on-secondary: #ffffff;
 
   /* ===== SURFACE ===== */
@@ -40,25 +151,48 @@
   --usx-color-border-light: #e9ecef;
   --usx-color-border-dark: #adb5bd;
 
-  /* ===== STATUS ===== */
-  --usx-color-success: #198754;
-  --usx-color-success-hover: #157347;
+  /* ===== STATUS (Bootstrap 6 mapping) =====
+     The role token is both the foreground on canvas and the fill for badges,
+     so its stops are chosen to satisfy both directions in each mode.
+     Light: 700/600 stops with white contrast.
+     Dark (themes/dark.css): 400 stops with 900-stop contrast.
+     -surface / -border carry the subtle-background and container variants. */
+
+  /* success = green */
+  --usx-color-success: var(--usx-color-green-700);
+  --usx-color-success-hover: var(--usx-color-green-800);
+  --usx-color-success-surface: var(--usx-color-green-050);
+  --usx-color-success-border: var(--usx-color-green-300);
   --usx-color-on-success: #ffffff;
 
-  --usx-color-warning: #ffc107;
-  --usx-color-warning-hover: #ffca2c;
-  --usx-color-on-warning: #212529;
+  /* warning = yellow — the 500 stop is fill-only, so the role uses amber */
+  --usx-color-warning: var(--usx-color-amber-700);
+  --usx-color-warning-hover: var(--usx-color-amber-800);
+  --usx-color-warning-fill: var(--usx-color-yellow-500);
+  --usx-color-warning-surface: var(--usx-color-amber-050);
+  --usx-color-warning-border: var(--usx-color-amber-300);
+  --usx-color-on-warning: #ffffff;
 
-  --usx-color-danger: #dc3545;
-  --usx-color-danger-hover: #bb2d3b;
+  /* danger = red */
+  --usx-color-danger: var(--usx-color-red-600);
+  --usx-color-danger-hover: var(--usx-color-red-700);
+  --usx-color-danger-surface: var(--usx-color-red-050);
+  --usx-color-danger-border: var(--usx-color-red-300);
   --usx-color-on-danger: #ffffff;
 
-  --usx-color-info: #0dcaf0;
-  --usx-color-info-hover: #31d2f2;
-  --usx-color-on-info: #212529;
+  /* info = cyan */
+  --usx-color-info: var(--usx-color-cyan-700);
+  --usx-color-info-hover: var(--usx-color-cyan-800);
+  --usx-color-info-surface: var(--usx-color-cyan-050);
+  --usx-color-info-border: var(--usx-color-cyan-300);
+  --usx-color-on-info: #ffffff;
 
   /* ===== ACCENT (user-configurable) ===== */
   --usx-color-accent: #6f42c1;
   --usx-color-accent-hover: #5c3a99;
   --usx-color-on-accent: #ffffff;
+
+  /* ===== SCRIM (media letterbox, modal backdrop): theme-independent ===== */
+  --usx-color-scrim: #000000;
+  --usx-color-on-scrim: #ffffff;
 }

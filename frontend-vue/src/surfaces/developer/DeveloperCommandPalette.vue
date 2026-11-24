@@ -35,7 +35,7 @@ watch(query, () => { selected.value = 0; });
 </script>
 
 <style scoped>
-.palette-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: start center; padding-top: 12vh; background: rgba(0,0,0,.55); }
+.palette-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: start center; padding-top: 12vh; background: color-mix(in srgb, var(--usx-color-scrim) 55%, transparent); }
 .palette { width: min(42rem, calc(100vw - 2rem)); max-height: 68vh; overflow: hidden; background: var(--usx-color-surface); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-md); box-shadow: var(--usx-shadow-lg); }
 .palette header { display: flex; justify-content: space-between; padding: var(--usx-spacing-sm) var(--usx-spacing-md); }
 .palette input { width: calc(100% - 2 * var(--usx-spacing-md)); margin: 0 var(--usx-spacing-md) var(--usx-spacing-sm); padding: var(--usx-spacing-sm); background: var(--usx-color-background); color: var(--usx-color-on-surface); border: var(--usx-border-width) solid var(--usx-color-primary); border-radius: var(--usx-radius-sm); }

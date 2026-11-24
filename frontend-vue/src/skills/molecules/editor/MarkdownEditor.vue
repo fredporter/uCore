@@ -524,7 +524,7 @@ onBeforeUnmount(() => {
   background: var(--usx-color-background);
 }
 
-.markdown-insert-overlay { position: fixed; inset: 0; z-index: 2200; display: grid; place-items: center; padding: var(--usx-spacing-lg); background: rgb(0 0 0 / 50%); }
+.markdown-insert-overlay { position: fixed; inset: 0; z-index: 2200; display: grid; place-items: center; padding: var(--usx-spacing-lg); background: color-mix(in srgb, var(--usx-color-scrim) 50%, transparent); }
 .markdown-insert-modal { display: grid; gap: var(--usx-spacing-md); width: min(28rem, 100%); padding: var(--usx-spacing-lg); border: var(--usx-border-width) solid var(--usx-color-border); border-radius: var(--usx-radius-lg); background: var(--usx-color-surface); }
 .markdown-insert-modal h2 { margin: 0; }.markdown-insert-modal label { display: grid; gap: var(--usx-spacing-xs); }.markdown-insert-modal input { min-height: var(--usx-touch-min); }.markdown-insert-modal__actions { display: flex; justify-content: flex-end; gap: var(--usx-spacing-sm); }
 

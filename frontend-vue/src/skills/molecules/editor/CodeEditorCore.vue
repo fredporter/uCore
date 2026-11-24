@@ -66,8 +66,8 @@ const baseTheme = EditorView.theme(
     "&": {
       height: "100%",
       width: "100%",
-      background: "var(--usx-color-background, #0d1117)",
-      color: "var(--usx-color-on-surface, #c9d1d9)",
+      background: "var(--usx-color-background, var(--usx-color-background))",
+      color: "var(--usx-color-on-surface, var(--usx-color-on-surface))",
       fontSize: "var(--usx-font-size-sm, 13px)",
       lineHeight: "1.6",
     },
@@ -78,53 +78,53 @@ const baseTheme = EditorView.theme(
     },
     ".cm-content": {
       padding: "var(--usx-spacing-sm, 8px) 0",
-      caretColor: "var(--usx-color-primary, #58a6ff)",
+      caretColor: "var(--usx-color-primary, var(--usx-color-primary))",
     },
     "&.cm-focused": { outline: "none" },
     "&.cm-focused .cm-selectionBackground, ::selection": {
       backgroundColor:
-        "color-mix(in srgb, var(--usx-color-primary, #58a6ff) 25%, transparent) !important",
+        "color-mix(in srgb, var(--usx-color-primary, var(--usx-color-primary)) 25%, transparent) !important",
     },
     ".cm-gutters": {
-      background: "var(--usx-color-surface-variant, #161b22)",
+      background: "var(--usx-color-surface-variant, var(--usx-color-surface))",
       borderRight:
-        "var(--usx-border-width, 1px) solid var(--usx-color-border, #30363d)",
-      color: "var(--usx-color-on-surface-muted, #484f58)",
+        "var(--usx-border-width, 1px) solid var(--usx-color-border, var(--usx-color-border))",
+      color: "var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted))",
     },
     ".cm-activeLineGutter": {
       backgroundColor:
-        "color-mix(in srgb, var(--usx-color-primary, #58a6ff) 8%, transparent)",
-      color: "var(--usx-color-on-surface, #c9d1d9)",
+        "color-mix(in srgb, var(--usx-color-primary, var(--usx-color-primary)) 8%, transparent)",
+      color: "var(--usx-color-on-surface, var(--usx-color-on-surface))",
     },
     ".cm-activeLine": { backgroundColor: "transparent" },
     ".cm-cursor, .cm-dropCursor": {
-      borderLeftColor: "var(--usx-color-primary, #58a6ff)",
+      borderLeftColor: "var(--usx-color-primary, var(--usx-color-primary))",
     },
     ".cm-matchingBracket": {
       backgroundColor:
-        "color-mix(in srgb, var(--usx-color-primary, #58a6ff) 18%, transparent)",
-      outline: "1px solid var(--usx-color-border, #30363d)",
-      color: "var(--usx-color-primary, #58a6ff)",
+        "color-mix(in srgb, var(--usx-color-primary, var(--usx-color-primary)) 18%, transparent)",
+      outline: "1px solid var(--usx-color-border, var(--usx-color-border))",
+      color: "var(--usx-color-primary, var(--usx-color-primary))",
     },
     ".cm-foldPlaceholder": {
-      background: "var(--usx-color-surface-variant, #161b22)",
+      background: "var(--usx-color-surface-variant, var(--usx-color-surface))",
       border:
-        "var(--usx-border-width, 1px) solid var(--usx-color-border, #30363d)",
-      color: "var(--usx-color-on-surface-muted, #484f58)",
+        "var(--usx-border-width, 1px) solid var(--usx-color-border, var(--usx-color-border))",
+      color: "var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted))",
     },
     ".cm-tooltip": {
-      background: "var(--usx-color-surface, #0d1117)",
+      background: "var(--usx-color-surface, var(--usx-color-background))",
       border:
-        "var(--usx-border-width, 1px) solid var(--usx-color-border, #30363d)",
-      color: "var(--usx-color-on-surface, #c9d1d9)",
+        "var(--usx-border-width, 1px) solid var(--usx-color-border, var(--usx-color-border))",
+      color: "var(--usx-color-on-surface, var(--usx-color-on-surface))",
     },
     ".cm-searchMatch": {
       backgroundColor:
-        "color-mix(in srgb, var(--usx-color-warning, #d29922) 35%, transparent)",
+        "color-mix(in srgb, var(--usx-color-warning, var(--usx-color-warning)) 35%, transparent)",
     },
     ".cm-searchMatch-selected": {
       backgroundColor:
-        "color-mix(in srgb, var(--usx-color-warning, #d29922) 55%, transparent)",
+        "color-mix(in srgb, var(--usx-color-warning, var(--usx-color-warning)) 55%, transparent)",
     },
   },
   { dark: true },
@@ -306,7 +306,7 @@ defineExpose({
 }
 
 .code-editor-core :deep(.cm-placeholder) {
-  color: var(--usx-color-on-surface-muted, #484f58);
+  color: var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted));
   font-style: italic;
 }
 </style>

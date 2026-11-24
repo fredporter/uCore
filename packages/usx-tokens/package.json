@@ -1,7 +1,7 @@
 {
   "name": "@udos/usx-tokens",
-  "version": "3.1.0",
-  "description": "USX Design Token System — shared CSS custom properties for uDos surfaces (uCore + HomeNest)",
+  "version": "3.2.0",
+  "description": "USX Design Token System \u2014 shared CSS custom properties for uDos surfaces (uCore + HomeNest)",
   "type": "module",
   "main": "usx-standard.css",
   "style": "usx-standard.css",
@@ -10,10 +10,12 @@
     "themes/*.css",
     "home-nest/*.css",
     "usx-standard.css",
+    "usx-prose.css",
     "README.md"
   ],
   "exports": {
     ".": "./usx-standard.css",
+    "./usx-prose.css": "./usx-prose.css",
     "./tokens/color": "./tokens/tokens-color.css",
     "./tokens/components": "./tokens/tokens-components.css",
     "./tokens/spacing": "./tokens/tokens-spacing.css",
@@ -29,7 +31,8 @@
     "./home-nest/console-grid": "./home-nest/console-grid.css",
     "./home-nest/controller-focus": "./home-nest/controller-focus.css",
     "./home-nest/media-player": "./home-nest/media-player.css",
-    "./home-nest/*": "./home-nest/*.css"
+    "./home-nest/*": "./home-nest/*.css",
+    "./home-nest/display-profiles": "./home-nest/display-profiles.css"
   },
   "repository": {
     "type": "git",
