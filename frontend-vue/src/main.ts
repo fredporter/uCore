@@ -34,6 +34,7 @@ import "@udos/usx-tokens/themes/teletext.css"; // teletext from package
 import "@udos/usx-tokens/themes/high-contrast.css"; // high-contrast from package
 import "@udos/usx-tokens"; // usx-standard.css from package
 import "@udos/usx-tokens/usx-prose.css"; // Prose contract: markdown + longform rendering
+import "@udos/usx-tokens/home-nest/display-profiles.css"; // Display profiles; inert until a surface sets data-display
 import "./styles/gridcore.css"; // GridCore internal variable contract
 import "./styles/usx-extensions.css"; // uCore-specific extensions: toolbar, multi-column, dev toggle
 import "./styles/usx-chat-bubble.css"; // Chat bubble overlay component
