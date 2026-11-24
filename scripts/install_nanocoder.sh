@@ -15,6 +15,9 @@
 #   scripts/install_nanocoder.sh --build-deps PATH
 #                                             build the pinned dependency
 #                                             bundle from a clean install
+#   scripts/install_nanocoder.sh --rebuild-deps
+#                                             re-resolve the lock and rebuild an
+#                                             existing dependency bundle
 #   scripts/install_nanocoder.sh --purge-retired
 #                                             delete the retired copy instead of
 #                                             keeping it for rollback
@@ -31,6 +34,7 @@ PACKAGE_REL="node_modules/@nanocollective/nanocoder"
 ACTION="install"
 OFFLINE="0"
 PURGE_RETIRED="0"
+REBUILD_DEPS="0"
 DEPS_INPUT=""
 BUILD_DEPS_TARGET=""
 NPM_CACHE=""
@@ -46,6 +50,7 @@ while [ "$#" -gt 0 ]; do
     --replace) ACTION="replace" ;;
     --offline) OFFLINE="1" ;;
     --purge-retired) PURGE_RETIRED="1" ;;
+    --rebuild-deps) REBUILD_DEPS="1" ;;
     --deps)
       shift
       if [ "$#" -eq 0 ]; then echo "--deps needs a path" >&2; exit 2; fi
@@ -77,6 +82,7 @@ ARCHIVE="$ARCHIVE_DIR/nanocollective-nanocoder-$VERSION.tgz"
 STAGING="$INSTALL_ROOT.staging"
 RETIRED_ROOT="$UDOS_HOME/tmp/nanocoder-retired"
 DEPS_BUNDLE="$ARCHIVE_DIR/nanocoder-$VERSION-npm-cache.tar.gz"
+DEPS_LOCK="$ARCHIVE_DIR/nanocoder-$VERSION-deps-lock.json"
 RETIRED_PATH=""
 
 verify_archive() {
@@ -107,6 +113,26 @@ ensure_archive() {
   verify_archive
 }
 
+verify_deps_bundle() {
+  bundle="$1"
+  sidecar="$bundle.sha256"
+  if [ ! -f "$sidecar" ]; then
+    echo "Dependency bundle has no digest sidecar: $sidecar" >&2
+    echo "Rebuild it with: $0 --build-deps \"$bundle\"" >&2
+    exit 1
+  fi
+  expected="$(awk '{print $1}' "$sidecar")"
+  actual="$(shasum -a 256 "$bundle" | awk '{print $1}')"
+  if [ "$actual" != "$expected" ]; then
+    echo "Dependency bundle hash mismatch" >&2
+    echo "  expected: $expected" >&2
+    echo "  actual:   $actual" >&2
+    echo "  bundle:   $bundle" >&2
+    exit 1
+  fi
+  echo "Dependency bundle verified: sha256 $actual" >&2
+}
+
 resolve_cache_dir() {
   cache_source=""
   if [ -n "$DEPS_INPUT" ]; then
@@ -124,9 +150,12 @@ resolve_cache_dir() {
     exit 1
   fi
   if [ -d "$cache_source" ]; then
+    echo "Warning: unverified dependency directory: $cache_source" >&2
     NPM_CACHE="$cache_source"
     return 0
   fi
+
+  verify_deps_bundle "$cache_source"
 
   CACHE_TMP="$(mktemp -d "${TMPDIR:-/tmp}/nanocoder-cache.XXXXXX")"
   tar -xzf "$cache_source" -C "$CACHE_TMP"
@@ -140,19 +169,47 @@ resolve_cache_dir() {
 
 build_deps() {
   target="$1"
+
+  if [ -f "$target" ] && [ "$REBUILD_DEPS" != "1" ]; then
+    echo "Dependency bundle already exists: $target" >&2
+    echo "Pass --rebuild-deps to regenerate it (and re-resolve the lock)." >&2
+    exit 1
+  fi
+
   work="$(mktemp -d "${TMPDIR:-/tmp}/nanocoder-deps.XXXXXX")"
   mkdir -p "$work/project"
-  (
-    cd "$work/project"
-    printf '{\n  "name": "nanocoder-deps",\n  "private": true\n}\n' > package.json
-    npm install "$ARCHIVE" --no-save --no-package-lock --ignore-scripts \
-      --no-audit --no-fund --cache "$work/cache"
-  )
+  cd "$work/project"
+  printf '{\n  "name": "nanocoder-deps",\n  "private": true,\n  "dependencies": {\n    "@nanocollective/nanocoder": "%s"\n  }\n}\n' "$VERSION" > package.json
+
+  if [ -f "$DEPS_LOCK" ] && [ "$REBUILD_DEPS" != "1" ]; then
+    cp "$DEPS_LOCK" package-lock.json
+    echo "Using pinned dependency lock: $DEPS_LOCK" >&2
+  else
+    npm install --package-lock-only --ignore-scripts --no-audit --no-fund \
+      --cache "$work/cache"
+    mkdir -p "$(dirname "$DEPS_LOCK")"
+    cp package-lock.json "$DEPS_LOCK"
+    echo "Dependency lock written: $DEPS_LOCK" >&2
+  fi
+
+  npm ci --ignore-scripts --no-audit --no-fund --cache "$work/cache"
+
+  mkdir -p "$work/check"
+  tar -xzf "$ARCHIVE" -C "$work/check"
+  if ! diff -r "$work/check/package" "$work/project/node_modules/@nanocollective/nanocoder" >/dev/null 2>&1; then
+    echo "Locked registry package differs from the pinned artifact" >&2
+    exit 1
+  fi
+
   mkdir -p "$(dirname "$target")"
   tar -czf "$target" -C "$work" cache
+  shasum -a 256 "$target" | awk '{print $1}' > "$target.sha256"
+
+  cd /
   rm -rf "$work"
   echo "Dependency bundle: $target"
-  echo "SHA-256: $(shasum -a 256 "$target" | awk '{print $1}')"
+  echo "Lock:              $DEPS_LOCK"
+  echo "SHA-256:           $(awk '{print $1}' "$target.sha256")"
 }
 
 retire_install() {

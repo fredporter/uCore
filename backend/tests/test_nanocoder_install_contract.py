@@ -47,6 +47,23 @@ def test_installer_uses_the_retained_artifact_as_input():
     assert 'set -- "$ARCHIVE"' in text
 
 
+def test_bundle_digest_is_verified_before_extraction():
+    text = INSTALLER.read_text(encoding="utf-8")
+
+    assert "verify_deps_bundle" in text
+    assert text.count(".sha256") >= 2
+    assert text.index('verify_deps_bundle "$cache_source"') < text.index('tar -xzf "$cache_source"')
+
+
+def test_bundle_rebuild_is_locked():
+    text = INSTALLER.read_text(encoding="utf-8")
+
+    assert "DEPS_LOCK" in text
+    assert "package-lock.json" in text
+    assert "npm ci" in text
+    assert "--rebuild-deps" in text
+
+
 def test_offline_install_requires_a_pinned_dependency_bundle():
     text = INSTALLER.read_text(encoding="utf-8")
 
