@@ -11,6 +11,10 @@
 #   scripts/install_nanocoder.sh --replace    rebuild, replacing the install
 #   scripts/install_nanocoder.sh --uninstall  retire the install (reversible)
 #   scripts/install_nanocoder.sh --offline    never touch the network
+#   scripts/install_nanocoder.sh --deps PATH  use this npm cache bundle or dir
+#   scripts/install_nanocoder.sh --build-deps PATH
+#                                             build the pinned dependency
+#                                             bundle from a clean install
 #   scripts/install_nanocoder.sh --purge-retired
 #                                             delete the retired copy instead of
 #                                             keeping it for rollback
@@ -27,9 +31,13 @@ PACKAGE_REL="node_modules/@nanocollective/nanocoder"
 ACTION="install"
 OFFLINE="0"
 PURGE_RETIRED="0"
+DEPS_INPUT=""
+BUILD_DEPS_TARGET=""
+NPM_CACHE=""
+CACHE_TMP=""
 
 usage() {
-  sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 while [ "$#" -gt 0 ]; do
@@ -38,6 +46,16 @@ while [ "$#" -gt 0 ]; do
     --replace) ACTION="replace" ;;
     --offline) OFFLINE="1" ;;
     --purge-retired) PURGE_RETIRED="1" ;;
+    --deps)
+      shift
+      if [ "$#" -eq 0 ]; then echo "--deps needs a path" >&2; exit 2; fi
+      DEPS_INPUT="$1"
+      ;;
+    --build-deps)
+      shift
+      if [ "$#" -eq 0 ]; then echo "--build-deps needs a path" >&2; exit 2; fi
+      BUILD_DEPS_TARGET="$1"
+      ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -58,6 +76,7 @@ ARCHIVE_DIR="$UDOS_HOME/vendor/artifacts/nanocoder"
 ARCHIVE="$ARCHIVE_DIR/nanocollective-nanocoder-$VERSION.tgz"
 STAGING="$INSTALL_ROOT.staging"
 RETIRED_ROOT="$UDOS_HOME/tmp/nanocoder-retired"
+DEPS_BUNDLE="$ARCHIVE_DIR/nanocoder-$VERSION-npm-cache.tar.gz"
 RETIRED_PATH=""
 
 verify_archive() {
@@ -88,6 +107,54 @@ ensure_archive() {
   verify_archive
 }
 
+resolve_cache_dir() {
+  cache_source=""
+  if [ -n "$DEPS_INPUT" ]; then
+    cache_source="$DEPS_INPUT"
+  elif [ -f "$DEPS_BUNDLE" ]; then
+    cache_source="$DEPS_BUNDLE"
+    echo "Using dependency bundle: $DEPS_BUNDLE" >&2
+  fi
+
+  if [ -z "$cache_source" ]; then
+    return 0
+  fi
+  if [ ! -e "$cache_source" ]; then
+    echo "Dependency bundle not found: $cache_source" >&2
+    exit 1
+  fi
+  if [ -d "$cache_source" ]; then
+    NPM_CACHE="$cache_source"
+    return 0
+  fi
+
+  CACHE_TMP="$(mktemp -d "${TMPDIR:-/tmp}/nanocoder-cache.XXXXXX")"
+  tar -xzf "$cache_source" -C "$CACHE_TMP"
+  if [ -d "$CACHE_TMP/cache" ]; then
+    NPM_CACHE="$CACHE_TMP/cache"
+  else
+    NPM_CACHE="$CACHE_TMP"
+  fi
+  echo "Dependency bundle unpacked: $cache_source" >&2
+}
+
+build_deps() {
+  target="$1"
+  work="$(mktemp -d "${TMPDIR:-/tmp}/nanocoder-deps.XXXXXX")"
+  mkdir -p "$work/project"
+  (
+    cd "$work/project"
+    printf '{\n  "name": "nanocoder-deps",\n  "private": true\n}\n' > package.json
+    npm install "$ARCHIVE" --no-save --no-package-lock --ignore-scripts \
+      --no-audit --no-fund --cache "$work/cache"
+  )
+  mkdir -p "$(dirname "$target")"
+  tar -czf "$target" -C "$work" cache
+  rm -rf "$work"
+  echo "Dependency bundle: $target"
+  echo "SHA-256: $(shasum -a 256 "$target" | awk '{print $1}')"
+}
+
 retire_install() {
   if [ ! -e "$INSTALL_ROOT" ]; then
     return 0
@@ -116,6 +183,12 @@ if [ "$ACTION" = "uninstall" ]; then
   exit 0
 fi
 
+if [ -n "$BUILD_DEPS_TARGET" ]; then
+  ensure_archive
+  build_deps "$BUILD_DEPS_TARGET"
+  exit 0
+fi
+
 if [ -e "$INSTALL_ROOT" ] && [ "$ACTION" = "install" ]; then
   echo "Install already exists: $INSTALL_ROOT" >&2
   echo "Use --replace to rebuild it or --uninstall to retire it." >&2
@@ -131,18 +204,32 @@ fi
 
 cleanup() {
   rm -rf "$STAGING"
+  if [ -n "${CACHE_TMP:-}" ]; then
+    rm -rf "$CACHE_TMP"
+  fi
 }
 trap cleanup EXIT
+
+resolve_cache_dir
+if [ "$OFFLINE" = "1" ] && [ -z "$NPM_CACHE" ]; then
+  echo "Offline install requires the pinned dependency bundle:" >&2
+  echo "  $DEPS_BUNDLE" >&2
+  echo "Build it once online with: $0 --build-deps \"$DEPS_BUNDLE\"" >&2
+  exit 3
+fi
 
 mkdir -p "$(dirname "$INSTALL_ROOT")" "$STAGING"
 cd "$STAGING"
 printf '{\n  "name": "nanocoder-install",\n  "private": true\n}\n' > package.json
 
-if [ "$OFFLINE" = "1" ]; then
-  npm install "$PACKAGE" --save-exact --ignore-scripts --no-audit --no-fund --offline
-else
-  npm install "$PACKAGE" --save-exact --ignore-scripts --no-audit --no-fund
+set -- "$ARCHIVE" --no-save --no-package-lock --ignore-scripts --no-audit --no-fund
+if [ -n "$NPM_CACHE" ]; then
+  set -- "$@" --cache "$NPM_CACHE"
 fi
+if [ "$OFFLINE" = "1" ]; then
+  set -- "$@" --offline
+fi
+npm install "$@"
 
 if [ ! -d "$PACKAGE_REL" ]; then
   echo "Installed package directory is missing: $STAGING/$PACKAGE_REL" >&2

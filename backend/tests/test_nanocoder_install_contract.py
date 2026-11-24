@@ -38,3 +38,18 @@ def test_installer_applies_every_reviewed_patch():
     assert patches, "no reviewed NanoCoder patches found"
     for name in patches:
         assert name in text, f"{name} is not applied by scripts/install_nanocoder.sh"
+
+
+def test_installer_uses_the_retained_artifact_as_input():
+    text = INSTALLER.read_text(encoding="utf-8")
+
+    assert 'npm install "$PACKAGE"' not in text, "installing by registry name defeats offline installs"
+    assert 'set -- "$ARCHIVE"' in text
+
+
+def test_offline_install_requires_a_pinned_dependency_bundle():
+    text = INSTALLER.read_text(encoding="utf-8")
+
+    assert "--build-deps" in text
+    assert "DEPS_BUNDLE" in text
+    assert "--offline" in text
