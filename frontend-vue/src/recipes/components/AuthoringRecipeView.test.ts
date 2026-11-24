@@ -64,9 +64,10 @@ describe("AuthoringRecipeView", () => {
     expect(wrapper.find(".markdown-textarea").exists()).toBe(false);
 
     // Switch to Markdown source mode
-    const sourceBtn = wrapper.findAll(".mode-btn").find((btn) => btn.text().includes("Markdown Source"));
-    expect(sourceBtn).toBeDefined();
-    await sourceBtn!.trigger("click");
+    // The mode buttons carry their label in aria-label (icon-only markup).
+    const sourceBtn = wrapper.find('[aria-label="Markdown Source"]');
+    expect(sourceBtn.exists()).toBe(true);
+    await sourceBtn.trigger("click");
 
     expect(wrapper.find(".prose-content").exists()).toBe(false);
     expect(wrapper.find(".markdown-textarea").exists()).toBe(true);

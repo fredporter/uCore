@@ -288,7 +288,6 @@ async function testFetchNotes() {
 </script>
 
 <style scoped>
-@import '@udos/usx-tokens/usx-prose.css';
 
 .services-panel-shell {
   display: flex;
@@ -303,7 +302,7 @@ async function testFetchNotes() {
   align-items: flex-start;
   justify-content: space-between;
   padding-bottom: 0.85rem;
-  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 10%, transparent));
   flex-wrap: wrap;
   gap: 0.75rem;
 }
@@ -316,20 +315,20 @@ async function testFetchNotes() {
 
 .header-icon {
   font-size: 28px;
-  color: var(--usx-color-primary, #a8c7fa);
+  color: var(--usx-color-primary, var(--usx-color-primary));
 }
 
 .recipe-title {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--usx-color-on-surface, #e2e2e6);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .recipe-desc {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 
 .header-meta,
@@ -349,16 +348,16 @@ async function testFetchNotes() {
   font-size: 0.8rem;
   font-weight: 500;
   border-radius: 6px;
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.15));
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.04));
-  color: var(--usx-color-on-surface, #e2e2e6);
+  border: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 15%, transparent));
+  background: var(--usx-color-surface-container, color-mix(in srgb, var(--usx-color-on-surface) 4%, transparent));
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .m3-button:hover:not(:disabled) {
-  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.08));
-  border-color: var(--usx-color-outline, rgba(255, 255, 255, 0.25));
+  background: var(--usx-color-surface-container-high, color-mix(in srgb, var(--usx-color-on-surface) 8%, transparent));
+  border-color: var(--usx-color-outline, color-mix(in srgb, var(--usx-color-on-surface) 25%, transparent));
 }
 
 .m3-button:disabled {
@@ -371,13 +370,13 @@ async function testFetchNotes() {
 }
 
 .m3-button-danger {
-  background: rgba(248, 81, 73, 0.15);
-  border-color: rgba(248, 81, 73, 0.35);
-  color: #f85149;
+  background: color-mix(in srgb, var(--usx-color-danger) 15%, transparent);
+  border-color: color-mix(in srgb, var(--usx-color-danger) 35%, transparent);
+  color: var(--usx-color-danger);
 }
 
 .m3-button-danger:hover:not(:disabled) {
-  background: rgba(248, 81, 73, 0.25);
+  background: color-mix(in srgb, var(--usx-color-danger) 25%, transparent);
 }
 
 /* ── Callout Content ── */
@@ -393,8 +392,8 @@ async function testFetchNotes() {
 /* ── Table Container Card ── */
 .table-container-card {
   border-radius: 12px;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
+  background: var(--usx-color-surface-container, color-mix(in srgb, var(--usx-color-on-surface) 3%, transparent));
+  border: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 8%, transparent));
   overflow: hidden;
 }
 
@@ -404,7 +403,7 @@ async function testFetchNotes() {
   align-items: center;
   justify-content: center;
   padding: 3rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 
 .empty-icon {
@@ -426,21 +425,21 @@ async function testFetchNotes() {
 .usx-table th {
   text-align: left;
   font-weight: 600;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
-  background: var(--usx-color-surface, #1e2025);
+  border-bottom: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 10%, transparent));
+  background: var(--usx-color-surface, var(--usx-color-surface));
   white-space: nowrap;
 }
 
 .usx-table td {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.05));
+  border-bottom: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 5%, transparent));
   vertical-align: middle;
 }
 
 .usx-table tr:hover {
-  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.03));
+  background: var(--usx-color-surface-container-high, color-mix(in srgb, var(--usx-color-on-surface) 3%, transparent));
 }
 
 .server-service-name-cell {
@@ -448,18 +447,18 @@ async function testFetchNotes() {
   align-items: center;
   gap: 0.65rem;
   font-weight: 500;
-  color: var(--usx-color-on-surface, #e2e2e6);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .service-table-icon {
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  background: rgba(168, 199, 250, 0.12);
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--usx-color-primary, #a8c7fa);
+  color: var(--usx-color-primary, var(--usx-color-primary));
 }
 
 .service-table-icon .material-symbols-outlined {
@@ -473,14 +472,14 @@ async function testFetchNotes() {
 
 .server-desc-cell {
   font-size: 0.82rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   max-width: 320px;
 }
 
 .server-mono-cell {
   font-family: var(--usx-font-family-mono, monospace);
   font-size: 0.78rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 
 /* ── Pills and Badges ── */
@@ -490,24 +489,24 @@ async function testFetchNotes() {
   font-weight: 600;
   padding: 0.15rem 0.45rem;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--usx-color-on-surface-variant, #c4c6d0);
+  background: color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   font-family: var(--usx-font-family-mono, monospace);
 }
 
 .kind-pill--service {
-  background: rgba(168, 199, 250, 0.12);
-  color: #a8c7fa;
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
+  color: var(--usx-color-primary);
 }
 
 .kind-pill--tool {
-  background: rgba(63, 185, 80, 0.12);
-  color: #3fb950;
+  background: color-mix(in srgb, var(--usx-color-success) 12%, transparent);
+  color: var(--usx-color-success);
 }
 
 .kind-pill--mcp {
-  background: rgba(210, 153, 34, 0.12);
-  color: #d29922;
+  background: color-mix(in srgb, var(--usx-color-warning) 12%, transparent);
+  color: var(--usx-color-warning);
 }
 
 .status-pill {
@@ -522,23 +521,23 @@ async function testFetchNotes() {
 }
 
 .status-pill--up {
-  background: rgba(63, 185, 80, 0.15);
-  color: #3fb950;
+  background: color-mix(in srgb, var(--usx-color-success) 15%, transparent);
+  color: var(--usx-color-success);
 }
 
 .status-pill--degraded {
-  background: rgba(210, 153, 34, 0.15);
-  color: #d29922;
+  background: color-mix(in srgb, var(--usx-color-warning) 15%, transparent);
+  color: var(--usx-color-warning);
 }
 
 .status-pill--down {
-  background: rgba(248, 81, 73, 0.15);
-  color: #f85149;
+  background: color-mix(in srgb, var(--usx-color-danger) 15%, transparent);
+  color: var(--usx-color-danger);
 }
 
 .status-pill--neutral {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  background: color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 
 .crash-inline-actions {
@@ -552,18 +551,18 @@ async function testFetchNotes() {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.15));
+  border: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 15%, transparent));
   border-radius: 6px;
   background: transparent;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .crash-btn:hover:not(:disabled) {
-  color: #f85149;
-  border-color: #f85149;
-  background: rgba(248, 81, 73, 0.12);
+  color: var(--usx-color-danger);
+  border-color: var(--usx-color-danger);
+  background: color-mix(in srgb, var(--usx-color-danger) 12%, transparent);
 }
 
 .crash-btn .material-symbols-outlined {
@@ -590,16 +589,16 @@ async function testFetchNotes() {
   flex-direction: column;
   padding: 1.15rem;
   border-radius: 12px;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
+  background: var(--usx-color-surface-container, color-mix(in srgb, var(--usx-color-on-surface) 3%, transparent));
+  border: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 8%, transparent));
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .matrix-card:hover {
-  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.06));
-  border-color: var(--usx-color-outline, rgba(255, 255, 255, 0.2));
+  background: var(--usx-color-surface-container-high, color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent));
+  border-color: var(--usx-color-outline, color-mix(in srgb, var(--usx-color-on-surface) 20%, transparent));
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--usx-color-scrim) 25%, transparent);
 }
 
 .card-top-row {
@@ -613,11 +612,11 @@ async function testFetchNotes() {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: rgba(168, 199, 250, 0.12);
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--usx-color-primary, #a8c7fa);
+  color: var(--usx-color-primary, var(--usx-color-primary));
 }
 
 .icon-avatar .material-symbols-outlined {
@@ -628,8 +627,8 @@ async function testFetchNotes() {
   font-size: 0.7rem;
   padding: 0.2rem 0.5rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--usx-color-on-surface-variant, #c4c6d0);
+  background: color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   font-weight: 500;
 }
 
@@ -637,14 +636,14 @@ async function testFetchNotes() {
   margin: 0 0 0.35rem;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--usx-color-on-surface, #e2e2e6);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .card-description {
   margin: 0 0 0.85rem;
   font-size: 0.8rem;
   line-height: 1.4;
-  color: var(--usx-color-on-surface-variant, #9aa0a6);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   flex: 1;
 }
 
@@ -653,12 +652,12 @@ async function testFetchNotes() {
   align-items: center;
   justify-content: space-between;
   padding-top: 0.65rem;
-  border-top: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.06));
+  border-top: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent));
 }
 
 .card-subtext {
   font-size: 0.72rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   font-family: var(--usx-font-family-mono, monospace);
 }
 </style>

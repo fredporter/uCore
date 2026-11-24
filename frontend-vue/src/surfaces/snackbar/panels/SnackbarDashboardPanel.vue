@@ -307,7 +307,7 @@ onMounted(() => {
   justify-content: center;
   gap: 0.75rem;
   padding: 3rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   font-size: 0.9rem;
 }
 
@@ -326,7 +326,7 @@ onMounted(() => {
   align-items: flex-start;
   justify-content: space-between;
   padding-bottom: 0.85rem;
-  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 10%, transparent));
   flex-wrap: wrap;
   gap: 0.75rem;
 }
@@ -339,20 +339,20 @@ onMounted(() => {
 
 .header-icon {
   font-size: 28px;
-  color: var(--usx-color-primary, #a8c7fa);
+  color: var(--usx-color-primary, var(--usx-color-primary));
 }
 
 .recipe-title {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--usx-color-on-surface, #e2e2e6);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .recipe-desc {
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 
 .header-meta {
@@ -363,9 +363,9 @@ onMounted(() => {
 .recipe-badge {
   font-size: 0.75rem;
   padding: 0.25rem 0.6rem;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.06));
+  background: var(--usx-color-surface-container, color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent));
   border-radius: 4px;
-  color: var(--usx-color-on-surface-variant, #c4c6d0);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   font-family: var(--usx-font-family-mono, monospace);
 }
 
@@ -382,16 +382,16 @@ onMounted(() => {
   flex-direction: column;
   padding: 1.25rem;
   border-radius: 12px;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
+  background: var(--usx-color-surface-container, color-mix(in srgb, var(--usx-color-on-surface) 4%, transparent));
+  border: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 8%, transparent));
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .matrix-card:hover {
-  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.07));
-  border-color: var(--usx-color-outline, rgba(255, 255, 255, 0.2));
+  background: var(--usx-color-surface-container-high, color-mix(in srgb, var(--usx-color-on-surface) 7%, transparent));
+  border-color: var(--usx-color-outline, color-mix(in srgb, var(--usx-color-on-surface) 20%, transparent));
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--usx-color-scrim) 25%, transparent);
 }
 
 .card-top-row {
@@ -405,11 +405,11 @@ onMounted(() => {
   width: 38px;
   height: 38px;
   border-radius: 8px;
-  background: rgba(168, 199, 250, 0.12);
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--usx-color-primary, #a8c7fa);
+  color: var(--usx-color-primary, var(--usx-color-primary));
 }
 
 .icon-avatar .material-symbols-outlined {
@@ -417,56 +417,56 @@ onMounted(() => {
 }
 
 .icon-avatar--success {
-  background: rgba(63, 185, 80, 0.12);
-  color: #3fb950;
+  background: color-mix(in srgb, var(--usx-color-success) 12%, transparent);
+  color: var(--usx-color-success);
 }
 
 .icon-avatar--warning {
-  background: rgba(210, 153, 34, 0.12);
-  color: #d29922;
+  background: color-mix(in srgb, var(--usx-color-warning) 12%, transparent);
+  color: var(--usx-color-warning);
 }
 
 .icon-avatar--danger {
-  background: rgba(248, 81, 73, 0.12);
-  color: #f85149;
+  background: color-mix(in srgb, var(--usx-color-danger) 12%, transparent);
+  color: var(--usx-color-danger);
 }
 
 .card-tag {
   font-size: 0.7rem;
   padding: 0.2rem 0.5rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--usx-color-on-surface-variant, #c4c6d0);
+  background: color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   font-weight: 500;
 }
 
 .card-tag--success {
-  background: rgba(63, 185, 80, 0.12);
-  color: #3fb950;
+  background: color-mix(in srgb, var(--usx-color-success) 12%, transparent);
+  color: var(--usx-color-success);
 }
 
 .card-tag--warning {
-  background: rgba(210, 153, 34, 0.12);
-  color: #d29922;
+  background: color-mix(in srgb, var(--usx-color-warning) 12%, transparent);
+  color: var(--usx-color-warning);
 }
 
 .card-tag--danger {
-  background: rgba(248, 81, 73, 0.12);
-  color: #f85149;
+  background: color-mix(in srgb, var(--usx-color-danger) 12%, transparent);
+  color: var(--usx-color-danger);
 }
 
 .card-title {
   margin: 0 0 0.35rem;
   font-size: 1.05rem;
   font-weight: 600;
-  color: var(--usx-color-on-surface, #e2e2e6);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .card-description {
   margin: 0 0 1rem;
   font-size: 0.82rem;
   line-height: 1.4;
-  color: var(--usx-color-on-surface-variant, #9aa0a6);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   flex: 1;
 }
 
@@ -475,24 +475,24 @@ onMounted(() => {
   align-items: baseline;
   justify-content: space-between;
   padding-top: 0.75rem;
-  border-top: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.06));
+  border-top: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent));
 }
 
 .card-metric {
   font-size: 1.35rem;
   font-family: var(--usx-font-family-mono, monospace);
   font-weight: 700;
-  color: var(--usx-color-on-surface, #e2e2e6);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .card-metric-sub {
   font-size: 0.75rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 
-.metric--success { color: #3fb950; }
-.metric--warning { color: #d29922; }
-.metric--danger { color: #f85149; }
+.metric--success { color: var(--usx-color-success); }
+.metric--warning { color: var(--usx-color-warning); }
+.metric--danger { color: var(--usx-color-danger); }
 
 /* ── USX Task List for Services ── */
 .services-list-container {
@@ -515,14 +515,14 @@ onMounted(() => {
   gap: 0.85rem;
   padding: 0.85rem 1.1rem;
   border-radius: 10px;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
+  background: var(--usx-color-surface-container, color-mix(in srgb, var(--usx-color-on-surface) 3%, transparent));
+  border: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 8%, transparent));
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .task-item-card:hover {
-  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.06));
-  border-color: var(--usx-color-outline, rgba(255, 255, 255, 0.18));
+  background: var(--usx-color-surface-container-high, color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent));
+  border-color: var(--usx-color-outline, color-mix(in srgb, var(--usx-color-on-surface) 18%, transparent));
 }
 
 .task-item-icon-col {
@@ -533,12 +533,12 @@ onMounted(() => {
   font-size: 20px;
 }
 
-.icon-done { color: #3fb950; }
+.icon-done { color: var(--usx-color-success); }
 .icon-progress {
-  color: #58a6ff;
+  color: var(--usx-color-primary);
   animation: spin 3s linear infinite;
 }
-.icon-fail { color: #f85149; }
+.icon-fail { color: var(--usx-color-danger); }
 
 .task-item-body {
   flex: 1;
@@ -555,7 +555,7 @@ onMounted(() => {
 .task-title {
   font-weight: 500;
   font-size: 0.92rem;
-  color: var(--usx-color-on-surface, #e2e2e6);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .task-badge {
@@ -568,24 +568,24 @@ onMounted(() => {
 }
 
 .badge--up {
-  background: rgba(63, 185, 80, 0.15);
-  color: #3fb950;
+  background: color-mix(in srgb, var(--usx-color-success) 15%, transparent);
+  color: var(--usx-color-success);
 }
 
 .badge--degraded {
-  background: rgba(210, 153, 34, 0.15);
-  color: #d29922;
+  background: color-mix(in srgb, var(--usx-color-warning) 15%, transparent);
+  color: var(--usx-color-warning);
 }
 
 .badge--down {
-  background: rgba(248, 81, 73, 0.15);
-  color: #f85149;
+  background: color-mix(in srgb, var(--usx-color-danger) 15%, transparent);
+  color: var(--usx-color-danger);
 }
 
 .task-subtitle {
   margin: 0.25rem 0 0.5rem;
   font-size: 0.82rem;
-  color: var(--usx-color-on-surface-variant, #9aa0a6);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   line-height: 1.4;
 }
 
@@ -606,14 +606,14 @@ onMounted(() => {
 .task-tag-pill {
   padding: 0.15rem 0.45rem;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  background: color-mix(in srgb, var(--usx-color-on-surface) 5%, transparent);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   font-family: var(--usx-font-family-mono, monospace);
   font-size: 0.72rem;
 }
 
 .task-timestamp {
-  color: var(--usx-color-on-surface-variant, #6e7681);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   font-size: 0.75rem;
 }
 
@@ -630,15 +630,15 @@ onMounted(() => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.85rem;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
+  background: var(--usx-color-surface-container, color-mix(in srgb, var(--usx-color-on-surface) 3%, transparent));
+  border: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 8%, transparent));
   border-radius: 8px;
   transition: all 0.15s ease;
 }
 
 .launcher-card:hover {
-  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.06));
-  border-color: var(--usx-color-primary, #a8c7fa);
+  background: var(--usx-color-surface-container-high, color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent));
+  border-color: var(--usx-color-primary, var(--usx-color-primary));
 }
 
 .launcher-icon {
@@ -648,8 +648,8 @@ onMounted(() => {
   width: 36px;
   height: 36px;
   border-radius: 6px;
-  background: rgba(168, 199, 250, 0.12);
-  color: var(--usx-color-primary, #a8c7fa);
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
+  color: var(--usx-color-primary, var(--usx-color-primary));
 }
 
 .launcher-info {
@@ -660,12 +660,12 @@ onMounted(() => {
 .launcher-name {
   font-weight: 500;
   font-size: 0.88rem;
-  color: var(--usx-color-on-surface, #e2e2e6);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .launcher-desc {
   font-size: 0.75rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -676,8 +676,8 @@ onMounted(() => {
   text-transform: uppercase;
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  background: color-mix(in srgb, var(--usx-color-on-surface) 5%, transparent);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 
 /* ── Activity Feed ── */
@@ -686,8 +686,8 @@ onMounted(() => {
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.75rem;
-  background: var(--usx-color-primary, #a8c7fa);
-  color: #0f172a;
+  background: var(--usx-color-primary, var(--usx-color-primary));
+  color: var(--usx-color-background);
   border: none;
   border-radius: 4px;
   font-size: 0.78rem;
@@ -702,9 +702,9 @@ onMounted(() => {
 
 .sync-message {
   padding: 0.6rem 0.85rem;
-  background: rgba(63, 185, 80, 0.12);
-  border: 1px solid rgba(63, 185, 80, 0.3);
-  color: #3fb950;
+  background: color-mix(in srgb, var(--usx-color-success) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--usx-color-success) 30%, transparent);
+  color: var(--usx-color-success);
   border-radius: 6px;
   font-size: 0.82rem;
   margin-top: 0.5rem;
@@ -722,8 +722,8 @@ onMounted(() => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 0.75rem;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.06));
+  background: var(--usx-color-surface-container, color-mix(in srgb, var(--usx-color-on-surface) 3%, transparent));
+  border: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent));
   border-radius: 6px;
 }
 
@@ -735,10 +735,10 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-.activity-tag--calendar { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
-.activity-tag--reminders { background: rgba(234, 179, 8, 0.15); color: #eab308; }
-.activity-tag--mail { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
-.activity-tag--notes { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+.activity-tag--calendar { background: color-mix(in srgb, var(--usx-color-info) 15%, transparent); color: var(--usx-color-info); }
+.activity-tag--reminders { background: color-mix(in srgb, var(--usx-color-warning) 15%, transparent); color: var(--usx-color-warning); }
+.activity-tag--mail { background: color-mix(in srgb, var(--usx-color-accent) 15%, transparent); color: var(--usx-color-accent); }
+.activity-tag--notes { background: color-mix(in srgb, var(--usx-color-success) 15%, transparent); color: var(--usx-color-success); }
 
 .activity-details {
   flex: 1;
@@ -750,12 +750,12 @@ onMounted(() => {
 
 .activity-time {
   font-size: 0.75rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 
 .activity-footer-note {
   font-size: 0.75rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   padding: 0.5rem 0;
   font-style: italic;
 }
@@ -763,7 +763,7 @@ onMounted(() => {
 .activity-empty {
   padding: 1.5rem 0;
   text-align: center;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   font-size: 0.85rem;
 }
 </style>

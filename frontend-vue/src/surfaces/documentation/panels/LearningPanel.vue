@@ -170,7 +170,7 @@ onMounted(loadCourses);
 
 .learning-hero__title {
   margin: 0;
-  font-size: var(--usx-font-size-md);
+  font-size: var(--usx-font-size-base);
   font-weight: var(--usx-font-weight-semibold);
 }
 
@@ -194,7 +194,7 @@ onMounted(loadCourses);
   border-radius: var(--usx-radius-sm);
   border: var(--usx-border-width) solid var(--usx-color-primary);
   background: var(--usx-color-primary);
-  color: var(--usx-color-on-primary, #fff);
+  color: var(--usx-color-on-primary, var(--usx-color-on-surface));
   font-size: var(--usx-font-size-xs);
   font-weight: var(--usx-font-weight-medium);
   cursor: pointer;

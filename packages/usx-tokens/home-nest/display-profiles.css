@@ -1,0 +1,70 @@
+/* ═══════════════════════════════════════════════════════════════════
+   display-profiles.css — USX display capability profiles
+   ═══════════════════════════════════════════════════════════════════
+   Implements DEVICE-DISPLAY-STANDARDS.md §C. A profile is selected with a
+   data attribute on <html>, so the scale never leaks to other surfaces.
+
+   HomeNook is the ten-foot surface: its document root sets
+   data-display="ten-foot".
+
+   Import LAST. Profiles are attribute-scoped and override console-grid.css,
+   which keeps :root defaults for consumers without a profile.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Ten-foot: living-room TV, dpad/remote ─────────────────────────
+   Root font size is 18px at 1080p and 36px at 2160p (1.667vh), clamped so
+   720p stays readable and 4K does not run away. Every rem token follows. */
+[data-display="ten-foot"] {
+  font-size: clamp(18px, 1.667vh, 36px);
+
+  /* Touch and controller targets */
+  --usx-touch-min: 64px;
+  --usx-touch-min-sm: 48px;
+
+  /* Chrome */
+  --usx-topbar-height: 72px;
+  --usx-surface-topbar-height: 72px;
+
+  /* Poster wall and launcher geometry */
+  --usx-grid-min-col-width: 220px;
+  --usx-grid-gap: var(--usx-spacing-lg);
+  --usx-grid-gap-sm: var(--usx-spacing-md);
+  --usx-grid-gap-lg: var(--usx-spacing-xl);
+  --usx-max-width: 1800px;
+
+  /* Reading measure: USX-STANDARDS display_profiles.ten_foot_tv = 50ch */
+  --usx-prose-width: 50ch;
+}
+
+/* ─── Handheld and desk profiles ──────────────────────────────────
+   Explicit rather than implicit: a surface that wants desktop defaults
+   says so, instead of relying on the absence of an attribute. */
+[data-display="desktop"] {
+  --usx-prose-width: 72ch;
+}
+
+[data-display="handheld"] {
+  font-size: 100%;
+  --usx-touch-min: 48px;
+  --usx-prose-width: 40ch;
+}
+
+/* ─── Stage: letterboxed 16:9 canvas (DEVICE-DISPLAY-STANDARDS §C) ──
+   S = min(W / 1280, H / 720). The stage keeps the reference aspect and
+   centres itself, so 720p, 1080p, 1440p and 4K render the same layout. */
+[data-display="ten-foot"] .hn-stage {
+  inline-size: min(100%, calc(100dvh * 16 / 9));
+  block-size: min(100dvh, calc(100vw * 9 / 16));
+  margin-inline: auto;
+  aspect-ratio: 16 / 9;
+  container-type: size;
+  overflow: hidden;
+}
+
+/* ─── Lattice exemption ─────────────────────────────────────────────
+   GridCore is never scaled fluidly. Inside a ten-foot surface a lattice
+   keeps integer zoom so the 4px dot stays crisp. */
+[data-display="ten-foot"] [data-lattice] {
+  --gridcore-zoom: 1;
+  font-size: 1rem; /* do not inherit the 1.667vh root scale */
+}

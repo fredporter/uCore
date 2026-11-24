@@ -641,7 +641,7 @@ async function copyText(content: string) {
 .chat-panel__msg--user {
   align-self: flex-end;
   background-color: var(--usx-color-primary);
-  color: #fff;
+  color: var(--usx-color-on-surface);
   border-bottom-right-radius: var(--usx-radius-sm);
 }
 

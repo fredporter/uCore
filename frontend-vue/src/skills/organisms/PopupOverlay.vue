@@ -65,7 +65,7 @@ const cfg = computed(() => overlay.popupConfig.value!);
   align-items: center;
   justify-content: center;
   padding: var(--usx-spacing-lg);
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: color-mix(in srgb, var(--usx-color-scrim) 50%, transparent);
   backdrop-filter: blur(2px);
 }
 
@@ -75,7 +75,7 @@ const cfg = computed(() => overlay.popupConfig.value!);
   background-color: var(--usx-color-surface);
   border: 1px solid var(--usx-color-border);
   border-radius: var(--usx-radius-lg);
-  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 16px 64px color-mix(in srgb, var(--usx-color-scrim) 30%, transparent);
   width: 100%;
   max-width: 560px;
   max-height: 80vh;

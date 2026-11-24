@@ -324,7 +324,7 @@ onBeforeUnmount(() => {
   background-color: var(--usx-color-surface);
   border: 1px solid var(--usx-color-border);
   border-radius: var(--usx-radius-md);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--usx-color-scrim) 15%, transparent);
   padding: var(--usx-spacing-xs);
   min-width: 160px;
   display: flex;

@@ -65,7 +65,6 @@ const srv = useSnackbarOpsStore();
 </script>
 
 <style scoped>
-@import '@udos/usx-tokens/usx-prose.css';
 
 .agents-panel-shell {
   display: flex;
@@ -79,7 +78,7 @@ const srv = useSnackbarOpsStore();
   align-items: flex-start;
   justify-content: space-between;
   padding-bottom: 0.85rem;
-  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 10%, transparent));
   flex-wrap: wrap;
   gap: 0.75rem;
 }
@@ -92,20 +91,20 @@ const srv = useSnackbarOpsStore();
 
 .header-icon {
   font-size: 28px;
-  color: var(--usx-color-primary, #a8c7fa);
+  color: var(--usx-color-primary, var(--usx-color-primary));
 }
 
 .recipe-title {
   margin: 0;
   font-size: 1.15rem;
   font-weight: 600;
-  color: var(--usx-color-on-surface, #e2e2e6);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .recipe-desc {
   margin: 0.25rem 0 0;
   font-size: 0.82rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 
 .m3-button {
@@ -116,16 +115,16 @@ const srv = useSnackbarOpsStore();
   font-size: 0.8rem;
   font-weight: 500;
   border-radius: 6px;
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.15));
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.04));
-  color: var(--usx-color-on-surface, #e2e2e6);
+  border: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 15%, transparent));
+  background: var(--usx-color-surface-container, color-mix(in srgb, var(--usx-color-on-surface) 4%, transparent));
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .m3-button:hover {
-  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.08));
-  border-color: var(--usx-color-outline, rgba(255, 255, 255, 0.25));
+  background: var(--usx-color-surface-container-high, color-mix(in srgb, var(--usx-color-on-surface) 8%, transparent));
+  border-color: var(--usx-color-outline, color-mix(in srgb, var(--usx-color-on-surface) 25%, transparent));
 }
 
 .m3-button .material-symbols-outlined {
@@ -134,8 +133,8 @@ const srv = useSnackbarOpsStore();
 
 .table-container-card {
   border-radius: 12px;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
+  background: var(--usx-color-surface-container, color-mix(in srgb, var(--usx-color-on-surface) 3%, transparent));
+  border: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 8%, transparent));
   overflow: hidden;
 }
 
@@ -145,7 +144,7 @@ const srv = useSnackbarOpsStore();
   align-items: center;
   justify-content: center;
   padding: 3rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 
 .empty-icon {
@@ -167,21 +166,21 @@ const srv = useSnackbarOpsStore();
 .usx-table th {
   text-align: left;
   font-weight: 600;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
-  background: var(--usx-color-surface, #1e2025);
+  border-bottom: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 10%, transparent));
+  background: var(--usx-color-surface, var(--usx-color-surface));
   white-space: nowrap;
 }
 
 .usx-table td {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.05));
+  border-bottom: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 5%, transparent));
   vertical-align: middle;
 }
 
 .usx-table tr:hover {
-  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.03));
+  background: var(--usx-color-surface-container-high, color-mix(in srgb, var(--usx-color-on-surface) 3%, transparent));
 }
 
 .server-agent-name {
@@ -189,18 +188,18 @@ const srv = useSnackbarOpsStore();
   align-items: center;
   gap: 0.65rem;
   font-weight: 500;
-  color: var(--usx-color-on-surface, #e2e2e6);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .agent-icon {
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  background: rgba(168, 199, 250, 0.12);
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--usx-color-primary, #a8c7fa);
+  color: var(--usx-color-primary, var(--usx-color-primary));
 }
 
 .agent-icon .material-symbols-outlined {
@@ -214,7 +213,7 @@ const srv = useSnackbarOpsStore();
 
 .server-agent-desc {
   font-size: 0.82rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 
 .status-pill {
@@ -229,12 +228,12 @@ const srv = useSnackbarOpsStore();
 }
 
 .status-pill--up {
-  background: rgba(63, 185, 80, 0.15);
-  color: #3fb950;
+  background: color-mix(in srgb, var(--usx-color-success) 15%, transparent);
+  color: var(--usx-color-success);
 }
 
 .status-pill--neutral {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  background: color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 </style>

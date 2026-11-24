@@ -63,7 +63,7 @@ function startDrag(e: PointerEvent) {
   position: relative;
   flex-shrink: 0;
   z-index: 2;
-  background: var(--usx-color-border, #30363d);
+  background: var(--usx-color-border, var(--usx-color-surface-hover));
 }
 
 .resize-split--horizontal {
@@ -86,10 +86,10 @@ function startDrag(e: PointerEvent) {
 }
 
 .resize-split--dragging {
-  background: var(--usx-color-primary, #58a6ff);
+  background: var(--usx-color-primary, var(--usx-color-primary));
 }
 
 .resize-split:hover {
-  background: var(--usx-color-primary, #58a6ff);
+  background: var(--usx-color-primary, var(--usx-color-primary));
 }
 </style>

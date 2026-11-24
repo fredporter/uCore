@@ -18,17 +18,18 @@
   --gridcore-line-height-body: 1.6;
   --gridcore-line-height-prose: var(--usx-line-height-relaxed, 1.8);
 
-  --gridcore-color-background: var(--usx-color-background, #0d1117);
-  --gridcore-color-background-alt: var(--usx-color-background-alt, #0d1117);
-  --gridcore-color-surface: var(--usx-color-surface, #161b22);
-  --gridcore-color-surface-muted: var(--usx-color-surface-variant, #1a2332);
-  --gridcore-color-surface-hover: var(--usx-color-surface-hover, rgba(128, 128, 128, 0.1));
-  --gridcore-color-text: var(--usx-color-on-surface, #c2c7d0);
-  --gridcore-color-text-muted: var(--usx-color-on-surface-muted, #8b949e);
-  --gridcore-color-primary: var(--usx-color-primary, #58a6ff);
-  --gridcore-color-primary-hover: var(--usx-color-primary-hover, #1f6feb);
+  --gridcore-color-background: var(--usx-color-background);
+  --gridcore-color-background-alt: var(--usx-color-background-alt);
+  --gridcore-color-surface: var(--usx-color-surface);
+  --gridcore-color-surface-muted: var(--usx-color-surface-variant);
+  --gridcore-color-surface-hover: var(--usx-color-surface-hover);
+  --gridcore-color-text: var(--usx-color-on-surface);
+  --gridcore-color-text-muted: var(--usx-color-on-surface-muted);
+  --gridcore-color-primary: var(--usx-color-primary);
+  --gridcore-color-primary-hover: var(--usx-color-primary-hover);
   --gridcore-color-primary-active: var(--usx-color-primary-active, var(--gridcore-color-primary));
-  --gridcore-color-on-primary: var(--usx-color-on-primary, #ffffff);
+  --gridcore-color-on-primary: var(--usx-color-on-primary);
+  --gridcore-color-danger: var(--usx-color-danger);
 
   --gridcore-space-1: var(--usx-spacing-1, 2px);
   --gridcore-space-xs: var(--usx-spacing-xs, 4px);
@@ -40,14 +41,14 @@
   --gridcore-transition-fast: var(--usx-transition-fast, 0.1s ease);
 
   --gridcore-border-width: 1px;
-  --gridcore-border-color: var(--usx-color-border, #30363d);
+  --gridcore-border-color: var(--usx-color-border);
   --gridcore-border: var(--gridcore-border-width) solid var(--gridcore-border-color);
   --gridcore-focus-outline-width: 2px;
   --gridcore-focus-outline-offset: -2px;
   --gridcore-active-ring-width: 2px;
   --gridcore-hover-bg: var(--gridcore-color-surface-hover);
-  --gridcore-selection-bg: var(--usx-color-primary-container, rgba(0, 120, 255, 0.15));
-  --gridcore-selection-bg-muted: var(--usx-color-primary-container, rgba(0, 120, 255, 0.1));
+  --gridcore-selection-bg: var(--usx-color-primary-container);
+  --gridcore-selection-bg-muted: var(--usx-color-primary-container);
 
   --gridcore-toolbar-gap: 6px;
   --gridcore-toolbar-gap-lg: 8px;
@@ -96,7 +97,20 @@
   --gridcore-palette-4: #58a6ff;
   --gridcore-palette-5: #bc8cff;
   --gridcore-palette-6: #39c5cf;
-  --gridcore-palette-7: #c9d1d9;
+  --gridcore-palette-7: #ffffff;
+
+  /* ─── Lattice geometry (GRIDCORE-STANDARDS.json → geometry) ─────────
+     The rendering invariants, exposed so chrome and tests can read them.
+     These are pixels, not rem: a dot must survive user font scaling. */
+  --gridcore-dot: 4px;
+  --gridcore-cell-square: 8px;
+  --gridcore-cell-tall-width: 12px;
+  --gridcore-cell-tall-height: 20px;
+  --gridcore-pitch-column: 24px;
+  --gridcore-pitch-row: 40px;
+  --gridcore-teletext-columns: 40;
+  --gridcore-teletext-rows: 25;
+  --gridcore-zoom: 1;
 
   --gridcore-sidebar-width: var(--usx-sidebar-width, 280px);
   --gridcore-sidebar-padding: var(--usx-sidebar-padding, var(--gridcore-space-md));
@@ -290,4 +304,26 @@
     border-color: Highlight;
     forced-color-adjust: none;
   }
+}
+
+/* ─── Lattice scaling: integers only ──────────────────────────────────
+   Fractional scaling blurs the 4px dot and breaks glyph crispness. Any
+   container that hosts a lattice declares its zoom step instead of
+   inheriting a fluid display scale. */
+[data-lattice] {
+  --gridcore-zoom: 1;
+}
+
+[data-lattice="2x"] {
+  --gridcore-zoom: 2;
+}
+
+[data-lattice="3x"] {
+  --gridcore-zoom: 3;
+}
+
+/* GridCore palette is canon, not theme: the indices must not follow
+   --usx-color-* when a prose theme changes. */
+[data-lattice] {
+  color-scheme: dark;
 }

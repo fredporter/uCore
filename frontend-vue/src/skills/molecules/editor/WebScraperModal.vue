@@ -121,7 +121,7 @@ async function openInMarkdown() {
 .scraper-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: color-mix(in srgb, var(--usx-color-scrim) 50%, transparent);
   z-index: 2000;
   display: flex;
   align-items: center;
@@ -133,7 +133,7 @@ async function openInMarkdown() {
   background-color: var(--usx-color-surface);
   border: 1px solid var(--usx-color-border);
   border-radius: var(--usx-radius-lg);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 16px 48px color-mix(in srgb, var(--usx-color-scrim) 25%, transparent);
   width: 100%;
   max-width: 480px;
   display: flex;

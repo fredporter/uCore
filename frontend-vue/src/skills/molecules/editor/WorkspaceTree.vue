@@ -199,7 +199,7 @@ function handleCreate(payload: {
   border-radius: var(--usx-radius-sm);
   color: var(--usx-color-on-surface-muted);
   transition: all 120ms ease;
-  font-size: var(--usx-icon-size-md);
+  font-size: var(--usx-icon-size);
 }
 
 .workspace-tree__action-btn:hover {
@@ -251,7 +251,7 @@ function handleCreate(payload: {
   padding: 0 var(--usx-spacing-sm);
   border-bottom: var(--usx-border-width) solid var(--usx-color-border);
   color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-icon-size-md);
+  font-size: var(--usx-icon-size);
   margin: 0;
 }
 

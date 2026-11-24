@@ -1435,7 +1435,7 @@ async function saveToVault() {
 }
 
 .banana-studio__viewport--line_art {
-  background: #ffffff;
+  background: var(--usx-color-on-surface);
   border: 2px solid #000000;
 }
 
@@ -1529,7 +1529,7 @@ async function saveToVault() {
   margin: 0;
   padding: var(--usx-spacing-sm);
   background: #000000;
-  color: #58a6ff;
+  color: var(--usx-color-primary);
   font-size: 11px;
   line-height: 1.4;
   word-break: break-all;

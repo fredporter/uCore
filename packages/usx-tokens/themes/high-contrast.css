@@ -52,6 +52,24 @@
   --usx-color-accent-hover: #ff44ff;
   --usx-color-on-accent: #000000;
 
+  /* ===== STATUS SURFACES — collapse to the canvas =====
+     The accessibility theme uses vivid foregrounds on black; a pale tint
+     under them would break contrast, so containers keep the canvas and
+     rely on the 2px border for separation. */
+  --usx-color-primary-surface: var(--usx-color-background);
+  --usx-color-primary-border: var(--usx-color-border);
+  --usx-color-secondary-surface: var(--usx-color-background);
+  --usx-color-secondary-border: var(--usx-color-border);
+  --usx-color-success-surface: var(--usx-color-background);
+  --usx-color-success-border: var(--usx-color-border);
+  --usx-color-warning-surface: var(--usx-color-background);
+  --usx-color-warning-border: var(--usx-color-border);
+  --usx-color-danger-surface: var(--usx-color-background);
+  --usx-color-danger-border: var(--usx-color-border);
+  --usx-color-info-surface: var(--usx-color-background);
+  --usx-color-info-border: var(--usx-color-border);
+  --usx-color-warning-fill: var(--usx-color-warning);
+
   /* ===== BORDERS — extra thick ===== */
   --usx-border-width: 2px;
   --usx-border-width-thick: 4px;
