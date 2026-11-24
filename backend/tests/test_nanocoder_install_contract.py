@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -45,6 +46,32 @@ def test_installer_uses_the_retained_artifact_as_input():
 
     assert 'npm install "$PACKAGE"' not in text, "installing by registry name defeats offline installs"
     assert 'set -- "$ARCHIVE"' in text
+
+
+def test_bundle_digest_is_pinned_in_reviewed_source():
+    text = INSTALLER.read_text(encoding="utf-8")
+
+    assert "EXPECTED_DEPS_SHA256" in text
+    assert "EXPECTED_DEPS_BYTES" in text
+    assert "catalogue_bundle_digest" in text, "the Layer 0 catalogue must confirm the pin"
+    # A sidecar may only confirm the pin, never define it.
+    assert 'sidecar_digest" != "$EXPECTED_DEPS_SHA256"' in text
+
+
+def test_dependency_lock_is_versioned_and_complete():
+    lock_path = REPO_ROOT / "vendor" / "nanocoder-1.30.0-deps-lock.json"
+
+    assert lock_path.is_file(), "the dependency lock must be committed"
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    assert lock["lockfileVersion"] >= 3
+    assert len(lock["packages"]) >= 350
+
+
+def test_installer_uses_the_versioned_lock():
+    text = INSTALLER.read_text(encoding="utf-8")
+
+    assert 'DEPS_LOCK="$UCORE_ROOT/vendor/' in text
+    assert "npm ci" in text
 
 
 def test_bundle_digest_is_verified_before_extraction():

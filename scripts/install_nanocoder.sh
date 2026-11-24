@@ -82,7 +82,10 @@ ARCHIVE="$ARCHIVE_DIR/nanocollective-nanocoder-$VERSION.tgz"
 STAGING="$INSTALL_ROOT.staging"
 RETIRED_ROOT="$UDOS_HOME/tmp/nanocoder-retired"
 DEPS_BUNDLE="$ARCHIVE_DIR/nanocoder-$VERSION-npm-cache.tar.gz"
-DEPS_LOCK="$ARCHIVE_DIR/nanocoder-$VERSION-deps-lock.json"
+DEPS_LOCK="$UCORE_ROOT/vendor/nanocoder-$VERSION-deps-lock.json"
+CATALOGUE_SEED="${SONIC_CATALOGUE_SEED:-$HOME/Public/global-knowledge/datasets/distribution_catalogue.json}"
+EXPECTED_DEPS_SHA256="d7c9223d4faf67332cf5da7ded5b4d59f42433c8317f025b334cd002864871ff"
+EXPECTED_DEPS_BYTES="79618918"
 RETIRED_PATH=""
 
 verify_archive() {
@@ -113,24 +116,65 @@ ensure_archive() {
   verify_archive
 }
 
+catalogue_bundle_digest() {
+  seed="$CATALOGUE_SEED"
+  if [ ! -f "$seed" ]; then
+    return 0
+  fi
+  python3 -c 'import json,sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+for title in data.get("titles", []):
+    for edition in title.get("editions", []):
+        for capsule in edition.get("capsules", []):
+            if capsule.get("id") == "nanocoder-npm-cache":
+                print(capsule.get("sha256", ""))
+                raise SystemExit(0)
+raise SystemExit(0)' "$seed" 2>/dev/null || true
+}
+
 verify_deps_bundle() {
   bundle="$1"
   sidecar="$bundle.sha256"
-  if [ ! -f "$sidecar" ]; then
-    echo "Dependency bundle has no digest sidecar: $sidecar" >&2
-    echo "Rebuild it with: $0 --build-deps \"$bundle\"" >&2
-    exit 1
-  fi
-  expected="$(awk '{print $1}' "$sidecar")"
   actual="$(shasum -a 256 "$bundle" | awk '{print $1}')"
-  if [ "$actual" != "$expected" ]; then
-    echo "Dependency bundle hash mismatch" >&2
-    echo "  expected: $expected" >&2
-    echo "  actual:   $actual" >&2
-    echo "  bundle:   $bundle" >&2
+  size="$(wc -c < "$bundle" | tr -d ' ')"
+
+  # The reviewed pin is the trust anchor. A sidecar beside the bundle can be
+  # replaced together with it, so it may only confirm the pin, never define it.
+  if [ "$actual" != "$EXPECTED_DEPS_SHA256" ]; then
+    echo "Dependency bundle does not match the pinned release digest" >&2
+    echo "  pinned: $EXPECTED_DEPS_SHA256" >&2
+    echo "  actual: $actual" >&2
+    echo "  bundle: $bundle" >&2
     exit 1
   fi
-  echo "Dependency bundle verified: sha256 $actual" >&2
+  if [ "$size" != "$EXPECTED_DEPS_BYTES" ]; then
+    echo "Dependency bundle size mismatch" >&2
+    echo "  pinned: $EXPECTED_DEPS_BYTES bytes" >&2
+    echo "  actual: $size bytes" >&2
+    exit 1
+  fi
+
+  if [ -f "$sidecar" ]; then
+    sidecar_digest="$(awk '{print $1}' "$sidecar")"
+    if [ "$sidecar_digest" != "$EXPECTED_DEPS_SHA256" ]; then
+      echo "Dependency bundle sidecar disagrees with the pinned release digest" >&2
+      echo "  sidecar: $sidecar_digest" >&2
+      echo "  pinned:  $EXPECTED_DEPS_SHA256" >&2
+      exit 1
+    fi
+  else
+    echo "Note: no digest sidecar beside the bundle; the pinned release digest was enforced." >&2
+  fi
+
+  catalogue_digest="$(catalogue_bundle_digest)"
+  if [ -n "$catalogue_digest" ] && [ "$catalogue_digest" != "$EXPECTED_DEPS_SHA256" ]; then
+    echo "Layer 0 catalogue and installer disagree on the dependency bundle digest" >&2
+    echo "  catalogue: $catalogue_digest" >&2
+    echo "  installer: $EXPECTED_DEPS_SHA256" >&2
+    exit 1
+  fi
+
+  echo "Dependency bundle verified against the pinned release digest: $actual" >&2
 }
 
 resolve_cache_dir() {
@@ -181,15 +225,26 @@ build_deps() {
   cd "$work/project"
   printf '{\n  "name": "nanocoder-deps",\n  "private": true,\n  "dependencies": {\n    "@nanocollective/nanocoder": "%s"\n  }\n}\n' "$VERSION" > package.json
 
-  if [ -f "$DEPS_LOCK" ] && [ "$REBUILD_DEPS" != "1" ]; then
-    cp "$DEPS_LOCK" package-lock.json
-    echo "Using pinned dependency lock: $DEPS_LOCK" >&2
+  if [ -f "$DEPS_LOCK" ]; then
+    if [ "$REBUILD_DEPS" != "1" ]; then
+      cp "$DEPS_LOCK" package-lock.json
+      echo "Using versioned dependency lock: $DEPS_LOCK" >&2
+    else
+      npm install --package-lock-only --ignore-scripts --no-audit --no-fund \
+        --cache "$work/cache"
+      cp package-lock.json "$DEPS_LOCK"
+      echo "Dependency lock rewritten for review: $DEPS_LOCK" >&2
+    fi
   else
+    if [ "$REBUILD_DEPS" != "1" ]; then
+      echo "Versioned dependency lock is missing: $DEPS_LOCK" >&2
+      echo "Run once with --rebuild-deps, review the new lock, and commit it." >&2
+      exit 1
+    fi
     npm install --package-lock-only --ignore-scripts --no-audit --no-fund \
       --cache "$work/cache"
-    mkdir -p "$(dirname "$DEPS_LOCK")"
     cp package-lock.json "$DEPS_LOCK"
-    echo "Dependency lock written: $DEPS_LOCK" >&2
+    echo "Dependency lock created for review: $DEPS_LOCK" >&2
   fi
 
   npm ci --ignore-scripts --no-audit --no-fund --cache "$work/cache"
@@ -204,12 +259,18 @@ build_deps() {
   mkdir -p "$(dirname "$target")"
   tar -czf "$target" -C "$work" cache
   shasum -a 256 "$target" | awk '{print $1}' > "$target.sha256"
+  built_digest="$(awk '{print $1}' "$target.sha256")"
+  built_bytes="$(wc -c < "$target" | tr -d ' ')"
 
   cd /
   rm -rf "$work"
   echo "Dependency bundle: $target"
   echo "Lock:              $DEPS_LOCK"
-  echo "SHA-256:           $(awk '{print $1}' "$target.sha256")"
+  echo "SHA-256:           $built_digest"
+  if [ "$built_digest" != "$EXPECTED_DEPS_SHA256" ] || [ "$built_bytes" != "$EXPECTED_DEPS_BYTES" ]; then
+    echo "Review needed: set EXPECTED_DEPS_SHA256=$built_digest and EXPECTED_DEPS_BYTES=$built_bytes," >&2
+    echo "then update the Layer 0 catalogue pin to match." >&2
+  fi
 }
 
 retire_install() {
