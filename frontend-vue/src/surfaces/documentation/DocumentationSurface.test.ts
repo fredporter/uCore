@@ -7,7 +7,7 @@ import DocumentationSurface from './DocumentationSurface.vue';
 import EngineeringSurface from '../engineering/EngineeringSurface.vue';
 vi.mock('../../utils/diagramHydrator', () => ({hydrateDiagrams: vi.fn()}));
 vi.mock('./LocalWikiReader.vue', () => ({default: {template:'<div>Knowledge library</div>'}}));
-vi.mock('../recipes/RecipeGallerySurface.vue', () => ({default: {template:'<h1>Recipe Gallery</h1>'}}));
+vi.mock('../recipes/RecipeGallerySurface.vue', () => ({default: {props:['lane'],template:'<h1>Recipe Gallery {{ lane }}</h1>'}}));
 const chapters = [{name:'One',path:'01.md',source:'manual',level:'basic'}, {name:'Two',path:'02.md',source:'manual',level:'basic'}];
 beforeEach(() => {
   vi.stubGlobal('localStorage', {getItem:()=>null,setItem:vi.fn(),removeItem:vi.fn()});
@@ -57,7 +57,15 @@ describe('documentation navigation',()=>{
     expect(router.currentRoute.value.fullPath).toBe('/engineering?section=recipes');
     await vi.dynamicImportSettled();
     await flushPromises();
-    expect(wrapper.text()).toContain('Recipe Gallery');
+    expect(wrapper.text()).toContain('Recipe Gallery usx');
+    const gridTab = wrapper.get('nav[aria-label="Engineering"]').findAll('a').find(tab => tab.text().includes('Grid Recipes'))!;
+    await gridTab.trigger('click');
+    await flushPromises();
+    expect(router.currentRoute.value.fullPath).toBe('/engineering?section=grid-recipes');
+    expect(wrapper.text()).toContain('Recipe Gallery gridcore');
+    await router.push('/engineering?section=recipes');
+    await flushPromises();
+    expect(wrapper.text()).toContain('Recipe Gallery usx');
     wrapper.unmount();
   });
 });

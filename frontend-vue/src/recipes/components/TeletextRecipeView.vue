@@ -1,14 +1,14 @@
 <template>
   <div class="teletext-recipe-container">
-    <div class="teletext-header-meta">
+    <!-- Authentic GridCore Viewport Container (matching /ucode?tab=teletext) -->
+    <div class="ucode-viewport" ref="containerRef"></div>
+
+    <footer class="teletext-footer-meta">
       <span class="teletext-tag">GridCore Canvas: &lt;gridui-canvas&gt;</span>
       <span class="teletext-tag">Matrix: 40 × 25 Mode 7</span>
       <span class="teletext-tag">Font: Bedstead (SAA5050)</span>
       <span class="teletext-tag">Palette: BBC Ceefax 8-Colour</span>
-    </div>
-
-    <!-- Authentic GridCore Viewport Container (matching /ucode?tab=teletext) -->
-    <div class="ucode-viewport" ref="containerRef"></div>
+    </footer>
   </div>
 </template>
 
@@ -155,8 +155,10 @@ watch(() => props.recipe, () => {
   width: 100%;
 }
 
-.teletext-header-meta {
+.teletext-footer-meta {
   display: flex;
+  justify-content: center;
+  text-align: center;
   gap: 0.5rem;
   flex-wrap: wrap;
 }

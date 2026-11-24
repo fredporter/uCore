@@ -1,3 +1,5 @@
+import { ROLE_OPTIONS } from '../stores/identity'
+
 /**
  * @module recipes/recipes
  * @description Canonical declarative recipe definitions for USX and GridCore.
@@ -33,6 +35,7 @@ export interface TaskListRecipe extends BaseRecipe {
   paradigm: 'usx'
   columns: 1
   collapsibleHistory: boolean
+  variableExamples?: { name: string; label: string }[]
   items: TaskListItem[]
 }
 
@@ -80,12 +83,14 @@ export interface CardMatrixRecipe extends BaseRecipe {
 export interface FormField {
   id: string
   label: string
-  type: 'toggle' | 'select' | 'slider'
+  type: 'toggle' | 'select' | 'slider' | 'text'
   value: boolean | string | number
   options?: string[]
   min?: number
   max?: number
   helpText?: string
+  variable?: string
+  required?: boolean
 }
 
 export interface SettingsSection {
@@ -100,7 +105,7 @@ export interface SettingsFormRecipe extends BaseRecipe {
   sections: SettingsSection[]
 }
 
-// ─── 5. USX: Story Format (Typeform Style) Recipe ────────────────
+// ─── 5. USX: Story Form Recipe ────────────────
 export interface StoryOption {
   id: string
   label: string
@@ -125,7 +130,7 @@ export interface StoryRecipe extends BaseRecipe {
   submitLabel?: string
 }
 
-// ─── 6. USX: System Page (S100 Diagnostic) Recipe ────────────────
+// ─── 6. USX: System Page Recipe ────────────────
 export interface SystemPageRecipe extends BaseRecipe {
   recipe: 'system-page'
   paradigm: 'usx'
@@ -133,6 +138,7 @@ export interface SystemPageRecipe extends BaseRecipe {
   icon: string
   heading: string
   summary: string
+  facts?: Array<{ label: string; value: string; variable?: string }>
   steps: string[]
   suggestions: Array<{ label: string; to: string }>
   actions: Array<{ label: string; variant?: 'primary' | 'secondary' | 'danger'; action: string }>
@@ -241,48 +247,25 @@ export const SAMPLE_TASK_LIST: TaskListRecipe = {
   id: 'recipe-task-list-sample',
   recipe: 'task-list',
   paradigm: 'usx',
-  version: 1,
-  title: 'Active Workflow Missions',
-  description: 'Strict single-column layout with status badges and collapsible history',
+  version: 2,
+  title: 'Workflow tasks',
+  description: 'Sample tasks grouped by status.',
   columns: 1,
   collapsibleHistory: true,
+  variableExamples: [
+    { name: '$TASKID', label: 'Task ID' },
+    { name: '$TASKTTL', label: 'Task title' },
+    { name: '$TASKPRI', label: 'Task priority' },
+    { name: '$TASKDONE', label: 'Completion flag' },
+    { name: '$ROLE', label: 'Profile role' },
+    { name: '$USERID', label: 'User UID' },
+    { name: '$INSTALLD', label: 'Installation date' },
+  ],
   items: [
-    {
-      id: 'task-01',
-      title: 'Dev Mode Readiness Gate Validation',
-      subtitle: 'Enforce ExecutionContext, fail-closed executor selector, and budget reservations',
-      status: 'completed',
-      badge: 'Sprint 4A',
-      tags: ['security', 'core'],
-      timestamp: 'Just now',
-    },
-    {
-      id: 'task-02',
-      title: 'USX & GridCore Recipe Catalogue Showcase',
-      subtitle: 'Build interactive surface gallery for Material 3 and Teletext layouts',
-      status: 'completed',
-      badge: 'Sprint 4B',
-      tags: ['ui', 'recipes'],
-      timestamp: 'Completed',
-    },
-    {
-      id: 'task-03',
-      title: 'Bangle Authoring & Frontmatter Round-Trip',
-      subtitle: 'Validate YAML frontmatter parsing and responsive toolbar',
-      status: 'completed',
-      badge: 'Sprint 4C',
-      tags: ['authoring', 'bangle'],
-      timestamp: 'Completed',
-    },
-    {
-      id: 'task-04',
-      title: 'Host PIM Bridge & Snackbar Spool Migration',
-      subtitle: 'Migrate reply spool to UDOS_HOME and prove Apple Notes sync slice',
-      status: 'completed',
-      badge: 'Sprint 4D',
-      tags: ['snacks', 'macos'],
-      timestamp: 'Completed',
-    },
+    { id: 'task-01', title: 'Review the release checklist', subtitle: 'Confirm the last two acceptance checks.', status: 'pending' },
+    { id: 'task-02', title: 'Refine the Workflow board', subtitle: 'Review task cards at tablet width.', status: 'in_progress' },
+    { id: 'task-03', title: 'Publish the handover', subtitle: 'Waiting for the release notes.', status: 'failed', badge: 'High priority' },
+    { id: 'task-04', title: 'Validate the variable registry', subtitle: 'Checked ID length, uniqueness, and legacy aliases.', status: 'completed' },
   ],
 }
 
@@ -347,7 +330,7 @@ export const SAMPLE_CARD_MATRIX: CardMatrixRecipe = {
   paradigm: 'usx',
   version: 1,
   title: 'Apps',
-  description: 'Material 3 tonal elevation cards with icon badges, state layers, and action triggers',
+  description: 'USX cards with labels, status, and actions',
   cards: [
     {
       id: 'surface-ucode',
@@ -392,52 +375,18 @@ export const SAMPLE_SETTINGS_FORM: SettingsFormRecipe = {
   id: 'recipe-settings-sample',
   recipe: 'settings-form',
   paradigm: 'usx',
-  version: 1,
-  title: 'Preferences',
-  description: 'Segmented controls, grouped toggles, and contextual disclosure',
-  sections: [
-    {
-      id: 'sec-privacy',
-      title: 'Local-First Privacy & Network',
-      fields: [
-        {
-          id: 'opt-cloud-tier',
-          label: 'Enable Frontier Cloud Inference',
-          type: 'toggle',
-          value: false,
-          helpText: 'Strictly restricted to Developer Mode tasks with an explicit budget cap.',
-        },
-        {
-          id: 'opt-network-mode',
-          label: 'Default Network Policy',
-          type: 'select',
-          value: 'local_only',
-          options: ['offline', 'local_only', 'named_connector', 'dev_scoped'],
-          helpText: 'Controls socket and outbound HTTP requests across all runners.',
-        },
-      ],
-    },
-    {
-      id: 'sec-display',
-      title: 'Surface Display & Theme',
-      fields: [
-        {
-          id: 'opt-theme',
-          label: 'Theme Selection',
-          type: 'select',
-          value: 'Dark',
-          options: ['Dark', 'Light', 'Teletext Mode 7', 'C64 Vintage', 'High Contrast'],
-        },
-        {
-          id: 'opt-docked-hud',
-          label: 'Docked Developer HUD Tab',
-          type: 'toggle',
-          value: true,
-          helpText: 'Keep collapsible developer drawer docked to the viewport edge.',
-        },
-      ],
-    },
-  ],
+  version: 2,
+  title: 'Profile settings',
+  description: 'Edit sample profile values in this preview.',
+  sections: [{
+    id: 'profile',
+    title: 'Profile',
+    fields: [
+      { id: 'profile-name', label: 'Username', variable: '$USERNAME', type: 'text', value: 'Alex', required: true },
+      { id: 'profile-role', label: 'Role', variable: '$ROLE', type: 'select', value: 'Wizard', options: [...ROLE_OPTIONS] },
+      { id: 'profile-location', label: 'Location', variable: '$LOCATION', type: 'text', value: 'Perth' },
+    ],
+  }],
 }
 
 export const SAMPLE_TELETEXT: TeletextRecipe = {
@@ -516,7 +465,7 @@ export const SAMPLE_TERMINAL: TerminalRecipe = {
         '│ [17:52:21] Budget check: user lane $0.00 OK  │',
         '│ [17:52:22] Commit 8a1237f: Clean tree anchor │',
         '│ [17:55:00] USX recipe catalogue initialized  │',
-        '│ [17:55:02] Material 3 tonal elevation active │',
+        '│ [17:55:02] USX surface styles active │',
         '│ [17:55:04] GitHub prose typography loaded    │',
         '│ [17:55:06] Teletext Mode 7 sixel grid ready  │',
         '│ [17:55:08] Awaiting browser review inspection│',
@@ -531,7 +480,7 @@ export const SAMPLE_STORY_FORM: StoryRecipe = {
   recipe: 'story-form',
   paradigm: 'usx',
   version: 1,
-  title: 'Mission Intake Questionnaire (Typeform Style)',
+  title: 'Mission intake',
   description: 'High-focus single-question slide layout with keyboard navigation and progress tracking',
   submitLabel: 'Launch Mission',
   questions: [
@@ -574,30 +523,22 @@ export const SAMPLE_SYSTEM_PAGE: SystemPageRecipe = {
   id: 'recipe-system-page-sample',
   recipe: 'system-page',
   paradigm: 'usx',
-  version: 1,
-  title: 'S100 System Diagnostic Fallback',
-  description: 'Canonical system error, diagnostic status, and specification sheet pattern',
-  code: 'S100',
-  icon: 'search_off',
-  heading: 'Resource Specification Not Found',
-  summary: 'The requested system capability or route is unavailable in the current runtime state.',
-  steps: [
-    'Confirm the owning service is running under uCore supervision on port 8484.',
-    'Check local-first boundaries: user scope denies external network requests.',
-    'Review recent commits or configuration manifests in the developer workbench.',
+  version: 2,
+  title: 'System information',
+  description: 'Read-only system information.',
+  code: '',
+  icon: 'info',
+  heading: 'System information',
+  summary: 'Sample identifiers and installation metadata.',
+  facts: [
+    { label: 'User UID', variable: '$USERID', value: 'sample-user' },
+    { label: 'Installation UID', value: 'sample-installation' },
+    { label: 'Installation date', variable: '$INSTALLD', value: '2026-11-23' },
   ],
-  suggestions: [
-    { label: 'System Overview', to: '/system' },
-    { label: 'Developer Workbench', to: '/developer' },
-    { label: 'Service Health Monitor', to: '/system/s500' },
-    { label: 'Surfaces & Recipes', to: '/recipes' },
-  ],
-  actions: [
-    { label: 'Go Back', variant: 'secondary', action: 'back' },
-    { label: 'Retry Diagnosis', variant: 'primary', action: 'retry' },
-    { label: 'Return Home', variant: 'secondary', action: 'home' },
-  ],
-  footnote: 'Error S100. Diagnostic fallback generated locally without network dependencies.',
+  steps: [],
+  suggestions: [{ label: 'Open System Settings', to: '/system?tab=identity' }],
+  actions: [],
+  footnote: '',
 }
 
 export const SAMPLE_ALERTS_SUITE: AlertsRecipe = {
