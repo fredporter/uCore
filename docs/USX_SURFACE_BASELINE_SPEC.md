@@ -190,6 +190,26 @@ All `--pico-*` compatibility mappings have been removed from:
 
 No surface Vue/TS code references `--pico-*` variables. USX tokens are the single source of truth.
 
+## Shared baseline for Workflow
+
+Use the [USX style spec](../../global-knowledge/standards/USX-STYLE-SPEC.md) as
+the design reference. The Workflow board starts with these existing semantic
+roles from the shared token package.
+
+| Role | Token |
+| --- | --- |
+| Canvas and cards | `--usx-color-background`, `--usx-color-surface` |
+| Text and secondary detail | `--usx-color-on-surface`, `--usx-color-on-surface-muted` |
+| Delineation and focus | `--usx-color-border`, `--usx-border-width`, shared focus styling |
+| Selection and status | `--usx-color-primary`, `--usx-color-warning`, `--usx-color-danger`, `--usx-color-success` |
+| Rhythm and controls | Existing `--usx-spacing-*`, `--usx-font-*`, `--usx-radius-sm`, and `--usx-touch-min` |
+
+On the board, lane headings convey status in words. Each card shows the task
+title and uses the first unfinished step when available. Its title opens the
+existing task editor. The status selector uses the same task update path as
+the task list. The CSS custom properties keep their descriptive public names.
+The three-to-eight-character naming rule belongs to the system variable registry.
+
 ## Formal USX Surface Anatomy
 
 Every USX surface follows this anatomy:
