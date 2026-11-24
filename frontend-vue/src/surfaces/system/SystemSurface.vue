@@ -269,17 +269,15 @@
         <div class="system-settings-form">
           <div class="settings-row"><label for="profile-name">Username</label><input id="profile-name" type="text" v-model="userSettings.displayName" /></div>
           <div class="settings-row">
-            <label for="profile-role">Publishing role preference</label>
+            <label for="profile-role">Role</label>
             <select id="profile-role" v-model="userSettings.publishingRole" :disabled="!identityStore.authenticated">
-              <option value="knight">Knight</option>
-              <option value="sorcerer">Sorcerer</option>
-              <option value="wizard">Wizard</option>
+              <option v-for="role in ROLE_OPTIONS" :key="role" :value="role.toLowerCase()">{{ role }}</option>
             </select>
           </div>
-          <div class="settings-row"><label>User role</label><output>{{ profileRole }}</output></div>
           <div class="settings-row"><label>Location</label><output>{{ profileLocation || 'Set in Setup Story' }}</output></div>
           <div class="settings-row"><label>Device timezone</label><output>{{ deviceTimezone }}</output></div>
-          <div v-if="identityStore.authenticated && identityStore.identity?.user_id" class="settings-row"><label>User ID</label><output class="profile-id">{{ identityStore.identity.user_id }}</output></div>
+          <div v-if="identityStore.identity?.user_id" class="settings-row"><label>User UID</label><output class="profile-id">{{ identityStore.identity.user_id }}</output></div>
+          <div v-if="identityStore.identity?.install_id" class="settings-row"><label>Installation UID</label><output class="profile-id">{{ identityStore.identity.install_id }}</output></div>
           <div v-if="identityStore.profiles.length>1" class="settings-row"><label for="profile-switch">Switch profile</label><select id="profile-switch" :value="identityStore.activeProfileId" @change="identityStore.switchProfile(($event.target as HTMLSelectElement).value)"><option v-for="profile in identityStore.profiles" :key="profile.id" :value="profile.id">{{ profile.name }}</option></select></div>
           <div class="settings-row">
             <label>Authentication</label>
@@ -354,7 +352,7 @@ import GitHubCIPanel from "./GitHubCIPanel.vue";
 import { useRouter, useRoute } from "vue-router";
 import { terminologyPacks, useSettingsStore, type ReadingFont } from "../../stores/settings";
 import { useShellStore } from "../../stores/shell";
-import { useIdentityStore } from "../../stores/identity";
+import { useIdentityStore, ROLE_OPTIONS } from "../../stores/identity";
 import { SNACKBAR_BASE, UCORE_BASE } from "../../api/base";
 import {
   getCapabilitiesReadiness,
@@ -507,7 +505,7 @@ async function importSecretsFromEnv() {
 const userSettings = reactive({
   displayName: "",
   email: "",
-  publishingRole: "knight",
+  publishingRole: "wizard",
 });
 
 const savingProfile = ref(false);
@@ -519,16 +517,27 @@ const profileRole = computed(() => {
   const role = identityStore.activeProfile?.role.toLowerCase();
   if (!identityStore.authenticated || !role) return "—";
   if (role === "wizard" || role === "owner") return "Wizard";
-  if (role === "sorcerer" || role === "sorceror") return "Sorcerer";
+  if (role === "sorcerer" || role === "sorceror") return "Sorceror";
   if (["knight", "user", "guest", "developer"].includes(role)) return "Knight";
+  if (["crypt", "drone", "tomb", "ghost"].includes(role)) return role.charAt(0).toUpperCase() + role.slice(1);
   return role;
 });
+
+// Canonical lowercase option values shown by the Role selector.
+const ROLE_VALUES = ROLE_OPTIONS.map((role) => role.toLowerCase());
+function normalizeRole(value: string): string {
+  const role = String(value || "").toLowerCase();
+  if (role === "sorcerer") return "sorceror";
+  if (role === "owner") return "wizard";
+  if (["user", "guest", "developer"].includes(role)) return "knight";
+  return ROLE_VALUES.includes(role) ? role : "wizard";
+}
 
 watch([currentTab, () => identityStore.activeProfileId], async ([tab, profile], _old, onCleanup) => {
   profileLocation.value = "";
   userSettings.displayName = "";
   userSettings.email = "";
-  userSettings.publishingRole = profileRole.value.toLowerCase();
+  userSettings.publishingRole = normalizeRole(profileRole.value);
   if (tab !== "identity" || !profile) return;
   const request = new AbortController();
   onCleanup(() => request.abort());
@@ -544,7 +553,7 @@ watch([currentTab, () => identityStore.activeProfileId], async ([tab, profile], 
         || `user-${profile.split("-").at(-1)?.toLowerCase()}`;
     }
     if (!userSettings.email) userSettings.email = String(variables.email ?? story.email ?? state.setup?.answers?.email ?? "");
-    if (["knight", "sorcerer", "wizard"].includes(variables.publishing_role)) userSettings.publishingRole = variables.publishing_role;
+    if (variables.publishing_role) userSettings.publishingRole = normalizeRole(String(variables.publishing_role));
     profileLocation.value = [story.city ?? variables.city, story.country ?? variables.country].filter(Boolean).join(", ");
   } catch {}
 }, { immediate: true });

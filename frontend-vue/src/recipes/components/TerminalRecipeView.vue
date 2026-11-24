@@ -1,14 +1,14 @@
 <template>
   <div class="terminal-recipe-container">
-    <div class="terminal-header-meta">
+    <!-- Authentic GridCore Viewport Container (matching /ucode terminal) -->
+    <div class="ucode-viewport ucode-viewport--terminal" ref="containerRef"></div>
+
+    <footer class="terminal-footer-meta">
       <span class="term-tag">GridCore Canvas: &lt;gridui-canvas&gt;</span>
       <span class="term-tag">Matrix: 42 × 27 (40×25 Screen + Bezel Ring)</span>
       <span class="term-tag">Font: Press Start 2P (Square Cells)</span>
       <span class="term-tag">Theme: Commodore 64 (#2c4a8c Bezel)</span>
-    </div>
-
-    <!-- Authentic GridCore Viewport Container (matching /ucode terminal) -->
-    <div class="ucode-viewport ucode-viewport--terminal" ref="containerRef"></div>
+    </footer>
   </div>
 </template>
 
@@ -111,8 +111,10 @@ watch(() => props.recipe, () => {
   width: 100%;
 }
 
-.terminal-header-meta {
+.terminal-footer-meta {
   display: flex;
+  justify-content: center;
+  text-align: center;
   gap: 0.5rem;
   flex-wrap: wrap;
 }

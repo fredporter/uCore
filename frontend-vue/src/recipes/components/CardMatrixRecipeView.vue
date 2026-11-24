@@ -19,7 +19,6 @@ defineProps<{
           <p class="recipe-desc">{{ recipe.description }}</p>
         </div>
       </div>
-      <span class="recipe-badge">M3 Tonal Cards</span>
     </div>
 
     <div class="matrix-grid">
@@ -100,15 +99,6 @@ defineProps<{
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
   color: var(--usx-color-on-surface-variant, #8e9199);
-}
-
-.recipe-badge {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.6rem;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.06));
-  border-radius: 4px;
-  color: var(--usx-color-on-surface-variant, #c4c6d0);
-  font-family: var(--usx-font-family-mono, monospace);
 }
 
 .card-top-row {

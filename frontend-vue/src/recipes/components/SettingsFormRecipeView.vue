@@ -2,249 +2,76 @@
 import { ref } from 'vue'
 import type { SettingsFormRecipe } from '../recipes'
 
-const props = defineProps<{
-  recipe: SettingsFormRecipe
-}>()
+const props = defineProps<{ recipe: SettingsFormRecipe }>()
+const fields = props.recipe.sections.flatMap(section => section.fields)
+const values = ref(Object.fromEntries(fields.map(field => [field.id, field.value])))
+const message = ref('')
 
-// Track local values for interactivity in the preview
-const formValues = ref<Record<string, any>>({})
-props.recipe.sections.forEach(sec => {
-  sec.fields.forEach(f => {
-    formValues.value[f.id] = f.value
-  })
-})
+function save() {
+  if (fields.some(field => field.required && !String(values.value[field.id]).trim())) {
+    message.value = 'Enter a value for each required field.'
+    return
+  }
+  message.value = 'Saved for this preview.'
+}
 </script>
 
 <template>
-  <div class="settings-form-container">
-    <div class="recipe-header">
-      <div class="header-left">
-        <span class="material-symbols-outlined header-icon">tune</span>
-        <div>
-          <h2 class="recipe-title">{{ recipe.title }}</h2>
-          <p class="recipe-desc">{{ recipe.description }}</p>
-        </div>
+  <form class="settings-preview" @submit.prevent="save" @input="message = ''">
+    <header>
+      <h2>{{ recipe.title }}</h2>
+      <p>{{ recipe.description }}</p>
+    </header>
+    <fieldset v-for="section in recipe.sections" :key="section.id">
+      <legend>{{ section.title }}</legend>
+      <div v-for="field in section.fields" :key="field.id" class="field">
+        <label :for="field.id">
+          {{ field.label }} <code v-if="field.variable">{{ field.variable }}</code>
+        </label>
+        <select v-if="field.type === 'select'" :id="field.id" v-model="values[field.id]" :required="field.required">
+          <option v-for="option in field.options" :key="option">{{ option }}</option>
+        </select>
+        <input v-else :id="field.id" v-model="values[field.id]"
+          :type="field.type === 'toggle' ? 'checkbox' : field.type === 'slider' ? 'range' : 'text'"
+          :required="field.required" :min="field.min" :max="field.max">
+        <small v-if="field.helpText">{{ field.helpText }}</small>
       </div>
-      <span class="recipe-badge">M3 Settings</span>
+    </fieldset>
+    <div class="form-actions">
+      <button type="submit" class="usx-btn usx-btn--primary">Save preview</button>
+      <span role="status">{{ message }}</span>
     </div>
-
-    <div class="sections-stack">
-      <div
-        v-for="section in recipe.sections"
-        :key="section.id"
-        class="settings-section-card"
-      >
-        <h3 class="section-title">{{ section.title }}</h3>
-
-        <div class="fields-list">
-          <div
-            v-for="field in section.fields"
-            :key="field.id"
-            class="field-row"
-          >
-            <div class="field-info">
-              <label :for="field.id" class="field-label">{{ field.label }}</label>
-              <span v-if="field.helpText" class="field-help">{{ field.helpText }}</span>
-            </div>
-
-            <div class="field-control">
-              <!-- Toggle switch -->
-              <label v-if="field.type === 'toggle'" class="m3-switch">
-                <input
-                  :id="field.id"
-                  type="checkbox"
-                  v-model="formValues[field.id]"
-                />
-                <span class="slider round"></span>
-              </label>
-
-              <!-- Select control -->
-              <select
-                v-else-if="field.type === 'select'"
-                :id="field.id"
-                class="m3-select"
-                v-model="formValues[field.id]"
-              >
-                <option v-for="opt in field.options" :key="opt" :value="opt">
-                  {{ opt }}
-                </option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  </form>
 </template>
 
 <style scoped>
-.settings-form-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+.settings-preview {
+  display: grid;
+  gap: var(--usx-spacing-md);
+  padding: var(--usx-spacing-md);
+  color: var(--usx-color-on-surface);
+}
+h2, p { margin: 0; }
+p, small { color: var(--usx-color-on-surface-muted); }
+fieldset, .field { display: grid; gap: var(--usx-spacing-xs); min-width: 0; }
+fieldset {
+  padding: var(--usx-spacing-md);
+  gap: var(--usx-spacing-md);
+  border: var(--usx-border-width) solid var(--usx-color-border);
+  border-radius: var(--usx-radius-sm);
+  background: var(--usx-color-surface);
+}
+input:not([type="checkbox"]), select {
   width: 100%;
+  min-height: var(--usx-touch-min);
+  background: var(--usx-color-background);
+  color: var(--usx-color-on-surface);
+  border-color: var(--usx-color-border);
 }
-
-.recipe-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
-  flex-wrap: wrap;
-  gap: 0.75rem;
+code {
+  background: var(--usx-color-background);
+  color: var(--usx-color-on-surface-muted);
+  white-space: nowrap;
 }
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.header-icon {
-  font-size: 28px;
-  color: var(--usx-color-primary, #a8c7fa);
-}
-
-.recipe-title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--usx-color-on-surface, #e2e2e6);
-}
-
-.recipe-desc {
-  margin: 0.25rem 0 0;
-  font-size: 0.85rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
-}
-
-.recipe-badge {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.6rem;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.06));
-  border-radius: 4px;
-  color: var(--usx-color-on-surface-variant, #c4c6d0);
-  font-family: var(--usx-font-family-mono, monospace);
-}
-
-.sections-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.settings-section-card {
-  padding: 1.25rem;
-  border-radius: 12px;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
-}
-
-.section-title {
-  margin: 0 0 1rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--usx-color-primary, #a8c7fa);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.fields-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.field-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 0.85rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.field-row:last-child {
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-.field-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  max-width: 70%;
-}
-
-.field-label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--usx-color-on-surface, #e2e2e6);
-}
-
-.field-help {
-  font-size: 0.8rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
-  line-height: 1.35;
-}
-
-/* M3 Switch Toggle */
-.m3-switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
-}
-
-.m3-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(255, 255, 255, 0.15);
-  transition: .2s;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .2s;
-}
-
-input:checked + .slider {
-  background-color: var(--usx-color-primary, #a8c7fa);
-}
-
-input:checked + .slider:before {
-  transform: translateX(20px);
-  background-color: #041e49;
-}
-
-.slider.round {
-  border-radius: 24px;
-}
-.slider.round:before {
-  border-radius: 50%;
-}
-
-/* M3 Select */
-.m3-select {
-  padding: 0.4rem 0.8rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.15));
-  color: var(--usx-color-on-surface, #e2e2e6);
-  font-size: 0.85rem;
-}
+.form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--usx-spacing-sm); }
 </style>

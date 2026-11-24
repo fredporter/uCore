@@ -67,7 +67,7 @@
       </div>
 
       <div v-if="wf.taskError" class="wf-error" role="alert">{{ wf.taskError }} <button class="usx-btn" @click="wf.fetchTasks()">Retry</button></div>
-      <div v-if="dragError" class="wf-error">
+      <div v-if="dragError" class="wf-error" role="alert">
         <UIcon name="error" /> {{ dragError }}
       </div>
 
@@ -163,15 +163,17 @@
               @click="openTaskEditor(task)"
             >
               <div class="kanban-card-top">
-                <div class="kanban-card-title">{{ task.title }}</div>
-                <UBadge :type="priorityBadgeType(task.priority)">{{
-                  task.priority
-                }}</UBadge>
+                <button type="button" class="usx-btn kanban-card-title" @click.stop="openTaskEditor(task)">
+                  {{ task.title }}
+                </button>
+                <UBadge v-if="task.priority === 'high'" :type="priorityBadgeType(task.priority)">
+                  High priority
+                </UBadge>
               </div>
-              <div class="kanban-card-pills">
-                <span class="task-pill" :class="`task-pill--${task.status}`">
-                  {{ formatStatus(task.status) }}
-                </span>
+              <p v-if="nextKanbanStep(task)" class="kanban-card-next">
+                {{ nextKanbanStep(task) }}
+              </p>
+              <div v-if="task.binder || task.tags.length" class="kanban-card-pills">
                 <span v-if="task.binder" class="task-pill task-pill--board">{{ wf.binders.find(binder => binder.id === task.binder)?.title || task.binder }}</span>
                 <span
                   v-for="tag in task.tags"
@@ -181,6 +183,17 @@
                   {{ tag }}
                 </span>
               </div>
+              <select
+                class="kanban-card-status"
+                :aria-label="`Status for ${task.title}`"
+                :value="task.status"
+                @click.stop
+                @change="changeKanbanStatus(task, $event)"
+              >
+                <option v-for="option in statuses" :key="option" :value="option">
+                  {{ formatStatus(option) }}
+                </option>
+              </select>
             </div>
           </div>
         </div>
@@ -328,6 +341,17 @@ async function newTask() {
   try { await wf.createTask(title.trim()); }
   catch (error) { dragError.value = error instanceof Error ? error.message : "Could not create task"; }
 }
+function nextKanbanStep(task: WorkflowTask) {
+  return task.steps?.find(step => step.status !== "completed")?.title;
+}
+
+async function changeKanbanStatus(task: WorkflowTask, event: Event) {
+  const control = event.target as HTMLSelectElement;
+  const status = control.value;
+  control.value = task.status;
+  await changeTask(task, { status });
+}
+
 async function changeTask(task: WorkflowTask, patch: { status?: string; board?: string; group?: string; binder?: string }) {
   dragError.value = null;
   if (storyTitle(task) && (patch.status === "in-progress" || patch.status === "completed")) {
@@ -1026,12 +1050,33 @@ async function handleApproveAction(task: WorkflowTask) {
   gap: var(--usx-spacing-sm);
 }
 
-.kanban-card-title {
+.kanban-card-title.usx-btn {
   min-width: 0;
+  min-height: var(--usx-touch-min-sm);
+  justify-content: flex-start;
+  padding: 0;
+  text-align: start;
+  white-space: normal;
+  background: transparent;
+  border-color: transparent;
+  color: var(--usx-color-on-surface);
   font-weight: var(--usx-font-weight-semibold);
   font-size: var(--usx-font-size-sm);
   line-height: var(--usx-line-height-tight);
   overflow-wrap: anywhere;
+}
+
+.kanban-card-next {
+  margin: 0;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.kanban-card-status {
+  max-width: 100%;
+  min-height: var(--usx-touch-min);
+  margin-top: var(--usx-spacing-xs);
 }
 
 @media (max-width: 1100px) {
@@ -1086,13 +1131,13 @@ async function handleApproveAction(task: WorkflowTask) {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--usx-spacing-sm);
 }
 
 .wf-toolbar__sync-btn {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1, 0.25rem);
+  gap: var(--usx-spacing-xs);
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   border-radius: var(--usx-radius-sm, 4px);
@@ -1110,9 +1155,9 @@ async function handleApproveAction(task: WorkflowTask) {
 .wf-feedback-banner {
   display: flex;
   align-items: center;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--usx-spacing-sm);
   padding: 0.35rem 0.75rem;
-  margin-bottom: var(--space-2, 0.5rem);
+  margin-bottom: var(--usx-spacing-sm);
   font-size: 0.75rem;
   border-radius: var(--usx-radius-sm, 4px);
   background: color-mix(in srgb, var(--usx-color-success) 12%, transparent);
@@ -1123,7 +1168,7 @@ async function handleApproveAction(task: WorkflowTask) {
 .wf-code-editor__actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--usx-spacing-sm);
 }
 
 .wf-btn-action-approve {

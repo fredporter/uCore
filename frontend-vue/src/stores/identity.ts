@@ -8,6 +8,11 @@ export interface Profile {
   role: string;
 }
 
+// Role selector options (Wizard, Sorceror, Knight, Crypt, Drone, Tomb, Ghost)
+export const ROLE_OPTIONS = ["Wizard", "Sorceror", "Knight", "Crypt", "Drone", "Tomb", "Ghost"] as const;
+
+export type Role = typeof ROLE_OPTIONS[number];
+
 export interface UserIdentity {
   user_id: string;
   codeword: string;
@@ -19,6 +24,13 @@ export interface UserIdentity {
   profiles?: Profile[];
   publishing_capabilities?: { manage_domains: boolean; publish_cloud: boolean; publish_local: boolean };
 }
+
+// Default profile with role selector
+export const DEFAULT_PROFILE: Profile = {
+  id: "default",
+  name: "Local User",
+  role: "Wizard" as Role,
+};
 
 export const useIdentityStore = defineStore("identity", () => {
   const identity = ref<UserIdentity | null>(null);

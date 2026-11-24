@@ -7,41 +7,43 @@
       aria-label="Engineering"
       @toggle-orientation="shell.toggleTabOrientation()"
     />
-    <div class="engineering-content">
-      <RecipeGallerySurface v-if="engineeringTab === 'recipes'" />
+    <div class="engineering-content" :class="{ 'engineering-content--tools': engineeringTab === 'tools' }">
+      <RecipeGallerySurface
+        v-if="engineeringTab !== 'tools'"
+        :lane="engineeringTab === 'grid-recipes' ? 'gridcore' : 'usx'"
+      />
       <template v-else>
+          <nav class="engineering-actions" aria-label="Developer tools shortcuts">
+            <a class="usx-btn" href="http://127.0.0.1:3484/ucore" target="_blank" rel="noopener noreferrer"><UIcon name="launch" /> Open Cline Kanban</a>
+            <a class="usx-btn" href="http://127.0.0.1:3484/ucode" target="_blank" rel="noopener noreferrer"><UIcon name="view_kanban" /> uCode Dev Roadmap</a>
+          </nav>
           <header class="doc-engineering-heading">
             <h1>Developer tools</h1>
-            <div class="engineering-actions">
-              <a class="usx-btn" href="http://127.0.0.1:3484/ucore" target="_blank" rel="noopener noreferrer"><UIcon name="launch" /> Open Cline Kanban</a>
-              <a class="usx-btn" href="http://127.0.0.1:3484/ucode" target="_blank" rel="noopener noreferrer"><UIcon name="view_kanban" /> uCode Dev Roadmap</a>
-            </div>
             <p>Develop uDOS in VS Code. Open the shared workspace from macOS Terminal.</p>
           </header>
 
-          <!-- Diagnostic & Health strip inside Developer tab -->
           <div class="doc-health-strip">
             <div class="doc-health-item">
               <span class="doc-health-label">Sites API</span>
-              <UBadge :type="statusType(apiStatus.sites)">
+              <UBadge size="sm" :type="statusType(apiStatus.sites)">
                 {{ statusText(apiStatus.sites) }}
               </UBadge>
             </div>
             <div class="doc-health-item">
               <span class="doc-health-label">Knowledge API</span>
-              <UBadge :type="statusType(apiStatus.knowledge)">
+              <UBadge size="sm" :type="statusType(apiStatus.knowledge)">
                 {{ statusText(apiStatus.knowledge) }}
               </UBadge>
             </div>
             <div class="doc-health-item">
               <span class="doc-health-label">Courses API</span>
-              <UBadge :type="statusType(apiStatus.courses)">
+              <UBadge size="sm" :type="statusType(apiStatus.courses)">
                 {{ statusText(apiStatus.courses) }}
               </UBadge>
             </div>
             <div class="doc-health-item">
               <span class="doc-health-label">Export API</span>
-              <UBadge :type="statusType(apiStatus.export)">
+              <UBadge size="sm" :type="statusType(apiStatus.export)">
                 {{ statusText(apiStatus.export) }}
               </UBadge>
             </div>
@@ -124,12 +126,16 @@ const route = useRoute();
 const router = useRouter();
 const tabs = [
   { id: "tools", label: "Tools", icon: "terminal" },
-  { id: "recipes", label: "Recipes", icon: "widgets" },
+  { id: "recipes", label: "Prose Recipes", icon: "article" },
+  { id: "grid-recipes", label: "Grid Recipes", icon: "grid_on" },
 ];
 const engineeringTab = computed({
-  get: () => route.query.section === "recipes" ? "recipes" : "tools",
+  get: () => {
+    const section = route.query.section;
+    return section === "recipes" || section === "grid-recipes" ? section : "tools";
+  },
   set: (tab: string) => {
-    void router.replace({ query: { ...route.query, section: tab === "recipes" ? "recipes" : undefined }, hash: route.hash });
+    void router.replace({ query: { ...route.query, section: tab === "tools" ? undefined : tab }, hash: route.hash });
   },
 });
 
@@ -187,13 +193,45 @@ function statusText(status: ApiStatus): string {
 .engineering-content {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   overflow: auto;
-  padding: var(--usx-spacing-md);
+  padding: 0 var(--usx-spacing-md) var(--usx-spacing-md);
   display: flex;
   flex-direction: column;
+  gap: var(--usx-spacing-xs);
+}
+
+.engineering-content--tools {
+  padding-block-start: var(--usx-spacing-sm);
   gap: var(--usx-spacing-md);
 }
-.engineering-actions { display: flex; flex-wrap: wrap; gap: var(--usx-spacing-sm); }
+
+.engineering-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: var(--usx-spacing-sm);
+  margin: 0;
+  padding: 0;
+}
+
+.engineering-actions .usx-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--usx-spacing-xs);
+  min-height: var(--usx-touch-min-sm);
+  margin: 0;
+  padding: 0 var(--usx-spacing-sm);
+  border: 0;
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm);
+  text-decoration: none;
+}
+
+.engineering-actions .usx-btn:hover {
+  color: var(--usx-color-primary);
+}
 .doc-developer-section,
 .doc-engineering-heading {
   display: grid;
@@ -201,8 +239,19 @@ function statusText(status: ApiStatus): string {
   min-width: 0;
 }
 
+.doc-developer-section {
+  margin: 0;
+  padding: 0;
+  gap: var(--usx-spacing-md);
+}
+
 .doc-engineering-heading {
   gap: var(--usx-spacing-xs);
+  margin: 0;
+}
+
+.doc-engineering-heading h1 {
+  font-size: var(--usx-font-size-xl);
 }
 
 .doc-tool-grid {
@@ -211,6 +260,7 @@ function statusText(status: ApiStatus): string {
   gap: var(--usx-spacing-md);
 }
 
+.doc-engineering-heading,
 .doc-tool-card,
 .doc-storage-list {
   padding: var(--usx-spacing-md);
@@ -263,7 +313,7 @@ function statusText(status: ApiStatus): string {
 }
 
 .doc-health-strip {
-  --doc-column-min: calc(var(--usx-touch-min) * 3.5);
+  --doc-column-min: calc(var(--usx-touch-min) * 3);
   display: grid;
   grid-template-columns: repeat(
     auto-fit,
@@ -278,10 +328,8 @@ function statusText(status: ApiStatus): string {
   align-items: center;
   justify-content: space-between;
   gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-  background: var(--usx-color-surface);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
+  padding: var(--usx-spacing-xs) var(--usx-spacing-sm);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
 }
 
 .doc-health-label {

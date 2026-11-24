@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import UIcon from '../../skills/atoms/UIcon.vue'
 import type { AuthoringWorkbenchRecipe, CitationSourceItem } from '../recipes'
 import { citationGenerator, type CitationFormat } from '../../utils/citationGenerator'
 
@@ -104,46 +105,34 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
     <!-- Notification Toast -->
     <transition name="fade">
       <div v-if="copiedMessage" class="workbench-toast">
-        <span class="material-symbols-outlined toast-icon">check_circle</span>
+        <UIcon name="check_circle" class="toast-icon" />
         <span>{{ copiedMessage }}</span>
       </div>
     </transition>
 
-    <!-- Frontmatter Metadata Bar -->
-    <div class="usx-frontmatter-card">
-      <span
-        v-for="(val, key) in recipe.document.frontmatter"
-        :key="key"
-        class="usx-frontmatter-chip"
-      >
-        <span>{{ key }}:</span>
-        <strong>{{ val }}</strong>
-      </span>
-    </div>
-
     <!-- Enhanced Bangle Authoring Toolbar -->
     <div class="authoring-toolbar">
       <div class="toolbar-section format-group">
-        <button class="tb-btn" title="Bold" @click="showNotification('Format: Bold applied')">
-          <span class="material-symbols-outlined">format_bold</span>
+        <button type="button" class="usx-btn tb-btn" title="Bold" @click="showNotification('Format: Bold applied')">
+          <UIcon name="format_bold" />
         </button>
-        <button class="tb-btn" title="Italic" @click="showNotification('Format: Italic applied')">
-          <span class="material-symbols-outlined">format_italic</span>
+        <button type="button" class="usx-btn tb-btn" title="Italic" @click="showNotification('Format: Italic applied')">
+          <UIcon name="format_italic" />
         </button>
-        <button class="tb-btn" title="Code snippet" @click="showNotification('Format: Code block inserted')">
-          <span class="material-symbols-outlined">code</span>
+        <button type="button" class="usx-btn tb-btn" title="Code snippet" @click="showNotification('Format: Code block inserted')">
+          <UIcon name="code" />
         </button>
-        <button class="tb-btn" title="Heading 1" @click="showNotification('Heading 1 toggled')">
-          <span class="material-symbols-outlined">format_h1</span>
+        <button type="button" class="usx-btn tb-btn" title="Heading 1" @click="showNotification('Heading 1 toggled')">
+          <UIcon name="format_h1" />
         </button>
-        <button class="tb-btn" title="Heading 2" @click="showNotification('Heading 2 toggled')">
-          <span class="material-symbols-outlined">format_h2</span>
+        <button type="button" class="usx-btn tb-btn" title="Heading 2" @click="showNotification('Heading 2 toggled')">
+          <UIcon name="format_h2" />
         </button>
-        <button class="tb-btn" title="Bullet List" @click="showNotification('Bullet list toggled')">
-          <span class="material-symbols-outlined">format_list_bulleted</span>
+        <button type="button" class="usx-btn tb-btn" title="Bullet List" @click="showNotification('Bullet list toggled')">
+          <UIcon name="format_list_bulleted" />
         </button>
-        <button class="tb-btn" title="Blockquote" @click="showNotification('Blockquote toggled')">
-          <span class="material-symbols-outlined">format_quote</span>
+        <button type="button" class="usx-btn tb-btn" title="Blockquote" @click="showNotification('Blockquote toggled')">
+          <UIcon name="format_quote" />
         </button>
       </div>
 
@@ -152,44 +141,54 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
       <!-- Research & Citation Tools (Sprint 4C) -->
       <div class="toolbar-section research-group">
         <button
-          class="tb-btn tb-accent"
+          type="button" class="usx-btn tb-btn tb-accent"
           title="Insert Citation"
           @click="showNotification('Citation provenance palette ready in sidebar')"
         >
-          <span class="material-symbols-outlined">bookmark_add</span>
+          <UIcon name="bookmark_add" />
           <span class="tb-label">Cite</span>
         </button>
         <button
-          class="tb-btn tb-accent"
+          type="button" class="usx-btn tb-btn tb-accent"
           title="Combine Research Sources"
           @click="showNotification('Research Synthesis drawer opened')"
         >
-          <span class="material-symbols-outlined">join_inner</span>
+          <UIcon name="join_inner" />
           <span class="tb-label">Combine Research</span>
         </button>
       </div>
 
-      <div class="toolbar-spacer"></div>
-
       <!-- Mode Switcher -->
-      <div class="view-mode-toggle">
+      <div class="view-mode-toggle" role="group" aria-label="Document view">
         <button
-          class="mode-btn"
-          :class="{ active: editorMode === 'preview' }"
+          type="button" class="usx-btn mode-btn"
+          aria-label="Rendered" title="Rendered"
+          :aria-pressed="editorMode === 'preview'"
           @click="editorMode = 'preview'"
         >
-          <span class="material-symbols-outlined">preview</span>
-          <span>Rendered</span>
+          <UIcon name="preview" />
         </button>
         <button
-          class="mode-btn"
-          :class="{ active: editorMode === 'source' }"
+          type="button" class="usx-btn mode-btn"
+          aria-label="Markdown Source" title="Markdown Source"
+          :aria-pressed="editorMode === 'source'"
           @click="editorMode = 'source'"
         >
-          <span class="material-symbols-outlined">edit_note</span>
-          <span>Markdown Source</span>
+          <UIcon name="edit_note" />
         </button>
       </div>
+    </div>
+
+    <!-- Frontmatter Metadata Bar -->
+    <div class="authoring-frontmatter">
+      <span
+        v-for="(val, key) in recipe.document.frontmatter"
+        :key="key"
+        class="usx-frontmatter-chip"
+      >
+        <span>{{ key }}:</span>
+        <strong>{{ val }}</strong>
+      </span>
     </div>
 
     <!-- Two-Column Authoring Stage -->
@@ -209,7 +208,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
           <!-- uKnowledge Citation Callout -->
           <div class="usx-callout usx-callout-note citation-callout">
             <div class="usx-callout-header">
-              <span class="material-symbols-outlined">bookmark</span>
+              <UIcon name="bookmark" />
               <span>Citation: Local-First Software: You own your data, in spite of the cloud</span>
             </div>
             <div class="callout-provenance-meta">
@@ -269,7 +268,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
       <aside class="provenance-pane">
         <div class="provenance-header">
           <div class="provenance-title-row">
-            <span class="material-symbols-outlined provenance-icon">history_edu</span>
+            <UIcon name="history_edu" class="provenance-icon" />
             <h3>uKnowledge Provenance</h3>
           </div>
           <span class="provenance-badge">{{ recipe.citations.length }} Sources</span>
@@ -286,7 +285,7 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
             v-for="fmt in (['uKnowledge', 'Markdown', 'APA', 'MLA', 'Chicago'] as CitationFormat[])"
             :key="fmt"
             class="format-pill-btn"
-            :class="{ active: activeFormat === fmt }"
+            :aria-pressed="activeFormat === fmt"
             @click="activeFormat = fmt"
           >
             {{ fmt }}
@@ -320,11 +319,11 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 
             <h4 class="citation-title">{{ item.title }}</h4>
             <div class="citation-authors" v-if="item.author">
-              <span class="material-symbols-outlined meta-icon">person</span>
+              <UIcon name="person" class="meta-icon" />
               <span>{{ item.author }}</span>
             </div>
             <div class="citation-url" v-if="item.url">
-              <span class="material-symbols-outlined meta-icon">link</span>
+              <UIcon name="link" class="meta-icon" />
               <a :href="item.url" target="_blank" rel="noopener">{{ item.siteName || item.url }}</a>
             </div>
 
@@ -334,8 +333,8 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
             <div class="formatted-output-box">
               <div class="output-label">
                 <span>Output ({{ activeFormat }}):</span>
-                <button class="icon-action-btn" @click="copyCitation(item)" title="Copy to clipboard">
-                  <span class="material-symbols-outlined">content_copy</span>
+                <button type="button" class="usx-btn icon-action-btn" @click="copyCitation(item)" title="Copy to clipboard">
+                  <UIcon name="content_copy" />
                 </button>
               </div>
               <pre class="citation-text"><code>{{ getCitationString(item, activeFormat) }}</code></pre>
@@ -343,12 +342,12 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 
             <!-- Card Actions -->
             <div class="citation-card-actions">
-              <button class="card-btn" @click="copyCitation(item)">
-                <span class="material-symbols-outlined">content_copy</span>
+              <button type="button" class="usx-btn card-btn" @click="copyCitation(item)">
+                <UIcon name="content_copy" />
                 <span>Copy</span>
               </button>
-              <button class="card-btn card-btn-primary" @click="insertCitationToDocument(item)">
-                <span class="material-symbols-outlined">add_comment</span>
+              <button type="button" class="usx-btn card-btn card-btn-primary" @click="insertCitationToDocument(item)">
+                <UIcon name="add_comment" />
                 <span>Insert in Document</span>
               </button>
             </div>
@@ -358,18 +357,18 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
         <!-- Multi-Source Synthesis Section (Sprint 4C Combine Research) -->
         <div class="synthesis-box">
           <div class="synthesis-header">
-            <span class="material-symbols-outlined">join_inner</span>
+            <UIcon name="join_inner" />
             <h4>Research Synthesis</h4>
           </div>
           <p class="synthesis-desc">
             Combine {{ selectedCitationIds.length }} selected sources into a structured synthesis brief:
           </p>
           <button
-            class="synthesis-action-btn"
+            type="button" class="usx-btn synthesis-action-btn"
             :disabled="selectedCitationIds.length === 0"
             @click="insertSynthesis"
           >
-            <span class="material-symbols-outlined">post_add</span>
+            <UIcon name="post_add" />
             <span>Append Synthesis Section</span>
           </button>
         </div>
@@ -384,8 +383,8 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
   width: 100%;
+  container-type: inline-size;
 }
 
 /* Floating Notification Toast */
@@ -421,14 +420,11 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 }
 
 /* Frontmatter Bar */
-.usx-frontmatter-card {
+.authoring-frontmatter {
+  margin-block: var(--usx-spacing-sm);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 0.6rem 0.85rem;
-  background: var(--usx-color-surface-container-low, #1d1b20);
-  border: 1px solid var(--usx-color-outline-variant, #49454f);
-  border-radius: 8px;
+  gap: var(--usx-spacing-xs);
 }
 .usx-frontmatter-chip {
   display: inline-flex;
@@ -446,30 +442,27 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 }
 
 /* Enhanced Bangle Toolbar */
-  gap: var(--usx-spacing-xs);
 .authoring-toolbar {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.45rem 0.65rem;
-  background: var(--usx-color-surface-container, #211f26);
-  border: 1px solid var(--usx-color-outline-variant, #49454f);
-  border-radius: 8px;
   flex-wrap: wrap;
+  gap: var(--usx-spacing-xs);
 }
 .toolbar-section {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem;
 }
+.authoring-toolbar button {
+  margin: 0;
+}
+
 .toolbar-divider {
   width: 1px;
   height: 22px;
   background: var(--usx-color-border);
   margin: 0 0.35rem;
-}
-.toolbar-spacer {
-  flex: 1;
 }
 .tb-btn {
   display: inline-flex;
@@ -505,29 +498,40 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 }
 
 /* Mode Switcher */
-.view-mode-toggle {
-  display: flex;
-  background: var(--usx-color-surface-container-low, #1d1b20);
-  border-radius: 6px;
-  padding: 2px;
-  border: 1px solid var(--usx-color-outline-variant, #49454f);
-}
-.mode-btn {
+.view-mode-toggle[role="group"] {
   display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.25rem 0.55rem;
-  font-size: 0.78rem;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  color: var(--usx-color-on-surface-variant, #cac4d0);
-  cursor: pointer;
+  flex: 0 0 auto;
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  gap: var(--usx-spacing-xs);
 }
-.mode-btn.active {
-  background: var(--usx-color-surface-container-highest, #36343b);
-  color: var(--usx-color-primary, #d0bcff);
-  font-weight: 600;
+.usx-btn.mode-btn {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: var(--usx-touch-min-sm);
+  min-height: var(--usx-touch-min-sm);
+  margin: 0;
+  padding: 0;
+  font-size: var(--usx-font-size-sm);
+  border: var(--usx-border-width) solid transparent;
+  border-radius: var(--usx-radius-sm);
+  background: transparent;
+  color: var(--usx-color-on-surface-muted);
+}
+.usx-btn.mode-btn[aria-pressed="true"] {
+  color: var(--usx-color-primary);
+}
+.usx-btn.mode-btn:focus {
+  box-shadow: none;
+  outline: none;
+}
+.usx-btn.mode-btn:focus-visible {
+  outline: var(--usx-border-width) dashed var(--usx-color-on-surface);
+  outline-offset: calc(-1 * var(--usx-spacing-xs));
 }
 .mode-btn .material-symbols-outlined {
   font-size: 1rem;
@@ -536,24 +540,22 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 /* Workbench Two-Column Layout */
 .authoring-layout {
   display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--usx-spacing-md);
   align-items: start;
 }
 
-@media (max-width: 960px) {
+@container (min-width: 960px) {
   .authoring-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 340px;
   }
 }
 
 /* Document Pane */
 .document-pane {
-  background: var(--usx-color-surface-container-low, #1d1b20);
-  border: 1px solid var(--usx-color-outline-variant, #49454f);
-  border-radius: 8px;
-  padding: 1.5rem;
-  min-height: 480px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
 }
 .prose-content {
   width: 100%;
@@ -627,11 +629,8 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 .provenance-pane {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  background: var(--usx-color-surface-container-low, #1d1b20);
-  border: 1px solid var(--usx-color-outline-variant, #49454f);
-  border-radius: 8px;
-  padding: 1.25rem;
+  gap: var(--usx-spacing-md);
+  min-width: 0;
 }
 .provenance-header {
   display: flex;
@@ -684,10 +683,10 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.format-pill-btn.active {
-  background: var(--usx-color-primary, #d0bcff);
-  color: var(--usx-color-on-primary, #381e72);
-  border-color: var(--usx-color-primary, #d0bcff);
+.format-pill-btn[aria-pressed="true"] {
+  background: var(--usx-color-surface-hover);
+  color: var(--usx-color-primary);
+  border-color: var(--usx-color-primary);
   font-weight: 600;
 }
 
@@ -794,6 +793,12 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 .icon-action-btn .material-symbols-outlined {
   font-size: 0.9rem;
 }
+.citation-text,
+.citation-text code {
+  background: var(--usx-color-background);
+  color: var(--usx-color-on-surface);
+}
+
 .citation-text {
   margin: 0;
   font-size: 0.75rem;
