@@ -1,12 +1,12 @@
 # Sprint — Variables and Recipe Surfaces: Release Evidence
 
 - Sprint: variables API, recipe/UI surfaces, audit parser repair
-- Status: 9 gates green, 2 pending (browser and live UX)
+- Status: 11 gates green, 0 pending
 - Owner: developer-lane
 - Branch: `sprint/variables-and-recipe-surfaces`
-- Code state evidenced: **`6338d74`** (five commits on `16849b9`, the head of PR #56)
+- Code state evidenced: **`970a9f1`** (eight commits on `16849b9`, the head of PR #56)
 - Base: `3399120`; `origin/main` is an ancestor of the branch
-- Captured: 2026-11-24T03:07:06Z
+- Captured: 2026-11-24T03:07:06Z, closed 2026-11-24T03:30Z
 - Governance: evidence recorded against a commit, not a working tree
 
 ## Scope
@@ -18,6 +18,8 @@
 | `0074091` | Action audit parses templates with the DOM parser |
 | `ad6c92f` | Regenerated action inventory, committed separately (stale baseline) |
 | `6338d74` | Settings, surface and workflow task documentation |
+| `1fa681f` | Preview token cycles removed; tab focus ring restored |
+| `970a9f1` | Browser and ten-foot verification suite |
 
 Versions in scope: backend `4.0.3`, frontend `3.0.1`, `@udos/usx-tokens` `3.2.0`.
 
@@ -36,6 +38,7 @@ All measurements taken after the commits above, on a clean tree.
 | Content contract | `python3 scripts/check_content_contract.py` | **0 errors**, 17 retro warnings |
 | Lint | `ruff check` on changed backend files | clean |
 | Path policy | `git diff 3399120...HEAD \| scripts/check_home_path_policy.py --diff-stdin` | OK |
+| Browser flows | `npx playwright test e2e/sprint-verification.spec.ts` | **11 passed**, exit 0 |
 
 Three `F841` findings remain in unrelated test files (`test_binder_api.py`,
 `test_bitchat_store.py`, `test_chat_history_store.py`); they pre-date this sprint
@@ -124,21 +127,54 @@ lock. Not applied, because it addresses a condition that does not yet exist.
    shared hunks with template edits). They are committed with the file rather than
    left dangling.
 
-## Pending
+## Browser and ten-foot verification
 
-| Item | Why it is not green |
+`npx playwright install chromium --only-shell` installed the headless shell (199 MB);
+`npx playwright test e2e/sprint-verification.spec.ts` then ran 11 checks green.
+
+| Area | Assertions |
 | --- | --- |
-| Browser verification of Authoring Recipe, Settings Form, Recipe Gallery and Workflow Tasks | Playwright 1.62.1 with 33 specs is configured, but no browser binaries are installed (`~/Library/Caches/ms-playwright` is absent). Enable with `npx playwright install chromium`, then `npm run test:golden`. |
-| Live UX at 720p–2160p | No display access during this round. |
+| Authoring Recipe | Icon-only mode buttons expose `Rendered` / `Markdown Source`; source and rendered views toggle through `.markdown-textarea` and `.prose-content`; tab focus produces an outline of at least 1px with a solid style |
+| Settings Form | The fixture renders a form, every `input`/`select` is named by a `<label for>`, and submitting with a required field empty surfaces a status message |
+| Recipe Gallery | Every preview control carries an `aria-label`; the theme control changes `data-preview-theme`; the stage reflows at 390px |
+| Workflow Tasks | Lanes and task cards render, the rows/board toggle is reachable by keyboard and applies `.lanes--rows`, and the narrow layout does not overflow |
+| Ten-foot profile | Root scale and 64px controller targets at four targets |
 
-Manual checklist while browsers are unavailable — disposable data, no saves:
+| Viewport | Expected root | Measured |
+| --- | --- | --- |
+| 1280×720 | 18px | 18px |
+| 1920×1080 | 18px | 18px |
+| 2560×1440 | 24px | 24px |
+| 3840×2160 | 36px | 36px |
 
-| Flow | Focus | Icon labels | Narrow (390px) |
-| --- | --- | --- | --- |
-| Authoring Recipe | Tab through the toolbar; every button shows a visible ring | Confirm "Rendered" and "Markdown Source" are announced | Mode row wraps without clipping |
-| Settings Form | fieldset → label → control order; required submit shows the message | n/a (text buttons) | Fields stack; label and variable chip do not collide |
-| Recipe Gallery | Tab into controls; arrow between recipes; theme switch keeps layout | Card labels are text | Stage reflows without horizontal scroll |
-| Workflow Tasks | Row → state control → editor button | Row actions keep accessible names | 3→2 column collapse; destinations ≥28px with clear focus |
+### Defect found by the gate
+
+The gallery's preview theme blocks declared custom properties in terms of
+themselves:
+
+```css
+--usx-color-primary: var(--usx-color-primary);
+--usx-color-surface: var(--usx-color-surface);
+--usx-color-on-surface: var(--usx-color-on-surface);
+```
+
+A self-reference is a cycle, so each property computed to the guaranteed-invalid
+value. Inside the preview stage `--usx-color-primary` was the empty string, which
+made every `outline` shorthand that referenced it invalid — the tab focus ring could
+not render, and `surface` / `on-surface` / `outline` were equally dead. The light
+block additionally assigned `--usx-color-surface` from `--usx-color-on-surface`, the
+text colour. Fixed in `1fa681f`; the ring is now 2px solid primary at +4px offset,
+matching the global focus treatment.
+
+### Residual
+
+A human visual pass on real display hardware is still worthwhile — the suite proves
+computed values, focus, labelling and reflow, not how the ten-foot layout *feels* at
+three metres. Two harness notes are recorded in the spec: the gallery mounts
+asynchronously and can reset a tab selection while it resolves (selection is retried
+until `aria-pressed` is true), and `.usx-btn` transitions `all`, so focus-ring width is
+polled rather than sampled mid-transition.
+
 
 ## Deferred, deliberately
 
@@ -159,6 +195,7 @@ git switch sprint/variables-and-recipe-surfaces   # 6338d74
 ./.venv/bin/python -m pytest backend/tests -q
 ./.venv/bin/python -m pytest backend/tests/test_variables_api.py backend/tests/test_variables_packaging.py -q
 cd frontend-vue && npx vitest run && npm run build && npm run audit:actions
+cd frontend-vue && npx playwright test e2e/sprint-verification.spec.ts
 cd .. && python3 scripts/check_content_contract.py
 cd backend && uv build --wheel -o /tmp/wheelout && unzip -l /tmp/wheelout/*.whl | grep vars.def
 ```
