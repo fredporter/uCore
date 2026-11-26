@@ -33,6 +33,37 @@ _UDOS_HOME = _udos_home(_UDOS_ROOT)
 _SECRETS_HOME = _UDOS_HOME / "secrets"
 
 
+def _distribution_version() -> str:
+    """Resolve the one uCore version from pyproject.toml or the installed distribution.
+
+    A source checkout declares the version once in ``backend/pyproject.toml`` and
+    uses it directly, so a stale editable-install record cannot masquerade as the
+    runtime version. An installed wheel has no pyproject beside the package and
+    falls back to its distribution metadata.
+    """
+    pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
+    try:
+        import tomllib
+
+        with pyproject.open("rb") as handle:
+            return str(tomllib.load(handle)["project"]["version"])
+    except (OSError, KeyError, ValueError):
+        pass
+
+    try:
+        from importlib.metadata import PackageNotFoundError, version
+    except ImportError:  # pragma: no cover - Python without importlib.metadata
+        return "0.0.0"
+
+    for name in ("ucore", "uCore"):
+        try:
+            return version(name)
+        except PackageNotFoundError:
+            continue
+
+    return "0.0.0"
+
+
 @dataclass
 class Settings:
     """Central uCore configuration."""
@@ -43,7 +74,7 @@ class Settings:
         "0",
     ).lower() in ("1", "true", "yes")
     app_name: str = "uCore"
-    version: str = "4.0.5"
+    version: str = _distribution_version()
 
     # ── Server ───────────────────────────────────────────────
     host: str = os.environ.get("UCORE_HOST", "0.0.0.0")
