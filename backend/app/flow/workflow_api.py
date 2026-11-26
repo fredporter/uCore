@@ -535,50 +535,29 @@ async def handle_list_workflows(request: web.Request) -> web.Response:
     return web.json_response({"workflows": workflows, "count": len(workflows)})
 
 
-async def handle_run_workflow(request: web.Request) -> web.Response:
-    """POST /api/workflows/{id}/run — run workflow steps sequentially."""
+async def _execute_steps(
+    *,
+    manager,
+    context,
+    workflow: dict[str, Any],
+    workflow_id: str,
+    run_id: str,
+    owner: str,
+    start_index: int,
+    deadline: float,
+) -> tuple[list[dict[str, Any]], str]:
+    """Run steps from start_index, checkpointing after each one."""
+    from app.services import run_control
     from app.skills.registry import SERVER_RUN_FIELDS, run_skill_by_id
 
-    workflow_id = request.match_info.get("workflow_id", "")
-    manager = get_workflow_manager()
-    owner = _active_owner()
-    context = _execution_context(owner)
-    workflow = manager.get_workflow(workflow_id, owner=owner)
-    if not workflow:
-        return web.json_response({"error": "Workflow not found"}, status=404)
-
-    run_id = f"run-{uuid.uuid4().hex[:10]}"
-    run_started = datetime.now(UTC).isoformat()
-    manager.start_run(
-        run_id=run_id,
-        workflow_id=workflow_id,
-        workflow_name=workflow.get("name", ""),
-        started_at=run_started,
-        owner=owner,
-    )
-    run_rows: list[dict[str, Any]] = []
-    failed = False
-    stop_status = ""
-    deadline = time.monotonic() + RUN_BUDGET_SECONDS
-    from app.services import run_control
-
-    _append_workflow_log(
-        workflow_id,
-        {
-            "level": "info",
-            "event": "workflow-run-started",
-            "run_id": run_id,
-            "message": f"Run started ({len(workflow.get('steps', []))} steps)",
-        },
-    )
-
+    rows: list[dict[str, Any]] = []
     for idx, step in enumerate(workflow.get("steps", []), start=1):
+        if idx <= start_index:
+            continue
         if run_control.is_cancelled(run_id):
-            stop_status = "cancelled"
-            break
+            return rows, "cancelled"
         if time.monotonic() > deadline:
-            stop_status = "timed_out"
-            break
+            return rows, "timed_out"
         skill_id = step.get("skill_id", "")
         params = step.get("params") or {}
         step_started = datetime.now(UTC).isoformat()
@@ -588,17 +567,18 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
             else:
                 result = await run_skill_by_id(str(skill_id), context=context, **params)
             success = bool(result.get("success", True))
-            row = {
-                "index": idx,
-                "type": "skill",
-                "skill_id": skill_id,
-                "started_at": step_started,
-                "finished_at": datetime.now(UTC).isoformat(),
-                "success": success,
-                "result": result,
-            }
-            run_rows.append(row)
-            manager.checkpoint_run(run_id=run_id, steps=run_rows, owner=owner)
+            rows.append(
+                {
+                    "index": idx,
+                    "type": "skill",
+                    "skill_id": skill_id,
+                    "started_at": step_started,
+                    "finished_at": datetime.now(UTC).isoformat(),
+                    "success": success,
+                    "result": result,
+                }
+            )
+            manager.checkpoint_run(run_id=run_id, steps=rows, owner=owner)
             _append_workflow_log(
                 workflow_id,
                 {
@@ -607,28 +587,24 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
                     "run_id": run_id,
                     "step_index": idx,
                     "skill_id": skill_id,
-                    "message": (
-                        f"Step {idx} {'succeeded' if success else 'failed'}: "
-                        f"{skill_id}"
-                    ),
+                    "message": f"Step {idx} {'succeeded' if success else 'failed'}: {skill_id}",
                 },
             )
             if not success:
-                failed = True
-                break
+                return rows, "failed"
         except Exception as exc:
-            failed = True
-            row = {
-                "index": idx,
-                "type": "skill",
-                "skill_id": skill_id,
-                "started_at": step_started,
-                "finished_at": datetime.now(UTC).isoformat(),
-                "success": False,
-                "error": str(exc),
-            }
-            run_rows.append(row)
-            manager.checkpoint_run(run_id=run_id, steps=run_rows, owner=owner)
+            rows.append(
+                {
+                    "index": idx,
+                    "type": "skill",
+                    "skill_id": skill_id,
+                    "started_at": step_started,
+                    "finished_at": datetime.now(UTC).isoformat(),
+                    "success": False,
+                    "error": str(exc),
+                }
+            )
+            manager.checkpoint_run(run_id=run_id, steps=rows, owner=owner)
             _append_workflow_log(
                 workflow_id,
                 {
@@ -640,9 +616,53 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
                     "message": f"Step {idx} crashed: {exc}",
                 },
             )
-            break
+            return rows, "failed"
+    return rows, "completed"
 
-    status = stop_status or ("failed" if failed else "completed")
+
+async def _start_run(
+    manager,
+    workflow: dict[str, Any],
+    workflow_id: str,
+    owner: str,
+    *,
+    start_index: int = 0,
+    resumed_from: str | None = None,
+) -> dict[str, Any]:
+    """Admit a run, execute it with checkpoints, persist the outcome."""
+    from app.services import run_control
+
+    context = _execution_context(owner)
+    run_id = f"run-{uuid.uuid4().hex[:10]}"
+    run_started = datetime.now(UTC).isoformat()
+    manager.start_run(
+        run_id=run_id,
+        workflow_id=workflow_id,
+        workflow_name=workflow.get("name", ""),
+        started_at=run_started,
+        owner=owner,
+    )
+    detail = f", resumed from {resumed_from} at step {start_index}" if resumed_from else ""
+    _append_workflow_log(
+        workflow_id,
+        {
+            "level": "info",
+            "event": "workflow-run-started",
+            "run_id": run_id,
+            "message": f"Run started ({len(workflow.get('steps', []))} steps){detail}",
+        },
+    )
+
+    rows, status = await _execute_steps(
+        manager=manager,
+        context=context,
+        workflow=workflow,
+        workflow_id=workflow_id,
+        run_id=run_id,
+        owner=owner,
+        start_index=start_index,
+        deadline=time.monotonic() + RUN_BUDGET_SECONDS,
+    )
     run_result = manager.save_run(
         run_id=run_id,
         workflow_id=workflow_id,
@@ -650,22 +670,64 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
         started_at=run_started,
         finished_at=datetime.now(UTC).isoformat(),
         status=status,
-        steps=run_rows,
+        steps=rows,
         owner=owner,
     )
     run_control.clear(run_id)
-
     _append_workflow_log(
         workflow_id,
         {
-            "level": "info" if not failed else "error",
+            "level": "info" if status == "completed" else "error",
             "event": "workflow-run-finished",
             "run_id": run_id,
             "message": f"Run finished with status={status}",
         },
     )
+    return run_result
 
-    return web.json_response(run_result)
+
+async def handle_run_workflow(request: web.Request) -> web.Response:
+    """POST /api/workflows/{id}/run — run workflow steps sequentially."""
+    workflow_id = request.match_info.get("workflow_id", "")
+    manager = get_workflow_manager()
+    owner = _active_owner()
+    workflow = manager.get_workflow(workflow_id, owner=owner)
+    if not workflow:
+        return web.json_response({"error": "Workflow not found"}, status=404)
+    return web.json_response(await _start_run(manager, workflow, workflow_id, owner))
+
+
+async def handle_resume_run(request: web.Request) -> web.Response:
+    """POST /api/workflows/runs/{run_id}/resume — continue after the last checkpoint."""
+    manager = get_workflow_manager()
+    owner = _active_owner()
+    run_id = request.match_info.get("run_id", "")
+    previous = manager.get_run(run_id, owner=owner)
+    if previous is None:
+        return web.json_response({"error": "Run not found"}, status=404)
+    if previous["status"] == "running":
+        return web.json_response(
+            {"error": "Run is still running", "status": "running"},
+            status=409,
+        )
+    workflow = manager.get_workflow(previous["workflow_id"], owner=owner)
+    if workflow is None:
+        return web.json_response({"error": "Workflow not found"}, status=404)
+    completed = len(previous.get("steps") or [])
+    if completed >= len(workflow.get("steps") or []):
+        return web.json_response(
+            {"error": "Run has no remaining steps", "status": previous["status"]},
+            status=409,
+        )
+    result = await _start_run(
+        manager,
+        workflow,
+        previous["workflow_id"],
+        owner,
+        start_index=completed,
+        resumed_from=run_id,
+    )
+    return web.json_response(result)
 
 
 async def handle_cancel_run(request: web.Request) -> web.Response:

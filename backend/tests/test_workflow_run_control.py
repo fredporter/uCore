@@ -90,6 +90,99 @@ def test_checkpoint_records_progress_while_running(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_resume_runs_only_the_remaining_steps(tmp_path, monkeypatch):
+    from app.skills import registry as skill_registry
+
+    manager = _setup(
+        tmp_path,
+        monkeypatch,
+        [
+            {"type": "skill", "skill_id": "first", "params": {}},
+            {"type": "skill", "skill_id": "second", "params": {}},
+        ],
+    )
+    manager.save_run(
+        run_id="run-old",
+        workflow_id="wf-1",
+        workflow_name="Workflow",
+        started_at="t0",
+        finished_at="t1",
+        status="interrupted",
+        steps=[{"index": 1, "skill_id": "first", "success": True}],
+        owner="alice",
+    )
+    called: list[str] = []
+
+    async def fake_run(skill_id, **_kwargs):
+        called.append(skill_id)
+        return {"success": True}
+
+    monkeypatch.setattr(skill_registry, "run_skill_by_id", fake_run)
+    request = make_mocked_request(
+        "POST",
+        "/api/workflows/runs/run-old/resume",
+        match_info={"run_id": "run-old"},
+    )
+
+    response = await workflow_api.handle_resume_run(request)
+
+    payload = json.loads(response.text)
+    assert payload["status"] == "completed"
+    assert called == ["second"]
+    assert [step["index"] for step in payload["steps"]] == [2]
+
+
+@pytest.mark.asyncio
+async def test_resume_rejects_running_and_finished_runs(tmp_path, monkeypatch):
+    manager = _setup(
+        tmp_path, monkeypatch, [{"type": "skill", "skill_id": "one", "params": {}}]
+    )
+    manager.start_run(
+        run_id="run-live",
+        workflow_id="wf-1",
+        workflow_name="Workflow",
+        started_at="t0",
+        owner="alice",
+    )
+    live = await workflow_api.handle_resume_run(
+        make_mocked_request(
+            "POST",
+            "/api/workflows/runs/run-live/resume",
+            match_info={"run_id": "run-live"},
+        )
+    )
+    assert live.status == 409
+
+    manager.save_run(
+        run_id="run-complete",
+        workflow_id="wf-1",
+        workflow_name="Workflow",
+        started_at="t0",
+        finished_at="t1",
+        status="completed",
+        steps=[{"index": 1, "success": True}],
+        owner="alice",
+    )
+    nothing_left = await workflow_api.handle_resume_run(
+        make_mocked_request(
+            "POST",
+            "/api/workflows/runs/run-complete/resume",
+            match_info={"run_id": "run-complete"},
+        )
+    )
+    assert nothing_left.status == 409
+
+    missing = await workflow_api.handle_resume_run(
+        make_mocked_request(
+            "POST",
+            "/api/workflows/runs/run-absent/resume",
+            match_info={"run_id": "run-absent"},
+        )
+    )
+    assert missing.status == 404
+
+
+@pytest.mark.asyncio
 async def test_cancel_endpoint_reports_state(tmp_path, monkeypatch):
     manager = _setup(
         tmp_path, monkeypatch, [{"type": "skill", "skill_id": "safe", "params": {}}]
