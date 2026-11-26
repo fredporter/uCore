@@ -2,7 +2,9 @@
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { parse, compileScript } = require('vue/compiler-sfc');
-const { baseParse } = createRequire(require.resolve('vue/compiler-sfc'))('@vue/compiler-dom');
+// Use compiler-dom's parse, not baseParse: only the DOM parser applies HTML void
+// tags, so a bare <input> would otherwise stay open and fail as a missing end tag.
+const { parse: parseTemplate } = createRequire(require.resolve('vue/compiler-sfc'))('@vue/compiler-dom');
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 const root = path.resolve(import.meta.dirname, '..');
@@ -21,7 +23,7 @@ for (const file of files(path.join(root, 'src'))) {
       scriptBindings = compileScript(descriptor, { id: file, fs: { fileExists: existsSync, readFile: p => readFileSync(p, 'utf8') } }).bindings;
     } catch { /* Type imports may require build context; leave outcome unverified. */ }
   }
-  const ast = baseParse(descriptor.template.content);
+  const ast = parseTemplate(descriptor.template.content);
   function walk(node, form = '') {
     if (node.type !== 1) { for (const child of node.children || []) walk(child, form); return; }
     const attrs = Object.fromEntries(node.props.filter(p => p.type === 6).map(p => [p.name, p.value?.content || '']));
