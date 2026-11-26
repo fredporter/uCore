@@ -51,6 +51,39 @@ def _active_owner() -> str:
     return str(identity.get("active_profile_id") or "default")
 
 
+DEVELOPER_ROLES = {"developer", "owner", "wizard"}
+
+
+def _active_role() -> str:
+    """Read the role of the server-resolved active profile."""
+    from app.services.identity import get_full_identity
+
+    profile = get_full_identity().get("active_profile") or {}
+    return str(profile.get("role") or "").lower()
+
+
+def _execution_context(owner: str):
+    """Build the run's execution context from the server identity only.
+
+    The scope comes from the active profile's role, never from request input, so a
+    workflow cannot claim developer authority by naming it in a body or a step.
+    """
+    from app.core.execution_context import ExecutionContext
+
+    role = _active_role()
+    scope = "developer" if role in DEVELOPER_ROLES else "user"
+    return ExecutionContext(
+        task_id=f"workflow-run:{owner}",
+        scope=scope,
+        lane="workflow",
+        network_policy="local_only",
+        provider_eligibility=(
+            ["ollama"] if scope == "user" else ["ollama", "openrouter"]
+        ),
+        metadata={"profile": owner, "role": role, "surface": "workflow-run"},
+    )
+
+
 def record_import_job(
     task_id: str,
     status: str = "queued",
@@ -501,6 +534,7 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
     workflow_id = request.match_info.get("workflow_id", "")
     manager = get_workflow_manager()
     owner = _active_owner()
+    context = _execution_context(owner)
     workflow = manager.get_workflow(workflow_id, owner=owner)
     if not workflow:
         return web.json_response({"error": "Workflow not found"}, status=404)
@@ -528,7 +562,7 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
             if not isinstance(params, dict) or SERVER_RUN_FIELDS.intersection(params):
                 result = {"success": False, "error": "Invalid workflow skill parameters"}
             else:
-                result = await run_skill_by_id(str(skill_id), **params)
+                result = await run_skill_by_id(str(skill_id), context=context, **params)
             success = bool(result.get("success", True))
             row = {
                 "index": idx,

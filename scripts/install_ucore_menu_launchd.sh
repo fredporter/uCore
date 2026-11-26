@@ -9,7 +9,7 @@ BACKEND_DIR="$UCORE_ROOT/backend"
 ROOT_VENV_DIR="$UCORE_ROOT/backend/.venv"
 LABEL="com.udos.ucore-menu"
 PLIST_PATH="$HOME/Library/LaunchAgents/${LABEL}.plist"
-LOG_DIR="$HOME/.ucore/logs"
+LOG_DIR="${UDOS_HOME:-$UCORE_ROOT/../.udos}/logs"
 
 usage() {
     cat <<EOF

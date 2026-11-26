@@ -82,3 +82,86 @@ async def test_cross_profile_run_is_not_found(tmp_path, monkeypatch):
     response = await workflow_api.handle_run_workflow(request)
     assert response.status == 404
     assert manager.get_all_runs() == []
+
+
+@pytest.mark.asyncio
+async def test_run_derives_user_scope_from_profile_role(tmp_path, monkeypatch):
+    """A guest profile runs with user scope and local-only providers."""
+    from app.skills import registry as skill_registry
+
+    monkeypatch.setattr(settings, "data_dir", tmp_path)
+    manager = WorkflowManager()
+    manager.create_workflow(
+        "wf-guest",
+        "Guest",
+        [{"type": "skill", "skill_id": "safe", "params": {}}],
+        owner="guest",
+    )
+    monkeypatch.setattr(workflow_api, "_manager", manager)
+    monkeypatch.setattr(
+        identity,
+        "get_full_identity",
+        lambda: {
+            "authenticated": True,
+            "active_profile_id": "guest",
+            "active_profile": {"id": "guest", "role": "guest"},
+        },
+    )
+
+    seen = {}
+
+    async def fake_run(skill_id, **kwargs):
+        seen["skill_id"] = skill_id
+        seen["context"] = kwargs.get("context")
+        return {"success": True}
+
+    monkeypatch.setattr(skill_registry, "run_skill_by_id", fake_run)
+    request = make_mocked_request("POST", "/api/workflows/wf-guest/run", match_info={"workflow_id": "wf-guest"})
+
+    response = await workflow_api.handle_run_workflow(request)
+
+    assert response.status == 200
+    assert seen["skill_id"] == "safe"
+    assert seen["context"].scope == "user"
+    assert seen["context"].metadata == {"profile": "guest", "role": "guest", "surface": "workflow-run"}
+    assert seen["context"].provider_eligibility == ["ollama"]
+
+
+@pytest.mark.asyncio
+async def test_run_grants_developer_scope_only_from_role(tmp_path, monkeypatch):
+    """A developer profile receives developer scope; the step cannot ask for it."""
+    from app.skills import registry as skill_registry
+
+    monkeypatch.setattr(settings, "data_dir", tmp_path)
+    manager = WorkflowManager()
+    manager.create_workflow(
+        "wf-dev",
+        "Dev",
+        [{"type": "skill", "skill_id": "safe", "params": {}}],
+        owner="dev",
+    )
+    monkeypatch.setattr(workflow_api, "_manager", manager)
+    monkeypatch.setattr(
+        identity,
+        "get_full_identity",
+        lambda: {
+            "authenticated": True,
+            "active_profile_id": "dev",
+            "active_profile": {"id": "dev", "role": "developer"},
+        },
+    )
+
+    seen = {}
+
+    async def fake_run(skill_id, **kwargs):
+        seen["context"] = kwargs.get("context")
+        return {"success": True}
+
+    monkeypatch.setattr(skill_registry, "run_skill_by_id", fake_run)
+    request = make_mocked_request("POST", "/api/workflows/wf-dev/run", match_info={"workflow_id": "wf-dev"})
+
+    response = await workflow_api.handle_run_workflow(request)
+
+    assert response.status == 200
+    assert seen["context"].scope == "developer"
+    assert seen["context"].network_policy == "local_only"

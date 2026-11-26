@@ -24,6 +24,9 @@ UCORE_BACKEND_DIR = os.environ.get(
 )
 UCORE_URL = "http://127.0.0.1:8484"
 UI_HUB_URL = "http://localhost:5175"
+# Liveness probes use the loopback address the dev server binds; `localhost` can
+# resolve to ::1 where it is not listening.
+FRONTEND_PROBE_URL = "http://127.0.0.1:5175/"
 
 # ─── Status Checks ───────────────────────────────────────────────────
 
@@ -49,10 +52,12 @@ def _is_frontend_alive() -> bool:
     try:
         import urllib.request
 
-        req = urllib.request.Request(UI_HUB_URL, method="GET")
+        req = urllib.request.Request(FRONTEND_PROBE_URL, method="GET")
         with urllib.request.urlopen(req, timeout=3) as resp:
-            body = resp.read(1024).decode("utf-8", errors="ignore")
-            return resp.status < 500 and "<!DOCTYPE html>" in body
+            body = resp.read(1024).decode("utf-8", errors="ignore").lstrip().lower()
+            return resp.status < 500 and (
+                body.startswith("<!doctype") or "<html" in body
+            )
     except Exception:
         return False
 
