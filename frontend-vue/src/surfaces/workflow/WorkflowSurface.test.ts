@@ -4,6 +4,7 @@ import { shallowMount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { defineComponent } from 'vue';
 import WorkflowSurface from './WorkflowSurface.vue';
+import TasksPanel from './panels/TasksPanel.vue';
 import { useWorkflowStore } from '../../stores/workflow';
 import { useWorkspaceStore } from '../../stores/workspace';
 import { getEditorSurface } from '../../composables/useEditorSurface';
@@ -122,5 +123,30 @@ it('restores a Binder research link into the Research tab and passes through its
     path: '/workflow',
     query: expect.objectContaining({ tab: 'research', binder: 'garden', view: undefined }),
   });
+  wrapper.unmount();
+});
+
+it('shows the next unfinished step and supports task actions from a Kanban card', async () => {
+  const store = useWorkflowStore();
+  const task = {
+    ...store.selectedTask!,
+    steps: [
+      { id: 'done', title: 'Done step', status: 'completed' as const },
+      { id: 'next', title: 'Next step', status: 'todo' as const },
+    ],
+  };
+  store.tasks = [task];
+  const patchTask = vi.spyOn(store, 'patchTask').mockResolvedValue({ ...task, status: 'blocked' });
+  const wrapper = shallowMount(TasksPanel);
+  await wrapper.get('button[title="Kanban view"]').trigger('click');
+
+  const card = wrapper.get('.kanban-card');
+  expect(card.text()).toContain('Next step');
+  expect(card.text()).not.toContain('Done step');
+  await card.get('select[aria-label="Status for Task"]').setValue('blocked');
+  expect(patchTask).toHaveBeenCalledWith(task.id, { status: 'blocked' });
+  await card.get('button').trigger('click');
+  expect(store.activeTab).toBe('editor');
+  expect(store.selectedTask?.id).toBe(task.id);
   wrapper.unmount();
 });

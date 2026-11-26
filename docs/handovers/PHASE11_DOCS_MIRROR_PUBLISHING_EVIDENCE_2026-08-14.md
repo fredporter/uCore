@@ -1,5 +1,8 @@
 # Phase 11 — Docs Mirroring & Publishing: Evidence Bundle
 
+<!-- path-policy: allow-literals — this evidence records the legacy mirror path
+     that the phase was closing out; it is quoted history, not a live default. -->
+
 - Phase: 11 — Docs Mirroring & Publishing (Lane-Separated)
 - Status: Complete
 - Owner: developer-lane
@@ -32,7 +35,7 @@ POST /api/docs/publish            -> {status: ok, rendered_pages: 168}
 GET  /api/docs/publish/status     -> {status: ok, total_files: 168}
 ```
 
-- Mirror: `${UDOS_HOME}/docs-mirror/` (168 files; uCode 96, uCore 70, uCode+ 2;
+- Mirror: `~/.ucore/docs-mirror/` (168 files; uCode 96, uCore 70, uCode+ 2;
   uFlow + uKnowledge missing because those repos do not exist under ~/Code).
 - Published site: `~/Public/doc-sites/udos-docs/` (index.html, per-repo and
   per-doc pages, sitemap.html, USX-styled assets/style.css, publish.json).

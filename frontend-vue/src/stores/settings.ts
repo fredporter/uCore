@@ -11,7 +11,14 @@ export type FontStyle = 'inter' | 'system' | 'mono'
 export type Palette = 'default' | 'ocean' | 'forest' | 'sunset'
 export type ThemeMode = 'light' | 'dark' | 'auto'
 
-export type TerminologyPack = 'standard' | 'storytelling'
+export const terminologyPacks = {
+  standard: 'Standard',
+  storytelling: 'Storytelling',
+  plain: 'Plain language',
+  technical: 'Technical',
+} as const
+export type TerminologyPack = keyof typeof terminologyPacks
+export type ReadingFont = 'serif' | 'sans' | 'mono'
 const legacyTerminologyKey = 'ucore.document.terminology'
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -20,8 +27,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const terminologyPack = ref<TerminologyPack>(
     localStorage.getItem(legacyTerminologyKey) === 'storytelling' ? 'storytelling' : 'standard',
   )
-  const readingFont = ref<'serif' | 'sans'>('serif')
-  function setReadingFont(value: 'serif' | 'sans') { readingFont.value = value }
+  const readingFont = ref<ReadingFont>('serif')
+  function setReadingFont(value: ReadingFont) { readingFont.value = value }
   const palette = ref<Palette>('default')
   const themeMode = ref<ThemeMode>('dark')
   const defaultModel = ref('auto')
@@ -53,8 +60,8 @@ export const useSettingsStore = defineStore('settings', () => {
   function setAdvancedView(enabled: boolean) { advancedView.value = enabled }
 
   function applyPreferences(value: Record<string, unknown>) {
-    if (value.terminologyPack === 'standard' || value.terminologyPack === 'storytelling') terminologyPack.value = value.terminologyPack
-    if (value.readingFont === 'serif' || value.readingFont === 'sans') readingFont.value = value.readingFont
+    if (typeof value.terminologyPack === 'string' && Object.hasOwn(terminologyPacks, value.terminologyPack)) terminologyPack.value = value.terminologyPack as TerminologyPack
+    if (value.readingFont === 'serif' || value.readingFont === 'sans' || value.readingFont === 'mono') readingFont.value = value.readingFont
     if (typeof value.advancedView === 'boolean') advancedView.value = value.advancedView
     if (value.fontStyle === 'inter' || value.fontStyle === 'system' || value.fontStyle === 'mono') fontStyle.value = value.fontStyle
     if (typeof value.fontSize === 'number') setFontSize(value.fontSize)
@@ -108,7 +115,7 @@ export const useSettingsStore = defineStore('settings', () => {
   function applyTheme() {
     const root = document.documentElement
     root.style.setProperty('--usx-font-size-base', `${fontSize.value}px`)
-    root.style.setProperty('--usx-font-family-reading', readingFont.value === 'sans' ? 'var(--usx-font-family-sans, system-ui, sans-serif)' : 'var(--usx-font-family-serif, Charter, Georgia, serif)')
+    root.style.setProperty('--usx-font-family-reading', `var(--usx-font-family-${readingFont.value})`)
     root.setAttribute('data-theme', themeMode.value)
     root.setAttribute('data-palette', palette.value)
     root.setAttribute('data-font', fontStyle.value)

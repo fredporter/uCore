@@ -26,6 +26,7 @@ export default defineConfig({
     baseURL: "http://localhost:5175",
     viewport: { width: 1280, height: 800 },
     deviceScaleFactor: 1,
+    channel: process.env.UCORE_PLAYWRIGHT_CHANNEL,
   },
   webServer: {
     command: "npm run dev",

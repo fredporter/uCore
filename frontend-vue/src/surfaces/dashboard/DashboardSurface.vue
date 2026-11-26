@@ -167,7 +167,7 @@ const SURFACE_CARD_DATA: Record<
     title: "Engineering",
     description: "Developer tools and interface examples",
     icon: "terminal",
-    route: "/documentation?tab=developer",
+    route: "/engineering",
     color: "var(--usx-color-primary)",
   },
   markdown: {
@@ -202,7 +202,7 @@ const SURFACE_CARD_DATA: Record<
     title: "HomeNook",
     description: "Media and games",
     icon: "tv",
-    route: "/homenest",
+    route: "/homenook",
     color: "var(--usx-color-info)",
   },
   bitchat: {
@@ -384,7 +384,7 @@ function navigate(route: string) {
   background: var(--usx-color-surface);
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-lg);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--usx-color-scrim) 4%, transparent);
 }
 
 .dashboard-sync-card__header {
@@ -406,7 +406,7 @@ function navigate(route: string) {
 
 .dashboard-sync-card__title h3 {
   margin: 0;
-  font-size: var(--usx-font-size-md);
+  font-size: var(--usx-font-size-base);
   font-weight: 600;
   color: var(--usx-color-on-surface);
 }

@@ -84,6 +84,53 @@ function persistConversations(convs: Conversation[], pid: string = 'default') {
 
 // ─── Store ─────────────────────────────────────────────────────────
 
+export async function streamChat(
+  message: string,
+  model: string | undefined,
+  history: Pick<ChatMessage, 'role' | 'content'>[],
+  onText: (text: string) => void,
+): Promise<void> {
+  const res = await fetch(`${SNACKBAR_API}/api/chat/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, model, history }),
+    signal: AbortSignal.timeout(60000),
+  })
+
+  if (!res.ok) throw new Error(`API returned ${res.status}`)
+
+  const reader = res.body?.getReader()
+  if (!reader) throw new Error('No response body')
+
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6).trim()
+        if (!data || data === '[DONE]') continue
+        let parsed
+        try {
+          parsed = JSON.parse(data)
+        } catch {
+          continue
+        }
+        if (parsed.system) onText(`${parsed.system}\n\n`)
+        if (parsed.token) onText(parsed.token)
+        if (parsed.error) onText(`\n\n${parsed.error}`)
+      }
+    }
+  }
+}
+
 export const useChatStore = defineStore('chat', () => {
   const identityStore = useIdentityStore()
   const profileId = computed(() => identityStore.activeProfileId || 'default')
@@ -99,8 +146,7 @@ export const useChatStore = defineStore('chat', () => {
     { id: 'auto', provider: 'local Ollama', name: 'Local Assistant', cost: 'free' },
     { id: 'llama3.2', provider: 'ollama', name: 'Llama 3.2', cost: 'free' },
     { id: 'mistral', provider: 'ollama', name: 'Mistral', cost: 'free' },
-    { id: 'dolphin-mixtral-8x7b', provider: 'openrouter-free', name: 'Dolphin Mixtral 8x7B', cost: 'free' },
-    { id: 'phi-3-medium-128k-instruct', provider: 'openrouter-free', name: 'Phi-3 Medium 128K', cost: 'free' },
+    { id: 'openrouter/free', provider: 'openrouter-free', name: 'OpenRouter Free Models', cost: 'free' },
     { id: 'gpt-4o', provider: 'openrouter', name: 'GPT-4o', cost: 'mid-range' },
   ])
   const selectedModel = ref('auto')
@@ -137,6 +183,8 @@ export const useChatStore = defineStore('chat', () => {
     const message = (text || input.value).trim()
     if (!message || loading.value) return
 
+    const history = messages.value.map(({ role, content }) => ({ role, content }))
+    const model = selectedModel.value === 'auto' ? undefined : selectedModel.value
     messages.value.push({
       id: msgId('user'),
       role: 'user',
@@ -155,43 +203,11 @@ export const useChatStore = defineStore('chat', () => {
     })
 
     try {
-      // Try streaming via SSE
-      const params = new URLSearchParams({ message, mode: promptMode.value })
-      if (selectedModel.value !== 'auto') params.set('model', selectedModel.value)
-      const res = await fetch(`${SNACKBAR_API}/api/chat/stream?${params}`, {
-        signal: AbortSignal.timeout(60000),
+      if (promptMode.value !== 'chat') throw new Error('Use mode-aware chat')
+      await streamChat(message, model, history, text => {
+        const reply = messages.value.find(item => item.id === assistantId)
+        if (reply) reply.content += text
       })
-
-      if (!res.ok) throw new Error(`API returned ${res.status}`)
-
-      const reader = res.body?.getReader()
-      if (!reader) throw new Error('No response body')
-
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim()
-            if (!data) continue
-            try {
-              const parsed = JSON.parse(data)
-              if (parsed.token) {
-                const msg = messages.value.find(m => m.id === assistantId)
-                if (msg) msg.content += parsed.token
-              }
-            } catch { /* skip malformed */ }
-          }
-        }
-      }
     } catch {
       // Fallback to non-streaming POST
       try {
@@ -201,8 +217,8 @@ export const useChatStore = defineStore('chat', () => {
           body: JSON.stringify({
             message,
             mode: promptMode.value,
-            ...(selectedModel.value === 'auto' ? {} : { model: selectedModel.value }),
-            history: messages.value.map(m => ({ role: m.role, content: m.content })),
+            model,
+            history,
           }),
           signal: AbortSignal.timeout(15000),
         })
@@ -388,6 +404,28 @@ export const useChatStore = defineStore('chat', () => {
             { id: 'auto', provider: 'local Ollama', name: 'Local Assistant', cost: 'free' },
             ...data.models.filter((model: ModelOption) => model.id !== 'auto'),
           ]
+        }
+      }
+    } catch { /* keep defaults */ }
+
+    // Sprint 1G – also load OpenRouter cloud models
+    try {
+      const cloudRes = await fetch(`${SNACKBAR_API}/api/models/cloud`, { signal: AbortSignal.timeout(3000) })
+      if (cloudRes.ok) {
+        const cloudData = await cloudRes.json()
+        if (cloudData.models?.length > 0) {
+          const existing = new Set(models.value.map((m: ModelOption) => m.id))
+          const cloudModels = cloudData.models
+            .filter((m: ModelOption) => !existing.has(m.id))
+            .map((m: ModelOption) => ({
+              id: m.id,
+              provider: m.provider ?? 'openrouter',
+              name: m.name ?? m.id,
+              cost: m.cost ?? 'unknown',
+            }))
+          if (cloudModels.length > 0) {
+            models.value = [...models.value, ...cloudModels]
+          }
         }
       }
     } catch { /* keep defaults */ }

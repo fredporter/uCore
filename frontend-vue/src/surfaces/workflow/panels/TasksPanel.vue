@@ -67,7 +67,7 @@
       </div>
 
       <div v-if="wf.taskError" class="wf-error" role="alert">{{ wf.taskError }} <button class="usx-btn" @click="wf.fetchTasks()">Retry</button></div>
-      <div v-if="dragError" class="wf-error">
+      <div v-if="dragError" class="wf-error" role="alert">
         <UIcon name="error" /> {{ dragError }}
       </div>
 
@@ -80,6 +80,29 @@
         <span>{{ visibleTasks.length }} tasks · {{ wf.scopedTasks.filter(task => task.status === 'completed').length }} done</span>
       </div>
       <div v-if="wf.binderChoices.length" class="task-destinations" aria-label="Move or copy to a Binder"><span>Move to Binder:</span><button v-for="binder in wf.binderChoices" :key="binder.id" class="usx-btn" @click="wf.showList('',binder.id)" @dragover.prevent @drop.prevent="dropInto($event, { binder: binder.id })">{{ binder.title || binder.id }}</button><small>Hold Option/Alt while dropping to copy.</small></div>
+
+      <section v-if="storyTask" class="surface__panel workflow-task-story" aria-label="Workflow Story Form">
+        <StoryWizard
+          inline
+          :steps="[{ title: storyTitle(storyTask), subtitle: storyTask.title }]"
+          :finish-label="needsApproval(storyTask) ? 'Approve action' : storyStatus === 'completed' ? 'Complete task' : 'Resume task'"
+          :busy="storyBusy"
+          @finish="advanceStory"
+        >
+          <template #step-0>
+            <p>{{ storyTask.description || storyTask.summary || 'Complete the required check before advancing this task.' }}</p>
+            <div class="workflow-task-story__actions">
+              <button class="usx-btn" @click="wf.openTask(storyTask)"><UIcon name="description" /> Open task</button>
+              <RouterLink class="usx-btn" to="/system?tab=preferences"><UIcon name="settings" /> System Settings</RouterLink>
+              <RouterLink v-if="preferences.advancedView" class="usx-btn" to="/system?tab=pages"><UIcon name="dashboard" /> System Pages</RouterLink>
+              <RouterLink v-if="preferences.advancedView" class="usx-btn" to="/system?tab=configuration"><UIcon name="admin_panel_settings" /> Configuration</RouterLink>
+              <button v-if="needsApproval(storyTask)" class="usx-btn" :disabled="storyBusy" @click="advanceStory(false)"><UIcon name="close" /> Reject action</button>
+              <button class="usx-btn" :disabled="storyBusy" @click="storyTask = null"><UIcon name="close" /> Close form</button>
+            </div>
+            <p v-if="storyError" role="alert">{{ storyError }}</p>
+          </template>
+        </StoryWizard>
+      </section>
 
       <div v-if="viewMode === 'list'" class="task-list">
         <section v-for="group in taskGroups" :key="group.name" class="task-group" @dragover.prevent @drop.prevent="dropInto($event, { group: group.name === 'Ungrouped' ? '' : group.name })">
@@ -140,15 +163,17 @@
               @click="openTaskEditor(task)"
             >
               <div class="kanban-card-top">
-                <div class="kanban-card-title">{{ task.title }}</div>
-                <UBadge :type="priorityBadgeType(task.priority)">{{
-                  task.priority
-                }}</UBadge>
+                <button type="button" class="usx-btn kanban-card-title" @click.stop="openTaskEditor(task)">
+                  {{ task.title }}
+                </button>
+                <UBadge v-if="task.priority === 'high'" :type="priorityBadgeType(task.priority)">
+                  High priority
+                </UBadge>
               </div>
-              <div class="kanban-card-pills">
-                <span class="task-pill" :class="`task-pill--${task.status}`">
-                  {{ formatStatus(task.status) }}
-                </span>
+              <p v-if="nextKanbanStep(task)" class="kanban-card-next">
+                {{ nextKanbanStep(task) }}
+              </p>
+              <div v-if="task.binder || task.tags.length" class="kanban-card-pills">
                 <span v-if="task.binder" class="task-pill task-pill--board">{{ wf.binders.find(binder => binder.id === task.binder)?.title || task.binder }}</span>
                 <span
                   v-for="tag in task.tags"
@@ -158,6 +183,17 @@
                   {{ tag }}
                 </span>
               </div>
+              <select
+                class="kanban-card-status"
+                :aria-label="`Status for ${task.title}`"
+                :value="task.status"
+                @click.stop
+                @change="changeKanbanStatus(task, $event)"
+              >
+                <option v-for="option in statuses" :key="option" :value="option">
+                  {{ formatStatus(option) }}
+                </option>
+              </select>
             </div>
           </div>
         </div>
@@ -188,16 +224,9 @@
                 <button
                   type="button"
                   class="usx-btn usx-btn--sm usx-btn--primary"
-                  @click="handleApproveTask(task)"
+                  @click="openTaskStory(task)"
                 >
-                  <UIcon name="check" /> Approve
-                </button>
-                <button
-                  type="button"
-                  class="usx-btn usx-btn--sm usx-btn--secondary"
-                  @click="handleRejectTask(task)"
-                >
-                  <UIcon name="close" /> Reject
+                  <UIcon name="auto_stories" /> Review in Story Form
                 </button>
               </div>
             </div>
@@ -214,7 +243,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
+import { RouterLink } from "vue-router";
+import StoryWizard from "../../../skills/organisms/StoryWizard.vue";
+import { useSettingsStore } from "../../../stores/settings";
 import UIcon from "../../../skills/atoms/UIcon.vue";
 import UBadge from "../../../skills/atoms/UBadge.vue";
 import { useWorkflowStore, type WorkflowTask } from "../../../stores/workflow";
@@ -227,6 +259,11 @@ import {
 } from "../../browserui/ApiBridge";
 
 const wf = useWorkflowStore();
+const preferences = useSettingsStore();
+const storyTask = ref<WorkflowTask | null>(null);
+const storyBusy = ref(false);
+const storyStatus = ref("in-progress");
+const storyError = ref("");
 const viewMode = ref<"list" | "kanban">("list");
 const statuses = ["todo", "in-progress", "review", "blocked", "completed"];
 const dragError = ref<string | null>(null);
@@ -238,38 +275,57 @@ const executingAction = ref(false);
 const syncFeedback = ref<string | null>(null);
 
 
-const pendingApprovals = computed(() =>
-  (wf.tasks || []).filter(
-    (t) =>
-      ["pending", "pending_approval"].includes(t.approval_status || "") ||
-      (t.workflowType === "autonomous" && t.status === "in-progress"),
-  ),
-);
-
-async function handleApproveTask(task: WorkflowTask) {
-  try {
-    const res: any = await ucoreApi.workflow.approveTask(task.id);
-    if (res?.ok) {
-      syncFeedback.value = `Approved action for: ${task.title}`;
-      await wf.fetchTasks();
-    }
-  } catch (err: any) {
-    syncFeedback.value = `Approval error: ${err?.message || err}`;
-  }
+function needsApproval(task: WorkflowTask) {
+  return ["pending", "pending_approval"].includes(task.approval_status || "") ||
+    (task.workflowType === "autonomous" && task.status === "in-progress");
 }
 
-async function handleRejectTask(task: WorkflowTask) {
+const pendingApprovals = computed(() => wf.tasks.filter(needsApproval));
+
+const storyTags: Record<string, string> = {
+  "visual-check": "Visual check",
+  "user-task": "User action required",
+  "key-required": "Credential required",
+};
+
+function storyTitle(task: WorkflowTask) {
+  for (const tag of task.tags ?? []) {
+    if (Object.hasOwn(storyTags, tag)) return storyTags[tag];
+  }
+  if (needsApproval(task)) return "Approval required";
+  if (task.status === "blocked") return "Resolve blocker";
+  return task.status === "review" ? "Review required" : "";
+}
+
+async function openTaskStory(task: WorkflowTask, status = "in-progress") {
+  if (storyBusy.value) return;
+  storyError.value = "";
+  storyTask.value = task;
+  storyStatus.value = status;
+  await nextTick();
+  document.querySelector(".workflow-task-story")?.scrollIntoView({ block: "nearest" });
+}
+
+async function advanceStory(approve = true) {
+  const task = storyTask.value;
+  if (!task || storyBusy.value) return;
+  storyBusy.value = true;
+  storyError.value = "";
   try {
-    const res: any = await ucoreApi.workflow.rejectTask(
-      task.id,
-      "Rejected by user in Tasks",
-    );
-    if (res?.ok) {
-      syncFeedback.value = `Rejected task: ${task.title}`;
+    if (needsApproval(task)) {
+      const result = approve
+        ? await ucoreApi.workflow.approveTask(task.id)
+        : await ucoreApi.workflow.rejectTask(task.id, "Rejected by user in Story Form");
+      if (!result?.ok) throw new Error("Could not update the task approval.");
       await wf.fetchTasks();
+    } else {
+      await wf.patchTask(task.id, { status: storyStatus.value });
     }
-  } catch (err: any) {
-    syncFeedback.value = `Rejection error: ${err?.message || err}`;
+    storyTask.value = null;
+  } catch (error) {
+    storyError.value = error instanceof Error ? error.message : "Could not advance this task.";
+  } finally {
+    storyBusy.value = false;
   }
 }
 
@@ -285,8 +341,23 @@ async function newTask() {
   try { await wf.createTask(title.trim()); }
   catch (error) { dragError.value = error instanceof Error ? error.message : "Could not create task"; }
 }
+function nextKanbanStep(task: WorkflowTask) {
+  return task.steps?.find(step => step.status !== "completed")?.title;
+}
+
+async function changeKanbanStatus(task: WorkflowTask, event: Event) {
+  const control = event.target as HTMLSelectElement;
+  const status = control.value;
+  control.value = task.status;
+  await changeTask(task, { status });
+}
+
 async function changeTask(task: WorkflowTask, patch: { status?: string; board?: string; group?: string; binder?: string }) {
   dragError.value = null;
+  if (storyTitle(task) && (patch.status === "in-progress" || patch.status === "completed")) {
+    await openTaskStory(task, patch.status);
+    return;
+  }
   try { await wf.patchTask(task.id, patch); }
   catch (error) { dragError.value = error instanceof Error ? error.message : "Could not update task"; }
 }
@@ -345,7 +416,10 @@ function priorityBadgeType(priority: string): "error" | "warning" | "info" {
   return "info";
 }
 
-function openTaskEditor(task: WorkflowTask) { wf.openTask(task); }
+function openTaskEditor(task: WorkflowTask) {
+  if (storyTitle(task)) void openTaskStory(task);
+  else wf.openTask(task);
+}
 function openInEditorTab(task: WorkflowTask) { wf.openTask(task); }
 
 async function triggerRemindersSync() {
@@ -416,6 +490,7 @@ async function handleApproveAction(task: WorkflowTask) {
 </script>
 
 <style scoped>
+.workflow-task-story__actions { display: flex; flex-wrap: wrap; gap: var(--usx-spacing-sm); }
 .task-scope, .task-destinations { display: flex; flex-wrap: wrap; align-items: center; gap: var(--usx-spacing-sm); padding-block: var(--usx-spacing-sm); }
 .task-scope label { display: flex; align-items: center; gap: var(--usx-spacing-xs); }
 .task-group { min-height: 4rem; border-top: 1px solid var(--usx-color-border); padding: var(--usx-spacing-sm); }
@@ -975,12 +1050,33 @@ async function handleApproveAction(task: WorkflowTask) {
   gap: var(--usx-spacing-sm);
 }
 
-.kanban-card-title {
+.kanban-card-title.usx-btn {
   min-width: 0;
+  min-height: var(--usx-touch-min-sm);
+  justify-content: flex-start;
+  padding: 0;
+  text-align: start;
+  white-space: normal;
+  background: transparent;
+  border-color: transparent;
+  color: var(--usx-color-on-surface);
   font-weight: var(--usx-font-weight-semibold);
   font-size: var(--usx-font-size-sm);
   line-height: var(--usx-line-height-tight);
   overflow-wrap: anywhere;
+}
+
+.kanban-card-next {
+  margin: 0;
+  color: var(--usx-color-on-surface-muted);
+  font-size: var(--usx-font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.kanban-card-status {
+  max-width: 100%;
+  min-height: var(--usx-touch-min);
+  margin-top: var(--usx-spacing-xs);
 }
 
 @media (max-width: 1100px) {
@@ -1035,13 +1131,13 @@ async function handleApproveAction(task: WorkflowTask) {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--usx-spacing-sm);
 }
 
 .wf-toolbar__sync-btn {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1, 0.25rem);
+  gap: var(--usx-spacing-xs);
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   border-radius: var(--usx-radius-sm, 4px);
@@ -1059,20 +1155,20 @@ async function handleApproveAction(task: WorkflowTask) {
 .wf-feedback-banner {
   display: flex;
   align-items: center;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--usx-spacing-sm);
   padding: 0.35rem 0.75rem;
-  margin-bottom: var(--space-2, 0.5rem);
+  margin-bottom: var(--usx-spacing-sm);
   font-size: 0.75rem;
   border-radius: var(--usx-radius-sm, 4px);
-  background: color-mix(in srgb, #10b981 12%, transparent);
-  color: #10b981;
-  border: 1px solid color-mix(in srgb, #10b981 30%, transparent);
+  background: color-mix(in srgb, var(--usx-color-success) 12%, transparent);
+  color: var(--usx-color-success);
+  border: 1px solid color-mix(in srgb, var(--usx-color-success) 30%, transparent);
 }
 
 .wf-code-editor__actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--usx-spacing-sm);
 }
 
 .wf-btn-action-approve {
@@ -1083,14 +1179,14 @@ async function handleApproveAction(task: WorkflowTask) {
   font-size: 0.75rem;
   font-weight: 500;
   border-radius: var(--usx-radius-sm, 4px);
-  border: 1px solid #10b981;
-  background: #10b981;
-  color: #ffffff;
+  border: 1px solid var(--usx-color-success);
+  background: var(--usx-color-success);
+  color: var(--usx-color-on-surface);
   cursor: pointer;
 }
 
 .wf-btn-action-approve:hover:not(:disabled) {
-  background: #059669;
+  background: var(--usx-color-success-hover);
 }
 
 .wf-action-executed-badge {
@@ -1100,8 +1196,8 @@ async function handleApproveAction(task: WorkflowTask) {
   font-size: 0.7rem;
   padding: 0.15rem 0.4rem;
   border-radius: var(--usx-radius-sm, 4px);
-  background: color-mix(in srgb, #10b981 15%, transparent);
-  color: #10b981;
+  background: color-mix(in srgb, var(--usx-color-success) 15%, transparent);
+  color: var(--usx-color-success);
 }
 
 .wf-editor-sync-rem-btn {
@@ -1212,7 +1308,7 @@ async function handleApproveAction(task: WorkflowTask) {
   background: var(--usx-color-surface);
   color: var(--usx-color-primary);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--usx-color-scrim) 8%, transparent);
 }
 
 .wf-header-actions {
@@ -1258,7 +1354,7 @@ async function handleApproveAction(task: WorkflowTask) {
 
 .wf-approval-section__title h3 {
   margin: 0;
-  font-size: var(--usx-font-size-md);
+  font-size: var(--usx-font-size-base);
   font-weight: 600;
   color: var(--usx-color-on-surface);
 }

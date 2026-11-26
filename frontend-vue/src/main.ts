@@ -26,13 +26,15 @@ import "katex/dist/katex.min.css";
 
 // USX Design System - Import in correct order
 // Core tokens come from the shared @udos/usx-tokens package
-import "./styles/base.css"; // local: wraps package tokens + PicoCSS mappings
+import "./styles/base.css"; // local: imports shared token families
 import "@udos/usx-tokens/themes/dark.css"; // dark from package
 import "@udos/usx-tokens/themes/light.css"; // light from package
 import "@udos/usx-tokens/themes/c64.css"; // c64 from package
 import "@udos/usx-tokens/themes/teletext.css"; // teletext from package
 import "@udos/usx-tokens/themes/high-contrast.css"; // high-contrast from package
 import "@udos/usx-tokens"; // usx-standard.css from package
+import "@udos/usx-tokens/usx-prose.css"; // Prose contract: markdown + longform rendering
+import "@udos/usx-tokens/home-nest/display-profiles.css"; // Display profiles; inert until a surface sets data-display
 import "./styles/gridcore.css"; // GridCore internal variable contract
 import "./styles/usx-extensions.css"; // uCore-specific extensions: toolbar, multi-column, dev toggle
 import "./styles/usx-chat-bubble.css"; // Chat bubble overlay component

@@ -215,6 +215,7 @@ function onNext() {
 }
 
 .stories-slide {
+  font-family: var(--usx-font-family-reading, var(--usx-font-family-serif));
   position: absolute;
   inset: 0;
   padding: var(--usx-spacing-2xl) var(--usx-spacing-xl);

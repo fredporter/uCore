@@ -18,6 +18,8 @@ __pycache__/
 !/backend/uv.lock
 dist/
 *.egg-info/
+# Wheel build scratch (uv build / setuptools bdist)
+build/
 
 # Node
 node_modules/

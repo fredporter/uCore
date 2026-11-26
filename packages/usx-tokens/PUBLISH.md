@@ -1,7 +1,7 @@
 # Publishing @udos/usx-tokens
 
 ## Current Version
-3.1.0
+3.2.0
 
 ## One-Time Setup
 ```bash
@@ -28,5 +28,6 @@ Then remove the Vite alias `'@udos/usx-tokens'` from `frontend-vue/vite.config.t
 ## Themes Version History
 | Version | Date | Changes |
 |---------|------|---------|
+| 3.2.0 | 2026-11-23 | Published `usx-prose.css` (was missing from `files` and `exports`). Prose contract rewritten on tokens only; added `--usx-font-family-reading` and `--usx-line-height-code`. |
 | 3.1.0 | 2026-07-08 | Added c64, teletext, high-contrast themes from uCore |
 | 3.0.0 | 2026-07-08 | Initial extraction from uCore. Added HomeNest 10-foot console additions. |

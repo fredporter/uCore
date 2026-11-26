@@ -413,11 +413,12 @@ async def test_provider_router_stats_include_latency_and_cache(
 
 
 @pytest.mark.asyncio
-async def test_named_cloud_provider_uses_its_transport_and_credentials(monkeypatch):
+@pytest.mark.parametrize("model", ["vendor/model:free", "openrouter/free"])
+async def test_named_cloud_provider_uses_its_transport_and_credentials(monkeypatch, model):
     router = ProviderRouter()
     router.providers = {"openrouter-free": ProviderConfig(
         name="openrouter-free", type="openrouter", base_url="https://example.test/v1",
-        api_key="fixture-key", default_model="vendor/model:free",
+        api_key="fixture-key", default_model=model,
     )}
     captured = {}
 
@@ -437,8 +438,8 @@ async def test_named_cloud_provider_uses_its_transport_and_credentials(monkeypat
             return Response()
 
     monkeypatch.setattr(aiohttp, "ClientSession", Session)
-    result = await router._chat_http([], "vendor/model:free", provider="openrouter-free")
+    result = await router._chat_http([], model, provider="openrouter-free")
     assert result["content"] == "ok"
     assert captured["url"] == "https://example.test/v1/chat/completions"
     assert captured["headers"]["Authorization"] == "Bearer fixture-key"
-    assert captured["json"]["model"] == "vendor/model:free"
+    assert captured["json"]["model"] == model

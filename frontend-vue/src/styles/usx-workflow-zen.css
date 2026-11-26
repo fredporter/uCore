@@ -8,7 +8,7 @@
   min-height: 100%;
   background:
     radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--usx-color-primary) 4%, transparent), transparent 28rem),
-    radial-gradient(circle at 88% 72%, rgb(255 255 255 / 1.2%), transparent 24rem),
+    radial-gradient(circle at 88% 72%, color-mix(in srgb, var(--usx-color-on-surface) 1.2%, transparent), transparent 24rem),
     var(--usx-color-background);
 }
 
@@ -104,11 +104,11 @@
   padding: var(--usx-spacing-md);
 }
 #app .workflow-layout .wf-panel--zen .wf-mission-row > .u-icon {
-  width: var(--usx-icon-size-md);
-  height: var(--usx-icon-size-md);
-  min-width: var(--usx-icon-size-md);
-  flex: 0 0 var(--usx-icon-size-md);
-  font-size: var(--usx-icon-size-md);
+  width: var(--usx-icon-size);
+  height: var(--usx-icon-size);
+  min-width: var(--usx-icon-size);
+  flex: 0 0 var(--usx-icon-size);
+  font-size: var(--usx-icon-size);
 }
 #app .workflow-layout .wf-panel--zen .wf-mission-cards {
   display: grid;

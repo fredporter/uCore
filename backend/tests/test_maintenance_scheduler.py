@@ -128,9 +128,52 @@ async def test_manual_run_uses_configured_arguments_and_records_outcome(tmp_path
     assert scheduler.status()["jobs"][0]["last_result"]["state"] == "completed"
     assert await scheduler.run_due(now) == []
     assert calls == [
-        ("backup", {"type": "full"}),
+        ("backup", {"type": "full", "execution_authorized": False}),
         ("backup", {"type": "full", "execution_authorized": True}),
     ]
+
+
+@pytest.mark.asyncio
+async def test_authorized_scheduled_job_runs_without_manual_step(tmp_path, monkeypatch):
+    from app.services import maintenance_scheduler as mod
+
+    seen = []
+
+    async def run(skill_id, **params):
+        seen.append((skill_id, params.get("execution_authorized")))
+        return {"success": True}
+
+    monkeypatch.setattr(mod, "run_skill_by_id", run)
+    scheduler = mod.MaintenanceScheduler(
+        state_path=tmp_path / "state.json",
+        jobs=(
+            mod.MaintenanceJob(
+                "backup",
+                "03:00",
+                {"type": "full"},
+                authorized=True,
+            ),
+        ),
+    )
+
+    await scheduler.run_due(datetime(2026, 6, 21, 4, 0))
+
+    assert seen == [("backup", True)]
+    assert scheduler.status()["jobs"][0]["last_result"]["state"] == "completed"
+    assert scheduler.status()["jobs"][0]["authorized"] is True
+
+
+def test_every_unattended_write_job_holds_a_standing_grant():
+    """Owner-data jobs run unattended; adding one must still be a reviewed change."""
+    import app.services.maintenance_scheduler as mod
+
+    assert {job.skill_id for job in mod.DEFAULT_JOBS if job.authorized} == {
+        "backup",
+        "vault_sync",
+        "tasker_sync",
+        "brain_sync",
+        "clipboard_maintenance",
+    }
 
 
 @pytest.mark.asyncio

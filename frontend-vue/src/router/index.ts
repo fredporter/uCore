@@ -59,7 +59,13 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/developer/:pathMatch(.*)*",
-    redirect: "/documentation?tab=developer",
+    redirect: to => ({ path: "/engineering", query: to.query, hash: to.hash }),
+  },
+  {
+    path: "/engineering",
+    name: "engineering",
+    component: () => import("../surfaces/engineering/EngineeringSurface.vue"),
+    meta: { title: "Engineering", icon: "terminal" },
   },
   {
     path: "/workflow/:pathMatch(.*)*",
@@ -91,7 +97,7 @@ const routes: RouteRecordRaw[] = [
       const tab = String(to.query.tab || "snacks");
       if (tab === "workflows") return "/workflow?tab=publish";
       if (tab === "vault") return "/workflow?tab=binder";
-      if (tab === "mcp") return "/documentation?tab=developer";
+      if (tab === "mcp") return "/engineering";
       if (tab === "variables") return "/system?tab=configuration";
       if (tab === "scheduler") return "/snackbar?tab=dashboard";
       return "/snackbar?tab=automation";
@@ -110,10 +116,11 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "SonicScrewdriver", icon: "usb" },
   },
   {
-    path: "/homenest/:pathMatch(.*)*",
+    path: "/homenook/:pathMatch(.*)*",
+    alias: "/homenest/:pathMatch(.*)*",
     name: "homenest",
     component: () => import("../surfaces/homenest/HomeNestSurface.vue"),
-    meta: { title: "HomeNest Console", icon: "tv" },
+    meta: { title: "HomeNook Console", icon: "tv" },
   },
   {
     path: "/bitchat/:pathMatch(.*)*",
@@ -200,6 +207,12 @@ export const router = createRouter({
 });
 
 router.beforeEach((to) => {
+  if (to.name === "documentation" && ["developer", "advanced"].includes(String(to.query.tab))) {
+    const query = { ...to.query };
+    delete query.tab;
+    return { name: "engineering", query, hash: to.hash, replace: true };
+  }
+
   if (to.name === "workflow" && to.query.tab === "research" && to.query.research) {
     const { research, ...query } = to.query;
     if (research === "studio") return "/ucode-plus";

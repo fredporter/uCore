@@ -314,6 +314,7 @@ async def test_sandbox_mission_feed_and_linked_notebook(tmp_path, monkeypatch):
     manager.create_workflow(
         "notebook-pilot", "Review notebook evidence",
         [{"skill_id": "vault_discovery", "params": {"dry_run": True, "vault_layers": "user"}}],
+        owner="pilot",
     )
     response = await workflow_api.handle_run_workflow(
         SimpleNamespace(match_info={"workflow_id": "notebook-pilot"}),

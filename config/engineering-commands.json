@@ -1,0 +1,50 @@
+[
+  {
+    "id": "status",
+    "name": "Repository status",
+    "description": "Show modified and untracked files without changing the checkout",
+    "argv": ["git", "status", "--short"]
+  },
+  {
+    "id": "check-paths",
+    "name": "Check path policy",
+    "description": "Validate repository paths against the uDOS workspace contract",
+    "argv": ["python3", "scripts/check_home_path_policy.py"]
+  },
+  {
+    "id": "check-content",
+    "name": "Check Prose and GridCore contract",
+    "description": "Validate Prose token references, colour literals, lattice palette and theme contrast",
+    "argv": ["python3", "scripts/check_content_contract.py"]
+  },
+  {
+    "id": "test",
+    "name": "Backend tests",
+    "description": "Run the uCore backend test suite",
+    "argv": ["pnpm", "test"]
+  },
+  {
+    "id": "lint",
+    "name": "Backend lint",
+    "description": "Run Ruff against the uCore backend",
+    "argv": ["pnpm", "lint"]
+  },
+  {
+    "id": "build",
+    "name": "Frontend build",
+    "description": "Type-check and build the Vue frontend",
+    "argv": ["pnpm", "build"]
+  },
+  {
+    "id": "kanban",
+    "name": "Cline Kanban Board",
+    "description": "Start Cline Kanban and export development boards to kanban.json",
+    "argv": ["python3", "scripts/dev_kanban.py"]
+  },
+  {
+    "id": "kanban-heal",
+    "name": "Heal the development Kanban",
+    "description": "Start the loopback Cline Kanban board if it is down and refresh kanban.json",
+    "argv": ["python3", "scripts/kanban_supervisor.py", "--ensure"]
+  }
+]

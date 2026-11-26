@@ -3,7 +3,7 @@
 uCore is the sovereign, local-first host application and desktop companion for the uDos ecosystem.
 It provides a calm Vue 3 UI shell, governed backend APIs, native Obsidian vault indexing, task and workflow orchestration, and clean edition publishing.
 
-**September 2026 Refactor:** In-browser IDE/Dev Mode has been decommissioned. External software development is conducted in Google Antigravity (AGY) and Codex. uCore is focused purely on user productivity, notebook binders, daily automations, and domain application hosting.
+**Engineering direction:** In-browser IDE/Dev Mode is decommissioned. External software development uses VS Code with Copilot/Cline or Cline CLI in macOS Terminal. See the shared [Development Engineering guide](../DEV_ENGINEERING.md). uCore remains focused on user productivity, notebook binders, daily automations, and domain application hosting.
 
 ## First-time setup
 
@@ -28,7 +28,7 @@ Independent domain products (`SonicScrewdriver`, `Groovebox`, `uCode+`, `HomeNes
 - **Repository Source:** `~/Code/<repo>`
 - **Mutable Ecosystem State:** `UDOS_HOME` (default `~/Code/.udos`)
 - **User Documents:** `~/Vault` (User), `~/Shared` (Shared), and `~/Public` (Public)
-- **External Engineering:** Antigravity IDE, `agy` CLI, and standard MCP servers (`mcp-server-git`, `mcp-filesystem`).
+- **External Engineering:** VS Code with Copilot/Cline, Cline CLI, reviewed Terminal commands, and the optional bounded `udos-mcp` server.
 - **Policy Enforcement:** Run `python3 scripts/check_home_path_policy.py` before committing.
 - **Fail-Closed Governance:** Capabilities are registered explicitly and fail closed; loose runtime scripts, fake users, compatibility shims and duplicated MCP facades are unsupported.
 

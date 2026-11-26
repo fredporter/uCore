@@ -18,11 +18,19 @@ class MaintenanceJob:
     params: dict
     retry_safe: bool = False
     timeout_seconds: float = 300
+    # Standing grant for unattended execution. A job that writes owner data must
+    # opt in explicitly; the skill confirmation gate is never bypassed globally.
+    authorized: bool = False
 
 
 DEFAULT_JOBS = (
-    MaintenanceJob("backup", "03:00", {"type": "full"}),
-    MaintenanceJob("vault_sync", "04:00", {"summary_only": True}),
+    MaintenanceJob("backup", "03:00", {"type": "full"}, authorized=True),
+    MaintenanceJob(
+        "vault_sync",
+        "04:00",
+        {"summary_only": True},
+        authorized=True,
+    ),
     MaintenanceJob(
         "tasker_sync",
         "04:05",
@@ -30,6 +38,7 @@ DEFAULT_JOBS = (
             "db": "database",
             "board": "inbox",
         },
+        authorized=True,
     ),
     MaintenanceJob("docs_mirror_sync", "04:10", {}, retry_safe=True),
     MaintenanceJob(
@@ -41,11 +50,13 @@ DEFAULT_JOBS = (
             "include_spool": True,
             "include_vault_activity": True,
         },
+        authorized=True,
     ),
     MaintenanceJob(
         "clipboard_maintenance",
         "04:30",
         {"capture_current": True},
+        authorized=True,
     ),
     MaintenanceJob(
         "spool_prune",
@@ -117,6 +128,7 @@ class MaintenanceScheduler:
                     "skill_id": job.skill_id,
                     "time": job.time_hhmm,
                     "params": job.params,
+                    "authorized": job.authorized,
                     "last_success": self._state.get("last_success", {}).get(job.skill_id),
                     "attempt": self._state.get("attempts", {}).get(job.skill_id, {}),
                     "last_run": self._state.get("last_run", {}).get(
@@ -192,11 +204,14 @@ class MaintenanceScheduler:
         }
         self._save_state()
         params = dict(job.params)
-        if manual:
-            params["execution_authorized"] = True
+        authorized = manual or job.authorized
         try:
             result = await asyncio.wait_for(
-                run_skill_by_id(job.skill_id, **params),
+                run_skill_by_id(
+                    job.skill_id,
+                    execution_authorized=authorized,
+                    **params,
+                ),
                 timeout=job.timeout_seconds,
             )
         except Exception as exc:

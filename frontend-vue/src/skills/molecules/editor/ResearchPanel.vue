@@ -267,7 +267,7 @@ async function copyToBinder() {
 }
 .research-item__open { display:flex;flex:1;min-width:0;flex-direction:column;align-items:flex-start;padding:0;border:0;background:transparent;text-align:left;cursor:pointer; }
 .research-panel__combine { margin:var(--usx-spacing-sm);min-height:var(--usx-touch-min); }
-.research-panel__variant{display:flex;align-items:center;justify-content:space-between;gap:var(--usx-spacing-sm);padding:var(--usx-spacing-sm);border-top:var(--usx-border-width) solid var(--usx-color-border)}.variant-diff-overlay{position:fixed;inset:0;z-index:2200;display:grid;place-items:center;padding:var(--usx-spacing-lg);background:rgb(0 0 0 / 50%)}.variant-diff{display:flex;flex-direction:column;width:min(70rem,100%);height:min(44rem,90vh);padding:var(--usx-spacing-md);background:var(--usx-color-surface)}
+.research-panel__variant{display:flex;align-items:center;justify-content:space-between;gap:var(--usx-spacing-sm);padding:var(--usx-spacing-sm);border-top:var(--usx-border-width) solid var(--usx-color-border)}.variant-diff-overlay{position:fixed;inset:0;z-index:2200;display:grid;place-items:center;padding:var(--usx-spacing-lg);background:color-mix(in srgb, var(--usx-color-scrim) 50%, transparent)}.variant-diff{display:flex;flex-direction:column;width:min(70rem,100%);height:min(44rem,90vh);padding:var(--usx-spacing-md);background:var(--usx-color-surface)}
 
 .research-item:hover {
   background-color: color-mix(

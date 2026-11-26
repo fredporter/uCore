@@ -8,7 +8,7 @@
     <SurfaceTabNav
       class="documentation-tab-nav"
       v-model="activeTab"
-      :tabs="visibleTabs"
+      :tabs="TABS"
       :orientation="shell.tabOrientation"
       @toggle-orientation="shell.toggleTabOrientation()"
     />
@@ -27,105 +27,6 @@
         <DocumentArticle :content="udosDocumentation" />
       </div>
 
-      <!-- 3. Developer & Engineering Tooling Tab -->
-      <div v-else-if="activeTab === 'developer'" class="documentation-content">
-        <SurfaceTabNav
-          v-model="engineeringTab"
-          :tabs="ENGINEERING_TABS"
-          aria-label="Engineering"
-        />
-        <RecipeGallerySurface v-if="engineeringTab === 'recipes'" />
-        <template v-else>
-          <header class="doc-engineering-heading">
-            <h3>Developer tools</h3>
-            <p>Use Codex or your desktop development tools to extend uCore.</p>
-          </header>
-
-          <!-- Diagnostic & Health strip inside Developer tab -->
-          <div class="doc-health-strip">
-            <div class="doc-health-item">
-              <span class="doc-health-label">Sites API</span>
-              <UBadge :type="statusType(apiStatus.sites)">
-                {{ statusText(apiStatus.sites) }}
-              </UBadge>
-            </div>
-            <div class="doc-health-item">
-              <span class="doc-health-label">Knowledge API</span>
-              <UBadge :type="statusType(apiStatus.knowledge)">
-                {{ statusText(apiStatus.knowledge) }}
-              </UBadge>
-            </div>
-            <div class="doc-health-item">
-              <span class="doc-health-label">Courses API</span>
-              <UBadge :type="statusType(apiStatus.courses)">
-                {{ statusText(apiStatus.courses) }}
-              </UBadge>
-            </div>
-            <div class="doc-health-item">
-              <span class="doc-health-label">Export API</span>
-              <UBadge :type="statusType(apiStatus.export)">
-                {{ statusText(apiStatus.export) }}
-              </UBadge>
-            </div>
-          </div>
-
-          <div class="doc-export-summary" v-if="lastExportAt">
-            <UIcon name="schedule" />
-            <span>Last export: {{ lastExportAt }}</span>
-          </div>
-
-          <!-- Developer & Engineering Tooling Content -->
-          <section class="doc-developer-section" aria-label="Developer tools">
-            <div class="doc-tool-grid">
-              <div class="doc-tool-card">
-                <div class="doc-tool-card-heading">
-                  <UIcon name="computer" />
-                  <h4>Antigravity IDE & Codex</h4>
-                </div>
-                <p>External desktop IDE with pair programming, architectural planning, multi-repository intelligence, and visual artifacts.</p>
-                <div><code>AGENTS.md contract compliant</code></div>
-              </div>
-
-              <div class="doc-tool-card">
-                <div class="doc-tool-card-heading">
-                  <UIcon name="code" />
-                  <h4>Antigravity CLI (agy)</h4>
-                </div>
-                <p>CLI execution environment for autonomous tasks, cron schedules, background workers, and subagent orchestration.</p>
-                <div><code>agy run / agy agent</code></div>
-              </div>
-
-              <div class="doc-tool-card">
-                <div class="doc-tool-card-heading">
-                  <UIcon name="hub" />
-                  <h4>Model Context Protocol (MCP)</h4>
-                </div>
-                <p>Standardized integration protocols connecting external IDEs and agents directly to uCore APIs, vaults, and repositories.</p>
-                <div><code>mcp-server-git / mcp-filesystem</code></div>
-              </div>
-
-              <div class="doc-tool-card">
-                <div class="doc-tool-card-heading">
-                  <UIcon name="article" />
-                  <h4>Obsidian Baseline Authoring</h4>
-                </div>
-                <p>Obsidian is the primary user authoring standard for notes, binders, and canvases. Filesystem authority with zero database lock-in.</p>
-                <div><code>~/Vault · ~/Shared · ~/Public</code></div>
-              </div>
-            </div>
-
-            <div class="doc-section">
-              <h4 class="doc-section-title">Workspace storage</h4>
-              <ul class="doc-storage-list">
-                  <li><strong>Repository Source:</strong> All repos belong under <code>~/Code/&lt;repo&gt;</code>.</li>
-                  <li><strong>Mutable State:</strong> Owned by <code>UDOS_HOME</code> (default <code>~/Code/.udos</code>). Never write state directly to <code>$HOME</code>.</li>
-                  <li><strong>User Documents:</strong> Pure UTF-8 markdown in <code>~/Vault</code>, <code>~/Shared</code>, and <code>~/Public</code>.</li>
-                  <li><strong>Validation:</strong> Run <code>python3 scripts/check_home_path_policy.py</code> before committing path changes.</li>
-              </ul>
-            </div>
-          </section>
-        </template>
-      </div>
     </div>
 
     <transition name="doc-sidepanel">
@@ -180,58 +81,33 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useSettingsStore } from "../../stores/settings";
 import DocumentArticle from "../../skills/molecules/DocumentArticle.vue";
 import { containReaderKeys } from "../../utils/readingDocument";
 import { useShellStore } from "../../stores/shell";
 import UIcon from "../../skills/atoms/UIcon.vue";
-import UBadge from "../../skills/atoms/UBadge.vue";
 import SurfaceTabNav from "../../skills/molecules/SurfaceTabNav.vue";
 import LearningPanel from "./panels/LearningPanel.vue";
 import LocalWikiReader from "./LocalWikiReader.vue";
 
 import udosDocumentation from "../../../../docs/UDOS_DOCUMENTATION.md?raw";
 
-const RecipeGallerySurface = defineAsyncComponent(async () => {
-  const { default: component } = await import("../recipes/RecipeGallerySurface.vue");
-  return component;
-});
-
 const shell = useShellStore();
-const settings = useSettingsStore();
 const route = useRoute();
 const router = useRouter();
-
-const ENGINEERING_TABS = [
-  { id: "tools", label: "Tools", icon: "terminal" },
-  { id: "recipes", label: "Recipes", icon: "widgets" },
-];
-const engineeringTab = computed({
-  get: () => route.query.section === "recipes" ? "recipes" : "tools",
-  set: (tab: string) => {
-    const section = tab === "recipes" ? "recipes" : undefined;
-    if (route.query.section === section) return;
-    void router.replace({ query: { ...route.query, tab: "developer", section }, hash: route.hash });
-  },
-});
 
 const TABS = [
   { id: "wiki", label: "Knowledge", icon: "auto_stories" },
   { id: "learning", label: "uCode", icon: "school" },
   { id: "udos", label: "Documentation", icon: "description" },
-  { id: "developer", label: "Engineering", icon: "terminal" },
 ];
-const visibleTabs = computed(() => TABS.filter(tab => tab.id !== "developer" || settings.advancedView));
 const VALID_DOC_TABS = new Set(TABS.map((tab) => tab.id));
 const routeTab = String(route.query.tab || "");
 
 function normalizeDocTab(tab: string): string {
   if (tab === "guide" || tab === "knowledge") return "wiki";
-  if (tab === "advanced") tab = "developer";
   if (tab === "ucode") tab = "learning";
-  if (tab === "developer" && !settings.advancedView) return "wiki";
   if (VALID_DOC_TABS.has(tab)) return tab;
   return "wiki";
 }
@@ -281,38 +157,7 @@ function openRelativeDocument(href: string) {
   for (const part of href.split('#')[0].split('/')) { if (part === '..') base.pop(); else if (part && part !== '.') base.push(decodeURIComponent(part)); }
   void openDoc(viewingDoc.value.source, base.join('/'), base.at(-1) || 'Document');
 }
-watch(() => settings.advancedView, enabled => { if (!enabled && activeTab.value === "developer") activeTab.value = "wiki"; });
 
-interface DocSite {
-  id: string;
-  name: string;
-  path: string;
-  description?: string;
-  built: boolean;
-}
-interface Section {
-  id: string;
-  name: string;
-  path: string;
-}
-interface RepoDocItem {
-  name: string;
-  path: string;
-  size: number;
-}
-interface RepoDocGroup {
-  repo: string;
-  root: string;
-  docs: RepoDocItem[];
-  count: number;
-}
-
-const loading = ref(true);
-const knowledgeLoading = ref(true);
-const repoDocsLoading = ref(true);
-const exportRunning = ref(false);
-const exportResult = ref<Record<string, any> | null>(null);
-const viewingSite = ref<string | null>(null);
 const viewingDoc = ref<{
   title: string;
   content: string;
@@ -321,102 +166,6 @@ const viewingDoc = ref<{
   listing?: { name: string; path: string; is_dir: boolean }[];
 } | null>(null);
 const docLoading = ref(false);
-const lastExportAt = ref<string | null>(null);
-
-const docSites = ref<DocSite[]>([]);
-const knowledgeSections = ref<Section[]>([]);
-const repoDocs = ref<RepoDocGroup[]>([]);
-
-type ApiStatus = "pending" | "ok" | "error";
-
-const apiStatus = ref<{
-  sites: ApiStatus;
-  knowledge: ApiStatus;
-  courses: ApiStatus;
-  export: ApiStatus;
-}>({
-  sites: "pending",
-  knowledge: "pending",
-  courses: "pending",
-  export: "pending",
-});
-
-async function fetchDocSites() {
-  loading.value = true;
-  try {
-    const res = await fetch(`/api/docs/sites`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      docSites.value = data.sites || [];
-      apiStatus.value.sites = "ok";
-    } else {
-      apiStatus.value.sites = "error";
-    }
-  } catch {
-    apiStatus.value.sites = "error";
-  }
-  loading.value = false;
-}
-
-async function fetchKnowledgeSections() {
-  knowledgeLoading.value = true;
-  try {
-    const res = await fetch(`/api/docs/global-knowledge`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      knowledgeSections.value = data.sections || [];
-      apiStatus.value.knowledge = "ok";
-    } else {
-      apiStatus.value.knowledge = "error";
-    }
-  } catch {
-    apiStatus.value.knowledge = "error";
-  }
-  knowledgeLoading.value = false;
-}
-
-async function probeExportEndpoint() {
-  try {
-    const res = await fetch(`/api/docs/export`, {
-      signal: AbortSignal.timeout(3000),
-    });
-    apiStatus.value.export = res.ok ? "ok" : "error";
-  } catch {
-    apiStatus.value.export = "error";
-  }
-}
-
-async function fetchRepoDocs() {
-  repoDocsLoading.value = true;
-  try {
-    const res = await fetch(`/api/docs/repo-docs`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      repoDocs.value = data.repos || [];
-    }
-  } catch {
-    repoDocs.value = [];
-  }
-  repoDocsLoading.value = false;
-}
-
-async function probeCoursesEndpoint() {
-  try {
-    const res = await fetch(`/api/docs/courses`, {
-      signal: AbortSignal.timeout(3000),
-    });
-    apiStatus.value.courses = res.ok ? "ok" : "error";
-  } catch {
-    apiStatus.value.courses = "error";
-  }
-}
-
 let readerRequest = 0;
 async function openDoc(source: string, path: string, title: string) {
   const request = ++readerRequest;
@@ -461,49 +210,6 @@ function onLearningOpen(course: {
   void openDoc(course.source || "learning", course.path, course.title || course.name);
 }
 
-async function runExport() {
-  exportRunning.value = true;
-  exportResult.value = null;
-  try {
-    const res = await fetch(`/api/docs/export`, {
-      method: "POST",
-      signal: AbortSignal.timeout(60000),
-    });
-    const data = await res.json();
-    exportResult.value = data;
-    apiStatus.value.export = res.ok ? "ok" : "error";
-    if (res.ok && !data.error) {
-      lastExportAt.value = new Date().toLocaleString();
-    }
-    await fetchDocSites();
-  } catch (e: any) {
-    apiStatus.value.export = "error";
-    exportResult.value = { error: e.message || "Export failed" };
-  } finally {
-    exportRunning.value = false;
-  }
-}
-
-function statusType(status: ApiStatus): "success" | "warning" | "error" {
-  if (status === "ok") return "success";
-  if (status === "error") return "error";
-  return "warning";
-}
-
-function statusText(status: ApiStatus): string {
-  if (status === "ok") return "Online";
-  if (status === "error") return "Offline";
-  return "Checking";
-}
-
-function loadAdvancedDocumentation() {
-  fetchDocSites();
-  fetchKnowledgeSections();
-  probeExportEndpoint();
-  probeCoursesEndpoint();
-  fetchRepoDocs();
-}
-watch([activeTab, () => settings.advancedView], ([tab, advanced]) => { if (tab === "developer" && advanced) loadAdvancedDocumentation(); }, { immediate: true });
 </script>
 
 <style scoped>
@@ -561,113 +267,6 @@ watch([activeTab, () => settings.advancedView], ([tab, advanced]) => { if (tab =
   display: flex;
   flex-direction: column;
   gap: var(--usx-spacing-md);
-}
-
-.documentation-content-inner.documentation-content-inner--engineering {
-  padding: var(--usx-spacing-md);
-}
-
-.doc-developer-section,
-.doc-engineering-heading {
-  display: grid;
-  gap: var(--usx-spacing-md);
-  min-width: 0;
-}
-
-.doc-engineering-heading {
-  gap: var(--usx-spacing-xs);
-}
-
-.doc-tool-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
-  gap: var(--usx-spacing-md);
-}
-
-.doc-tool-card,
-.doc-storage-list {
-  padding: var(--usx-spacing-md);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-  background: var(--usx-color-surface);
-}
-
-.doc-tool-card {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: var(--usx-spacing-sm);
-  min-width: 0;
-}
-
-.doc-tool-card-heading {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--usx-spacing-sm);
-}
-
-.doc-tool-card-heading > :first-child {
-  flex-shrink: 0;
-}
-
-.doc-engineering-heading > *,
-.doc-tool-card h4,
-.doc-tool-card p,
-.doc-storage-list {
-  margin: 0;
-}
-
-.doc-engineering-heading p,
-.doc-tool-card p {
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-sm);
-}
-
-.doc-tool-card code {
-  font-size: var(--usx-font-size-xs);
-  overflow-wrap: anywhere;
-}
-
-.doc-storage-list {
-  display: grid;
-  gap: var(--usx-spacing-xs);
-  padding-inline-start: var(--usx-spacing-xl);
-  font-size: var(--usx-font-size-sm);
-  overflow-wrap: anywhere;
-}
-
-.doc-health-strip {
-  --doc-column-min: calc(var(--usx-touch-min) * 3.5);
-  display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(min(100%, var(--doc-column-min)), 1fr)
-  );
-  gap: var(--usx-spacing-sm);
-  min-width: 0;
-}
-
-.doc-health-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--usx-spacing-sm);
-  padding: var(--usx-spacing-sm) var(--usx-spacing-md);
-  background: var(--usx-color-surface);
-  border: var(--usx-border-width) solid var(--usx-color-border);
-  border-radius: var(--usx-radius-md);
-}
-
-.doc-health-label {
-  font-size: var(--usx-font-size-sm);
-  color: var(--usx-color-on-surface-muted);
-}
-
-.doc-export-summary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--usx-spacing-xs);
-  color: var(--usx-color-on-surface-muted);
-  font-size: var(--usx-font-size-sm);
 }
 
 /* ─── Loading / Empty ──────────────────────────────────────────── */
@@ -1055,7 +654,6 @@ watch([activeTab, () => settings.advancedView], ([tab, advanced]) => { if (tab =
 .reading-location { padding: var(--usx-spacing-sm) var(--usx-spacing-md); border-bottom: 1px solid var(--usx-color-border); font-family: var(--usx-font-family-sans, Inter, sans-serif); font-size: var(--usx-font-size-sm); overflow-wrap: anywhere; }
 .reading-location > div { display: flex; align-items: center; gap: var(--usx-spacing-xs); }
 .doc-sidepanel__body { overflow-y: auto; padding: clamp(1rem, 3vw, 3rem); }
-.doc-tool-card, .doc-section { text-align: left; }
 
 .doc-sidepanel__bar { box-sizing: border-box; min-height: 48px; height: 48px; padding: 4px 12px; gap: 8px; }
 .doc-sidepanel__bar button.usx-btn { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; flex: 0 0 36px; width: 36px; height: 36px; min-height: 36px; margin: 0; padding: 0; border: 0; box-shadow: none; background: transparent; color: var(--usx-color-on-surface-muted); border-radius: var(--usx-radius-sm); }

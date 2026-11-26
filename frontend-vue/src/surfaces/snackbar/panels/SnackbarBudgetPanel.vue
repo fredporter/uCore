@@ -111,7 +111,7 @@ const srv = useSnackbarOpsStore();
   align-items: flex-start;
   justify-content: space-between;
   padding-bottom: 0.85rem;
-  border-bottom: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 10%, transparent));
   flex-wrap: wrap;
   gap: 0.75rem;
 }
@@ -124,28 +124,28 @@ const srv = useSnackbarOpsStore();
 
 .header-icon {
   font-size: 28px;
-  color: var(--usx-color-primary, #a8c7fa);
+  color: var(--usx-color-primary, var(--usx-color-primary));
 }
 
 .recipe-title {
   margin: 0;
   font-size: 1.15rem;
   font-weight: 600;
-  color: var(--usx-color-on-surface, #e2e2e6);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .recipe-desc {
   margin: 0.25rem 0 0;
   font-size: 0.82rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 
 .recipe-badge {
   font-size: 0.72rem;
   padding: 0.25rem 0.55rem;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.06));
+  background: var(--usx-color-surface-container, color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent));
   border-radius: 4px;
-  color: var(--usx-color-on-surface-variant, #c4c6d0);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   font-family: var(--usx-font-family-mono, monospace);
 }
 
@@ -161,16 +161,16 @@ const srv = useSnackbarOpsStore();
   flex-direction: column;
   padding: 1.15rem;
   border-radius: 12px;
-  background: var(--usx-color-surface-container, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.08));
+  background: var(--usx-color-surface-container, color-mix(in srgb, var(--usx-color-on-surface) 3%, transparent));
+  border: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 8%, transparent));
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .matrix-card:hover {
-  background: var(--usx-color-surface-container-high, rgba(255, 255, 255, 0.06));
-  border-color: var(--usx-color-outline, rgba(255, 255, 255, 0.2));
+  background: var(--usx-color-surface-container-high, color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent));
+  border-color: var(--usx-color-outline, color-mix(in srgb, var(--usx-color-on-surface) 20%, transparent));
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--usx-color-scrim) 25%, transparent);
 }
 
 .card-top-row {
@@ -184,11 +184,11 @@ const srv = useSnackbarOpsStore();
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: rgba(168, 199, 250, 0.12);
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--usx-color-primary, #a8c7fa);
+  color: var(--usx-color-primary, var(--usx-color-primary));
 }
 
 .icon-avatar .material-symbols-outlined {
@@ -196,46 +196,46 @@ const srv = useSnackbarOpsStore();
 }
 
 .icon-avatar--success {
-  background: rgba(63, 185, 80, 0.12);
-  color: #3fb950;
+  background: color-mix(in srgb, var(--usx-color-success) 12%, transparent);
+  color: var(--usx-color-success);
 }
 
 .icon-avatar--danger {
-  background: rgba(248, 81, 73, 0.12);
-  color: #f85149;
+  background: color-mix(in srgb, var(--usx-color-danger) 12%, transparent);
+  color: var(--usx-color-danger);
 }
 
 .card-tag {
   font-size: 0.68rem;
   padding: 0.18rem 0.45rem;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--usx-color-on-surface-variant, #c4c6d0);
+  background: color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   font-weight: 500;
 }
 
 .card-tag--success {
-  background: rgba(63, 185, 80, 0.12);
-  color: #3fb950;
+  background: color-mix(in srgb, var(--usx-color-success) 12%, transparent);
+  color: var(--usx-color-success);
 }
 
 .card-tag--danger {
-  background: rgba(248, 81, 73, 0.12);
-  color: #f85149;
+  background: color-mix(in srgb, var(--usx-color-danger) 12%, transparent);
+  color: var(--usx-color-danger);
 }
 
 .card-title {
   margin: 0 0 0.3rem;
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--usx-color-on-surface, #e2e2e6);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .card-description {
   margin: 0 0 0.85rem;
   font-size: 0.8rem;
   line-height: 1.4;
-  color: var(--usx-color-on-surface-variant, #9aa0a6);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
   flex: 1;
 }
 
@@ -244,23 +244,23 @@ const srv = useSnackbarOpsStore();
   align-items: baseline;
   justify-content: space-between;
   padding-top: 0.65rem;
-  border-top: 1px solid var(--usx-color-outline-variant, rgba(255, 255, 255, 0.06));
+  border-top: 1px solid var(--usx-color-outline-variant, color-mix(in srgb, var(--usx-color-on-surface) 6%, transparent));
 }
 
 .card-metric {
   font-size: 1.25rem;
   font-family: var(--usx-font-family-mono, monospace);
   font-weight: 700;
-  color: var(--usx-color-on-surface, #e2e2e6);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .metric--danger {
-  color: #f85149;
+  color: var(--usx-color-danger);
 }
 
 .card-metric-sub {
   font-size: 0.72rem;
-  color: var(--usx-color-on-surface-variant, #8e9199);
+  color: var(--usx-color-on-surface-variant, var(--usx-color-on-surface-muted));
 }
 
 .status-pill {
@@ -275,12 +275,12 @@ const srv = useSnackbarOpsStore();
 }
 
 .status-pill--up {
-  background: rgba(63, 185, 80, 0.15);
-  color: #3fb950;
+  background: color-mix(in srgb, var(--usx-color-success) 15%, transparent);
+  color: var(--usx-color-success);
 }
 
 .status-pill--down {
-  background: rgba(248, 81, 73, 0.15);
-  color: #f85149;
+  background: color-mix(in srgb, var(--usx-color-danger) 15%, transparent);
+  color: var(--usx-color-danger);
 }
 </style>

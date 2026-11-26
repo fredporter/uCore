@@ -139,35 +139,22 @@ class ProviderRouter:
         self.providers["openrouter"] = ProviderConfig(
             name="openrouter", type="openrouter",
             base_url="https://openrouter.ai/api/v1",
-            default_model="cognitivecomputations/dolphin-mixtral-8x7b",
+            default_model="openrouter/free",
             priority=2, api_key=or_key,
             models=[
-                # Free tier (no cost)
-                "cognitivecomputations/dolphin-mixtral-8x7b",
-                "microsoft/phi-3-medium-128k-instruct",
-                # Ultra-cheap
+                "openrouter/free",
                 "deepseek/deepseek-chat",
-                "mistralai/mistral-7b-instruct",
-                # Budget
-                "anthropic/claude-3.5-haiku",
-                "google/gemini-2.0-flash-001",
-                # Mid-range
-                "anthropic/claude-sonnet-4-20250514",
+                "google/gemini-2.5-flash",
                 "openai/gpt-4o",
-                # Premium
-                "anthropic/claude-opus-4-20250514",
-                "openai/gpt-4.5-preview",
+                "meta-llama/llama-3.3-70b-instruct",
             ],
         )
         self.providers["openrouter-free"] = ProviderConfig(
             name="openrouter-free", type="openrouter",
             base_url="https://openrouter.ai/api/v1",
-            default_model="cognitivecomputations/dolphin-mixtral-8x7b",
+            default_model="openrouter/free",
             priority=3, api_key=or_key,
-            models=[
-                "cognitivecomputations/dolphin-mixtral-8x7b",
-                "microsoft/phi-3-medium-128k-instruct",
-            ],
+            models=["openrouter/free"],
         )
 
 
@@ -224,8 +211,7 @@ class ProviderRouter:
     def list_models(self) -> list[dict[str, Any]]:
         """List models from configured providers with cost tier annotations."""
         cost_tiers = {
-            "cognitivecomputations/dolphin-mixtral-8x7b": "free",
-            "microsoft/phi-3-medium-128k-instruct": "free",
+            "openrouter/free": "free",
             "qwen2.5-coder:3b": "free",
             "qwen2.5-coder:7b-instruct-q4_K_M": "free",
             "llama3.2": "free",
@@ -234,6 +220,8 @@ class ProviderRouter:
             "mistralai/mistral-7b-instruct": "ultra-cheap",
             "anthropic/claude-3.5-haiku": "budget",
             "google/gemini-2.0-flash-001": "budget",
+            "google/gemini-2.5-flash": "budget",
+            "meta-llama/llama-3.3-70b-instruct": "mid-range",
             "anthropic/claude-sonnet-4-20250514": "mid-range",
             "openai/gpt-4o": "mid-range",
             "anthropic/claude-opus-4-20250514": "premium",
@@ -247,6 +235,8 @@ class ProviderRouter:
                         "id": m, "provider": prov.name,
                         "cost": cost_tiers.get(m, "unknown"),
                     }
+                    if m == "openrouter/free":
+                        entry["name"] = "OpenRouter Free Models"
                     models.append(entry)
             elif prov.default_model:
                 models.append({
@@ -439,6 +429,16 @@ class ProviderRouter:
     ):
         """Stream chat completion tokens."""
         model_name = model or self._default_model(provider)
+        if provider in {"openrouter", "ollama"}:
+            config = self.get_provider_required(provider)
+            if model_name == "openrouter/free" or not model_name.startswith(f"{provider}/"):
+                model_name = f"{provider}/{model_name}"
+            kwargs.setdefault("api_base", config.base_url)
+            kwargs.setdefault("timeout", config.timeout)
+            if provider == "openrouter":
+                if not config.api_key:
+                    raise ValueError("OpenRouter API key is unavailable")
+                kwargs.setdefault("api_key", config.api_key)
         if self._litellm_available:
             from litellm import acompletion
             response = await acompletion(
@@ -454,6 +454,8 @@ class ProviderRouter:
             result = await self._chat_http(
                 messages, model_name, provider, **kwargs,
             )
+            if result.get("error"):
+                raise RuntimeError(result["error"])
             yield result.get("content", "")
 
     async def _chat_litellm(
@@ -485,7 +487,10 @@ class ProviderRouter:
         config = self.get_provider_required(provider or "ollama")
         is_openrouter = config.type == "openrouter"
         base_url = config.base_url.rstrip("/")
-        ollama_model = model.removeprefix("openrouter/") if is_openrouter else model.removeprefix("ollama/")
+        if is_openrouter:
+            wire_model = model if model == "openrouter/free" else model.removeprefix("openrouter/")
+        else:
+            wire_model = model.removeprefix("ollama/")
 
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=config.timeout)) as session:
             if is_openrouter:
@@ -496,7 +501,7 @@ class ProviderRouter:
                     "HTTP-Referer": "http://localhost",
                 }
                 payload = {
-                    "model": ollama_model,
+                    "model": wire_model,
                     "messages": messages,
                 }
                 if kwargs.get("tools"):
@@ -505,7 +510,7 @@ class ProviderRouter:
                 url = f"{base_url}/api/chat"
                 headers = {}
                 payload: dict[str, Any] = {
-                    "model": ollama_model,
+                    "model": wire_model,
                     "messages": messages,
                     "stream": False,
                 }

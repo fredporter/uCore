@@ -114,6 +114,9 @@ jobs:
       - name: Run backend tests
         run: backend/.venv/bin/python -m pytest -q backend/tests
 
+      - name: Run uCode+ OpenRouter client tests
+        run: backend/.venv/bin/python -m pytest -q ucode_plus/tests
+
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest
@@ -153,3 +156,17 @@ jobs:
 
       - name: Test frontend
         run: pnpm --dir frontend-vue run test -- --run
+
+      - name: Install Chromium for Format Smith browser checks
+        run: pnpm --dir frontend-vue exec playwright install --with-deps chromium
+
+      - name: Verify Format Smith desktop and narrow layouts
+        run: pnpm --dir frontend-vue exec playwright test e2e/format-smith.spec.ts
+
+      - name: Upload Format Smith browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: format-smith-browser
+          path: frontend-vue/test-results/
+          if-no-files-found: ignore

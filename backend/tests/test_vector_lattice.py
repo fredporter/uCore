@@ -102,6 +102,7 @@ async def test_vector_quantize_bob(client):
     assert data["status"] == "success"
     bob = data["bob"]
     assert bob["id"] == "bob_orb"
+    assert bob["name"] == "Orb BOB"
     assert bob["width_dots"] == 8
     assert bob["height_dots"] == 8
     assert bob["width_px"] == 32

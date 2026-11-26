@@ -5,10 +5,6 @@ import { createPinia, setActivePinia } from "pinia";
 import ChatBubblePanel from "./ChatBubblePanel.vue";
 import { useChatStore } from "../../stores/chat";
 
-vi.mock("../../composables/useMarkdown", () => ({
-  renderMarkdown: (content: string) => `<div class="rendered-md">${content}</div>`,
-}));
-
 describe("ChatBubblePanel - Format Smith", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
@@ -137,7 +133,7 @@ describe("ChatBubblePanel - Format Smith", () => {
       props: {
         chatMessages: [
           { role: "user", content: "notes" },
-          { role: "assistant", content: "# Formatted Heading\n- Item 1" },
+          { role: "assistant", content: "```markdown\n# Formatted Heading\n- Item 1\n```" },
         ],
         devMessages: [],
         loading: false,
@@ -154,8 +150,8 @@ describe("ChatBubblePanel - Format Smith", () => {
       },
     });
 
-    expect(wrapper.html()).toContain('class="rendered-md"');
-    expect(wrapper.html()).toContain("# Formatted Heading");
+    expect(wrapper.get(".chat-panel__msg--assistant h1").text()).toBe("Formatted Heading");
+    expect(wrapper.get(".chat-panel__msg--assistant li").text()).toBe("Item 1");
 
     wrapper.unmount();
   });

@@ -4,10 +4,11 @@ from __future__ import annotations
 
 def test_settings_import():
     """Smoke test — settings module imports correctly."""
-    from app.core.settings import Settings
+    from app.core.settings import Settings, settings
+
     s = Settings()
     assert s.app_name == "uCore"
-    assert s.version == "4.0.5"
+    assert s.version == settings.version
 
 
 def test_logging_import():

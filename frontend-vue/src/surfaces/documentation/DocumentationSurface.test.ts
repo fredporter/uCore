@@ -4,10 +4,10 @@ import { createPinia } from 'pinia';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DocumentationSurface from './DocumentationSurface.vue';
-import { useSettingsStore } from '../../stores/settings';
+import EngineeringSurface from '../engineering/EngineeringSurface.vue';
 vi.mock('../../utils/diagramHydrator', () => ({hydrateDiagrams: vi.fn()}));
 vi.mock('./LocalWikiReader.vue', () => ({default: {template:'<div>Knowledge library</div>'}}));
-vi.mock('../recipes/RecipeGallerySurface.vue', () => ({default: {template:'<h1>Recipe Gallery</h1>'}}));
+vi.mock('../recipes/RecipeGallerySurface.vue', () => ({default: {props:['lane'],template:'<h1>Recipe Gallery {{ lane }}</h1>'}}));
 const chapters = [{name:'One',path:'01.md',source:'manual',level:'basic'}, {name:'Two',path:'02.md',source:'manual',level:'basic'}];
 beforeEach(() => {
   vi.stubGlobal('localStorage', {getItem:()=>null,setItem:vi.fn(),removeItem:vi.fn()});
@@ -38,21 +38,34 @@ describe('documentation navigation',()=>{
     expect(wrapper.find('[aria-label="Reading view"]').exists()).toBe(false);
     wrapper.unmount();
   });
-  it('reveals Engineering through the display preference and opens its Recipes tab',async()=>{
-    const {wrapper,pinia,router}=await setup('developer');
+  it('keeps Engineering out of the Knowledge library',async()=>{
+    const {wrapper}=await setup('wiki');
     expect(wrapper.text()).toContain('Knowledge library');
-    expect(wrapper.find('nav').text()).not.toContain('Engineering');
-    useSettingsStore(pinia).setAdvancedView(true); await flushPromises();
-    const engineering = wrapper.findAll('nav a').find(link => link.text().includes('Engineering'))!;
-    await engineering.trigger('click'); await flushPromises();
-    const engineeringNav = wrapper.get('nav[aria-label="Engineering"]');
+    expect(wrapper.text()).not.toContain('Engineering');
+    wrapper.unmount();
+  });
+
+  it('opens Recipes from the standalone Engineering surface',async()=>{
+    const router=createRouter({history:createMemoryHistory(), routes:[{path:'/engineering',component:EngineeringSurface}]});
+    await router.push('/engineering');
+    const wrapper=mount(EngineeringSurface,{global:{plugins:[createPinia(),router]}});
+    await flushPromises();
     expect(wrapper.text()).toContain('Developer tools');
-    await engineeringNav.findAll('a')[1].trigger('click'); await flushPromises();
-    expect(router.currentRoute.value.query).toMatchObject({ tab: 'developer', section: 'recipes' });
+    expect(wrapper.get('a[href="http://127.0.0.1:3484/ucode"]').text()).toContain('uCode Dev Roadmap');
+    await wrapper.get('nav[aria-label="Engineering"]').findAll('a')[1].trigger('click');
+    await flushPromises();
+    expect(router.currentRoute.value.fullPath).toBe('/engineering?section=recipes');
     await vi.dynamicImportSettled();
     await flushPromises();
-    expect(wrapper.text()).toContain('Recipe Gallery');
-    expect(wrapper.text()).not.toContain('Developer tools');
+    expect(wrapper.text()).toContain('Recipe Gallery usx');
+    const gridTab = wrapper.get('nav[aria-label="Engineering"]').findAll('a').find(tab => tab.text().includes('Grid Recipes'))!;
+    await gridTab.trigger('click');
+    await flushPromises();
+    expect(router.currentRoute.value.fullPath).toBe('/engineering?section=grid-recipes');
+    expect(wrapper.text()).toContain('Recipe Gallery gridcore');
+    await router.push('/engineering?section=recipes');
+    await flushPromises();
+    expect(wrapper.text()).toContain('Recipe Gallery usx');
     wrapper.unmount();
   });
 });

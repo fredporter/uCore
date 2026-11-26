@@ -1,6 +1,6 @@
 # @udos/usx-tokens
 
-**USX Design Token System v3.1.0** — shared CSS custom properties for uDos surfaces.
+**USX Design Token System v3.2.0** — shared CSS custom properties for uDos surfaces.
 
 Used by:
 - **uCore** (`@udos/ui-hub-vue`) — developer dashboard, workflow, assist UI
@@ -28,6 +28,7 @@ Used by:
 │   └── media-player.css       ← Now-playing bar, transport, seek, volume
 │
 ├── usx-standard.css     ← Layout primitives (surfaces, cards, tabs, buttons)
+├── usx-prose.css        ← Prose contract: markdown, longform, citations, callouts
 └── README.md
 ```
 
@@ -81,4 +82,5 @@ npm publish --access public
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 3.2.0 | 2026-11-23 | `usx-prose.css` published as the Prose contract: token-only markdown, reading stack `--usx-font-family-reading`, `--usx-line-height-code`, citation chips, callouts on status tokens. |
 | 3.0.0 | 2026-07-08 | Extracted from uCore `frontend-vue/src/styles/`. Added HomeNest 10-foot console additions. Added PicoCSS peer dependency. |

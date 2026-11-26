@@ -172,7 +172,7 @@ onMounted(() => {
   background: var(--usx-color-surface);
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-lg);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--usx-color-scrim) 25%, transparent);
   padding: var(--usx-spacing-lg);
 }
 

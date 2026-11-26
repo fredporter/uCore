@@ -5020,12 +5020,12 @@ function clearGrid() {
   justify-content: center;
   overflow: auto;
   padding: 2%;
-  background: #000000;
+  background: var(--gridcore-palette-0);
 }
 /* Terminal: wider C64-style border (darker blue bezel around the grid). */
 .ucode-viewport--terminal {
   padding: 4%;
-  background: #2c4a8c;
+  background: var(--usx-color-primary);
 }
 .ucode-viewport gridui-canvas {
   flex-shrink: 0;
@@ -5178,7 +5178,7 @@ function clearGrid() {
   align-items: center;
   justify-content: center;
   color: var(--gridcore-color-primary);
-  background: #000;
+  background: var(--gridcore-palette-0);
   border: var(--gridcore-border);
   font-family: var(--gridcore-font-family-mono);
   letter-spacing: 0.12em;
@@ -5248,7 +5248,7 @@ function clearGrid() {
   cursor: pointer;
 }
 .teletext-colour-key.active {
-  border-color: #fff;
+  border-color: var(--gridcore-palette-7);
   box-shadow: 0 0 0 2px var(--gridcore-color-primary);
 }
 .layer-map-selector__label {
@@ -5876,7 +5876,7 @@ function clearGrid() {
   font: var(--gridcore-font-size-xs) var(--gridcore-font-family-mono);
 }
 .software-library-message--error {
-  color: var(--gridcore-color-danger, #e35d6a);
+  color: var(--gridcore-color-danger);
 }
 .software-library-sidebar__title {
   margin: 0;
@@ -6102,8 +6102,8 @@ function clearGrid() {
   position: relative;
 }
 .sidebar-colour-swatch.fg-active {
-  box-shadow: inset 0 0 0 2px #ffffff;
-  border-color: #ffffff;
+  box-shadow: inset 0 0 0 2px var(--usx-color-on-surface);
+  border-color: var(--usx-color-on-surface);
 }
 .sidebar-colour-swatch .colour-marker.fg {
   position: absolute;
@@ -6111,8 +6111,8 @@ function clearGrid() {
   right: 2px;
   font-size: 10px;
   line-height: 1;
-  color: #ffffff;
-  text-shadow: 0 0 2px #000000;
+  color: var(--usx-color-on-surface);
+  text-shadow: 0 0 2px var(--gridcore-palette-0);
 }
 
 /* Sidebar helper text */
@@ -6353,7 +6353,7 @@ function clearGrid() {
   }
 }
 /* Library is a desktop UI, rather than a terminal canvas. */
-.software-library-layout { font-family: var(--usx-font-family, system-ui, sans-serif); font-size: var(--usx-font-size-sm); background: var(--usx-color-background); }
+.software-library-layout { font-family: var(--usx-font-family-sans, system-ui, sans-serif); font-size: var(--usx-font-size-sm); background: var(--usx-color-background); }
 .software-library-main { display: block; padding: var(--usx-spacing-md); }
 .gridcore-tools { flex: 1; min-height: 0; min-width: 0; overflow: auto; box-sizing: border-box; }
 .software-library-header { align-items: center; padding-bottom: var(--usx-spacing-sm); border-bottom: 1px solid var(--usx-color-border); margin-bottom: var(--usx-spacing-md); }

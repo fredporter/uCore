@@ -1,5 +1,5 @@
 <template>
-  <div ref="readerRoot" class="local-wiki-reader" :class="{ 'local-wiki-reader--zen': zenMode, [`font-${fontFamily}`]: true }">
+  <div ref="readerRoot" class="local-wiki-reader" :class="{ 'local-wiki-reader--zen': zenMode }">
     <!-- Top Reader Header / Toolbar -->
     <header class="wiki-toolbar" role="toolbar" aria-label="Knowledge reader">
       <div class="wiki-toolbar__left">
@@ -771,7 +771,6 @@ function readingKeydown(event: KeyboardEvent) { if (showSearchModal.value || sho
 
 const zenMode = ref(false);
 const showProperties = ref(false), showContents = ref(false);
-const fontFamily = computed(() => settings.readingFont || "serif");
 
 function browseFiles() {
   shell.setSidebarMode("vault");
@@ -1496,18 +1495,14 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--usx-color-bg, #0d1117);
-  color: var(--usx-color-text, #c9d1d9);
+  background: var(--usx-color-background, var(--usx-color-background));
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
   font-family: inherit;
 }
 
 /* ── Typography Modes ──────────────────────────────────────────────── */
-.local-wiki-reader.font-serif .wiki-prose {
-  font-family: var(--usx-font-family-serif, Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif);
-}
-
-.local-wiki-reader.font-sans .wiki-prose {
-  font-family: var(--usx-font-family-sans, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+.wiki-prose {
+  font-family: var(--usx-font-family-reading, var(--usx-font-family-serif));
 }
 
 /* ── Top Toolbar ───────────────────────────────────────────────────── */
@@ -1516,8 +1511,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: var(--usx-color-surface, #161b22);
-  border-bottom: 1px solid var(--usx-color-border, #30363d);
+  background: var(--usx-color-surface, var(--usx-color-surface));
+  border-bottom: 1px solid var(--usx-color-border, var(--usx-color-border));
   gap: 16px;
 }
 
@@ -1539,12 +1534,12 @@ onUnmounted(() => {
 .wiki-meta__title {
   font-weight: 600;
   margin-right: 10px;
-  color: var(--usx-color-primary, #58a6ff);
+  color: var(--usx-color-primary, var(--usx-color-primary));
 }
 
 .wiki-meta__reading-time {
   font-size: 12px;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1556,39 +1551,39 @@ onUnmounted(() => {
   gap: 6px;
   padding: 4px 10px;
   font-size: 12px;
-  background: #21262d;
-  color: #c9d1d9;
-  border: 1px solid #30363d;
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface);
+  border: 1px solid var(--usx-color-border);
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .wiki-btn:hover {
-  background: #30363d;
+  background: var(--usx-color-surface-hover);
 }
 
 .wiki-btn--active {
-  background: #1f6feb;
-  color: #ffffff;
-  border-color: #388bfd;
+  background: var(--usx-color-primary-hover);
+  color: var(--usx-color-on-surface);
+  border-color: var(--usx-color-primary);
 }
 
 .wiki-btn--primary {
-  background: #238636;
-  color: #ffffff;
-  border-color: #2ea043;
+  background: var(--usx-color-success);
+  color: var(--usx-color-on-surface);
+  border-color: var(--usx-color-success-hover);
   padding: 8px 16px;
   font-size: 14px;
 }
 
 .wiki-btn--primary:hover {
-  background: #2ea043;
+  background: var(--usx-color-success-hover);
 }
 
 .wiki-font-toggle {
   display: inline-flex;
-  border: 1px solid #30363d;
+  border: 1px solid var(--usx-color-border);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -1601,8 +1596,8 @@ onUnmounted(() => {
 .wiki-search-box {
   display: inline-flex;
   align-items: center;
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--usx-color-background);
+  border: 1px solid var(--usx-color-border);
   border-radius: 4px;
   padding: 2px 8px;
   gap: 6px;
@@ -1611,7 +1606,7 @@ onUnmounted(() => {
 .wiki-search-input {
   background: transparent;
   border: none;
-  color: #c9d1d9;
+  color: var(--usx-color-on-surface);
   font-size: 12px;
   width: 160px;
   outline: none;
@@ -1620,7 +1615,7 @@ onUnmounted(() => {
 .wiki-search-clear {
   background: transparent;
   border: none;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1657,17 +1652,17 @@ onUnmounted(() => {
   justify-content: space-between;
   margin-bottom: 24px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid var(--usx-color-border-light);
 }
 
 .wiki-breadcrumb {
   font-size: 12px;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
 }
 
 .wiki-breadcrumb__sep {
   margin: 0 6px;
-  color: #484f58;
+  color: var(--usx-color-on-surface-muted);
 }
 
 .wiki-chip--offline {
@@ -1676,10 +1671,10 @@ onUnmounted(() => {
   gap: 4px;
   font-size: 11px;
   padding: 2px 8px;
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--usx-color-surface);
+  border: 1px solid var(--usx-color-border);
   border-radius: 12px;
-  color: #3fb950;
+  color: var(--usx-color-success);
 }
 
 .wiki-chip--canon {
@@ -1688,10 +1683,10 @@ onUnmounted(() => {
   gap: 4px;
   font-size: 11px;
   padding: 2px 8px;
-  background: rgba(88, 166, 255, 0.1);
-  border: 1px solid rgba(88, 166, 255, 0.3);
+  background: color-mix(in srgb, var(--usx-color-primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--usx-color-primary) 30%, transparent);
   border-radius: 12px;
-  color: #58a6ff;
+  color: var(--usx-color-primary);
 }
 
 .wiki-chip--community {
@@ -1700,10 +1695,10 @@ onUnmounted(() => {
   gap: 4px;
   font-size: 11px;
   padding: 2px 8px;
-  background: rgba(188, 140, 255, 0.1);
-  border: 1px solid rgba(188, 140, 255, 0.3);
+  background: color-mix(in srgb, var(--usx-color-accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--usx-color-accent) 30%, transparent);
   border-radius: 12px;
-  color: #bc8cff;
+  color: var(--usx-color-accent);
 }
 
 .wiki-chip--personal {
@@ -1712,10 +1707,10 @@ onUnmounted(() => {
   gap: 4px;
   font-size: 11px;
   padding: 2px 8px;
-  background: rgba(210, 153, 34, 0.1);
-  border: 1px solid rgba(210, 153, 34, 0.3);
+  background: color-mix(in srgb, var(--usx-color-warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--usx-color-warning) 30%, transparent);
   border-radius: 12px;
-  color: #d29922;
+  color: var(--usx-color-warning);
 }
 
 .wiki-chip--overlaid {
@@ -1724,10 +1719,10 @@ onUnmounted(() => {
   gap: 4px;
   font-size: 11px;
   padding: 2px 8px;
-  background: rgba(240, 136, 62, 0.1);
-  border: 1px solid rgba(240, 136, 62, 0.3);
+  background: color-mix(in srgb, var(--usx-color-warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--usx-color-warning) 30%, transparent);
   border-radius: 12px;
-  color: #f0883e;
+  color: var(--usx-color-warning);
 }
 
 /* ── Knowledge Federation Action Strip ────────────────────────────── */
@@ -1737,8 +1732,8 @@ onUnmounted(() => {
   justify-content: space-between;
   margin-bottom: 20px;
   padding: 8px 12px;
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--usx-color-surface);
+  border: 1px solid var(--usx-color-border);
   border-radius: 8px;
   gap: 8px;
 }
@@ -1758,39 +1753,39 @@ onUnmounted(() => {
 }
 
 .wiki-btn--diff {
-  background: rgba(88, 166, 255, 0.12);
-  border-color: #388bfd;
-  color: #58a6ff;
+  background: color-mix(in srgb, var(--usx-color-primary) 12%, transparent);
+  border-color: var(--usx-color-primary);
+  color: var(--usx-color-primary);
 }
 
 .wiki-btn--revert {
-  background: rgba(248, 81, 73, 0.1);
-  border-color: rgba(248, 81, 73, 0.4);
-  color: #f85149;
+  background: color-mix(in srgb, var(--usx-color-danger) 10%, transparent);
+  border-color: color-mix(in srgb, var(--usx-color-danger) 40%, transparent);
+  color: var(--usx-color-danger);
 }
 
 .wiki-btn--fork {
-  background: rgba(46, 160, 67, 0.12);
-  border-color: #2ea043;
-  color: #3fb950;
+  background: color-mix(in srgb, var(--usx-color-success-hover) 12%, transparent);
+  border-color: var(--usx-color-success-hover);
+  color: var(--usx-color-success);
 }
 
 .wiki-btn--export {
-  background: rgba(210, 153, 34, 0.12);
-  border-color: #d29922;
-  color: #d29922;
+  background: color-mix(in srgb, var(--usx-color-warning) 12%, transparent);
+  border-color: var(--usx-color-warning);
+  color: var(--usx-color-warning);
 }
 
 .wiki-btn--ghost {
   background: transparent;
-  border-color: #30363d;
-  color: #8b949e;
+  border-color: var(--usx-color-border);
+  color: var(--usx-color-on-surface-muted);
 }
 
 .wiki-fed-diff-stats {
   font-family: var(--usx-font-family-mono, monospace);
   font-size: 10px;
-  background: rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--usx-color-scrim) 30%, transparent);
   padding: 1px 5px;
   border-radius: 4px;
   margin-left: 4px;
@@ -1798,12 +1793,12 @@ onUnmounted(() => {
 
 /* ── Federation Modals ────────────────────────────────────────────── */
 .wiki-fed-modal {
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--usx-color-surface);
+  border: 1px solid var(--usx-color-border);
   border-radius: 12px;
   width: 100%;
   max-width: 680px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--usx-color-scrim) 40%, transparent);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1819,8 +1814,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  border-bottom: 1px solid #30363d;
-  background: #0d1117;
+  border-bottom: 1px solid var(--usx-color-border);
+  background: var(--usx-color-background);
 }
 
 .wiki-fed-modal__title-row {
@@ -1830,14 +1825,14 @@ onUnmounted(() => {
 }
 
 .wiki-fed-modal__icon {
-  color: #58a6ff;
+  color: var(--usx-color-primary);
 }
 
 .wiki-fed-modal__title {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: #f0f6fc;
+  color: var(--usx-color-on-surface);
 }
 
 .wiki-fed-modal__body {
@@ -1853,25 +1848,25 @@ onUnmounted(() => {
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 18px;
-  border-top: 1px solid #30363d;
-  background: #0d1117;
+  border-top: 1px solid var(--usx-color-border);
+  background: var(--usx-color-background);
 }
 
 .wiki-fed-diff-meta {
-  background: #0d1117;
-  border: 1px solid #21262d;
+  background: var(--usx-color-background);
+  border: 1px solid var(--usx-color-border-light);
   border-radius: 6px;
   padding: 10px 14px;
   font-size: 12px;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
 .wiki-fed-diff-viewer {
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--usx-color-background);
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
   font-family: var(--usx-font-family-mono, monospace);
   font-size: 12px;
@@ -1887,7 +1882,7 @@ onUnmounted(() => {
 
 .wiki-diff-line-num {
   width: 32px;
-  color: #484f58;
+  color: var(--usx-color-on-surface-muted);
   user-select: none;
   text-align: right;
   padding-right: 8px;
@@ -1899,25 +1894,25 @@ onUnmounted(() => {
 }
 
 .wiki-diff-line.diff-add {
-  background: rgba(46, 160, 67, 0.15);
-  color: #3fb950;
+  background: color-mix(in srgb, var(--usx-color-success-hover) 15%, transparent);
+  color: var(--usx-color-success);
 }
 
 .wiki-diff-line.diff-del {
-  background: rgba(248, 81, 73, 0.15);
-  color: #f85149;
+  background: color-mix(in srgb, var(--usx-color-danger) 15%, transparent);
+  color: var(--usx-color-danger);
 }
 
 .wiki-diff-line.diff-hdr {
-  background: rgba(88, 166, 255, 0.1);
-  color: #58a6ff;
+  background: color-mix(in srgb, var(--usx-color-primary) 10%, transparent);
+  color: var(--usx-color-primary);
   font-weight: 600;
 }
 
 /* Submission form styles */
 .wiki-fed-modal__desc {
   font-size: 13px;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   margin: 0;
 }
 
@@ -1930,28 +1925,28 @@ onUnmounted(() => {
 .wiki-form-group label {
   font-size: 12px;
   font-weight: 500;
-  color: #c9d1d9;
+  color: var(--usx-color-on-surface);
 }
 
 .wiki-input, .wiki-textarea {
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--usx-color-background);
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
   padding: 8px 12px;
-  color: #f0f6fc;
+  color: var(--usx-color-on-surface);
   font-size: 13px;
   outline: none;
 }
 
 .wiki-input--readonly {
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   font-family: var(--usx-font-family-mono, monospace);
-  background: #161b22;
+  background: var(--usx-color-surface);
 }
 
 .wiki-preflight-panel {
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--usx-color-background);
+  border: 1px solid var(--usx-color-border);
   border-radius: 8px;
   padding: 12px;
   display: flex;
@@ -1965,7 +1960,7 @@ onUnmounted(() => {
   gap: 8px;
   font-size: 12px;
   font-weight: 600;
-  color: #f0f6fc;
+  color: var(--usx-color-on-surface);
 }
 
 .wiki-status-tag {
@@ -1977,15 +1972,15 @@ onUnmounted(() => {
 }
 
 .tag--pass {
-  background: rgba(46, 160, 67, 0.2);
-  color: #3fb950;
-  border: 1px solid #2ea043;
+  background: color-mix(in srgb, var(--usx-color-success-hover) 20%, transparent);
+  color: var(--usx-color-success);
+  border: 1px solid var(--usx-color-success-hover);
 }
 
 .tag--fail {
-  background: rgba(248, 81, 73, 0.2);
-  color: #f85149;
-  border: 1px solid #da3633;
+  background: color-mix(in srgb, var(--usx-color-danger) 20%, transparent);
+  color: var(--usx-color-danger);
+  border: 1px solid var(--usx-color-danger-hover);
 }
 
 .wiki-check-item {
@@ -1996,24 +1991,24 @@ onUnmounted(() => {
 }
 
 .check--ok {
-  color: #3fb950;
+  color: var(--usx-color-success);
 }
 
 .check--fail {
-  color: #f85149;
+  color: var(--usx-color-danger);
 }
 
 .check--warn {
-  color: #d29922;
+  color: var(--usx-color-warning);
 }
 
 .wiki-preflight-errors {
   margin-top: 6px;
   padding: 8px;
-  background: rgba(248, 81, 73, 0.1);
+  background: color-mix(in srgb, var(--usx-color-danger) 10%, transparent);
   border-radius: 4px;
   font-size: 12px;
-  color: #f85149;
+  color: var(--usx-color-danger);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -2021,8 +2016,8 @@ onUnmounted(() => {
 
 .wiki-submission-success {
   padding: 16px;
-  background: rgba(46, 160, 67, 0.1);
-  border: 1px solid #2ea043;
+  background: color-mix(in srgb, var(--usx-color-success-hover) 10%, transparent);
+  border: 1px solid var(--usx-color-success-hover);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -2032,7 +2027,7 @@ onUnmounted(() => {
 .wiki-success-title {
   font-size: 15px;
   font-weight: 600;
-  color: #3fb950;
+  color: var(--usx-color-success);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2042,7 +2037,7 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   font-size: 11px;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
 }
 
 /* 3-Tier Grid */
@@ -2053,8 +2048,8 @@ onUnmounted(() => {
 }
 
 .wiki-fed-tier-card {
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--usx-color-background);
+  border: 1px solid var(--usx-color-border);
   border-radius: 8px;
   padding: 14px;
   display: flex;
@@ -2071,7 +2066,7 @@ onUnmounted(() => {
 .tier-card__header h4 {
   margin: 0;
   font-size: 13px;
-  color: #f0f6fc;
+  color: var(--usx-color-on-surface);
 }
 
 .tier-badge {
@@ -2082,23 +2077,23 @@ onUnmounted(() => {
 }
 
 .tier--personal .tier-badge {
-  background: rgba(210, 153, 34, 0.2);
-  color: #d29922;
+  background: color-mix(in srgb, var(--usx-color-warning) 20%, transparent);
+  color: var(--usx-color-warning);
 }
 
 .tier--community .tier-badge {
-  background: rgba(188, 140, 255, 0.2);
-  color: #bc8cff;
+  background: color-mix(in srgb, var(--usx-color-accent) 20%, transparent);
+  color: var(--usx-color-accent);
 }
 
 .tier--canon .tier-badge {
-  background: rgba(88, 166, 255, 0.2);
-  color: #58a6ff;
+  background: color-mix(in srgb, var(--usx-color-primary) 20%, transparent);
+  color: var(--usx-color-primary);
 }
 
 .tier-path code {
   font-size: 11px;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
 }
 
 .tier-stat {
@@ -2111,17 +2106,17 @@ onUnmounted(() => {
 .stat-number {
   font-size: 22px;
   font-weight: 700;
-  color: #f0f6fc;
+  color: var(--usx-color-on-surface);
 }
 
 .stat-label {
   font-size: 11px;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
 }
 
 .tier-desc {
   font-size: 11px;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   line-height: 1.4;
   margin: 0;
 }
@@ -2135,19 +2130,19 @@ onUnmounted(() => {
 .wiki-fed-section-title {
   margin: 0;
   font-size: 13px;
-  color: #f0f6fc;
+  color: var(--usx-color-on-surface);
   font-weight: 600;
 }
 
 .wiki-fed-empty {
   font-size: 12px;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   font-style: italic;
   padding: 8px 0;
 }
 
 .wiki-fed-table-wrapper {
-  border: 1px solid #30363d;
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -2159,39 +2154,39 @@ onUnmounted(() => {
 }
 
 .wiki-fed-table th {
-  background: #0d1117;
+  background: var(--usx-color-background);
   padding: 8px 12px;
   text-align: left;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   font-weight: 500;
-  border-bottom: 1px solid #30363d;
+  border-bottom: 1px solid var(--usx-color-border);
 }
 
 .wiki-fed-table td {
   padding: 8px 12px;
-  border-bottom: 1px solid #21262d;
-  color: #c9d1d9;
+  border-bottom: 1px solid var(--usx-color-border-light);
+  color: var(--usx-color-on-surface);
 }
 
 .wiki-tag--overlaid {
-  color: #f0883e;
+  color: var(--usx-color-warning);
   font-size: 11px;
 }
 
 .wiki-tag--new {
-  color: #3fb950;
+  color: var(--usx-color-success);
   font-size: 11px;
 }
 
 .wiki-muted-text {
-  color: #6e7681;
+  color: var(--usx-color-on-surface-muted);
   font-size: 11px;
 }
 
 /* ── Table of Contents ─────────────────────────────────────────────── */
 .wiki-toc {
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--usx-color-surface);
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
   padding: 16px 20px;
   margin-bottom: 32px;
@@ -2201,7 +2196,7 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   margin-bottom: 10px;
   display: flex;
   align-items: center;
@@ -2230,11 +2225,11 @@ onUnmounted(() => {
 .wiki-toc__item--l3 {
   padding-left: 28px;
   font-size: 12px;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
 }
 
 .wiki-toc__item a {
-  color: #58a6ff;
+  color: var(--usx-color-primary);
   text-decoration: none;
 }
 
@@ -2253,36 +2248,36 @@ onUnmounted(() => {
   font-size: 2rem;
   margin-top: 2rem;
   margin-bottom: 1rem;
-  border-bottom: 1px solid #30363d;
+  border-bottom: 1px solid var(--usx-color-border);
   padding-bottom: 0.3em;
-  color: #f0f6fc;
+  color: var(--usx-color-on-surface);
 }
 
 :deep(.wiki-prose h2) {
   font-size: 1.5rem;
   margin-top: 1.8rem;
   margin-bottom: 0.8rem;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid var(--usx-color-border-light);
   padding-bottom: 0.3em;
-  color: #f0f6fc;
+  color: var(--usx-color-on-surface);
 }
 
 :deep(.wiki-prose h3) {
   font-size: 1.25rem;
   margin-top: 1.4rem;
   margin-bottom: 0.6rem;
-  color: #e6edf3;
+  color: var(--usx-color-on-surface);
 }
 
 :deep(.wiki-prose p) {
   margin-top: 0;
   margin-bottom: 1.2rem;
-  color: #c9d1d9;
+  color: var(--usx-color-on-surface);
 }
 
 :deep(.wiki-prose pre) {
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--usx-color-surface);
+  border: 1px solid var(--usx-color-border);
   border-radius: 6px;
   padding: 16px;
   overflow-x: auto;
@@ -2292,7 +2287,7 @@ onUnmounted(() => {
 }
 
 :deep(.wiki-prose code) {
-  background: rgba(110, 118, 129, 0.2);
+  background: color-mix(in srgb, var(--usx-color-on-surface-muted) 20%, transparent);
   padding: 0.2em 0.4em;
   border-radius: 4px;
   font-size: 85%;
@@ -2301,14 +2296,14 @@ onUnmounted(() => {
 
 /* ── Internal Wiki Links ───────────────────────────────────────────── */
 :deep(.wiki-internal-link) {
-  color: #58a6ff;
+  color: var(--usx-color-primary);
   text-decoration: none;
-  border-bottom: 1px dashed #58a6ff;
+  border-bottom: 1px dashed var(--usx-color-primary);
   cursor: pointer;
 }
 
 :deep(.wiki-internal-link:hover) {
-  color: #79c0ff;
+  color: var(--usx-color-primary);
   border-bottom-style: solid;
 }
 
@@ -2317,13 +2312,13 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: #21262d;
-  border: 1px solid #30363d;
+  background: var(--usx-color-surface-variant);
+  border: 1px solid var(--usx-color-border);
   border-radius: 4px;
   padding: 1px 6px;
   font-size: 11px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   margin: 0 3px;
   vertical-align: baseline;
   user-select: all;
@@ -2334,15 +2329,15 @@ onUnmounted(() => {
 }
 
 :deep(.offline-citation-chip .chip-domain) {
-  color: #c9d1d9;
+  color: var(--usx-color-on-surface);
   font-weight: 500;
 }
 
 :deep(.offline-citation-chip .chip-tag) {
   font-size: 9px;
   text-transform: uppercase;
-  color: #f2cc60;
-  background: rgba(242, 204, 96, 0.1);
+  color: var(--usx-color-warning);
+  background: color-mix(in srgb, var(--usx-color-warning) 10%, transparent);
   padding: 0 4px;
   border-radius: 2px;
 }
@@ -2377,7 +2372,7 @@ onUnmounted(() => {
 .wiki-loading-content {
   padding: 24px;
   text-align: center;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   font-size: 13px;
 }
 
@@ -2386,9 +2381,9 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--usx-color-surface-variant, #161b22);
-  color: var(--usx-color-text-muted, #8b949e);
-  border: 1px solid var(--usx-color-border, #30363d);
+  background: var(--usx-color-surface-variant, var(--usx-color-surface));
+  color: var(--usx-color-on-surface-muted, var(--usx-color-on-surface-muted));
+  border: 1px solid var(--usx-color-border, var(--usx-color-border));
   border-radius: 6px;
   padding: 4px 10px;
   font-size: 13px;
@@ -2397,9 +2392,9 @@ onUnmounted(() => {
 }
 
 .wiki-search-trigger:hover {
-  background: var(--usx-color-surface, #21262d);
-  border-color: #58a6ff;
-  color: var(--usx-color-text, #c9d1d9);
+  background: var(--usx-color-surface, var(--usx-color-surface-variant));
+  border-color: var(--usx-color-primary);
+  color: var(--usx-color-on-surface, var(--usx-color-on-surface));
 }
 
 .wiki-search-trigger__text {
@@ -2412,9 +2407,9 @@ onUnmounted(() => {
   font-size: 10px;
   font-family: inherit;
   font-weight: 600;
-  color: #8b949e;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--usx-color-on-surface-muted);
+  background: color-mix(in srgb, var(--usx-color-on-surface) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--usx-color-on-surface) 15%, transparent);
   border-radius: 4px;
 }
 
@@ -2422,7 +2417,7 @@ onUnmounted(() => {
 .wiki-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: color-mix(in srgb, var(--usx-color-scrim) 65%, transparent);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: flex-start;
@@ -2432,12 +2427,12 @@ onUnmounted(() => {
 }
 
 .wiki-search-modal {
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--usx-color-surface);
+  border: 1px solid var(--usx-color-border);
   border-radius: 12px;
   width: 100%;
   max-width: 680px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--usx-color-scrim) 40%, transparent);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2448,12 +2443,12 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 14px 18px;
-  border-bottom: 1px solid #30363d;
-  background: #0d1117;
+  border-bottom: 1px solid var(--usx-color-border);
+  background: var(--usx-color-background);
 }
 
 .wiki-search-modal__icon {
-  color: #58a6ff;
+  color: var(--usx-color-primary);
   font-size: 20px;
 }
 
@@ -2461,7 +2456,7 @@ onUnmounted(() => {
   flex: 1;
   background: transparent;
   border: none;
-  color: #f0f6fc;
+  color: var(--usx-color-on-surface);
   font-size: 16px;
   outline: none;
 }
@@ -2470,15 +2465,15 @@ onUnmounted(() => {
   display: flex;
   gap: 6px;
   padding: 8px 16px;
-  background: #0d1117;
-  border-bottom: 1px solid #21262d;
+  background: var(--usx-color-background);
+  border-bottom: 1px solid var(--usx-color-border-light);
   overflow-x: auto;
 }
 
 .wiki-filter-pill {
   background: transparent;
   border: 1px solid transparent;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   border-radius: 14px;
   padding: 3px 10px;
   font-size: 11px;
@@ -2489,14 +2484,14 @@ onUnmounted(() => {
 }
 
 .wiki-filter-pill:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #c9d1d9;
+  background: color-mix(in srgb, var(--usx-color-on-surface) 5%, transparent);
+  color: var(--usx-color-on-surface);
 }
 
 .wiki-filter-pill--active {
-  background: rgba(56, 189, 248, 0.15);
-  border-color: rgba(56, 189, 248, 0.4);
-  color: #38bdf8;
+  background: color-mix(in srgb, var(--usx-color-info) 15%, transparent);
+  border-color: color-mix(in srgb, var(--usx-color-info) 40%, transparent);
+  color: var(--usx-color-info);
   font-weight: 600;
 }
 
@@ -2512,19 +2507,19 @@ onUnmounted(() => {
 .wiki-search-hint {
   padding: 32px 24px;
   text-align: center;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
 }
 
 .wiki-search-empty p {
   margin: 8px 0 4px;
-  color: #c9d1d9;
+  color: var(--usx-color-on-surface);
   font-size: 14px;
 }
 
 .wiki-search-hint p {
   margin-bottom: 12px;
   font-size: 13px;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   line-height: 1.5;
 }
 
@@ -2537,9 +2532,9 @@ onUnmounted(() => {
 }
 
 .quick-tag {
-  background: #21262d;
-  border: 1px solid #30363d;
-  color: #58a6ff;
+  background: var(--usx-color-surface-variant);
+  border: 1px solid var(--usx-color-border);
+  color: var(--usx-color-primary);
   border-radius: 4px;
   padding: 2px 8px;
   font-size: 11px;
@@ -2547,7 +2542,7 @@ onUnmounted(() => {
 }
 
 .quick-tag:hover {
-  background: rgba(56, 189, 248, 0.15);
+  background: color-mix(in srgb, var(--usx-color-info) 15%, transparent);
 }
 
 .wiki-results-list {
@@ -2558,7 +2553,7 @@ onUnmounted(() => {
 
 .wiki-result-item {
   padding: 10px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid color-mix(in srgb, var(--usx-color-on-surface) 4%, transparent);
   transition: background 0.12s ease;
 }
 
@@ -2572,7 +2567,7 @@ onUnmounted(() => {
 
 .wiki-result-item:hover,
 .wiki-result-item--selected {
-  background: rgba(56, 189, 248, 0.1);
+  background: color-mix(in srgb, var(--usx-color-info) 10%, transparent);
 }
 
 .wiki-result-item__top {
@@ -2583,7 +2578,7 @@ onUnmounted(() => {
 
 .wiki-result-item__title {
   font-weight: 600;
-  color: #f0f6fc;
+  color: var(--usx-color-on-surface);
   font-size: 14px;
 }
 
@@ -2591,16 +2586,16 @@ onUnmounted(() => {
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 4px;
-  background: #21262d;
-  color: #8b949e;
-  border: 1px solid #30363d;
+  background: var(--usx-color-surface-variant);
+  color: var(--usx-color-on-surface-muted);
+  border: 1px solid var(--usx-color-border);
   text-transform: uppercase;
 }
 
 .wiki-result-item__snippet {
   margin: 0;
   font-size: 12px;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2613,7 +2608,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
-  color: #6e7681;
+  color: var(--usx-color-on-surface-muted);
 }
 
 .wiki-result-item__path {
@@ -2625,17 +2620,17 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 18px;
-  background: #0d1117;
-  border-top: 1px solid #30363d;
+  background: var(--usx-color-background);
+  border-top: 1px solid var(--usx-color-border);
   font-size: 11px;
-  color: #8b949e;
+  color: var(--usx-color-on-surface-muted);
 }
 
 .footer-left {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #3fb950;
+  color: var(--usx-color-success);
 }
 
 .footer-right {
@@ -2650,8 +2645,8 @@ onUnmounted(() => {
   font-size: 9px;
   font-family: inherit;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--usx-color-on-surface) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--usx-color-on-surface) 12%, transparent);
   border-radius: 3px;
   margin-right: 4px;
 }

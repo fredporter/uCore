@@ -9,6 +9,17 @@ Adheres to the Zen Ecosystem Contract reuse hierarchy:
 Policy: Probing capabilities is non-invasive and never auto-launches applications
 or triggers macOS Automation authorization prompts. Actions are only dispatched
 on explicit user invocation.
+
+## Platform Addon Migration
+
+macOS-specific features in this service are being migrated to the ``uCoreMac``
+platform addon repository (``/Users/fredbook/Code/uCoreMac``), following the
+same optional-plugin pattern as ``uCoreGoo`` for Google services.
+
+Linux equivalents live in ``uCoreLin`` (``/Users/fredbook/Code/uCoreLin``).
+
+This uCore module remains for backward compatibility during the transition.
+New platform-specific code should be added to the appropriate addon, not here.
 """
 
 from __future__ import annotations

@@ -313,9 +313,9 @@ async function handleNewFile(binderId: string) {
 
 .app-runtime-warning {
   position: fixed;
-  top: calc(var(--usx-toolbar-height) + var(--usx-spacing-md));
+  top: calc(var(--usx-topbar-height) + var(--usx-spacing-md));
   right: var(--usx-spacing-md);
-  z-index: var(--usx-z-notification);
+  z-index: var(--usx-z-index-notification);
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
@@ -362,7 +362,7 @@ async function handleNewFile(binderId: string) {
   .app-runtime-warning {
     left: var(--usx-spacing-sm);
     right: var(--usx-spacing-sm);
-    top: calc(var(--usx-toolbar-height) + var(--usx-spacing-sm));
+    top: calc(var(--usx-topbar-height) + var(--usx-spacing-sm));
     width: auto;
     max-width: none;
   }

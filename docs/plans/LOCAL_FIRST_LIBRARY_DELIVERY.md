@@ -127,9 +127,6 @@ Replace bracketed fields before sending each prompt. Supply the coordinator's co
 
 ## Antigravity and Codex handover
 
-See the [recovery and qualification runbook](LOCAL_FIRST_RECOVERY_AND_QUALIFICATION.md)
-for Git delivery, credential recovery and acceptance stories.
-
 Use this repo and plan as the shared record. Read the workspace AGENTS.md, this
 plan and the relevant source before proposing changes. Use Antigravity for an
 assigned implementation or local browser check. Use Codex to reconcile the
@@ -178,6 +175,17 @@ and mocked tests.
 > access, private Tomb export and generic NFC resource links open until their
 > respective acceptance checks pass.
 
-### Browser pass status · 20 November 2026 – Completed ✅
+### Browser pass status · 20 November 2026
 
-All four UI routes were manually verified in a desktop browser. No errors were observed; the Vue shell, Library reader, Feeds panel, Binder publishing panel, and simulated NFC view rendered correctly. Screenshots saved under `docs/handoff/` and linked in the hand‑off log. Verification approved by the coordinator.
+Antigravity reported failed Feeds and Binder HEAD checks and announced a
+Chromium run. Its handover supplied no completed browser observations.
+Codex saw listeners on ports 5175 and 8484, but its GET requests to all four
+routes and the library stats endpoint failed to connect on loopback. This
+leaves the visual pass pending. The connection result alone gives no
+evidence about Vue rendering.
+
+Run the next pass from the desktop browser that can reach the local
+frontend. Start with a normal navigation to /documentation and confirm
+that the Vue shell and reader render. Then use the route table above.
+Record one verdict per route, the visible error if any, and the path to
+each screenshot. Keep screenshot files separate from the plan.

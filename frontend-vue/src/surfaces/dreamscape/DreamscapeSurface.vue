@@ -549,15 +549,15 @@ async function handleLaunchMission() {
 }
 
 .dreamscape-notice--success {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-  border: 1px solid #22c55e;
+  background: color-mix(in srgb, var(--usx-color-success) 15%, transparent);
+  color: var(--usx-color-success);
+  border: 1px solid var(--usx-color-success);
 }
 
 .dreamscape-notice--error {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid #ef4444;
+  background: color-mix(in srgb, var(--usx-color-danger) 15%, transparent);
+  color: var(--usx-color-danger);
+  border: 1px solid var(--usx-color-danger);
 }
 
 .dreamscape-notice-close {

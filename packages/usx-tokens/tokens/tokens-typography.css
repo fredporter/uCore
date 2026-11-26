@@ -8,6 +8,10 @@
   --usx-font-family-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
   --usx-font-family-serif: 'Merriweather', 'Georgia', serif;
 
+  /* Reading stack: bundled families only (Inter / Merriweather / JetBrains Mono).
+     settings.ts may override this at runtime for the reading-font preference. */
+  --usx-font-family-reading: var(--usx-font-family-serif);
+
   /* ===== Font Sizes ===== */
   --usx-font-size-xs: 0.75rem;
   --usx-font-size-sm: 0.875rem;
@@ -28,6 +32,7 @@
   --usx-line-height-tight: 1.25;
   --usx-line-height-normal: 1.5;
   --usx-line-height-relaxed: 1.75;
+  --usx-line-height-code: 1.45;
 
   /* ===== Letter Spacing ===== */
   --usx-letter-spacing-tight: -0.02em;

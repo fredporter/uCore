@@ -84,6 +84,11 @@
   --usx-control-size-sm: 32px;
   --usx-control-size-md: 44px;
 
+  /* ===== BUTTONS ===== */
+  --usx-btn-padding: var(--usx-spacing-sm) var(--usx-spacing-md);
+  --usx-btn-min-height: var(--usx-touch-min-sm);
+  --usx-btn-radius: var(--usx-radius-md);
+
   /* ===== GRID ===== */
   --usx-grid-gap: var(--usx-spacing-md);
   --usx-grid-gap-sm: var(--usx-spacing-sm);
@@ -114,6 +119,15 @@
   );
   --usx-breakpoint-md: 768px;
   --usx-breakpoint-lg: 1024px;
+
+  /* ===== Z-INDEX SCALE ===== */
+  --usx-z-index-base: 0;
+  --usx-z-index-dropdown: 100;
+  --usx-z-index-sticky: 200;
+  --usx-z-index-overlay: 300;
+  --usx-z-index-modal: 400;
+  --usx-z-index-toast: 500;
+  --usx-z-index-notification: 600;
 
   /* ===== TRANSITIONS ===== */
   --usx-transition-fast: 0.1s ease;

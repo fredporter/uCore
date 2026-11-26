@@ -13,8 +13,7 @@ tiers:
   free:
     description: "Free models, no cost"
     models:
-      - "cognitivecomputations/dolphin-mixtral-8x7b"
-      - "microsoft/phi-3-medium-128k-instruct"
+      - "openrouter/free"
     max_daily_requests: 100
 
   ultra-cheap:

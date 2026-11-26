@@ -15,6 +15,8 @@
 
     <ChatBubblePanel
       :chat-messages="okMessages"
+      :cloud-models="cloudModels"
+      v-model:cloud-model="cloudModel"
       :dev-messages="[]"
       :loading="okLoading"
       :local-assistant="true"
@@ -61,7 +63,7 @@ import { useOverlay } from "../../composables/useOverlay";
 import { useExtensionStore } from "../../stores/extensions";
 import { useShellStore } from "../../stores/shell";
 import { useWorkflowStore } from "../../stores/workflow";
-import { useChatStore } from "../../stores/chat";
+import { streamChat, useChatStore, type ModelOption } from "../../stores/chat";
 
 const { toast } = useToast();
 const { events } = useFeed();
@@ -124,9 +126,25 @@ function handlePromptClick(card: PromptCard) {
 const okMessages = ref<Msg[]>([]);
 const okLoading = ref(false);
 const identity = useIdentityStore();
+const cloudModel = ref("");
+const cloudModels = ref<ModelOption[]>([]);
+watch(() => shell.chatMode, async mode => {
+  if (mode !== "floating") return;
+  const profile = identity.activeProfileId;
+  try {
+    const result = await fetch(`${UCORE_BASE}/api/models/cloud`, { signal: AbortSignal.timeout(3000) });
+    if (result.ok && profile === identity.activeProfileId) {
+      cloudModels.value = (await result.json()).models ?? [];
+    }
+  } catch {
+    // The local assistant remains usable while cloud inventory is unavailable.
+  }
+});
 let requestId = 0;
 watch(() => identity.activeProfileId, () => {
   requestId++;
+  cloudModel.value = "";
+  cloudModels.value = [];
   okMessages.value = [];
   okLoading.value = false;
 });
@@ -149,7 +167,16 @@ async function sendChat(text: string, _mode?: string, specialist?: string) {
   }
   okMessages.value.push({ role: "user", content: text });
   okLoading.value = true;
+  let cloudReply = "";
   try {
+    if (cloudModel.value && !specialist) {
+      const pos = okMessages.value.push({ role: "assistant", content: "" }) - 1;
+      await streamChat(text, cloudModel.value, [], chunk => {
+        cloudReply += chunk;
+        if (id === requestId) okMessages.value[pos].content = cloudReply;
+      });
+      return;
+    }
     const payload: { messages: Msg[]; specialist?: string } = { messages };
     if (specialist) payload.specialist = specialist;
     const response = await fetch(`${UCORE_BASE}/api/assistant/chat`, {
@@ -168,8 +195,11 @@ async function sendChat(text: string, _mode?: string, specialist?: string) {
     if (id === requestId) okMessages.value.push({ role: "assistant", content: data.content });
   } catch (error) {
     if (id === requestId) {
-      okMessages.value.pop();
-      assistChat.input = text;
+      if (okMessages.value.at(-1)?.role === "assistant" && !cloudReply) okMessages.value.pop();
+      if (!cloudReply) {
+        okMessages.value.pop();
+        assistChat.input = text;
+      }
       toast(error instanceof TypeError ? "Could not reach uCore." : error instanceof Error ? error.message : "OK Assistant is unavailable.", "error");
     }
   } finally {

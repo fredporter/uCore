@@ -1,21 +1,21 @@
 <template>
   <div class="system-recipe-container">
-    <div class="system-header-meta">
-      <span class="system-tag">USX Recipe: {{ recipe.recipe }}</span>
-      <span class="system-tag">Layout: System Page Shell</span>
-      <span class="system-tag">Spec Code: {{ recipe.code }}</span>
-    </div>
-
-    <!-- System Page Shell (Exact /system/s100 structure) -->
     <div class="system-page-shell">
       <div class="system-page-header">
         <UIcon :name="recipe.icon || 'search_off'" class="system-page-header-icon" />
         <h2 class="system-page-title">{{ recipe.heading }}</h2>
-        <UBadge type="neutral" size="sm">{{ recipe.code }}</UBadge>
+        <UBadge v-if="recipe.code" type="neutral" size="sm">{{ recipe.code }}</UBadge>
       </div>
 
       <div class="system-page-body">
         <p class="system-page-note">{{ recipe.summary }}</p>
+
+        <dl v-if="recipe.facts?.length" class="system-facts">
+          <div v-for="fact in recipe.facts" :key="fact.label">
+            <dt>{{ fact.label }} <code v-if="fact.variable">{{ fact.variable }}</code></dt>
+            <dd>{{ fact.value }}</dd>
+          </div>
+        </dl>
 
         <!-- Fallback Diagnostic Steps Block -->
         <section v-if="recipe.steps?.length" class="system-fallback-block">
@@ -27,7 +27,7 @@
 
         <!-- Suggested Links Section -->
         <section v-if="recipe.suggestions?.length" class="system-fallback-block">
-          <h4 class="system-fallback-subtitle">Suggested Alternative Pages</h4>
+          <h4 class="system-fallback-subtitle">Related pages</h4>
           <div class="system-fallback-links">
             <a
               v-for="sug in recipe.suggestions"
@@ -41,11 +41,11 @@
         </section>
 
         <!-- Action Row -->
-        <div class="system-actions-row">
+        <div v-if="recipe.actions.length" class="system-actions-row">
           <button
             v-for="act in recipe.actions"
             :key="act.label"
-            class="system-page-action"
+            type="button" class="usx-btn system-page-action"
             :class="{ 'system-page-action--primary': act.variant === 'primary' }"
             @click="handleAction(act.action)"
           >
@@ -87,22 +87,21 @@ function handleAction(action: string) {
   width: 100%;
 }
 
-.system-header-meta {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+.system-facts {
+  display: grid;
+  gap: var(--usx-spacing-sm);
+  margin: 0;
+}
+.system-facts div {
+  padding: var(--usx-spacing-sm);
+  border-bottom: var(--usx-border-width) solid var(--usx-color-border);
+}
+.system-facts dd { margin: 0; overflow-wrap: anywhere; }
+.system-facts code {
+  color: var(--usx-color-on-surface-muted);
+  background: var(--usx-color-background);
 }
 
-.system-tag {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.6rem;
-  background: var(--usx-color-surface-variant, rgba(255, 255, 255, 0.08));
-  border-radius: 4px;
-  color: var(--usx-color-on-surface-muted, #999);
-  font-family: var(--usx-font-family-mono, monospace);
-}
-
-/* Authentic /system/s100 System Page Shell */
 .system-page-shell {
   width: 100%;
   max-width: 820px;

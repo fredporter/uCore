@@ -79,7 +79,7 @@ function iconFor(type: ToastType): string {
   border: 1px solid var(--usx-color-border);
   border-left: 4px solid var(--usx-color-info);
   border-radius: var(--usx-radius-md);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--usx-color-scrim) 15%, transparent);
   pointer-events: all;
   font-size: var(--usx-font-size-sm);
 }

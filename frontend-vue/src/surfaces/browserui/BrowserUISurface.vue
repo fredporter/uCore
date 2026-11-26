@@ -1070,13 +1070,13 @@ onMounted(async () => {
   --browserui-toolbar-label-size: var(--usx-font-size-xs);
   --browserui-toolbar-prefix-size: var(--browserui-toolbar-text-size);
   --browserui-toolbar-control-height: var(--usx-control-size-sm);
-  --browserui-toolbar-prefix-width: calc(var(--usx-touch-target-comfortable) * 1.45);
-  --browserui-toolbar-combo-width: calc(var(--usx-touch-target-comfortable) * 3.15);
+  --browserui-toolbar-prefix-width: calc(var(--usx-touch-min) * 1.45);
+  --browserui-toolbar-combo-width: calc(var(--usx-touch-min) * 3.15);
   --browserui-toolbar-pill-height: calc(var(--usx-control-size-sm) - var(--usx-spacing-xs));
   --browserui-toolbar-row-gap: var(--usx-spacing-sm);
   --browserui-toolbar-inline-gap: var(--usx-spacing-sm);
   --browserui-toolbar-panel-padding: var(--usx-spacing-sm);
-  --browserui-toolbar-search-max-width: calc(var(--usx-touch-target-comfortable) * 7);
+  --browserui-toolbar-search-max-width: calc(var(--usx-touch-min) * 7);
 }
 
 .browserui-body {
@@ -1222,7 +1222,7 @@ onMounted(async () => {
   border: 1px solid var(--usx-color-primary);
   border-radius: var(--usx-radius-md);
   text-align: left;
-  box-shadow: 0 4px 16px rgba(0, 180, 216, 0.08);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--usx-color-info) 8%, transparent);
 }
 
 .browserui-grounded-header {
@@ -1251,7 +1251,7 @@ onMounted(async () => {
 .browserui-grounded-live {
   font-size: 10px;
   padding: 1px var(--usx-spacing-xs);
-  background: rgba(0, 180, 216, 0.15);
+  background: color-mix(in srgb, var(--usx-color-info) 15%, transparent);
   border-radius: var(--usx-radius-full);
   text-transform: uppercase;
   font-weight: var(--usx-font-weight-bold);
@@ -1536,7 +1536,7 @@ onMounted(async () => {
     color-mix(in srgb, var(--usx-color-surface) 92%, var(--usx-color-surface-variant));
   color: var(--usx-color-on-surface);
   min-height: var(--browserui-toolbar-control-height);
-  min-width: calc(var(--usx-touch-target-comfortable) * 1.6);
+  min-width: calc(var(--usx-touch-min) * 1.6);
   padding: 0 var(--usx-spacing-xl) 0 var(--usx-spacing-sm);
   font-size: var(--browserui-toolbar-text-size);
   font-family: var(--usx-font-family-sans);
@@ -1591,7 +1591,7 @@ onMounted(async () => {
   align-items: center;
   gap: var(--browserui-toolbar-inline-gap);
   justify-content: center;
-  min-height: var(--usx-touch-target-compact);
+  min-height: var(--usx-touch-min-sm);
 }
 
 .browserui-resultsbar__text {
@@ -1713,8 +1713,8 @@ onMounted(async () => {
   font-family: var(--usx-font-family-mono);
   border: var(--usx-border-width) solid var(--usx-color-border);
   border-radius: var(--usx-radius-full);
-  min-width: var(--usx-touch-target-compact);
-  min-height: var(--usx-touch-target-compact);
+  min-width: var(--usx-touch-min-sm);
+  min-height: var(--usx-touch-min-sm);
   padding: 0 var(--usx-spacing-xs);
   display: inline-flex;
   align-items: center;
@@ -1755,7 +1755,7 @@ onMounted(async () => {
   cursor: pointer;
   flex: 0 0 min(100%, 24rem);
   width: min(100%, 24rem);
-  min-height: calc(var(--usx-touch-target-comfortable) * 2.4);
+  min-height: calc(var(--usx-touch-min) * 2.4);
   transition: border-color var(--usx-transition-fast), transform var(--usx-transition-fast), box-shadow var(--usx-transition-fast);
   scroll-snap-align: start;
 }
@@ -1933,8 +1933,8 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--usx-touch-target-compact);
-  height: var(--usx-touch-target-compact);
+  width: var(--usx-touch-min-sm);
+  height: var(--usx-touch-min-sm);
   border: none;
   background: transparent;
   cursor: pointer;

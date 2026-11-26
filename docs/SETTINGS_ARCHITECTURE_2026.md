@@ -51,10 +51,32 @@ interface UserSettings {
 - `PUT /api/variables/user` — update user variables
 - `GET /api/variables/install` — installation metadata (read-only)
 
-**User Variables** (editable): username, role, location, timezone, email, uid
-**Installation Metadata** (read-only): hostname, platform, architecture, python_version, install_date, udos_root
+The [system variable registry](../backend/app/core/vars.def) contains 114 entries
+derived from the seed sheet. Each tab-separated record holds a dollar-prefixed
+name, a type, a default field, and a domain. The bare ID must match
+`[A-Z][A-Z0-9]{2,7}`. The loader rejects invalid names and duplicates.
+IDs have 3–8 characters and start with a letter. `$SYSBOOT` identifies the boot timestamp,
+and `$SYSBOOTS` identifies the boot source.
 
-**Persistence**: `~/.ucore/data/variables.json` and `~/.ucore/data/install_meta.json`
+- User-editable domains cover profile, contact, organization, address, and scratch
+  fields. The API uses string values, with an empty string for an unset scratch
+  slot. Registry types describe the intended data. The default column is empty
+  and the runtime computes installation and local defaults.
+- `$USERID` and `$INSTALLD` are managed fields. `$ROLE` is a profile value.
+  Authoritative identity, roles, and publishing capabilities come from the identity
+  service. The system, workflow, BASIC, page, and internal domains reserve IDs
+  for their owning runtimes.
+- Legacy profile keys and padded spellings are accepted as compatibility aliases
+  where editable and returned alongside canonical values. A successful write
+  migrates recognized aliases to canonical keys. The existing settings keys
+  `model_routing`, `local_model`, and `openrouter_model` use the same endpoint.
+- Installation metadata includes hostname, platform, architecture, Python version,
+  install date, and uDOS root. It is exposed through the read-only installation
+  endpoint. Both stores resolve through `settings.data_dir`, normally
+  `$UDOS_HOME/data`.
+
+The [UDO Variable document kind](../../uCode/docs/specs/udo/udo-variable.md)
+and BASIC program-local variables use their own schemas and naming rules.
 
 ### Secrets
 **Backend**: `backend/app/api/secret_store_api.py`
@@ -100,7 +122,7 @@ These are developer-facing controls (USX typography/spacing, GridCore grid algeb
 └─────────────┬────────────────┘
               │
               ├── Global/User: POST /api/system/settings → ~/.ucore/data/system_settings.json
-              ├── Variables:  PUT /api/variables/user  → ~/.ucore/data/variables.json
+              ├── Variables:  PUT /api/variables/user  → $UDOS_HOME/data/variables.json
               ├── Install:    GET /api/variables/install → read-only
               └── Secrets:    POST /api/secrets/{name} → ~/.ucore/secrets.enc
 
