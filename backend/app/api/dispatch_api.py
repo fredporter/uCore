@@ -193,9 +193,10 @@ async def handle_serve_catalog_asset(request: web.Request) -> web.Response:
     if ".." in filename or "/" in filename or "\\" in filename:
         return web.Response(text="Forbidden", status=403)
 
-    from app.core.settings import settings
-    target_file = settings.public_vault_root / "global-knowledge" / "elements" / filename
-    if not target_file.exists() or not target_file.is_file():
+    from app.core.canon_guard import find_element_asset
+
+    target_file = find_element_asset(filename)
+    if target_file is None:
         # Fallback 1x1 transparent gif if asset not present
         transparent_gif_1x1 = b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
         return web.Response(body=transparent_gif_1x1, content_type="image/gif")
@@ -264,11 +265,11 @@ async def handle_generate_bob(request: web.Request) -> web.Response:
         gif_bytes = compile_svgs_to_gif(frames, delay_ms=delay_ms, palette_id=palette_id)
         bob_def = compile_svg_to_bob(frames[0], id=f"bob_{motif}", name=f"{motif.title()} BOB", palette_id=palette_id)
 
-        from app.core.settings import settings
+        from app.core.canon_guard import assert_writable, generated_elements_dir
+
         asset_name = f"bob-{motif}-{palette_id}.gif"
-        elements_dir = settings.public_vault_root / "global-knowledge" / "elements"
-        elements_dir.mkdir(parents=True, exist_ok=True)
-        (elements_dir / asset_name).write_bytes(gif_bytes)
+        target = assert_writable(generated_elements_dir() / asset_name)
+        target.write_bytes(gif_bytes)
 
         return web.json_response({
             "status": "ok",
