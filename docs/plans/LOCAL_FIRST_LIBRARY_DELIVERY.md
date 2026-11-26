@@ -34,7 +34,7 @@ Extend `backend/app/services/library_index.py` and its existing reader. Keep its
 | Public edition | Resolve approved URLs from the uCore-Publish manifest. Use `udo.guide` for the edition and `udo.place` for its spatial mirror. Review target and visibility before release. |
 | Publishing tool | Use the existing Binder compiler and uCore-Publish adapters. Offer local Markdown/Quartz/Jekyll exports and a reviewed WordPress draft after the adapter and role checks are qualified. Track destination, edition revision and delivery status. |
 
-Keep canon and datasets read-only in `~/Public/global-knowledge`. Shared and Vault add scoped annotations and defaults. Resolve eligible overlays Vault → Shared → canon while preserving canonical units, geometry and codec rules. Keep source files visible in their owning locations and mutable index state under the owning settings-resolved UDOS_HOME. Rebuild the index without copying source corpora. Keep AppShell navigation and USX controls consistent with the workspace contract.
+Keep canon and datasets read-only in `~/Public/global-knowledge`. Shared and Vault add scoped annotations and defaults. Runtime code cannot write into canon: `app/core/canon_guard.py` refuses such writes and generated element assets live under `$UDOS_HOME/assets`. Resolve eligible overlays Vault → Shared → canon while preserving canonical units, geometry and codec rules. Keep source files visible in their owning locations and mutable index state under the owning settings-resolved UDOS_HOME. Rebuild the index without copying source corpora. Keep AppShell navigation and USX controls consistent with the workspace contract.
 
 ## NFC spatial awareness in code
 

@@ -41,10 +41,12 @@ def generate_standalone_html(dispatch_id: str) -> str:
     if hero_file.exists():
         hero_b64 = f"data:image/gif;base64,{base64.b64encode(hero_file.read_bytes()).decode('utf-8')}"
     elif manifest.get("hero_asset"):
-        # Check catalog
+        # Check generated assets first, then read-only canon
+        from app.core.canon_guard import find_element_asset
+
         asset_name = Path(manifest["hero_asset"]).name
-        catalog_file = settings.public_vault_root / "global-knowledge" / "elements" / asset_name
-        if catalog_file.exists():
+        catalog_file = find_element_asset(asset_name)
+        if catalog_file is not None:
             hero_b64 = f"data:image/gif;base64,{base64.b64encode(catalog_file.read_bytes()).decode('utf-8')}"
 
     hero_img_tag = f'<img src="{hero_b64}" class="hero-img" alt="Hero Animation" />' if hero_b64 else ""

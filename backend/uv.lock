@@ -1287,7 +1287,7 @@ wheels = [
 
 [[package]]
 name = "ucore"
-version = "4.4.0"
+version = "4.5.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
