@@ -1,9 +1,9 @@
 # Train 0 — Consolidation and release baseline: evidence
 
-- Status: complete on a consolidation branch; awaiting the `main` merge and tag
+- Status: complete — merged to `main` as `b154f21` and tagged `v4.1.0`
 - Branch: `consolidation/train0-2026-11-26`
 - Base: local `main` `0dbf34e`
-- Merges: `eb8443e` (origin/main) → `7ddf7b1` (variables) → `5e9ebd0` (depot integration)
+- Merges: `eb8443e` (origin/main) → `7ddf7b1` (variables) → `5e9ebd0` (depot integration) → `b154f21` (into `main`)
 - Captured: 2026-11-26
 - Governance: measurements taken on the committed tree, not on a dirty worktree
 
