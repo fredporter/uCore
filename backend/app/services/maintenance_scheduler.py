@@ -25,7 +25,12 @@ class MaintenanceJob:
 
 DEFAULT_JOBS = (
     MaintenanceJob("backup", "03:00", {"type": "full"}, authorized=True),
-    MaintenanceJob("vault_sync", "04:00", {"summary_only": True}),
+    MaintenanceJob(
+        "vault_sync",
+        "04:00",
+        {"summary_only": True},
+        authorized=True,
+    ),
     MaintenanceJob(
         "tasker_sync",
         "04:05",
@@ -33,6 +38,7 @@ DEFAULT_JOBS = (
             "db": "database",
             "board": "inbox",
         },
+        authorized=True,
     ),
     MaintenanceJob("docs_mirror_sync", "04:10", {}, retry_safe=True),
     MaintenanceJob(
@@ -44,11 +50,13 @@ DEFAULT_JOBS = (
             "include_spool": True,
             "include_vault_activity": True,
         },
+        authorized=True,
     ),
     MaintenanceJob(
         "clipboard_maintenance",
         "04:30",
         {"capture_current": True},
+        authorized=True,
     ),
     MaintenanceJob(
         "spool_prune",

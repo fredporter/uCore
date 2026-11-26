@@ -88,11 +88,12 @@ Scheduled runs called `run_skill_by_id` without `execution_authorized`, so every
 job whose skill requires confirmation reported `needs_approval` and nothing ran —
 including `backup`, whose `last_success` had never been set.
 
-`MaintenanceJob` now carries an explicit `authorized` standing grant. Only
-`backup` holds one; `vault_sync`, `tasker_sync`, `brain_sync` and
-`clipboard_maintenance` stay gated pending an owner decision, and `status()`
-exposes the grant so the surface can show it. A regression test asserts the grant
-set is exactly `{"backup"}` so widening it is a reviewed change.
+`MaintenanceJob` now carries an explicit `authorized` standing grant. All five
+owner-data jobs hold one — `backup`, `vault_sync`, `tasker_sync`, `brain_sync`
+and `clipboard_maintenance` — approved by the owner on 2026-11-26;
+`docs_mirror_sync` and `spool_prune` never required one. `status()` exposes the
+grant so the surface can show it, and a regression test pins the exact set so
+widening it further remains a reviewed change.
 
 ## Backup proof
 

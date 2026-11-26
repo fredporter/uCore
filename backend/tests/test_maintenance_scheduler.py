@@ -163,11 +163,17 @@ async def test_authorized_scheduled_job_runs_without_manual_step(tmp_path, monke
     assert scheduler.status()["jobs"][0]["authorized"] is True
 
 
-def test_only_backup_holds_a_standing_grant():
-    """Unattended writes stay opt-in: adding another grant must be a reviewed change."""
+def test_every_unattended_write_job_holds_a_standing_grant():
+    """Owner-data jobs run unattended; adding one must still be a reviewed change."""
     import app.services.maintenance_scheduler as mod
 
-    assert {job.skill_id for job in mod.DEFAULT_JOBS if job.authorized} == {"backup"}
+    assert {job.skill_id for job in mod.DEFAULT_JOBS if job.authorized} == {
+        "backup",
+        "vault_sync",
+        "tasker_sync",
+        "brain_sync",
+        "clipboard_maintenance",
+    }
 
 
 @pytest.mark.asyncio
