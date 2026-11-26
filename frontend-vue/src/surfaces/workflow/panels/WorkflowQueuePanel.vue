@@ -39,6 +39,26 @@
             </template>
           </small>
         </div>
+        <div v-if="run.status === 'running'" class="queue-run__actions">
+          <button
+            class="usx-btn"
+            :disabled="busyRunId === run.run_id"
+            :aria-label="`Cancel run ${run.workflow_name || run.workflow_id}`"
+            @click="act(run.run_id, 'cancel')"
+          >
+            <UIcon name="stop_circle" aria-hidden="true" />Cancel
+          </button>
+        </div>
+        <div v-else-if="resumable(run.status)" class="queue-run__actions">
+          <button
+            class="usx-btn"
+            :disabled="busyRunId === run.run_id"
+            :aria-label="`Resume run ${run.workflow_name || run.workflow_id}`"
+            @click="act(run.run_id, 'resume')"
+          >
+            <UIcon name="play_circle" aria-hidden="true" />Resume
+          </button>
+        </div>
       </article>
     </section>
     <BrowserUISurface ref="researchQueue" embedded queue-only :binder-id="wf.activeBinderId || undefined" :key="wf.activeBinderId" />
@@ -53,7 +73,24 @@ import UIcon from '../../../skills/atoms/UIcon.vue';
 
 const wf = useWorkflowStore();
 const refreshing = ref(false);
+const busyRunId = ref('');
 const error = ref('');
+const RESUMABLE = ['interrupted', 'cancelled', 'timed_out'];
+
+function resumable(status: string) {
+  return RESUMABLE.includes(status);
+}
+
+async function act(runId: string, action: 'cancel' | 'resume') {
+  busyRunId.value = runId;
+  error.value = '';
+  try {
+    const ok = action === 'cancel' ? await wf.cancelRun(runId) : await wf.resumeRun(runId);
+    if (!ok) error.value = `Could not ${action} the run.`;
+  } finally {
+    busyRunId.value = '';
+  }
+}
 const researchQueue = ref<InstanceType<typeof BrowserUISurface> | null>(null);
 const queuedTasks = computed(() => wf.missionTasks.filter(
   task => !['completed', 'archived', 'cancelled', 'superseded'].includes(task.status),
@@ -149,5 +186,11 @@ p, .queue-run__copy small {
 
 .queue-run__copy small {
   font-size: var(--usx-font-size-sm);
+}
+
+.queue-run__actions {
+  display: flex;
+  gap: var(--usx-spacing-sm);
+  margin-inline-start: auto;
 }
 </style>

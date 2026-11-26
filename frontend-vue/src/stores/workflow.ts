@@ -812,6 +812,36 @@ export const useWorkflowStore = defineStore("workflow", () => {
     }
   }
 
+  /** Request cooperative cancellation of a running workflow run. */
+  async function cancelRun(runId: string): Promise<boolean> {
+    return controlRun(runId, 'cancel');
+  }
+
+  /** Resume a stopped run from its last checkpoint. */
+  async function resumeRun(runId: string): Promise<boolean> {
+    return controlRun(runId, 'resume');
+  }
+
+  async function controlRun(runId: string, action: 'cancel' | 'resume'): Promise<boolean> {
+    if (!(await preflightOrBlock("workflow.run"))) return false;
+    error.value = null;
+    try {
+      const res = await fetch(`${API}/api/workflows/runs/${encodeURIComponent(runId)}/${action}`, {
+        method: "POST",
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload.error || `HTTP ${res.status}`);
+      }
+      await fetchWorkflowRuns();
+      return true;
+    } catch (e: any) {
+      error.value = e.message || `Failed to ${action} the run`;
+      return false;
+    }
+  }
+
   /** Fetch all data for the current surface at once */
   async function fetchAll(): Promise<void> {
     await Promise.allSettled([
@@ -1056,6 +1086,8 @@ export const useWorkflowStore = defineStore("workflow", () => {
     fetchMissionTaskBinder,
     fetchWorkflowDefinitions,
     fetchWorkflowRuns,
+    cancelRun,
+    resumeRun,
     fetchAll,
     retryCapabilityPreflight,
     recheckingCapabilities,
