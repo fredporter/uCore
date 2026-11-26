@@ -34,7 +34,17 @@ class TestCoreSnackbar:
         assert hasattr(settings, "app_name")
         assert settings.app_name == "uCore"
         assert hasattr(settings, "version")
-        assert settings.version == "4.0.5"
+
+    def test_version_matches_packaged_metadata(self):
+        """The runtime version must resolve from the one declared version, not a literal."""
+        import tomllib
+        from pathlib import Path
+
+        from app.core.settings import settings
+
+        pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+        declared = tomllib.loads(pyproject.read_text(encoding="utf-8"))["project"]["version"]
+        assert settings.version == declared
 
     def test_logging_configured(self):
         """Logging module loads without errors."""

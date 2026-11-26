@@ -1,5 +1,8 @@
 # Phase 11 — Docs Mirroring & Publishing: Evidence Bundle
 
+<!-- path-policy: allow-literals — this evidence records the legacy mirror path
+     that the phase was closing out; it is quoted history, not a live default. -->
+
 - Phase: 11 — Docs Mirroring & Publishing (Lane-Separated)
 - Status: Complete
 - Owner: developer-lane

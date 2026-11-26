@@ -298,12 +298,9 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
   --usx-color-danger: #ff9b9b;
   --usx-color-warning: #ffd17a;
   --usx-color-background: #14161a;
-  --usx-color-surface: var(--usx-color-surface);
   --usx-color-surface-container: #282a30;
   --usx-color-surface-container-high: #32353c;
-  --usx-color-on-surface: var(--usx-color-on-surface);
   --usx-color-on-surface-variant: var(--usx-color-on-surface-muted);
-  --usx-color-primary: var(--usx-color-primary);
   --usx-color-primary-container: #0842a0;
   --usx-color-on-primary-container: #d3e3fd;
   --usx-color-outline: var(--usx-color-on-surface-muted);
@@ -319,7 +316,7 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
   --usx-color-danger: #b42935;
   --usx-color-warning: #825800;
   --usx-color-background: #f8f9fa;
-  --usx-color-surface: var(--usx-color-on-surface);
+  --usx-color-surface: #ffffff;
   --usx-color-surface-container: #edeef2;
   --usx-color-surface-container-high: #e2e3e7;
   --usx-color-on-surface: #191c20;
@@ -339,7 +336,6 @@ const currentParadigm = computed(() => currentRecipe.value?.paradigm || selected
   --usx-color-surface: #16181d;
   --usx-color-surface-container: var(--usx-color-surface);
   --usx-color-surface-container-high: #282a30;
-  --usx-color-on-surface: var(--usx-color-on-surface);
   --usx-color-on-surface-variant: var(--usx-color-on-surface-muted);
   --usx-color-primary: #00ff66;
   --usx-color-outline-variant: color-mix(in srgb, var(--usx-color-on-surface) 12%, transparent);

@@ -5,6 +5,7 @@ from aiohttp import web
 from aiohttp.test_utils import AioHTTPTestCase
 
 from app.api.metadata import _get_tray_state, system_info_handler
+from app.core.settings import settings
 
 
 class MetadataAPITest(AioHTTPTestCase):
@@ -24,7 +25,7 @@ class MetadataAPITest(AioHTTPTestCase):
         assert "app" in data
         assert "version" in data
         assert data["app"] == "uCore"
-        assert data["version"] == "4.0.5"
+        assert data["version"] == settings.version
 
     async def test_system_info_has_python_version(self):
         resp = await self.client.get("/api/system")

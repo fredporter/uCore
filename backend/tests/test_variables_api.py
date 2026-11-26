@@ -1,3 +1,4 @@
+import asyncio
 import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -80,6 +81,51 @@ async def test_role_variable_validation_accepts_selector_values(tmp_path, monkey
         response = await variables_api.handle_update_user_variables(request)
         assert response.status == 200
         assert json.loads(variables.read_text())["$ROLE"] == role
+
+
+@pytest.mark.asyncio
+async def test_registry_kinds_are_enforced_on_write(tmp_path, monkeypatch):
+    variables = tmp_path / "variables.json"
+    install_meta = tmp_path / "install_meta.json"
+    monkeypatch.setattr(variables_api, "_VARIABLE_STORE_FILE", variables)
+    monkeypatch.setattr(variables_api, "_INSTALL_META_FILE", install_meta)
+    request = SimpleNamespace(json=AsyncMock(return_value={"$USRNUM1": "3"}))
+
+    assert (await variables_api.handle_update_user_variables(request)).status == 200
+    assert json.loads(variables.read_text())["$USRNUM1"] == "3"
+
+    # A number variable rejects free text.
+    request.json.return_value = {"$USRNUM1": "high"}
+    assert (await variables_api.handle_update_user_variables(request)).status == 400
+
+    # A boolean variable normalises accepted spellings and rejects the rest.
+    request.json.return_value = {"$USRFLG1": "yes"}
+    assert (await variables_api.handle_update_user_variables(request)).status == 200
+    assert json.loads(variables.read_text())["$USRFLG1"] == "true"
+
+    request.json.return_value = {"$USRFLG1": "maybe"}
+    assert (await variables_api.handle_update_user_variables(request)).status == 400
+
+
+@pytest.mark.asyncio
+async def test_concurrent_updates_are_not_lost(tmp_path, monkeypatch):
+    variables = tmp_path / "variables.json"
+    install_meta = tmp_path / "install_meta.json"
+    monkeypatch.setattr(variables_api, "_VARIABLE_STORE_FILE", variables)
+    monkeypatch.setattr(variables_api, "_INSTALL_META_FILE", install_meta)
+
+    async def write(payload):
+        request = SimpleNamespace(json=AsyncMock(return_value=payload))
+        return await variables_api.handle_update_user_variables(request)
+
+    responses = await asyncio.gather(
+        write({"$USERNAME": "Ada"}),
+        write({"$ROLE": "Wizard"}),
+    )
+    assert [response.status for response in responses] == [200, 200]
+    saved = json.loads(variables.read_text())
+    assert saved["$USERNAME"] == "Ada"
+    assert saved["$ROLE"] == "Wizard"
 
 
 @pytest.mark.asyncio

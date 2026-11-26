@@ -527,11 +527,10 @@ function getProvenanceIcon(type: CitationSourceItem['provenanceType']): string {
 }
 .usx-btn.mode-btn:focus {
   box-shadow: none;
-  outline: none;
 }
 .usx-btn.mode-btn:focus-visible {
-  outline: var(--usx-border-width) dashed var(--usx-color-on-surface);
-  outline-offset: calc(-1 * var(--usx-spacing-xs));
+  outline: var(--usx-border-width-thick) solid var(--usx-color-primary);
+  outline-offset: var(--usx-spacing-2);
 }
 .mode-btn .material-symbols-outlined {
   font-size: 1rem;
