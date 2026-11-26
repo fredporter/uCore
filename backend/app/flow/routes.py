@@ -17,6 +17,7 @@ def register_routes(app) -> None:
 
     from .workflow_api import (
         handle_board_health,
+        handle_cancel_run,
         handle_create_workflow,
         handle_get_task,
         handle_list_workflows,
@@ -32,6 +33,9 @@ def register_routes(app) -> None:
     app.router.add_patch("/api/workflow/missions/{mission_id}", handle_user_missions)
     app.router.add_get("/api/workflows", handle_list_workflows)
     app.router.add_get("/api/workflows/runs", handle_workflow_runs)
+    app.router.add_post(
+        "/api/workflows/runs/{run_id}/cancel", handle_cancel_run
+    )
     app.router.add_post("/api/workflows", handle_create_workflow)
     app.router.add_post("/api/workflows/{workflow_id}/run", handle_run_workflow)
     app.router.add_get("/api/workflows/{workflow_id}/logs", handle_workflow_logs)

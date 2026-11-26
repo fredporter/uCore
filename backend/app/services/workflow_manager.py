@@ -324,6 +324,46 @@ class WorkflowManager:
         logs.reverse()
         return logs
 
+    def checkpoint_run(
+        self,
+        *,
+        run_id: str,
+        steps: list[dict[str, Any]],
+        owner: str,
+    ) -> None:
+        """Persist step progress for a run that is still executing."""
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE workflow_runs
+                SET steps = ?
+                WHERE run_id = ? AND owner = ? AND status = 'running'
+                """,
+                (json.dumps(steps), run_id, owner),
+            )
+            conn.commit()
+
+    def get_run(self, run_id: str, owner: str | None = None) -> dict[str, Any] | None:
+        """Fetch one run within its ownership boundary."""
+        query = "SELECT * FROM workflow_runs WHERE run_id = ?"
+        params: list[Any] = [run_id]
+        if owner is not None:
+            query += " AND owner = ?"
+            params.append(owner)
+        with self._connect() as conn:
+            row = conn.execute(query, tuple(params)).fetchone()
+        if row is None:
+            return None
+        return {
+            "run_id": row["run_id"],
+            "workflow_id": row["workflow_id"],
+            "workflow_name": row["workflow_name"],
+            "started_at": row["started_at"],
+            "finished_at": row["finished_at"],
+            "status": row["status"],
+            "steps": json.loads(row["steps"] or "[]"),
+        }
+
     def start_run(
         self,
         *,
