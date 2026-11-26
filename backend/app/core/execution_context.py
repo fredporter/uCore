@@ -41,6 +41,7 @@ VALID_LANES = {
     "knowledge",
     "maintenance",
     "workflow",
+    "skills",
 }
 VALID_NETWORK_POLICIES = {
     "offline",
