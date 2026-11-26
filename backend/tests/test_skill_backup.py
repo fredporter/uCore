@@ -61,3 +61,26 @@ async def test_backup_database_only(tmp_path: Path, monkeypatch):
     result = await skill.run(type="database", destination=str(dest))
     assert result["success"] is True
     assert result["type"] == "database"
+
+
+@pytest.mark.asyncio
+async def test_backup_reports_missing_components_honestly(tmp_path: Path, monkeypatch):
+    """A backup that finds nothing must not report success."""
+    import app.core.database as db_mod
+    import app.skills.builtin.backup as mod
+    from app.core.settings import settings
+
+    monkeypatch.setattr(db_mod, "get_db_path", lambda: None)
+    monkeypatch.setattr(mod, "readable_wisdom_path", lambda: tmp_path / "missing-wisdom.md")
+    monkeypatch.setattr(settings, "secrets_dir", tmp_path / "missing-secrets")
+    monkeypatch.setattr(settings, "config_dir", tmp_path / "missing-config")
+    monkeypatch.setattr(settings, "udos_root", tmp_path)
+
+    dest = tmp_path / "backups"
+    dest.mkdir()
+
+    result = await mod.BackupData().run(type="full", destination=str(dest))
+
+    assert result["success"] is False
+    assert result["count"] == 0
+    assert "No backup components" in result["error"]

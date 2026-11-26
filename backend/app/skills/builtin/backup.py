@@ -108,8 +108,15 @@ class BackupData(BaseSkill):
             dest,
             removed,
         )
+        success = bool(backup_entries)
+        if not success:
+            log.warning(
+                "Backup produced no components for type '%s'; reporting failure",
+                backup_type,
+            )
         return {
-            "success": True,
+            "success": success,
+            "error": None if success else f"No backup components were available for type '{backup_type}'",
             "backup_dir": str(dest),
             "type": backup_type,
             "files": backup_entries,
