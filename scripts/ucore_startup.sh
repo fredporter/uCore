@@ -8,8 +8,8 @@ UCORE_ROOT="${UCORE_ROOT:-$HOME/Code/uCore}"
 BACKEND_DIR="$UCORE_ROOT/backend"
 ROOT_VENV_DIR="$UCORE_ROOT/backend/.venv"
 "$ROOT_VENV_DIR/bin/python" "$UCORE_ROOT/scripts/check_backend_environment.py" || exit 1
-LOG_DIR="$HOME/.ucore/logs"
-PID_DIR="$HOME/.ucore"
+LOG_DIR="${UDOS_HOME:-$UCORE_ROOT/../.udos}/logs"
+PID_DIR="${UDOS_HOME:-$UCORE_ROOT/../.udos}"
 
 # Ensure directories exist
 mkdir -p "$LOG_DIR"

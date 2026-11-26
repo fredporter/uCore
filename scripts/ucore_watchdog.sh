@@ -8,7 +8,7 @@ UCORE_ROOT="${UCORE_ROOT:-$HOME/Code/uCore}"
 BACKEND_DIR="$UCORE_ROOT/backend"
 ROOT_VENV_DIR="$UCORE_ROOT/backend/.venv"
 "$ROOT_VENV_DIR/bin/python" "$UCORE_ROOT/scripts/check_backend_environment.py" || exit 1
-LOG_DIR="$HOME/.ucore/logs"
+LOG_DIR="${UDOS_HOME:-$UCORE_ROOT/../.udos}/logs"
 LOG_FILE="$LOG_DIR/ucore-watchdog.log"
 CIRCUIT_BREAKER_FILE="/tmp/ucore-watchdog-restarts"
 LAST_RESTART_FILE="/tmp/ucore-watchdog-last-restart"
@@ -32,12 +32,18 @@ check_vite() {
 
 restart_vite() {
     log "Restarting Vite frontend..."
+    if launchctl print "gui/$(id -u)/com.udos.ucore-frontend" >/dev/null 2>&1; then
+        launchctl kickstart -k "gui/$(id -u)/com.udos.ucore-frontend" 2>/dev/null || true
+        date +%s > /tmp/ucore-vite-last-restart
+        log "Vite restarted through com.udos.ucore-frontend"
+        return
+    fi
     lsof -tiTCP:5175 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true
     sleep 1
     cd "$UCORE_ROOT/frontend-vue"
     nohup pnpm dev >> "$LOG_DIR/vite.log" 2>&1 &
     date +%s > /tmp/ucore-vite-last-restart
-    log "Vite restarted"
+    log "Vite restarted without a launchd agent"
 }
 
 launchd_menu_pid() {
