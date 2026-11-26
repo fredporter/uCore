@@ -34,6 +34,36 @@ describe('workflow durable actions', () => {
   });
 });
 
+describe('workflow run control', () => {
+  it('posts a cancel request and refreshes the run list', async () => {
+    const request = vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) => {
+      if (String(url).includes('/cancel')) {
+        return new Response(JSON.stringify({ status: 'cancelling' }), { status: 202 });
+      }
+      return new Response(JSON.stringify({ runs: [] }));
+    });
+    vi.stubGlobal('fetch', request);
+    const store = useWorkflowStore();
+
+    await expect(store.cancelRun('run-1')).resolves.toBe(true);
+
+    expect(String(request.mock.calls[0]?.[0])).toContain('/api/workflows/runs/run-1/cancel');
+    expect(request.mock.calls[0]?.[1]).toMatchObject({ method: 'POST' });
+    expect(String(request.mock.calls[1]?.[0])).toContain('/api/workflows/runs?limit=20');
+  });
+
+  it('reports a refused resume instead of claiming success', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+      JSON.stringify({ error: 'Run is still running' }),
+      { status: 409 },
+    )));
+    const store = useWorkflowStore();
+
+    await expect(store.resumeRun('run-2')).resolves.toBe(false);
+    expect(store.error).toContain('still running');
+  });
+});
+
 describe('shared workflow context', () => {
   it('opens a task instead of the previously opened file and retains unsaved text between siblings', () => {
     const store = useWorkflowStore();

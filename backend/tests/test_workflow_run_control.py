@@ -183,6 +183,33 @@ async def test_resume_rejects_running_and_finished_runs(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_run_completes_with_networking_disabled(tmp_path, monkeypatch):
+    """A local-skill run must not need a network socket (Gate A acceptance)."""
+    import socket
+
+    from app.skills import registry as skill_registry
+
+    _setup(tmp_path, monkeypatch, [{"type": "skill", "skill_id": "local", "params": {}}])
+
+    def _blocked(*_args, **_kwargs):
+        raise OSError("network disabled for acceptance")
+
+    monkeypatch.setattr(socket, "create_connection", _blocked)
+    monkeypatch.setattr(socket.socket, "connect", _blocked)
+
+    async def fake_run(skill_id, **_kwargs):
+        return {"success": True, "skill_id": skill_id}
+
+    monkeypatch.setattr(skill_registry, "run_skill_by_id", fake_run)
+
+    response = await workflow_api.handle_run_workflow(_request())
+
+    payload = json.loads(response.text)
+    assert payload["status"] == "completed"
+    assert [step["skill_id"] for step in payload["steps"]] == ["local"]
+
+
+@pytest.mark.asyncio
 async def test_cancel_endpoint_reports_state(tmp_path, monkeypatch):
     manager = _setup(
         tmp_path, monkeypatch, [{"type": "skill", "skill_id": "safe", "params": {}}]
