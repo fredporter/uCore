@@ -5,6 +5,7 @@ Task management, board health, and markdown task operations.
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -31,6 +32,9 @@ TRACKED_FIELDS = {"status", "progress", "message", "timestamp", "task_id"}
 
 # Workflow manager singleton for persistent storage
 _manager: Any = None
+
+# Bounded overall budget for one synchronous run (Gate A step 3).
+RUN_BUDGET_SECONDS = 300
 
 
 def get_workflow_manager():
@@ -554,6 +558,9 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
     )
     run_rows: list[dict[str, Any]] = []
     failed = False
+    stop_status = ""
+    deadline = time.monotonic() + RUN_BUDGET_SECONDS
+    from app.services import run_control
 
     _append_workflow_log(
         workflow_id,
@@ -566,6 +573,12 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
     )
 
     for idx, step in enumerate(workflow.get("steps", []), start=1):
+        if run_control.is_cancelled(run_id):
+            stop_status = "cancelled"
+            break
+        if time.monotonic() > deadline:
+            stop_status = "timed_out"
+            break
         skill_id = step.get("skill_id", "")
         params = step.get("params") or {}
         step_started = datetime.now(UTC).isoformat()
@@ -585,6 +598,7 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
                 "result": result,
             }
             run_rows.append(row)
+            manager.checkpoint_run(run_id=run_id, steps=run_rows, owner=owner)
             _append_workflow_log(
                 workflow_id,
                 {
@@ -614,6 +628,7 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
                 "error": str(exc),
             }
             run_rows.append(row)
+            manager.checkpoint_run(run_id=run_id, steps=run_rows, owner=owner)
             _append_workflow_log(
                 workflow_id,
                 {
@@ -627,7 +642,7 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
             )
             break
 
-    status = "failed" if failed else "completed"
+    status = stop_status or ("failed" if failed else "completed")
     run_result = manager.save_run(
         run_id=run_id,
         workflow_id=workflow_id,
@@ -638,6 +653,7 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
         steps=run_rows,
         owner=owner,
     )
+    run_control.clear(run_id)
 
     _append_workflow_log(
         workflow_id,
@@ -650,6 +666,25 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
     )
 
     return web.json_response(run_result)
+
+
+async def handle_cancel_run(request: web.Request) -> web.Response:
+    """POST /api/workflows/runs/{run_id}/cancel — request cooperative cancellation."""
+    from app.services import run_control
+
+    manager = get_workflow_manager()
+    owner = _active_owner()
+    run_id = request.match_info.get("run_id", "")
+    run = manager.get_run(run_id, owner=owner)
+    if run is None:
+        return web.json_response({"error": "Run not found"}, status=404)
+    if run["status"] != "running":
+        return web.json_response(
+            {"error": "Run is not running", "status": run["status"]},
+            status=409,
+        )
+    run_control.request_cancel(run_id)
+    return web.json_response({"status": "cancelling", "run_id": run_id}, status=202)
 
 
 async def handle_workflow_logs(request: web.Request) -> web.Response:
