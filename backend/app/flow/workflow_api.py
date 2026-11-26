@@ -37,7 +37,11 @@ def get_workflow_manager():
     global _manager
     if _manager is None:
         from app.services.workflow_manager import WorkflowManager
+
         _manager = WorkflowManager()
+        recovered = _manager.recover_interrupted_runs()
+        if recovered:
+            log.warning("Marked %d interrupted workflow run(s) after restart", recovered)
     return _manager
 
 
@@ -541,6 +545,13 @@ async def handle_run_workflow(request: web.Request) -> web.Response:
 
     run_id = f"run-{uuid.uuid4().hex[:10]}"
     run_started = datetime.now(UTC).isoformat()
+    manager.start_run(
+        run_id=run_id,
+        workflow_id=workflow_id,
+        workflow_name=workflow.get("name", ""),
+        started_at=run_started,
+        owner=owner,
+    )
     run_rows: list[dict[str, Any]] = []
     failed = False
 
