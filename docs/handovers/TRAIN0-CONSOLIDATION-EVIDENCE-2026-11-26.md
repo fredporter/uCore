@@ -120,6 +120,23 @@ before the depot/backup boundary is considered finished.
 | uCoreMac | `95ca66b` | Route registrar + discovery/disablement documentation (compile and manifest checked) |
 | Groovebox | `6690795` | `sessions/` ignored as local runtime output |
 
+## Kanban board self-heal
+
+The Engineering board was down, which blocked card updates. `scripts/kanban_supervisor.py`
+starts the loopback board when it is absent, waits for readiness and refreshes the
+`kanban.json` export. `--status` changes nothing; `--open` heals and then opens the
+board. The binary lookup also covers nvm installs that launchd's PATH omits.
+
+| Concern | Detail |
+| --- | --- |
+| Owner | uCore Engineering tooling |
+| Lifecycle | One-shot `--ensure` from `ucmd` (`kanban-heal`) and the `com.udos.kanban-supervisor` launchd agent every 60 s |
+| Writes | `$UDOS_HOME/logs/kanban-supervisor.log` and the generated export; board data stays in `~/.cline/kanban` |
+| Removal | `launchctl bootout gui/$UID/com.udos.kanban-supervisor`, then delete the plist, the script and its catalogue entry |
+
+Verified live: kill the listener → `--status` reports `running: false` → `--ensure`
+exits 0 → `--status` reports `running: true`.
+
 ## Rollback
 
 Tags taken before the merges: `backup/pre-consolidation-main-2026-11-26`,

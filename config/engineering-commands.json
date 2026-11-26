@@ -40,5 +40,11 @@
     "name": "Cline Kanban Board",
     "description": "Start Cline Kanban and export development boards to kanban.json",
     "argv": ["python3", "scripts/dev_kanban.py"]
+  },
+  {
+    "id": "kanban-heal",
+    "name": "Heal the development Kanban",
+    "description": "Start the loopback Cline Kanban board if it is down and refresh kanban.json",
+    "argv": ["python3", "scripts/kanban_supervisor.py", "--ensure"]
   }
 ]
