@@ -111,8 +111,10 @@ async def test_manual_run_uses_configured_arguments_and_records_outcome(tmp_path
     from app.services import maintenance_scheduler as mod
 
     calls = []
+    contexts = []
 
     async def run(skill_id, **params):
+        contexts.append(params.pop("context", None))
         calls.append((skill_id, params))
         return {"success": bool(params.get("execution_authorized")), "requires_confirmation": not params.get("execution_authorized")}
 
@@ -131,6 +133,7 @@ async def test_manual_run_uses_configured_arguments_and_records_outcome(tmp_path
         ("backup", {"type": "full", "execution_authorized": False}),
         ("backup", {"type": "full", "execution_authorized": True}),
     ]
+    assert [context.lane for context in contexts] == ["maintenance", "maintenance"]
 
 
 @pytest.mark.asyncio

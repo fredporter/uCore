@@ -73,6 +73,18 @@ def get_maintenance_scheduler() -> MaintenanceScheduler | None:
     return _scheduler
 
 
+def _system_context():
+    """The OS scheduler acts on owner data under its own standing grant."""
+    from app.services.execution_authority import build_context
+
+    return build_context(
+        lane="maintenance",
+        surface="maintenance-scheduler",
+        owner="system",
+        role="owner",
+    )
+
+
 def set_maintenance_scheduler(
     scheduler: MaintenanceScheduler | None,
 ) -> None:
@@ -210,6 +222,7 @@ class MaintenanceScheduler:
                 run_skill_by_id(
                     job.skill_id,
                     execution_authorized=authorized,
+                    context=_system_context(),
                     **params,
                 ),
                 timeout=job.timeout_seconds,

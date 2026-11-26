@@ -9,6 +9,12 @@ import logging
 
 from aiohttp import web
 
+from app.services.execution_authority import (
+    GUEST_ROLES,
+    active_identity,
+    active_profile,
+    build_context,
+)
 from app.services.health import get_health_summary
 from app.skills.registry import SERVER_RUN_FIELDS, get_skill, run_skill_by_id
 from app.skills.state import read_state
@@ -56,6 +62,15 @@ async def _run_skill_by_id(
     if not isinstance(body, dict):
         return web.json_response({"error": "Expected an object"}, status=400)
 
+    identity = active_identity()
+    if not identity.get("authenticated", True):
+        return web.json_response(
+            {"error": "Authenticate a local profile to run skills"},
+            status=403,
+        )
+    owner, role = active_profile(identity)
+    context = build_context(lane="skills", surface="skill-run", owner=owner, role=role)
+
     # Try Python skill registry first (for builtin skills)
     skill = get_skill(skill_id)
     if skill:
@@ -76,6 +91,16 @@ async def _run_skill_by_id(
         if (isinstance(body, dict) and body.get("confirm") is True) or request.headers.get("X-User-Confirm", "").lower() == "true":
             confirmed = True
 
+        if requires_confirm and role in GUEST_ROLES:
+            return web.json_response(
+                {
+                    "error": "Guest profiles cannot authorise mutating skills",
+                    "skill_id": skill_id,
+                    "requires_confirmation": True,
+                },
+                status=403,
+            )
+
         if requires_confirm and not confirmed:
             return web.json_response({
                 "error": "Skill requires explicit confirmation. Re-submit with {\"confirm\": true} in the body or header 'X-User-Confirm: true'.",
@@ -86,6 +111,7 @@ async def _run_skill_by_id(
         result = await run_skill_by_id(
             skill_id,
             execution_authorized=confirmed,
+            context=context,
             **kwargs,
         )
         # Broadcast completion to SSE subscribers
