@@ -324,6 +324,55 @@ class WorkflowManager:
         logs.reverse()
         return logs
 
+    def start_run(
+        self,
+        *,
+        run_id: str,
+        workflow_id: str,
+        workflow_name: str,
+        started_at: str,
+        owner: str = "default",
+    ) -> dict[str, Any]:
+        """Persist admission before the first step so an interruption leaves a record."""
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO workflow_runs
+                (run_id, workflow_id, workflow_name, started_at,
+                 finished_at, status, steps, owner)
+                VALUES (?, ?, ?, ?, '', 'running', '[]', ?)
+                """,
+                (run_id, workflow_id, workflow_name, started_at, owner),
+            )
+            conn.commit()
+            row = conn.execute(
+                "SELECT * FROM workflow_runs WHERE run_id = ?", (run_id,)
+            ).fetchone()
+        return {
+            "run_id": row["run_id"],
+            "workflow_id": row["workflow_id"],
+            "workflow_name": row["workflow_name"],
+            "started_at": row["started_at"],
+            "finished_at": row["finished_at"],
+            "status": row["status"],
+            "steps": json.loads(row["steps"] or "[]"),
+        }
+
+    def recover_interrupted_runs(self, now: str | None = None) -> int:
+        """Mark runs left in 'running' by a previous process as interrupted."""
+        stamp = now or datetime.now(UTC).isoformat()
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                UPDATE workflow_runs
+                SET status = 'interrupted', finished_at = ?
+                WHERE status = 'running'
+                """,
+                (stamp,),
+            )
+            conn.commit()
+            return cursor.rowcount
+
     def save_run(
         self,
         run_id: str,
@@ -339,10 +388,17 @@ class WorkflowManager:
         steps_json = json.dumps(steps)
 
         with self._connect() as conn:
-            # Avoid duplicate run_id insertion: if present, return existing run
-            existing = conn.execute("SELECT run_id FROM workflow_runs WHERE run_id = ?", (run_id,)).fetchone()
-            if existing:
-                row = conn.execute("SELECT * FROM workflow_runs WHERE run_id = ?", (run_id,)).fetchone()
+            existing = conn.execute(
+                "SELECT owner, status FROM workflow_runs WHERE run_id = ?",
+                (run_id,),
+            ).fetchone()
+            # A completed row is idempotent; an admitted 'running' row is updated.
+            if existing and not (
+                existing["status"] == "running" and existing["owner"] == owner
+            ):
+                row = conn.execute(
+                    "SELECT * FROM workflow_runs WHERE run_id = ?", (run_id,)
+                ).fetchone()
                 return {
                     "run_id": row["run_id"],
                     "workflow_id": row["workflow_id"],
@@ -353,7 +409,25 @@ class WorkflowManager:
                     "steps": json.loads(row["steps"] or "[]"),
                 }
 
-            conn.execute(
+            if existing:
+                conn.execute(
+                    """
+                    UPDATE workflow_runs
+                    SET finished_at = ?, status = ?, steps = ?, workflow_name = ?
+                    WHERE run_id = ? AND owner = ?
+                    """,
+                    (
+                        finished_at,
+                        status,
+                        steps_json,
+                        workflow_name,
+                        run_id,
+                        owner,
+                    ),
+                )
+                conn.commit()
+            else:
+                conn.execute(
                 """
                 INSERT INTO workflow_runs
                 (run_id, workflow_id, workflow_name, started_at,
