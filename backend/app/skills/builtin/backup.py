@@ -28,6 +28,16 @@ from app.skills.base import BaseSkill, SkillMeta, SkillParam
 
 RETENTION_DAYS = 14
 
+# Only artefacts this skill writes may be pruned; the destination can hold other
+# owners' files and the retention pass must never remove them.
+BACKUP_ARTIFACT_PATTERNS = (
+    "ucore-backup-*.db",
+    "wisdom-*.md",
+    "secrets-*.enc",
+    "secrets-*.key",
+    "config-*.tar.gz",
+)
+
 
 class BackupData(BaseSkill):
     meta = SkillMeta(
@@ -204,16 +214,19 @@ class BackupData(BaseSkill):
         }
 
     def _cleanup_old_backups(self, dest: Path, retention_days: int) -> int:
-        """Remove backups older than retention_days."""
+        """Remove expired backup artefacts this skill owns, never other files."""
         cutoff = time.time() - (retention_days * 86400)
         removed = 0
         for f in dest.iterdir():
-            if f.is_file() and f.stat().st_mtime < cutoff:
+            if not f.is_file() or not self._owns_artifact(f):
+                continue
+            if f.stat().st_mtime < cutoff:
                 f.unlink()
-                removed += 1
-            elif f.is_dir() and f.stat().st_mtime < cutoff:
-                shutil.rmtree(f)
                 removed += 1
         if removed:
             log.info("Cleaned up %d old backups", removed)
         return removed
+
+    @staticmethod
+    def _owns_artifact(path: Path) -> bool:
+        return any(path.match(pattern) for pattern in BACKUP_ARTIFACT_PATTERNS)

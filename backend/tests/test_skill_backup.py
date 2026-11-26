@@ -84,3 +84,40 @@ async def test_backup_reports_missing_components_honestly(tmp_path: Path, monkey
     assert result["success"] is False
     assert result["count"] == 0
     assert "No backup components" in result["error"]
+
+
+@pytest.mark.asyncio
+async def test_retention_only_prunes_its_own_artifacts(tmp_path: Path, monkeypatch):
+    """Expired cleanup must not remove files another owner placed in the destination."""
+    import os
+    import time
+
+    import app.core.database as db_mod
+    import app.skills.builtin.backup as mod
+
+    monkeypatch.setattr(db_mod, "get_db_path", lambda: None)
+
+    dest = tmp_path / "backups"
+    dest.mkdir()
+    expired = dest / "ucore-backup-20200101-000000.db"
+    expired.write_text("old", encoding="utf-8")
+    foreign_file = dest / "canon-export.tar.gz"
+    foreign_file.write_text("keep", encoding="utf-8")
+    foreign_dir = dest / "canon-c02-2026-11-24"
+    foreign_dir.mkdir()
+    (foreign_dir / "keep.txt").write_text("keep", encoding="utf-8")
+
+    stale = time.time() - 40 * 86400
+    for target in (expired, foreign_file, foreign_dir):
+        os.utime(target, (stale, stale))
+
+    result = await mod.BackupData().run(
+        type="database",
+        destination=str(dest),
+        retention_days=14,
+    )
+
+    assert not expired.exists()
+    assert foreign_file.exists()
+    assert (foreign_dir / "keep.txt").exists()
+    assert result["old_backups_removed"] >= 1

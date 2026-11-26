@@ -1,6 +1,6 @@
 # Train 0 — Consolidation and release baseline: evidence
 
-- Status: complete — merged to `main` as `b154f21` and tagged `v4.1.0`
+- Status: complete — squash-merged to `main` as `e1811ed` (PR #58), tagged `v4.1.0`; the scoped-retention patch follows as `v4.1.1`
 - Branch: `consolidation/train0-2026-11-26`
 - Base: local `main` `0dbf34e`
 - Merges: `eb8443e` (origin/main) → `7ddf7b1` (variables) → `5e9ebd0` (depot integration) → `b154f21` (into `main`)
@@ -106,10 +106,13 @@ failure with a reason when no component is available.
 | Restore rehearsal | Config archive (15 files) extracted; `engineering-commands.json` hash matches the original |
 | Production run | `$UDOS_HOME/backups` — 4 components, database 90,112 B, wisdom 8,296 B, secrets 97 B, config 6,004 B |
 
-Observation: the retention pass deletes any file or directory in the destination
-older than the retention window, not only its own artefacts. This run removed 43
-expired items. The cleanup should be scoped to the skill's own filename patterns
-before the depot/backup boundary is considered finished.
+Retention is now scoped. The pass previously deleted any file or directory in the
+destination older than the window, which removed 43 expired items in the first
+production run — including artefacts this skill did not create. It now removes
+only its own artefacts (`ucore-backup-*.db`, `wisdom-*.md`, `secrets-*.enc`,
+`secrets-*.key`, `config-*.tar.gz`) and never touches another owner's files or
+directories. Covered by `test_retention_only_prunes_its_own_artifacts`; released
+as 4.1.1.
 
 ## Dirty trees parked
 
