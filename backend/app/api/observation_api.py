@@ -65,10 +65,9 @@ async def handle_dispatch(request: web.Request) -> web.Response:
 
 
 async def handle_schedule_tick(request: web.Request) -> web.Response:
-    """POST /api/host/schedules/tick — admit due occurrences."""
-    from app.flow.workflow_api import get_workflow_manager
+    """POST /api/host/schedules/tick — plan reviewed schedules and admit due work."""
     from app.services.execution_authority import active_identity
-    from app.services.timing import TimingStore, admit_due
+    from app.services.maintenance_scheduler import admit_timed_occurrences
 
     identity = active_identity()
     if not identity.get("authenticated", True):
@@ -76,7 +75,7 @@ async def handle_schedule_tick(request: web.Request) -> web.Response:
             {"error": "Authenticate a local profile to tick schedules"}, status=403
         )
 
-    results = await admit_due(TimingStore(), get_workflow_manager())
+    results = await admit_timed_occurrences()
     return web.json_response({"count": len(results), "results": results})
 
 
