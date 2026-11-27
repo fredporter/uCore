@@ -286,3 +286,37 @@ def test_prune_removes_settled_records_and_keeps_pending(tmp_path):
         pending["transition_id"]
     ]
 
+
+@pytest.mark.asyncio
+async def test_tick_endpoint_uses_the_shared_admission_path(monkeypatch):
+    from aiohttp.test_utils import make_mocked_request
+
+    from app.api import observation_api
+    from app.services import identity, maintenance_scheduler
+
+    monkeypatch.setattr(
+        identity,
+        "get_full_identity",
+        lambda: {
+            "authenticated": True,
+            "active_profile_id": "alice",
+            "active_profile": {"id": "alice", "role": "developer"},
+        },
+    )
+    calls: list[str] = []
+
+    async def fake_admit():
+        calls.append("admit")
+        return [{"occurrence_id": "occ-1", "status": "admitted"}]
+
+    monkeypatch.setattr(maintenance_scheduler, "admit_timed_occurrences", fake_admit)
+
+    response = await observation_api.handle_schedule_tick(
+        make_mocked_request("POST", "/api/host/schedules/tick")
+    )
+
+    assert response.status == 200
+    assert json.loads(response.text)["count"] == 1
+    assert calls == ["admit"]
+
+
