@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from app.core.logging import log
@@ -85,6 +85,39 @@ def _system_context():
     )
 
 
+async def admit_timed_occurrences() -> list[dict]:
+    """Admit due timing occurrences through the Gate A run contract."""
+    try:
+        from app.flow.workflow_api import get_workflow_manager
+        from app.services.timing import (
+            TimingStore,
+            admit_due,
+            load_schedules,
+            plan_calendar_window,
+        )
+
+        store = TimingStore()
+        plan_calendar_window(store, load_schedules())
+        results = await admit_due(store, get_workflow_manager())
+    except Exception as exc:
+        log.warning("Timed admission failed: %s", exc)
+        return []
+    if results:
+        log.info("Timed admission: %d occurrence(s)", len(results))
+    return results
+
+
+def reconcile_timed_claims() -> int:
+    """Return interrupted claims to pending when the service starts."""
+    try:
+        from app.services.timing import TimingStore
+
+        return TimingStore().reconcile()
+    except Exception as exc:
+        log.warning("Timing reconciliation failed: %s", exc)
+        return 0
+
+
 def set_maintenance_scheduler(
     scheduler: MaintenanceScheduler | None,
 ) -> None:
@@ -161,6 +194,7 @@ class MaintenanceScheduler:
             return
         self._state["started_at"] = datetime.now().isoformat()
         self._save_state()
+        reconcile_timed_claims()
         self._task = asyncio.create_task(self.run_forever())
         log.info("Maintenance scheduler started with %d jobs", len(self.jobs))
 
@@ -175,13 +209,42 @@ class MaintenanceScheduler:
 
     async def run_forever(self) -> None:
         while True:
-            try:
-                await self.run_due()
-                from app.services.connections.engine import sync_due_connections
-                await sync_due_connections()
-            except Exception as exc:
-                log.warning("Maintenance scheduler cycle failed: %s", exc)
+            await self.run_cycle()
             await asyncio.sleep(self.interval_seconds)
+
+    async def run_cycle(self) -> list[dict]:
+        """One maintenance cycle: scheduled jobs, connections, due runs, retention."""
+        ran: list[dict] = []
+        try:
+            ran = await self.run_due()
+        except Exception as exc:
+            log.warning("Scheduled jobs failed: %s", exc)
+        try:
+            from app.services.connections.engine import sync_due_connections
+
+            await sync_due_connections()
+        except Exception as exc:
+            log.warning("Connection sync failed: %s", exc)
+        await admit_timed_occurrences()
+        await self._prune_gate_b_state()
+        return ran
+
+    async def _prune_gate_b_state(self) -> None:
+        today = datetime.now(UTC).date().isoformat()
+        if self._state.get("last_prune") == today:
+            return
+        try:
+            from app.services.observation_intake import ObservationStore
+            from app.services.timing import TimingStore
+
+            removed = ObservationStore().prune() + TimingStore().prune_occurrences()
+        except Exception as exc:
+            log.warning("Gate B retention failed: %s", exc)
+            return
+        self._state["last_prune"] = today
+        self._save_state()
+        if removed:
+            log.info("Pruned %d expired Gate B records", removed)
 
     async def run_due(self, now: datetime | None = None) -> list[dict]:
         # Manual recovery and the timer share one execution lane.

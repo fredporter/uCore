@@ -10,7 +10,7 @@ import json
 import re
 import sqlite3
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -381,5 +381,24 @@ class ObservationStore:
                 "SELECT * FROM obs_receipt WHERE transition_id = ?", (transition_id,)
             ).fetchone()
         return dict(row) if row else None
+
+    def prune(self, *, days: int = 30, now: datetime | None = None) -> int:
+        """Delete expired settled records; pending transitions are never pruned."""
+        cutoff = ((now or datetime.now(UTC)) - timedelta(days=days)).isoformat()
+        removed = 0
+        with self._connect() as conn:
+            removed += conn.execute(
+                "DELETE FROM obs_receipt WHERE status IN ('admitted', 'suppressed') AND created_at < ?",
+                (cutoff,),
+            ).rowcount
+            removed += conn.execute(
+                "DELETE FROM obs_transition WHERE status IN ('delivered', 'suppressed') AND observed_at < ?",
+                (cutoff,),
+            ).rowcount
+            removed += conn.execute(
+                "DELETE FROM obs_seen WHERE seen_at < ?", (cutoff,)
+            ).rowcount
+            conn.commit()
+        return removed
 
 

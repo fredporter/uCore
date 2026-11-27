@@ -209,3 +209,95 @@ async def test_routine_route_requires_admin_and_confirmation(monkeypatch):
     scheduler.run_once.assert_not_awaited()
     assert (await metadata.maintenance_run_handler(request({"x-ucore-confirm": "true"}))).status == 200
     scheduler.run_once.assert_awaited_once_with("backup")
+
+
+@pytest.mark.asyncio
+async def test_cycle_runs_timed_admission_and_retention(tmp_path, monkeypatch):
+    import app.services.maintenance_scheduler as mod
+    from app.services.connections import engine
+
+    called: list[str] = []
+
+    async def fake_admit():
+        called.append("admit")
+        return []
+
+    async def fake_sync():
+        called.append("sync")
+
+    async def fake_prune(_self):
+        called.append("prune")
+
+    monkeypatch.setattr(mod, "admit_timed_occurrences", fake_admit)
+    monkeypatch.setattr(engine, "sync_due_connections", fake_sync)
+    monkeypatch.setattr(mod.MaintenanceScheduler, "_prune_gate_b_state", fake_prune)
+    scheduler = mod.MaintenanceScheduler(
+        state_path=tmp_path / "state.json", jobs=(), interval_seconds=60
+    )
+
+    await scheduler.run_cycle()
+
+    assert called == ["sync", "admit", "prune"]
+
+
+@pytest.mark.asyncio
+async def test_start_reconciles_timed_claims(tmp_path, monkeypatch):
+    import app.services.maintenance_scheduler as mod
+    from app.services.connections import engine
+
+    called: list[str] = []
+
+    async def fake_admit():
+        return []
+
+    async def fake_sync():
+        return None
+
+    async def fake_prune(_self):
+        return None
+
+    monkeypatch.setattr(
+        mod, "reconcile_timed_claims", lambda: called.append("reconcile") or 0
+    )
+    monkeypatch.setattr(mod, "admit_timed_occurrences", fake_admit)
+    monkeypatch.setattr(engine, "sync_due_connections", fake_sync)
+    monkeypatch.setattr(mod.MaintenanceScheduler, "_prune_gate_b_state", fake_prune)
+    scheduler = mod.MaintenanceScheduler(
+        state_path=tmp_path / "state.json", jobs=(), interval_seconds=60
+    )
+
+    await scheduler.start()
+    await scheduler.stop()
+
+    assert called == ["reconcile"]
+
+
+@pytest.mark.asyncio
+async def test_retention_runs_at_most_once_per_day(tmp_path, monkeypatch):
+    import app.services.maintenance_scheduler as mod
+
+    calls: list[str] = []
+
+    class _Observations:
+        def prune(self, days=30):
+            calls.append("observations")
+            return 0
+
+    class _Timing:
+        def prune_occurrences(self, days=30):
+            calls.append("timing")
+            return 0
+
+    monkeypatch.setattr(
+        "app.services.observation_intake.ObservationStore", _Observations
+    )
+    monkeypatch.setattr("app.services.timing.TimingStore", _Timing)
+    scheduler = mod.MaintenanceScheduler(
+        state_path=tmp_path / "state.json", jobs=(), interval_seconds=60
+    )
+
+    await scheduler._prune_gate_b_state()
+    await scheduler._prune_gate_b_state()
+
+    assert calls == ["observations", "timing"]
+

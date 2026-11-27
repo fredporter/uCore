@@ -7,6 +7,7 @@ Obsolete revisions and disabled schedules are never admitted.
 from __future__ import annotations
 
 import hashlib
+import json
 import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
@@ -299,6 +300,21 @@ class TimingStore:
             ).fetchone()
         return dict(row) if row else None
 
+    def prune_occurrences(self, *, days: int = 30, now: datetime | None = None) -> int:
+        """Delete expired finished occurrences; pending and claimed survive."""
+        cutoff = ((now or datetime.now(UTC)) - timedelta(days=days)).astimezone(UTC).isoformat()
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                DELETE FROM occurrence
+                WHERE status IN ('completed', 'skipped', 'missed') AND due_at < ?
+                """,
+                (cutoff,),
+            )
+            conn.commit()
+            return cursor.rowcount
+
+
 
 async def admit_due(
     store: TimingStore,
@@ -343,6 +359,72 @@ async def admit_due(
         store.complete(occurrence_id, run_id)
         results.append({"occurrence_id": occurrence_id, "status": "admitted", "run_id": run_id})
     return results
+
+
+def schedules_path() -> Path:
+    return settings.udos_home / "config" / "schedules.json"
+
+
+def load_schedules(path: Path | None = None) -> list[Schedule]:
+    """Load reviewed schedules; a missing file means none are configured."""
+    target = path or schedules_path()
+    if not target.exists():
+        return []
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ScheduleError(f"schedules unreadable: {exc}") from exc
+
+    entries = payload.get("schedules") if isinstance(payload, dict) else None
+    if not isinstance(entries, list):
+        raise ScheduleError("schedules file must contain a 'schedules' list")
+
+    schedules: list[Schedule] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise ScheduleError("each schedule must be an object")
+        schedule_id = str(entry.get("schedule_id", "")).strip()
+        workflow_id = str(entry.get("workflow_id", "")).strip()
+        if not schedule_id or not workflow_id:
+            raise ScheduleError("schedule_id and workflow_id are required")
+        schedules.append(
+            Schedule(
+                schedule_id=schedule_id,
+                workflow_id=workflow_id,
+                owner=str(entry.get("owner", "default")),
+                kind=str(entry.get("kind", "calendar")),
+                revision=int(entry.get("revision", 1)),
+                timezone=str(entry.get("timezone", "UTC")),
+                local_time=str(entry.get("local_time", "09:00")),
+                delay_seconds=int(entry.get("delay_seconds", 0)),
+                enabled=bool(entry.get("enabled", True)),
+            )
+        )
+    return schedules
+
+
+def plan_calendar_window(
+    store: TimingStore,
+    schedules: list[Schedule],
+    *,
+    now: datetime | None = None,
+    days: int = 2,
+) -> list[str]:
+    """Upsert schedules and plan one occurrence per local day in the window."""
+    moment = (now or datetime.now(UTC)).astimezone(UTC)
+    planned: list[str] = []
+    for schedule in schedules:
+        store.upsert_schedule(schedule, now=moment)
+        if schedule.kind != "calendar" or not schedule.enabled:
+            continue
+        zone = ZoneInfo(schedule.timezone)
+        first_day = moment.astimezone(zone).date()
+        for offset in range(max(1, min(days, 14))):
+            occurrence = store.plan_calendar(schedule, first_day + timedelta(days=offset))
+            if occurrence:
+                planned.append(occurrence)
+    return planned
+
 
 
 

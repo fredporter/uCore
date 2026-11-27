@@ -234,3 +234,55 @@ async def test_endpoint_rejects_malformed_and_anonymous(tmp_path, monkeypatch):
 
     assert malformed.status == 400
     assert anonymous.status == 403
+
+
+def test_prune_removes_settled_records_and_keeps_pending(tmp_path):
+    from datetime import UTC, datetime
+
+    store = ObservationStore(tmp_path / "observations.db")
+    baseline = {
+        "source_id": "feed.p",
+        "subject_id": "notice",
+        "values": {"status": "open"},
+    }
+    store.ingest(
+        parse_observation(
+            {**baseline, "observation_id": "p-1", "observed_at": "2026-11-26T10:00:00Z"}
+        )
+    )
+    delivered = store.ingest(
+        parse_observation(
+            {
+                **baseline,
+                "observation_id": "p-2",
+                "observed_at": "2026-11-26T11:00:00Z",
+                "values": {"status": "closed"},
+            }
+        )
+    )
+    receipt, _ = store.record_receipt(
+        transition_id=delivered["transition_id"],
+        binding_id="b-1",
+        workflow_id="wf-1",
+        status="admitting",
+    )
+    store.complete_receipt(receipt["receipt_id"], "run-1")
+    store.mark_delivered(delivered["transition_id"], "run-1")
+    pending = store.ingest(
+        parse_observation(
+            {
+                **baseline,
+                "observation_id": "p-3",
+                "observed_at": "2026-11-26T12:00:00Z",
+            }
+        )
+    )
+
+    removed = store.prune(days=30, now=datetime(2027, 1, 31, tzinfo=UTC))
+
+    assert removed >= 2
+    assert store.get_receipt(delivered["transition_id"]) is None
+    assert [row["transition_id"] for row in store.pending_transitions()] == [
+        pending["transition_id"]
+    ]
+

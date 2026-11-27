@@ -9,9 +9,12 @@ import pytest
 from app.services import identity
 from app.services.timing import (
     Schedule,
+    ScheduleError,
     TimingStore,
     admit_due,
+    load_schedules,
     occurrence_id_for,
+    plan_calendar_window,
     resolve_local,
 )
 from app.services.workflow_manager import WorkflowManager
@@ -208,4 +211,76 @@ async def test_admission_is_deterministic_and_idempotent(tmp_path, monkeypatch):
 
     assert replay[0]["run_id"] == run_id
     assert len(manager.get_all_runs(owner="alice")) == 1
+
+
+
+def test_prune_removes_finished_occurrences_only(tmp_path):
+    store = _store(tmp_path)
+    schedule = _delay(seconds=10)
+    store.upsert_schedule(schedule)
+    base = datetime(2026, 11, 27, 10, 0, tzinfo=UTC)
+    finished = store.plan_delay(schedule, now=base)
+    store.claim_due(now=base + timedelta(seconds=30))
+    store.complete(finished, "run-1")
+    pending = store.plan_delay(schedule, now=base + timedelta(days=2))
+
+    removed = store.prune_occurrences(days=30, now=base + timedelta(days=40))
+
+    assert removed == 1
+    assert store.get_occurrence(finished) is None
+    assert store.get_occurrence(pending) is not None
+
+
+def test_load_schedules_reads_reviewed_config(tmp_path):
+    import json
+
+    path = tmp_path / "schedules.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schedules": [
+                    {
+                        "schedule_id": "s-1",
+                        "workflow_id": "wf-1",
+                        "owner": "alice",
+                        "kind": "calendar",
+                        "timezone": "UTC",
+                        "local_time": "09:00",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    schedules = load_schedules(path)
+
+    assert [schedule.schedule_id for schedule in schedules] == ["s-1"]
+    assert schedules[0].owner == "alice"
+
+
+def test_missing_schedule_file_means_none_configured(tmp_path):
+    assert load_schedules(tmp_path / "absent.json") == []
+
+
+def test_invalid_schedule_config_is_rejected(tmp_path):
+    import json
+
+    path = tmp_path / "schedules.json"
+    path.write_text(json.dumps({"schedules": [{"workflow_id": "wf-1"}]}), encoding="utf-8")
+
+    with pytest.raises(ScheduleError):
+        load_schedules(path)
+
+
+def test_calendar_window_plans_each_day_once(tmp_path):
+    store = _store(tmp_path)
+    schedule = _calendar()
+    now = datetime(2026, 11, 27, 12, 0, tzinfo=UTC)
+
+    first = plan_calendar_window(store, [schedule], now=now, days=2)
+    second = plan_calendar_window(store, [schedule], now=now, days=2)
+
+    assert first == second
+    assert len(first) == 2
 
