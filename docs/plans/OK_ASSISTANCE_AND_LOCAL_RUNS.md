@@ -51,7 +51,8 @@ automations and Matter fabric. The uDOS stack owns the workflows authored in
 uFlow. Keep core startup, manual local runs, and HomeNook media independent of
 pipeline availability.
 
-**HomeNook ownership.** Complete the HomeNest → HomeNook rename across active
+**HomeNook ownership.** Ratified 2026-11-27 (D1,
+`HomeNook/docs/decisions/D1-HA-MATTER-OWNERSHIP.md`). Complete the HomeNest → HomeNook rename across active
 product references. Keep the uDOS-facing Home Assistant gateway, Matter bridge
 contracts, deployment guidance, and integration tests in HomeNook. uFlow owns
 workflow orchestration and consumes the gateway contract. Upstream Home
