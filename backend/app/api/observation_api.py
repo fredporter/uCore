@@ -64,6 +64,23 @@ async def handle_dispatch(request: web.Request) -> web.Response:
     return web.json_response({"count": len(results), "results": results})
 
 
+async def handle_schedule_tick(request: web.Request) -> web.Response:
+    """POST /api/host/schedules/tick — admit due occurrences."""
+    from app.flow.workflow_api import get_workflow_manager
+    from app.services.execution_authority import active_identity
+    from app.services.timing import TimingStore, admit_due
+
+    identity = active_identity()
+    if not identity.get("authenticated", True):
+        return web.json_response(
+            {"error": "Authenticate a local profile to tick schedules"}, status=403
+        )
+
+    results = await admit_due(TimingStore(), get_workflow_manager())
+    return web.json_response({"count": len(results), "results": results})
+
+
 def register_observation_routes(app: web.Application) -> None:
     app.router.add_post("/api/host/observations", handle_observation)
     app.router.add_post("/api/host/observations/dispatch", handle_dispatch)
+    app.router.add_post("/api/host/schedules/tick", handle_schedule_tick)
