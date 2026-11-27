@@ -15,7 +15,9 @@
     "test:golden": "playwright test",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "audit:actions": "node scripts/audit-ui-actions.mjs"
+    "audit:actions": "node scripts/audit-ui-actions.mjs",
+    "capture:surfaces": "node scripts/capture-surfaces.mjs",
+    "capture:surfaces:chromium": "node scripts/capture-surfaces.mjs --engine chromium"
   },
   "engines": {
     "node": ">=22"
