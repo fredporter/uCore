@@ -159,6 +159,20 @@ class ObservationStore:
                 )
                 """
             )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS obs_receipt (
+                    receipt_id TEXT PRIMARY KEY,
+                    transition_id TEXT NOT NULL UNIQUE,
+                    binding_id TEXT NOT NULL,
+                    workflow_id TEXT NOT NULL,
+                    run_id TEXT,
+                    status TEXT NOT NULL,
+                    reason TEXT,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
             conn.commit()
 
     def ingest(self, observation: Observation, *, pipeline_version: str = "v1") -> dict[str, Any]:
@@ -293,5 +307,79 @@ class ObservationStore:
                 (run_id, transition_id),
             )
             conn.commit()
+
+    def mark_suppressed(self, transition_id: str, reason: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE obs_transition
+                SET status = 'suppressed'
+                WHERE transition_id = ? AND status = 'pending'
+                """,
+                (transition_id,),
+            )
+            conn.commit()
+
+    def record_receipt(
+        self,
+        *,
+        transition_id: str,
+        binding_id: str,
+        workflow_id: str,
+        status: str,
+        reason: str | None = None,
+    ) -> tuple[dict[str, Any], bool]:
+        """Insert one receipt per transition; return (receipt, created)."""
+        receipt_id = "rcp-" + hashlib.sha256(
+            f"{binding_id}|{transition_id}".encode("utf-8")
+        ).hexdigest()[:16]
+        now = datetime.now(UTC).isoformat()
+        with self._connect() as conn:
+            existing = conn.execute(
+                "SELECT * FROM obs_receipt WHERE receipt_id = ?", (receipt_id,)
+            ).fetchone()
+            if existing:
+                return dict(existing), False
+            conn.execute(
+                """
+                INSERT INTO obs_receipt
+                (receipt_id, transition_id, binding_id, workflow_id, run_id,
+                 status, reason, created_at)
+                VALUES (?, ?, ?, ?, NULL, ?, ?, ?)
+                """,
+                (receipt_id, transition_id, binding_id, workflow_id, status, reason, now),
+            )
+            conn.commit()
+            row = conn.execute(
+                "SELECT * FROM obs_receipt WHERE receipt_id = ?", (receipt_id,)
+            ).fetchone()
+        return dict(row), True
+
+    def complete_receipt(self, receipt_id: str, run_id: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE obs_receipt
+                SET status = 'admitted', run_id = ?, reason = NULL
+                WHERE receipt_id = ?
+                """,
+                (run_id, receipt_id),
+            )
+            conn.commit()
+
+    def fail_receipt(self, receipt_id: str, reason: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE obs_receipt SET status = 'failed', reason = ? WHERE receipt_id = ?",
+                (reason, receipt_id),
+            )
+            conn.commit()
+
+    def get_receipt(self, transition_id: str) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM obs_receipt WHERE transition_id = ?", (transition_id,)
+            ).fetchone()
+        return dict(row) if row else None
 
 
