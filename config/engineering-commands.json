@@ -36,6 +36,12 @@
     "argv": ["pnpm", "build"]
   },
   {
+    "id": "check-visual",
+    "name": "Capture surface screenshots",
+    "description": "Capture named surfaces at desktop and narrow viewports with Playwright WebKit into gitignored test-results/visual for visual review",
+    "argv": ["pnpm", "--dir", "frontend-vue", "run", "capture:surfaces"]
+  },
+  {
     "id": "kanban",
     "name": "Cline Kanban Board",
     "description": "Start Cline Kanban and export development boards to kanban.json",

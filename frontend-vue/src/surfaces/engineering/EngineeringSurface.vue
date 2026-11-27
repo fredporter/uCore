@@ -89,6 +89,15 @@
 
               <div class="doc-tool-card">
                 <div class="doc-tool-card-heading">
+                  <UIcon name="screenshot" />
+                  <h4>Visual review</h4>
+                </div>
+                <p>Review surfaces in Safari at desktop and narrow widths, and capture the same routes through Playwright WebKit for a repeatable record.</p>
+                <div><code>ucdev · check-visual</code></div>
+              </div>
+
+              <div class="doc-tool-card">
+                <div class="doc-tool-card-heading">
                   <UIcon name="article" />
                   <h4>Obsidian Baseline Authoring</h4>
                 </div>
