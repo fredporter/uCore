@@ -628,12 +628,13 @@ async def _start_run(
     *,
     start_index: int = 0,
     resumed_from: str | None = None,
+    run_id: str | None = None,
 ) -> dict[str, Any]:
     """Admit a run, execute it with checkpoints, persist the outcome."""
     from app.services import run_control
 
     context = _execution_context(owner)
-    run_id = f"run-{uuid.uuid4().hex[:10]}"
+    run_id = run_id or f"run-{uuid.uuid4().hex[:10]}"
     run_started = datetime.now(UTC).isoformat()
     manager.start_run(
         run_id=run_id,
@@ -684,6 +685,28 @@ async def _start_run(
         },
     )
     return run_result
+
+
+async def start_workflow_run(
+    manager,
+    workflow: dict[str, Any],
+    workflow_id: str,
+    owner: str,
+    *,
+    run_id: str | None = None,
+    start_index: int = 0,
+    resumed_from: str | None = None,
+) -> dict[str, Any]:
+    """Trusted-service entry point for starting one run (Gate B admission)."""
+    return await _start_run(
+        manager,
+        workflow,
+        workflow_id,
+        owner,
+        start_index=start_index,
+        resumed_from=resumed_from,
+        run_id=run_id,
+    )
 
 
 async def handle_run_workflow(request: web.Request) -> web.Response:

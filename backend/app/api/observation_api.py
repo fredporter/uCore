@@ -40,5 +40,30 @@ async def handle_observation(request: web.Request) -> web.Response:
     return web.json_response(result)
 
 
+async def handle_dispatch(request: web.Request) -> web.Response:
+    """POST /api/host/observations/dispatch — admit pending transitions."""
+    from app.flow.workflow_api import get_workflow_manager
+    from app.services.execution_authority import active_identity
+    from app.services.transition_bindings import BindingError, load_bindings
+    from app.services.transition_dispatch import dispatch_transitions
+
+    identity = active_identity()
+    if not identity.get("authenticated", True):
+        return web.json_response(
+            {"error": "Authenticate a local profile to dispatch transitions"}, status=403
+        )
+
+    try:
+        bindings = load_bindings()
+    except BindingError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+
+    results = await dispatch_transitions(
+        ObservationStore(), get_workflow_manager(), bindings
+    )
+    return web.json_response({"count": len(results), "results": results})
+
+
 def register_observation_routes(app: web.Application) -> None:
     app.router.add_post("/api/host/observations", handle_observation)
+    app.router.add_post("/api/host/observations/dispatch", handle_dispatch)

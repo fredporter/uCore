@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ucore"
-version = "4.10.0"
+version = "4.11.0"
 description = "uCore — unified daemon combining uServer + uConnect backend"
 readme = { text = "uCore hosts the user workspace and bundled workflow, knowledge and identity authorities.", content-type = "text/plain" }
 requires-python = ">=3.12,<3.13"
