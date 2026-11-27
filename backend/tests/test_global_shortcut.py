@@ -116,9 +116,15 @@ class TestSettings:
         import importlib
 
         import app.core.settings as mod
-        importlib.reload(mod)
-        assert mod.settings.clipboard_shortcut == "cmd+shift+v"
-        importlib.reload(mod)  # restore
+
+        # Reload to re-evaluate the environment, then restore the original object so
+        # modules that imported `settings` keep pointing at the same singleton.
+        original = mod.settings
+        try:
+            importlib.reload(mod)
+            assert mod.settings.clipboard_shortcut == "cmd+shift+v"
+        finally:
+            mod.settings = original
 
 
 class TestMetadataEndpoint:

@@ -653,6 +653,9 @@ def register_routes(app: web.Application) -> None:
         from .capture_api import register_capture_routes
 
         register_capture_routes(app)
+        from .observation_api import register_observation_routes
+
+        register_observation_routes(app)
         log.debug("Host PIM routes registered")
     except ImportError as e:
         log.debug("Host PIM routes not available: %s", e)
