@@ -52,5 +52,17 @@
     "name": "Heal the development Kanban",
     "description": "Start the loopback Cline Kanban board if it is down and refresh kanban.json",
     "argv": ["python3", "scripts/kanban_supervisor.py", "--ensure"]
+  },
+  {
+    "id": "check-toolchain",
+    "name": "Check engineering toolchain",
+    "description": "Report Node, pnpm, Cline CLI, Kanban, fzf, Playwright browsers and mkcert without installing anything (Advanced Users / Engineering)",
+    "argv": ["bash", "scripts/install-engineering-toolchain.sh", "--check"]
+  },
+  {
+    "id": "https-status",
+    "name": "Standalone HTTPS status",
+    "description": "Report the local certificate, CA trust and listener used for the Safari standalone web app (Advanced Users / Engineering)",
+    "argv": ["bash", "scripts/enable-engineering-https.sh", "status"]
   }
 ]
