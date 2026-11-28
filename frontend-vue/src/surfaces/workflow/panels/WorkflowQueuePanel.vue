@@ -61,12 +61,33 @@
         </div>
       </article>
     </section>
+    <section class="queue-section" aria-label="Scheduled runs">
+      <h3>Scheduled runs</h3>
+      <p v-if="!wf.schedules.length">No reviewed schedules.</p>
+      <article v-for="schedule in wf.schedules" :key="schedule.schedule_id" class="queue-run">
+        <UIcon name="schedule" aria-hidden="true" />
+        <div class="queue-run__copy">
+          <strong>{{ schedule.schedule_id }}</strong>
+          <small>
+            {{ schedule.local_time }} {{ schedule.timezone }} ·
+            {{ schedule.enabled ? 'enabled' : 'disabled' }} · revision {{ schedule.revision }}
+          </small>
+          <small v-if="!schedule.occurrences.length">No occurrences planned yet.</small>
+          <small v-for="occurrence in schedule.occurrences" :key="occurrence.occurrence_id">
+            {{ occurrence.status }} ·
+            <time :datetime="occurrence.due_at">{{ new Date(occurrence.due_at).toLocaleString() }}</time>
+            <template v-if="occurrence.run_id"> · {{ occurrence.run_id }}</template>
+            <template v-if="occurrence.reason"> · {{ occurrence.reason }}</template>
+          </small>
+        </div>
+      </article>
+    </section>
     <BrowserUISurface ref="researchQueue" embedded queue-only :binder-id="wf.activeBinderId || undefined" :key="wf.activeBinderId" />
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useWorkflowStore } from '../../../stores/workflow';
 import BrowserUISurface from '../../browserui/BrowserUISurface.vue';
 import UIcon from '../../../skills/atoms/UIcon.vue';
@@ -92,6 +113,10 @@ async function act(runId: string, action: 'cancel' | 'resume') {
   }
 }
 const researchQueue = ref<InstanceType<typeof BrowserUISurface> | null>(null);
+onMounted(() => {
+  if (!wf.schedules.length) void wf.fetchSchedules();
+});
+
 const queuedTasks = computed(() => wf.missionTasks.filter(
   task => !['completed', 'archived', 'cancelled', 'superseded'].includes(task.status),
 ));
@@ -100,7 +125,7 @@ async function refresh() {
   refreshing.value = true;
   error.value = '';
   try {
-    await Promise.all([wf.fetchWorkflowRuns(), researchQueue.value?.refreshQueue()]);
+    await Promise.all([wf.fetchWorkflowRuns(), wf.fetchSchedules(), researchQueue.value?.refreshQueue()]);
   } catch {
     error.value = 'Could not refresh the queue.';
   } finally {
