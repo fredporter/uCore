@@ -13,13 +13,10 @@
         :lane="engineeringTab === 'grid-recipes' ? 'gridcore' : 'usx'"
       />
       <template v-else>
-          <nav class="engineering-actions" aria-label="Developer tools shortcuts">
-            <a class="usx-btn" href="http://127.0.0.1:3484/ucore" target="_blank" rel="noopener noreferrer"><UIcon name="launch" /> Open Cline Kanban</a>
-            <a class="usx-btn" href="http://127.0.0.1:3484/ucode" target="_blank" rel="noopener noreferrer"><UIcon name="view_kanban" /> uCode Dev Roadmap</a>
-          </nav>
           <header class="doc-engineering-heading">
             <h1>Developer tools</h1>
             <p>Develop uDOS in VS Code. Open the shared workspace from macOS Terminal.</p>
+            <p class="doc-engineering-note">Development stays external: VS Code with Copilot or Cline, and Cline CLI in Terminal. The tools below support that setup the way an editor extension would — uCore hosts surfaces and services, it is not an IDE.</p>
           </header>
 
           <div class="doc-health-strip">
@@ -68,6 +65,10 @@
                 </div>
                 <p>Use scoped development rounds in either client. Review the plan, keep approvals bounded, and verify with repository checks.</p>
                 <div><code>cline --cwd ~/Code -p "plan this change"</code></div>
+                <div class="doc-tool-card-actions">
+                  <a class="usx-btn" href="http://127.0.0.1:3484/ucore" target="_blank" rel="noopener noreferrer"><UIcon name="launch" /> Open Kanban</a>
+                  <a class="usx-btn" href="http://127.0.0.1:3484/ucode" target="_blank" rel="noopener noreferrer"><UIcon name="view_kanban" /> Roadmap</a>
+                </div>
               </div>
 
               <div class="doc-tool-card">
@@ -103,6 +104,33 @@
                 </div>
                 <p>Obsidian is the primary user authoring standard for notes, binders, and canvases. Filesystem authority with zero database lock-in.</p>
                 <div><code>~/Vault · ~/Shared · ~/Public</code></div>
+              </div>
+
+              <div class="doc-tool-card">
+                <div class="doc-tool-card-heading">
+                  <UIcon name="build" />
+                  <h4>Engineering toolchain</h4>
+                </div>
+                <p>Editor adjuncts for the external workflow: Node 22+, pnpm, Cline CLI, Cline Kanban, fzf, Playwright and mkcert. The check reports what is present before anything is installed.</p>
+                <div><code>ucdev · check-toolchain</code></div>
+              </div>
+
+              <div class="doc-tool-card">
+                <div class="doc-tool-card-heading">
+                  <UIcon name="devices" />
+                  <h4>Standalone web app</h4>
+                </div>
+                <p>Review the installed runtime, not develop in it. Safari installs a web app only from a trusted HTTPS origin, so this serves the same app on a local certificate for File → Add to Dock, then stops cleanly.</p>
+                <div><code>ucdev · https-status</code></div>
+              </div>
+
+              <div class="doc-tool-card">
+                <div class="doc-tool-card-heading">
+                  <UIcon name="description" />
+                  <h4>Toolchain guide</h4>
+                </div>
+                <p>External-dev only: per-tool purpose, version floor, verification and removal, plus the manifest, service worker and mixed-content limits of the standalone runtime.</p>
+                <div><code>uCore/docs/ENGINEERING_TOOLCHAIN.md</code></div>
               </div>
             </div>
 
@@ -215,31 +243,23 @@ function statusText(status: ApiStatus): string {
   gap: var(--usx-spacing-md);
 }
 
-.engineering-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
+.doc-tool-card-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--usx-spacing-sm);
-  margin: 0;
-  padding: 0;
 }
 
-.engineering-actions .usx-btn {
+.doc-tool-card-actions .usx-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--usx-spacing-xs);
   min-height: var(--usx-touch-min-sm);
   margin: 0;
-  padding: 0 var(--usx-spacing-sm);
-  border: 0;
-  background: transparent;
-  color: var(--usx-color-on-surface-muted);
+  padding-inline: var(--usx-spacing-xs);
   font-size: var(--usx-font-size-sm);
+  white-space: nowrap;
   text-decoration: none;
-}
-
-.engineering-actions .usx-btn:hover {
-  color: var(--usx-color-primary);
 }
 .doc-developer-section,
 .doc-engineering-heading {
@@ -257,6 +277,10 @@ function statusText(status: ApiStatus): string {
 .doc-engineering-heading {
   gap: var(--usx-spacing-xs);
   margin: 0;
+}
+
+.doc-engineering-heading .doc-engineering-note {
+  max-width: 68ch;
 }
 
 .doc-engineering-heading h1 {

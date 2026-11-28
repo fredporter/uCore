@@ -51,7 +51,7 @@ describe('documentation navigation',()=>{
     const wrapper=mount(EngineeringSurface,{global:{plugins:[createPinia(),router]}});
     await flushPromises();
     expect(wrapper.text()).toContain('Developer tools');
-    expect(wrapper.get('a[href="http://127.0.0.1:3484/ucode"]').text()).toContain('uCode Dev Roadmap');
+    expect(wrapper.get('a[href="http://127.0.0.1:3484/ucode"]').text()).toContain('Roadmap');
     await wrapper.get('nav[aria-label="Engineering"]').findAll('a')[1].trigger('click');
     await flushPromises();
     expect(router.currentRoute.value.fullPath).toBe('/engineering?section=recipes');
