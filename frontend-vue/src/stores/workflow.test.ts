@@ -66,6 +66,38 @@ describe('workflow schedules', () => {
     expect(store.schedules[0].occurrences[0].run_id).toBe('run-1344bdceb7');
   });
 
+  it('writes schedule changes with the confirm header and refreshes', async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    const request = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: String(url), init });
+      if (String(url).includes('?limit=')) return new Response(JSON.stringify({ schedules: [] }));
+      return new Response(JSON.stringify({ schedule: { schedule_id: 'sched-1' } }));
+    });
+    vi.stubGlobal('fetch', request);
+    const store = useWorkflowStore();
+
+    expect(await store.createSchedule({ schedule_id: 'sched-1', workflow_id: 'wf-1', timezone: 'UTC', local_time: '20:00' })).toBeNull();
+    expect(await store.updateSchedule('sched-1', { enabled: false })).toBeNull();
+    expect(await store.deleteSchedule('sched-1')).toBeNull();
+
+    const [create, update, remove] = calls.filter(c => !c.url.includes('?limit='));
+    expect(create.url).toContain('/api/host/schedules');
+    expect(create.init?.method).toBe('POST');
+    expect(update.init?.method).toBe('PATCH');
+    expect(update.url).toContain('/api/host/schedules/sched-1');
+    expect(remove.init?.method).toBe('DELETE');
+    for (const call of [create, update, remove]) {
+      expect((call.init?.headers as Record<string, string>)['x-ucore-confirm']).toBe('true');
+    }
+    expect(calls.filter(c => c.url.includes('?limit='))).toHaveLength(3);
+  });
+
+  it('reports the server reason when a schedule write is refused', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: 'schedule_id already exists' }), { status: 409 })));
+    const failure = await useWorkflowStore().createSchedule({ schedule_id: 'dup', workflow_id: 'wf-1' });
+    expect(failure).toBe('schedule_id already exists');
+  });
+
   it('leaves the run list usable when the schedule read fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 503 })));
     const store = useWorkflowStore();

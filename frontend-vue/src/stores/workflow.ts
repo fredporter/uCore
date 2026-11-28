@@ -141,6 +141,7 @@ export interface WorkflowSchedule {
   revision: number;
   timezone: string;
   local_time: string;
+  delay_seconds: number;
   enabled: boolean;
   planned: boolean;
   occurrences: WorkflowScheduleOccurrence[];
@@ -854,6 +855,42 @@ export const useWorkflowStore = defineStore("workflow", () => {
     }
   }
 
+  /** Create, revise or remove a reviewed schedule (owner/wizard + confirm header). */
+  async function writeSchedule(
+    method: "POST" | "PATCH" | "DELETE",
+    path: string,
+    body?: Record<string, unknown>,
+  ): Promise<string | null> {
+    try {
+      const res = await fetch(`${API}${path}`, {
+        method,
+        headers: { "Content-Type": "application/json", "x-ucore-confirm": "true" },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        return String(payload.error || `HTTP ${res.status}`);
+      }
+      await fetchSchedules();
+      return null;
+    } catch (e: any) {
+      return e.message || "Schedule change failed";
+    }
+  }
+
+  function createSchedule(input: Record<string, unknown>): Promise<string | null> {
+    return writeSchedule("POST", "/api/host/schedules", input);
+  }
+
+  function updateSchedule(scheduleId: string, patch: Record<string, unknown>): Promise<string | null> {
+    return writeSchedule("PATCH", `/api/host/schedules/${encodeURIComponent(scheduleId)}`, patch);
+  }
+
+  function deleteSchedule(scheduleId: string): Promise<string | null> {
+    return writeSchedule("DELETE", `/api/host/schedules/${encodeURIComponent(scheduleId)}`);
+  }
+
   /** Request cooperative cancellation of a running workflow run. */
   async function cancelRun(runId: string): Promise<boolean> {
     return controlRun(runId, 'cancel');
@@ -1106,6 +1143,9 @@ export const useWorkflowStore = defineStore("workflow", () => {
     workflowRuns,
     schedules,
     fetchSchedules,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule,
     capabilityRepairs,
     totalTasks,
     inProgressCount,
