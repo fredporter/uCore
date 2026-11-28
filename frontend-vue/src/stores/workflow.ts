@@ -122,6 +122,31 @@ export interface WorkflowDefinition {
   updated_at: string;
 }
 
+export interface WorkflowScheduleOccurrence {
+  occurrence_id: string;
+  schedule_id: string;
+  revision: number;
+  due_at: string;
+  status: string;
+  run_id: string | null;
+  reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkflowSchedule {
+  schedule_id: string;
+  workflow_id: string;
+  kind: string;
+  revision: number;
+  timezone: string;
+  local_time: string;
+  delay_seconds: number;
+  enabled: boolean;
+  planned: boolean;
+  occurrences: WorkflowScheduleOccurrence[];
+}
+
 export interface WorkflowRun {
   run_id: string;
   workflow_id: string;
@@ -274,6 +299,7 @@ export const useWorkflowStore = defineStore("workflow", () => {
   const missionTaskBinderRows = ref<MissionTaskBinderRow[]>([]);
   const workflowDefinitions = ref<WorkflowDefinition[]>([]);
   const workflowRuns = ref<WorkflowRun[]>([]);
+  const schedules = ref<WorkflowSchedule[]>([]);
   const capabilityRepairs = ref<Record<string, CapabilityPreflightResult>>({});
 
   const taskLists = computed(() => [...new Set([...listNames.value, ...tasks.value.map(task => task.board), activeList.value])].filter(Boolean).sort());
@@ -812,6 +838,59 @@ export const useWorkflowStore = defineStore("workflow", () => {
     }
   }
 
+  /** Read reviewed schedules and their recent occurrences (read-only). */
+  async function fetchSchedules(limit = 5): Promise<void> {
+    try {
+      const res = await fetch(`${API}/api/host/schedules?limit=${limit}`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (Array.isArray(data.schedules)) {
+        schedules.value = data.schedules;
+      }
+    } catch (e: any) {
+      // Scheduled work is supplementary here; the runs list still stands alone.
+      console.warn("Schedule fetch failed", e);
+    }
+  }
+
+  /** Create, revise or remove a reviewed schedule (owner/wizard + confirm header). */
+  async function writeSchedule(
+    method: "POST" | "PATCH" | "DELETE",
+    path: string,
+    body?: Record<string, unknown>,
+  ): Promise<string | null> {
+    try {
+      const res = await fetch(`${API}${path}`, {
+        method,
+        headers: { "Content-Type": "application/json", "x-ucore-confirm": "true" },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        return String(payload.error || `HTTP ${res.status}`);
+      }
+      await fetchSchedules();
+      return null;
+    } catch (e: any) {
+      return e.message || "Schedule change failed";
+    }
+  }
+
+  function createSchedule(input: Record<string, unknown>): Promise<string | null> {
+    return writeSchedule("POST", "/api/host/schedules", input);
+  }
+
+  function updateSchedule(scheduleId: string, patch: Record<string, unknown>): Promise<string | null> {
+    return writeSchedule("PATCH", `/api/host/schedules/${encodeURIComponent(scheduleId)}`, patch);
+  }
+
+  function deleteSchedule(scheduleId: string): Promise<string | null> {
+    return writeSchedule("DELETE", `/api/host/schedules/${encodeURIComponent(scheduleId)}`);
+  }
+
   /** Request cooperative cancellation of a running workflow run. */
   async function cancelRun(runId: string): Promise<boolean> {
     return controlRun(runId, 'cancel');
@@ -1062,6 +1141,11 @@ export const useWorkflowStore = defineStore("workflow", () => {
     missionTaskBinderRows,
     workflowDefinitions,
     workflowRuns,
+    schedules,
+    fetchSchedules,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule,
     capabilityRepairs,
     totalTasks,
     inProgressCount,

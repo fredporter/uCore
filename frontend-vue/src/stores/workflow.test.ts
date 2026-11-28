@@ -34,6 +34,78 @@ describe('workflow durable actions', () => {
   });
 });
 
+describe('workflow schedules', () => {
+  it('reads schedules and their occurrences without inventing any', async () => {
+    const payload = {
+      schedules: [
+        {
+          schedule_id: 'sched-vault-discovery-daily',
+          workflow_id: 'wf-1',
+          kind: 'calendar',
+          revision: 1,
+          timezone: 'Australia/Perth',
+          local_time: '20:00',
+          enabled: true,
+          planned: true,
+          occurrences: [
+            { occurrence_id: 'occ-1', schedule_id: 'sched-vault-discovery-daily', revision: 1, due_at: '2026-11-27T12:00:00+00:00', status: 'completed', run_id: 'run-1344bdceb7', reason: null, created_at: '', updated_at: '' },
+          ],
+        },
+      ],
+      count: 1,
+    };
+    const request = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) => new Response(JSON.stringify(payload)));
+    vi.stubGlobal('fetch', request);
+
+    const store = useWorkflowStore();
+    expect(store.schedules).toEqual([]);
+    await store.fetchSchedules(3);
+
+    expect(String(request.mock.calls[0]?.[0])).toContain('/api/host/schedules?limit=3');
+    expect(store.schedules).toHaveLength(1);
+    expect(store.schedules[0].occurrences[0].run_id).toBe('run-1344bdceb7');
+  });
+
+  it('writes schedule changes with the confirm header and refreshes', async () => {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    const request = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: String(url), init });
+      if (String(url).includes('?limit=')) return new Response(JSON.stringify({ schedules: [] }));
+      return new Response(JSON.stringify({ schedule: { schedule_id: 'sched-1' } }));
+    });
+    vi.stubGlobal('fetch', request);
+    const store = useWorkflowStore();
+
+    expect(await store.createSchedule({ schedule_id: 'sched-1', workflow_id: 'wf-1', timezone: 'UTC', local_time: '20:00' })).toBeNull();
+    expect(await store.updateSchedule('sched-1', { enabled: false })).toBeNull();
+    expect(await store.deleteSchedule('sched-1')).toBeNull();
+
+    const [create, update, remove] = calls.filter(c => !c.url.includes('?limit='));
+    expect(create.url).toContain('/api/host/schedules');
+    expect(create.init?.method).toBe('POST');
+    expect(update.init?.method).toBe('PATCH');
+    expect(update.url).toContain('/api/host/schedules/sched-1');
+    expect(remove.init?.method).toBe('DELETE');
+    for (const call of [create, update, remove]) {
+      expect((call.init?.headers as Record<string, string>)['x-ucore-confirm']).toBe('true');
+    }
+    expect(calls.filter(c => c.url.includes('?limit='))).toHaveLength(3);
+  });
+
+  it('reports the server reason when a schedule write is refused', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: 'schedule_id already exists' }), { status: 409 })));
+    const failure = await useWorkflowStore().createSchedule({ schedule_id: 'dup', workflow_id: 'wf-1' });
+    expect(failure).toBe('schedule_id already exists');
+  });
+
+  it('leaves the run list usable when the schedule read fails', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 503 })));
+    const store = useWorkflowStore();
+    await expect(store.fetchSchedules()).resolves.toBeUndefined();
+    expect(store.schedules).toEqual([]);
+  });
+});
+
 describe('workflow run control', () => {
   it('posts a cancel request and refreshes the run list', async () => {
     const request = vi.fn(async (url: RequestInfo | URL, _init?: RequestInit) => {

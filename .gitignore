@@ -24,6 +24,8 @@ build/
 # Node
 node_modules/
 dist/
+# vite-plugin-pwa devOptions output (dev service worker)
+dev-dist/
 
 # Playwright
 test-results/

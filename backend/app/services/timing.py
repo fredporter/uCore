@@ -300,6 +300,50 @@ class TimingStore:
             ).fetchone()
         return dict(row) if row else None
 
+    def remove_schedule(self, schedule_id: str, *, now: datetime | None = None) -> int:
+        """Forget a schedule and skip its unfinished occurrences.
+
+        Returns the number of occurrences skipped. History is kept: completed,
+        skipped and missed rows stay for receipts until retention prunes them.
+        """
+        stamp = (now or datetime.now(UTC)).astimezone(UTC).isoformat()
+        with self._connect() as conn:
+            cursor = conn.execute(
+                """
+                UPDATE occurrence
+                SET status='skipped', reason='schedule-deleted', updated_at=?
+                WHERE schedule_id = ? AND status IN ('pending', 'claimed')
+                """,
+                (stamp, schedule_id),
+            )
+            conn.execute("DELETE FROM schedule WHERE schedule_id = ?", (schedule_id,))
+            conn.commit()
+            return cursor.rowcount
+
+    def list_schedules(self) -> list[dict[str, Any]]:
+        """Reviewed schedules as planned, oldest id first. Read-only."""
+        with self._connect() as conn:
+            rows = conn.execute("SELECT * FROM schedule ORDER BY schedule_id").fetchall()
+        return [dict(row) for row in rows]
+
+    def list_occurrences(
+        self, schedule_id: str | None = None, *, limit: int = 20
+    ) -> list[dict[str, Any]]:
+        """Most recent occurrences, newest due first. Read-only, bounded by limit."""
+        bounded = max(1, min(int(limit), 50))
+        with self._connect() as conn:
+            if schedule_id:
+                rows = conn.execute(
+                    "SELECT * FROM occurrence WHERE schedule_id = ? "
+                    "ORDER BY due_at DESC LIMIT ?",
+                    (schedule_id, bounded),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM occurrence ORDER BY due_at DESC LIMIT ?", (bounded,)
+                ).fetchall()
+        return [dict(row) for row in rows]
+
     def prune_occurrences(self, *, days: int = 30, now: datetime | None = None) -> int:
         """Delete expired finished occurrences; pending and claimed survive."""
         cutoff = ((now or datetime.now(UTC)) - timedelta(days=days)).astimezone(UTC).isoformat()
@@ -363,6 +407,33 @@ async def admit_due(
 
 def schedules_path() -> Path:
     return settings.udos_home / "config" / "schedules.json"
+
+
+def schedule_to_payload(schedule: Schedule) -> dict[str, Any]:
+    """Round-trip form of one reviewed schedule."""
+    return {
+        "schedule_id": schedule.schedule_id,
+        "workflow_id": schedule.workflow_id,
+        "owner": schedule.owner,
+        "kind": schedule.kind,
+        "revision": schedule.revision,
+        "timezone": schedule.timezone,
+        "local_time": schedule.local_time,
+        "delay_seconds": schedule.delay_seconds,
+        "enabled": schedule.enabled,
+    }
+
+
+def write_schedules(schedules: list[Schedule], path: Path | None = None) -> None:
+    """Replace the reviewed schedule file atomically; validation is the caller's."""
+    target = path or schedules_path()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"schedules": [schedule_to_payload(item) for item in schedules]}
+    temporary = target.with_suffix(".json.tmp")
+    temporary.write_text(
+        json.dumps(payload, indent=2, sort_keys=False) + "\n", encoding="utf-8"
+    )
+    temporary.replace(target)
 
 
 def load_schedules(path: Path | None = None) -> list[Schedule]:

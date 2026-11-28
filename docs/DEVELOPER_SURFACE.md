@@ -43,6 +43,7 @@ into two other surfaces:
 | Models, Agents, Budget, History | Intelligence | `/intelligence` |
 | Services, Feeds, Skills, Snacks, Extensions, Logs, MCP | Snackbar | `/snackbar` |
 | Workflow / Missions / Tasks / Editor | Workflow | `/workflow` |
+| Toolchain install, standalone web app, install guide | Engineering | `/engineering` |
 
 ## Lane separation
 
