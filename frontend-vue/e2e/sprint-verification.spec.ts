@@ -182,3 +182,41 @@ test.describe("ten-foot display profile", () => {
     });
   }
 });
+
+test.describe("surface tab strip", () => {
+  test("reveals the selected tab and keeps every tab reachable at 390px", async ({ page }) => {
+    await page.setViewportSize(NARROW);
+    await page.goto("/engineering?section=grid-recipes");
+
+    const strip = page.locator(".surface-tab-nav__scroll");
+    await expect(strip).toBeVisible();
+
+    const active = page.locator(".surface-tab-nav__link--active");
+    await expect(active).toHaveAttribute("aria-current", "page");
+    await expect(active).toContainText("Grid Recipes");
+
+    // The selected tab must sit inside the strip rather than clipped at the edge.
+    await expect(async () => {
+      const visible = await active.evaluate((link) => {
+        const scroller = link.closest(".surface-tab-nav__scroll");
+        if (!scroller) return false;
+        const linkBox = link.getBoundingClientRect();
+        const stripBox = scroller.getBoundingClientRect();
+        return linkBox.left >= stripBox.left - 1 && linkBox.right <= stripBox.right + 1;
+      });
+      expect(visible).toBe(true);
+    }).toPass({ timeout: 5000 });
+
+    // Arrow keys walk the strip and the focused tab follows into view.
+    const links = page.locator(".surface-tab-nav__link");
+    await links.first().focus();
+    await page.keyboard.press("End");
+    await expect(links.last()).toBeFocused();
+    await page.keyboard.press("Home");
+    await expect(links.first()).toBeFocused();
+
+    // Pinned actions stay outside the scroller, and the page never scrolls sideways.
+    expect(await page.locator(".surface-tab-nav__scroll .surface-tab-nav__actions").count()).toBe(0);
+    expect(await noHorizontalOverflow(page)).toBe(true);
+  });
+});
