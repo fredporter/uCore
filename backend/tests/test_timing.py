@@ -110,6 +110,26 @@ def test_calendar_occurrence_identity_is_stable(tmp_path):
     assert occurrence["status"] == "pending"
 
 
+def test_occurrences_are_listed_newest_first_and_bounded(tmp_path):
+    store = _store(tmp_path)
+    schedule = _calendar()
+    store.upsert_schedule(schedule)
+    for day in (date(2026, 11, 26), date(2026, 11, 27), date(2026, 11, 28)):
+        store.plan_calendar(schedule, day)
+
+    rows = store.list_occurrences("s-1")
+    assert [row["due_at"] for row in rows] == [
+        "2026-11-28T09:00:00+00:00",
+        "2026-11-27T09:00:00+00:00",
+        "2026-11-26T09:00:00+00:00",
+    ]
+
+    assert len(store.list_occurrences("s-1", limit=2)) == 2
+    assert store.list_occurrences("s-1", limit=0)  # clamped, never empty by request
+    assert store.list_occurrences("missing") == []
+    assert [row["schedule_id"] for row in store.list_schedules()] == ["s-1"]
+
+
 def test_an_obsolete_revision_is_never_claimed(tmp_path):
     store = _store(tmp_path)
     store.upsert_schedule(_calendar())

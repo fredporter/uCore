@@ -300,6 +300,30 @@ class TimingStore:
             ).fetchone()
         return dict(row) if row else None
 
+    def list_schedules(self) -> list[dict[str, Any]]:
+        """Reviewed schedules as planned, oldest id first. Read-only."""
+        with self._connect() as conn:
+            rows = conn.execute("SELECT * FROM schedule ORDER BY schedule_id").fetchall()
+        return [dict(row) for row in rows]
+
+    def list_occurrences(
+        self, schedule_id: str | None = None, *, limit: int = 20
+    ) -> list[dict[str, Any]]:
+        """Most recent occurrences, newest due first. Read-only, bounded by limit."""
+        bounded = max(1, min(int(limit), 50))
+        with self._connect() as conn:
+            if schedule_id:
+                rows = conn.execute(
+                    "SELECT * FROM occurrence WHERE schedule_id = ? "
+                    "ORDER BY due_at DESC LIMIT ?",
+                    (schedule_id, bounded),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM occurrence ORDER BY due_at DESC LIMIT ?", (bounded,)
+                ).fetchall()
+        return [dict(row) for row in rows]
+
     def prune_occurrences(self, *, days: int = 30, now: datetime | None = None) -> int:
         """Delete expired finished occurrences; pending and claimed survive."""
         cutoff = ((now or datetime.now(UTC)) - timedelta(days=days)).astimezone(UTC).isoformat()

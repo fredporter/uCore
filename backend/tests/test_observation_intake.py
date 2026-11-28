@@ -320,3 +320,60 @@ async def test_tick_endpoint_uses_the_shared_admission_path(monkeypatch):
     assert calls == ["admit"]
 
 
+async def test_schedules_endpoint_reports_planned_occurrences(tmp_path, monkeypatch):
+    """GET /api/host/schedules exposes schedules and their occurrences read-only."""
+    from datetime import date
+
+    from aiohttp.test_utils import make_mocked_request
+
+    from app.api import observation_api
+    from app.services import execution_authority
+    from app.services import timing as timing_module
+
+    store = timing_module.TimingStore(tmp_path / "timing.db")
+    schedule = timing_module.Schedule(
+        schedule_id="sched-vault",
+        workflow_id="wf-vault",
+        owner="default",
+        kind="calendar",
+        revision=1,
+        timezone="Australia/Perth",
+        local_time="20:00",
+    )
+    store.upsert_schedule(schedule)
+    store.plan_calendar(schedule, date(2026, 11, 27))
+
+    monkeypatch.setattr(execution_authority, "active_identity", lambda: {"authenticated": True})
+    monkeypatch.setattr(timing_module, "TimingStore", lambda *a, **k: store)
+    monkeypatch.setattr(timing_module, "load_schedules", lambda *a, **k: [schedule])
+
+    response = await observation_api.handle_schedules(
+        make_mocked_request("GET", "/api/host/schedules")
+    )
+    payload = json.loads(response.text)
+
+    assert response.status == 200
+    assert payload["count"] == 1
+    entry = payload["schedules"][0]
+    assert entry["schedule_id"] == "sched-vault"
+    assert entry["workflow_id"] == "wf-vault"
+    assert entry["timezone"] == "Australia/Perth"
+    assert entry["planned"] is True
+    assert [row["status"] for row in entry["occurrences"]] == ["pending"]
+
+
+async def test_schedules_endpoint_requires_a_profile(monkeypatch):
+    from aiohttp.test_utils import make_mocked_request
+
+    from app.api import observation_api
+    from app.services import execution_authority
+
+    monkeypatch.setattr(
+        execution_authority, "active_identity", lambda: {"authenticated": False}
+    )
+    response = await observation_api.handle_schedules(
+        make_mocked_request("GET", "/api/host/schedules")
+    )
+    assert response.status == 403
+
+

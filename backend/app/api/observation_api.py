@@ -79,7 +79,53 @@ async def handle_schedule_tick(request: web.Request) -> web.Response:
     return web.json_response({"count": len(results), "results": results})
 
 
+async def handle_schedules(request: web.Request) -> web.Response:
+    """GET /api/host/schedules — reviewed schedules and their recent occurrences.
+
+    Read-only: no admission, no authority. Run ids link an occurrence to the run
+    the Gate A contract created, so scheduled work is visible without opening
+    the database.
+    """
+    from app.services.execution_authority import active_identity
+    from app.services.timing import TimingStore, load_schedules
+
+    identity = active_identity()
+    if not identity.get("authenticated", True):
+        return web.json_response(
+            {"error": "Authenticate a local profile to read schedules"}, status=403
+        )
+
+    try:
+        limit = int(request.query.get("limit", "10"))
+    except ValueError:
+        return web.json_response({"error": "limit must be an integer"}, status=400)
+
+    store = TimingStore()
+    planned = {item.schedule_id: item for item in load_schedules()}
+    rows = {row["schedule_id"]: row for row in store.list_schedules()}
+
+    schedules: list[dict] = []
+    for schedule_id, config in planned.items():
+        row = rows.get(schedule_id, {})
+        schedules.append(
+            {
+                "schedule_id": schedule_id,
+                "workflow_id": config.workflow_id,
+                "kind": config.kind,
+                "revision": config.revision,
+                "timezone": config.timezone,
+                "local_time": config.local_time,
+                "enabled": config.enabled,
+                "planned": bool(row),
+                "occurrences": store.list_occurrences(schedule_id, limit=limit),
+            }
+        )
+    schedules.sort(key=lambda item: item["schedule_id"])
+    return web.json_response({"schedules": schedules, "count": len(schedules)})
+
+
 def register_observation_routes(app: web.Application) -> None:
     app.router.add_post("/api/host/observations", handle_observation)
     app.router.add_post("/api/host/observations/dispatch", handle_dispatch)
     app.router.add_post("/api/host/schedules/tick", handle_schedule_tick)
+    app.router.add_get("/api/host/schedules", handle_schedules)
