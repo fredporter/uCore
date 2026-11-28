@@ -30,6 +30,14 @@ export default defineConfig({
     }),
     VitePWA({
       registerType: "autoUpdate",
+      // Off during normal development: a service worker in the dev loop serves
+      // stale assets after edits. The standalone install path opts in with
+      // UCORE_PWA_DEV=1, which scripts/enable-engineering-https.sh sets.
+      devOptions: {
+        enabled: process.env.UCORE_PWA_DEV === "1",
+        type: "module",
+        navigateFallback: "index.html",
+      },
       manifest: {
         name: "uCore",
         short_name: "uCore",
@@ -38,6 +46,11 @@ export default defineConfig({
         background_color: "#111318",
         display: "standalone",
         start_url: "/",
+        icons: [
+          { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: "/icon-1024.png", sizes: "1024x1024", type: "image/png" },
+        ],
       },
       workbox: {
         navigateFallback: "/index.html",
